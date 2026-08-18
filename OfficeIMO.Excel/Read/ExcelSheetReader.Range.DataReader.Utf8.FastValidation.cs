@@ -65,27 +65,6 @@ namespace OfficeIMO.Excel {
                 }
 #endif
 
-                if (_sheetDataContentStart >= 0
-                    && _sheetDataEndTagStart >= _sheetDataContentStart) {
-                    ct.ThrowIfCancellationRequested();
-                    ReadOnlySpan<byte> sheetData = _buffer!.AsSpan(
-                        _sheetDataContentStart,
-                        _sheetDataEndTagStart - _sheetDataContentStart);
-#if NET8_0_OR_GREATER
-                    if (sheetData.IndexOf("<!"u8) >= 0 || sheetData.IndexOf("<?"u8) >= 0) {
-                        return false;
-                    }
-#else
-                    for (int index = 0; index + 1 < sheetData.Length; index++) {
-                        if (sheetData[index] == (byte)'<'
-                            && sheetData[index + 1] is (byte)'!' or (byte)'?') {
-                            return false;
-                        }
-                    }
-#endif
-                    ct.ThrowIfCancellationRequested();
-                }
-
                 Span<int> nameStarts = stackalloc int[MaximumFastXmlDepth];
                 Span<int> nameLengths = stackalloc int[MaximumFastXmlDepth];
                 Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];

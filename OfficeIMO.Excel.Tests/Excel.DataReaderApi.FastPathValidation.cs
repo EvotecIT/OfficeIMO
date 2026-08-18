@@ -6,6 +6,97 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Fact]
+    public void OpenDataReader_ReadsCanonicalDenseRowsWhenValidatedRowShapeChanges() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string canonicalXml = worksheetXml.Replace(" t=\"n\"", string.Empty);
+            string changedRowXml = canonicalXml.Replace(
+                "<row r=\"3\"",
+                "<row customFormat=\"1\" r=\"3\"");
+            Assert.NotEqual(canonicalXml, changedRowXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(changedRowXml));
+
+            AssertCompactNumericRows(path);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_ValidatesMarkupBetweenCanonicalDenseRows() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string canonicalXml = worksheetXml.Replace(" t=\"n\"", string.Empty);
+            string validXml = canonicalXml.Replace(
+                "<row r=\"3\"",
+                "<!--validated boundary--><row r=\"3\"");
+            Assert.NotEqual(canonicalXml, validXml);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(validXml));
+            AssertCompactNumericRows(path);
+
+            string malformedXml = canonicalXml.Replace(
+                "<row r=\"3\"",
+                "<!--invalid--comment--><row r=\"3\"");
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenDataReader_AcceptsValidatedMarkupBeforeIndexedRowEnd(bool emptyRow) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string canonicalXml = worksheetXml.Replace(" t=\"n\"", string.Empty);
+            string markedXml = InsertMarkupBeforeThirdRowEnd(
+                canonicalXml,
+                "<!--validated row boundary-->",
+                emptyRow);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(markedXml));
+
+            using var reader = ExcelDocument.OpenDataReader(path);
+            while (reader.Read()) {
+            }
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, "<!--invalid--comment-->")]
+    [InlineData(true, "<!--invalid--comment-->")]
+    [InlineData(false, "<?xml version=\"1.0\"?>")]
+    [InlineData(true, "<?xml version=\"1.0\"?>")]
+    public void OpenDataReader_RejectsMalformedMarkupBeforeIndexedRowEnd(
+        bool emptyRow,
+        string malformedMarkup) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/worksheets/sheet1.xml";
+            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            string canonicalXml = worksheetXml.Replace(" t=\"n\"", string.Empty);
+            string malformedXml = InsertMarkupBeforeThirdRowEnd(
+                canonicalXml,
+                malformedMarkup,
+                emptyRow);
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+
+            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_RejectsDuplicateCellAttributesOnCompactFastPath() {
         string path = CreateCompactFastPathWorkbook();
         try {
@@ -291,8 +382,37 @@ public partial class Excel {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 42);
+            sheet.CellValue(3, 1, 43);
             document.Save();
         }
         return path;
+    }
+
+    private static void AssertCompactNumericRows(string path) {
+        using var reader = ExcelDocument.OpenDataReader(path);
+        Assert.True(reader.Read());
+        Assert.Equal(42, reader.GetInt32(0));
+        Assert.True(reader.Read());
+        Assert.Equal(43, reader.GetInt32(0));
+        Assert.False(reader.Read());
+    }
+
+    private static string InsertMarkupBeforeThirdRowEnd(
+        string worksheetXml,
+        string markup,
+        bool emptyRow) {
+        int rowStart = worksheetXml.IndexOf("<row r=\"3\"", StringComparison.Ordinal);
+        Assert.True(rowStart >= 0);
+        int contentStart = worksheetXml.IndexOf('>', rowStart) + 1;
+        Assert.True(contentStart > rowStart);
+        int rowEnd = worksheetXml.IndexOf("</row>", contentStart, StringComparison.Ordinal);
+        Assert.True(rowEnd >= contentStart);
+        string rowContent = emptyRow
+            ? string.Empty
+            : worksheetXml.Substring(contentStart, rowEnd - contentStart);
+        return worksheetXml.Substring(0, contentStart)
+            + rowContent
+            + markup
+            + worksheetXml.Substring(rowEnd);
     }
 }
