@@ -1,24 +1,31 @@
 using BenchmarkDotNet.Attributes;
+using ExcelReader.Core.Writer;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
-/// Measures the same public, plain-tabular write contract for OfficeIMO's two
-/// native binary workbook formats. This is a throughput/allocation lane, not a
-/// cross-format ranking: XLS and XLSB are different physical contracts.
+/// Provides a diagnostic scenario for OfficeIMO's native binary workbook
+/// formats and ExcelReader.NET. The competitor output is not exposed as a
+/// BenchmarkDotNet result because it fails the required XLS/XLSB structures.
 /// </summary>
-[MemoryDiagnoser]
-public class ExcelNativeBinaryWriteBenchmarks {
+internal sealed class ExcelNativeBinaryWriteBenchmarks {
     private BinaryWriteRow[] _rows = null!;
 
-    [Params(2_500, 25_000)]
     public int RowCount { get; set; }
 
-    [Params(ExcelFileFormat.Xls, ExcelFileFormat.Xlsb)]
+    // ExcelReader.NET 2.1.2 omits the required BrtWsDim record from XLSB.
+    // Its XLS writer also omits the BIFF8 Index/Row/DBCell cell-table structure,
+    // so this XLS comparison is a diagnostic throughput lane rather than a
+    // format-conformance-equivalent result.
     public ExcelFileFormat Format { get; set; }
 
-    [GlobalSetup]
     public void Setup() {
+        SetupOfficeIMOOnly();
+        byte[] excelReaderWorkbook = WriteExcelReaderWorkbook();
+        Validate(excelReaderWorkbook);
+    }
+
+    internal void SetupOfficeIMOOnly() {
         _rows = new BinaryWriteRow[RowCount];
         for (int index = 0; index < _rows.Length; index++) {
             _rows[index] = new BinaryWriteRow(
@@ -33,29 +40,93 @@ public class ExcelNativeBinaryWriteBenchmarks {
         Validate(workbook);
     }
 
-    [Benchmark]
     public int OfficeIMO_PublicTabularWrite() => WriteWorkbook().Length;
+
+    public int ExcelReaderNet_DiagnosticWrite() => WriteExcelReaderWorkbook().Length;
 
     private byte[] WriteWorkbook() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Id");
-        sheet.CellValue(1, 2, "Region");
-        sheet.CellValue(1, 3, "Owner");
-        sheet.CellValue(1, 4, "Amount");
-        sheet.CellValue(1, 5, "Active");
+        sheet.InsertObjects(
+            _rows,
+            ("Id", static row => row.Id),
+            ("Region", static row => row.Region),
+            ("Owner", static row => row.Owner),
+            ("Amount", static row => row.Amount),
+            ("Active", static row => row.Active));
 
-        for (int index = 0; index < _rows.Length; index++) {
-            int row = index + 2;
-            BinaryWriteRow value = _rows[index];
-            sheet.CellValue(row, 1, value.Id);
-            sheet.CellValue(row, 2, value.Region);
-            sheet.CellValue(row, 3, value.Owner);
-            sheet.CellValue(row, 4, value.Amount);
-            sheet.CellValue(row, 5, value.Active);
+        byte[] workbook = document.ToBytes(Format);
+        if (document.LastSaveDiagnostics.Writer != ExcelSavePackageWriter.NativeBinaryDirectPackage) {
+            throw new InvalidOperationException(
+                $"OfficeIMO {Format} benchmark did not use the native direct tabular writer: "
+                + document.LastSaveDiagnostics.FastPackageSkipReason);
         }
 
-        return document.ToBytes(Format);
+        return workbook;
+    }
+
+    private byte[] WriteExcelReaderWorkbook() => Format switch {
+        ExcelFileFormat.Xls => WriteExcelReaderXlsWorkbook(),
+        ExcelFileFormat.Xlsb => WriteExcelReaderXlsbWorkbook(),
+        _ => throw new InvalidOperationException($"ExcelReader.NET binary benchmark does not support {Format}.")
+    };
+
+    private byte[] WriteExcelReaderXlsWorkbook() {
+        using var stream = new MemoryStream();
+        using XlsWorkbookWriter workbook = XlsWorkbookWriter.Create(stream, leaveOpen: true);
+        workbook.Start();
+        using (XlsSheetWriter sheet = workbook.AddSheet("Data")) {
+            sheet.Start();
+            using (XlsRowWriter header = sheet.StartRow()) {
+                WriteHeaders(header);
+            }
+
+            foreach (BinaryWriteRow value in _rows) {
+                using XlsRowWriter row = sheet.StartRow();
+                WriteRow(row, value);
+            }
+            sheet.End();
+        }
+        workbook.End();
+        return stream.ToArray();
+    }
+
+    private byte[] WriteExcelReaderXlsbWorkbook() {
+        using var stream = new MemoryStream();
+        using XlsbWorkbookWriter workbook = XlsbWorkbookWriter.Create(stream, leaveOpen: true);
+        workbook.Start();
+        using (XlsbSheetWriter sheet = workbook.AddSheet("Data")) {
+            sheet.Start();
+            using (XlsbRowWriter header = sheet.StartRow()) {
+                WriteHeaders(header);
+            }
+
+            foreach (BinaryWriteRow value in _rows) {
+                using XlsbRowWriter row = sheet.StartRow();
+                WriteRow(row, value);
+            }
+            sheet.End();
+        }
+        workbook.End();
+        return stream.ToArray();
+    }
+
+    private static void WriteHeaders<TRow>(TRow row)
+        where TRow : IRowWriter {
+        row.Write("Id");
+        row.Write("Region");
+        row.Write("Owner");
+        row.Write("Amount");
+        row.Write("Active");
+    }
+
+    private static void WriteRow<TRow>(TRow row, BinaryWriteRow value)
+        where TRow : IRowWriter {
+        row.Write(value.Id);
+        row.Write(value.Region);
+        row.Write(value.Owner);
+        row.Write(value.Amount);
+        row.Write(value.Active);
     }
 
     private void Validate(byte[] workbook) {
@@ -95,4 +166,32 @@ public class ExcelNativeBinaryWriteBenchmarks {
     }
 
     private readonly record struct BinaryWriteRow(int Id, string Region, string Owner, double Amount, bool Active);
+}
+
+/// <summary>
+/// Measures OfficeIMO's validated native binary write paths without ranking
+/// structurally invalid competitor output.
+/// </summary>
+[MemoryDiagnoser]
+public class OfficeNativeBinaryWriteBenchmarks {
+    private ExcelNativeBinaryWriteBenchmarks _scenario = null!;
+
+    [Params(2_500, 25_000)]
+    public int RowCount { get; set; }
+
+    [Params(ExcelFileFormat.Xls, ExcelFileFormat.Xlsb)]
+    public ExcelFileFormat Format { get; set; }
+
+    [GlobalSetup]
+    public void Setup() {
+        _scenario = new ExcelNativeBinaryWriteBenchmarks {
+            RowCount = RowCount,
+            Format = Format
+        };
+        _scenario.SetupOfficeIMOOnly();
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ValidatedNativeBinaryWrite() =>
+        _scenario.OfficeIMO_PublicTabularWrite();
 }

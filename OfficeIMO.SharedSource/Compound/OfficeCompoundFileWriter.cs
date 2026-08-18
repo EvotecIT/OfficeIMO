@@ -21,9 +21,10 @@ namespace OfficeIMO.Core.Internal {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
-            using (var output = new MemoryStream()) {
-                Write(output, streams, rootClassId);
-                return output.ToArray();
+            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            using (var output = CreateExactOutput(layout)) {
+                Write(output, layout, rootClassId);
+                return GetExactOutputBuffer(output);
             }
         }
 
@@ -83,13 +84,15 @@ namespace OfficeIMO.Core.Internal {
             if (streams.Count == 0) {
                 throw new ArgumentException("At least one compound stream is required.", nameof(source));
             }
-            using (var output = new MemoryStream()) {
-                Write(output, OfficeCompoundWriterLayout.Create(streams,
-                        source, removals),
+            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams, source, removals);
+            using (var output = CreateExactOutput(layout)) {
+                Write(
+                    output,
+                    layout,
                     source.RootEntry.ClassId == Guid.Empty
                         ? null
                         : source.RootEntry.ClassId);
-                return output.ToArray();
+                return GetExactOutputBuffer(output);
             }
         }
 
@@ -184,7 +187,10 @@ namespace OfficeIMO.Core.Internal {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
-            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            return GetSerializedLength(OfficeCompoundWriterLayout.Create(streams));
+        }
+
+        private static long GetSerializedLength(OfficeCompoundWriterLayout layout) {
             int regularStreamSectorCount = 0;
             int miniSectorCount = 0;
             foreach (OfficeCompoundWriterEntry stream in layout.Streams) {
@@ -210,6 +216,25 @@ namespace OfficeIMO.Core.Internal {
             CalculateAllocationTableSectorCounts(sectorCountBeforeFat, out int fatSectorCount,
                 out int difatSectorCount);
             return checked((1L + sectorCountBeforeFat + fatSectorCount + difatSectorCount) * SectorSize);
+        }
+
+        private static MemoryStream CreateExactOutput(OfficeCompoundWriterLayout layout) {
+            long serializedLength = GetSerializedLength(layout);
+            if (serializedLength > int.MaxValue) {
+                throw new NotSupportedException(
+                    "A compound file returned as a byte array cannot exceed 2 GiB.");
+            }
+
+            return new MemoryStream(checked((int)serializedLength));
+        }
+
+        private static byte[] GetExactOutputBuffer(MemoryStream output) {
+            if (output.Length != output.Capacity) {
+                throw new InvalidDataException(
+                    "The compound writer did not produce its planned serialized length.");
+            }
+
+            return output.GetBuffer();
         }
 
         private static int CalculateDirectorySectorCount(int directoryEntryCount) {

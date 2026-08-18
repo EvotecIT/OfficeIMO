@@ -121,6 +121,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (totalRows > 1_048_576 || rows.ColumnCount > 16_384) {
                 throw new NotSupportedException("Native XLSB saving supports 1,048,576 rows and 16,384 columns per worksheet.");
             }
+            object?[]? flatValues = rows.TryGetFlatValues(out object?[] candidateValues, out int flatColumnCount)
+                && flatColumnCount == rows.ColumnCount
+                && candidateValues.Length == checked(rows.RowCount * rows.ColumnCount)
+                    ? candidateValues
+                    : null;
 
             using var output = new MemoryStream(EstimateDirectWorksheetCapacity(totalRows, rows.ColumnCount));
             using var writer = new XlsbDirectRecordWriter(output);
@@ -136,14 +141,24 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
             }
 
+            bool canCancel = cancellationToken.CanBeCanceled;
             for (int row = 0; row < rows.RowCount; row++) {
-                if ((row & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (canCancel && (row & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int zeroBasedRow = row + rowOffset;
                 if (rows.ColumnCount != 0) {
                     WriteDirectRowHeader(writer, zeroBasedRow, rows.ColumnCount);
                 }
+                object?[]? bufferedRow = flatValues == null
+                    && rows.TryGetBufferedRow(row, out object?[]? candidateRow)
+                    && candidateRow?.Length == rows.ColumnCount
+                        ? candidateRow
+                        : null;
                 for (int column = 0; column < rows.ColumnCount; column++) {
-                    ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rows.GetValue(row, column));
+                    ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(flatValues != null
+                        ? flatValues[checked((row * rows.ColumnCount) + column)]
+                        : bufferedRow != null
+                            ? bufferedRow[column]
+                            : rows.GetValue(row, column));
                     switch (value.Kind) {
                         case ExcelDirectTabularValueKind.Empty:
                             break;
@@ -165,6 +180,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             writer.WriteRecord(BrtEndSheetData);
             writer.WriteRecord(BrtEndSheet);
+            writer.Flush();
             worksheetPart = new ArraySegment<byte>(output.GetBuffer(), 0, checked((int)output.Length));
             return true;
         }

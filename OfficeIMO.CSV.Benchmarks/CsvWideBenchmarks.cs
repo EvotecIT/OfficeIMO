@@ -17,6 +17,10 @@ using SepWriterOptions = nietras.SeparatedValues.SepWriterOptions;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
 using SylvanCsvDataWriter = Sylvan.Data.Csv.CsvDataWriter;
 using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
+using ExcelReaderNetCsvReader = ExcelReader.Core.Reader.CsvReader;
+using ExcelReaderNetCsvRowWriter = ExcelReader.Core.Writer.CsvRowWriter;
+using ExcelReaderNetCsvWriter = ExcelReader.Core.Writer.CsvWriter;
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
@@ -34,6 +38,7 @@ public class CsvWideBenchmarks
     private object?[][] _rows = [];
     private string?[][] _textRows = [];
     private string _csvText = string.Empty;
+    private byte[] _csvUtf8 = [];
     private bool _captureWriteOutput;
     private string? _capturedWriteOutput;
     private string _csvPath = string.Empty;
@@ -53,6 +58,7 @@ public class CsvWideBenchmarks
         csv.WriteRows(Headers, _rows);
 
         _csvText = writer.ToString();
+        _csvUtf8 = Encoding.UTF8.GetBytes(_csvText);
         _csvPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Benchmarks.{Guid.NewGuid():N}.csv");
         File.WriteAllText(_csvPath, _csvText, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
@@ -80,6 +86,8 @@ public class CsvWideBenchmarks
         ValidateWriteOutput(nameof(Sylvan_WriteProjectedRows), Sylvan_WriteProjectedRows, expectedObjectRows: _rows);
         ValidateWriteOutput(nameof(Dataplat_WriteProjectedRows), Dataplat_WriteProjectedRows, expectedObjectRows: _rows);
         ValidateWriteOutput(nameof(Dataplat_WriteFromReader), Dataplat_WriteFromReader, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRowsUtf8Stream), OfficeIMO_WriteProjectedRowsUtf8Stream, expectedObjectRows: _rows, reportsUtf8Bytes: true);
+        ValidateWriteOutput(nameof(ExcelReaderNet_WriteProjectedRowsUtf8Stream), ExcelReaderNet_WriteProjectedRowsUtf8Stream, expectedObjectRows: _rows, reportsUtf8Bytes: true);
 
         ValidateWriteOutput(nameof(OfficeIMO_WriteValidatedTextRows), OfficeIMO_WriteValidatedTextRows, _textRows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteTextRows), OfficeIMO_WriteTextRows, _textRows);
@@ -93,7 +101,8 @@ public class CsvWideBenchmarks
         string method,
         Func<int> write,
         string?[][]? expectedTextRows = null,
-        object?[][]? expectedObjectRows = null)
+        object?[][]? expectedObjectRows = null,
+        bool reportsUtf8Bytes = false)
     {
         _captureWriteOutput = true;
         _capturedWriteOutput = null;
@@ -102,9 +111,11 @@ public class CsvWideBenchmarks
             var reportedLength = write();
             var output = _capturedWriteOutput
                 ?? throw new InvalidOperationException($"{method} did not expose its output to benchmark preflight.");
-            if (reportedLength != output.Length)
+            int expectedLength = reportsUtf8Bytes ? Encoding.UTF8.GetByteCount(output) : output.Length;
+            if (reportedLength != expectedLength)
             {
-                throw new InvalidOperationException($"{method} reported {reportedLength} characters but produced {output.Length}.");
+                string unit = reportsUtf8Bytes ? "UTF-8 bytes" : "characters";
+                throw new InvalidOperationException($"{method} reported {reportedLength} {unit} but produced {expectedLength}.");
             }
 
             CsvBenchmarkOutputValidator.Validate(method, output, Headers, RowCount, expectedTextRows, expectedObjectRows);
@@ -153,6 +164,9 @@ public class CsvWideBenchmarks
         ValidateReadOutput(nameof(Dataplat_ReadDataTableLoad), Dataplat_ReadDataTableLoad, dataChecksum);
         ValidateReadOutput(nameof(Sep_ReadFields), Sep_ReadFields, dataChecksum);
         ValidateReadOutput(nameof(Sep_ReadFieldSpans), Sep_ReadFieldSpans, dataChecksum);
+        CsvWideReadObservation expectedUtf8Observation = ObserveRows(_textRows);
+        ValidateUtf8ReadOutput(nameof(OfficeIMO_ReadUtf8Fields), OfficeIMO_ReadUtf8Fields, expectedUtf8Observation);
+        ValidateUtf8ReadOutput(nameof(ExcelReaderNet_ReadUtf8Fields), ExcelReaderNet_ReadUtf8Fields, expectedUtf8Observation);
     }
 
     private static void ValidateReadOutput(string method, Func<int> read, int expectedChecksum)
@@ -184,6 +198,30 @@ public class CsvWideBenchmarks
         }
 
         return output.Length;
+    }
+
+    private static void ValidateUtf8ReadOutput(
+        string method,
+        Func<CsvWideReadObservation> read,
+        CsvWideReadObservation expected)
+    {
+        CsvWideReadObservation actual = read();
+        if (actual != expected)
+        {
+            throw new InvalidOperationException(
+                $"{method} returned {actual}; expected {expected}. The benchmark lane did not read the exact ordered UTF-8 CSV payload.");
+        }
+    }
+
+    private int CompleteUtf8Write(MemoryStream stream)
+    {
+        if (_captureWriteOutput)
+        {
+            string output = Encoding.UTF8.GetString(stream.GetBuffer(), 0, checked((int)stream.Length));
+            _capturedWriteOutput = output;
+        }
+
+        return checked((int)stream.Length);
     }
 
     [GlobalCleanup]
@@ -366,6 +404,55 @@ public class CsvWideBenchmarks
         using var csv = new DataplatCsvWriter(writer, DataplatWriterOptions);
         csv.WriteFromReader(reader);
         return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteProjectedRowsUtf8Stream()
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new StreamWriter(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            bufferSize: 16 * 1024,
+            leaveOpen: true))
+        {
+            using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+            csv.WriteRows(Headers, _rows);
+            writer.Flush();
+        }
+
+        return CompleteUtf8Write(stream);
+    }
+
+    [Benchmark]
+    public int ExcelReaderNet_WriteProjectedRowsUtf8Stream()
+    {
+        using var stream = new MemoryStream();
+        using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        {
+            using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
+            {
+                foreach (string value in Headers)
+                {
+                    header.Write(value);
+                }
+            }
+
+            foreach (object?[] values in _rows)
+            {
+                using ExcelReaderNetCsvRowWriter row = csv.StartRow();
+                row.Write((int)values[0]!);
+                row.Write((string?)values[1]);
+                row.Write((DateTime)values[2]!);
+                row.Write((bool)values[3]!);
+                for (int column = 4; column < values.Length; column++)
+                {
+                    row.Write((decimal)values[column]!);
+                }
+            }
+        }
+
+        return CompleteUtf8Write(stream);
     }
 
     [Benchmark]
@@ -700,6 +787,63 @@ public class CsvWideBenchmarks
         return fieldCount;
     }
 
+    [Benchmark]
+    public CsvWideReadObservation OfficeIMO_ReadUtf8Fields()
+    {
+        using var stream = new MemoryStream(_csvUtf8, writable: false);
+        using var reader = CsvDocument.OpenDataReader(stream);
+        var observation = CsvWideReadObservation.Empty;
+        while (reader.Read())
+        {
+            observation = observation.StartRow();
+            for (int column = 0; column < reader.FieldCount; column++)
+            {
+                observation = observation.Append(reader.GetString(column));
+            }
+        }
+
+        return observation;
+    }
+
+    [Benchmark]
+    public CsvWideReadObservation ExcelReaderNet_ReadUtf8Fields()
+    {
+        using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
+        var observation = CsvWideReadObservation.Empty;
+        bool header = true;
+        foreach (ExcelReader.Core.ValueObjects.Row row in reader)
+        {
+            if (header)
+            {
+                header = false;
+                continue;
+            }
+
+            observation = observation.StartRow();
+            for (int column = 0; column < Headers.Length; column++)
+            {
+                observation = observation.Append(row[column].GetString());
+            }
+        }
+
+        return observation;
+    }
+
+    private static CsvWideReadObservation ObserveRows(IEnumerable<string?[]> rows)
+    {
+        var observation = CsvWideReadObservation.Empty;
+        foreach (string?[] row in rows)
+        {
+            observation = observation.StartRow();
+            foreach (string? value in row)
+            {
+                observation = observation.Append(value ?? string.Empty);
+            }
+        }
+
+        return observation;
+    }
+
     private static string[] CreateHeaders()
     {
         var headers = new string[40];
@@ -756,6 +900,31 @@ public class CsvWideBenchmarks
             return true;
         }
     }
+}
+
+public readonly record struct CsvWideReadObservation(int RowCount, int CellCount, ulong PayloadHash)
+{
+    private const ulong OffsetBasis = 14695981039346656037UL;
+    private const ulong Prime = 1099511628211UL;
+
+    internal static CsvWideReadObservation Empty => new(0, 0, OffsetBasis);
+
+    internal CsvWideReadObservation StartRow() =>
+        new(RowCount + 1, CellCount, Mix(PayloadHash, 0xFFFF));
+
+    internal CsvWideReadObservation Append(string value)
+    {
+        ulong hash = Mix(PayloadHash, 0xFFFE);
+        foreach (char character in value)
+        {
+            hash = Mix(hash, character);
+        }
+
+        return new CsvWideReadObservation(RowCount, CellCount + 1, hash);
+    }
+
+    private static ulong Mix(ulong hash, int value) =>
+        unchecked((hash ^ (uint)value) * Prime);
 }
 
 internal static class CsvWideBenchmarkData

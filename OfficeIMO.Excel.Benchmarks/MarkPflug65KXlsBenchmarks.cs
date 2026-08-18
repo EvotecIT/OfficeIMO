@@ -1,10 +1,11 @@
 using System.Data.Common;
-using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using ExcelReader.Core.Reader;
 using OfficeIMO.Benchmarks;
 using Sylvan.Data.Excel;
 using SylvanExcelDataReader = Sylvan.Data.Excel.ExcelDataReader;
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
@@ -33,6 +34,12 @@ public class MarkPflug65KXlsBenchmarks {
     }
 
     [Benchmark]
+    public ExcelReadObservation ExcelReaderNet() {
+        using XlsReader reader = ExcelReaderApi.FromXlsFile(MarkPflug65KFixture.XlsPath);
+        return Validate(nameof(ExcelReaderNet), MarkPflug65KXlsxBenchmarks.ObserveExcelReader(reader));
+    }
+
+    [Benchmark]
     public ExcelReadObservation Sylvan() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsPath);
         using SylvanExcelDataReader reader = SylvanExcelDataReader.Create(
@@ -53,12 +60,7 @@ public class MarkPflug65KXlsBenchmarks {
 
         var observation = new ExcelObservationAccumulator();
         while (reader.Read()) {
-            MarkPflug65KXlsxBenchmarks.AddRow(
-                ref observation,
-                ordinal => Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty,
-                ordinal => MarkPflug65KXlsxBenchmarks.ReadDate(reader.GetValue(ordinal)),
-                ordinal => Convert.ToInt32(reader.GetValue(ordinal), CultureInfo.InvariantCulture),
-                ordinal => Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
+            MarkPflug65KXlsxBenchmarks.AddExcelDataReaderRow(ref observation, reader);
         }
 
         return Validate(nameof(ExcelDataReader), observation.Build());

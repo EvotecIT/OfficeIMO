@@ -7,10 +7,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     /// This avoids issuing a separate virtual stream call for every primitive byte.
     /// </summary>
     internal sealed class XlsbDirectRecordWriter : IDisposable {
-        private const int BufferSize = 4 * 1024;
+        private const int BufferSize = 32 * 1024;
 
         private readonly Stream _stream;
         private byte[]? _buffer;
+        private int _position;
 
         internal XlsbDirectRecordWriter(Stream stream) {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
@@ -21,16 +22,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal void WriteRecord(int recordType) => WriteHeader(recordType, payloadLength: 0);
 
         internal void WriteHeader(int recordType, int payloadLength) {
-            byte[] buffer = GetBuffer();
-            int count = XlsbRecordWriter.EncodeHeader(recordType, payloadLength, buffer);
-            _stream.Write(buffer, 0, count);
+            byte[] buffer = EnsureAvailable(6);
+            _position += XlsbRecordWriter.EncodeHeader(recordType, payloadLength, buffer, _position);
         }
 
         internal void WriteRowHeader(int recordType, int zeroBasedRow, int columnCount, byte[] defaultRowProperties) {
             int spanCount = checked((columnCount + 1023) / 1024);
             int payloadLength = checked(17 + spanCount * 8);
-            byte[] buffer = GetBuffer();
-            int offset = XlsbRecordWriter.EncodeHeader(recordType, payloadLength, buffer);
+            byte[] buffer = EnsureAvailable(checked(6 + payloadLength));
+            int offset = _position;
+            offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength, buffer, offset);
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedRow));
             Buffer.BlockCopy(defaultRowProperties, 0, buffer, offset, defaultRowProperties.Length);
             offset += defaultRowProperties.Length;
@@ -41,15 +42,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 offset = AppendUInt32(buffer, offset, first);
                 offset = AppendUInt32(buffer, offset, last);
             }
-            _stream.Write(buffer, 0, offset);
+            _position = offset;
         }
 
         internal void WriteTextCell(int recordType, int zeroBasedColumn, string value) {
             int payloadLength = checked(12 + value.Length * 2);
             byte[] buffer = GetBuffer();
-            int headerLength = XlsbRecordWriter.EncodeHeader(recordType, payloadLength, buffer);
-            int recordLength = checked(headerLength + payloadLength);
-            if (recordLength > buffer.Length) {
+            int maximumRecordLength = checked(6 + payloadLength);
+            if (maximumRecordLength > buffer.Length) {
+                Flush();
+                int headerLength = XlsbRecordWriter.EncodeHeader(recordType, payloadLength, buffer);
                 _stream.Write(buffer, 0, headerLength);
                 WriteUInt32(checked((uint)zeroBasedColumn));
                 WriteUInt32(0U);
@@ -57,7 +59,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return;
             }
 
-            int offset = AppendUInt32(buffer, headerLength, checked((uint)zeroBasedColumn));
+            buffer = EnsureAvailable(maximumRecordLength);
+            int offset = _position;
+            offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength, buffer, offset);
+            offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
             offset = AppendUInt32(buffer, offset, 0U);
             offset = AppendUInt32(buffer, offset, checked((uint)value.Length));
             for (int index = 0; index < value.Length; index++) {
@@ -65,35 +70,33 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 buffer[offset++] = (byte)character;
                 buffer[offset++] = (byte)(character >> 8);
             }
-            _stream.Write(buffer, 0, offset);
+            _position = offset;
         }
 
         internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value) {
-            byte[] buffer = GetBuffer();
-            int offset = XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 16, buffer);
+            byte[] buffer = EnsureAvailable(22);
+            int offset = _position;
+            offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 16, buffer, offset);
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
             offset = AppendUInt32(buffer, offset, 0U);
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
             offset = AppendUInt64(buffer, offset, bits);
-            _stream.Write(buffer, 0, offset);
+            _position = offset;
         }
 
         internal void WriteBooleanCell(int recordType, int zeroBasedColumn, bool value) {
-            byte[] buffer = GetBuffer();
-            int offset = XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 9, buffer);
+            byte[] buffer = EnsureAvailable(15);
+            int offset = _position;
+            offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 9, buffer, offset);
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
             offset = AppendUInt32(buffer, offset, 0U);
             buffer[offset++] = value ? (byte)1 : (byte)0;
-            _stream.Write(buffer, 0, offset);
+            _position = offset;
         }
 
         internal void WriteUInt32(uint value) {
-            byte[] buffer = GetBuffer();
-            buffer[0] = (byte)value;
-            buffer[1] = (byte)(value >> 8);
-            buffer[2] = (byte)(value >> 16);
-            buffer[3] = (byte)(value >> 24);
-            _stream.Write(buffer, 0, sizeof(uint));
+            byte[] buffer = EnsureAvailable(sizeof(uint));
+            _position = AppendUInt32(buffer, _position, value);
         }
 
         private void WriteWideString(string value) {
@@ -105,20 +108,44 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             for (int offset = 0; offset < value.Length; offset += charsPerChunk) {
                 int characterCount = Math.Min(charsPerChunk, value.Length - offset);
                 int byteCount = checked(characterCount * 2);
+                buffer = EnsureAvailable(byteCount);
+                int targetOffset = _position;
                 for (int index = 0; index < characterCount; index++) {
                     ushort character = value[offset + index];
-                    int byteOffset = index * 2;
+                    int byteOffset = targetOffset + (index * 2);
                     buffer[byteOffset] = (byte)character;
                     buffer[byteOffset + 1] = (byte)(character >> 8);
                 }
-                _stream.Write(buffer, 0, byteCount);
+                _position += byteCount;
             }
         }
 
         public void Dispose() {
             byte[]? buffer = _buffer;
             _buffer = null;
-            if (buffer != null) ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+            if (buffer != null) {
+                try {
+                    if (_position != 0) _stream.Write(buffer, 0, _position);
+                } finally {
+                    _position = 0;
+                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                }
+            }
+        }
+
+        private byte[] EnsureAvailable(int count) {
+            byte[] buffer = GetBuffer();
+            if (count > buffer.Length) {
+                throw new ArgumentOutOfRangeException(nameof(count), "The BIFF12 direct-write chunk exceeds its buffer.");
+            }
+            if (buffer.Length - _position < count) Flush();
+            return buffer;
+        }
+
+        internal void Flush() {
+            if (_position == 0) return;
+            _stream.Write(GetBuffer(), 0, _position);
+            _position = 0;
         }
 
         private byte[] GetBuffer() =>

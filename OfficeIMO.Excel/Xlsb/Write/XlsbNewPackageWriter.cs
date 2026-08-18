@@ -90,14 +90,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 : new ExcelPositionReportingWriteStream(destination);
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
-                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: stylesPart != null));
-                WriteEntry(archive, "_rels/.rels", RootRelationships);
+                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: stylesPart != null), CompressionLevel.Fastest);
+                WriteEntry(archive, "_rels/.rels", RootRelationships, CompressionLevel.Fastest);
                 WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.CreateDirectTabular(
                     sheetName,
-                    document.DateSystem == ExcelDateSystem.NineteenFour));
-                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: stylesPart != null));
-                WriteEntry(archive, "xl/worksheets/sheet1.bin", worksheetPart);
-                if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart);
+                    document.DateSystem == ExcelDateSystem.NineteenFour), CompressionLevel.Fastest);
+                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: stylesPart != null), CompressionLevel.Fastest);
+                WriteEntry(archive, "xl/worksheets/sheet1.bin", worksheetPart, CompressionLevel.Fastest);
+                if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart, CompressionLevel.Fastest);
             }
         }
 
@@ -270,19 +270,47 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void WriteEntry(ZipArchive archive, string name, string content) {
-            WriteEntry(archive, name, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content));
+            WriteEntry(archive, name, content, CompressionLevel.Optimal);
+        }
+
+        private static void WriteEntry(
+            ZipArchive archive,
+            string name,
+            string content,
+            CompressionLevel compressionLevel) {
+            WriteEntry(
+                archive,
+                name,
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content),
+                compressionLevel);
         }
 
         private static void WriteEntry(ZipArchive archive, string name, byte[] content) {
-            ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+            WriteEntry(archive, name, content, CompressionLevel.Optimal);
+        }
+
+        private static void WriteEntry(
+            ZipArchive archive,
+            string name,
+            byte[] content,
+            CompressionLevel compressionLevel) {
+            ZipArchiveEntry entry = archive.CreateEntry(name, compressionLevel);
             entry.LastWriteTime = ReproducibleEntryTime;
             using Stream output = entry.Open();
             output.Write(content, 0, content.Length);
         }
 
         private static void WriteEntry(ZipArchive archive, string name, ArraySegment<byte> content) {
+            WriteEntry(archive, name, content, CompressionLevel.Optimal);
+        }
+
+        private static void WriteEntry(
+            ZipArchive archive,
+            string name,
+            ArraySegment<byte> content,
+            CompressionLevel compressionLevel) {
             byte[] buffer = content.Array ?? throw new ArgumentException("The package part must have a backing buffer.", nameof(content));
-            ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+            ZipArchiveEntry entry = archive.CreateEntry(name, compressionLevel);
             entry.LastWriteTime = ReproducibleEntryTime;
             using Stream output = entry.Open();
             output.Write(buffer, content.Offset, content.Count);

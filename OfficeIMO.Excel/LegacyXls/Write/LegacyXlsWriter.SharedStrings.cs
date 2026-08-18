@@ -25,12 +25,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private sealed class LegacyXlsSharedStringTable {
             private readonly IReadOnlyList<LegacyXlsSharedStringEntry> _entries;
             private readonly uint _totalCount;
+            private readonly Dictionary<string, uint>? _directIndexesByValue;
 
-            private LegacyXlsSharedStringTable(
+            internal LegacyXlsSharedStringTable(
                 IReadOnlyList<LegacyXlsSharedStringEntry> entries,
-                uint totalCount) {
+                uint totalCount,
+                Dictionary<string, uint>? directIndexesByValue = null) {
                 _entries = entries;
                 _totalCount = totalCount;
+                _directIndexesByValue = directIndexesByValue;
             }
 
             internal static LegacyXlsSharedStringTable Create(IReadOnlyList<List<LegacyXlsCell>> worksheets) {
@@ -71,6 +74,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
 
                 throw new InvalidOperationException("The native XLS shared-string table is missing a worksheet text cell.");
+            }
+
+            internal uint GetDirectIndex(string text) {
+                if (_directIndexesByValue != null
+                    && _directIndexesByValue.TryGetValue(text, out uint index)) {
+                    return index;
+                }
+
+                throw new InvalidOperationException("The native XLS shared-string table is missing a direct worksheet text cell.");
             }
 
             internal void WriteRecords(Stream stream) {
@@ -122,6 +134,36 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
                 WriteRecord(stream, 0x00ff, payload.ToArray());
             }
+        }
+
+        private sealed class LegacyXlsDirectSharedStringBuilder {
+            private readonly List<LegacyXlsSharedStringEntry> _entries = new();
+            private readonly Dictionary<string, uint> _indexesByValue = new(StringComparer.Ordinal);
+            private uint _totalCount;
+            private long _estimatedSerializedBytes;
+
+            internal long EstimatedSerializedBytes => _estimatedSerializedBytes;
+
+            internal uint Add(string text) {
+                _totalCount = checked(_totalCount + 1U);
+                if (_indexesByValue.TryGetValue(text, out uint existingIndex)) {
+                    return existingIndex;
+                }
+
+                uint index = checked((uint)_entries.Count);
+                _indexesByValue.Add(text, index);
+                _entries.Add(new LegacyXlsSharedStringEntry(
+                    text,
+                    Array.Empty<LegacyXlsTextFormattingRun>()));
+                _estimatedSerializedBytes = checked(
+                    _estimatedSerializedBytes
+                    + 3L
+                    + (text.Length * (CanUseCompressedString(text) ? 1L : 2L)));
+                return index;
+            }
+
+            internal LegacyXlsSharedStringTable Build() =>
+                new LegacyXlsSharedStringTable(_entries, _totalCount, _indexesByValue);
         }
 
         private sealed class LegacyXlsStringSegmentWriter {
