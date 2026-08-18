@@ -5,8 +5,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$maximumAssetCount = 1024
 $maximumAssetBytes = 64L * 1024L * 1024L
+$maximumAggregateAssetBytes = 256L * 1024L * 1024L
 $assetByteCache = [System.Collections.Generic.Dictionary[string, byte[]]]::new([System.StringComparer]::Ordinal)
+$cachedAssetBytes = 0L
 $root = [System.IO.Path]::GetFullPath($SiteRoot).TrimEnd(
     [System.IO.Path]::DirectorySeparatorChar,
     [System.IO.Path]::AltDirectorySeparatorChar)
@@ -49,7 +52,14 @@ function Get-AssetBytes {
     $canonical = ConvertTo-CanonicalAssetPath -RelativePath $RelativePath
     [byte[]] $cachedBytes = $null
     if ($assetByteCache.TryGetValue($canonical, [ref] $cachedBytes)) {
+        if ($cachedBytes.LongLength -gt $MaximumBytes) {
+            throw "Converter asset '$RelativePath' exceeds the permitted $MaximumBytes bytes."
+        }
         return $cachedBytes
+    }
+
+    if ($assetByteCache.Count -ge $maximumAssetCount) {
+        throw "Converter asset graph exceeds the permitted $maximumAssetCount resources."
     }
 
     $path = [System.IO.Path]::GetFullPath((Join-Path $root ($canonical -replace '/', [System.IO.Path]::DirectorySeparatorChar)))
@@ -63,8 +73,12 @@ function Get-AssetBytes {
     if ($length -gt $MaximumBytes) {
         throw "Converter asset '$path' exceeds the permitted $MaximumBytes bytes."
     }
+    if ($script:cachedAssetBytes -gt $maximumAggregateAssetBytes - $length) {
+        throw "Converter asset graph exceeds the aggregate $maximumAggregateAssetBytes byte limit."
+    }
     $bytes = [System.IO.File]::ReadAllBytes($path)
     $assetByteCache[$canonical] = $bytes
+    $script:cachedAssetBytes += $bytes.LongLength
     return $bytes
 }
 
