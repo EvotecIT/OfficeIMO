@@ -84,6 +84,20 @@ public sealed class PdfPowerPointImportOptions {
     /// </summary>
     public int MaxRows { get; set; }
 
+    /// <summary>When true, adjacent page-edge table segments with compatible geometry and schema are reconstructed as one logical table.</summary>
+    public bool MergePageContinuations { get; set; } = true;
+
+    /// <summary>
+    /// When true, identical header-like body prefixes on every merged segment are treated as repeated header rows and suppressed.
+    /// </summary>
+    public bool SuppressRepeatedBodyHeaderRows { get; set; }
+
+    /// <summary>Maximum adjacent PDF table segments that may be combined into one logical table.</summary>
+    public int MaximumContinuationSegments { get; set; } = 64;
+
+    /// <summary>Maximum per-column geometry difference, in PDF points, allowed for a page continuation.</summary>
+    public double ContinuationGeometryTolerancePoints { get; set; } = 4D;
+
     /// <summary>
     /// Maximum body rows written to one PowerPoint slide. Values less than or equal to zero keep all imported rows on one slide.
     /// </summary>

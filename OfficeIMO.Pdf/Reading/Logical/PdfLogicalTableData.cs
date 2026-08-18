@@ -16,6 +16,7 @@ public sealed class PdfLogicalTableData {
         Rows = rows;
         NumericColumns = SnapshotNumericColumns(numericColumns);
         ColumnProfiles = BuildColumnProfiles(Columns, Rows);
+        ValueProfiles = PdfLogicalTableValueAnalysis.Analyze(Columns, Rows);
         TotalRowCount = structure.TotalBodyRowCount;
         Truncated = truncated;
     }
@@ -37,6 +38,9 @@ public sealed class PdfLogicalTableData {
 
     /// <summary>Inferred column profiles aligned to <see cref="Columns"/>.</summary>
     public IReadOnlyList<PdfLogicalTableColumnProfile> ColumnProfiles { get; }
+
+    /// <summary>Culture-invariant rich value profiles aligned to <see cref="Columns"/>.</summary>
+    public IReadOnlyList<PdfLogicalTableValueProfile> ValueProfiles { get; }
 
     /// <summary>Total body/data row count before any extraction cap was applied.</summary>
     public int TotalRowCount { get; }

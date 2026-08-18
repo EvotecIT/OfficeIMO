@@ -259,31 +259,18 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<string> columns,
             IReadOnlyList<IReadOnlyList<string>> rows,
             PdfExcelTableImportOptions options) {
-            var kinds = new PdfExcelTableColumnKind[columns.Count];
-            for (int columnIndex = 0; columnIndex < columns.Count; columnIndex++) {
-                List<string> values = rows
-                    .Select(row => columnIndex < row.Count ? row[columnIndex].Trim() : string.Empty)
-                    .Where(static value => value.Length > 0)
-                    .ToList();
-                if (values.Count == 0) continue;
-                if (options.ConvertBooleanColumns && values.All(static value => TryParseBoolean(value, out _))) {
-                    kinds[columnIndex] = PdfExcelTableColumnKind.Boolean;
-                } else if (options.ConvertPercentageColumns && values.All(value => TryParsePercentage(value, options.NumericCulture, out _))) {
-                    kinds[columnIndex] = PdfExcelTableColumnKind.Percentage;
-                } else if (options.ConvertDateTimeColumns &&
-                           values.All(value => TryParseTimeOnly(value, options.NumericCulture, out _))) {
-                    kinds[columnIndex] = PdfExcelTableColumnKind.Time;
-                } else if (options.ConvertNumericColumns &&
-                           !values.Any(static value => LooksLikeAmbiguousNumericDate(value)) &&
-                           values.All(PdfCore.PdfLogicalTableAnalysis.LooksLikeNumericValue) &&
-                           values.All(value => PdfCore.PdfLogicalTableAnalysis.TryParseNumericValue(value, options.NumericCulture, out _))) {
-                    kinds[columnIndex] = PdfExcelTableColumnKind.Number;
-                } else if (options.ConvertDateTimeColumns &&
-                           HasDateSignal(columns[columnIndex], values) &&
-                           values.All(static value => HasExplicitYear(value)) &&
-                           values.All(value => DateTime.TryParse(value, options.NumericCulture, DateTimeStyles.AllowWhiteSpaces, out _))) {
-                    kinds[columnIndex] = PdfExcelTableColumnKind.DateTime;
-                }
+            IReadOnlyList<PdfCore.PdfLogicalTableValueProfile> profiles =
+                PdfCore.PdfLogicalTableValueAnalysis.Analyze(columns, rows, options.NumericCulture);
+            var kinds = new PdfExcelTableColumnKind[profiles.Count];
+            for (int columnIndex = 0; columnIndex < profiles.Count; columnIndex++) {
+                kinds[columnIndex] = profiles[columnIndex].Kind switch {
+                    PdfCore.PdfLogicalTableValueKind.Boolean when options.ConvertBooleanColumns => PdfExcelTableColumnKind.Boolean,
+                    PdfCore.PdfLogicalTableValueKind.Percentage when options.ConvertPercentageColumns => PdfExcelTableColumnKind.Percentage,
+                    PdfCore.PdfLogicalTableValueKind.Time when options.ConvertDateTimeColumns => PdfExcelTableColumnKind.Time,
+                    PdfCore.PdfLogicalTableValueKind.Number when options.ConvertNumericColumns => PdfExcelTableColumnKind.Number,
+                    PdfCore.PdfLogicalTableValueKind.DateTime when options.ConvertDateTimeColumns => PdfExcelTableColumnKind.DateTime,
+                    _ => PdfExcelTableColumnKind.Text
+                };
             }
 
             return kinds;
@@ -355,16 +342,6 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static bool HasDateSignal(string columnName, IReadOnlyList<string> values) {
-            if (TokenizeHeaderWords(columnName).Any(static word => DateHeaderHints.Contains(word, StringComparer.Ordinal))) return true;
-            return values.All(static value => DateTime.TryParseExact(
-                value.Trim(),
-                UnambiguousDateTimeFormats,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AllowWhiteSpaces,
-                out _));
-        }
-
         private static bool TryParseTimeOnly(string value, CultureInfo culture, out TimeSpan result) {
             string normalized = value.Trim();
             if (normalized.Length == 0 || normalized.IndexOf(':') < 0) {
@@ -385,74 +362,6 @@ namespace OfficeIMO.Excel.Pdf {
             result = default;
             return false;
         }
-
-        private static bool LooksLikeAmbiguousNumericDate(string value) {
-            string normalized = value.Trim();
-            char separator = normalized.Contains('/') ? '/'
-                : normalized.Contains('-') ? '-'
-                : normalized.Contains('.') ? '.'
-                : '\0';
-            if (separator == '\0') return false;
-            string[] parts = normalized.Split(separator);
-            return parts.Length == 3 &&
-                parts[2].Length == 4 &&
-                int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int first) &&
-                int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int second) &&
-                int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out _) &&
-                first is >= 1 and <= 12 &&
-                second is >= 1 and <= 12;
-        }
-
-        private static bool HasExplicitYear(string value) {
-            int digitCount = 0;
-            int number = 0;
-            for (int index = 0; index <= value.Length; index++) {
-                bool isDigit = index < value.Length && char.IsDigit(value[index]);
-                if (isDigit) {
-                    digitCount++;
-                    number = digitCount <= 4 ? number * 10 + (value[index] - '0') : number;
-                    continue;
-                }
-
-                if (digitCount == 4 && number >= 1000) return true;
-                digitCount = 0;
-                number = 0;
-            }
-            return false;
-        }
-
-        private static IEnumerable<string> TokenizeHeaderWords(string value) {
-            var word = new System.Text.StringBuilder();
-            for (int index = 0; index < value.Length; index++) {
-                char current = value[index];
-                if (!char.IsLetterOrDigit(current)) {
-                    if (word.Length > 0) {
-                        yield return word.ToString().ToLowerInvariant();
-                        word.Clear();
-                    }
-                    continue;
-                }
-
-                if (word.Length > 0 && char.IsUpper(current) && char.IsLower(value[index - 1])) {
-                    yield return word.ToString().ToLowerInvariant();
-                    word.Clear();
-                }
-                word.Append(current);
-            }
-            if (word.Length > 0) yield return word.ToString().ToLowerInvariant();
-        }
-
-        private static readonly string[] DateHeaderHints = {
-            "date", "time", "due", "created", "updated", "modified", "issued", "expiry", "expires", "start", "end"
-        };
-
-        private static readonly string[] UnambiguousDateTimeFormats = {
-            "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd",
-            "yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss",
-            "yyyy/MM/dd HH:mm", "yyyy/MM/dd HH:mm:ss",
-            "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"
-        };
 
         private static string GetUniqueColumnName(string? value, int index, ISet<string> usedColumns) {
             string baseName = string.IsNullOrWhiteSpace(value)

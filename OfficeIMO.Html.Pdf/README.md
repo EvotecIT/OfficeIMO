@@ -258,6 +258,8 @@ PdfHtmlConverterExtensions.SaveAsHtml("quarterly-update.pdf", "quarterly-review.
 
 PDF-to-HTML profiles describe how an existing PDF is projected to HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path.
 
+Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfHtmlSaveOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
+
 ## Targets and license
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.

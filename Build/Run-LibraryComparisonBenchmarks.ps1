@@ -19,6 +19,7 @@ param(
         'pdfgenerate',
         'pdfhtml',
         'pdfread',
+        'pdfreverse',
         'pdfcorpusread',
         'pdfsplit',
         'pdfmerge',
@@ -168,6 +169,22 @@ $definitions = [ordered]@{
                 foreach ($producer in @('OfficeIMO', 'QuestPDF', 'PeachPDF', 'MigraDoc', 'IText')) {
                     foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
                         "$engine|Producer=$producer&Scale=$scale"
+                    }
+                }
+            }
+        )
+    }
+    pdfreverse = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfReverseConversionBenchmarks*'
+        ComparisonId = "pdf-reverse-conversion-$Framework"
+        Suite = 'OfficeIMO.Pdf.ReverseConversion'
+        IdentityVariables = @('producer', 'scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($producer in @('OfficeIMO', 'QuestPDF', 'PeachPDF', 'MigraDoc', 'IText')) {
+                    foreach ($route in @('PdfToDocx', 'PdfToHtml', 'PdfToXlsx', 'PdfToPptx')) {
+                        "$route|Producer=$producer&Scale=$scale"
                     }
                 }
             }

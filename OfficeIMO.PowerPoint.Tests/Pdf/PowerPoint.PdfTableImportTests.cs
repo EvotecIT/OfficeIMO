@@ -938,6 +938,58 @@ public class PowerPointPdfTableImportTests {
         Assert.Contains(text, value => value == "PDF page 1, table 1 (part 4 of 4)");
     }
 
+    [Fact]
+    public void PdfTables_ToPowerPoint_MergesPageContinuationsAndRepeatedHeaders() {
+        var rows = new List<string[]> {
+            new[] { "Group", "State" },
+            new[] { "Metric", "Owner" }
+        };
+        for (int index = 1; index <= 30; index++) {
+            rows.Add(new[] { "Check " + index, "Team " + index });
+        }
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Table(rows, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 2,
+                RepeatHeaderRowCount = 2,
+                ColumnWidthPoints = new List<double?> { 120, 120 },
+                CellPaddingX = 5,
+                CellPaddingY = 3
+            })
+            .ToBytes();
+
+        PdfPowerPointConversionResult result = LoadTables(pdf).ToPowerPointPresentationResult(new PdfPowerPointImportOptions {
+            Mode = PdfPowerPointImportMode.EditableTables,
+            SuppressRepeatedBodyHeaderRows = true
+        });
+        PdfPowerPointTableImportEntry entry = Assert.Single(result.Report.TableEntries);
+
+        Assert.True(entry.SourceTableCount > 1);
+        Assert.Equal(entry.SourceTableCount, entry.SourcePageNumbers.Count);
+        Assert.Equal(Enumerable.Range(1, entry.SourceTableCount), entry.SourcePageNumbers);
+        Assert.Equal(30, entry.RowCount);
+        Assert.Equal(30, entry.TotalRowCount);
+        Assert.Equal(1, entry.AdditionalHeaderRowCount);
+        Assert.Equal(entry.SourceTableCount - 1, entry.SuppressedRepeatedHeaderRows);
+
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
+        A.Table table = GetSingleTable(package);
+        string[][] tableRows = table.Elements<A.TableRow>().Select(ReadRowText).ToArray();
+        Assert.Equal(new[] { "Group / Metric", "State / Owner" }, tableRows[0]);
+        Assert.Equal(new[] { "Check 1", "Team 1" }, tableRows[1]);
+        Assert.Equal(new[] { "Check 30", "Team 30" }, tableRows[30]);
+    }
+
     private static PdfCore.PdfLogicalDocument LoadTables(byte[] pdf, params PdfCore.PdfPageRange[] ranges) {
         var layout = new PdfCore.PdfTextLayoutOptions { ForceSingleColumn = true };
         return ranges.Length == 0

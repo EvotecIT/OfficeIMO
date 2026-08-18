@@ -220,7 +220,13 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfLogicalDocument document,
         PptCore.PowerPointPresentation presentation,
         PdfPowerPointImportOptions options) {
-        IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = PdfCore.PdfLogicalTableAnalysis.ExtractTables(document, options.MaxRows);
+        IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
+            document,
+            options.MaxRows,
+            options.MergePageContinuations,
+            options.SuppressRepeatedBodyHeaderRows,
+            options.MaximumContinuationSegments,
+            options.ContinuationGeometryTolerancePoints);
         if (tables.Count == 0) {
             AddEmptyPresentationSlide(presentation, options);
             return Array.Empty<PdfPowerPointTableImportEntry>();
@@ -228,8 +234,9 @@ public static partial class PowerPointPdfConverterExtensions {
 
         var results = new List<PdfPowerPointTableImportEntry>(tables.Count);
         for (int i = 0; i < tables.Count; i++) {
-            PdfCore.PdfLogicalTableExtraction extraction = tables[i];
-            PdfCore.PdfLogicalTableData data = extraction.Data;
+            PdfCore.PdfLogicalTableContinuationGroup continuation = tables[i];
+            PdfCore.PdfLogicalTableExtraction extraction = continuation.Primary;
+            PdfCore.PdfLogicalTableData data = continuation.Data;
             bool headerRowIncluded = options.IncludeColumnHeaderRows && HasHeaderRow(data);
             List<TableSegment> segments = BuildTableSegments(data, options);
             for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
@@ -271,7 +278,11 @@ public static partial class PowerPointPdfConverterExtensions {
                     segment.RowCount,
                     data.TotalRowCount,
                     data.Truncated,
-                    headerRowIncluded));
+                    headerRowIncluded,
+                    continuation.Segments.Select(static segment => segment.PageNumber).ToArray(),
+                    continuation.Segments.Count,
+                    continuation.SuppressedRepeatedHeaderRows,
+                    continuation.AdditionalHeaderRowCount));
             }
         }
 

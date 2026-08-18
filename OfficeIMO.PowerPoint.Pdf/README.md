@@ -176,13 +176,14 @@ var options = PdfPowerPointImportOptions.CreateEditableTables();
 options.MaxRows = 400;
 options.MaxRowsPerSlide = 18;
 options.MaxColumnsPerSlide = 6;
+options.MergePageContinuations = true;
 
 PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint(
     "financial-statement-tables.pptx",
     options);
 
 foreach (var table in report.TableEntries) {
-    Console.WriteLine($"Page {table.PageNumber}, slide {table.SlideIndex + 1}");
+    Console.WriteLine($"Pages {string.Join(",", table.SourcePageNumbers)}, slide {table.SlideIndex + 1}");
 }
 
 Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageContent}");

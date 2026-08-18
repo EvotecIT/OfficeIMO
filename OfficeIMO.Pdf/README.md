@@ -409,6 +409,14 @@ foreach (var table in logical.Tables) {
     Console.WriteLine($"Table on page {table.PageNumber}: {table.Rows.Count} rows");
 }
 
+IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
+    PdfLogicalReadingOrderAnalysis.Analyze(logical.Pages[0]);
+
+PdfLogicalTableData tableData = PdfLogicalTableAnalysis.Extract(logical.Tables[0]);
+foreach (PdfLogicalTableValueProfile profile in tableData.ValueProfiles) {
+    Console.WriteLine($"{profile.Name}: {profile.Kind} ({profile.Confidence:P0})");
+}
+
 string markdownTables = PdfLogicalTableTextExportExtensions.ExtractMarkdownTables("statement.pdf");
 IReadOnlyList<PdfExtractedImage> images = pdf.Read.Images();
 IReadOnlyList<PdfExtractedImage> firstPageImages = pdf.Read.Images("1");

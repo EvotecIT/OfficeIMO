@@ -245,6 +245,37 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_ContinuationGroupingUsesTheVisibleCropOrigin() {
+        byte[] pdf = BuildContinuationTablePdf(120D, 120D);
+        byte[] cropped = PdfCore.PdfDocument.Open(pdf)
+            .Pages.SetCropBox(10, 10, 310, 210)
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = LoadTables(cropped);
+
+        PdfCore.PdfLogicalTableContinuationGroup group = Assert.Single(
+            PdfCore.PdfLogicalTableContinuations.Group(logical, 0, true, true, 64, 4D));
+
+        Assert.True(group.Segments.Count > 1);
+        Assert.Equal(30, group.TotalRowCount);
+    }
+
+    [Fact]
+    public void PdfTables_ContinuationGroupingDoesNotMergeSidewaysRotatedTables() {
+        byte[] pdf = BuildContinuationTablePdf(45D, 45D);
+        byte[] rotated = PdfCore.PdfDocument.Open(pdf)
+            .Pages.Rotate(90)
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = LoadTables(rotated);
+        Assert.True(logical.Pages.Count > 1);
+
+        IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> groups =
+            PdfCore.PdfLogicalTableContinuations.Group(logical, 0, true, true, 64, 4D);
+
+        Assert.NotEmpty(groups);
+        Assert.All(groups, static group => Assert.Single(group.Segments));
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsExcel_MergesHeaderlessPageContinuationsUsingPrimaryColumns() {
         var rows = new List<string[]> { new[] { "Item", "Quantity" } };
         for (int index = 1; index <= 30; index++) {
@@ -823,6 +854,33 @@ public partial class Excel {
         return ranges.Length == 0
             ? PdfCore.PdfLogicalDocument.Load(pdf, layout)
             : PdfCore.PdfLogicalDocument.LoadPageRanges(pdf, layout, ranges);
+    }
+
+    private static byte[] BuildContinuationTablePdf(double firstColumnWidth, double secondColumnWidth) {
+        var rows = new List<string[]> { new[] { "Metric", "Owner" } };
+        for (int index = 1; index <= 30; index++) {
+            rows.Add(new[] {
+                "C" + index.ToString("D2", CultureInfo.InvariantCulture),
+                "T" + index.ToString("D2", CultureInfo.InvariantCulture)
+            });
+        }
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Table(rows, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                RepeatHeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { firstColumnWidth, secondColumnWidth },
+                CellPaddingX = 5,
+                CellPaddingY = 3
+            })
+            .ToBytes();
     }
 
     private static Cell GetCell(SheetData sheetData, string reference) {

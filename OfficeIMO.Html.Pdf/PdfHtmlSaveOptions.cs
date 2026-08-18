@@ -19,6 +19,12 @@ public sealed class PdfHtmlSaveOptions {
     public IReadOnlyList<PdfCore.PdfPageRange>? PageRanges { get; set; }
 
     /// <summary>
+    /// Whether semantic HTML should use the shared crop-, rotation-, and column-aware logical reading order.
+    /// Positioned review output always retains source geometry.
+    /// </summary>
+    public bool UseSharedPageReadingOrder { get; set; } = true;
+
+    /// <summary>
     /// Emit document metadata into the HTML head and body where useful.
     /// </summary>
     public bool IncludeMetadata { get; set; } = true;
@@ -73,6 +79,7 @@ public sealed class PdfHtmlSaveOptions {
     internal PdfHtmlSaveOptions CloneForConversion() => new() {
         Profile = Profile,
         PageRanges = PageRanges?.ToArray(),
+        UseSharedPageReadingOrder = UseSharedPageReadingOrder,
         IncludeMetadata = IncludeMetadata,
         IncludeOutlines = IncludeOutlines,
         IncludePageContainers = IncludePageContainers,

@@ -3,10 +3,19 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Bounded continuation analysis shared by structured conversion adapters.
 /// </summary>
-internal static class PdfLogicalTableContinuations {
+public static class PdfLogicalTableContinuations {
     private const int MaximumRepeatedHeaderRows = 4;
 
-    internal static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
+    /// <summary>
+    /// Groups compatible table segments on adjacent pages and returns normalized merged data.
+    /// </summary>
+    /// <param name="document">Logical PDF document to analyze.</param>
+    /// <param name="maxRows">Maximum merged body rows. Values less than or equal to zero retain all rows.</param>
+    /// <param name="mergePageContinuations">Whether adjacent page-edge segments may be merged.</param>
+    /// <param name="suppressRepeatedBodyHeaderRows">Whether repeated header-like body prefixes should be suppressed.</param>
+    /// <param name="maximumSegmentsPerTable">Maximum adjacent segments in one group.</param>
+    /// <param name="geometryTolerancePoints">Maximum per-column geometry difference in PDF points.</param>
+    public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
         PdfLogicalDocument document,
         int maxRows,
         bool mergePageContinuations,
@@ -68,11 +77,28 @@ internal static class PdfLogicalTableContinuations {
         return previousHasHeader && HeadersEqual(previous.Data.Columns, current.Data.Columns);
     }
 
-    private static bool IsAtBottomEdge(PdfLogicalTable table, PdfLogicalPage page) =>
-        table.YBottom <= Math.Max(18D, page.Height * 0.28D);
+    private static bool IsAtBottomEdge(PdfLogicalTable table, PdfLogicalPage page) {
+        if (!TryGetVisualBounds(table, page, out PdfVisualBounds bounds)) return false;
+        (_, double visualHeight) = page.GetVisualPageSize();
+        return bounds.Bottom >= visualHeight * 0.72D;
+    }
 
-    private static bool IsAtTopEdge(PdfLogicalTable table, PdfLogicalPage page) =>
-        table.YTop >= page.Height * 0.72D;
+    private static bool IsAtTopEdge(PdfLogicalTable table, PdfLogicalPage page) {
+        if (!TryGetVisualBounds(table, page, out PdfVisualBounds bounds)) return false;
+        (_, double visualHeight) = page.GetVisualPageSize();
+        return bounds.Top <= Math.Max(18D, visualHeight * 0.28D);
+    }
+
+    private static bool TryGetVisualBounds(PdfLogicalTable table, PdfLogicalPage page, out PdfVisualBounds bounds) {
+        if (table.Columns.Count == 0) { bounds = default; return false; }
+        double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
+        double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
+        double bottom = Math.Min(table.YBottom, table.YTop);
+        double top = Math.Max(table.YBottom, table.YTop);
+        if (right <= left || top <= bottom) { bounds = default; return false; }
+        bounds = page.TransformBoundsToVisual(left, bottom, right, top);
+        return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
+    }
 
     internal static bool HasCompatibleColumns(
         PdfLogicalTable previousTable,
@@ -202,7 +228,8 @@ internal static class PdfLogicalTableContinuations {
     }
 }
 
-internal sealed class PdfLogicalTableContinuationGroup {
+/// <summary>One logical table reconstructed from one or more adjacent page-level segments.</summary>
+public sealed class PdfLogicalTableContinuationGroup {
     internal PdfLogicalTableContinuationGroup(
         IReadOnlyList<PdfLogicalTableExtraction> segments,
         IReadOnlyList<string> columns,
@@ -218,14 +245,53 @@ internal sealed class PdfLogicalTableContinuationGroup {
         Truncated = truncated;
         SuppressedRepeatedHeaderRows = suppressedRepeatedHeaderRows;
         AdditionalHeaderRowCount = additionalHeaderRowCount;
+        Data = CreateData(segments[0].Data, columns, rows, totalRowCount, truncated);
     }
 
-    internal IReadOnlyList<PdfLogicalTableExtraction> Segments { get; }
-    internal PdfLogicalTableExtraction Primary => Segments[0];
-    internal IReadOnlyList<string> Columns { get; }
-    internal IReadOnlyList<IReadOnlyList<string>> Rows { get; }
-    internal int TotalRowCount { get; }
-    internal bool Truncated { get; }
-    internal int SuppressedRepeatedHeaderRows { get; }
-    internal int AdditionalHeaderRowCount { get; }
+    /// <summary>Page-level table segments contributing to this logical table.</summary>
+    public IReadOnlyList<PdfLogicalTableExtraction> Segments { get; }
+    /// <summary>Primary segment supplying source identity and diagnostics.</summary>
+    public PdfLogicalTableExtraction Primary => Segments[0];
+    /// <summary>Merged column names, including repeated multi-row header labels when requested.</summary>
+    public IReadOnlyList<string> Columns { get; }
+    /// <summary>Merged normalized body rows.</summary>
+    public IReadOnlyList<IReadOnlyList<string>> Rows { get; }
+    /// <summary>Normalized table data for downstream adapters.</summary>
+    public PdfLogicalTableData Data { get; }
+    /// <summary>Total body rows before the configured cap.</summary>
+    public int TotalRowCount { get; }
+    /// <summary>True when the configured row cap omitted body rows.</summary>
+    public bool Truncated { get; }
+    /// <summary>Repeated continuation header rows omitted from body data.</summary>
+    public int SuppressedRepeatedHeaderRows { get; }
+    /// <summary>Repeated header rows appended to the primary column labels.</summary>
+    public int AdditionalHeaderRowCount { get; }
+
+    private static PdfLogicalTableData CreateData(
+        PdfLogicalTableData primary,
+        IReadOnlyList<string> columns,
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        int totalRowCount,
+        bool truncated) {
+        var numericColumns = new bool[columns.Count];
+        for (int columnIndex = 0; columnIndex < columns.Count; columnIndex++) {
+            bool hasValue = false;
+            bool numeric = true;
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                string value = columnIndex < rows[rowIndex].Count ? rows[rowIndex][columnIndex] : string.Empty;
+                if (string.IsNullOrWhiteSpace(value)) continue;
+                hasValue = true;
+                if (!PdfLogicalTableAnalysis.LooksLikeNumericValue(value)) { numeric = false; break; }
+            }
+            numericColumns[columnIndex] = hasValue && numeric;
+        }
+        var structure = new PdfLogicalTableStructure(
+            columns.Count,
+            columns,
+            bodyStartRowIndex: 0,
+            totalBodyRowCount: totalRowCount,
+            hasHeaderRow: primary.Structure.HasHeaderRow,
+            isKeyValueTable: primary.Structure.IsKeyValueTable);
+        return new PdfLogicalTableData(structure, primary.Diagnostics, rows, numericColumns, truncated);
+    }
 }
