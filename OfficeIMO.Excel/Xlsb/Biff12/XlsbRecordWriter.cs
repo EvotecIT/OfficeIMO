@@ -28,12 +28,22 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         internal static int EncodeHeader(int recordType, int payloadLength, byte[] destination) {
+            return EncodeHeader(recordType, payloadLength, destination, 0);
+        }
+
+        internal static int EncodeHeader(
+            int recordType,
+            int payloadLength,
+            byte[] destination,
+            int offset) {
             if (recordType < 0 || recordType > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(recordType));
             if (payloadLength < 0 || payloadLength > 0x0FFFFFFF) throw new ArgumentOutOfRangeException(nameof(payloadLength));
             if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (destination.Length < 6) throw new ArgumentException("The BIFF12 header buffer must contain at least 6 bytes.", nameof(destination));
+            if (offset < 0 || offset > destination.Length - 6) {
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            }
 
-            int index = 0;
+            int index = offset;
             if (recordType < 0x80) {
                 destination[index++] = (byte)recordType;
             } else {
@@ -49,7 +59,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                 destination[index++] = current;
             } while (value != 0);
 
-            return index;
+            return index - offset;
         }
 
         internal static byte[] Encode(int recordType, byte[]? payload = null) {

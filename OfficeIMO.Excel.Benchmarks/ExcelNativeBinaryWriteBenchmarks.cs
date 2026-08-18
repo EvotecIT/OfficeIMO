@@ -23,6 +23,12 @@ public class ExcelNativeBinaryWriteBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
+        SetupOfficeIMOOnly();
+        byte[] excelReaderWorkbook = WriteExcelReaderWorkbook();
+        Validate(excelReaderWorkbook);
+    }
+
+    internal void SetupOfficeIMOOnly() {
         _rows = new BinaryWriteRow[RowCount];
         for (int index = 0; index < _rows.Length; index++) {
             _rows[index] = new BinaryWriteRow(
@@ -35,15 +41,13 @@ public class ExcelNativeBinaryWriteBenchmarks {
 
         byte[] workbook = WriteWorkbook();
         Validate(workbook);
-        byte[] excelReaderWorkbook = WriteExcelReaderWorkbook();
-        Validate(excelReaderWorkbook);
     }
 
     [Benchmark]
     public int OfficeIMO_PublicTabularWrite() => WriteWorkbook().Length;
 
     [Benchmark]
-    public int ExcelReaderNet_PublicTabularWrite() => WriteExcelReaderWorkbook().Length;
+    public int ExcelReaderNet_DiagnosticWrite() => WriteExcelReaderWorkbook().Length;
 
     private byte[] WriteWorkbook() {
         using ExcelDocument document = ExcelDocument.Create();
@@ -167,4 +171,32 @@ public class ExcelNativeBinaryWriteBenchmarks {
     }
 
     private readonly record struct BinaryWriteRow(int Id, string Region, string Owner, double Amount, bool Active);
+}
+
+/// <summary>
+/// Measures OfficeIMO's validated native binary write paths without ranking
+/// structurally invalid competitor output.
+/// </summary>
+[MemoryDiagnoser]
+public class OfficeNativeBinaryWriteBenchmarks {
+    private ExcelNativeBinaryWriteBenchmarks _scenario = null!;
+
+    [Params(2_500, 25_000)]
+    public int RowCount { get; set; }
+
+    [Params(ExcelFileFormat.Xls, ExcelFileFormat.Xlsb)]
+    public ExcelFileFormat Format { get; set; }
+
+    [GlobalSetup]
+    public void Setup() {
+        _scenario = new ExcelNativeBinaryWriteBenchmarks {
+            RowCount = RowCount,
+            Format = Format
+        };
+        _scenario.SetupOfficeIMOOnly();
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ValidatedNativeBinaryWrite() =>
+        _scenario.OfficeIMO_PublicTabularWrite();
 }

@@ -49,9 +49,15 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             Console.WriteLine(
                 "XLSB write comparison is unranked because ExcelReader.NET 2.1.2 output failed strict validation: " +
                 exception.Message);
+            RunOfficeOnly(format, rowCount, iterations, invocationsPerLeg, affinity, priority);
             return;
         }
         (Func<int> RunOfficeIMO, Func<int> RunExcelReader) = operations;
+        if (format == ExcelFileFormat.Xls) {
+            Console.WriteLine(
+                "XLS timing is diagnostic only: ExcelReader.NET 2.1.2 omits the BIFF8 " +
+                "Index/Row/DBCell cell-table structure emitted by OfficeIMO.");
+        }
         for (int index = 0; index < WarmupIterations; index++) {
             ValidateResult(format, $"OfficeIMO warmup {index}", RunOfficeIMO());
             ValidateResult(format, $"ExcelReader.NET warmup {index}", RunExcelReader());
@@ -106,7 +112,7 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             RowCount = rowCount
         };
         binaryBenchmark.Setup();
-        return (binaryBenchmark.OfficeIMO_PublicTabularWrite, binaryBenchmark.ExcelReaderNet_PublicTabularWrite);
+        return (binaryBenchmark.OfficeIMO_PublicTabularWrite, binaryBenchmark.ExcelReaderNet_DiagnosticWrite);
     }
 
     private static (double Milliseconds, int Result) Measure(Func<int> operation, int invocationCount) {
@@ -117,6 +123,35 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             result = operation();
         }
         return (Stopwatch.GetElapsedTime(started).TotalMilliseconds / invocationCount, result);
+    }
+
+    private static void RunOfficeOnly(
+        ExcelFileFormat format,
+        int rowCount,
+        int iterations,
+        int invocationsPerSample,
+        string affinity,
+        string priority) {
+        var benchmark = new ExcelNativeBinaryWriteBenchmarks {
+            Format = format,
+            RowCount = rowCount
+        };
+        benchmark.SetupOfficeIMOOnly();
+        for (int index = 0; index < WarmupIterations; index++) {
+            ValidateResult(format, $"OfficeIMO warmup {index}", benchmark.OfficeIMO_PublicTabularWrite());
+        }
+
+        var samples = new double[iterations];
+        for (int index = 0; index < iterations; index++) {
+            (double milliseconds, int result) = Measure(
+                benchmark.OfficeIMO_PublicTabularWrite,
+                invocationsPerSample);
+            ValidateResult(format, $"OfficeIMO sample {index}", result);
+            samples[index] = milliseconds;
+        }
+
+        Console.WriteLine(FormattableString.Invariant(
+            $"OfficeIMO validated {format.ToString().ToUpperInvariant()} write ({rowCount:N0} rows, {WarmupIterations} warmups, {iterations} samples, {invocationsPerSample} invocations per sample, affinity {affinity}, priority {priority}): median {Median(samples):F3} ms (P25 {Percentile(samples, 0.25d):F3}, P75 {Percentile(samples, 0.75d):F3})."));
     }
 
     private static void ValidateResult(ExcelFileFormat format, string sample, int result) {
