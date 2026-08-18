@@ -13,18 +13,26 @@ on:
       - "OfficeIMO.Excel/OfficeIMO.Excel.csproj"
       - "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"
       - ".github/workflows/deploy-website.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
 
 permissions:
-  actions: write
   contents: read
-  deployments: read
-  packages: read
-  pages: write
-  id-token: write
 
 jobs:
+  workflow-contract:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirm reusable deployment workflow resolved
+        run: echo "GitHub resolved the pinned PowerForge deployment workflow."
+
   resolve-post-deploy:
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     outputs:
       post_deploy_pipeline_config: ${{ steps.cloudflare.outputs.post_deploy_pipeline_config }}
@@ -43,8 +51,16 @@ jobs:
           fi
 
   website-deploy:
+    if: ${{ github.event_name != 'pull_request' }}
     needs: resolve-post-deploy
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@a5beb1daef277d375a80c0025c6a5a1bed0c6684
+    permissions:
+      actions: write
+      contents: read
+      deployments: read
+      packages: read
+      pages: write
+      id-token: write
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@c7f346e4fbb8a67ccb0b6c741438179d67effac5
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
@@ -55,7 +71,7 @@ jobs:
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: a5beb1daef277d375a80c0025c6a5a1bed0c6684
+      powerforge_ref: c7f346e4fbb8a67ccb0b6c741438179d67effac5
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
