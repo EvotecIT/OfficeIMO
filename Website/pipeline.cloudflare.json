@@ -11,29 +11,25 @@
       "tokenEnv": "CLOUDFLARE_API_TOKEN"
     },
     {
-      "task": "exec",
-      "id": "verify-converter-asset-graph",
+      "task": "deployment-verify",
+      "id": "verify-converter-deployment",
       "dependsOn": "purge-site-query-variants",
-      "command": "pwsh",
-      "argsList": [
-        "-NoProfile",
-        "-File",
-        "./scripts/Test-ConverterAssetGraph.ps1",
-        "-BaseUri",
-        "https://officeimo.com/apps/officeimo-converter/?embedded=1",
-        "-ExpectedDeploymentIdEnvironment",
-        "GITHUB_SHA",
-        "-RemoteVerificationAttempts",
-        "12",
-        "-RemoteVerificationRetryDelaySeconds",
-        "30"
-      ],
-      "workingDirectory": "."
+      "pathPrefixes": "/apps/officeimo-converter/",
+      "attempts": 12,
+      "delayMs": 30000,
+      "requestAttempts": 3,
+      "requestRetryDelayMs": 250,
+      "timeoutMs": 30000,
+      "maxFiles": 1024,
+      "maxResponseBytes": 67108864,
+      "maxTotalBytes": 268435456,
+      "reportPath": "./_reports/converter-deployment.json",
+      "summaryPath": "./_reports/converter-deployment.md"
     },
     {
       "task": "cloudflare",
       "id": "verify-cache",
-      "dependsOn": "verify-converter-asset-graph",
+      "dependsOn": "verify-converter-deployment",
       "operation": "verify",
       "siteConfig": "./site.json",
       "warmupRequests": 1,
@@ -45,8 +41,7 @@
         "/agents.json",
         "/.well-known/api-catalog",
         "/apps/officeimo-converter/",
-        "/apps/officeimo-converter/converter.css",
-        "/apps/officeimo-converter/deployment-assets.json"
+        "/apps/officeimo-converter/converter.css"
       ],
       "discoverAssetsFrom": "/apps/officeimo-converter/",
       "assetPathPatterns": [
