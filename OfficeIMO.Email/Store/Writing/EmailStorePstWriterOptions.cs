@@ -54,7 +54,7 @@ public sealed class EmailStorePstWriterOptions {
     /// <summary>Maximum embedded-message nesting depth written.</summary>
     public int MaxNestedMessageDepth { get; }
 
-    /// <summary>Optional durable state file used by <see cref="EmailStorePstWriter.Resume"/>.</summary>
+    /// <summary>Optional durable state file used to resume an <see cref="EmailStorePstWriter"/>.</summary>
     public string? CheckpointPath { get; }
 
     /// <summary>Number of newly accepted items between automatic durable checkpoints.</summary>

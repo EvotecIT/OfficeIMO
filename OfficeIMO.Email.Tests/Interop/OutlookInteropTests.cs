@@ -6,13 +6,15 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class OutlookInteropTests {
-    [Fact]
+    private const string NamedInteropProperty =
+        "http://schemas.microsoft.com/mapi/string/{00020329-0000-0000-C000-000000000046}/OfficeIMOInterop";
+
+    [EmailArtifactOutlookInteropFact]
     public void ExchangesMailAppointmentContactAndTaskMsgFilesWithInstalledOutlookWhenEnabled() {
-        if (!string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_EMAIL_OUTLOOK_INTEROP"), "1",
-            StringComparison.Ordinal)) return;
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+#pragma warning disable CA1416
         Type? outlookType = Type.GetTypeFromProgID("Outlook.Application");
-        if (outlookType == null) return;
+#pragma warning restore CA1416
+        Assert.NotNull(outlookType);
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Email.Outlook." + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -148,6 +150,9 @@ public sealed class OutlookInteropTests {
             OutlookItemKind.Message, OutlookItemKind.Appointment, OutlookItemKind.Contact, OutlookItemKind.Task
         };
         int[] outlookKinds = { 0, 1, 2, 3 };
+        string linkedPath = Path.Combine(directory, "outlook-linked.txt");
+        File.WriteAllText(linkedPath, "Outlook independently produced attachment", Encoding.UTF8);
+        string embeddedPath = CreateOutlookEmbeddedMessage(directory, outlook);
         for (int index = 0; index < outlookKinds.Length; index++) {
             object? itemObject = null;
             string path = Path.Combine(directory, "outlook-" + index.ToString(CultureInfo.InvariantCulture) + ".msg");
@@ -155,10 +160,24 @@ public sealed class OutlookInteropTests {
                 itemObject = outlook.CreateItem(outlookKinds[index]);
                 dynamic item = itemObject!;
                 item.Subject = subjects[index];
+                item.PropertyAccessor.SetProperty(NamedInteropProperty, "Outlook named evidence " + index);
                 if (kinds[index] == OutlookItemKind.Appointment) {
                     item.Start = new DateTime(2026, 11, 5, 10, 0, 0, DateTimeKind.Local);
                     item.End = new DateTime(2026, 11, 5, 11, 30, 0, DateTimeKind.Local);
                     item.Location = "Outlook Room";
+                    object? recurrenceObject = null;
+                    try {
+                        recurrenceObject = item.GetRecurrencePattern();
+                        dynamic recurrence = recurrenceObject!;
+                        recurrence.RecurrenceType = 1; // olRecursWeekly
+                        recurrence.Interval = 1;
+                        recurrence.DayOfWeekMask = 32; // Thursday
+                        recurrence.PatternStartDate = new DateTime(2026, 11, 5);
+                        recurrence.NoEndDate = false;
+                        recurrence.Occurrences = 4;
+                    } finally {
+                        ReleaseComObject(recurrenceObject);
+                    }
                 } else if (kinds[index] == OutlookItemKind.Contact) {
                     item.FullName = "Outlook Contact";
                     item.Email1Address = "outlook.contact@example.com";
@@ -168,6 +187,28 @@ public sealed class OutlookInteropTests {
                     item.PercentComplete = 50;
                 } else {
                     item.Body = "Created by Outlook for OfficeIMO validation";
+                    object? recipientObject = null;
+                    object? attachmentsObject = null;
+                    object? byValueObject = null;
+                    object? byReferenceObject = null;
+                    object? embeddedObject = null;
+                    try {
+                        recipientObject = item.Recipients.Add("officeimo.smtp@example.com");
+                        dynamic recipient = recipientObject!;
+                        recipient.Type = 1;
+                        attachmentsObject = item.Attachments;
+                        dynamic attachments = attachmentsObject!;
+                        byValueObject = attachments.Add(linkedPath, 1, Type.Missing, "Outlook by-value evidence");
+                        byReferenceObject = attachments.Add(linkedPath, 4, Type.Missing,
+                            "Outlook by-reference evidence");
+                        embeddedObject = attachments.Add(embeddedPath, 5, Type.Missing, "Outlook embedded evidence");
+                    } finally {
+                        ReleaseComObject(embeddedObject);
+                        ReleaseComObject(byReferenceObject);
+                        ReleaseComObject(byValueObject);
+                        ReleaseComObject(attachmentsObject);
+                        ReleaseComObject(recipientObject);
+                    }
                 }
                 item.SaveAs(path, 9);
                 item.Close(1);
@@ -175,11 +216,86 @@ public sealed class OutlookInteropTests {
                 ReleaseComObject(itemObject);
             }
 
-            EmailReadResult read = new EmailDocumentReader().Read(path);
+            using EmailReadResult read = new EmailDocumentReader().Read(path);
             Assert.Equal(kinds[index], read.Document.OutlookItemKind);
             Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+            Assert.Contains(read.Document.MapiProperties, property =>
+                string.Equals(property.Name?.Name, "OfficeIMOInterop", StringComparison.OrdinalIgnoreCase) &&
+                Equals(property.Value, "Outlook named evidence " + index));
             if (kinds[index] == OutlookItemKind.Appointment) Assert.Equal("Outlook Room", read.Document.Appointment!.Location);
+            if (kinds[index] == OutlookItemKind.Appointment) {
+                Assert.True(read.Document.Appointment!.IsRecurring);
+                Assert.NotNull(read.Document.Appointment.RecurrenceState);
+                Assert.True(read.Document.Appointment.StartTimeZoneDefinition != null ||
+                    read.Document.Appointment.RecurrenceTimeZoneDefinition != null ||
+                    read.Document.Appointment.TimeZoneStructure != null);
+            }
             if (kinds[index] == OutlookItemKind.Contact) Assert.Equal("outlook.contact@example.com", read.Document.Contact!.Email1.Address);
+            if (kinds[index] == OutlookItemKind.Message) {
+                Assert.Contains(read.Document.MapiProperties, property => property.Name == null &&
+                    MapiKnownProperties.Find(property) == null);
+                Assert.Contains(read.Document.Recipients, recipient =>
+                    string.Equals(recipient.Address?.AddressType, "SMTP", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(recipient.Address?.Address, "officeimo.smtp@example.com", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(read.Document.Attachments, attachment => attachment.MapiAttachMethod == 1 &&
+                    attachment.FileName == "outlook-linked.txt");
+                Assert.Contains(read.Document.Attachments, attachment =>
+                    attachment.FileName == "outlook-linked.txt" &&
+                    (attachment.MapiAttachMethod == 1 || attachment.MapiAttachMethod == 4));
+                Assert.Contains(read.Document.Attachments, attachment => attachment.MapiAttachMethod == 5 &&
+                    attachment.EmbeddedDocument?.Subject == "Outlook embedded evidence");
+            }
+
+            ValidateOfficeImoSemanticReopen(directory, index, read.Document, outlook);
+        }
+    }
+
+    private static string CreateOutlookEmbeddedMessage(string directory, dynamic outlook) {
+        string path = Path.Combine(directory, "outlook-embedded.msg");
+        object? itemObject = null;
+        try {
+            itemObject = outlook.CreateItem(0);
+            dynamic item = itemObject!;
+            item.Subject = "Outlook embedded evidence";
+            item.Body = "Nested Outlook message body";
+            item.SaveAs(path, 9);
+            item.Close(1);
+            return path;
+        } finally {
+            ReleaseComObject(itemObject);
+        }
+    }
+
+    private static void ValidateOfficeImoSemanticReopen(string directory, int index,
+        EmailDocument document, dynamic outlook) {
+        string path = Path.Combine(directory,
+            "officeimo-reopen-" + index.ToString(CultureInfo.InvariantCulture) + ".msg");
+        File.WriteAllBytes(path, new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg));
+        using (EmailReadResult officeImoReopen = new EmailDocumentReader().Read(path)) {
+            MapiProperty[] unknown = document.MapiProperties.Where(property => property.Name == null &&
+                MapiKnownProperties.Find(property) == null).ToArray();
+            foreach (MapiProperty property in unknown) {
+                Assert.Contains(officeImoReopen.Document.MapiProperties, candidate =>
+                    candidate.PropertyTag == property.PropertyTag);
+            }
+        }
+        object? reopenedObject = null;
+        try {
+            reopenedObject = outlook.Session.OpenSharedItem(path);
+            dynamic reopened = reopenedObject!;
+            Assert.Equal(document.Subject, Convert.ToString(reopened.Subject));
+            Assert.Equal("Outlook named evidence " + index,
+                Convert.ToString(reopened.PropertyAccessor.GetProperty(NamedInteropProperty)));
+            if (document.OutlookItemKind == OutlookItemKind.Appointment) {
+                Assert.True((bool)reopened.IsRecurring);
+                Assert.Equal("Outlook Room", Convert.ToString(reopened.Location));
+            }
+            if (document.OutlookItemKind == OutlookItemKind.Message) {
+                Assert.Equal(document.Attachments.Count, (int)reopened.Attachments.Count);
+            }
+            reopened.Close(1);
+        } finally {
+            ReleaseComObject(reopenedObject);
         }
     }
 

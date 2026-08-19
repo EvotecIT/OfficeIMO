@@ -91,7 +91,9 @@ internal static class ExternalEmailCorpusHarness {
         if (!Directory.Exists(data)) return result;
 
         foreach (string path in FindMimeKitMessages(data)) {
-            result.Run("MimeKit MIME", path, () => ValidateMime(path));
+            result.Run("MimeKit MIME", path, () => IsMalformedRecoveryFixture(path)
+                ? ValidateMalformedMimeArtifact(path)
+                : ValidateMime(path));
         }
         foreach (string path in Directory.GetFiles(Path.Combine(data, "tnef"), "*.tnef",
             SearchOption.TopDirectoryOnly).OrderBy(path => path, StringComparer.OrdinalIgnoreCase)) {
@@ -102,6 +104,28 @@ internal static class ExternalEmailCorpusHarness {
             result.Run("MimeKit mbox", path, () => ValidateMbox(path));
         }
         return result;
+    }
+
+    internal static bool ValidateMimeArtifact(string path) => ValidateMime(path);
+
+    internal static bool ValidateMalformedMimeArtifact(string path) {
+        using MimeMessage oracle = MimeMessage.Load(path);
+        using EmailReadResult read = new EmailDocumentReader(
+            new EmailReaderOptions(preserveRawSource: true)).Read(path);
+        Check(read.Document.Format == EmailFileFormat.Eml,
+            "OfficeIMO did not classify the malformed artifact as EML.");
+        Check(EqualText(NormalizeOracleText(oracle.Subject), read.Document.Subject),
+            "The recovered malformed-artifact subject differs from MimeKit.");
+        Check(read.Document.RawSource != null,
+            "Malformed recovery did not retain the independently produced source bytes.");
+        byte[] emitted = new EmailDocumentWriter(new EmailWriterOptions(
+            usePreservedRawSource: true)).ToBytes(
+            read.Document, EmailFileFormat.Eml, out EmailWriteResult result);
+        Check(result.UsedPreservedSource,
+            "An unchanged malformed artifact was regenerated instead of preserved.");
+        Check(File.ReadAllBytes(path).SequenceEqual(emitted),
+            "Preserved malformed source bytes changed.");
+        return true;
     }
 
     private static IEnumerable<string> FindMimeKitMessages(string data) {
@@ -257,23 +281,47 @@ internal static class ExternalEmailCorpusHarness {
 
     private static bool ValidateMbox(string path) {
         int oracleCount = CountMimeKitMbox(path);
-        var entries = new EmailMailboxReader().ReadEntries(path).ToArray();
-        Check(entries.All(entry => !entry.HasErrors), string.Concat(
-            "OfficeIMO reported an error while streaming the mailbox: ",
-            string.Join(" | ", entries.SelectMany((entry, index) => entry.Diagnostics
-                .Where(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error)
-                .Select(diagnostic => string.Concat("message[", index, "] ", diagnostic.Code, ": ", diagnostic.Message))))));
+        var messageOptions = new EmailReaderOptions(preserveRawSource: true);
+        var entries = new EmailMailboxReader(new EmailMailboxReaderOptions(messageOptions))
+            .ReadEntries(path).ToArray();
+        EmailDiagnostic[] unexpected = entries.SelectMany(entry => entry.Diagnostics)
+            .Where(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error &&
+                !IsExpectedRecoveryDiagnostic(diagnostic.Code)).ToArray();
+        Check(unexpected.Length == 0, string.Concat(
+            "OfficeIMO reported an unexpected error while streaming the mailbox: ",
+            string.Join(" | ", unexpected.Select(diagnostic =>
+                string.Concat(diagnostic.Code, ": ", diagnostic.Message)))));
+        foreach (EmailMailboxEntryReadResult entry in entries.Where(value => value.HasErrors)) {
+            Check(entry.Entry.Document.RawSource != null,
+                "Malformed mailbox recovery did not retain the message source.");
+            byte[] preserved = new EmailDocumentWriter(new EmailWriterOptions(
+                usePreservedRawSource: true)).ToBytes(entry.Entry.Document, EmailFileFormat.Eml,
+                out EmailWriteResult result);
+            Check(result.UsedPreservedSource && preserved.SequenceEqual(entry.Entry.Document.RawSource!),
+                "Malformed mailbox recovery did not emit the exact retained message source.");
+        }
         Check(entries.Length == oracleCount, string.Concat("Mailbox message count differs from MimeKit (",
             entries.Length, " vs ", oracleCount, ")."));
 
         var mailbox = new EmailMailbox();
         foreach (EmailMailboxEntryReadResult entry in entries) mailbox.Messages.Add(entry.Entry);
-        byte[] rewritten = new EmailMailboxWriter().ToBytes(mailbox);
+        byte[] rewritten = new EmailMailboxWriter(new EmailMailboxWriterOptions(
+            new EmailWriterOptions(usePreservedRawSource: true))).ToBytes(mailbox);
         using var stream = new MemoryStream(rewritten);
         int rewrittenCount = CountMimeKitMbox(stream);
         Check(rewrittenCount == entries.Length, "MimeKit did not reopen every rewritten mailbox entry.");
         return true;
     }
+
+    private static bool IsMalformedRecoveryFixture(string path) {
+        string name = Path.GetFileName(path);
+        return string.Equals(name, "empty-multipart.txt", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "rfc2046.eml", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsExpectedRecoveryDiagnostic(string code) =>
+        string.Equals(code, "EMAIL_MIME_BASE64_INVALID", StringComparison.Ordinal) ||
+        string.Equals(code, "EMAIL_MIME_BOUNDARY_NOT_FOUND", StringComparison.Ordinal);
 
     private static void ValidateAllOutputFormats(EmailDocument document, string sourcePath) {
         byte[] eml = Writer.ToBytes(document, EmailFileFormat.Eml);

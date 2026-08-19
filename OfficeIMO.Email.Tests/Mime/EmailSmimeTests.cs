@@ -25,12 +25,21 @@ public sealed class EmailSmimeTests {
             TrustSelfSigned());
 
         Assert.Equal(EmailProtectionKind.SmimeClearSigned, result.ProtectionKind);
+        Assert.Equal(OfficeSecurityProvider.Default.Name, result.ProviderName);
         Assert.True(result.IsCryptographicallyValid);
         Assert.Equal(
             SecurityValidationStatus.Valid,
             Assert.Single(result.Cryptography!.Signers).CertificateValidation.ChainStatus);
         Assert.Equal(signedEntity, result.SignedMimeEntity);
         Assert.Equal("Hello from clear-signed S/MIME", result.SignedContent?.Body.Text);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == EmailSmimeDiagnosticCodes.SignerIdentity);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == EmailSmimeDiagnosticCodes.ChainStatus);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == EmailSmimeDiagnosticCodes.RevocationStatus);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == EmailSmimeDiagnosticCodes.TimestampStatus);
     }
 
     [Fact]
@@ -191,8 +200,66 @@ public sealed class EmailSmimeTests {
             OfficeSecurityProvider.Default);
 
         Assert.True(result.Decrypted);
+        Assert.Equal(OfficeSecurityProvider.Default.Name, result.ProviderName);
         Assert.Equal(content, result.DecryptedMimeEntity);
         Assert.Equal("Confidential message body", result.DecryptedContent?.Body.Text);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("enveloped-data")]
+    public void SignedThenEnvelopedMessage_DecryptsBeforeVerifyingWithOneExplicitProvider(
+        string? innerSmimeType) {
+        using X509Certificate2 signer = CreateCertificate("OfficeIMO nested S-MIME Signer");
+        using X509Certificate2 recipient = CreateCertificate("OfficeIMO nested S-MIME Recipient");
+        byte[] content = Encoding.ASCII.GetBytes(
+            "Content-Type: text/plain; charset=utf-8\r\n\r\nNested confidential body");
+        byte[] signedCms = CmsSignedDataSigner.SignEncapsulated(content, signer);
+        byte[] signedMessage = CreateOpaqueMessage(signedCms, innerSmimeType);
+        byte[] envelope = CmsEnvelopedDataService.Encrypt(signedMessage, new[] { recipient });
+        using EmailReadResult read = new EmailDocumentReader().Read(
+            CreateOpaqueMessage(envelope, "enveloped-data"));
+
+        EmailSmimeProcessingResult result = EmailSmime.DecryptThenVerify(
+            read.Document,
+            recipient,
+            OfficeSecurityProvider.Default,
+            verificationOptions: TrustSelfSigned());
+
+        Assert.True(result.IsSuccessful);
+        Assert.Equal(OfficeSecurityProvider.Default.Name, result.ProviderName);
+        Assert.Equal(
+            new[] { EmailSmimeProcessingStage.Decrypt, EmailSmimeProcessingStage.Verify },
+            result.ProcessingOrder);
+        Assert.True(result.Verification?.IsCryptographicallyValid);
+        Assert.Equal("Nested confidential body", result.Content?.Body.Text);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == EmailSmimeDiagnosticCodes.DecryptThenVerify);
+        Assert.NotNull(read.Document.RawSource);
+    }
+
+    [Fact]
+    public void NestedEncryptedMessageIsRetainedWithoutInventingAVerificationStage() {
+        using X509Certificate2 recipient = CreateCertificate("OfficeIMO nested encrypted recipient");
+        byte[] content = Encoding.ASCII.GetBytes(
+            "Content-Type: text/plain; charset=utf-8\r\n\r\nDoubly confidential body");
+        byte[] innerEnvelope = CmsEnvelopedDataService.Encrypt(content, new[] { recipient });
+        byte[] innerMessage = CreateOpaqueMessage(innerEnvelope, "signed-data");
+        byte[] outerEnvelope = CmsEnvelopedDataService.Encrypt(innerMessage, new[] { recipient });
+        using EmailReadResult read = new EmailDocumentReader().Read(
+            CreateOpaqueMessage(outerEnvelope, "enveloped-data"));
+
+        EmailSmimeProcessingResult result = EmailSmime.DecryptThenVerify(
+            read.Document, recipient, OfficeSecurityProvider.Default);
+
+        Assert.True(result.IsSuccessful);
+        Assert.Equal(new[] { EmailSmimeProcessingStage.Decrypt }, result.ProcessingOrder);
+        Assert.Null(result.Verification);
+        Assert.Equal(EmailProtectionKind.SmimeOpaque, result.Content?.Protection.Kind);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == EmailSmimeDiagnosticCodes.InnerOpaqueNotSigned);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+            diagnostic.Code == EmailSmimeDiagnosticCodes.DecryptThenVerify);
     }
 
     [Fact]
@@ -237,12 +304,14 @@ public sealed class EmailSmimeTests {
         return Combine(prefix, signedEntity, separator);
     }
 
-    private static byte[] CreateOpaqueMessage(byte[] cms, string smimeType) => Encoding.ASCII.GetBytes(
+    private static byte[] CreateOpaqueMessage(byte[] cms, string? smimeType) => Encoding.ASCII.GetBytes(
         "From: sender@example.test\r\n" +
         "To: recipient@example.test\r\n" +
         "Subject: Opaque S-MIME\r\n" +
         "MIME-Version: 1.0\r\n" +
-        "Content-Type: application/pkcs7-mime; smime-type=" + smimeType + "; name=smime.p7m\r\n" +
+        "Content-Type: application/pkcs7-mime" +
+        (smimeType == null ? string.Empty : "; smime-type=" + smimeType) +
+        "; name=smime.p7m\r\n" +
         "Content-Transfer-Encoding: base64\r\n" +
         "Content-Disposition: attachment; filename=smime.p7m\r\n\r\n" +
         Convert.ToBase64String(cms) + "\r\n");

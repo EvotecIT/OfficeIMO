@@ -1,6 +1,73 @@
 namespace OfficeIMO.Email;
 
+internal enum OpaqueCmsContentKind {
+    Unknown = 0,
+    SignedData = 1,
+    EnvelopedData = 2
+}
+
 internal static class MimeSmimeExtractor {
+    internal static OpaqueCmsContentKind ClassifyOpaqueCms(EmailDocument document,
+        long maximumCmsBytes, long maximumContentBytes, List<EmailDiagnostic> diagnostics) {
+        if (document.Protection.Kind != EmailProtectionKind.SmimeOpaque ||
+            !TryExtract(document, maximumCmsBytes, maximumContentBytes, diagnostics,
+                out ExtractedSmimePayload? payload)) return OpaqueCmsContentKind.Unknown;
+        return ClassifyCmsContentInfo(payload!.EncodedCms);
+    }
+
+    private static OpaqueCmsContentKind ClassifyCmsContentInfo(byte[] encodedCms) {
+        int offset = 0;
+        if (!TryReadAsn1Element(encodedCms, ref offset, 0x30, out int sequenceLength)) {
+            return OpaqueCmsContentKind.Unknown;
+        }
+        if (sequenceLength >= 0 && sequenceLength > encodedCms.Length - offset) {
+            return OpaqueCmsContentKind.Unknown;
+        }
+        int sequenceEnd = sequenceLength < 0
+            ? encodedCms.Length
+            : offset + sequenceLength;
+        if (
+            !TryReadAsn1Element(encodedCms, ref offset, 0x06, out int oidLength) ||
+            oidLength != 9 || offset + oidLength > sequenceEnd) {
+            return OpaqueCmsContentKind.Unknown;
+        }
+        byte[] prefix = { 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x07 };
+        for (int index = 0; index < prefix.Length; index++) {
+            if (encodedCms[offset + index] != prefix[index]) return OpaqueCmsContentKind.Unknown;
+        }
+        return encodedCms[offset + 8] == 0x02
+            ? OpaqueCmsContentKind.SignedData
+            : encodedCms[offset + 8] == 0x03
+                ? OpaqueCmsContentKind.EnvelopedData
+                : OpaqueCmsContentKind.Unknown;
+    }
+
+    private static bool TryReadAsn1Element(byte[] source, ref int offset, byte expectedTag,
+        out int length) {
+        length = 0;
+        if (offset >= source.Length || source[offset++] != expectedTag || offset >= source.Length) {
+            return false;
+        }
+        byte first = source[offset++];
+        if ((first & 0x80) == 0) {
+            length = first;
+            return length <= source.Length - offset;
+        }
+        int lengthBytes = first & 0x7F;
+        if (lengthBytes == 0) {
+            length = -1;
+            return true;
+        }
+        if (lengthBytes > 4 || lengthBytes > source.Length - offset) return false;
+        int value = 0;
+        for (int index = 0; index < lengthBytes; index++) {
+            if (value > (int.MaxValue >> 8)) return false;
+            value = (value << 8) | source[offset++];
+        }
+        length = value;
+        return length <= source.Length - offset;
+    }
+
     internal static bool TryExtract(
         EmailDocument document,
         long maximumCmsBytes,

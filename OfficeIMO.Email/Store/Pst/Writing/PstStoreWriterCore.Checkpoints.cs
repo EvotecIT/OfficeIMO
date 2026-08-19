@@ -6,13 +6,14 @@ namespace OfficeIMO.Email.Store;
 internal sealed partial class PstStoreWriterCore {
     private static readonly byte[] CheckpointMagic = Encoding.ASCII.GetBytes("OIMOPSTC");
     private const int MinimumCheckpointVersion = 1;
-    private const int CheckpointVersion = 2;
+    private const int CheckpointVersion = 3;
     private const long MaxCheckpointPayloadBytes = 128L * 1024 * 1024;
+    private const int MaxApplicationStateBytes = 16 * 1024 * 1024;
 
     internal string? CheckpointPath => _options.CheckpointPath;
 
     internal static PstStoreWriterCore Resume(string checkpointPath,
-        IProgress<EmailStorePstWriteProgress>? progress) {
+        IProgress<EmailStorePstWriteProgress>? progress, out byte[]? applicationState) {
         string fullCheckpointPath = Path.GetFullPath(checkpointPath);
         WriterCheckpointState state = ReadCheckpointFile(fullCheckpointPath);
         state.ValidateOwnership(fullCheckpointPath);
@@ -22,11 +23,24 @@ internal sealed partial class PstStoreWriterCore {
         if (File.Exists(state.DestinationPath) && !options.OverwriteExisting) {
             throw new IOException("The checkpoint destination now exists and overwrite is disabled.");
         }
+        applicationState = state.ApplicationState == null
+            ? null
+            : (byte[])state.ApplicationState.Clone();
         return new PstStoreWriterCore(state, options);
     }
 
     internal void Checkpoint() {
         ThrowIfUnavailable();
+        CheckpointCore();
+    }
+
+    internal void Checkpoint(byte[]? applicationState) {
+        ThrowIfUnavailable();
+        if (applicationState != null && applicationState.Length > MaxApplicationStateBytes) {
+            throw new ArgumentOutOfRangeException(nameof(applicationState),
+                "Application checkpoint state exceeds the 16 MiB bound.");
+        }
+        _applicationState = applicationState == null ? null : (byte[])applicationState.Clone();
         CheckpointCore();
     }
 
@@ -46,6 +60,24 @@ internal sealed partial class PstStoreWriterCore {
         CleanupWorkingFiles(state.TemporaryPath, state.DestinationPath);
         CleanupCheckpointCommitFiles(fullPath);
         TryDelete(fullPath);
+    }
+
+    internal static bool TryReadCheckpointApplicationState(string checkpointPath,
+        out byte[]? applicationState) {
+        if (string.IsNullOrWhiteSpace(checkpointPath)) {
+            throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
+        }
+        string fullPath = Path.GetFullPath(checkpointPath);
+        if (!File.Exists(fullPath)) {
+            applicationState = null;
+            return false;
+        }
+        WriterCheckpointState state = ReadCheckpointFile(fullPath);
+        state.ValidateOwnership(fullPath);
+        applicationState = state.ApplicationState == null
+            ? null
+            : (byte[])state.ApplicationState.Clone();
+        return true;
     }
 
     private void CheckpointCore() {
@@ -148,6 +180,8 @@ internal sealed partial class PstStoreWriterCore {
             writer.Write((int)diagnostic.Severity);
             WriteNullableString(writer, diagnostic.Location);
         }
+        writer.Write(_applicationState?.Length ?? -1);
+        if (_applicationState != null) writer.Write(_applicationState);
     }
 
     private static WriterCheckpointState ReadCheckpointFile(string checkpointPath) {
@@ -269,6 +303,18 @@ internal sealed partial class PstStoreWriterCore {
         for (int index = 0; index < diagnosticCount; index++) {
             state.Diagnostics.Add(new EmailStoreDiagnostic(reader.ReadString(), reader.ReadString(),
                 (EmailStoreDiagnosticSeverity)reader.ReadInt32(), ReadNullableString(reader)));
+        }
+        if (version >= 3) {
+            int applicationStateLength = reader.ReadInt32();
+            if (applicationStateLength < -1 || applicationStateLength > MaxApplicationStateBytes) {
+                throw new InvalidDataException("The PST checkpoint application-state length is invalid.");
+            }
+            if (applicationStateLength >= 0) {
+                state.ApplicationState = reader.ReadBytes(applicationStateLength);
+                if (state.ApplicationState.Length != applicationStateLength) {
+                    throw new EndOfStreamException("The PST checkpoint application state is truncated.");
+                }
+            }
         }
         state.Validate();
         return state;
@@ -407,6 +453,7 @@ internal sealed partial class PstStoreWriterCore {
         internal long ItemJournalCount { get; set; }
         internal long ItemPayloadLength { get; set; }
         internal bool DiagnosticsTruncated { get; set; }
+        internal byte[]? ApplicationState { get; set; }
         internal PstNamedPropertyWriter NamedProperties { get; set; } = null!;
         internal List<FolderState> Folders { get; } = new List<FolderState>();
         internal List<EmailStoreDiagnostic> Diagnostics { get; } = new List<EmailStoreDiagnostic>();

@@ -1,51 +1,47 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Unified email, MHTML, Outlook store, and Offline Address Book adapter for OfficeIMO.Reader.Core.</Description>
-    <AssemblyName>OfficeIMO.Reader.Email</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Reader.Email</AssemblyTitle>
+    <Description>Dependency-isolated safe HTML, RTF, text, and inline-resource projection for OfficeIMO email artifacts.</Description>
+    <AssemblyName>OfficeIMO.Email.Html</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Email.Html</AssemblyTitle>
     <VersionPrefix>3.2.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <IsPackable>true</IsPackable>
-    <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.Email</PackageId>
-    <PackageTags>reader;email;mhtml;mht;eml;msg;oft;tnef;mbox;pst;ost;olm;emlx;oab;ics;vcard;outlook;ingestion;officeimo</PackageTags>
+    <PackageId>OfficeIMO.Email.Html</PackageId>
+    <PackageTags>email;html;rtf;mime;cid;sanitization;projection;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPublishable>True</IsPublishable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Mhtml\OfficeIMO.Mhtml.csproj" />
-  </ItemGroup>
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="System" />
-    <Using Include="System.Collections.Generic" />
-    <Using Include="System.Globalization" />
-    <Using Include="System.IO" />
-    <Using Include="System.Linq" />
-    <Using Include="System.Security.Cryptography" />
-    <Using Include="System.Text" />
-    <Using Include="System.Threading" />
+    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.IO" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Net" />
+    <Using Include="System.Text" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+    <Using Include="OfficeIMO.Html" />
+    <Using Include="OfficeIMO.Rtf" />
+    <Using Include="AngleSharp.Dom" />
   </ItemGroup>
 </Project>

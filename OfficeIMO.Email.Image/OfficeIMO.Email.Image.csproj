@@ -29,8 +29,8 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="System" />
@@ -44,6 +44,5 @@
     <Using Include="AngleSharp.Dom" />
     <Using Include="OfficeIMO.Drawing" />
     <Using Include="OfficeIMO.Html" />
-    <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
 </Project>

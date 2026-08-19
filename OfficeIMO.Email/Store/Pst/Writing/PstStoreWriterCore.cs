@@ -25,6 +25,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     private int _itemCount;
     private int _lastCheckpointItemCount;
     private bool _diagnosticsTruncated;
+    private byte[]? _applicationState;
     private bool _completed;
     private bool _finalizing;
     private bool _abandon;
@@ -78,6 +79,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         _itemCount = state.ItemCount;
         _lastCheckpointItemCount = state.ItemCount;
         _diagnosticsTruncated = state.DiagnosticsTruncated;
+        _applicationState = state.ApplicationState;
         foreach (FolderState folder in state.Folders) _folders.Add(folder.Nid, folder);
         _diagnostics.AddRange(state.Diagnostics);
         _nodes = new PstWriterNodeJournal(string.Concat(_temporaryPath, ".nodes"),

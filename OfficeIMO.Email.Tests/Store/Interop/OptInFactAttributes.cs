@@ -46,10 +46,14 @@ public sealed class OutlookInteropFactAttribute : FactAttribute {
 public sealed class LibPffInteropFactAttribute : FactAttribute {
     public LibPffInteropFactAttribute() {
         string? executable = Environment.GetEnvironmentVariable("OFFICEIMO_EMAIL_STORE_PFFINFO");
-        if (string.IsNullOrWhiteSpace(executable)) {
-            Skip = "Set OFFICEIMO_EMAIL_STORE_PFFINFO to the pffinfo executable to run libpff interoperability.";
+        string? wslDistribution = Environment.GetEnvironmentVariable("OFFICEIMO_EMAIL_STORE_LIBPFF_WSL");
+        if (string.IsNullOrWhiteSpace(executable) && string.IsNullOrWhiteSpace(wslDistribution)) {
+            Skip = "Set OFFICEIMO_EMAIL_STORE_PFFINFO or OFFICEIMO_EMAIL_STORE_LIBPFF_WSL to run libpff interoperability.";
         } else if (Path.IsPathRooted(executable) && !File.Exists(executable)) {
             Skip = "OFFICEIMO_EMAIL_STORE_PFFINFO does not name an existing pffinfo executable.";
+        } else if (!string.IsNullOrWhiteSpace(wslDistribution) &&
+            !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            Skip = "OFFICEIMO_EMAIL_STORE_LIBPFF_WSL is supported by the Windows test host only.";
         }
     }
 }

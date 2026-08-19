@@ -45,16 +45,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 - [ ] Add interoperable ODF encryption/decryption only after an external producer corpus, explicit password and key policy, and fail-safe preservation evidence are available.
 
-## Email artifacts and migration
-
-- [ ] Expand MIME/EML interoperability evidence with independently produced and adversarial fixtures covering malformed recovery, nested multiparts, duplicate and ordered headers, legacy encodings, parameter continuations, embedded messages, reports, and protected entities. Keep MimeKit or other comparison engines isolated to tests and opt-in verification.
-- [ ] Stabilize one structured preservation and conversion result contract for artifact-to-MIME workflows, including preserved-versus-regenerated source selection, attachment-content lifetime, diagnostic codes, and strict loss disposition, so transport adapters can retain OfficeIMO evidence without defining a second artifact model.
-- [ ] Deepen MSG/OFT/TNEF fidelity for unknown and named MAPI properties, embedded and linked objects, address forms, recurrence, and time-zone evidence using independently produced Outlook fixtures and semantic reopen checks.
-- [ ] Make large-store migrations resumable and auditable across supported PST/OST/OLM/EMLX/mbox/mail-directory inputs, with source identity, change detection, item provenance, bounded attachment access, partial-result policy, and destination verification manifests.
-- [ ] Expand Unicode PST writer and rewrite validation beyond generated round trips through independent libpff and supported Outlook reopen gates, while retaining the documented boundary against in-place NDB repair, append, ANSI mutation, and OST output.
-- [ ] Complete artifact S/MIME trust-policy diagnostics for signer identity, chain building, revocation, timestamps, offline operation, decrypt-then-verify ordering, and protected-entity pass-through with the concrete provider supplied explicitly.
-- [ ] Consolidate body selection, RTF fallback, CID/content-location resolution, remote-resource policy, sanitization, and safe HTML/text/Markdown projection only after at least two existing consumers can use one dependency-isolated contract. Do not add HTML dependencies to `OfficeIMO.Email`.
-
 ## Document-format depth
 
 - [ ] Improve DOCX-to-PDF rendering for floating and wrapped drawings, section-specific headers and footers, fields, footnotes and endnotes, SmartArt fallbacks, and pagination controls using Word-produced fixtures and page-level visual comparisons.

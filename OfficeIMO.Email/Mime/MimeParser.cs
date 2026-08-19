@@ -128,7 +128,7 @@ internal static class MimeParser {
         }
         bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
             !semanticBodyPart;
-        long decodedLength = isBody ? 0 : MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
+        long decodedLength = MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
             skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
         if (!isBody) {
             state.CountAttachmentBytes(decodedLength);
@@ -140,8 +140,8 @@ internal static class MimeParser {
             }
         }
 
-        byte[] source = Copy(data, offset, count);
-        byte[] decoded = MimeTextCodec.DecodeTransfer(source, transferEncoding, state.Diagnostics, location);
+        byte[] decoded = MimeTextCodec.DecodeTransfer(data, offset, count, decodedLength,
+            transferEncoding, state.Diagnostics, location);
 
         if (isBody) {
             document.MimeHasMessageBody = true;
@@ -379,13 +379,6 @@ internal static class MimeParser {
         int result = position;
         if (result > minimum && data[result - 1] == '\n') result--;
         if (result > minimum && data[result - 1] == '\r') result--;
-        return result;
-    }
-
-    private static byte[] Copy(byte[] data, int offset, int count) {
-        if (offset == 0 && count == data.Length) return data;
-        byte[] result = new byte[count];
-        Buffer.BlockCopy(data, offset, result, 0, count);
         return result;
     }
 

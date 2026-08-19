@@ -6,6 +6,7 @@ internal sealed class PstConversionMappingJournal : IDisposable {
     private readonly string _path;
     private readonly FileStream _stream;
     private readonly BinaryWriter _writer;
+    private bool _deleteOnDispose;
     private bool _reading;
     private bool _disposed;
 
@@ -14,11 +15,39 @@ internal sealed class PstConversionMappingJournal : IDisposable {
         _stream = new FileStream(_path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read,
             64 * 1024, FileOptions.SequentialScan | FileOptions.DeleteOnClose);
         _writer = new BinaryWriter(_stream, Encoding.UTF8, leaveOpen: true);
+        _deleteOnDispose = true;
+    }
+
+    internal PstConversionMappingJournal(string path, bool resume, long committedLength,
+        int committedCount) {
+        _path = System.IO.Path.GetFullPath(path);
+        string? directory = System.IO.Path.GetDirectoryName(_path);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        _stream = new FileStream(_path, resume ? FileMode.Open : FileMode.CreateNew,
+            FileAccess.ReadWrite, FileShare.Read, 64 * 1024, FileOptions.SequentialScan);
+        if (committedLength < 0 || committedLength > _stream.Length) {
+            throw new InvalidDataException("The conversion mapping checkpoint length is invalid.");
+        }
+        if (resume) _stream.SetLength(committedLength);
+        _stream.Position = committedLength;
+        _writer = new BinaryWriter(_stream, Encoding.UTF8, leaveOpen: true);
+        _deleteOnDispose = false;
+        Count = committedCount;
     }
 
     internal int Count { get; private set; }
 
     internal long Length => _stream.Length;
+
+    internal string Path => _path;
+
+    internal long FlushDurable() {
+        _writer.Flush();
+        _stream.Flush(flushToDisk: true);
+        return _stream.Length;
+    }
+
+    internal void DeleteOnDispose() => _deleteOnDispose = true;
 
     internal void Add(int ordinal, EmailStoreItemReference source, string destinationFolderId,
         string destinationItemId) {
@@ -74,6 +103,7 @@ internal sealed class PstConversionMappingJournal : IDisposable {
         _disposed = true;
         _writer.Dispose();
         _stream.Dispose();
+        if (!_deleteOnDispose) return;
         try { if (File.Exists(_path)) File.Delete(_path); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }

@@ -7,6 +7,24 @@ namespace OfficeIMO.Email.Tests;
 
 [Collection(EmailContentSourceMemoryCollection.Name)]
 public sealed class EmailContentSourceTests {
+    [Fact]
+    public void Completed_writer_reports_serialization_time_attachment_loss() {
+        var document = new EmailDocument { Subject = "Missing attachment content" };
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "missing.bin",
+            ContentType = "application/octet-stream",
+            Length = 12
+        });
+
+        byte[] bytes = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml,
+            out EmailWriteResult result);
+
+        Assert.NotEmpty(bytes);
+        Assert.True(result.HasErrors);
+        Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
+        Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+    }
+
     [Theory]
     [InlineData(EmailFileFormat.Eml)]
     [InlineData(EmailFileFormat.OutlookMsg)]
@@ -64,6 +82,9 @@ public sealed class EmailContentSourceTests {
         EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(output.ToArray()).Document.Attachments);
 
         Assert.False(result.HasErrors);
+        Assert.Equal(EmailArtifactSourceSelection.Regenerated, result.SourceSelection);
+        Assert.Equal(EmailAttachmentContentLifetime.OperationScoped, result.AttachmentContentLifetime);
+        Assert.Equal(format, result.TargetFormat);
         Assert.Equal(payloadLength, attachment.Content!.Length);
         Assert.Equal(1, source.SynchronousOpenCount);
         Assert.True(source.MaximumSynchronousReadSize <= 81920);

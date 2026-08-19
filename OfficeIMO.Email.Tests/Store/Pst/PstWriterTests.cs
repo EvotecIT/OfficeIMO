@@ -461,6 +461,177 @@ public sealed class PstWriterTests {
     }
 
     [Fact]
+    public void Conversion_options_retain_the_published_constructor_signature() {
+        Type[] publishedParameters = {
+            typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool),
+            typeof(int), typeof(int), typeof(string), typeof(bool),
+            typeof(EmailSemanticComparisonOptions), typeof(string), typeof(int)
+        };
+
+        Assert.NotNull(typeof(EmailStorePstConversionOptions).GetConstructor(publishedParameters));
+        var resumable = new EmailStorePstConversionOptions(
+            checkpointPath: Path.Combine(Path.GetTempPath(), "officeimo-conversion.checkpoint"));
+        Assert.NotNull(resumable.CheckpointPath);
+    }
+
+    [Fact]
+    public void Checkpoint_commits_bounded_application_state_with_writer_progress() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-application-checkpoint-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "resumed.pst");
+        string checkpoint = Path.Combine(directory, "resumed.checkpoint");
+        byte[] expectedState = Encoding.UTF8.GetBytes("source=v1;ordinal=1");
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
+                new EmailStorePstWriterOptions(checkpointPath: checkpoint,
+                    checkpointIntervalItems: int.MaxValue))) {
+                string folder = writer.AddFolder("Inbox");
+                writer.AddItem(folder, new EmailDocument { Subject = "first" });
+                writer.Checkpoint(expectedState);
+            }
+
+            using (EmailStorePstWriter resumed = EmailStorePstWriter.Resume(
+                checkpoint, out byte[]? applicationState)) {
+                Assert.Equal(expectedState, applicationState);
+                resumed.Complete();
+            }
+        } finally {
+            try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
+    public void StoreMigration_resume_rejects_changes_and_completes_without_duplicates() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-store-migration-resume-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string source = Path.Combine(directory, "source.mbox");
+        string destination = Path.Combine(directory, "destination.pst");
+        string checkpoint = Path.Combine(directory, "migration.checkpoint");
+        string mailbox = CreateThreeMessageMbox();
+        File.WriteAllText(source, mailbox, Encoding.ASCII);
+        try {
+            using (var cancellation = new CancellationTokenSource()) {
+                var progress = new InlineProgress<EmailStorePstMigrationProgress>(value => {
+                    if (value.InspectedItems == 1) cancellation.Cancel();
+                });
+                Assert.ThrowsAny<OperationCanceledException>(() =>
+                    EmailStoreConverter.ConvertToPst(source, destination,
+                        conversionOptions: new EmailStorePstConversionOptions(
+                            verifyAfterWrite: false,
+                            checkpointPath: checkpoint,
+                            checkpointIntervalItems: 1,
+                            progress: progress),
+                        cancellationToken: cancellation.Token));
+            }
+
+            Assert.True(File.Exists(checkpoint));
+            Assert.False(File.Exists(destination));
+            string changed = mailbox.Replace("Body 2", "B0dy 2", StringComparison.Ordinal);
+            Assert.Equal(mailbox.Length, changed.Length);
+            File.WriteAllText(source, changed, Encoding.ASCII);
+            InvalidDataException changedSource = Assert.Throws<InvalidDataException>(() =>
+                EmailStoreConverter.ConvertToPst(source, destination,
+                    conversionOptions: new EmailStorePstConversionOptions(
+                        verifyAfterWrite: false,
+                        checkpointPath: checkpoint,
+                        checkpointIntervalItems: 1)));
+            Assert.Contains("changed or different", changedSource.Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.True(File.Exists(checkpoint));
+
+            File.WriteAllText(source, mailbox, Encoding.ASCII);
+            EmailStorePstConversionReport report = EmailStoreConverter.ConvertToPst(
+                source, destination,
+                conversionOptions: new EmailStorePstConversionOptions(
+                    verifyAfterWrite: false,
+                    checkpointPath: checkpoint,
+                    checkpointIntervalItems: 1));
+
+            Assert.True(report.WasResumed);
+            Assert.Equal(EmailStoreFormat.Mbox, report.SourceIdentity.Format);
+            Assert.Equal(new FileInfo(source).Length, report.SourceIdentity.Length);
+            Assert.Equal(64, report.SourceIdentity.CatalogFingerprint.Length);
+            Assert.Equal(64, report.SourceIdentity.DurableFingerprint.Length);
+            Assert.Equal(3, report.ConvertedItems);
+            Assert.Equal(0, report.SkippedItems);
+            Assert.Equal(EmailStoreMigrationDisposition.Completed, report.Disposition);
+            Assert.False(report.HasDataLoss);
+            Assert.Null(report.Verification);
+            Assert.False(File.Exists(checkpoint));
+            Assert.False(File.Exists(checkpoint + ".verify-map"));
+            using EmailStoreSession result = EmailStoreSession.Open(destination);
+            Assert.Equal(new[] { "Message 1", "Message 2", "Message 3" },
+                result.EnumerateItems().Select(item => result.ReadSummary(item).Subject).ToArray());
+            Assert.Equal(new[] { source, destination }.OrderBy(value => value, StringComparer.Ordinal),
+                Directory.EnumerateFiles(directory).OrderBy(value => value, StringComparer.Ordinal));
+        } finally {
+            if (File.Exists(checkpoint)) {
+                EmailStoreConverter.DeletePstConversionCheckpoint(checkpoint);
+            }
+            try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
+    public void VerifiedStoreMigration_resume_preserves_mapping_provenance() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-store-migration-verified-resume-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string source = Path.Combine(directory, "source.pst");
+        string destination = Path.Combine(directory, "destination.pst");
+        string checkpoint = Path.Combine(directory, "migration.checkpoint");
+        try {
+            using (EmailStorePstWriter sourceWriter = EmailStorePstWriter.Create(source)) {
+                string folder = sourceWriter.AddFolder("Inbox");
+                for (int index = 1; index <= 3; index++) {
+                    sourceWriter.AddItem(folder, new EmailDocument { Subject = "Message " + index });
+                }
+                sourceWriter.Complete();
+            }
+            using (var cancellation = new CancellationTokenSource()) {
+                var progress = new InlineProgress<EmailStorePstMigrationProgress>(value => {
+                    if (value.InspectedItems == 1) cancellation.Cancel();
+                });
+                Assert.ThrowsAny<OperationCanceledException>(() =>
+                    EmailStoreConverter.ConvertToPst(source, destination,
+                        conversionOptions: new EmailStorePstConversionOptions(
+                            checkpointPath: checkpoint,
+                            checkpointIntervalItems: 1,
+                            progress: progress),
+                        cancellationToken: cancellation.Token));
+            }
+
+            Assert.True(File.Exists(checkpoint));
+            Assert.True(File.Exists(checkpoint + ".verify-map"));
+            EmailStorePstConversionReport report = EmailStoreConverter.ConvertToPst(
+                source, destination,
+                conversionOptions: new EmailStorePstConversionOptions(
+                    checkpointPath: checkpoint,
+                    checkpointIntervalItems: 1));
+
+            Assert.True(report.WasResumed);
+            Assert.Equal(3, report.ConvertedItems);
+            Assert.True(report.Verification?.IsSuccessful);
+            Assert.Equal(3, report.Verification?.AttemptedItems);
+            Assert.False(File.Exists(checkpoint));
+            Assert.False(File.Exists(checkpoint + ".verify-map"));
+        } finally {
+            if (File.Exists(checkpoint)) {
+                EmailStoreConverter.DeletePstConversionCheckpoint(checkpoint);
+            }
+            try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
     public void VersionOneCheckpointResumesAndMigratesToCurrentWriterState() {
         string directory = Path.Combine(Path.GetTempPath(),
             "officeimo-pst-v1-checkpoint-" + Guid.NewGuid().ToString("N"));
@@ -544,6 +715,83 @@ public sealed class PstWriterTests {
                     malformedCheckpointArtifact }.OrderBy(value => value, StringComparer.Ordinal),
                 Directory.EnumerateFiles(directory).OrderBy(value => value, StringComparer.Ordinal));
         } finally {
+            try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
+    public void Migration_checkpoint_cleanup_never_deletes_an_unauthenticated_adjacent_file() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            string.Concat("officeimo-migration-delete-", Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(directory);
+        string missingCheckpoint = Path.Combine(directory, "missing.checkpoint");
+        string missingSidecar = string.Concat(missingCheckpoint, ".verify-map");
+        string writerCheckpoint = Path.Combine(directory, "writer.checkpoint");
+        string writerSidecar = string.Concat(writerCheckpoint, ".verify-map");
+        string destination = Path.Combine(directory, "writer.pst");
+        try {
+            File.WriteAllText(missingSidecar, "unrelated");
+            EmailStoreConverter.DeletePstConversionCheckpoint(missingCheckpoint);
+            Assert.True(File.Exists(missingSidecar));
+
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(destination,
+                new EmailStorePstWriterOptions(checkpointPath: writerCheckpoint))) {
+                writer.Checkpoint();
+            }
+            File.WriteAllText(writerSidecar, "unrelated");
+
+            Assert.Throws<InvalidDataException>(() =>
+                EmailStoreConverter.DeletePstConversionCheckpoint(writerCheckpoint));
+            Assert.True(File.Exists(writerCheckpoint));
+            Assert.True(File.Exists(writerSidecar));
+        } finally {
+            if (File.Exists(writerCheckpoint)) EmailStorePstWriter.DeleteCheckpoint(writerCheckpoint);
+            try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
+    public void Migration_checkpoint_cleanup_can_retry_when_the_authenticated_journal_is_busy() {
+        if (!OperatingSystem.IsWindows()) return;
+        string directory = Path.Combine(Path.GetTempPath(),
+            string.Concat("officeimo-migration-delete-retry-", Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(directory);
+        string checkpoint = Path.Combine(directory, "migration.checkpoint");
+        string mapping = string.Concat(checkpoint, ".verify-map");
+        string destination = Path.Combine(directory, "destination.pst");
+        try {
+            var state = new PstConversionCheckpointState {
+                SourceFormat = EmailStoreFormat.Pst,
+                CatalogFingerprint = new string('1', 64),
+                DurableFingerprint = new string('2', 64),
+                OptionsFingerprint = new string('3', 64),
+                WriterDestination = destination,
+                MappingPath = mapping
+            };
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(destination,
+                new EmailStorePstWriterOptions(checkpointPath: checkpoint,
+                    retainCheckpointOnDispose: true))) {
+                writer.Checkpoint(state.Serialize());
+            }
+            File.WriteAllBytes(mapping, Array.Empty<byte>());
+
+            using (var heldMapping = new FileStream(mapping, FileMode.Open, FileAccess.Read,
+                FileShare.None)) {
+                Assert.Throws<IOException>(() =>
+                    EmailStoreConverter.DeletePstConversionCheckpoint(checkpoint));
+                Assert.True(File.Exists(checkpoint));
+                Assert.True(File.Exists(mapping));
+            }
+
+            EmailStoreConverter.DeletePstConversionCheckpoint(checkpoint);
+            Assert.False(File.Exists(checkpoint));
+            Assert.False(File.Exists(mapping));
+        } finally {
+            if (File.Exists(checkpoint)) EmailStorePstWriter.DeleteCheckpoint(checkpoint);
             try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
@@ -721,6 +969,20 @@ public sealed class PstWriterTests {
     private static string TemporaryPstPath() => Path.Combine(Path.GetTempPath(),
         string.Concat("officeimo-email-store-", Guid.NewGuid().ToString("N"), ".pst"));
 
+    private static string CreateThreeMessageMbox() {
+        var builder = new StringBuilder();
+        for (int index = 1; index <= 3; index++) {
+            builder.Append("From sender@example.test Sat Jan 01 00:00:0")
+                .Append(index).Append(" 2022\r\n")
+                .Append("From: sender@example.test\r\n")
+                .Append("To: recipient@example.test\r\n")
+                .Append("Subject: Message ").Append(index).Append("\r\n")
+                .Append("Content-Type: text/plain; charset=utf-8\r\n\r\n")
+                .Append("Body ").Append(index).Append("\r\n");
+        }
+        return builder.ToString();
+    }
+
     private static void DowngradeCheckpointToVersionOne(string checkpointPath) {
         byte[] checkpoint = File.ReadAllBytes(checkpointPath);
         byte[] payload;
@@ -728,7 +990,7 @@ public sealed class PstWriterTests {
         using (var input = new MemoryStream(checkpoint, writable: false))
         using (var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false)) {
             magic = reader.ReadBytes(8);
-            Assert.Equal(2, reader.ReadInt32());
+            Assert.Equal(3, reader.ReadInt32());
             long length = reader.ReadInt64();
             payload = reader.ReadBytes(checked((int)length));
             Assert.Equal(32, reader.ReadBytes(32).Length);
@@ -783,6 +1045,11 @@ public sealed class PstWriterTests {
                 writer.Write(reader.ReadString());
                 writer.Write(reader.ReadInt32());
                 CopyNullableString(reader, writer);
+            }
+            int applicationStateLength = reader.ReadInt32();
+            Assert.True(applicationStateLength >= -1);
+            if (applicationStateLength >= 0) {
+                Assert.Equal(applicationStateLength, reader.ReadBytes(applicationStateLength).Length);
             }
             Assert.Equal(input.Length, input.Position);
             writer.Flush();

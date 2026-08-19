@@ -2,6 +2,7 @@ using OfficeIMO.Email;
 using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Email;
+using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Rtf;
 using System;
@@ -43,8 +44,8 @@ public sealed class ReaderEmailTests {
 
         Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Email &&
             chunk.Location.SourceBlockKind == "email-message" && chunk.Text.Contains("Reader subject", StringComparison.Ordinal));
-        Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Email &&
-            chunk.Location.SourceBlockKind == "email-body" && chunk.Text.Contains("Body for retrieval", StringComparison.Ordinal));
+        Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Html &&
+            chunk.Location.SourceBlockKind == "email-body-html" && chunk.Text.Contains("Body for retrieval", StringComparison.Ordinal));
         Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Email &&
             chunk.Location.SourceBlockKind == "email-attachment" && chunk.Text.Contains("notes.txt", StringComparison.Ordinal));
         Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Text &&
@@ -107,7 +108,7 @@ public sealed class ReaderEmailTests {
         Assert.Equal(ReaderInputKind.Email, result.Kind);
         Assert.Equal("Reader subject", result.Source.Title);
         Assert.Single(result.Assets);
-        Assert.Contains(result.Chunks, chunk => chunk.Location.SourceBlockKind == "email-body");
+        Assert.Contains(result.Chunks, chunk => chunk.Location.SourceBlockKind == "email-body-html");
     }
 
     [Fact]
@@ -243,10 +244,10 @@ public sealed class ReaderEmailTests {
     }
 
     [Fact]
-    public void RtfOnlyMsg_UsesConfiguredSemanticRtfHandler() {
+    public void RtfOnlyMsg_UsesSharedEmailHtmlProjection() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddEmailHandler()
-            .AddRtfHandler()
+            .AddHtmlHandler()
             .Build();
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddParagraph("Semantic RTF email body");
@@ -259,8 +260,8 @@ public sealed class ReaderEmailTests {
 
         ReaderChunk[] chunks = reader.Read(bytes, "rtf-body.msg").ToArray();
 
-        Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Rtf &&
-            chunk.Location.SourceBlockKind == "email-body-rtf" &&
+        Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Html &&
+            chunk.Location.SourceBlockKind == "email-body-html" &&
             chunk.Text.Contains("Semantic RTF email body", StringComparison.Ordinal));
         Assert.DoesNotContain(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
             warning => warning.StartsWith("EMAIL_RTF_BODY_PRESERVED", StringComparison.Ordinal));

@@ -113,6 +113,20 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void PreservesSingleCharacterBase64PayloadAsInvalid() {
+        const string eml = "Subject: malformed remainder\r\n" +
+            "Content-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename=invalid.bin\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nA";
+
+        using EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
+        Assert.Equal(new byte[] { (byte)'A' }, Assert.Single(result.Document.Attachments).Content);
+    }
+
+    [Fact]
     public void DecodesLegacyCodePagesWithoutPriorMsgInitialization() {
         string encoded = Convert.ToBase64String(new byte[] { 0x5A, 0x61, 0xBF, 0xF3, 0xB3, 0xE6 });
         string eml = string.Concat("Subject: =?windows-1250?B?", encoded, "?=\r\n\r\nbody");
@@ -222,6 +236,20 @@ public sealed class EmailMimeReaderTests {
 
         Assert.Equal("team@example.com", recipient.Address.Address);
         Assert.Equal("Team <EU>", recipient.Address.DisplayName);
+    }
+
+    [Fact]
+    public void Rejects_hostile_folded_encoded_words_as_bogus_recipients() {
+        string hostile = string.Join("\r\n\t", Enumerable.Repeat(
+            "=?utf-8?Q?date=3E2017-08-20T10:08:28.617=3C/pr?=", 100));
+        string eml = "To: Test <test@example.com>,\r\n\t" + hostile + "\r\n\r\nbody";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Equal("test@example.com", Assert.Single(result.Document.Recipients).Address.Address);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_ADDRESS_INVALID" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
     }
 
     [Fact]

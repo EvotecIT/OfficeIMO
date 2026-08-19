@@ -109,7 +109,10 @@ public sealed class EmailStoreEmlxWriter {
                 exception.ActualValue, _options.MaxOutputBytes);
         }
         if (messageResult.HasErrors) {
-            result = messageResult;
+            result = new EmailWriteResult(0, document.Format, EmailFileFormat.Emlx,
+                messageResult.Diagnostics, EmailArtifactSourceSelection.None,
+                EmailConversionLossDisposition.Blocked,
+                messageResult.AttachmentContentLifetime);
             return Array.Empty<byte>();
         }
         byte[] prefix = Encoding.ASCII.GetBytes(message.LongLength.ToString(CultureInfo.InvariantCulture) + "\n");
@@ -126,7 +129,9 @@ public sealed class EmailStoreEmlxWriter {
             output[offset++] = (byte)'\n';
             Buffer.BlockCopy(metadata, 0, output, offset, metadata.Length);
         }
-        result = new EmailWriteResult(total, messageResult.Diagnostics, messageResult.UsedPreservedSource);
+        result = new EmailWriteResult(total, document.Format, EmailFileFormat.Emlx,
+            messageResult.Diagnostics, EmailArtifactSourceSelection.Regenerated, messageResult.LossDisposition,
+            messageResult.AttachmentContentLifetime);
         return output;
     }
 

@@ -13,7 +13,9 @@ public enum EmailFileFormat {
     /// <summary>Unix mailbox archive.</summary>
     Mbox = 4,
     /// <summary>Outlook item template stored in the MSG compound-file representation.</summary>
-    OutlookTemplate = 5
+    OutlookTemplate = 5,
+    /// <summary>Apple Mail message container with a length-prefixed MIME entity and property-list metadata.</summary>
+    Emlx = 6
 }
 
 /// <summary>Identifies the logical Outlook item represented by a document.</summary>
