@@ -146,6 +146,7 @@ namespace OfficeIMO.Excel {
             ? Convert.ToDouble(GetNonDbNullValue(ordinal), _culture)
             : _inner.GetDouble(ordinal);
 
+        [UnconditionalSuppressMessage("Trimming", "IL2063", Justification = "Inferred Excel column types are closed scalar conversion tokens; OfficeIMO never activates or reflects over their public members.")]
         [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
         public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
 
