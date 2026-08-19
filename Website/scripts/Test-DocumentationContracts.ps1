@@ -340,6 +340,20 @@ foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
 
 $pipelinePath = Join-Path $SiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
+$psWriteOfficeSource = @($siteConfiguration.Sources | Where-Object Slug -eq 'pswriteoffice')
+if ($psWriteOfficeSource.Count -ne 1 -or
+    $psWriteOfficeSource[0].Repo -ne 'EvotecIT/PSWriteOffice' -or
+    $psWriteOfficeSource[0].Clean -ne $true -or
+    -not [string]::IsNullOrWhiteSpace([string] $psWriteOfficeSource[0].Ref)) {
+    Add-Failure 'The default PSWriteOffice source must cleanly clone the repository default branch.'
+}
+$sourceSyncStep = @($pipeline.steps | Where-Object id -eq 'sync-sources')
+if ($sourceSyncStep.Count -ne 1 -or
+    $sourceSyncStep[0].lockMode -ne 'off' -or
+    $sourceSyncStep[0].writeManifest -ne $true -or
+    -not [string]::IsNullOrWhiteSpace([string] $sourceSyncStep[0].lockPath)) {
+    Add-Failure 'The default source sync must follow remote repositories without a commit lock and record the resolved source manifest.'
+}
 $expectedApiDocsHomes = [ordered]@{
     'build-apidocs-html-rtf' = '/docs/html/'
     'build-apidocs-mhtml' = '/docs/html/'

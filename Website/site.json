@@ -14,7 +14,8 @@
     {
       "Repo": "EvotecIT/PSWriteOffice",
       "Slug": "pswriteoffice",
-      "Destination": "./projects/pswriteoffice"
+      "Destination": "./projects/pswriteoffice",
+      "Clean": true
     }
   ],
   "StaticAssets": [
