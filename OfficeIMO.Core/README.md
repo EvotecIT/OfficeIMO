@@ -157,6 +157,38 @@ Removal is selective. It removes structurally valid C2PA carriers and AI-specifi
 
 Structural inspection does not claim that a manifest is authentic or trusted. Install `OfficeIMO.Security` and use its optional C2PA verifier when content binding, signature mathematics, and certificate trust must be checked.
 
+For an evidence-oriented result, combine structural carriers, optional cryptographic verification, exact Unicode findings, and vendor-specific detectors without collapsing them into an unreliable universal AI verdict:
+
+```csharp
+OfficeProvenanceAssessmentReport assessment =
+    OfficeProvenanceAssessment.InspectFile("article.md");
+
+Console.WriteLine($"Verified credential: {assessment.HasVerifiedContentCredential}");
+foreach (OfficeProvenanceSignalResult signal in assessment.ProviderSignals) {
+    Console.WriteLine($"{signal.ProviderName}: {signal.Status}");
+}
+```
+
+`IOfficeProvenanceSignalDetector` is deliberately provider-specific. A detector reports its own durable-media watermark, statistical-text watermark, visible disclosure, or deterministic artifact and keeps `NotDetected`, `Inconclusive`, `ProviderUnavailable`, and `Error` distinct. OfficeIMO does not turn the absence of one vendor's signal into “human-authored.”
+
+Use `OfficeTextIntegrityInspector` to report exact invisible and context-sensitive Unicode code points. It reports offsets, code points, and risk; it does not call those characters an AI watermark. Cleanup has no blanket mode: callers pass only reviewed findings to `OfficeTextIntegrityCleaner.RemoveSelected`, so legitimate joiners, variation selectors, and typographic spaces are not silently normalized.
+
+Transformations can make an existing Content Credential invalid. `OfficeProvenanceLifecycle.FinalizeFile` makes the disposition explicit:
+
+```csharp
+var disposition = new OfficeProvenanceTransformationOptions {
+    Policy = OfficeProvenanceTransformationPolicy.PreserveIfUnchanged
+};
+
+OfficeProvenanceTransformationResult audit = OfficeProvenanceLifecycle.FinalizeFile(
+    sourcePath: "source.png",
+    candidatePath: "resized.png",
+    outputPath: "final.png",
+    options: disposition);
+```
+
+The default blocks a changed credentialed source. Applications must explicitly select `RemoveInvalidated` for auditable carrier removal or `SignAsDerived` with an `IOfficeProvenanceSigner`, which records the source as the parent ingredient. Package-owned Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, and PDF removal adapters remain the correct surfaces when package signatures also need safe disposition.
+
 The [provenance support matrix](../Docs/officeimo.provenance-support-matrix.md) records the exact carriers, strict-removal behavior, verification boundary, and known limits.
 
 ### Encode common raster formats

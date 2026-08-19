@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Optional CMS, S/MIME, RFC 3161, X.509, XML Digital Signature, and C2PA provenance verification for OfficeIMO packages.</Description>
+    <Description>Optional CMS, S/MIME, RFC 3161, X.509, XML Digital Signature, and C2PA provenance signing and verification for OfficeIMO packages.</Description>
     <AssemblyName>OfficeIMO.Security</AssemblyName>
     <AssemblyTitle>OfficeIMO.Security</AssemblyTitle>
     <VersionPrefix>3.2.4</VersionPrefix>
