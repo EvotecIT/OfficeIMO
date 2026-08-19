@@ -3,7 +3,7 @@
     <Description>Bidirectional HTML and RTF conversion for OfficeIMO.</Description>
     <AssemblyName>OfficeIMO.Html.Rtf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html.Rtf</AssemblyTitle>
-    <VersionPrefix>3.2.3</VersionPrefix>
+    <VersionPrefix>3.2.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
