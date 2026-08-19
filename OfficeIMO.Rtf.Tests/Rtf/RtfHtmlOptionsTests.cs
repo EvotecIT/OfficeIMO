@@ -118,12 +118,8 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void RtfToHtmlOptions_RejectsNonRtfProfile() {
-        RtfDocument document = RtfDocument.Create();
-        document.AddParagraph("Profile boundary");
-
-        var options = new RtfToHtmlOptions { Profile = OfficeHtmlConversionProfile.WordSemanticDocument };
-
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToHtml(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new RtfToHtmlOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
     }
 
     [Fact]
