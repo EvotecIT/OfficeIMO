@@ -41,10 +41,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Define named Markdown, AsciiDoc, and LaTeX profiles so extensions are opt-in and testable. Add safe AsciiDoc includes through a bounded resolver, attributes, tables, admonitions, cross-references, and common macros; add typed LaTeX mathematics, citations, references, figures, tables, and safe local macro definitions without arbitrary TeX package or command execution.
 - [ ] Harden MHTML-to-PDF for malformed multipart recovery, legacy encodings, nested related resources, duplicate content identifiers, `Content-Location` resolution, redirects, and bounded remote-resource policy. Reuse the managed HTML/CSS tier and continue to reject script execution.
 
-## Security and protected content
-
-- [ ] Add interoperable ODF encryption/decryption only after an external producer corpus, explicit password and key policy, and fail-safe preservation evidence are available.
-
 ## Email artifacts and migration
 
 - [ ] Expand MIME/EML interoperability evidence with independently produced and adversarial fixtures covering malformed recovery, nested multiparts, duplicate and ordered headers, legacy encodings, parameter continuations, embedded messages, reports, and protected entities. Keep MimeKit or other comparison engines isolated to tests and opt-in verification.
@@ -54,6 +50,13 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Expand Unicode PST writer and rewrite validation beyond generated round trips through independent libpff and supported Outlook reopen gates, while retaining the documented boundary against in-place NDB repair, append, ANSI mutation, and OST output.
 - [ ] Complete artifact S/MIME trust-policy diagnostics for signer identity, chain building, revocation, timestamps, offline operation, decrypt-then-verify ordering, and protected-entity pass-through with the concrete provider supplied explicitly.
 - [ ] Consolidate body selection, RTF fallback, CID/content-location resolution, remote-resource policy, sanitization, and safe HTML/text/Markdown projection only after at least two existing consumers can use one dependency-isolated contract. Do not add HTML dependencies to `OfficeIMO.Email`.
+
+## Security and protected content
+
+- [ ] Add legacy encrypted-DOC import, encrypted-XLS authoring, and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.
+- [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
+- [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.
+- [ ] Link every non-intentional `NotSupported` protected-content catalog operation to an owning roadmap outcome, while keeping deliberate format and provider boundaries explicit rather than treating them as missing implementations.
 
 ## Document-format depth
 

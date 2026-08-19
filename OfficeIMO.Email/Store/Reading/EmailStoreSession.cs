@@ -47,7 +47,11 @@ public sealed partial class EmailStoreSession : IDisposable {
         get { ThrowIfDisposed(); return _backend.Diagnostics; }
     }
 
-    internal bool IsPstPasswordProtected {
+    /// <summary>
+    /// Whether a PST source declares password protection. PST password protection is a checksum-based access
+    /// deterrent, not cryptographic content encryption, and OfficeIMO does not claim confidentiality for it.
+    /// </summary>
+    public bool IsPstPasswordProtected {
         get {
             ThrowIfDisposed();
             return _backend is PstStoreSessionBackend pst && pst.IsPasswordProtected;

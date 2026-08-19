@@ -59,7 +59,7 @@ OfficeXmlPackageSignatureValidationReport validation =
     EpubDocument.ValidatePackageSignatures("book.epub", security);
 ```
 
-The signed manifest covers every non-carrier ZIP entry. Validation rejects missing, changed, duplicate, and unsigned entries. General producer-specific EPUB signatures and DRM/resource decryption remain outside this API.
+The signed manifest covers every non-carrier ZIP entry. Validation rejects missing, changed, duplicate, and unsigned entries. General producer-specific EPUB signatures and DRM/resource decryption remain outside this API. Recognized IDPF and Adobe font obfuscation is handled separately by the reader.
 
 ### Inspect bounded manifest resources
 
@@ -77,6 +77,8 @@ foreach (EpubResource resource in book.Resources) {
 ```
 
 Manifest metadata is returned even when payload loading is disabled. Payload inclusion is opt-in and bounded per resource, in total, and by resource count; skipped payloads produce warnings.
+
+When `IncludeResourceData` is enabled, IDPF and Adobe font-obfuscated resources are deobfuscated only when the OPF package identity provides the required key. `EpubResource.WasDeobfuscated` identifies the resulting payload. If the identity is missing or malformed, `Data` remains unavailable and a structured diagnostic is returned; the reader does not expose still-obfuscated bytes as usable font data. This reversible standards-defined obfuscation is not DRM decryption.
 
 ### Resolve chapter-relative references
 
@@ -172,7 +174,7 @@ foreach (string warning in book.Warnings) {
 
 - This package owns reusable EPUB parsing primitives.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- The content model is read-only. The provenance API provides only targeted carrier removal; it does not attempt CSS layout, scripting, DRM, or general package editing.
+- The content model is read-only. The provenance API provides only targeted carrier removal; it does not attempt CSS layout, scripting, DRM, or general package editing. IDPF and Adobe font deobfuscation is bounded reader behavior, not a general encryption API.
 
 ## Targets and license
 

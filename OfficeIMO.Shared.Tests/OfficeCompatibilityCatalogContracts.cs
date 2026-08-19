@@ -2,6 +2,7 @@ using System.Text.Json;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Security;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -62,5 +63,39 @@ public sealed class OfficeCompatibilityCatalogContractTests {
         Assert.True(chart.AffectedFidelity.HasFlag(OfficeCompatibilityImpact.Editability));
         Assert.Equal(OfficeCapabilityCoverageState.PreservedOpaque, unknown.LegacyRoundTrip);
         Assert.True(unknown.AffectedFidelity.HasFlag(OfficeCompatibilityImpact.Carrier));
+    }
+
+    [Fact]
+    public void ProtectedContentCatalogIsDeterministicAndKeepsNonCryptographicProtectionDistinct() {
+        OfficeProtectionCapabilityCatalog catalog = OfficeProtectionCapabilityCatalog.Current;
+
+        string first = catalog.ToJson();
+        string second = catalog.ToJson();
+        using JsonDocument parsed = JsonDocument.Parse(first);
+
+        Assert.Equal(first, second);
+        Assert.Equal(catalog.Capabilities.Count, parsed.RootElement.GetProperty("capabilities").GetArrayLength());
+        Assert.Equal(OfficeProtectionKind.AccessDeterrence, catalog.Get("pst-password").Kind);
+        Assert.Equal(OfficeProtectionKind.EditingRestriction, catalog.Get("rtf-editing-restrictions").Kind);
+        Assert.Equal(OfficeProtectionCoverageState.Blocked, catalog.Get("onenote-encrypted-revision").Mutate);
+        Assert.Equal(OfficeProtectionCoverageState.Supported, catalog.Get("odf-password").Create);
+        Assert.Equal(OfficeProtectionCoverageState.NotApplicable, catalog.Get("epub-font-obfuscation").Mutate);
+        Assert.Equal(OfficeProtectionCoverageState.NotSupported, catalog.Get("smime-signature-msg-tnef").Create);
+        Assert.Contains("| Inspect | Open | Create |", catalog.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProtectedContentCatalogEscapesEveryJsonControlCharacter() {
+        var row = new OfficeProtectionCapability(
+            "control-row", "EML\tformat", "OfficeIMO.Email", OfficeProtectionKind.DigitalSignature,
+            OfficeProtectionCoverageState.Supported, OfficeProtectionCoverageState.Supported,
+            OfficeProtectionCoverageState.NotSupported, OfficeProtectionCoverageState.NotApplicable,
+            OfficeProtectionCoverageState.Preserved, OfficeProtectionCoverageState.NotApplicable,
+            "Verify\u0001Api", "line\bfeed\f");
+        var catalog = new OfficeProtectionCapabilityCatalog("control\u0002catalog", 1, new[] { row });
+
+        using JsonDocument parsed = JsonDocument.Parse(catalog.ToJson());
+
+        Assert.Equal("EML\tformat", parsed.RootElement.GetProperty("capabilities")[0].GetProperty("formatId").GetString());
     }
 }

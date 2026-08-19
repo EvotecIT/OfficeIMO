@@ -2,13 +2,15 @@ using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.OpenDocument;
 
-internal sealed class OdfPackage {
+internal sealed partial class OdfPackage {
     private static readonly DateTimeOffset DeterministicTimestamp = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
     private readonly List<OdfPackageEntry> _entries = new List<OdfPackageEntry>();
     private readonly Dictionary<string, OdfPackageEntry> _entriesByName = new Dictionary<string, OdfPackageEntry>(StringComparer.Ordinal);
     private readonly List<OdfDiagnostic> _diagnostics = new List<OdfDiagnostic>();
     private readonly OdfLoadOptions _loadOptions;
     private bool _entryGraphChanged;
+    private bool _sourceIsEncrypted;
+    private bool? _pendingOutputEncrypted;
 
     private OdfPackage(OdfDocumentKind kind, OdfVersion version, OdfLoadOptions loadOptions) {
         Kind = kind;
@@ -22,6 +24,7 @@ internal sealed class OdfPackage {
     internal IReadOnlyList<OdfDiagnostic> Diagnostics => _diagnostics;
     internal IReadOnlyList<OdfPackageEntry> Entries => _entries.Where(entry => !entry.IsRemoved).ToList();
     internal bool IsSigned => _entries.Any(entry => !entry.IsRemoved && IsSignaturePath(entry.Name));
+    internal bool SourceIsEncrypted => _sourceIsEncrypted;
 
     internal static OdfPackage Create(OdfDocumentKind kind, OdfVersion version = OdfVersion.V1_4) {
         var package = new OdfPackage(kind, version, new OdfLoadOptions().Normalize());
@@ -148,6 +151,12 @@ internal sealed class OdfPackage {
             throw new InvalidDataException("OpenDocument mimetype does not match the root manifest media type.");
         }
 
+        bool sourceIsEncrypted = manifestRoot.Descendants(OdfNamespaces.Manifest + "encryption-data").Any();
+        if (sourceIsEncrypted) {
+            DecryptLoadedEntries(loaded, manifestRoot, manifestEntry, effective);
+        }
+        effective.Password = null;
+
         string? versionToken = (string?)manifestRoot.Attribute(OdfNamespaces.Manifest + "version")
             ?? (string?)packageRootEntry?.Attribute(OdfNamespaces.Manifest + "version");
         bool manifestVersionRecognized = OdfVersionExtensions.TryParse(versionToken, out OdfVersion version);
@@ -159,13 +168,11 @@ internal sealed class OdfPackage {
         }
 
         var package = new OdfPackage(kind, version, effective);
+        package._sourceIsEncrypted = sourceIsEncrypted;
         foreach (OdfPackageEntry entry in loaded) package.AddLoadedEntry(entry);
         package.ApplyManifestMediaTypes(manifestRoot);
         if (!package.ContainsEntry("content.xml")) {
             throw new InvalidDataException("OpenDocument package is missing 'content.xml'.");
-        }
-        if (manifestRoot.Descendants(OdfNamespaces.Manifest + "encryption-data").Any()) {
-            throw new OdfEncryptedPackageException("Encrypted OpenDocument packages are detected but not yet supported for native editing.");
         }
         if (!manifestVersionRecognized && version == OdfVersion.V1_4 && !OdfVersionExtensions.TryParse(versionToken, out _)) {
             package._diagnostics.Add(new OdfDiagnostic("ODF003", OdfDiagnosticSeverity.Warning,
@@ -234,8 +241,10 @@ internal sealed class OdfPackage {
 
     internal byte[] Write(OdfSaveOptions? options = null) {
         OdfSaveOptions effective = options ?? new OdfSaveOptions();
+        ValidateEncryptionSaveOptions(effective);
         OdfVersion outputVersion = ResolveOutputVersion(effective.CompatibilityProfile);
-        bool hasChanges = outputVersion != Version || _entryGraphChanged || _entries.Any(entry => entry.IsDirty);
+        bool outputEncrypted = effective.Encryption != null;
+        bool hasChanges = outputVersion != Version || _entryGraphChanged || _entries.Any(entry => entry.IsDirty) || outputEncrypted;
         if (IsSigned && hasChanges) {
             if (effective.SignatureHandling == OdfSignatureHandling.RejectInvalidation) {
                 throw new InvalidOperationException("Saving this changed document would invalidate its signatures. Set SignatureHandling to RemoveInvalidated to continue.");
@@ -254,22 +263,9 @@ internal sealed class OdfPackage {
             RebuildManifest(outputVersion);
         }
 
-        var outputEntries = new List<OdfZipWriteEntry>();
-        OdfPackageEntry mimetype = GetRequiredEntry("mimetype");
-        outputEntries.Add(new OdfZipWriteEntry(mimetype.Name, mimetype.GetBytesForSave(), compress: false));
-
-        IEnumerable<OdfPackageEntry> remaining = _entries.Where(entry => !entry.IsRemoved && entry.Name != "mimetype");
-        if (effective.Deterministic) {
-            OdfPackageEntry[] original = remaining.Where(entry => !entry.IsNew).ToArray();
-            OdfPackageEntry[] added = remaining.Where(entry => entry.IsNew).OrderBy(entry => entry.Name, StringComparer.Ordinal).ToArray();
-            remaining = original.Concat(added);
-        }
-        foreach (OdfPackageEntry entry in remaining) {
-            bool compress = !entry.Name.EndsWith("/", StringComparison.Ordinal);
-            outputEntries.Add(new OdfZipWriteEntry(entry.Name, entry.GetBytesForSave(), compress));
-        }
-
+        var outputEntries = CreateOutputEntries(effective, outputEncrypted);
         byte[] output = OdfZipWriter.Write(outputEntries, effective.Deterministic);
+        _pendingOutputEncrypted = outputEncrypted;
         Version = outputVersion;
         return output;
     }
@@ -288,6 +284,8 @@ internal sealed class OdfPackage {
             _entriesByName.Remove(removed.Name);
         }
         _entryGraphChanged = false;
+        if (_pendingOutputEncrypted.HasValue) _sourceIsEncrypted = _pendingOutputEncrypted.Value;
+        _pendingOutputEncrypted = null;
     }
 
     private void AddInitialEntry(string name, byte[] data, string? mediaType) {

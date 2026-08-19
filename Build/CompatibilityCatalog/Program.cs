@@ -5,6 +5,7 @@ using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Security;
 using OfficeIMO.Word;
 
 string outputDirectory = GetOption(args, "--output")
@@ -27,6 +28,8 @@ var outputs = new SortedDictionary<string, string>(StringComparer.Ordinal) {
     ["conversion-routes.json"] = EnsureFinalNewline(OfficeConversionCapabilityCatalog.ToJson()),
     ["conversion-routes.md"] = EnsureFinalNewline(OfficeConversionCapabilityCatalog.ToMarkdown()),
     ["office-formats.json"] = SerializeFormats(),
+    ["protected-content.json"] = EnsureFinalNewline(OfficeProtectionCapabilityCatalog.Current.ToJson()),
+    ["protected-content.md"] = EnsureFinalNewline(OfficeProtectionCapabilityCatalog.Current.ToMarkdown()),
     ["README.md"] = CreateReadme(capabilityCatalogs)
 };
 foreach ((string name, OfficeCapabilityCatalog catalog) in capabilityCatalogs) {
@@ -121,6 +124,12 @@ static string CreateReadme(IEnumerable<(string Name, OfficeCapabilityCatalog Cat
             .Append(" | [JSON](").Append(name).Append(".json)")
             .Append(" | [Markdown](").Append(name).AppendLine(".md) |");
     }
+    OfficeProtectionCapabilityCatalog protection = OfficeProtectionCapabilityCatalog.Current;
+    markdown.Append("| ").Append(protection.Id)
+        .Append(" | ").Append(protection.SchemaVersion)
+        .Append(" | ").Append(protection.Capabilities.Count)
+        .Append(" | [JSON](protected-content.json)")
+        .AppendLine(" | [Markdown](protected-content.md) |");
     markdown.AppendLine();
     markdown.AppendLine("`office-formats.json` is the concrete extension, document-kind, encoding, and macro-carrier inventory used by conversion routing.");
     return EnsureFinalNewline(markdown.ToString());

@@ -54,4 +54,20 @@ public sealed class PstPasswordTests {
 
         Assert.Equal(EmailStoreFormat.Ost, session.Format);
     }
+
+    [Fact]
+    public void InspectionClassifiesPstPasswordProtectionWithoutCallingItEncryption() {
+        const string password = "OfficeIMO";
+        uint checksum = PstPassword.ComputeChecksum(Encoding.ASCII.GetBytes(password));
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(storePasswordChecksum: checksum));
+        using EmailStoreSession session = EmailStoreSession.Open(
+            stream,
+            "protected.pst",
+            new EmailStoreReaderOptions(pstPassword: password));
+
+        EmailStoreInspectionReport report = session.Inspect();
+
+        Assert.True(session.IsPstPasswordProtected);
+        Assert.True(report.IsPstPasswordProtected);
+    }
 }

@@ -4,7 +4,7 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Email;
 
 /// <summary>Thin S/MIME verification and decryption orchestration over the shared OfficeIMO security engine.</summary>
-public static class EmailSmime {
+public static partial class EmailSmime {
     /// <summary>Verifies clear-signed or opaque-signed S/MIME content retained by the email reader.</summary>
     public static EmailSmimeVerificationResult Verify(
         EmailDocument document,

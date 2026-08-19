@@ -24,6 +24,26 @@ internal static class MimeWriter {
         WriteMessage(output, document, state, 0);
     }
 
+    internal static byte[] WriteTransportHeaders(EmailDocument document, EmailWriterOptions options) {
+        using var output = new EmailBoundedMemoryStream(options.MaxOutputBytes);
+        WriteEnvelopeHeaders(output, document, options);
+        WriteLine(output, "MIME-Version: 1.0");
+        return output.ToArray();
+    }
+
+    internal static byte[] WriteMimeEntity(EmailDocument document, EmailWriterOptions options,
+        IList<EmailDiagnostic> diagnostics) {
+        using var output = new EmailBoundedMemoryStream(options.MaxOutputBytes);
+        var state = new MimeWriterState(options, diagnostics);
+        state.Enter(document, 0);
+        try {
+            WriteContent(output, document, state, 0, true);
+            return output.ToArray();
+        } finally {
+            state.Exit(document);
+        }
+    }
+
     private static void WriteMessage(Stream output, EmailDocument document, MimeWriterState state, int depth) {
         state.Enter(document, depth);
         try {

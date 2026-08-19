@@ -91,6 +91,27 @@ IReadOnlyList<string> lossy = result.Report.LossyEntries;
 
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
 
+## Encrypt and decrypt ODF packages
+
+Password encryption is format-owned and does not require `OfficeIMO.Security`:
+
+```csharp
+using OdtDocument document = OdtDocument.Load("protected.odt", new OdfLoadOptions {
+    Password = password
+});
+
+document.AddParagraph("Updated while decrypted in memory.");
+document.Save("protected-updated.odt", new OdfSaveOptions {
+    Encryption = new OdfEncryptionOptions {
+        Password = newPassword
+    }
+});
+```
+
+The password is UTF-8, used only for the current load or save, and is not retained. Input accepts 10,000 through 10,000,000 PBKDF2 iterations per entry and preflights the complete manifest against `OdfLoadOptions.MaxTotalKdfIterations` (10,000,000 by default) before deriving any entry key. Output uses AES-256-CBC, a SHA-256 password start key, per-entry PBKDF2-HMAC-SHA1 with 100,000 iterations by default, and SHA-256/1K checksums. Each encrypted entry receives fresh salt and initialization-vector material.
+
+Encrypted input fails with a classified `OdfEncryptedPackageException` when a password is missing or incorrect, the profile is unsupported, metadata is malformed, or decrypted content exceeds configured limits. Saving an encrypted source without `OdfSaveOptions.Encryption` also fails so protection is not removed accidentally. To write plaintext intentionally, set `EncryptionHandling = OdfEncryptionHandling.Remove`.
+
 ## Supported editing surface
 
 | Area | Current support |
@@ -116,7 +137,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 - Ordered ODT/ODP inline syntax types direct text, spans/runs, hyperlinks, images, and bookmark markers. Nested inline markup remains preserved in the package and is surfaced as an untyped node so conversion loss is explicit.
 - Tracked-change editing covers paragraph insertions and deletions. Arbitrary inline merges and conflict resolution remain preservation-oriented.
 - Animation editing covers basic shape-attribute effects and fade-in timing. Advanced timing trees are preserved when untouched.
-- Encrypted packages are detected and rejected before editing.
+- Password-encrypted packages using the documented AES-256-CBC profile can be opened and written. Legacy Blowfish and other unsupported profiles fail before content is exposed.
 - Changed signed packages fail by default because saving would invalidate signatures. An explicit save option can remove invalidated signature entries.
 - The bounded OfficeIMO XML package-manifest signature profile can be created and validated through an explicit `IOfficeSecurityProvider`. Arbitrary producer-specific signature profiles remain inspection or preservation oriented.
 - Pivot-table editing and complete chart editing are outside the current surface.
@@ -126,12 +147,12 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on Windows. CI checks generated ODF 1.3 and 1.4 XML against pinned OASIS Relax NG schemas, then opens and resaves the generated packages with the runner's reported LibreOffice version.
 
-Interoperability coverage includes ODT, ODS, and ODP files from LibreOffice and Microsoft Office, plus an externally verified Google Docs ODT export. These files exercise styles, formulas, drawings, embedded content, and preservation of unknown package entries. See the [producer manifest](../OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json) when you need exact producer versions, hashes, or reproducibility details.
+Interoperability coverage includes ODT, ODS, and ODP files from LibreOffice and Microsoft Office, plus an externally verified Google Docs ODT export. These files exercise styles, formulas, drawings, embedded content, and preservation of unknown package entries. A separate hash-pinned LibreOffice fixture covers password encryption, including OfficeIMO reading LibreOffice output and LibreOffice reading OfficeIMO output. See the [producer manifest](../OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json) and [encryption manifest](../OfficeIMO.OpenDocument.Tests/Fixtures/Encryption/producer-manifest.json) for exact producer versions, hashes, and evidence.
 
 ## Dependency footprint
 
 - **External:** None; no OpenDocument SDK and no LibreOffice process.
 - **OfficeIMO:** `OfficeIMO.Core`. ODT/ODS/ODP parsing, models, preservation, inspection, and writing are first-party.
-- **Security:** ODF signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. `OdfDocument.SignPackage(...)` and `ValidatePackageSignatures(...)` use an explicit provider for the bounded OfficeIMO XML package-manifest profile; `OfficeIMO.Security` is not pulled transitively. ODF encryption/decryption remains deliberately unsupported until a producer-identified interoperability corpus and explicit password/key policy exist.
+- **Security:** ODF password encryption/decryption is first-party and dependency-free. Signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. `OdfDocument.SignPackage(...)` and `ValidatePackageSignatures(...)` use an explicit provider for the bounded OfficeIMO XML package-manifest profile; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

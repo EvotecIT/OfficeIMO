@@ -73,6 +73,15 @@ public sealed class RtfDocumentSettings {
     /// <summary>Whether read-only protection is explicitly enabled or disabled.</summary>
     public bool? ReadOnlyProtection { get; set; }
 
+    /// <summary>Whether any RTF editing-protection flag is enabled.</summary>
+    /// <remarks>RTF protection flags are editing restrictions and do not encrypt document content.</remarks>
+    public bool HasEditingProtection => FormProtection == true || RevisionProtection == true ||
+        AnnotationProtection == true || ReadOnlyProtection == true;
+
+    /// <summary>Whether this model represents encrypted RTF content.</summary>
+    /// <remarks>RTF editing-protection flags are not content encryption; OfficeIMO.Rtf does not expose encrypted content.</remarks>
+    public bool IsContentEncrypted => false;
+
     /// <summary>Whether revision marking is enabled, represented by <c>\revisions</c>.</summary>
     public bool? TrackRevisions { get; set; }
 

@@ -32,6 +32,8 @@ Byte, stream, and file reads retain the exact original bytes. `HasOriginalBytes`
 
 RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted arguments, switches, escapes, and unterminated-token state. Hyperlink projection uses this syntax rather than regular-expression extraction.
 
+RTF editing restrictions are exposed through `RtfDocumentSettings.HasEditingProtection`. `IsContentEncrypted` remains `false`: form, revision, annotation, and read-only protection flags restrict editing behavior but do not encrypt RTF content.
+
 ## Read untrusted RTF
 
 The default OfficeIMO profile is bounded, does not materialize embedded objects or file-table references, and accepts only web and mail hyperlinks. Uploaded files can state that policy explicitly and provide a cancellation token:

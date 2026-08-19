@@ -43,6 +43,12 @@ internal sealed class OdfPackageEntry {
         IsDirty = true;
     }
 
+    internal void ReplaceLoadedBytes(byte[] data) {
+        _data = data ?? throw new ArgumentNullException(nameof(data));
+        _xml = null;
+        IsDirty = false;
+    }
+
     internal void Remove() {
         IsRemoved = true;
         IsDirty = true;
