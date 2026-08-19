@@ -1,6 +1,6 @@
 param(
     [string] $SiteRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
-    [string] $PSWriteOfficeRoot = '',
+    [string] $PSWriteOfficeRoot = $env:PSWRITEOFFICE_ROOT,
     [switch] $SkipDocumentation,
     [switch] $SkipExamples
 )

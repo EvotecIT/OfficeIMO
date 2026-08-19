@@ -294,6 +294,9 @@ $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
 if ($catalog.repository.productionComponentCount -ne @($catalog.components).Count) {
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
+if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
+    Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
+}
 $expectedRepositoryCounts = [ordered]@{
     projectCount = 169
     productionComponentCount = 99
@@ -301,7 +304,6 @@ $expectedRepositoryCounts = [ordered]@{
     benchmarkProjectCount = 16
     validationProjectCount = 22
     apiReferenceCount = 21
-    conceptualPageCount = 95
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
     $actual = [int] $catalog.repository.($expectedCount.Key)
