@@ -25,13 +25,16 @@ internal sealed class PstWriterValueReference {
 }
 
 internal readonly struct PstWriterContextResult {
-    internal PstWriterContextResult(ulong dataBid, ulong subnodeBid) {
+    internal PstWriterContextResult(ulong dataBid, ulong subnodeBid,
+        long serializedDataLength = 0) {
         DataBid = dataBid;
         SubnodeBid = subnodeBid;
+        SerializedDataLength = serializedDataLength;
     }
 
     internal ulong DataBid { get; }
     internal ulong SubnodeBid { get; }
+    internal long SerializedDataLength { get; }
 }
 
 internal static class PstPropertyContextWriter {
@@ -43,7 +46,28 @@ internal static class PstPropertyContextWriter {
         IEnumerable<PstWriterSubnode>? additionalSubnodes,
         IReadOnlyDictionary<ushort, PstWriterValueReference>? valueReferences,
         IReadOnlyDictionary<ushort, PstWriterObjectReference>? objectReferences,
-        Action<EmailStoreDiagnostic>? reportDiagnostic, string location) {
+        Action<EmailStoreDiagnostic>? reportDiagnostic, string location) =>
+        WriteCore(file, properties, codePage, additionalSubnodes, valueReferences,
+            objectReferences, reportDiagnostic, location, null);
+
+    internal static PstWriterContextResult WriteWithCalculatedSize(PstWriterFile file,
+        IEnumerable<MapiProperty> properties, int codePage,
+        IEnumerable<PstWriterSubnode>? additionalSubnodes,
+        IReadOnlyDictionary<ushort, PstWriterValueReference>? valueReferences,
+        IReadOnlyDictionary<ushort, PstWriterObjectReference>? objectReferences,
+        Action<EmailStoreDiagnostic>? reportDiagnostic, string location,
+        MapiPropertyKey<int> sizeProperty) =>
+        WriteCore(file, properties, codePage, additionalSubnodes, valueReferences,
+            objectReferences, reportDiagnostic, location,
+            sizeProperty?.GetStandardPropertyId() ?? throw new ArgumentNullException(nameof(sizeProperty)));
+
+    private static PstWriterContextResult WriteCore(PstWriterFile file,
+        IEnumerable<MapiProperty> properties, int codePage,
+        IEnumerable<PstWriterSubnode>? additionalSubnodes,
+        IReadOnlyDictionary<ushort, PstWriterValueReference>? valueReferences,
+        IReadOnlyDictionary<ushort, PstWriterObjectReference>? objectReferences,
+        Action<EmailStoreDiagnostic>? reportDiagnostic, string location,
+        ushort? calculatedSizePropertyId) {
         if (file == null) throw new ArgumentNullException(nameof(file));
         if (properties == null) throw new ArgumentNullException(nameof(properties));
 
@@ -93,11 +117,6 @@ internal static class PstPropertyContextWriter {
             item.Bytes != null && !item.IsObjectDescriptor && item.Bytes.Length > PreferredHeapValueLimit)) {
             candidate.UseSubnode = true;
         }
-        var heap = new PstWriterHeap(0xBC);
-        var bthHeader = new byte[8];
-        uint headerHid = heap.Add(bthHeader);
-        var records = new byte[candidates.Count * 8];
-
         var subnodes = additionalSubnodes == null
             ? new List<PstWriterSubnode>()
             : new List<PstWriterSubnode>(additionalSubnodes);
@@ -107,32 +126,53 @@ internal static class PstPropertyContextWriter {
             }
         }
         uint localIndex = NextLocalIndex(subnodes);
+        foreach (EncodedProperty candidate in candidates.Where(item => item.UseSubnode)) {
+            candidate.SubnodeNid = checked((localIndex++ << 5) | 0x1FU);
+        }
+        IReadOnlyList<byte[]> heapBlocks = BuildHeap(candidates);
+        long serializedDataLength = heapBlocks.Sum(item => (long)item.Length);
+        foreach (EncodedProperty candidate in candidates.Where(item => item.UseSubnode)) {
+            serializedDataLength = checked(serializedDataLength + candidate.Bytes!.LongLength);
+        }
+        foreach (PstWriterSubnode subnode in subnodes) {
+            serializedDataLength = checked(serializedDataLength +
+                file.GetContextDataLength(subnode.DataBid, subnode.SubnodeBid));
+        }
+        if (calculatedSizePropertyId.HasValue) {
+            EncodedProperty size = candidates.Single(item =>
+                item.PropertyId == calculatedSizePropertyId.Value &&
+                item.PropertyType == MapiPropertyType.Integer32 && item.IsInline);
+            size.InlineValue = checked((uint)Math.Min(serializedDataLength, int.MaxValue));
+            heapBlocks = BuildHeap(candidates);
+        }
+        foreach (EncodedProperty candidate in candidates.Where(item => item.UseSubnode)) {
+            subnodes.Add(new PstWriterSubnode(candidate.SubnodeNid,
+                file.WriteDataTree(candidate.Bytes!)));
+        }
+        ulong dataBid = file.WriteDataTreeBlocks(heapBlocks);
+        ulong subnodeBid = PstWriterSubnodeTree.Write(file, subnodes);
+        return new PstWriterContextResult(dataBid, subnodeBid, serializedDataLength);
+    }
+
+    private static IReadOnlyList<byte[]> BuildHeap(IReadOnlyList<EncodedProperty> candidates) {
+        var heap = new PstWriterHeap(0xBC);
+        var bthHeader = new byte[8];
+        uint headerHid = heap.Add(bthHeader);
+        var records = new byte[candidates.Count * 8];
         for (int index = 0; index < candidates.Count; index++) {
             EncodedProperty candidate = candidates[index];
             uint rawValue;
-            if (candidate.IsExternalReference) {
-                rawValue = candidate.InlineValue;
-            } else if (candidate.IsInline) {
-                rawValue = candidate.InlineValue;
-            } else if (candidate.Bytes == null || candidate.Bytes.Length == 0) {
-                rawValue = 0;
-            } else if (candidate.UseSubnode) {
-                uint nid = checked((localIndex++ << 5) | 0x1FU);
-                subnodes.Add(new PstWriterSubnode(nid, file.WriteDataTree(candidate.Bytes)));
-                rawValue = nid;
-            } else {
-                rawValue = heap.Add(candidate.Bytes);
-            }
+            if (candidate.IsExternalReference || candidate.IsInline) rawValue = candidate.InlineValue;
+            else if (candidate.Bytes == null || candidate.Bytes.Length == 0) rawValue = 0;
+            else if (candidate.UseSubnode) rawValue = candidate.SubnodeNid;
+            else rawValue = heap.Add(candidate.Bytes);
             int recordOffset = index * 8;
             PstBinary.WriteUInt16(records, recordOffset, candidate.PropertyId);
             PstBinary.WriteUInt16(records, recordOffset + 2, (ushort)candidate.PropertyType);
             PstBinary.WriteUInt32(records, recordOffset + 4, rawValue);
         }
-
         PstWriterBth.Complete(heap, bthHeader, 2, 6, records);
-        ulong dataBid = file.WriteDataTreeBlocks(heap.Build(headerHid));
-        ulong subnodeBid = PstWriterSubnodeTree.Write(file, subnodes);
-        return new PstWriterContextResult(dataBid, subnodeBid);
+        return heap.Build(headerHid);
     }
 
     private static uint NextLocalIndex(IEnumerable<PstWriterSubnode> subnodes) {
@@ -165,11 +205,12 @@ internal static class PstPropertyContextWriter {
 
         internal ushort PropertyId { get; }
         internal MapiPropertyType PropertyType { get; }
-        internal uint InlineValue { get; }
+        internal uint InlineValue { get; set; }
         internal bool IsInline { get; }
         internal bool IsExternalReference { get; }
         internal byte[]? Bytes { get; }
         internal bool IsObjectDescriptor { get; }
         internal bool UseSubnode { get; set; }
+        internal uint SubnodeNid { get; set; }
     }
 }

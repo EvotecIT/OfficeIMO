@@ -71,21 +71,25 @@ internal static class PstTableContextWriter {
                     }
                     previousRowId = row.RowId;
                     hasPreviousRow = true;
-                    var values = row.Properties.GroupBy(item => item.PropertyId)
+                    var values = row.Properties.GroupBy(item => item.PropertyTag)
                         .ToDictionary(group => group.Key, group => group.Last());
                     ushort rowIdPropertyId = MapiKnownProperties.PidTag.LtpRowId.PropertyId!.Value;
                     ushort rowVersionPropertyId = MapiKnownProperties.PidTag.LtpRowVer.PropertyId!.Value;
-                    values[rowIdPropertyId] = new MapiProperty(rowIdPropertyId,
+                    uint rowIdPropertyTag = ((uint)rowIdPropertyId << 16) |
+                        (ushort)MapiKnownProperties.PidTag.LtpRowId.PreferredType;
+                    uint rowVersionPropertyTag = ((uint)rowVersionPropertyId << 16) |
+                        (ushort)MapiKnownProperties.PidTag.LtpRowVer.PreferredType;
+                    values[rowIdPropertyTag] = new MapiProperty(rowIdPropertyId,
                         MapiKnownProperties.PidTag.LtpRowId.PreferredType,
                         unchecked((int)row.RowId));
-                    if (!values.ContainsKey(rowVersionPropertyId)) {
-                        values[rowVersionPropertyId] = new MapiProperty(rowVersionPropertyId,
+                    if (!values.ContainsKey(rowVersionPropertyTag)) {
+                        values[rowVersionPropertyTag] = new MapiProperty(rowVersionPropertyId,
                             MapiKnownProperties.PidTag.LtpRowVer.PreferredType, 0);
                     }
 
                     int rowOffset = rowsInBlock * rowSize;
                     foreach (Column column in columns) {
-                        if (!values.TryGetValue(column.PropertyId, out MapiProperty? property)) continue;
+                        if (!values.TryGetValue(column.PropertyTag, out MapiProperty? property)) continue;
                         try {
                             EncodedCell cell = EncodeCell(property, column, codePage);
                             int destination = rowOffset + column.DataOffset;
@@ -182,18 +186,23 @@ internal static class PstTableContextWriter {
     private static Column[] CreateColumns(IEnumerable<MapiProperty> requiredColumns) {
         ushort rowIdPropertyId = MapiKnownProperties.PidTag.LtpRowId.PropertyId!.Value;
         ushort rowVersionPropertyId = MapiKnownProperties.PidTag.LtpRowVer.PropertyId!.Value;
-        var types = new Dictionary<ushort, MapiPropertyType> {
-            [rowIdPropertyId] = MapiKnownProperties.PidTag.LtpRowId.PreferredType,
-            [rowVersionPropertyId] = MapiKnownProperties.PidTag.LtpRowVer.PreferredType
+        var types = new Dictionary<uint, MapiPropertyType> {
+            [((uint)rowIdPropertyId << 16) | (ushort)MapiKnownProperties.PidTag.LtpRowId.PreferredType] =
+                MapiKnownProperties.PidTag.LtpRowId.PreferredType,
+            [((uint)rowVersionPropertyId << 16) | (ushort)MapiKnownProperties.PidTag.LtpRowVer.PreferredType] =
+                MapiKnownProperties.PidTag.LtpRowVer.PreferredType
         };
-        foreach (MapiProperty property in requiredColumns) types[property.PropertyId] = property.PropertyType;
-        Column[] columns = types.OrderBy(item => ((uint)item.Key << 16) | (ushort)item.Value)
-            .Select(item => new Column(item.Key, item.Value, GetTableWidth(item.Value))).ToArray();
+        foreach (MapiProperty property in requiredColumns) types[property.PropertyTag] = property.PropertyType;
+        Column[] columns = types.OrderBy(item => item.Key)
+            .Select(item => new Column(checked((ushort)(item.Key >> 16)), item.Value,
+                GetTableWidth(item.Value))).ToArray();
         int nextBit = 2;
         foreach (Column column in columns) {
-            column.BitIndex = column.PropertyId == rowIdPropertyId
+            column.BitIndex = column.PropertyTag == (((uint)rowIdPropertyId << 16) |
+                (ushort)MapiKnownProperties.PidTag.LtpRowId.PreferredType)
                 ? 0
-                : column.PropertyId == rowVersionPropertyId ? 1 : nextBit++;
+                : column.PropertyTag == (((uint)rowVersionPropertyId << 16) |
+                    (ushort)MapiKnownProperties.PidTag.LtpRowVer.PreferredType) ? 1 : nextBit++;
         }
         return columns;
     }
@@ -280,6 +289,7 @@ internal static class PstTableContextWriter {
         }
         internal ushort PropertyId { get; }
         internal MapiPropertyType PropertyType { get; }
+        internal uint PropertyTag => ((uint)PropertyId << 16) | (ushort)PropertyType;
         internal int Size { get; }
         internal int DataOffset { get; set; }
         internal int BitIndex { get; set; }

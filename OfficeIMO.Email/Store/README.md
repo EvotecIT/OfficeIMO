@@ -520,7 +520,8 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 - Synthetic always-on gates cover deterministic round trips, malformed MIME/TNEF/compound input, memory budgets,
   source-bound migration checkpoints, merge/deduplication, and scale. The libpff gate independently opens and exports
   a generated PST and validates subject, body, and attachment content; the classic Outlook gate mounts the store and
-  reads folder, recipient, body, and attachment metadata. Both gates are opt-in so
+  reads folder, recipient, body, and attachment metadata; and the ScanPST gate performs a no-repair validation and
+  requires the source bytes to remain unchanged. These gates are opt-in so
   normal builds remain dependency-free; private PST/OST corpus tests are also opt-in and retain aggregate evidence only.
 
 ## Targets and dependencies

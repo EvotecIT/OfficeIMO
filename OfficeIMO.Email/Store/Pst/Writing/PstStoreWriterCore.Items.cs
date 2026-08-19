@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.Email.Store;
 
@@ -16,12 +17,26 @@ internal sealed partial class PstStoreWriterCore {
             new EmailWriterOptions(EmailConversionLossPolicy.Allow,
                 maxNestedMessageDepth: _options.MaxNestedMessageDepth,
                 maxOutputBytes: uint.MaxValue));
-        messageBuilder.Set(MapiKnownProperties.PidTag.MessageSize, EstimateMessageSize(document));
+        // PidTagMessageSize is calculated from the serialized PC and all of its
+        // recursively referenced subnode data after those objects are written.
+        messageBuilder.Set(MapiKnownProperties.PidTag.MessageSize, 0);
         messageBuilder.Set(MapiKnownProperties.PidTag.MessageStatus,
             document.MapiProperties.GetNullableMapiValue(MapiKnownProperties.PidTag.MessageStatus) ?? 0);
         messageBuilder.Set(MapiKnownProperties.PidTag.SearchKey,
             document.MapiProperties.GetMapiValueOrDefault(MapiKnownProperties.PidTag.SearchKey) ??
                 CreateObjectKey(messageNid));
+        messageBuilder.Set(MapiKnownProperties.PidTag.DisplayTo,
+            JoinDisplayRecipients(document, EmailRecipientKind.To));
+        messageBuilder.Set(MapiKnownProperties.PidTag.DisplayCc,
+            JoinDisplayRecipients(document, EmailRecipientKind.Cc));
+        messageBuilder.Set(MapiKnownProperties.PidTag.DisplayBcc,
+            JoinDisplayRecipients(document, EmailRecipientKind.Bcc));
+        // PST-required defaults are added after the shared MSG projection, so restore
+        // the public patch as the final preservation authority before serialization.
+        document.MapiWritePatch.Apply(messageBuilder);
+        // MessageSize is structural PST evidence and is always regenerated from the
+        // final serialized PC/subnode graph, even when a preservation patch removes it.
+        messageBuilder.Set(MapiKnownProperties.PidTag.MessageSize, 0);
         TranslateDiagnostics(emailDiagnostics);
 
         IReadOnlyList<MapiProperty> messageProperties =
@@ -75,11 +90,32 @@ internal sealed partial class PstStoreWriterCore {
                 attachmentTable.DataBid, attachmentTable.SubnodeBid));
         }
 
-        PstWriterContextResult context = PstPropertyContextWriter.Write(_file,
+        PstWriterContextResult context = PstPropertyContextWriter.WriteWithCalculatedSize(_file,
             messageProperties, codePage, messageSubnodes, null, null,
-            Report, string.Concat("message/", FormatId(messageNid)));
-        return new WrittenMessage(context,
-            SelectTableProperties(messageProperties, ContentsColumns.Concat(AssociatedColumns).ToArray()));
+            Report, string.Concat("message/", FormatId(messageNid)),
+            MapiKnownProperties.PidTag.MessageSize);
+        var tableProperties = new List<MapiProperty>(SelectTableProperties(
+            messageProperties, ContentsColumns.Concat(AssociatedColumns).ToArray()));
+        tableProperties.RemoveAll(item => item.PropertyId ==
+            MapiKnownProperties.PidTag.MessageSize.GetStandardPropertyId());
+        tableProperties.Add(Property(MapiKnownProperties.PidTag.MessageSize,
+            checked((int)Math.Min(context.SerializedDataLength, int.MaxValue))));
+        tableProperties.Add(Property(0x0E30, MapiPropertyType.Binary,
+            CreateReplicaId(messageNid)));
+        tableProperties.Add(Property(MapiKnownProperties.PidTag.ReplChangenum,
+            checked((long)messageNid)));
+        tableProperties.Add(Property(MapiKnownProperties.PidTag.ReplVersionHistory,
+            CreateReplVersionHistory()));
+        tableProperties.Add(Property(MapiKnownProperties.PidTag.ReplFlags, 0));
+        tableProperties.Add(Property(MapiKnownProperties.PidTag.LtpRowVer, 1));
+        tableProperties.RemoveAll(item => item.PropertyId ==
+            MapiKnownProperties.PidTag.ConversationId.GetStandardPropertyId());
+        byte[]? conversationId = CreateConversationId(messageProperties);
+        if (conversationId != null) {
+            tableProperties.Add(Property(MapiKnownProperties.PidTag.ConversationId,
+                conversationId));
+        }
+        return new WrittenMessage(context, tableProperties);
     }
 
     private WrittenAttachment WriteAttachment(EmailAttachment attachment, uint attachmentNid,
@@ -110,10 +146,11 @@ internal sealed partial class PstStoreWriterCore {
                 const uint embeddedNid = 0x224;
                 WrittenMessage embedded = WriteMessage(attachment.EmbeddedDocument,
                     embeddedNid, parentDepth + 1, cancellationToken);
+                contentLength = embedded.Context.SerializedDataLength;
                 subnodes.Add(new PstWriterSubnode(embeddedNid,
                     embedded.Context.DataBid, embedded.Context.SubnodeBid));
                 objectReferences[MapiKnownProperties.PidTag.AttachData.GetStandardPropertyId()] =
-                    new PstWriterObjectReference(embeddedNid, 0);
+                    new PstWriterObjectReference(embeddedNid, contentLength);
                 builder.Set(MapiKnownProperties.PidTag.AttachData, MapiPropertyType.Object, null);
             }
         } else if (method == 5) {
@@ -150,13 +187,17 @@ internal sealed partial class PstStoreWriterCore {
                 EmailStoreDiagnosticSeverity.Error,
                 string.Concat("attachment/0x", attachmentNid.ToString("X8", CultureInfo.InvariantCulture))));
         }
-        builder.Set(MapiKnownProperties.PidTag.AttachSize,
-            checked((int)Math.Min(contentLength, int.MaxValue)));
+        builder.Set(MapiKnownProperties.PidTag.AttachSize, 0);
         TranslateDiagnostics(diagnostics);
         string location = string.Concat("attachment/0x",
             attachmentNid.ToString("X8", CultureInfo.InvariantCulture));
         IReadOnlyList<MapiProperty> properties = _namedProperties.Map(
             builder.Properties, Report, location);
+        var finalProperties = new MsgPropertyBuilder(properties);
+        finalProperties.Set(MapiKnownProperties.PidTag.AttachSize,
+            CalculateAttachmentObjectSize(properties, codePage, contentLength,
+                valueReferences, objectReferences));
+        properties = finalProperties.Properties;
         PstWriterContextResult context = PstPropertyContextWriter.Write(_file,
             properties, codePage, subnodes, valueReferences, objectReferences,
             Report, string.Concat("attachment/0x", attachmentNid.ToString("X8", CultureInfo.InvariantCulture)));
@@ -183,6 +224,28 @@ internal sealed partial class PstStoreWriterCore {
         return false;
     }
 
+    private static int CalculateAttachmentObjectSize(IReadOnlyList<MapiProperty> properties,
+        int codePage, long contentLength,
+        IReadOnlyDictionary<ushort, PstWriterValueReference> valueReferences,
+        IReadOnlyDictionary<ushort, PstWriterObjectReference> objectReferences) {
+        ushort attachDataId = MapiKnownProperties.PidTag.AttachData.GetStandardPropertyId();
+        long total = 0;
+        foreach (MapiProperty property in properties.GroupBy(item => item.PropertyId)
+            .Select(group => group.Last())) {
+            long valueSize;
+            if (property.PropertyId == attachDataId && valueReferences.ContainsKey(attachDataId)) {
+                valueSize = contentLength;
+            } else if (property.PropertyId == attachDataId &&
+                objectReferences.TryGetValue(attachDataId, out PstWriterObjectReference? reference)) {
+                valueSize = reference.Size;
+            } else {
+                valueSize = PstPropertyValueWriter.GetLogicalValueSize(property, codePage);
+            }
+            total = checked(total + Math.Max(0, valueSize));
+        }
+        return checked((int)Math.Min(total, int.MaxValue));
+    }
+
     private void TranslateDiagnostics(IEnumerable<EmailDiagnostic> diagnostics) {
         foreach (EmailDiagnostic diagnostic in diagnostics) {
             Report(new EmailStoreDiagnostic(diagnostic.Code, diagnostic.Message,
@@ -200,15 +263,37 @@ internal sealed partial class PstStoreWriterCore {
             ? document.OutlookCodePage.GetValueOrDefault(65001)
             : 65001;
 
-    private static int EstimateMessageSize(EmailDocument document) {
-        long length = 0;
-        if (document.Body.Text != null) length += Encoding.Unicode.GetByteCount(document.Body.Text);
-        if (document.Body.Html != null) length += Encoding.UTF8.GetByteCount(document.Body.Html);
-        if (document.Body.Rtf != null) length += Encoding.UTF8.GetByteCount(document.Body.Rtf);
-        foreach (EmailAttachment attachment in document.Attachments) {
-            length = checked(length + Math.Max(0, attachment.Content?.LongLength ?? attachment.Length));
+    private static string? JoinDisplayRecipients(EmailDocument document, EmailRecipientKind kind) {
+        string[] values = document.Recipients.Where(recipient => recipient.Kind == kind)
+            .Select(recipient => string.IsNullOrWhiteSpace(recipient.Address.DisplayName)
+                ? recipient.Address.Address
+                : recipient.Address.DisplayName!)
+            .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).ToArray();
+        return values.Length == 0 ? null : string.Join("; ", values);
+    }
+
+    private static byte[]? CreateConversationId(IReadOnlyList<MapiProperty> properties) {
+        byte[]? retained = properties.GetMapiValueOrDefault(MapiKnownProperties.PidTag.ConversationId);
+        if (retained != null && retained.Length == 16) return (byte[])retained.Clone();
+        bool tracking = properties.GetNullableMapiValue(
+            MapiKnownProperties.PidTag.ConversationIndexTracking) == true;
+        byte[]? conversationIndex = properties.GetMapiValueOrDefault(
+            MapiKnownProperties.PidTag.ConversationIndex);
+        if (tracking && conversationIndex != null && conversationIndex.Length >= 22 &&
+            conversationIndex[0] == 0x01) {
+            var fromIndex = new byte[16];
+            Buffer.BlockCopy(conversationIndex, 6, fromIndex, 0, fromIndex.Length);
+            return fromIndex;
         }
-        return checked((int)Math.Min(length, int.MaxValue));
+        string? topic = properties.GetMapiValueOrDefault(
+            MapiKnownProperties.PidTag.ConversationTopic);
+        if (string.IsNullOrEmpty(topic)) return null;
+        int terminator = topic!.IndexOf('\0');
+        if (terminator >= 0) topic = topic.Substring(0, terminator);
+        if (topic.Length == 0) return null;
+        string normalized = topic.Length > 255 ? topic.Substring(0, 255) : topic;
+        byte[] bytes = Encoding.Unicode.GetBytes(normalized.ToUpperInvariant());
+        using (MD5 md5 = MD5.Create()) return md5.ComputeHash(bytes);
     }
 
     private byte[] CreateObjectKey(uint value) {

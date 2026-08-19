@@ -54,6 +54,8 @@ internal static class PstWriterSubnodeTree {
                     PstBinary.WriteUInt32(payload, entryOffset, subnode.Nid);
                     PstBinary.WriteUInt64(payload, entryOffset + 8, subnode.DataBid);
                     PstBinary.WriteUInt64(payload, entryOffset + 16, subnode.SubnodeBid);
+                    file.AddBlockReference(subnode.DataBid);
+                    file.AddBlockReference(subnode.SubnodeBid);
                 }
                 level.Add(new SubnodeBlockReference(firstNid, file.WriteInternalBlock(payload)));
                 remaining -= leafCount;
@@ -77,6 +79,7 @@ internal static class PstWriterSubnodeTree {
                     int entryOffset = HeaderSize + index * IndexEntrySize;
                     PstBinary.WriteUInt32(payload, entryOffset, child.FirstNid);
                     PstBinary.WriteUInt64(payload, entryOffset + 8, child.Bid);
+                    file.AddBlockReference(child.Bid);
                 }
                 parent.Add(new SubnodeBlockReference(
                     level[offset].FirstNid, file.WriteInternalBlock(payload)));

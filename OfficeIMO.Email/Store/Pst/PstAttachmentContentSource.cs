@@ -12,14 +12,14 @@ internal sealed class PstAttachmentContentSource : IEmailContentSource {
     private readonly object _gate = new object();
     private long _maximumObservedBytes;
 
-    internal PstAttachmentContentSource(PstHeap heap, uint hnid, long? length,
+    internal PstAttachmentContentSource(PstHeap heap, uint hnid, long? length, long reservedBytes,
         long maximumBytes, PstAttachmentAggregateBudget aggregateBudget,
         EmailStoreSessionLifetime lifetime) {
         _heap = heap ?? throw new ArgumentNullException(nameof(heap));
         _hnid = hnid;
         Length = length;
         _maximumBytes = maximumBytes;
-        _reservedBytes = length.GetValueOrDefault();
+        _reservedBytes = reservedBytes;
         _aggregateBudget = aggregateBudget ?? throw new ArgumentNullException(nameof(aggregateBudget));
         _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
     }
