@@ -1,8 +1,13 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.IO.Compression;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.OpenDocument.Odp.Pdf;
+using OfficeIMO.OpenDocument.Ods.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -14,7 +19,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfReverseConversionScorecardTests {
     [Fact]
-    public void Scorecard_ExecutesTwentyEightCrossProducerReverseConversions() {
+    public void Scorecard_ExecutesFiftySixCrossProducerReverseConversions() {
         string repositoryRoot = FindRepositoryRoot();
         using JsonDocument scorecard = JsonDocument.Parse(File.ReadAllBytes(
             Path.Combine(repositoryRoot, "Docs", "pdf-reverse-conversion-scorecard.json")));
@@ -26,7 +31,10 @@ public sealed class PdfReverseConversionScorecardTests {
             .ToArray();
 
         Assert.Equal(7, producers.Length);
-        Assert.Equal(new[] { "pdf-to-docx", "pdf-to-html", "pdf-to-xlsx", "pdf-to-pptx" }, routeIds);
+        Assert.Equal(new[] {
+            "pdf-to-docx", "pdf-to-html", "pdf-to-xlsx", "pdf-to-pptx",
+            "pdf-to-odt", "pdf-to-ods", "pdf-to-odp", "pdf-to-png"
+        }, routeIds);
         Assert.Equal(producers.Length * routeIds.Length, root.GetProperty("matrixCases").GetInt32());
 
         var executed = new HashSet<string>(StringComparer.Ordinal);
@@ -49,7 +57,66 @@ public sealed class PdfReverseConversionScorecardTests {
             }
         }
 
-        Assert.Equal(28, executed.Count);
+        Assert.Equal(56, executed.Count);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Scorecard_ExecutesScannedMixedEncryptedAndMalformedEvidence() {
+        string repositoryRoot = FindRepositoryRoot();
+        using JsonDocument scorecard = JsonDocument.Parse(File.ReadAllBytes(
+            Path.Combine(repositoryRoot, "Docs", "pdf-reverse-conversion-scorecard.json")));
+        JsonElement[] stressCases = scorecard.RootElement.GetProperty("stressCases").EnumerateArray().ToArray();
+        Assert.Equal(new[] { "scanned", "mixed-content", "encrypted", "malformed" },
+            stressCases.Select(static item => item.GetProperty("kind").GetString()).ToArray());
+        Assert.All(stressCases, item => Assert.NotEmpty(item.GetProperty("requiredEvidence").EnumerateArray()));
+
+        byte[] scanned = PdfCore.PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90, alternativeText: "Scanned source")
+            .ToBytes();
+        var scannedProvider = new ScorecardOcrProvider(request => new PdfCore.PdfOcrResponse(new[] {
+            OcrAt(request, "Scanned", 36, 120, 52, 14),
+            OcrAt(request, "invoice", 96, 120, 44, 14)
+        }));
+        PdfCore.PdfOcrMergeResult scannedResult = await PdfCore.PdfDocument.Open(scanned).Read.OcrAsync(scannedProvider);
+        Assert.Empty(scannedResult.NativeDocument.TextBlocks);
+        Assert.Equal(2, scannedResult.AcceptedWordCount);
+        Assert.All(scannedResult.EnrichedDocument.TextBlocks, block => Assert.Equal(PdfCore.PdfLogicalContentSourceKind.Ocr, block.SourceKind));
+        using (OfficeIMO.Word.WordDocument word = scannedResult.EnrichedDocument.ToWordDocument()) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+            Assert.Contains("Scanned invoice", package.MainDocumentPart!.Document.InnerText, StringComparison.Ordinal);
+        }
+
+        byte[] mixed = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Native retained"))
+            .Image(PdfPngTestImages.CreateRgbPng(120, 140, 160), 100, 40, alternativeText: "Mixed source")
+            .ToBytes();
+        PdfCore.PdfSelectionQuad nativeQuad = PdfCore.PdfPageInteractionMap.Create(mixed, 1).TextRegions[0].Quad;
+        var mixedProvider = new ScorecardOcrProvider(request => new PdfCore.PdfOcrResponse(new[] {
+            OcrAt(request, "duplicate", nativeQuad.Left, nativeQuad.Top, nativeQuad.Width, nativeQuad.Height),
+            OcrAt(request, "OCR-retained", 36, 260, 74, 14)
+        }));
+        PdfCore.PdfOcrMergeResult mixedResult = await PdfCore.PdfDocument.Open(mixed).Read.OcrAsync(mixedProvider);
+        Assert.Equal(1, mixedResult.Pages[0].RejectedNativeOverlapCount);
+        Assert.Contains(mixedResult.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Native && block.Text.Contains("Native retained", StringComparison.Ordinal));
+        Assert.Contains(mixedResult.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Ocr && block.Text.Contains("OCR-retained", StringComparison.Ordinal));
+
+        byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Credentialed conversion"))
+            .ToBytes();
+        Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfLogicalDocument.Load(encrypted));
+        Assert.Throws<PdfCore.PdfInvalidPasswordException>(() => PdfCore.PdfLogicalDocument.Load(encrypted, null, new PdfCore.PdfReadOptions { Password = "wrong" }));
+        PdfCore.PdfLogicalDocument decrypted = PdfCore.PdfLogicalDocument.Load(encrypted, null, new PdfCore.PdfReadOptions { Password = "open" });
+        Assert.Contains(decrypted.TextBlocks, block => block.Text.Contains("Credentialed conversion", StringComparison.Ordinal));
+        Assert.Contains("Credentialed", decrypted.ToHtml(), StringComparison.Ordinal);
+
+        JsonElement malformedCase = stressCases.Single(static item => item.GetProperty("kind").GetString() == "malformed");
+        string malformedPath = Path.Combine(repositoryRoot, malformedCase.GetProperty("path").GetString()!.Replace('/', Path.DirectorySeparatorChar));
+        byte[] malformed = File.ReadAllBytes(malformedPath);
+        PdfCore.PdfLogicalDocument recovered = PdfCore.PdfLogicalDocument.Load(malformed);
+        Assert.NotEmpty(recovered.Pages);
+        Assert.Contains("<!doctype html", recovered.ToHtml(), StringComparison.OrdinalIgnoreCase);
+        byte[] recoveredPng = PdfCore.PdfPageImageRenderer.RenderPageAsPng(malformed);
+        AssertPng(recoveredPng);
     }
 
     private static void ExecuteAndReopen(
@@ -109,6 +176,56 @@ public sealed class PdfReverseConversionScorecardTests {
                     if (expectedTables) Assert.NotEmpty(package.PresentationPart.SlideParts.SelectMany(static slide => slide.Slide.Descendants<A.Table>()));
                 }
                 return;
+            case "pdf-to-odt": {
+                PdfOdtConversionResult odtResult = logical.ToOdtDocumentResult();
+                byte[] artifact = odtResult.Value.ToBytes();
+                OdtDocument reopened = OdtDocument.Load(new MemoryStream(artifact));
+                Assert.NotEmpty(reopened.Paragraphs);
+                AssertTokenRecall(sourceTokens, ReadOpenDocumentText(artifact), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
+                return;
+            }
+            case "pdf-to-ods": {
+                PdfOdsConversionResult odsResult = logical.ToOdsDocumentResult();
+                byte[] artifact = odsResult.Value.ToBytes();
+                OdsDocument reopened = OdsDocument.Load(new MemoryStream(artifact));
+                Assert.NotEmpty(reopened.Sheets);
+                if (expectedTables) {
+                    HashSet<string> tableTokens = GetTokens(string.Join(" ", logical.Tables.SelectMany(static table => {
+                        PdfCore.PdfLogicalTableData data = PdfCore.PdfLogicalTableAnalysis.Extract(table);
+                        return data.Columns.Concat(data.Rows.SelectMany(static row => row));
+                    })));
+                    AssertTokenRecall(tableTokens, ReadOpenDocumentText(artifact), routeConfiguration.GetProperty("minimumTableTokenRecall").GetDouble(), route);
+                } else {
+                    Assert.True(odsResult.Report.PdfReport.HasOmittedPageContent, "A table-only ODS projection must report omitted non-table page content.");
+                }
+                return;
+            }
+            case "pdf-to-odp": {
+                PdfOdpConversionResult odpResult = logical.ToOdpPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+                byte[] artifact = odpResult.Value.ToBytes();
+                OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(artifact));
+                Assert.Equal(logical.Pages.Count, reopened.Slides.Count);
+                AssertTokenRecall(sourceTokens, ReadOpenDocumentText(artifact), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
+                return;
+            }
+            case "pdf-to-png": {
+                var options = new PdfCore.PdfPageRenderOptions {
+                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Dpi = routeConfiguration.GetProperty("dpi").GetDouble(),
+                    ContinueOnError = false
+                };
+                IReadOnlyList<PdfCore.PdfPageRenderResult> first = PdfCore.PdfPageImageRenderer.RenderPages(source, options: options);
+                IReadOnlyList<PdfCore.PdfPageRenderResult> second = PdfCore.PdfPageImageRenderer.RenderPages(source, options: options);
+                Assert.Equal(logical.Pages.Count, first.Count);
+                Assert.Equal(first.Count, second.Count);
+                for (int index = 0; index < first.Count; index++) {
+                    Assert.True(first[index].Succeeded);
+                    Assert.True(first[index].Width > 0 && first[index].Height > 0);
+                    AssertPng(first[index].Bytes!);
+                    Assert.Equal(first[index].Bytes, second[index].Bytes);
+                }
+                return;
+            }
             default:
                 throw new InvalidOperationException("Unknown reverse-conversion route: " + route);
         }
@@ -145,6 +262,39 @@ public sealed class PdfReverseConversionScorecardTests {
             }
         }
         return string.Join(" ", values);
+    }
+
+    private static string ReadOpenDocumentText(byte[] artifact) {
+        using var archive = new ZipArchive(new MemoryStream(artifact), ZipArchiveMode.Read, leaveOpen: false);
+        ZipArchiveEntry content = archive.GetEntry("content.xml") ?? throw new InvalidDataException("OpenDocument package did not contain content.xml.");
+        using StreamReader reader = new StreamReader(content.Open());
+        return Regex.Replace(reader.ReadToEnd(), "<[^>]+>", " ");
+    }
+
+    private static void AssertPng(byte[] artifact) {
+        Assert.True(artifact.Length > 24);
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, artifact.Take(8).ToArray());
+        Assert.Equal("IHDR", System.Text.Encoding.ASCII.GetString(artifact, 12, 4));
+    }
+
+    private static PdfCore.PdfOcrWord OcrAt(
+        PdfCore.PdfOcrRequest request,
+        string text,
+        double x,
+        double y,
+        double width,
+        double height) =>
+        new PdfCore.PdfOcrWord(text, x * request.Scale, y * request.Scale, width * request.Scale, height * request.Scale, 0.98D);
+
+    private sealed class ScorecardOcrProvider : PdfCore.IPdfOcrProvider {
+        private readonly Func<PdfCore.PdfOcrRequest, PdfCore.PdfOcrResponse> _response;
+        internal ScorecardOcrProvider(Func<PdfCore.PdfOcrRequest, PdfCore.PdfOcrResponse> response) { _response = response; }
+        public System.Threading.Tasks.Task<PdfCore.PdfOcrResponse> RecognizeAsync(
+            PdfCore.PdfOcrRequest request,
+            System.Threading.CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return System.Threading.Tasks.Task.FromResult(_response(request));
+        }
     }
 
     private static string FindRepositoryRoot() {

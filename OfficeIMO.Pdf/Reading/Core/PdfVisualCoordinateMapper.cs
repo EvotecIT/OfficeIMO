@@ -56,4 +56,36 @@ internal static class PdfVisualCoordinateMapper {
             visualRight,
             size.Height - visualBottom);
     }
+
+    internal static PdfVisualBounds TransformVisualBoundsToUser(
+        PdfPageBox pageBox,
+        int rotationDegrees,
+        double left,
+        double top,
+        double right,
+        double bottom) {
+        Matrix2D transform = CreateTransform(pageBox, rotationDegrees);
+        double determinant = (transform.A * transform.D) - (transform.B * transform.C);
+        if (Math.Abs(determinant) <= 0.000000001D) {
+            throw new InvalidOperationException("The page visual transform is not invertible.");
+        }
+
+        (double Width, double Height) size = GetVisualSize(pageBox, rotationDegrees);
+        Matrix2D inverse = new Matrix2D(
+            transform.D / determinant,
+            -transform.B / determinant,
+            -transform.C / determinant,
+            transform.A / determinant,
+            ((transform.C * transform.F) - (transform.D * transform.E)) / determinant,
+            ((transform.B * transform.E) - (transform.A * transform.F)) / determinant);
+        (double X, double Y) topLeft = inverse.Transform(left, size.Height - top);
+        (double X, double Y) topRight = inverse.Transform(right, size.Height - top);
+        (double X, double Y) bottomLeft = inverse.Transform(left, size.Height - bottom);
+        (double X, double Y) bottomRight = inverse.Transform(right, size.Height - bottom);
+        return new PdfVisualBounds(
+            Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X)),
+            Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y)),
+            Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)),
+            Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y)));
+    }
 }

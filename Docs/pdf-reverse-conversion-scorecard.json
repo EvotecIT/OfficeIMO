@@ -1,7 +1,7 @@
 {
-  "version": 1,
-  "purpose": "Executable cross-producer evidence for editable PDF reverse conversions. The matrix measures successful source parsing, target serialization, package reopening, retained page scope, semantic token recall, editable structure, and explicit omission reporting.",
-  "matrixCases": 28,
+  "version": 2,
+  "purpose": "Executable cross-producer evidence for semantic, editable, OpenDocument, and visual PDF reverse conversions. The matrix measures successful source parsing, target serialization, package reopening, retained page scope, semantic token recall, editable structure, deterministic visual output, and explicit omission reporting.",
+  "matrixCases": 56,
   "producers": [
     {
       "id": "microsoft-word-macos",
@@ -50,7 +50,17 @@
     { "id": "pdf-to-docx", "target": "docx", "projection": "semantic-editable", "minimumTokenRecall": 0.25 },
     { "id": "pdf-to-html", "target": "html", "projection": "semantic-review", "minimumTokenRecall": 0.35 },
     { "id": "pdf-to-xlsx", "target": "xlsx", "projection": "detected-tables", "minimumTableTokenRecall": 0.50 },
-    { "id": "pdf-to-pptx", "target": "pptx", "projection": "editable-content", "minimumTokenRecall": 0.15 }
+    { "id": "pdf-to-pptx", "target": "pptx", "projection": "editable-content", "minimumTokenRecall": 0.15 },
+    { "id": "pdf-to-odt", "target": "odt", "projection": "semantic-editable", "minimumTokenRecall": 0.25 },
+    { "id": "pdf-to-ods", "target": "ods", "projection": "detected-tables", "minimumTableTokenRecall": 0.50 },
+    { "id": "pdf-to-odp", "target": "odp", "projection": "editable-content", "minimumTokenRecall": 0.15 },
+    { "id": "pdf-to-png", "target": "png", "projection": "visual-pages", "dpi": 72 }
+  ],
+  "stressCases": [
+    { "id": "image-only-ocr", "kind": "scanned", "requiredEvidence": ["ocr-provenance", "editable-semantic-output"] },
+    { "id": "native-plus-ocr", "kind": "mixed-content", "requiredEvidence": ["native-retention", "ocr-retention", "native-overlap-filter"] },
+    { "id": "password-protected", "kind": "encrypted", "requiredEvidence": ["missing-password-rejected", "wrong-password-rejected", "credentialed-conversion"] },
+    { "id": "recoverable-corrupt-header", "kind": "malformed", "path": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-corrupt-header-comment.pdf", "requiredEvidence": ["source-open", "semantic-output", "visual-output"] }
   ],
   "scoreDimensions": [
     "source-open",
@@ -59,7 +69,9 @@
     "page-scope",
     "editable-structure",
     "semantic-token-recall",
-    "omission-reporting"
+    "omission-reporting",
+    "deterministic-visual-output",
+    "hostile-input-behavior"
   ],
   "acceptance": {
     "requiredSourceOpenRatio": 1.0,

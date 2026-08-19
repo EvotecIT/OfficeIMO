@@ -46,7 +46,13 @@ internal static class PdfOcr {
             pages.Add(MergePage(nativePage, readPage, response, request, effectiveOptions, cancellationToken));
         }
 
-        return new PdfOcrMergeResult(logical, pages.AsReadOnly());
+        IReadOnlyList<PdfOcrPageMergeResult> mergedPages = pages.AsReadOnly();
+        PdfLogicalDocument enriched = PdfOcrLogicalDocumentBuilder.Build(
+            logical,
+            mergedPages,
+            effectiveOptions,
+            cancellationToken);
+        return new PdfOcrMergeResult(logical, enriched, mergedPages);
     }
 
     private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfReadPage readPage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {

@@ -832,6 +832,14 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static bool IsTextBlockRepresentedByTable(PdfCore.PdfLogicalTextBlock block, PdfCore.PdfLogicalTable table) {
+        if (block.VisualBounds is PdfCore.PdfLogicalVisualBounds blockBounds &&
+            table.VisualBounds is PdfCore.PdfLogicalVisualBounds tableBounds) {
+            double centerX = (blockBounds.Left + blockBounds.Right) / 2D;
+            double centerY = (blockBounds.Top + blockBounds.Bottom) / 2D;
+            return centerX >= tableBounds.Left && centerX <= tableBounds.Right &&
+                centerY >= tableBounds.Top && centerY <= tableBounds.Bottom;
+        }
+
         double top = Math.Max(table.YTop, table.YBottom);
         double bottom = Math.Min(table.YTop, table.YBottom);
         if (block.BaselineY > top + 1D || block.BaselineY < bottom - 1D) {

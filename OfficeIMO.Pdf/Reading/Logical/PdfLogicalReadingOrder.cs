@@ -216,6 +216,10 @@ public static class PdfLogicalReadingOrderAnalysis {
         for (int index = 0; index < page.ListItems.Count; index++) AddText(PdfLogicalReadingOrderKind.ListItem, index, new[] { page.ListItems[index].Line });
         for (int index = 0; index < page.Tables.Count; index++) {
             PdfLogicalTable table = page.Tables[index];
+            if (table.VisualBounds is PdfLogicalVisualBounds visualBounds) {
+                AddVisual(PdfLogicalReadingOrderKind.Table, index, -1, visualBounds.Left, visualBounds.Top, visualBounds.Right, visualBounds.Bottom);
+                continue;
+            }
             double left = table.Columns.Count == 0 ? 0D : table.Columns.Min(static column => Math.Min(column.From, column.To));
             double right = table.Columns.Count == 0 ? 0D : table.Columns.Max(static column => Math.Max(column.From, column.To));
             Add(PdfLogicalReadingOrderKind.Table, index, -1, left, Math.Min(table.YTop, table.YBottom), right, Math.Max(table.YTop, table.YBottom));
@@ -240,6 +244,18 @@ public static class PdfLogicalReadingOrderAnalysis {
 
         void AddText(PdfLogicalReadingOrderKind kind, int sourceIndex, IReadOnlyList<PdfLogicalTextBlock> lines) {
             if (lines.Count == 0) { AddMissing(kind, sourceIndex, -1); return; }
+            PdfLogicalVisualBounds[] directBounds = lines.Select(static line => line.VisualBounds).Where(static bounds => bounds is not null).Cast<PdfLogicalVisualBounds>().ToArray();
+            if (directBounds.Length == lines.Count) {
+                AddVisual(
+                    kind,
+                    sourceIndex,
+                    -1,
+                    directBounds.Min(static bounds => bounds.Left),
+                    directBounds.Min(static bounds => bounds.Top),
+                    directBounds.Max(static bounds => bounds.Right),
+                    directBounds.Max(static bounds => bounds.Bottom));
+                return;
+            }
             double left = double.MaxValue;
             double right = double.MinValue;
             double bottom = double.MaxValue;
@@ -252,6 +268,20 @@ public static class PdfLogicalReadingOrderAnalysis {
                 top = Math.Max(top, line.BaselineY + Math.Max(1D, line.FontSize));
             }
             Add(kind, sourceIndex, -1, left, bottom, right, top);
+        }
+
+        void AddVisual(PdfLogicalReadingOrderKind kind, int sourceIndex, int placementIndex, double left, double top, double right, double bottom) {
+            (double width, double height) = page.GetVisualPageSize();
+            double clippedLeft = Math.Max(0D, Math.Min(width, left));
+            double clippedTop = Math.Max(0D, Math.Min(height, top));
+            double clippedRight = Math.Max(0D, Math.Min(width, right));
+            double clippedBottom = Math.Max(0D, Math.Min(height, bottom));
+            if (clippedRight <= clippedLeft || clippedBottom <= clippedTop) {
+                AddMissing(kind, sourceIndex, placementIndex);
+                return;
+            }
+            bool clipped = Math.Abs(clippedLeft - left) > 0.001D || Math.Abs(clippedTop - top) > 0.001D || Math.Abs(clippedRight - right) > 0.001D || Math.Abs(clippedBottom - bottom) > 0.001D;
+            result.Add(new Candidate(kind, sourceIndex, placementIndex, sequence++, clippedLeft, clippedTop, clippedRight, clippedBottom, hasGeometry: true, clipped));
         }
 
         void Add(PdfLogicalReadingOrderKind kind, int sourceIndex, int placementIndex, double left, double bottom, double right, double top) {

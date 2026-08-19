@@ -90,12 +90,12 @@ public static class OdpPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs an ODP presentation from an already loaded logical PDF model.</summary>
-    /// <remarks>A logical PDF model resolves Auto to editable tables. Other projections require an opened PDF.</remarks>
+    /// <remarks>A logical PDF model resolves Auto to editable tables and also supports explicit editable-content reconstruction. Visual and hybrid projections require an opened PDF.</remarks>
     public static OdpPresentation ToOdpPresentation(this PdfCore.PdfLogicalDocument source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) =>
         source.ToOdpPresentationResult(pdfOptions, openDocumentOptions).Value;
 
     /// <summary>Reconstructs an ODP presentation from a logical PDF model and preserves both stage reports.</summary>
-    /// <remarks>A logical PDF model resolves Auto to editable tables. Other projections require an opened PDF.</remarks>
+    /// <remarks>A logical PDF model resolves Auto to editable tables and also supports explicit editable-content reconstruction. Visual and hybrid projections require an opened PDF.</remarks>
     public static PdfOdpConversionResult ToOdpPresentationResult(this PdfCore.PdfLogicalDocument source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointPdf.PdfPowerPointConversionResult pdf =
