@@ -12,7 +12,7 @@ internal static class EmailConversionAnalyzer {
         if (document.Protection.IsProtected && !CanPassThroughProtectedSource(document, targetFormat)) {
             hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                "EMAIL_PROTECTED_CONTENT_REWRITE",
+                EmailArtifactDiagnosticCodes.ProtectedContentRewrite,
                 "The protected MIME or Outlook wrapper cannot be regenerated without invalidating its signature or encrypted payload. " +
                 "Write the unchanged artifact in its source format, or explicitly choose a non-blocking conversion loss policy.",
                 "protection"));
@@ -165,7 +165,15 @@ internal static class EmailConversionAnalyzer {
             : policy == EmailConversionLossPolicy.Warn
                 ? EmailDiagnosticSeverity.Warning
                 : EmailDiagnosticSeverity.Information;
-        return new EmailDiagnostic(code, message, severity, location);
+        return new EmailDiagnostic(code, message, severity, location, "artifact-conversion", null,
+            null, null, null,
+            policy == EmailConversionLossPolicy.Block
+                ? EmailDiagnosticDisposition.Stopped
+                : EmailDiagnosticDisposition.Observed,
+            EmailDataLossRisk.Confirmed,
+            policy == EmailConversionLossPolicy.Block
+                ? "Choose a target that preserves the source semantics or explicitly select Warn/Allow after reviewing the loss."
+                : "Review the regenerated artifact and its diagnostics before transport or archival use.");
     }
 
     private static bool HasSourceSpecificMetadata(EmailDocument document) {

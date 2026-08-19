@@ -2,6 +2,29 @@ namespace OfficeIMO.Email.Store;
 
 /// <summary>Dependency-free mailbox-store conversion entry points.</summary>
 public static class EmailStoreConverter {
+    /// <summary>Deletes one migration checkpoint, its writer-owned files, and its exact verification journal.</summary>
+    public static void DeletePstConversionCheckpoint(string checkpointPath) {
+        if (string.IsNullOrWhiteSpace(checkpointPath)) {
+            throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
+        }
+        string fullPath = Path.GetFullPath(checkpointPath);
+        if (!PstStoreWriterCore.TryReadCheckpointApplicationState(fullPath,
+                out byte[]? applicationState)) return;
+        PstConversionCheckpointState state = PstConversionCheckpointState.Deserialize(
+            applicationState ?? throw new InvalidDataException(
+                "The PST writer checkpoint has no migration state."));
+        string expectedMappingPath = string.Concat(fullPath, ".verify-map");
+        if (state.MappingPath != null && !EmailStorePathIdentity.AreEquivalent(
+                state.MappingPath, expectedMappingPath)) {
+            throw new InvalidDataException(
+                "The migration verification journal path is inconsistent.");
+        }
+        try { if (state.MappingPath != null && File.Exists(expectedMappingPath)) File.Delete(expectedMappingPath); }
+        catch (UnauthorizedAccessException) { throw; }
+        catch (IOException) { throw; }
+        EmailStorePstWriter.DeleteCheckpoint(fullPath);
+    }
+
     /// <summary>Opens a PST, OST, OLM, MBOX, EML, or mailbox directory and writes a new Unicode PST.</summary>
     public static EmailStorePstConversionReport ConvertToPst(string sourcePath,
         string destinationPath, EmailStoreReaderOptions? readerOptions = null,

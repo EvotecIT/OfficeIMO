@@ -122,13 +122,22 @@ public static class EmailImageExportExtensions {
         if (source == null) throw new ArgumentNullException(nameof(source));
         EmailImageExportOptions effective =
             options?.CloneEmail() ?? new EmailImageExportOptions();
-        var diagnostics = new List<OfficeImageExportDiagnostic>();
-        string body = CreateBodyHtml(source, effective, diagnostics);
+        EmailBodyProjectionResult bodyProjection = EmailBodyProjection.Create(source,
+            new EmailBodyProjectionOptions {
+                SelectionPolicy = effective.PreferHtmlBody
+                    ? EmailBodySelectionPolicy.Richest
+                    : EmailBodySelectionPolicy.RtfFirst,
+                RemoteResourcePolicy = effective.RemoteResourcePolicy,
+                MaxResourceBytes = effective.MaxResourceBytes,
+                BaseUri = effective.BaseUri
+            });
+        var diagnostics = bodyProjection.Diagnostics.Select(MapBodyDiagnostic).ToList();
+        string body = ExtractHtmlBody(bodyProjection.Html);
         string html = CreateDocumentHtml(source, body, effective);
-        effective.BaseUri ??= ResolveBaseUri(source.Body.HtmlContentLocation);
+        effective.BaseUri ??= bodyProjection.Document.BaseUri ?? FallbackBaseUri;
         EmailImageExportOptions renderOptions = effective.CloneEmail();
         renderOptions.Policy = new OfficeImageExportPolicy();
-        ConfigureInlineResources(source, renderOptions);
+        ConfigureInlineResources(bodyProjection, renderOptions);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             html,
             new HtmlConversionDocumentOptions {
@@ -142,56 +151,6 @@ public static class EmailImageExportExtensions {
             renderOptions,
             effective,
             diagnostics.AsReadOnly());
-    }
-
-    private static string CreateBodyHtml(
-        EmailDocument source,
-        EmailImageExportOptions options,
-        ICollection<OfficeImageExportDiagnostic> diagnostics) {
-        if (options.PreferHtmlBody && !string.IsNullOrWhiteSpace(source.Body.Html)) {
-            return ExtractHtmlBody(source.Body.Html!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(source.Body.Rtf)) {
-            try {
-                RtfReadResult rtf = RtfDocument.Read(source.Body.Rtf!);
-                diagnostics.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    "EMAIL_IMAGE_RTF_BODY_PROJECTED",
-                    "The email RTF body was projected through the shared RTF-to-HTML adapter.",
-                    "Email body",
-                    OfficeConversionLossKind.Approximation));
-                return ExtractHtmlBody(rtf.Document.ToHtml());
-            } catch (Exception exception) when (
-                exception is InvalidDataException ||
-                exception is ArgumentException ||
-                exception is NotSupportedException) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    "EMAIL_IMAGE_RTF_BODY_UNREADABLE",
-                    "The email RTF body could not be projected; plain text was used when available.",
-                    "Email body",
-                    OfficeConversionLossKind.Omission));
-            }
-        }
-
-        if (!string.IsNullOrEmpty(source.Body.Text)) {
-            return "<pre class=\"officeimo-email-plain\">" +
-                   WebUtility.HtmlEncode(source.Body.Text) +
-                   "</pre>";
-        }
-
-        if (!options.PreferHtmlBody && !string.IsNullOrWhiteSpace(source.Body.Html)) {
-            return ExtractHtmlBody(source.Body.Html!);
-        }
-
-        diagnostics.Add(new OfficeImageExportDiagnostic(
-            OfficeImageExportDiagnosticSeverity.Warning,
-            "EMAIL_IMAGE_BODY_MISSING",
-            "The email does not contain a renderable HTML, RTF, or plain-text body.",
-            "Email body",
-            OfficeConversionLossKind.Omission));
-        return "<p class=\"officeimo-email-empty\">This message has no renderable body.</p>";
     }
 
     private static string CreateDocumentHtml(
@@ -297,7 +256,7 @@ public static class EmailImageExportExtensions {
     }
 
     private static void ConfigureInlineResources(
-        EmailDocument source,
+        EmailBodyProjectionResult projection,
         EmailImageExportOptions options) {
         if (!options.IncludeInlineResources) return;
         HtmlUrlPolicy fallbackResourceUrlPolicy =
@@ -317,19 +276,18 @@ public static class EmailImageExportExtensions {
             CancellationToken cancellationToken,
             out HtmlResolvedResource? resource) => {
             cancellationToken.ThrowIfCancellationRequested();
-            EmailAttachment? attachment = FindAttachment(
-                source,
-                request,
-                options.BaseUri ?? FallbackBaseUri);
+            EmailBodyResource? attachment = projection.ResolveResource(request.Source, request.Uri);
             if (attachment != null) {
-                byte[]? bytes = ReadAttachment(
-                    attachment,
-                    options.MaxResourceBytes,
-                    cancellationToken);
-                resource = bytes is { Length: > 0 }
+                byte[] bytes;
+                try {
+                    bytes = attachment.ReadAllBytes(cancellationToken);
+                } catch (EmailLimitExceededException exception) {
+                    throw new HtmlRenderResourceByteLimitException(exception.ActualValue);
+                }
+                resource = bytes.Length > 0
                     ? new HtmlResolvedResource(
                         bytes,
-                        attachment.ContentType ?? "application/octet-stream")
+                        attachment.ContentType)
                     : null;
                 return true;
             }
@@ -354,19 +312,18 @@ public static class EmailImageExportExtensions {
         };
         HtmlRenderResourceResolver? fallback = options.ResourceResolver;
         options.ResourceResolver = async (request, cancellationToken) => {
-            EmailAttachment? attachment = FindAttachment(
-                source,
-                request,
-                options.BaseUri ?? FallbackBaseUri);
+            EmailBodyResource? attachment = projection.ResolveResource(request.Source, request.Uri);
             if (attachment != null) {
-                byte[]? bytes = await ReadAttachmentAsync(
-                    attachment,
-                    options.MaxResourceBytes,
-                    cancellationToken).ConfigureAwait(false);
-                if (bytes != null && bytes.Length > 0) {
+                byte[] bytes;
+                try {
+                    bytes = await attachment.ReadAllBytesAsync(cancellationToken).ConfigureAwait(false);
+                } catch (EmailLimitExceededException exception) {
+                    throw new HtmlRenderResourceByteLimitException(exception.ActualValue);
+                }
+                if (bytes.Length > 0) {
                     return new HtmlResolvedResource(
                         bytes,
-                        attachment.ContentType ?? "application/octet-stream");
+                        attachment.ContentType);
                 }
             }
             if (fallback == null ||
@@ -380,129 +337,32 @@ public static class EmailImageExportExtensions {
         };
     }
 
-    private static EmailAttachment? FindAttachment(
-        EmailDocument source,
-        HtmlRenderResourceRequest request,
-        Uri baseUri) {
-        string reference = request.Source.Trim();
-        if (request.Uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)) {
-            string contentId = Uri.UnescapeDataString(
-                    request.Uri.OriginalString.Substring("cid:".Length))
-                .Trim()
-                .Trim('<', '>');
-            return source.Attachments.FirstOrDefault(attachment =>
-                string.Equals(
-                    attachment.ContentId?.Trim().Trim('<', '>'),
-                    contentId,
-                    StringComparison.OrdinalIgnoreCase));
+    private static OfficeImageExportDiagnostic MapBodyDiagnostic(EmailDiagnostic diagnostic) {
+        string code;
+        switch (diagnostic.Code) {
+            case "EMAIL_BODY_RTF_PROJECTED":
+                code = "EMAIL_IMAGE_RTF_BODY_PROJECTED";
+                break;
+            case "EMAIL_BODY_RTF_UNREADABLE":
+                code = "EMAIL_IMAGE_RTF_BODY_UNREADABLE";
+                break;
+            case "EMAIL_BODY_MISSING":
+                code = "EMAIL_IMAGE_BODY_MISSING";
+                break;
+            default:
+                code = diagnostic.Code;
+                break;
         }
-
-        foreach (EmailAttachment attachment in source.Attachments) {
-            if (!string.IsNullOrWhiteSpace(attachment.ContentLocation)) {
-                if (string.Equals(
-                    attachment.ContentLocation,
-                    reference,
-                    StringComparison.OrdinalIgnoreCase)) {
-                    return attachment;
-                }
-                if (Uri.TryCreate(
-                        baseUri,
-                        attachment.ContentLocation,
-                        out Uri? resolved) &&
-                    string.Equals(
-                        resolved.AbsoluteUri,
-                        request.Uri.AbsoluteUri,
-                        StringComparison.OrdinalIgnoreCase)) {
-                    return attachment;
-                }
-            }
-            if (!string.IsNullOrWhiteSpace(attachment.FileName) &&
-                string.Equals(
-                    attachment.FileName,
-                    reference,
-                    StringComparison.OrdinalIgnoreCase)) {
-                return attachment;
-            }
-        }
-        return null;
-    }
-
-    private static byte[]? ReadAttachment(
-        EmailAttachment attachment,
-        long maximumBytes,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (attachment.Length > maximumBytes) {
-            throw new HtmlRenderResourceByteLimitException(
-                attachment.Length);
-        }
-        if (attachment.Content is { Length: > 0 } retained) {
-            if (retained.LongLength > maximumBytes) {
-                throw new HtmlRenderResourceByteLimitException(
-                    retained.LongLength);
-            }
-            return (byte[])retained.Clone();
-        }
-        using Stream stream = attachment.OpenContentStream();
-        using var output = new MemoryStream();
-        byte[] buffer = new byte[81920];
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(buffer, 0, buffer.Length);
-            if (read == 0) break;
-            if (output.Length + read > maximumBytes) {
-                throw new HtmlRenderResourceByteLimitException(
-                    checked(output.Length + read));
-            }
-            output.Write(buffer, 0, read);
-        }
-        return output.ToArray();
-    }
-
-    private static async Task<byte[]?> ReadAttachmentAsync(
-        EmailAttachment attachment,
-        long maximumBytes,
-        CancellationToken cancellationToken) {
-        if (attachment.Length > maximumBytes) {
-            throw new HtmlRenderResourceByteLimitException(
-                attachment.Length);
-        }
-        if (attachment.Content is { Length: > 0 } retained) {
-            if (retained.LongLength > maximumBytes) {
-                throw new HtmlRenderResourceByteLimitException(
-                    retained.LongLength);
-            }
-            return (byte[])retained.Clone();
-        }
-        using Stream stream =
-            await attachment.OpenContentStreamAsync(cancellationToken)
-                .ConfigureAwait(false);
-        using var output = new MemoryStream();
-        byte[] buffer = new byte[81920];
-        while (true) {
-            int read = await stream.ReadAsync(
-                buffer,
-                0,
-                buffer.Length,
-                cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            if (output.Length + read > maximumBytes) {
-                throw new HtmlRenderResourceByteLimitException(
-                    checked(output.Length + read));
-            }
-            output.Write(buffer, 0, read);
-        }
-        return output.ToArray();
-    }
-
-    private static Uri ResolveBaseUri(string? contentLocation) {
-        return !string.IsNullOrWhiteSpace(contentLocation) &&
-               Uri.TryCreate(
-                   contentLocation,
-                   UriKind.Absolute,
-                   out Uri? absolute)
-            ? absolute
-            : FallbackBaseUri;
+        return new OfficeImageExportDiagnostic(
+            diagnostic.Severity == EmailDiagnosticSeverity.Error
+                ? OfficeImageExportDiagnosticSeverity.Error
+                : OfficeImageExportDiagnosticSeverity.Warning,
+            code,
+            diagnostic.Message,
+            "Email body",
+            diagnostic.Code == "EMAIL_BODY_RTF_PROJECTED"
+                ? OfficeConversionLossKind.Approximation
+                : OfficeConversionLossKind.Omission);
     }
 
     private static OfficeImageExportResult AttachDiagnostics(

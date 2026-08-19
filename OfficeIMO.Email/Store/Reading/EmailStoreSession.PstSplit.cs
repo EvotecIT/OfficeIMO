@@ -219,20 +219,25 @@ public sealed partial class EmailStoreSession {
                             "A selected item folder could not be mapped.");
                         continue;
                     }
+                    EmailStoreItem? item = null;
                     try {
-                        EmailStoreItem item = ReadItem(reference, readOptions, cancellationToken);
-                        string destinationItemId = writer.AddItem(destinationFolder,
-                            item.Document, reference.IsAssociated, cancellationToken);
-                        mappings.Add(++written, reference, destinationFolder, destinationItemId);
+                        item = ReadItem(reference, readOptions, cancellationToken);
                     } catch (Exception exception) when (options.ContinueOnItemError &&
                         (exception is InvalidDataException || exception is NotSupportedException ||
                          exception is IOException || exception is EmailStoreLimitExceededException)) {
                         skipped++;
                         diagnostics.Add(new EmailStoreDiagnostic(
                             "EMAIL_STORE_PST_SPLIT_ITEM_SKIPPED",
-                            string.Concat("A selected item could not be copied: ", exception.Message),
+                            string.Concat("A selected item could not be read: ", exception.Message),
                             EmailStoreDiagnosticSeverity.Error,
                             reference.Id));
+                    }
+                    if (item != null) {
+                        string destinationItemId = writer.AddItem(destinationFolder,
+                            item.Document, reference.IsAssociated, cancellationToken);
+                        int mappingOrdinal = checked(written + 1);
+                        mappings.Add(mappingOrdinal, reference, destinationFolder, destinationItemId);
+                        written = mappingOrdinal;
                     }
                 }
                 if (written == 0) throw new InvalidDataException(

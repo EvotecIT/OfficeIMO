@@ -5,7 +5,8 @@ public sealed class EmailStorePstConversionReport {
     internal EmailStorePstConversionReport(EmailStoreFormat sourceFormat,
         EmailStorePstWriteReport writeReport, int sourceFolders, int convertedItems,
         int skippedItems, EmailStorePstVerificationReport? verification,
-        IReadOnlyList<EmailStoreDiagnostic> diagnostics) {
+        IReadOnlyList<EmailStoreDiagnostic> diagnostics, EmailStoreSourceIdentity sourceIdentity,
+        bool wasResumed) {
         SourceFormat = sourceFormat;
         WriteReport = writeReport;
         SourceFolders = sourceFolders;
@@ -13,6 +14,8 @@ public sealed class EmailStorePstConversionReport {
         SkippedItems = skippedItems;
         Verification = verification;
         Diagnostics = diagnostics;
+        SourceIdentity = sourceIdentity;
+        WasResumed = wasResumed;
     }
 
     /// <summary>Detected source format.</summary>
@@ -29,6 +32,14 @@ public sealed class EmailStorePstConversionReport {
     public EmailStorePstVerificationReport? Verification { get; }
     /// <summary>Combined conversion and PST writer diagnostics.</summary>
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+    /// <summary>Privacy-safe exact source identity checked before and after migration.</summary>
+    public EmailStoreSourceIdentity SourceIdentity { get; }
+    /// <summary>True when this run continued an integrity-checked migration checkpoint.</summary>
+    public bool WasResumed { get; }
+    /// <summary>Strict final loss disposition.</summary>
+    public EmailStoreMigrationDisposition Disposition => SkippedItems == 0 && !HasDataLoss
+        ? EmailStoreMigrationDisposition.Completed
+        : EmailStoreMigrationDisposition.CompletedWithAcceptedLoss;
     /// <summary>True when the conversion emitted a warning or error.</summary>
     public bool HasDataLoss => Verification?.IsSuccessful == false || Diagnostics.Any(item =>
         item.Severity != EmailStoreDiagnosticSeverity.Information);

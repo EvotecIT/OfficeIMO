@@ -41,16 +41,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Define named Markdown, AsciiDoc, and LaTeX profiles so extensions are opt-in and testable. Add safe AsciiDoc includes through a bounded resolver, attributes, tables, admonitions, cross-references, and common macros; add typed LaTeX mathematics, citations, references, figures, tables, and safe local macro definitions without arbitrary TeX package or command execution.
 - [ ] Harden MHTML-to-PDF for malformed multipart recovery, legacy encodings, nested related resources, duplicate content identifiers, `Content-Location` resolution, redirects, and bounded remote-resource policy. Reuse the managed HTML/CSS tier and continue to reject script execution.
 
-## Email artifacts and migration
-
-- [ ] Expand MIME/EML interoperability evidence with independently produced and adversarial fixtures covering malformed recovery, nested multiparts, duplicate and ordered headers, legacy encodings, parameter continuations, embedded messages, reports, and protected entities. Keep MimeKit or other comparison engines isolated to tests and opt-in verification.
-- [ ] Stabilize one structured preservation and conversion result contract for artifact-to-MIME workflows, including preserved-versus-regenerated source selection, attachment-content lifetime, diagnostic codes, and strict loss disposition, so transport adapters can retain OfficeIMO evidence without defining a second artifact model.
-- [ ] Deepen MSG/OFT/TNEF fidelity for unknown and named MAPI properties, embedded and linked objects, address forms, recurrence, and time-zone evidence using independently produced Outlook fixtures and semantic reopen checks.
-- [ ] Make large-store migrations resumable and auditable across supported PST/OST/OLM/EMLX/mbox/mail-directory inputs, with source identity, change detection, item provenance, bounded attachment access, partial-result policy, and destination verification manifests.
-- [ ] Expand Unicode PST writer and rewrite validation beyond generated round trips through independent libpff and supported Outlook reopen gates, while retaining the documented boundary against in-place NDB repair, append, ANSI mutation, and OST output.
-- [ ] Complete artifact S/MIME trust-policy diagnostics for signer identity, chain building, revocation, timestamps, offline operation, decrypt-then-verify ordering, and protected-entity pass-through with the concrete provider supplied explicitly.
-- [ ] Consolidate body selection, RTF fallback, CID/content-location resolution, remote-resource policy, sanitization, and safe HTML/text/Markdown projection only after at least two existing consumers can use one dependency-isolated contract. Do not add HTML dependencies to `OfficeIMO.Email`.
-
 ## Security and protected content
 
 - [ ] Add legacy encrypted-DOC import, encrypted-XLS authoring, and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.

@@ -19,12 +19,31 @@ public sealed partial class EmailStoreSession {
         using VerificationManifestWriter? manifest = VerificationManifestWriter.TryCreate(
             manifestStagingPath ?? options.VerificationManifestPath,
             manifestStagingPath == null && options.OverwriteExisting, semanticOptions);
+        int destinationEnumerationLimit = mappings.Count == int.MaxValue
+            ? int.MaxValue
+            : Math.Max(1, mappings.Count + 1);
         using EmailStoreSession destination = EmailStoreSession.Open(destinationPath,
             new EmailStoreReaderOptions(
-                maxItemCount: Math.Max(1, mappings.Count),
+                maxItemCount: destinationEnumerationLimit,
                 retainAttachmentContent: false,
                 includeAssociatedItems: true,
                 includeOrphanedItems: true), cancellationToken);
+        int destinationItemCount = destination.EnumerateItems(new EmailStoreEnumerationOptions(
+            includeAssociatedItems: true, includeOrphanedItems: true,
+            maxItems: destinationEnumerationLimit), cancellationToken).Count();
+        int unmappedDestinationItems = Math.Max(0, destinationItemCount - mappings.Count);
+        if (unmappedDestinationItems > 0) {
+            failed = unmappedDestinationItems;
+            diagnostics.Add(new EmailStoreDiagnostic(
+                "EMAIL_STORE_PST_VERIFY_UNMAPPED_DESTINATION",
+                string.Concat(unmappedDestinationItems.ToString(CultureInfo.InvariantCulture),
+                    " destination item(s) had no source-provenance mapping."),
+                EmailStoreDiagnosticSeverity.Error, destinationPath));
+            AddVerificationIssue(issues, ref issuesTruncated, options.MaxVerificationIssues,
+                new EmailStorePstVerificationIssue(string.Empty, string.Empty, isAssociated: false,
+                    "EMAIL_STORE_PST_VERIFY_UNMAPPED_DESTINATION",
+                    Array.Empty<EmailSemanticDifference>()));
+        }
         var readOptions = new EmailStoreItemReadOptions(
             EmailStoreItemReadParts.All, preferStreamingAttachmentContent: true);
 
@@ -85,7 +104,8 @@ public sealed partial class EmailStoreSession {
                     " converted item(s) could not be reopened and verified."),
                 EmailStoreDiagnosticSeverity.Error, destinationPath));
         }
-        return new EmailStorePstVerificationReport(mappings.Count, matched, mismatched, failed,
+        return new EmailStorePstVerificationReport(
+            checked(mappings.Count + unmappedDestinationItems), matched, mismatched, failed,
             issues.AsReadOnly(), issuesTruncated, manifestPath);
     }
 

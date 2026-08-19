@@ -41,6 +41,7 @@
 
 .PARAMETER PSWriteOfficeRoot
     Optional PSWriteOffice repo root used to refresh the checked-in PowerShell API snapshot before building.
+    Overrides the PSWRITEOFFICE_ROOT environment variable for this build.
 
 .EXAMPLE
     ./build.ps1
@@ -62,7 +63,7 @@ param(
     [switch]$CI,
     [switch]$SkipBuildTool,
     [string]$PowerForgeRoot = $env:POWERFORGE_ROOT,
-    [string]$PSWriteOfficeRoot = ''
+    [string]$PSWriteOfficeRoot = $env:PSWRITEOFFICE_ROOT
 )
 
 $ErrorActionPreference = 'Stop'
@@ -199,8 +200,12 @@ function Assert-SiteOutput {
     }
 }
 
+$PreviousPSWriteOfficeRoot = $env:PSWRITEOFFICE_ROOT
+
 try {
     if (-not [string]::IsNullOrWhiteSpace($PSWriteOfficeRoot)) {
+        $PSWriteOfficeRoot = (Resolve-Path -LiteralPath $PSWriteOfficeRoot -ErrorAction Stop).Path
+        $env:PSWRITEOFFICE_ROOT = $PSWriteOfficeRoot
         $syncScript = Join-Path $PSScriptRoot 'scripts\Sync-PSWriteOfficeApiDocs.ps1'
         if (-not (Test-Path -LiteralPath $syncScript -PathType Leaf)) {
             throw "PSWriteOffice API sync script not found: $syncScript"
@@ -275,5 +280,10 @@ try {
         Write-Host 'Build complete -> _site/' -ForegroundColor Green
     }
 } finally {
+    if ($null -eq $PreviousPSWriteOfficeRoot) {
+        Remove-Item Env:PSWRITEOFFICE_ROOT -ErrorAction SilentlyContinue
+    } else {
+        $env:PSWRITEOFFICE_ROOT = $PreviousPSWriteOfficeRoot
+    }
     Pop-Location
 }

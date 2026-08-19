@@ -30,10 +30,17 @@ public sealed class EmailStorePstWriter : IDisposable {
     /// <summary>Resumes a writer from its last integrity-checked durable checkpoint.</summary>
     public static EmailStorePstWriter Resume(string checkpointPath,
         IProgress<EmailStorePstWriteProgress>? progress = null) {
+        return Resume(checkpointPath, out _, progress);
+    }
+
+    /// <summary>Resumes a writer and returns caller state committed atomically with the writer checkpoint.</summary>
+    public static EmailStorePstWriter Resume(string checkpointPath, out byte[]? applicationState,
+        IProgress<EmailStorePstWriteProgress>? progress = null) {
         if (string.IsNullOrWhiteSpace(checkpointPath)) {
             throw new ArgumentException("A checkpoint path is required.", nameof(checkpointPath));
         }
-        return new EmailStorePstWriter(PstStoreWriterCore.Resume(checkpointPath, progress));
+        return new EmailStorePstWriter(PstStoreWriterCore.Resume(checkpointPath, progress,
+            out applicationState));
     }
 
     /// <summary>
@@ -109,6 +116,14 @@ public sealed class EmailStorePstWriter : IDisposable {
     public void Checkpoint() {
         ThrowIfUnavailable();
         _core.Checkpoint();
+    }
+
+    /// <summary>
+    /// Flushes writer data and atomically commits bounded caller state in the same integrity-checked checkpoint.
+    /// </summary>
+    public void Checkpoint(byte[]? applicationState) {
+        ThrowIfUnavailable();
+        _core.Checkpoint(applicationState);
     }
 
     /// <summary>Marks this incomplete writer for cleanup instead of checkpoint retention on disposal.</summary>

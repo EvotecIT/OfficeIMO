@@ -129,6 +129,19 @@ public sealed class ReaderEmailStoreModularTests {
     }
 
     [Fact]
+    public void RegistrationPreservesDecodedTableBudget() {
+        const long maxDecodedTableBytes = 1_024;
+        var options = new ReaderEmailStoreOptions {
+            StoreOptions = new EmailStoreReaderOptions(maxDecodedTableBytes: maxDecodedTableBytes)
+        };
+
+        ReaderEmailStoreOptions clone = ReaderEmailStoreOptionsCloner.CloneOrDefault(options);
+
+        Assert.NotSame(options.StoreOptions, clone.StoreOptions);
+        Assert.Equal(maxDecodedTableBytes, clone.StoreOptions.MaxDecodedTableBytes);
+    }
+
+    [Fact]
     public void Selective_query_projects_only_matching_store_items() {
         const string xml = "<emails>" +
             "<email><OPFMessageCopySubject>Keep this message</OPFMessageCopySubject>" +
@@ -265,8 +278,8 @@ public sealed class ReaderEmailStoreModularTests {
             Assert.DoesNotContain(results.SelectMany(result => result.Chunks), chunk =>
                 chunk.Text.Contains("hidden-script-marker", StringComparison.Ordinal));
             Assert.Contains(results.SelectMany(result => result.Chunks), chunk =>
-                chunk.Kind == ReaderInputKind.Rtf &&
-                chunk.Location.SourceBlockKind == "email-body-rtf" &&
+                chunk.Kind == ReaderInputKind.Html &&
+                chunk.Location.SourceBlockKind == "email-body-html" &&
                 chunk.Text.Contains("Visible semantic RTF", StringComparison.Ordinal));
             string[] chunkIds = results.SelectMany(result => result.Chunks)
                 .Select(chunk => chunk.Id).ToArray();

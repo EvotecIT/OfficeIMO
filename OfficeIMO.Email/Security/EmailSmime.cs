@@ -28,6 +28,7 @@ public static partial class EmailSmime {
                 EmailDiagnosticSeverity.Warning,
                 "message/protection"));
             return new EmailSmimeVerificationResult(
+                securityProvider.Name,
                 document.Protection.Kind,
                 null,
                 null,
@@ -46,7 +47,8 @@ public static partial class EmailSmime {
                 "No retained CMS payload was available for S/MIME verification.",
                 EmailDiagnosticSeverity.Error,
                 "message/protection"));
-            return new EmailSmimeVerificationResult(document.Protection.Kind, null, null, null, diagnostics);
+            return new EmailSmimeVerificationResult(securityProvider.Name,
+                document.Protection.Kind, null, null, null, diagnostics);
         }
 
         CmsVerificationResult cryptography = payload!.DetachedContent == null
@@ -55,6 +57,7 @@ public static partial class EmailSmime {
                 options,
                 CertificateValidationPurpose.EmailSigning)
             : VerifyDetached(securityProvider, payload, options, diagnostics);
+        AddTrustDiagnostics(cryptography, options, diagnostics);
         byte[]? signedMimeEntity = payload.DetachedContent ?? cryptography.EncapsulatedContent;
         EmailDocument? signedContent = TryParseContent(
             signedMimeEntity,
@@ -62,6 +65,7 @@ public static partial class EmailSmime {
             diagnostics,
             "message/protection/signed-content");
         return new EmailSmimeVerificationResult(
+            securityProvider.Name,
             document.Protection.Kind,
             cryptography,
             signedMimeEntity,
@@ -126,7 +130,8 @@ public static partial class EmailSmime {
                 "The document is not classified as opaque S/MIME content.",
                 EmailDiagnosticSeverity.Warning,
                 "message/protection"));
-            return new EmailSmimeDecryptionResult(document.Protection.Kind, null, null, null, diagnostics);
+            return new EmailSmimeDecryptionResult(securityProvider.Name,
+                document.Protection.Kind, null, null, null, diagnostics);
         }
 
         if (!MimeSmimeExtractor.TryExtract(
@@ -140,7 +145,8 @@ public static partial class EmailSmime {
                 "No retained CMS payload was available for S/MIME decryption.",
                 EmailDiagnosticSeverity.Error,
                 "message/protection"));
-            return new EmailSmimeDecryptionResult(document.Protection.Kind, null, null, null, diagnostics);
+            return new EmailSmimeDecryptionResult(securityProvider.Name,
+                document.Protection.Kind, null, null, null, diagnostics);
         }
 
         CmsDecryptionResult cryptography = securityProvider.DecryptCms(
@@ -154,11 +160,109 @@ public static partial class EmailSmime {
             diagnostics,
             "message/protection/decrypted-content");
         return new EmailSmimeDecryptionResult(
+            securityProvider.Name,
             document.Protection.Kind,
             cryptography,
             decrypted,
             decryptedContent,
             diagnostics);
+    }
+
+    /// <summary>
+    /// Decrypts outer EnvelopedData and only then verifies an inner clear- or opaque-signed MIME entity. The concrete
+    /// provider is supplied explicitly and the original protected source remains available on the input document.
+    /// </summary>
+    public static EmailSmimeProcessingResult DecryptThenVerify(
+        EmailDocument document,
+        X509Certificate2 recipientCertificate,
+        IOfficeSecurityProvider securityProvider,
+        CmsEnvelopeOptions? envelopeOptions = null,
+        CmsVerificationOptions? verificationOptions = null,
+        EmailReaderOptions? contentReaderOptions = null) {
+#if NETSTANDARD2_0 || NET472
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (recipientCertificate == null) throw new ArgumentNullException(nameof(recipientCertificate));
+        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+#else
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(recipientCertificate);
+        ArgumentNullException.ThrowIfNull(securityProvider);
+#endif
+        EmailSmimeDecryptionResult decryption = Decrypt(document, recipientCertificate,
+            securityProvider, envelopeOptions, contentReaderOptions);
+        var diagnostics = new List<EmailDiagnostic>(decryption.Diagnostics);
+        var order = new List<EmailSmimeProcessingStage> { EmailSmimeProcessingStage.Decrypt };
+        EmailSmimeVerificationResult? verification = null;
+        EmailDocument? content = decryption.DecryptedContent;
+        CmsVerificationOptions effectiveVerificationOptions =
+            verificationOptions ?? new CmsVerificationOptions();
+        OpaqueCmsContentKind opaqueContentKind = content?.Protection.Kind == EmailProtectionKind.SmimeOpaque
+            ? MimeSmimeExtractor.ClassifyOpaqueCms(content,
+                effectiveVerificationOptions.MaxEncodedBytes,
+                effectiveVerificationOptions.MaxContentBytes,
+                diagnostics)
+            : OpaqueCmsContentKind.Unknown;
+        if (content != null &&
+            (content.Protection.Kind == EmailProtectionKind.SmimeClearSigned ||
+             opaqueContentKind == OpaqueCmsContentKind.SignedData)) {
+            diagnostics.Add(new EmailDiagnostic(
+                EmailSmimeDiagnosticCodes.DecryptThenVerify,
+                "The outer S/MIME envelope was decrypted before the inner protected MIME entity was verified.",
+                EmailDiagnosticSeverity.Information,
+                "message/protection"));
+            verification = Verify(content, securityProvider, effectiveVerificationOptions, contentReaderOptions);
+            order.Add(EmailSmimeProcessingStage.Verify);
+            diagnostics.AddRange(verification.Diagnostics);
+            content = verification.SignedContent ?? content;
+        } else if (content?.Protection.Kind == EmailProtectionKind.SmimeOpaque) {
+            string message = opaqueContentKind == OpaqueCmsContentKind.EnvelopedData
+                ? "The decrypted inner opaque S/MIME entity contains enveloped-data. It was retained without adding a verification stage."
+                : "The decrypted inner opaque S/MIME entity could not be classified as signed-data. It was retained without adding a verification stage.";
+            diagnostics.Add(new EmailDiagnostic(
+                EmailSmimeDiagnosticCodes.InnerOpaqueNotSigned,
+                message,
+                EmailDiagnosticSeverity.Information,
+                "message/protection/decrypted-content"));
+        }
+        return new EmailSmimeProcessingResult(securityProvider.Name, decryption, verification,
+            content, order.AsReadOnly(), diagnostics.AsReadOnly());
+    }
+
+    private static void AddTrustDiagnostics(CmsVerificationResult result,
+        CmsVerificationOptions options, ICollection<EmailDiagnostic> diagnostics) {
+        if (options.CertificateValidation.DisableCertificateDownloads) {
+            diagnostics.Add(new EmailDiagnostic(
+                EmailSmimeDiagnosticCodes.OfflinePolicy,
+                "Certificate downloads were disabled. Chain, revocation, and timestamp results reflect the supplied offline trust material and revocation policy.",
+                EmailDiagnosticSeverity.Information,
+                "message/protection/trust"));
+        }
+        foreach (CmsSignerVerificationResult signer in result.Signers) {
+            string location = "message/protection/signers/" + signer.SignerIndex.ToString(CultureInfo.InvariantCulture);
+            diagnostics.Add(new EmailDiagnostic(
+                EmailSmimeDiagnosticCodes.SignerIdentity,
+                string.Concat("Signer subject: ", signer.Subject ?? "unknown", "; issuer: ",
+                    signer.Issuer ?? "unknown", "; serial: ", signer.SerialNumber ?? "unknown", "."),
+                EmailDiagnosticSeverity.Information,
+                location));
+            AddStatusDiagnostic(diagnostics, EmailSmimeDiagnosticCodes.ChainStatus,
+                "Certificate chain", signer.CertificateValidation.ChainStatus, location + "/chain");
+            AddStatusDiagnostic(diagnostics, EmailSmimeDiagnosticCodes.RevocationStatus,
+                "Certificate revocation", signer.CertificateValidation.RevocationStatus, location + "/revocation");
+            AddStatusDiagnostic(diagnostics, EmailSmimeDiagnosticCodes.TimestampStatus,
+                "Signature timestamp", signer.TimestampStatus, location + "/timestamp");
+        }
+    }
+
+    private static void AddStatusDiagnostic(ICollection<EmailDiagnostic> diagnostics, string code,
+        string label, SecurityValidationStatus status, string location) {
+        EmailDiagnosticSeverity severity = status == SecurityValidationStatus.Invalid
+            ? EmailDiagnosticSeverity.Error
+            : status == SecurityValidationStatus.Indeterminate
+                ? EmailDiagnosticSeverity.Warning
+                : EmailDiagnosticSeverity.Information;
+        diagnostics.Add(new EmailDiagnostic(code,
+            string.Concat(label, " status: ", status.ToString(), "."), severity, location));
     }
 
     private static EmailDocument? TryParseContent(

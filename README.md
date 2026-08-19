@@ -312,12 +312,20 @@ _Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Rtf`.
 
 _Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Email` for MIME parsing.
 
+#### [OfficeIMO.Email.Html](OfficeIMO.Email.Html/README.md)
+
+- [x] One safe HTML/RTF/text body-selection contract with untrusted sanitization and remote resources blocked by default
+- [x] CID, Content-Location, absolute-location, and filename resource resolution with bounded operation-scoped reads
+- [x] Shared prepared projection consumed by `OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email`
+
+_Dependency footprint:_ `OfficeIMO.Email`, `OfficeIMO.Html`, and `OfficeIMO.Html.Rtf`; the base Email package remains HTML-free.
+
 #### [OfficeIMO.Email.Image](OfficeIMO.Email.Image/README.md)
 
 - [x] Email body export through the HTML image pipeline with plain-text and RTF fallbacks
 - [x] Inline MIME/CID resources, page selection, diagnostics, and bounded output
 
-_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Html`, and `OfficeIMO.Html.Rtf`.
+_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, and `OfficeIMO.Html`.
 
 #### [OfficeIMO.Mhtml.Pdf](OfficeIMO.Mhtml.Pdf/README.md)
 
@@ -369,6 +377,8 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] Standalone iCalendar/ICS and vCard/VCF read, write, mutation, validation, lossless extensions, recurrence, temporal, contact-group, and legacy syntax support
 - [x] RTF and compressed-RTF body handling, MIME compatibility, safety limits, diagnostics, and package inspection
 - [x] One mixed-artifact discovery API across individual messages, calendars, contacts, stores, and Offline Address Books
+- [x] Structured artifact write evidence for preserved/regenerated source selection, attachment lifetime, diagnostic codes, and strict loss disposition
+- [x] Explicit-provider S/MIME verification/decryption with trust-policy diagnostics and decrypt-then-verify ordering
 
 ##### [Store API](OfficeIMO.Email/Store/README.md)
 
@@ -378,7 +388,7 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] Resumable semantic content search, special-folder roles, offline-content availability, and deferred attachment streams
 - [x] Inspection, bounded PST/OST structural validation, orphan discovery, EML/MSG/OFT/TNEF directory export, streaming mbox export, and native Maildir/EMLX output
 - [x] Managed Unicode PST creation with folders, typed items, recipients, attachments, embedded messages, named properties, and multi-valued MAPI properties
-- [x] Read-only OST/PST/OLM/EMLX/Mbox/mailbox-directory conversion into a separate new PST with explicit fidelity diagnostics
+- [x] Resumable, source-bound OST/PST/OLM/EMLX/Mbox/mailbox-directory conversion into a separate verified PST with item provenance and explicit partial-result policy
 - [x] Existing Unicode PST folder/item mutation through a locked, verified, optionally backed-up atomic rewrite transaction
 - [x] Configurable source, cache, tree, item, attachment, archive, XML, directory, and recursion limits with structured diagnostics
 
