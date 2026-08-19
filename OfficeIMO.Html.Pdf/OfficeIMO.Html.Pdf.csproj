@@ -23,6 +23,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\PdfHtmlPositioning.css" LogicalName="OfficeIMO.Html.Pdf.Assets.PdfHtmlPositioning.css" />
+    <EmbeddedResource Include="Assets\PdfHtmlReview.css" LogicalName="OfficeIMO.Html.Pdf.Assets.PdfHtmlReview.css" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

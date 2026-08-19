@@ -242,21 +242,24 @@ Those adapters remain separate packages and are not dependencies of `OfficeIMO.H
 ## PDF to HTML
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Pdf;
 
-string semantic = PdfHtmlConverterExtensions.ToHtml("quarterly-update.pdf", new PdfHtmlSaveOptions {
-    Profile = PdfHtmlProfile.Semantic
-});
+PdfDocument sourcePdf = PdfDocument.Open("quarterly-update.pdf");
+PdfHtmlSaveOptions semanticOptions = PdfHtmlSaveOptions.CreateSemanticProfile(
+    OfficeVisualThemeKind.TechnicalDocument);
+string semantic = sourcePdf.ToHtml(semanticOptions);
 
-PdfHtmlConverterExtensions.SaveAsHtml("quarterly-update.pdf", "quarterly-review.html", new PdfHtmlSaveOptions {
-    Profile = PdfHtmlProfile.PositionedReview,
-    IncludeLinkAnnotations = true,
-    IncludeFormWidgets = true,
-    ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri
-});
+PdfHtmlSaveOptions reviewOptions = PdfHtmlSaveOptions.CreatePositionedReviewProfile(
+    OfficeVisualThemeKind.Report);
+reviewOptions.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
+sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions);
 ```
 
-PDF-to-HTML profiles describe how an existing PDF is projected to HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path.
+The named profiles emit the shared responsive OfficeIMO document shell, stable profile metadata, and adapter-owned PDF review styles. The positioned-review profile also enables inert link and form-widget overlays. Set `IncludeDefaultStyles = false` to omit the theme and presentation layer. Positioned output still emits its minimal structural CSS because absolute page geometry is part of that profile's fidelity contract.
+
+PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlPdfSaveOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage()` / `ToImages()` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
 
 Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfHtmlSaveOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
 

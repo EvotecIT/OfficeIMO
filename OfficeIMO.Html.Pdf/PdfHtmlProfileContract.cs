@@ -93,7 +93,7 @@ public static class PdfHtmlProfileContracts {
             "Born-digital parser-supported PDFs work best; scanned PDFs need an OCR adapter, and complex/unsafe PDF structures remain governed by OfficeIMO.Pdf read diagnostics.",
             new[] { "metadata", "headings", "paragraphs", "lists", "tables", "images", "links", "form-fields" },
             new[] { "page-numbers", "image-placeholders", "optional-link-sections", "optional-form-sections" },
-            new[] { "html", "export-summary" },
+            new[] { "themed-html-shell", "html-fragment", "export-summary" },
             new[] { "conversion-report-warnings", "image-embedding-policy-warnings" },
             new[] { "no-ocr", "no-pixel-perfect-rendering", "no-editable-office-reconstruction" }),
         new PdfHtmlProfileContract(
@@ -107,7 +107,7 @@ public static class PdfHtmlProfileContracts {
             "Review output is not a full PDF renderer; complex graphics, arbitrary content streams, optional content, scans, and unsupported parser structures are simplified or reported.",
             new[] { "page-geometry", "text-blocks", "tables", "images", "links", "form-widgets" },
             new[] { "absolute-text-positions", "table-bounds", "image-placements", "link-frames", "form-widget-frames", "unsafe-link-inertness" },
-            new[] { "html", "export-summary" },
+            new[] { "themed-html-shell", "html-fragment", "export-summary" },
             new[] { "conversion-report-warnings", "image-embedding-policy-warnings", "unsafe-link-sanitization" },
             new[] { "no-full-graphics-renderer", "no-optional-content-composition", "no-scan-ocr", "no-editable-office-reconstruction" })
     });

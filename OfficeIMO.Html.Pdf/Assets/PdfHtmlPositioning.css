@@ -1,0 +1,63 @@
+.pdf-page {
+    position: relative;
+    box-sizing: border-box;
+}
+
+.pdf-page[style] {
+    margin: 1rem auto;
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    box-sizing: border-box;
+}
+
+.pdf-text {
+    position: absolute;
+    white-space: pre;
+    line-height: 1.2;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+}
+
+.pdf-heading {
+    font-weight: 700;
+}
+
+.pdf-list-item {
+    padding-left: .5rem;
+}
+
+.pdf-table {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+}
+
+.pdf-table td,
+.pdf-table th {
+    padding: 2pt 4pt;
+    border: 1px solid #cbd5e1;
+}
+
+.pdf-link,
+.pdf-form-widget {
+    position: absolute;
+    overflow: hidden;
+    background: rgba(37, 99, 235, .08);
+    border: 1px dashed #2563eb;
+    font-size: 8pt;
+}
+
+.pdf-image-placeholder {
+    overflow: hidden;
+    color: #475569;
+    background: rgba(100, 116, 139, .08);
+    border: 1px dashed #64748b;
+    box-sizing: border-box;
+    font: 8pt Arial, sans-serif;
+}

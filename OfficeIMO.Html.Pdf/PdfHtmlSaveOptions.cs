@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -8,10 +9,38 @@ namespace OfficeIMO.Html.Pdf;
 /// Options for exporting parser-supported PDFs to HTML through the first-party OfficeIMO logical PDF model.
 /// </summary>
 public sealed class PdfHtmlSaveOptions {
+    /// <summary>Creates polished semantic PDF review HTML using the shared OfficeIMO document shell.</summary>
+    public static PdfHtmlSaveOptions CreateSemanticProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
+        Profile = PdfHtmlProfile.Semantic,
+        Theme = theme,
+        IncludeDefaultStyles = true
+    };
+
+    /// <summary>
+    /// Creates positioned PDF review HTML with page geometry, images, links, and form widgets enabled.
+    /// The output remains inert review HTML and never executes PDF actions or JavaScript.
+    /// </summary>
+    public static PdfHtmlSaveOptions CreatePositionedReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) => new() {
+        Profile = PdfHtmlProfile.PositionedReview,
+        Theme = theme,
+        IncludeDefaultStyles = true,
+        IncludeLinkAnnotations = true,
+        IncludeFormWidgets = true
+    };
+
     /// <summary>
     /// HTML export profile. Defaults to semantic HTML.
     /// </summary>
     public PdfHtmlProfile Profile { get; set; } = PdfHtmlProfile.Semantic;
+
+    /// <summary>Shared OfficeIMO visual theme used by complete HTML document output.</summary>
+    public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.Report;
+
+    /// <summary>
+    /// Emit the shared responsive OfficeIMO theme and adapter presentation styles.
+    /// Positioned output always retains the minimum structural CSS required to preserve source geometry.
+    /// </summary>
+    public bool IncludeDefaultStyles { get; set; } = true;
 
     /// <summary>
     /// Optional selected source page ranges. When omitted, all pages are exported.
@@ -78,6 +107,8 @@ public sealed class PdfHtmlSaveOptions {
 
     internal PdfHtmlSaveOptions CloneForConversion() => new() {
         Profile = Profile,
+        Theme = Theme,
+        IncludeDefaultStyles = IncludeDefaultStyles,
         PageRanges = PageRanges?.ToArray(),
         UseSharedPageReadingOrder = UseSharedPageReadingOrder,
         IncludeMetadata = IncludeMetadata,
@@ -91,4 +122,16 @@ public sealed class PdfHtmlSaveOptions {
         EmitDocumentShell = EmitDocumentShell,
         DocumentTitleFallback = DocumentTitleFallback
     };
+
+    internal void Validate() {
+        if (!Enum.IsDefined(typeof(PdfHtmlProfile), Profile)) {
+            throw new ArgumentOutOfRangeException(nameof(Profile), Profile, "PDF HTML profile is not supported.");
+        }
+        if (IncludeDefaultStyles && !Enum.IsDefined(typeof(OfficeVisualThemeKind), Theme)) {
+            throw new ArgumentOutOfRangeException(nameof(Theme), Theme, "Office HTML theme is not supported.");
+        }
+        if (MaxEmbeddedImageBytes.HasValue && MaxEmbeddedImageBytes.Value < 0L) {
+            throw new ArgumentOutOfRangeException(nameof(MaxEmbeddedImageBytes), "Maximum embedded image bytes cannot be negative.");
+        }
+    }
 }
