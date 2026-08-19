@@ -19,9 +19,9 @@ using FileStream output = File.Create("briefing-roundtrip.pptx");
 imported.Save(output);
 ```
 
-Semantic output carries a versioned OfficeIMO envelope and keeps slide order and visibility, unified drawing order across text boxes, tables, pictures, and charts, shape geometry and transforms, presenter notes, table merge spans, embedded pictures, and supported chart data. Generic HTML `rowspan` and `colspan` values become native PowerPoint table merges.
+Semantic output carries a versioned OfficeIMO envelope and keeps slide order and visibility, unified drawing order across text boxes, tables, pictures, charts, SmartArt, and media, shape geometry and transforms, presenter notes, table merge spans, embedded pictures, supported chart data, master/layout inventory, poster frames, and supported picture adjustments. SmartArt and advanced effects use static snapshots or diagnosed fallbacks; media is never executed. Generic HTML `rowspan` and `colspan` values become native PowerPoint table merges.
 
-`ToPowerPointPresentation()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-slide` envelope exists. Use `ToPowerPointPresentationResult()` to inspect diagnostics and loss classification, and `ToHtmlResult()` for export evidence.
+`ToPowerPointPresentation()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-slide` envelope exists. Use `ToPowerPointPresentationResult()` to inspect diagnostics and loss classification, and `ToHtmlResult()` for export evidence. Master/layout projection, SmartArt fallback, inert media, advanced effects, unavailable pictures or charts, and visual-renderer fallbacks are represented in the immutable operation report so `RequireNoLoss()` cannot accept a simplified review silently.
 
 To turn ordinary HTML sections into slides, select the shared generic path:
 
@@ -38,7 +38,7 @@ HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
 
 ## Positioned review
 
-Set `Profile = OfficeHtmlConversionProfile.PowerPointVisualReview` for a positioned visual representation. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.
+Use `PowerPointHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = PowerPointHtmlExportProfile.VisualReview` for a positioned visual representation. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.
 
 ## Targets
 

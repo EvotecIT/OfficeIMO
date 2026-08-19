@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Html;
 
@@ -56,11 +57,11 @@ public sealed class HtmlSemanticDocument {
         IReadOnlyList<HtmlSemanticResource> resources) {
         Title = title;
         Language = language;
-        Metadata = metadata;
-        Sections = sections;
-        RootTables = rootTables;
-        ResourceOccurrences = resourceOccurrences;
-        Resources = resources;
+        Metadata = SnapshotDictionary(metadata, nameof(metadata));
+        Sections = Snapshot(sections, nameof(sections));
+        RootTables = Snapshot(rootTables, nameof(rootTables));
+        ResourceOccurrences = Snapshot(resourceOccurrences, nameof(resourceOccurrences));
+        Resources = Snapshot(resources, nameof(resources));
     }
 
     /// <summary>Normalized document title.</summary>
@@ -83,6 +84,17 @@ public sealed class HtmlSemanticDocument {
 
     /// <summary>Deduplicated resource inventory keyed by kind and source.</summary>
     public IReadOnlyList<HtmlSemanticResource> Resources { get; }
+
+    private static IReadOnlyList<T> Snapshot<T>(IReadOnlyList<T> values, string parameterName) =>
+        Array.AsReadOnly((values ?? throw new ArgumentNullException(parameterName)).ToArray());
+
+    private static IReadOnlyDictionary<string, string> SnapshotDictionary(
+        IReadOnlyDictionary<string, string> values, string parameterName) {
+        if (values == null) throw new ArgumentNullException(parameterName);
+        var copy = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, string> pair in values) copy[pair.Key] = pair.Value;
+        return new ReadOnlyDictionary<string, string>(copy);
+    }
 }
 
 /// <summary>One shared semantic section.</summary>
@@ -94,7 +106,7 @@ public sealed class HtmlSemanticSection {
         HtmlSemanticSourceLocation? sourceLocation) {
         Title = title;
         TitleSource = titleSource;
-        Blocks = blocks;
+        Blocks = Array.AsReadOnly((blocks ?? throw new ArgumentNullException(nameof(blocks))).ToArray());
         SourceLocation = sourceLocation;
     }
 
@@ -132,13 +144,13 @@ public sealed class HtmlSemanticBlock {
         Kind = kind;
         Text = text;
         Level = level;
-        Runs = runs;
-        Children = children;
+        Runs = Array.AsReadOnly((runs ?? throw new ArgumentNullException(nameof(runs))).ToArray());
+        Children = Array.AsReadOnly((children ?? throw new ArgumentNullException(nameof(children))).ToArray());
         List = list;
         ListItem = listItem;
         Table = table;
         Resource = resource;
-        InlineResources = inlineResources;
+        InlineResources = Array.AsReadOnly((inlineResources ?? throw new ArgumentNullException(nameof(inlineResources))).ToArray());
         Form = form;
         FormControl = formControl;
         Style = style;
@@ -241,7 +253,7 @@ public sealed class HtmlSemanticRun {
 public sealed class HtmlSemanticTable {
     internal HtmlSemanticTable(string caption, IReadOnlyList<HtmlSemanticTableRow> rows) {
         Caption = caption;
-        Rows = rows;
+        Rows = Array.AsReadOnly((rows ?? throw new ArgumentNullException(nameof(rows))).ToArray());
     }
 
     /// <summary>Resolved table caption or shared fallback title.</summary>
@@ -253,7 +265,7 @@ public sealed class HtmlSemanticTable {
 /// <summary>One semantic table row.</summary>
 public sealed class HtmlSemanticTableRow {
     internal HtmlSemanticTableRow(IReadOnlyList<HtmlSemanticTableCell> cells, HtmlSemanticSourceLocation? sourceLocation) {
-        Cells = cells;
+        Cells = Array.AsReadOnly((cells ?? throw new ArgumentNullException(nameof(cells))).ToArray());
         SourceLocation = sourceLocation;
     }
 
@@ -272,8 +284,8 @@ public sealed class HtmlSemanticTableCell {
         IsHeader = isHeader;
         RowSpan = rowSpan;
         ColumnSpan = columnSpan;
-        Runs = runs;
-        Resources = resources;
+        Runs = Array.AsReadOnly((runs ?? throw new ArgumentNullException(nameof(runs))).ToArray());
+        Resources = Array.AsReadOnly((resources ?? throw new ArgumentNullException(nameof(resources))).ToArray());
         Style = style;
         SourceLocation = sourceLocation;
     }

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html.Pdf;
@@ -58,7 +60,8 @@ public sealed class PdfHtmlExportSummary {
         string unsupportedScope) {
         Profile = profile;
         ProfileId = profileId;
-        PageNumbers = pageNumbers;
+        if (pageNumbers == null) throw new ArgumentNullException(nameof(pageNumbers));
+        PageNumbers = new ReadOnlyCollection<int>(new List<int>(pageNumbers));
         SourcePageCount = sourcePageCount;
         RenderedPageCount = renderedPageCount;
         TextBlockCount = textBlockCount;

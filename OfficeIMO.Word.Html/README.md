@@ -56,6 +56,8 @@ Word export has named profiles for the intended fidelity contract:
 
 Each named profile uses the shared responsive OfficeIMO document shell and accepts an `OfficeVisualThemeKind`. The shell styles headings, tables, forms, figures, code, document regions, compact screens, and print output. It does not enable JavaScript, remote execution, or live browser behavior. `new WordToHtmlOptions()` and the existing `IncludeDefaultCss` switch retain their compact compatibility output unless `UseSharedDocumentShell` is selected explicitly.
 
+`WordHtmlExportProfile` is the Word-only profile enum; `WordToHtmlOptions.SharedProfile` exposes its mapping to the generic engine profile. Use `DocumentOutput` to select a full document or fragment and configure title, language, theme, default styles, and newlines as one settings object. `TrackedChangePolicy` selects final, original, or static markup projection without mutating the source document. `FieldPolicy` keeps stored field results by default and can add inert instruction metadata for review; HTML never evaluates Word fields. Named profiles also expose floating-picture wrap, anchor, offset, crop, transform, and supported effect values as inert review metadata with an explicit approximation diagnostic rather than claiming Word/browser layout parity.
+
 ## What it maps
 
 - HTML headings, paragraphs, inline formatting, links, images, SVG, lists, tables, captions, form controls, notes, headers, footers, and sections into Word content where supported.

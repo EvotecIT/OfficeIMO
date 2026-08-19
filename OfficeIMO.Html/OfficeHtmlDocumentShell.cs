@@ -12,14 +12,16 @@ public static class OfficeHtmlDocumentShell {
     /// </summary>
     public static string WrapBody(string bodyHtml, OfficeHtmlDocumentOptions? options = null) {
         options ??= new OfficeHtmlDocumentOptions();
-        string nl = string.IsNullOrEmpty(options.NewLine) ? "\n" : options.NewLine;
+        options.Validate();
+        if (!options.EmitDocumentShell) return bodyHtml ?? string.Empty;
+        string nl = options.NewLine;
         var builder = new StringBuilder();
         builder.Append("<!doctype html>").Append(nl);
-        builder.Append("<html lang=\"en\">").Append(nl);
+        builder.Append("<html lang=\"").Append(OfficeHtmlText.EscapeAttribute(options.Language ?? "en")).Append("\">").Append(nl);
         builder.Append("<head>").Append(nl);
         builder.Append("<meta charset=\"utf-8\">").Append(nl);
         builder.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">").Append(nl);
-        builder.Append("<title>").Append(OfficeHtmlText.Escape(options.Title)).Append("</title>").Append(nl);
+        builder.Append("<title>").Append(OfficeHtmlText.Escape(string.IsNullOrWhiteSpace(options.Title) ? "OfficeIMO HTML" : options.Title!)).Append("</title>").Append(nl);
         if (options.IncludeDefaultStyles) {
             builder.Append("<style>").Append(nl);
             builder.Append(GetThemeCss(options.Theme, nl)).Append(nl);
@@ -71,6 +73,24 @@ public static class OfficeHtmlDocumentShell {
             .Append(nl)
             .Append(NormalizeNewLines(SharedStyles.Value, nl));
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// Combines required adapter classes with caller-supplied classes, removing duplicate tokens
+    /// while preserving first-seen order.
+    /// </summary>
+    public static string MergeBodyClasses(params string?[] classLists) {
+        if (classLists == null) throw new ArgumentNullException(nameof(classLists));
+        var classes = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string? classList in classLists) {
+            if (string.IsNullOrWhiteSpace(classList)) continue;
+            foreach (string token in classList!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) {
+                if (seen.Add(token)) classes.Add(token);
+            }
+        }
+
+        return string.Join(" ", classes);
     }
 
     private static string LoadSharedStyles() {

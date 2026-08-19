@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using System.Globalization;
 using System.Threading;
 
@@ -10,6 +11,15 @@ namespace OfficeIMO.Word.Html {
             IElement head,
             WordToHtmlOptions options,
             CancellationToken cancellationToken) {
+            if (!options.EmitDocumentShell) {
+                if (options.IncludeDefaultCss) {
+                    var fragmentStyle = CreateOutputElement(htmlDoc, "style");
+                    SetMetadataText(htmlDoc, fragmentStyle, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell), "DocumentMetadata:default-css");
+                    head.AppendChild(fragmentStyle);
+                }
+                return;
+            }
+
             ApplyDocumentShellMetadata(document, htmlDoc, options);
 
             var charset = CreateOutputElement(htmlDoc, "meta");
@@ -25,7 +35,9 @@ namespace OfficeIMO.Word.Html {
 
             var props = document.BuiltinDocumentProperties;
             var title = CreateOutputElement(htmlDoc, "title");
-            var titleText = string.IsNullOrEmpty(props?.Title) ? "Document" : props!.Title!;
+            var titleText = !string.IsNullOrWhiteSpace(options.Title)
+                ? options.Title!
+                : string.IsNullOrEmpty(props?.Title) ? "Document" : props!.Title!;
             SetMetadataText(htmlDoc, title, titleText, "DocumentMetadata:title");
             head.AppendChild(title);
 
@@ -73,7 +85,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc, WordToHtmlOptions options) {
-            var language = document.Settings.Language;
+            var language = options.Language ?? document.Settings.Language;
             if (!string.IsNullOrWhiteSpace(language)) {
                 SetOutputAttribute(
                     htmlDoc,
@@ -83,23 +95,28 @@ namespace OfficeIMO.Word.Html {
                     "DocumentMetadata:language");
             }
 
-            if (!options.IncludeDefaultCss || !options.UseSharedDocumentShell) {
-                return;
-            }
-
-            SetOutputAttribute(
-                htmlDoc,
-                htmlDoc.DocumentElement,
-                "data-officeimo-profile",
-                options.Profile.ToString(),
-                "DocumentMetadata:profile");
-            if (htmlDoc.Body != null) {
+            if (options.UseSharedDocumentShell) {
                 SetOutputAttribute(
                     htmlDoc,
-                    htmlDoc.Body,
-                    "class",
+                    htmlDoc.DocumentElement,
+                    "data-officeimo-profile",
+                    options.Profile.ToString(),
+                    "DocumentMetadata:profile");
+            }
+            if (htmlDoc.Body != null &&
+                (options.UseSharedDocumentShell ||
+                 !string.Equals(options.DocumentOutput.BodyClass, "officeimo-html officeimo-word-html", StringComparison.Ordinal))) {
+                string bodyClass = OfficeHtmlDocumentShell.MergeBodyClasses(
                     "officeimo-html officeimo-word-html",
-                    "DocumentMetadata:body-class");
+                    options.DocumentOutput.BodyClass);
+                if (bodyClass.Length > 0) {
+                    SetOutputAttribute(
+                        htmlDoc,
+                        htmlDoc.Body,
+                        "class",
+                        bodyClass,
+                        "DocumentMetadata:body-class");
+                }
             }
         }
 

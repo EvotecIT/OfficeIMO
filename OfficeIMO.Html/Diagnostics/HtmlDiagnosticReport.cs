@@ -6,6 +6,7 @@ namespace OfficeIMO.Html;
 public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
     private readonly List<HtmlDiagnostic> _diagnostics = new List<HtmlDiagnostic>();
     private readonly IReadOnlyList<HtmlDiagnostic> _readOnlyDiagnostics;
+    private bool _isReadOnly;
 
     /// <summary>Creates an empty diagnostic report.</summary>
     public HtmlDiagnosticReport() {
@@ -16,6 +17,9 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
     /// Diagnostics captured by the report in emission order.
     /// </summary>
     public IReadOnlyList<HtmlDiagnostic> Diagnostics => _readOnlyDiagnostics;
+
+    /// <summary>True when this report is a frozen result snapshot and can no longer be modified.</summary>
+    public bool IsReadOnly => _isReadOnly;
 
     /// <summary>
     /// Number of diagnostics currently captured.
@@ -39,6 +43,7 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
             throw new ArgumentNullException(nameof(diagnostic));
         }
 
+        EnsureMutable();
         _diagnostics.Add(diagnostic);
     }
 
@@ -95,6 +100,7 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
             throw new ArgumentNullException(nameof(diagnostics));
         }
 
+        EnsureMutable();
         foreach (HtmlDiagnostic diagnostic in diagnostics) {
             Add(diagnostic);
         }
@@ -104,6 +110,7 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
     /// Removes all diagnostics from the report.
     /// </summary>
     public void Clear() {
+        EnsureMutable();
         _diagnostics.Clear();
     }
 
@@ -115,6 +122,19 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
         var clone = new HtmlDiagnosticReport();
         clone.AddRange(_diagnostics);
         return clone;
+    }
+
+    /// <summary>Creates an independent, read-only snapshot of the current diagnostics.</summary>
+    public HtmlDiagnosticReport Snapshot() {
+        var snapshot = Clone();
+        snapshot._isReadOnly = true;
+        return snapshot;
+    }
+
+    private void EnsureMutable() {
+        if (_isReadOnly) {
+            throw new InvalidOperationException("The diagnostic report is an immutable result snapshot.");
+        }
     }
 
     /// <inheritdoc />

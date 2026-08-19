@@ -48,12 +48,12 @@ namespace OfficeIMO.Word.Html {
                 options.Title,
                 "Word HTML",
                 "Validates HTML import, DOCX package validity, round-trip HTML export, form controls, tables, resources, and diagnostics.");
-            var result = new HtmlCapabilityGalleryResult(scenario);
-            result.AddArtifact(sourceArtifact);
-            result.AddArtifact(docxArtifact);
-            result.AddArtifact(roundTripArtifact);
-            result.Diagnostics.AddRange(importResult.Report.Diagnostics);
-            AppendOpenXmlValidationDiagnostics(result, packageStream);
+            var diagnostics = new List<HtmlDiagnostic>(importResult.Report.Diagnostics);
+            AppendOpenXmlValidationDiagnostics(diagnostics, packageStream);
+            var result = new HtmlCapabilityGalleryResult(
+                scenario,
+                new[] { sourceArtifact, docxArtifact, roundTripArtifact },
+                diagnostics);
 
             HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(source.SourceHtml, roundTripHtml);
             HtmlResourceManifest resourceManifest = HtmlResourcePipeline.BuildManifest(source.SourceHtml, new HtmlResourcePipelineOptions {
@@ -92,27 +92,27 @@ namespace OfficeIMO.Word.Html {
             return WordToHtmlOptions.CreateDocumentRoundTripProfile(OfficeIMO.Drawing.OfficeVisualThemeKind.Report);
         }
 
-        private static void AppendOpenXmlValidationDiagnostics(HtmlCapabilityGalleryResult result, MemoryStream packageStream) {
+        private static void AppendOpenXmlValidationDiagnostics(ICollection<HtmlDiagnostic> diagnostics, MemoryStream packageStream) {
             packageStream.Position = 0;
             using WordprocessingDocument package = WordprocessingDocument.Open(packageStream, false);
             IReadOnlyList<ValidationErrorInfo> errors = new OpenXmlValidator().Validate(package).ToList();
             if (errors.Count == 0) {
-                result.Diagnostics.Add(
+                diagnostics.Add(new HtmlDiagnostic(
                     "OfficeIMO.Word.Html",
                     "WordOpenXmlPackageValid",
                     "Generated DOCX package passed OpenXML validation.",
-                    HtmlDiagnosticSeverity.Info);
+                    HtmlDiagnosticSeverity.Info));
                 return;
             }
 
             foreach (ValidationErrorInfo error in errors) {
-                result.Diagnostics.Add(
+                diagnostics.Add(new HtmlDiagnostic(
                     "OfficeIMO.Word.Html",
                     "WordOpenXmlValidationError",
                     error.Description ?? "Generated DOCX package failed OpenXML validation.",
                     HtmlDiagnosticSeverity.Error,
                     error.Path?.XPath,
-                    error.Id);
+                    error.Id));
             }
         }
 

@@ -8,13 +8,8 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         private static ExportInspection InspectExport(WordDocument document, WordToHtmlOptions options) {
-            OfficeHtmlConversionProfileContract profile = OfficeHtmlConversionProfileContracts.Get(options.Profile);
-            if (!string.Equals(profile.SourceFormat, "Word", StringComparison.Ordinal)) {
-                throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "The selected HTML conversion profile is not a Word profile.");
-            }
-            if (options.IncludeDefaultCss && options.UseSharedDocumentShell && !Enum.IsDefined(typeof(OfficeIMO.Drawing.OfficeVisualThemeKind), options.Theme)) {
-                throw new ArgumentOutOfRangeException(nameof(options.Theme));
-            }
+            HtmlConversionProfileContracts.Get(options.SharedProfile);
+            options.DocumentOutput.Validate();
             if (options.MaxDocumentElements <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDocumentElements));
             if (options.MaxEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedImageBytes));
             if (options.MaxTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalEmbeddedImageBytes));
@@ -26,11 +21,16 @@ namespace OfficeIMO.Word.Html {
                     "MaxEquationNestingDepth cannot exceed the supported OMML projection depth of " +
                     WordMath.DefaultMaximumProjectionDepth + ".");
             }
+            if (!Enum.IsDefined(typeof(WordTrackedChangeExportPolicy), options.TrackedChangePolicy)) {
+                throw new ArgumentOutOfRangeException(nameof(options.TrackedChangePolicy));
+            }
+            if (!Enum.IsDefined(typeof(WordFieldExportPolicy), options.FieldPolicy)) {
+                throw new ArgumentOutOfRangeException(nameof(options.FieldPolicy));
+            }
 
             long elements = 0;
             bool hasFields = false;
             bool hasRevisions = false;
-            bool hasRevisionText = false;
             bool hasComments = false;
             long outputConstructionCharacters = 0;
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
@@ -39,11 +39,10 @@ namespace OfficeIMO.Word.Html {
                     mainPart,
                     options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
                     bool countOutputContent = IsOutputContentRoot(root.Root, options);
-                    bool inspectExportedStory = countOutputContent ||
-                        (options.ExportHeadersAndFooters &&
-                         (root.Root is DocumentFormat.OpenXml.Wordprocessing.Header or
-                             DocumentFormat.OpenXml.Wordprocessing.Footer));
-                    foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(root.Root)) {
+                    bool inspectExportedStory = IsSelectedStoryRoot(root.Root, options);
+                    foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
+                                 root.Root,
+                                 options.TrackedChangePolicy)) {
                         OpenXmlElement element = inspected.Element;
                         elements++;
                         if (elements > options.MaxDocumentElements) {
@@ -71,9 +70,6 @@ namespace OfficeIMO.Word.Html {
                         if (!hasRevisions && inspectExportedStory && IsRevisionElement(element.LocalName)) {
                             hasRevisions = true;
                         }
-                        if (!hasRevisionText && inspectExportedStory && inspected.OmitOutputContent) {
-                            hasRevisionText = true;
-                        }
                         if (!hasComments && element is DocumentFormat.OpenXml.Wordprocessing.Comment) {
                             hasComments = true;
                         }
@@ -83,7 +79,6 @@ namespace OfficeIMO.Word.Html {
             return new ExportInspection(
                 hasFields,
                 hasRevisions,
-                hasRevisionText,
                 hasComments,
                 outputConstructionCharacters);
         }
@@ -109,7 +104,9 @@ namespace OfficeIMO.Word.Html {
 
         private static long MeasureOutputContentCharacters(OpenXmlElement root) {
             long characters = 0;
-            foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(root)) {
+            foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
+                         root,
+                         WordTrackedChangeExportPolicy.Markup)) {
                 if (inspected.OmitOutputContent) continue;
                 characters = SaturatingAdd(characters, GetOutputContentCharacters(inspected.Element));
             }
@@ -150,18 +147,40 @@ namespace OfficeIMO.Word.Html {
             root is not DocumentFormat.OpenXml.Wordprocessing.Settings &&
             root is not DocumentFormat.OpenXml.Wordprocessing.WebSettings;
 
-        private static IEnumerable<(OpenXmlElement Element, bool OmitOutputContent)> EnumerateRootAndDescendants(OpenXmlElement root) {
+        private static IEnumerable<(OpenXmlElement Element, bool OmitOutputContent)> EnumerateRootAndDescendants(
+            OpenXmlElement root,
+            WordTrackedChangeExportPolicy policy) {
             var pending = new Stack<(OpenXmlElement Element, bool InOmittedRevision)>();
             pending.Push((root, false));
             while (pending.Count > 0) {
                 (OpenXmlElement element, bool inOmittedRevision) = pending.Pop();
-                bool omitOutputContent = inOmittedRevision || IsRevisionTextContainer(element);
+                bool omitOutputContent = inOmittedRevision || IsRevisionContentExcluded(element, policy);
                 yield return (element, omitOutputContent);
                 for (int index = element.ChildElements.Count - 1; index >= 0; index--) {
                     pending.Push((element.ChildElements[index], omitOutputContent));
                 }
             }
         }
+
+        private static bool IsRevisionContentExcluded(OpenXmlElement element, WordTrackedChangeExportPolicy policy) {
+            if (element.LocalName is not ("ins" or "del" or "moveFrom" or "moveTo")) return false;
+            bool insertedView = element.LocalName is "ins" or "moveTo";
+            return policy switch {
+                WordTrackedChangeExportPolicy.Final => !insertedView,
+                WordTrackedChangeExportPolicy.Original => insertedView,
+                WordTrackedChangeExportPolicy.Markup => false,
+                _ => throw new ArgumentOutOfRangeException(nameof(policy), policy, "Word tracked-change policy is not supported.")
+            };
+        }
+
+        private static bool IsSelectedStoryRoot(OpenXmlElement root, WordToHtmlOptions options) => root switch {
+            DocumentFormat.OpenXml.Wordprocessing.Body => true,
+            DocumentFormat.OpenXml.Wordprocessing.Header or DocumentFormat.OpenXml.Wordprocessing.Footer => options.ExportHeadersAndFooters,
+            DocumentFormat.OpenXml.Wordprocessing.Footnotes => options.ExportFootnotes,
+            DocumentFormat.OpenXml.Wordprocessing.Endnotes => options.ExportEndnotes,
+            DocumentFormat.OpenXml.Wordprocessing.Comments => options.ExportComments,
+            _ => false
+        };
 
         private static IEnumerable<(OpenXmlElement Root, string PartUri)> EnumerateExportRoots(
             MainDocumentPart mainPart,
@@ -200,16 +219,27 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {
-            if (inspection.HasRevisionText) {
-                AddExportDiagnostic(options, "TrackedRevisionTextOmitted", "Text wrapped in Word tracked-revision markup is omitted because the HTML exporter does not project revision containers.", OfficeConversionLossKind.Omission);
-            } else if (inspection.HasRevisions) {
-                AddExportDiagnostic(options, "TrackedRevisionsFlattened", "Tracked revisions are exported as visible document content without Word revision semantics.", OfficeConversionLossKind.Approximation);
+            if (!options.EmitDocumentShell &&
+                (options.IncludeCustomProperties || options.AdditionalMetaTags.Count > 0 || options.AdditionalLinkTags.Count > 0)) {
+                AddExportDiagnostic(options, "DocumentHeadMetadataOmittedForFragment",
+                    "Document-head metadata and links were omitted because fragment output was requested.",
+                    OfficeConversionLossKind.Omission);
+            }
+            if (inspection.HasRevisions) {
+                string policy = options.TrackedChangePolicy.ToString();
+                AddExportDiagnostic(options, "TrackedRevisionsProjected",
+                    "Tracked revisions were projected through the explicit " + policy + " static HTML policy; live accept/reject behavior remains in Word.",
+                    OfficeConversionLossKind.Approximation);
             }
             if (inspection.HasComments && !options.ExportComments) {
                 AddExportDiagnostic(options, "CommentsOmitted", "Word comments were omitted because ExportComments is false.", OfficeConversionLossKind.Omission);
             }
             if (inspection.HasFields) {
-                AddExportDiagnostic(options, "FieldInstructionsFlattened", "Word field instructions are exported through their visible results; live field behavior is not represented in HTML.", OfficeConversionLossKind.Approximation);
+                AddExportDiagnostic(options, "FieldInstructionsFlattened",
+                    options.FieldPolicy == WordFieldExportPolicy.VisibleResultWithReviewMetadata
+                        ? "Word fields use their stored visible results and inert instruction metadata; live field evaluation is not represented in HTML."
+                        : "Word field instructions are exported through their visible results; live field behavior is not represented in HTML.",
+                    OfficeConversionLossKind.Approximation);
             }
             if (document.HasMacros) {
                 AddExportDiagnostic(options, "MacroProjectOmitted", "The VBA project is package metadata and is not represented in HTML.", OfficeConversionLossKind.Omission);
@@ -233,13 +263,6 @@ namespace OfficeIMO.Word.Html {
                 (document.Sections.Count > 1 || document.Sections.Any(section => HasNonDefaultPageGeometry(section._sectionProperties)))) {
                 AddExportDiagnostic(options, "SectionLayoutFlattened", "Word section page geometry is exported without page metadata because IncludeSectionMetadata is false.", OfficeConversionLossKind.Approximation);
             }
-        }
-
-        private static bool IsRevisionTextContainer(OpenXmlElement element) {
-            if (element.LocalName is not ("ins" or "del" or "moveFrom" or "moveTo")) return false;
-            return element.Descendants().Any(descendant =>
-                descendant is DocumentFormat.OpenXml.Wordprocessing.Text or
-                    DocumentFormat.OpenXml.Wordprocessing.DeletedText);
         }
 
         private static bool HasNonDefaultPageGeometry(DocumentFormat.OpenXml.Wordprocessing.SectionProperties sectionProperties) {
@@ -282,19 +305,16 @@ namespace OfficeIMO.Word.Html {
             internal ExportInspection(
                 bool hasFields,
                 bool hasRevisions,
-                bool hasRevisionText,
                 bool hasComments,
                 long outputConstructionCharacters) {
                 HasFields = hasFields;
                 HasRevisions = hasRevisions;
-                HasRevisionText = hasRevisionText;
                 HasComments = hasComments;
                 OutputConstructionCharacters = outputConstructionCharacters;
             }
 
             internal bool HasFields { get; }
             internal bool HasRevisions { get; }
-            internal bool HasRevisionText { get; }
             internal bool HasComments { get; }
             internal long OutputConstructionCharacters { get; }
         }

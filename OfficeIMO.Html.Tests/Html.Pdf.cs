@@ -17,6 +17,29 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void PdfToHtml_ResultAndBodyClassAreImmutableComposedContracts() {
+        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        options.DocumentOutput.BodyClass = "customer-shell officeimo-html customer-shell";
+
+        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(CreateLogicalSamplePdf()).ToHtmlResult(options);
+
+        Assert.Contains(
+            "<body class=\"officeimo-html officeimo-pdf-html officeimo-pdf-semantic customer-shell\"",
+            result.Value,
+            StringComparison.Ordinal);
+        Assert.True(result.Report.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() =>
+            ((IList<PdfCore.PdfConversionWarning>)result.Report.Warnings).Clear());
+        Assert.Throws<InvalidOperationException>(() => result.Report.Add(
+            new PdfCore.PdfConversionWarning(
+                "OfficeIMO.Tests",
+                "Late",
+                "PDF to HTML",
+                "late",
+                PdfCore.PdfConversionWarningSeverity.Warning)));
+    }
+
+    [Fact]
     public void HtmlToPdf_StandardControlsBecomeAccessibleInteractiveFormFields() {
         const string html = """
             <form>
@@ -1227,6 +1250,8 @@ public sealed class HtmlPdfTests {
 
         using var output = new MemoryStream();
         PdfCore.PdfConversionReport saveReport = PdfCore.PdfLogicalDocument.Load(imagePdf).SaveAsHtml(output, options);
+        Assert.True(saveReport.IsReadOnly);
+        Assert.Throws<InvalidOperationException>(() => saveReport.Clear());
         Assert.True(saveReport.HasLoss);
         Assert.NotEmpty(output.ToArray());
 

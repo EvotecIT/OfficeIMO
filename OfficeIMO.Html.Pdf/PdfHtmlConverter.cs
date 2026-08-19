@@ -144,7 +144,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return builder.ToString().TrimEnd();
+        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
     }
 
     private static string RenderPositionedReviewDocument(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
@@ -168,7 +168,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return builder.ToString().TrimEnd();
+        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
     }
 
     private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options) {
@@ -231,7 +231,7 @@ public static partial class PdfHtmlConverterExtensions {
             ? options.DocumentTitleFallback
             : document.Metadata.Title!;
         builder.AppendLine("<!doctype html>");
-        string? language = document.CatalogLanguage;
+        string? language = options.Language ?? document.CatalogLanguage;
         builder.Append("<html");
         if (!string.IsNullOrWhiteSpace(language)) {
             builder.Append(" lang=\"");
@@ -278,8 +278,11 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static void AppendBodyStart(StringBuilder builder, PdfHtmlSaveOptions options, bool positioned) {
         PdfHtmlProfileContract contract = PdfHtmlProfileContracts.Get(options.Profile);
-        builder.Append("<body class=\"officeimo-html officeimo-pdf-html ");
-        builder.Append(positioned ? "officeimo-pdf-positioned" : "officeimo-pdf-semantic");
+        builder.Append("<body class=\"");
+        builder.Append(HtmlAttribute(OfficeHtmlDocumentShell.MergeBodyClasses(
+            "officeimo-html officeimo-pdf-html",
+            positioned ? "officeimo-pdf-positioned" : "officeimo-pdf-semantic",
+            options.DocumentOutput.BodyClass)));
         builder.Append("\" data-officeimo-html-profile=\"");
         builder.Append(HtmlAttribute(contract.Id));
         builder.Append("\" data-officeimo-html-theme=\"");
@@ -1048,6 +1051,9 @@ public static partial class PdfHtmlConverterExtensions {
     private static string HtmlText(string value) {
         return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
     }
+
+    private static string NormalizeOutputNewLines(string value, string newLine) =>
+        value.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", newLine);
 
     private static string HtmlAttribute(string value) {
         return System.Net.WebUtility.HtmlEncode(value ?? string.Empty).Replace("\"", "&quot;");

@@ -9,7 +9,7 @@ public sealed class PdfHtmlConversionResult {
     internal PdfHtmlConversionResult(string html, PdfHtmlExportSummary summary, PdfCore.PdfConversionReport conversionReport) {
         Value = html;
         Summary = summary;
-        Report = SnapshotReport(conversionReport);
+        Report = conversionReport.Snapshot();
     }
 
     /// <summary>Generated HTML output.</summary>
@@ -31,11 +31,5 @@ public sealed class PdfHtmlConversionResult {
     public string RequireNoLoss() {
         Report.RequireNoLoss();
         return Value;
-    }
-
-    private static PdfCore.PdfConversionReport SnapshotReport(PdfCore.PdfConversionReport conversionReport) {
-        var snapshot = new PdfCore.PdfConversionReport();
-        snapshot.AddRange(conversionReport.Warnings);
-        return snapshot;
     }
 }

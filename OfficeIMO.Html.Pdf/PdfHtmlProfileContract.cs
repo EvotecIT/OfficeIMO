@@ -30,11 +30,11 @@ public sealed class PdfHtmlProfileContract {
         IntendedUse = intendedUse;
         FidelityContract = fidelityContract;
         UnsupportedScope = unsupportedScope;
-        PreservedSignals = preservedSignals;
-        ReviewSignals = reviewSignals;
-        OutputArtifacts = outputArtifacts;
-        DiagnosticGuarantees = diagnosticGuarantees;
-        RendererBoundaries = rendererBoundaries;
+        PreservedSignals = Snapshot(preservedSignals, nameof(preservedSignals));
+        ReviewSignals = Snapshot(reviewSignals, nameof(reviewSignals));
+        OutputArtifacts = Snapshot(outputArtifacts, nameof(outputArtifacts));
+        DiagnosticGuarantees = Snapshot(diagnosticGuarantees, nameof(diagnosticGuarantees));
+        RendererBoundaries = Snapshot(rendererBoundaries, nameof(rendererBoundaries));
     }
 
     /// <summary>Adapter profile represented by this contract.</summary>
@@ -75,6 +75,11 @@ public sealed class PdfHtmlProfileContract {
 
     /// <summary>Explicit non-goals that prevent callers from treating this adapter as a full PDF renderer or editable reconstruction engine.</summary>
     public IReadOnlyList<string> RendererBoundaries { get; }
+
+    private static IReadOnlyList<string> Snapshot(IReadOnlyList<string> values, string parameterName) {
+        if (values == null) throw new ArgumentNullException(parameterName);
+        return new ReadOnlyCollection<string>(new List<string>(values));
+    }
 }
 
 /// <summary>

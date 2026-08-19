@@ -43,25 +43,29 @@ public static class ExcelHtmlCapabilityGalleryExtensions {
             options.Title,
             "Excel HTML",
             "Validates Excel semantic table HTML and visual SVG review HTML for rich workbook content.");
-        var result = new HtmlCapabilityGalleryResult(scenario);
-        result.AddArtifact(HtmlCapabilityGalleryArtifact.WriteTextFile("semantic", "semantic-html", semanticPath, "text/html", semanticHtml));
-        result.AddArtifact(HtmlCapabilityGalleryArtifact.WriteTextFile("visual", "visual-html", visualPath, "text/html", visualHtml));
+        var artifacts = new List<HtmlCapabilityGalleryArtifact> {
+            HtmlCapabilityGalleryArtifact.WriteTextFile("semantic", "semantic-html", semanticPath, "text/html", semanticHtml),
+            HtmlCapabilityGalleryArtifact.WriteTextFile("visual", "visual-html", visualPath, "text/html", visualHtml)
+        };
+        var diagnostics = new List<HtmlDiagnostic>();
 
         if (visualHtml.Contains("data-officeimo-visual-proof=\"comment-callout\"", StringComparison.Ordinal)) {
-            result.Diagnostics.Add(
+            diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.Excel.Html",
                 "ExcelCommentVisualReviewRendered",
                 "Excel comment bodies are visible in HTML visual review as dependency-free callout/list proof over the shared Drawing SVG export.",
-                HtmlDiagnosticSeverity.Info);
+                HtmlDiagnosticSeverity.Info));
         }
 
         if (semanticHtml.Contains("officeimo-chart-data", StringComparison.Ordinal)) {
-            result.Diagnostics.Add(
+            diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.Excel.Html",
                 "ExcelChartSemanticDataPreserved",
                 "Excel chart categories, series, and values were written as semantic HTML chart data.",
-                HtmlDiagnosticSeverity.Info);
+                HtmlDiagnosticSeverity.Info));
         }
+
+        var result = new HtmlCapabilityGalleryResult(scenario, artifacts, diagnostics);
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(semanticHtml, visualHtml);
         HtmlResourceManifest resources = HtmlResourcePipeline.BuildManifest(semanticHtml + visualHtml);

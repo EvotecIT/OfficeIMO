@@ -58,7 +58,14 @@ internal static partial class RtfHtmlWriter {
         builder.Append("<!doctype html>");
         builder.Append(newline);
         builder.Append("<html");
-        AppendLanguageDirectionAttributes(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
+        if (options.Language == null) {
+            AppendLanguageDirectionAttributes(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
+        } else {
+            builder.Append(" lang=\"");
+            builder.Append(EncodeAttribute(options.Language));
+            builder.Append('"');
+            AppendLanguageDirectionAttributes(builder, null, document.Settings.Direction);
+        }
         AppendLanguageDirectionStyleAttribute(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
         builder.Append('>');
         builder.Append(newline);
@@ -105,13 +112,13 @@ internal static partial class RtfHtmlWriter {
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);
-        if (options.IncludeDefaultStyles) {
-            builder.Append("<body class=\"officeimo-html officeimo-rtf-html\" data-officeimo-profile=\"");
-            builder.Append(EncodeAttribute(options.Profile.ToString()));
-            builder.Append("\">");
-        } else {
-            builder.Append("<body>");
-        }
+        builder.Append("<body class=\"");
+        builder.Append(EncodeAttribute(OfficeHtmlDocumentShell.MergeBodyClasses(
+            "officeimo-html officeimo-rtf-html",
+            options.DocumentOutput.BodyClass)));
+        builder.Append("\" data-officeimo-profile=\"");
+        builder.Append(EncodeAttribute(options.Profile.ToString()));
+        builder.Append("\">");
         builder.Append(newline);
     }
 

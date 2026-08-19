@@ -40,7 +40,7 @@ public sealed class HtmlCapabilityGalleryManifest {
         HtmlResourceManifest? resourceManifest,
         IEnumerable<HtmlCapabilityGalleryExpectation> expectations,
         IEnumerable<OfficeHtmlConversionProfile> officeProfiles) {
-        Result = result ?? throw new ArgumentNullException(nameof(result));
+        Result = (result ?? throw new ArgumentNullException(nameof(result))).Snapshot();
         Profile = profile;
         RoundTripScore = roundTripScore;
         ResourceManifest = resourceManifest;

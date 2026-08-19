@@ -254,10 +254,15 @@ string semantic = sourcePdf.ToHtml(semanticOptions);
 PdfHtmlSaveOptions reviewOptions = PdfHtmlSaveOptions.CreatePositionedReviewProfile(
     OfficeVisualThemeKind.Report);
 reviewOptions.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
-sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions);
+PdfConversionReport saveReport = sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions);
+
+PdfHtmlConversionResult reviewResult = sourcePdf.Read.Logical().ToHtmlResult(reviewOptions);
+foreach (PdfConversionWarning warning in reviewResult.Report.Warnings) {
+    Console.WriteLine($"{warning.Code}: {warning.Message}");
+}
 ```
 
-The named profiles emit the shared responsive OfficeIMO document shell, stable profile metadata, and adapter-owned PDF review styles. The positioned-review profile also enables inert link and form-widget overlays. Set `IncludeDefaultStyles = false` to omit the theme and presentation layer. Positioned output still emits its minimal structural CSS because absolute page geometry is part of that profile's fidelity contract.
+The named profiles emit the shared responsive OfficeIMO document shell, stable profile metadata, and adapter-owned PDF review styles. `PdfHtmlConversionResult.Report` and the report returned by save APIs retain the established `PdfConversionReport` type but are frozen snapshots (`IsReadOnly` is `true`); the mutable report used while conversion is in progress is never exposed as result state. The positioned-review profile also enables inert link and form-widget overlays. Set `IncludeDefaultStyles = false` to omit the theme and presentation layer. Positioned output still emits its minimal structural CSS because absolute page geometry is part of that profile's fidelity contract.
 
 PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlPdfSaveOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage()` / `ToImages()` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
 

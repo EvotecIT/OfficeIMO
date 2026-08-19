@@ -6,12 +6,21 @@ namespace OfficeIMO.Word.Html {
     /// Options controlling Word to HTML conversion.
     /// </summary>
     public class WordToHtmlOptions {
+        private WordHtmlExportProfile _exportProfile = WordHtmlExportProfile.SemanticDocument;
+        private OfficeHtmlDocumentOptions _documentOutput = new() {
+            Title = null,
+            Language = null,
+            Theme = OfficeVisualThemeKind.WordLike,
+            IncludeDefaultStyles = false,
+            BodyClass = "officeimo-html officeimo-word-html"
+        };
+
         /// <summary>
         /// Creates a readable semantic-document export with shared OfficeIMO document styling.
         /// </summary>
         public static WordToHtmlOptions CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
             new WordToHtmlOptions {
-                Profile = OfficeHtmlConversionProfile.WordSemanticDocument,
+                ExportProfile = WordHtmlExportProfile.SemanticDocument,
                 Theme = theme,
                 IncludeDefaultCss = true,
                 UseSharedDocumentShell = true,
@@ -19,7 +28,10 @@ namespace OfficeIMO.Word.Html {
                 IncludeListStyles = true,
                 IncludeParagraphSpacingStyles = true,
                 IncludeParagraphIndentationStyles = true,
-                IncludeTableColumnGroups = true
+                IncludeTableColumnGroups = true,
+                IncludeDrawingReviewMetadata = true,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final,
+                FieldPolicy = WordFieldExportPolicy.VisibleResult
             };
 
         /// <summary>
@@ -27,7 +39,7 @@ namespace OfficeIMO.Word.Html {
         /// </summary>
         public static WordToHtmlOptions CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) =>
             new WordToHtmlOptions {
-                Profile = OfficeHtmlConversionProfile.WordDocumentRoundTrip,
+                ExportProfile = WordHtmlExportProfile.DocumentRoundTrip,
                 Theme = theme,
                 IncludeDefaultCss = true,
                 UseSharedDocumentShell = true,
@@ -42,7 +54,10 @@ namespace OfficeIMO.Word.Html {
                 ExportHeadersAndFooters = true,
                 IncludeCustomProperties = true,
                 IncludeSectionMetadata = true,
-                IncludeTableColumnGroups = true
+                IncludeTableColumnGroups = true,
+                IncludeDrawingReviewMetadata = true,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
+                FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
             };
 
         /// <summary>
@@ -50,7 +65,7 @@ namespace OfficeIMO.Word.Html {
         /// </summary>
         public static WordToHtmlOptions CreatePrintReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
             new WordToHtmlOptions {
-                Profile = OfficeHtmlConversionProfile.WordPrintReview,
+                ExportProfile = WordHtmlExportProfile.PrintReview,
                 Theme = theme,
                 IncludeDefaultCss = true,
                 UseSharedDocumentShell = true,
@@ -62,14 +77,81 @@ namespace OfficeIMO.Word.Html {
                 ExportHeadersAndFooters = true,
                 IncludeCustomProperties = true,
                 IncludeSectionMetadata = true,
-                IncludeTableColumnGroups = true
+                IncludeTableColumnGroups = true,
+                IncludeDrawingReviewMetadata = true,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final,
+                FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
             };
 
-        /// <summary>Named Office-to-HTML fidelity contract represented by this export.</summary>
-        public OfficeHtmlConversionProfile Profile { get; set; } = OfficeHtmlConversionProfile.WordSemanticDocument;
+        /// <summary>Named Word-to-HTML fidelity contract represented by this export.</summary>
+        public WordHtmlExportProfile ExportProfile {
+            get => _exportProfile;
+            set {
+                if (!Enum.IsDefined(typeof(WordHtmlExportProfile), value)) {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "Word HTML export profile is not supported.");
+                }
+                _exportProfile = value;
+            }
+        }
 
-        /// <summary>Shared visual theme used when <see cref="IncludeDefaultCss"/> is enabled.</summary>
-        public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.WordLike;
+        /// <summary>
+        /// Compatibility bridge to the former cross-format profile enum. New code should use
+        /// <see cref="ExportProfile"/> so only Word profiles are representable.
+        /// </summary>
+        public OfficeHtmlConversionProfile Profile {
+            get => ExportProfile switch {
+                WordHtmlExportProfile.DocumentRoundTrip => OfficeHtmlConversionProfile.WordDocumentRoundTrip,
+                WordHtmlExportProfile.PrintReview => OfficeHtmlConversionProfile.WordPrintReview,
+                _ => OfficeHtmlConversionProfile.WordSemanticDocument
+            };
+            set => ExportProfile = value switch {
+                OfficeHtmlConversionProfile.WordSemanticDocument => WordHtmlExportProfile.SemanticDocument,
+                OfficeHtmlConversionProfile.WordDocumentRoundTrip => WordHtmlExportProfile.DocumentRoundTrip,
+                OfficeHtmlConversionProfile.WordPrintReview => WordHtmlExportProfile.PrintReview,
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, "The selected HTML conversion profile is not a Word profile.")
+            };
+        }
+
+        /// <summary>Shared engine profile used by the selected Word export lane.</summary>
+        public HtmlConversionProfile SharedProfile => ExportProfile switch {
+            WordHtmlExportProfile.DocumentRoundTrip => HtmlConversionProfile.Document,
+            WordHtmlExportProfile.PrintReview => HtmlConversionProfile.HighFidelityPrint,
+            _ => HtmlConversionProfile.Semantic
+        };
+
+        /// <summary>Composed document-versus-fragment, theme, title, language, style, and newline settings.</summary>
+        public OfficeHtmlDocumentOptions DocumentOutput {
+            get => _documentOutput;
+            set => _documentOutput = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
+        /// <summary>Compatibility alias for <see cref="OfficeHtmlDocumentOptions.Theme"/>.</summary>
+        public OfficeVisualThemeKind Theme { get => DocumentOutput.Theme; set => DocumentOutput.Theme = value; }
+
+        /// <summary>Optional title override. Null preserves the Word built-in title.</summary>
+        public string? Title { get => DocumentOutput.Title; set => DocumentOutput.Title = value; }
+
+        /// <summary>Optional language override. Null preserves the Word document language.</summary>
+        public string? Language { get => DocumentOutput.Language; set => DocumentOutput.Language = value; }
+
+        /// <summary>Whether to emit a complete HTML document instead of a fragment.</summary>
+        public bool EmitDocumentShell { get => DocumentOutput.EmitDocumentShell; set => DocumentOutput.EmitDocumentShell = value; }
+
+        /// <summary>Newline sequence used between generated document-shell constructs.</summary>
+        public string NewLine { get => DocumentOutput.NewLine; set => DocumentOutput.NewLine = value; }
+
+        /// <summary>Tracked-change view projected into static HTML. Defaults to the final document view.</summary>
+        public WordTrackedChangeExportPolicy TrackedChangePolicy { get; set; } = WordTrackedChangeExportPolicy.Final;
+
+        /// <summary>Field representation used by the static HTML export.</summary>
+        public WordFieldExportPolicy FieldPolicy { get; set; } = WordFieldExportPolicy.VisibleResult;
+
+        /// <summary>
+        /// Emits inert wrap, anchor, crop, transform, and supported picture-effect metadata for
+        /// review without claiming browser reconstruction of Word's floating-layout algorithm.
+        /// Named export profiles enable this; the compatibility default remains false.
+        /// </summary>
+        public bool IncludeDrawingReviewMetadata { get; set; }
 
         /// <summary>Maximum Open XML elements inspected during export. Defaults to 1,000,000.</summary>
         public long MaxDocumentElements { get; set; } = 1_000_000;
@@ -212,7 +294,7 @@ namespace OfficeIMO.Word.Html {
         /// When true, injects a small, built-in "Word-like" CSS into the HTML &lt;head&gt; to make output readable out-of-the-box.
         /// Default is false to preserve legacy behavior.
         /// </summary>
-        public bool IncludeDefaultCss { get; set; } = false;
+        public bool IncludeDefaultCss { get => DocumentOutput.IncludeDefaultStyles; set => DocumentOutput.IncludeDefaultStyles = value; }
 
         /// <summary>
         /// Uses the shared responsive, print-aware OfficeIMO document shell when default CSS is included.
@@ -224,8 +306,11 @@ namespace OfficeIMO.Word.Html {
 
         internal WordToHtmlOptions CloneForConversion() {
             var clone = new WordToHtmlOptions {
-                Profile = Profile,
-                Theme = Theme,
+                ExportProfile = ExportProfile,
+                DocumentOutput = DocumentOutput.Clone(),
+                TrackedChangePolicy = TrackedChangePolicy,
+                FieldPolicy = FieldPolicy,
+                IncludeDrawingReviewMetadata = IncludeDrawingReviewMetadata,
                 MaxDocumentElements = MaxDocumentElements,
                 MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
                 MaxTotalEmbeddedImageBytes = MaxTotalEmbeddedImageBytes,
@@ -251,7 +336,6 @@ namespace OfficeIMO.Word.Html {
                 IncludeSectionMetadata = IncludeSectionMetadata,
                 IncludeTableColumnGroups = IncludeTableColumnGroups,
                 EmbedImagesAsBase64 = EmbedImagesAsBase64,
-                IncludeDefaultCss = IncludeDefaultCss,
                 UseSharedDocumentShell = UseSharedDocumentShell
             };
             clone.AdditionalMetaTags.AddRange(AdditionalMetaTags);

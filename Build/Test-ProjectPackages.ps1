@@ -185,13 +185,19 @@ using System.Data.Common;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Csv;
+using OfficeIMO.Excel.Html;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
 
 internal static class Program
 {
     public static async Task Main()
     {
+        VerifyHtmlConversionApi();
         string workingPath = Path.Combine(
             Path.GetTempPath(),
             "officeimo-release-api-smoke-" + Guid.NewGuid().ToString("N"));
@@ -274,6 +280,39 @@ internal static class Program
 
     private static DbDataReader OpenCsv(string path) =>
         CsvDocument.OpenDataReader(path);
+
+    private static void VerifyHtmlConversionApi()
+    {
+        var output = new OfficeHtmlDocumentOptions
+        {
+            EmitDocumentShell = true,
+            IncludeDefaultStyles = true,
+            Title = "Package contract",
+            Language = "en",
+            NewLine = "\n"
+        };
+        WordToHtmlOptions word = WordToHtmlOptions.CreateDocumentRoundTripProfile();
+        word.DocumentOutput = output.Clone();
+        ExcelHtmlSaveOptions excel = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        excel.DocumentOutput = output.Clone();
+        PowerPointHtmlSaveOptions powerPoint = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        powerPoint.DocumentOutput = output.Clone();
+        RtfToHtmlOptions rtf = RtfToHtmlOptions.CreatePrintReviewProfile();
+        rtf.DocumentOutput = output.Clone();
+        PdfHtmlSaveOptions pdf = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        pdf.DocumentOutput = output.Clone();
+
+        HtmlTargetCapabilityContract contract = HtmlTargetCapabilityContracts.Get(HtmlConversionTarget.Pdf);
+        HtmlToTargetCapabilityContract htmlToTarget = contract.HtmlToTarget;
+        TargetToHtmlCapabilityContract targetToHtml = contract.TargetToHtml
+            ?? throw new InvalidOperationException("Packed PDF reverse HTML route is missing.");
+        if (htmlToTarget.Profiles.Contains("PositionedReview", StringComparer.Ordinal) ||
+            !targetToHtml.Profiles.Contains("PositionedReview", StringComparer.Ordinal) ||
+            string.IsNullOrWhiteSpace(targetToHtml.DiagnosticsContract))
+        {
+            throw new InvalidOperationException("Packed directional HTML route contract is inconsistent.");
+        }
+    }
 
     private static IEnumerable<ReleaseRow> ReadCsvRows(string path) =>
         CsvDocument.Load(path).RowsAs<ReleaseRow>();

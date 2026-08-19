@@ -138,8 +138,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(manifest.Expectations, expectation => expectation.Feature == "comments" && expectation.Outcome == HtmlCapabilityGalleryExpectationOutcome.VisualProof);
         Assert.Contains(manifest.Expectations, expectation => expectation.Feature == "charts" && expectation.Outcome == HtmlCapabilityGalleryExpectationOutcome.Preserved);
         Assert.Contains(manifest.Expectations, expectation => expectation.Feature == "images" && expectation.Outcome == HtmlCapabilityGalleryExpectationOutcome.VisualProof);
-        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "ExcelCommentVisualReviewRendered");
-        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "ExcelChartSemanticDataPreserved");
+        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "ExcelCommentVisualReviewRendered");
+        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "ExcelChartSemanticDataPreserved");
 
         string semanticPath = Path.Combine(directory, "excel-gallery-rich.semantic.html");
         string visualPath = Path.Combine(directory, "excel-gallery-rich.visual.html");
@@ -1251,9 +1251,9 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(manifest.Expectations, expectation => expectation.Feature == "tables" && expectation.Outcome == HtmlCapabilityGalleryExpectationOutcome.Preserved);
         Assert.Contains(manifest.Expectations, expectation => expectation.Feature == "pictures" && expectation.Outcome == HtmlCapabilityGalleryExpectationOutcome.VisualProof);
         Assert.Contains(manifest.Expectations, expectation => expectation.Feature == "charts" && expectation.Outcome == HtmlCapabilityGalleryExpectationOutcome.Preserved);
-        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "PowerPointChartVisualReviewRendered");
-        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "PowerPointChartSemanticDataPreserved");
-        Assert.DoesNotContain(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "PowerPointChartVisualPlaceholder");
+        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "PowerPointChartVisualReviewRendered");
+        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "PowerPointChartSemanticDataPreserved");
+        Assert.DoesNotContain(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "PowerPointChartVisualPlaceholder");
 
         string semanticPath = Path.Combine(directory, "powerpoint-gallery-rich.semantic.html");
         string visualPath = Path.Combine(directory, "powerpoint-gallery-rich.visual.html");

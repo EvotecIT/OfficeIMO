@@ -29,30 +29,25 @@ public static class HtmlSupportMatrixWriter {
         builder.AppendLine();
         builder.AppendLine("## Target adapter API contracts");
         builder.AppendLine();
-        builder.AppendLine("| Target | Package | Artifact | HTML import | Result contract | Reverse HTML | Reverse result | Profiles | I/O and async boundary |");
+        builder.AppendLine("| Target | Direction | Package | Artifact | Entry point | Result contract | Profiles | I/O and async boundary | Diagnostics contract |");
         builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
         foreach (HtmlTargetCapabilityContract contract in HtmlTargetCapabilityContracts.All.OrderBy(item => item.Target)) {
-            builder.Append("| ").Append(contract.Target)
-                .Append(" | `").Append(EscapeCode(contract.PackageName)).Append("` | ")
-                .Append(EscapeCell(contract.ArtifactName)).Append(" | `")
-                .Append(EscapeCode(contract.ImportEntryPoint)).Append("` | `")
-                .Append(EscapeCode(contract.ImportResultContract)).Append("` | ")
-                .Append(FormatCode(contract.ExportEntryPoint)).Append(" | ")
-                .Append(FormatCode(contract.ExportResultContract)).Append(" | ")
-                .Append(EscapeCell(string.Join(", ", contract.Profiles))).Append(" | ")
-                .Append(EscapeCell(contract.IoAndAsyncBoundary)).AppendLine(" |");
+            AppendRoute(builder, contract, "HTML to target", contract.HtmlToTarget);
+            if (contract.TargetToHtml != null) {
+                AppendRoute(builder, contract, "Target to HTML", contract.TargetToHtml);
+            }
         }
 
         builder.AppendLine();
         builder.AppendLine("## Target semantic capability contracts");
         builder.AppendLine();
-        builder.AppendLine("| Target | Supported | Approximated | Unsupported |");
-        builder.AppendLine("| --- | --- | --- | --- |");
+        builder.AppendLine("| Target | Direction | Supported | Approximated | Unsupported |");
+        builder.AppendLine("| --- | --- | --- | --- | --- |");
         foreach (HtmlTargetCapabilityContract contract in HtmlTargetCapabilityContracts.All.OrderBy(item => item.Target)) {
-            builder.Append("| ").Append(contract.Target).Append(" | ")
-                .Append(EscapeCell(FormatFeatures(contract.SupportedFeatures))).Append(" | ")
-                .Append(EscapeCell(FormatFeatures(contract.ApproximatedFeatures))).Append(" | ")
-                .Append(EscapeCell(FormatFeatures(contract.UnsupportedFeatures))).AppendLine(" |");
+            AppendRouteFeatures(builder, contract.Target, "HTML to target", contract.HtmlToTarget);
+            if (contract.TargetToHtml != null) {
+                AppendRouteFeatures(builder, contract.Target, "Target to HTML", contract.TargetToHtml);
+            }
         }
 
         builder.AppendLine();
@@ -96,6 +91,26 @@ public static class HtmlSupportMatrixWriter {
     private static void AppendList(StringBuilder builder, string label, IReadOnlyList<string> values) {
         builder.Append("- ").Append(label).Append(": ")
             .AppendLine(values.Count == 0 ? "None" : string.Join(", ", values));
+    }
+
+    private static void AppendRoute(StringBuilder builder, HtmlTargetCapabilityContract contract, string direction,
+        HtmlConversionRouteCapabilityContract route) {
+        builder.Append("| ").Append(contract.Target).Append(" | ").Append(direction)
+            .Append(" | `").Append(EscapeCode(contract.PackageName)).Append("` | ")
+            .Append(EscapeCell(contract.ArtifactName)).Append(" | `")
+            .Append(EscapeCode(route.EntryPoint)).Append("` | `")
+            .Append(EscapeCode(route.ResultContract)).Append("` | ")
+            .Append(EscapeCell(string.Join(", ", route.Profiles))).Append(" | ")
+            .Append(EscapeCell(route.IoAndAsyncBoundary)).Append(" | ")
+            .Append(EscapeCell(route.DiagnosticsContract)).AppendLine(" |");
+    }
+
+    private static void AppendRouteFeatures(StringBuilder builder, HtmlConversionTarget target, string direction,
+        HtmlConversionRouteCapabilityContract route) {
+        builder.Append("| ").Append(target).Append(" | ").Append(direction).Append(" | ")
+            .Append(EscapeCell(FormatFeatures(route.SupportedFeatures))).Append(" | ")
+            .Append(EscapeCell(FormatFeatures(route.ApproximatedFeatures))).Append(" | ")
+            .Append(EscapeCell(FormatFeatures(route.UnsupportedFeatures))).AppendLine(" |");
     }
 
     private static string EscapeCell(string value) => (value ?? string.Empty)
