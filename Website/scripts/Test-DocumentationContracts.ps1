@@ -74,6 +74,20 @@ foreach ($doc in $docs) {
     }
 }
 
+$navigationPaths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+if (@($toc | Where-Object href -EQ '/docs/').Count -eq 1) {
+    [void] $navigationPaths.Add('index.md')
+}
+foreach ($entry in $tocEntries) {
+    [void] $navigationPaths.Add(([string] $entry.path).Replace('\', '/'))
+}
+foreach ($doc in $docs) {
+    $relativePath = [System.IO.Path]::GetRelativePath($docsRoot, $doc.FullName).Replace('\', '/')
+    if (-not $navigationPaths.Contains($relativePath)) {
+        Add-Failure "'$relativePath' is missing from the documentation navigation."
+    }
+}
+
 $publicContentFiles = @(
     Get-ChildItem -LiteralPath (Join-Path $SiteRoot 'content') -Recurse -File |
         Where-Object Extension -In '.md', '.html'
