@@ -337,17 +337,33 @@ public static class EmailImageExportExtensions {
         };
     }
 
-    private static OfficeImageExportDiagnostic MapBodyDiagnostic(EmailDiagnostic diagnostic) =>
-        new OfficeImageExportDiagnostic(
+    private static OfficeImageExportDiagnostic MapBodyDiagnostic(EmailDiagnostic diagnostic) {
+        string code;
+        switch (diagnostic.Code) {
+            case "EMAIL_BODY_RTF_PROJECTED":
+                code = "EMAIL_IMAGE_RTF_BODY_PROJECTED";
+                break;
+            case "EMAIL_BODY_RTF_UNREADABLE":
+                code = "EMAIL_IMAGE_RTF_BODY_UNREADABLE";
+                break;
+            case "EMAIL_BODY_MISSING":
+                code = "EMAIL_IMAGE_BODY_MISSING";
+                break;
+            default:
+                code = diagnostic.Code;
+                break;
+        }
+        return new OfficeImageExportDiagnostic(
             diagnostic.Severity == EmailDiagnosticSeverity.Error
                 ? OfficeImageExportDiagnosticSeverity.Error
                 : OfficeImageExportDiagnosticSeverity.Warning,
-            diagnostic.Code,
+            code,
             diagnostic.Message,
-            diagnostic.Location ?? "Email body",
+            "Email body",
             diagnostic.Code == "EMAIL_BODY_RTF_PROJECTED"
                 ? OfficeConversionLossKind.Approximation
                 : OfficeConversionLossKind.Omission);
+    }
 
     private static OfficeImageExportResult AttachDiagnostics(
         OfficeImageExportResult result,

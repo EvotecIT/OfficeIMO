@@ -97,7 +97,8 @@ public sealed partial class EmailStoreSession {
             if (File.Exists(candidate) && !options.OverwriteExisting)
                 throw new IOException("The Maildir destination item already exists.");
 
-            temporaryPath = Path.Combine(temporaryDirectory, fileName + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            temporaryPath = OfficeFileCommit.CreateTemporaryPath(
+                Path.Combine(temporaryDirectory, "message"));
             EmailWriteResult result;
             using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
                 result = writer.Write(item.Document, stream, EmailFileFormat.Eml);
@@ -171,7 +172,7 @@ public sealed partial class EmailStoreSession {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             if (File.Exists(path) && !options.OverwriteExisting)
                 throw new IOException("The EMLX destination item already exists.");
-            temporaryPath = string.Concat(path, ".", Guid.NewGuid().ToString("N"), ".tmp");
+            temporaryPath = OfficeFileCommit.CreateStagingPath(path);
             EmailWriteResult result;
             using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
                 result = writer.Write(item.Document, stream);

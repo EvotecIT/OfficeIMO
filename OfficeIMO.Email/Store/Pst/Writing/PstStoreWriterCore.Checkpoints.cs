@@ -57,7 +57,7 @@ internal sealed partial class PstStoreWriterCore {
         if (!File.Exists(fullPath)) return;
         WriterCheckpointState state = ReadCheckpointFile(fullPath);
         state.ValidateOwnership(fullPath);
-        CleanupWorkingFiles(state.TemporaryPath, state.DestinationPath);
+        CleanupWorkingFiles(state.TemporaryPath, state.DestinationPath, state.ProviderUid);
         CleanupCheckpointCommitFiles(fullPath);
         TryDelete(fullPath);
     }
@@ -95,8 +95,7 @@ internal sealed partial class PstStoreWriterCore {
         if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
         Directory.CreateDirectory(directory);
         CleanupCheckpointCommitFiles(fullPath);
-        string temporary = Path.Combine(directory, string.Concat(".", Path.GetFileName(fullPath),
-            ".", Guid.NewGuid().ToString("N"), ".tmp"));
+        string temporary = CreateCheckpointCommitPath(fullPath);
         try {
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.ReadWrite,
                 FileShare.Read, 64 * 1024, FileOptions.SequentialScan))
@@ -349,9 +348,38 @@ internal sealed partial class PstStoreWriterCore {
         if (_options.CheckpointPath != null) TryDelete(_options.CheckpointPath);
     }
 
-    private static void CleanupWorkingFiles(string temporaryPath, string destinationPath) {
+    private static string CreateWorkingTemporaryPath(string destinationPath, Guid providerUid) {
+        string destination = Path.GetFullPath(destinationPath);
+        string? directory = Path.GetDirectoryName(destination);
+        if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+        return Path.Combine(directory, string.Concat(".oip-", ComputePathIdentityToken(destination),
+            "-", providerUid.ToString("N"), ".tmp"));
+    }
+
+    private static string CreateCheckpointCommitPath(string checkpointPath) {
+        string fullPath = Path.GetFullPath(checkpointPath);
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+        return Path.Combine(directory, string.Concat(".oipc-", ComputePathIdentityToken(fullPath),
+            "-", Guid.NewGuid().ToString("N"), ".tmp"));
+    }
+
+    private static string ComputePathIdentityToken(string path) {
+        byte[] identity = Encoding.UTF8.GetBytes(EmailStorePathIdentity.Normalize(path));
+        byte[] digest;
+        using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(identity);
+        try {
+            return BitConverter.ToString(digest, 0, 8).Replace("-", string.Empty).ToLowerInvariant();
+        } finally {
+            Array.Clear(identity, 0, identity.Length);
+            Array.Clear(digest, 0, digest.Length);
+        }
+    }
+
+    private static void CleanupWorkingFiles(string temporaryPath, string destinationPath,
+        Guid providerUid) {
         string fullPath = Path.GetFullPath(temporaryPath);
-        ValidateTemporaryPath(destinationPath, fullPath);
+        ValidateTemporaryPath(destinationPath, fullPath, providerUid);
         string? directory = Path.GetDirectoryName(fullPath);
         if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory)) return;
         foreach (string candidate in Directory.EnumerateFiles(directory)) {
@@ -361,7 +389,8 @@ internal sealed partial class PstStoreWriterCore {
         }
     }
 
-    private static void ValidateTemporaryPath(string destinationPath, string temporaryPath) {
+    private static void ValidateTemporaryPath(string destinationPath, string temporaryPath,
+        Guid providerUid) {
         string destination = Path.GetFullPath(destinationPath);
         string temporary = Path.GetFullPath(temporaryPath);
         string? destinationDirectory = Path.GetDirectoryName(destination);
@@ -370,14 +399,18 @@ internal sealed partial class PstStoreWriterCore {
             !EmailStorePathIdentity.AreEquivalent(destinationDirectory, temporaryDirectory)) {
             throw new InvalidDataException("The PST checkpoint working path is outside the destination directory.");
         }
-        string expectedPrefix = string.Concat(".", Path.GetFileName(destination), ".");
         string temporaryName = Path.GetFileName(temporary);
-        if (!temporaryName.StartsWith(expectedPrefix, StringComparison.Ordinal) ||
+        string currentName = string.Concat(".oip-", ComputePathIdentityToken(destination), "-",
+            providerUid.ToString("N"), ".tmp");
+        if (string.Equals(temporaryName, currentName, StringComparison.Ordinal)) return;
+
+        string legacyPrefix = string.Concat(".", Path.GetFileName(destination), ".");
+        if (!temporaryName.StartsWith(legacyPrefix, StringComparison.Ordinal) ||
             !temporaryName.EndsWith(".tmp", StringComparison.Ordinal)) {
             throw new InvalidDataException("The PST checkpoint working path is not writer-owned.");
         }
-        string token = temporaryName.Substring(expectedPrefix.Length,
-            temporaryName.Length - expectedPrefix.Length - 4);
+        string token = temporaryName.Substring(legacyPrefix.Length,
+            temporaryName.Length - legacyPrefix.Length - 4);
         if (!Guid.TryParseExact(token, "N", out _)) {
             throw new InvalidDataException("The PST checkpoint working path has an invalid ownership token.");
         }
@@ -404,9 +437,13 @@ internal sealed partial class PstStoreWriterCore {
         string fullPath = Path.GetFullPath(checkpointPath);
         string? directory = Path.GetDirectoryName(fullPath);
         if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory)) return;
-        string prefix = string.Concat(".", Path.GetFileName(fullPath), ".");
+        string legacyPrefix = string.Concat(".", Path.GetFileName(fullPath), ".");
+        string currentPrefix = string.Concat(".oipc-", ComputePathIdentityToken(fullPath), "-");
         foreach (string candidate in Directory.EnumerateFiles(directory)) {
             string name = Path.GetFileName(candidate);
+            string prefix = name.StartsWith(currentPrefix, StringComparison.Ordinal)
+                ? currentPrefix
+                : legacyPrefix;
             if (!name.StartsWith(prefix, StringComparison.Ordinal) ||
                 !name.EndsWith(".tmp", StringComparison.Ordinal) ||
                 name.Length <= prefix.Length + 4) continue;
@@ -510,7 +547,7 @@ internal sealed partial class PstStoreWriterCore {
                 throw new InvalidDataException(
                     "The PST checkpoint path collides with a destination or working file.");
             }
-            ValidateTemporaryPath(DestinationPath, TemporaryPath);
+            ValidateTemporaryPath(DestinationPath, TemporaryPath, ProviderUid);
         }
     }
 }

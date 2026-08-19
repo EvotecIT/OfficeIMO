@@ -530,7 +530,7 @@ public sealed class PstWriterTests {
 
             Assert.True(File.Exists(checkpoint));
             Assert.False(File.Exists(destination));
-            string changed = mailbox.Replace("Body 2", "B0dy 2", StringComparison.Ordinal);
+            string changed = mailbox.Replace("Body 2", "B0dy 2");
             Assert.Equal(mailbox.Length, changed.Length);
             File.WriteAllText(source, changed, Encoding.ASCII);
             InvalidDataException changedSource = Assert.Throws<InvalidDataException>(() =>
@@ -756,7 +756,8 @@ public sealed class PstWriterTests {
 
     [Fact]
     public void Migration_checkpoint_cleanup_can_retry_when_the_authenticated_journal_is_busy() {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows)) return;
         string directory = Path.Combine(Path.GetTempPath(),
             string.Concat("officeimo-migration-delete-retry-", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(directory);

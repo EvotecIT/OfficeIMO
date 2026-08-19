@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Sequential, delete-on-close source-to-destination verification mappings.</summary>
@@ -11,7 +13,7 @@ internal sealed class PstConversionMappingJournal : IDisposable {
     private bool _disposed;
 
     internal PstConversionMappingJournal(string destinationPath) {
-        _path = string.Concat(destinationPath, ".", Guid.NewGuid().ToString("N"), ".verify-map.tmp");
+        _path = OfficeFileCommit.CreateTemporaryPath(destinationPath);
         _stream = new FileStream(_path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read,
             64 * 1024, FileOptions.SequentialScan | FileOptions.DeleteOnClose);
         _writer = new BinaryWriter(_stream, Encoding.UTF8, leaveOpen: true);

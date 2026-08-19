@@ -30,8 +30,7 @@ public sealed partial class EmailStoreSession {
                 Diagnostics.Concat(reportDiagnostics).ToArray());
         }
 
-        string temporary = Path.Combine(directory,
-            string.Concat(".", Path.GetFileName(destination), ".", Guid.NewGuid().ToString("N"), ".tmp"));
+        string temporary = OfficeFileCommit.CreateTemporaryPath(destination);
         var entries = new List<EmailStoreMboxExportEntry>();
         bool truncated = false;
         bool commit = false;
