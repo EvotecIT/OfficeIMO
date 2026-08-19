@@ -23,6 +23,7 @@
     <ProjectReference Include="..\OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email.Image\OfficeIMO.Email.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub.Image\OfficeIMO.Epub.Image.csproj" />
@@ -121,6 +122,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.CodeGlyphX" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.HarfBuzz" />
     <TrimmerRootAssembly Include="OfficeIMO.Email" />
+    <TrimmerRootAssembly Include="OfficeIMO.Email.Html" />
     <TrimmerRootAssembly Include="OfficeIMO.Email.Image" />
     <TrimmerRootAssembly Include="OfficeIMO.Epub" />
     <TrimmerRootAssembly Include="OfficeIMO.Epub.Image" />

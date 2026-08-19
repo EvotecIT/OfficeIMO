@@ -20,10 +20,11 @@ public sealed class ExternalOutlookSmimeCorpusTests {
             ["received-at-smime2/Message from smime1 to smime2 (signed and encrypted).msg"] = "0F1BD2C7DD869F886E644080CDD156097F5E5D0CC928264CBB193D29990C8C79"
         };
 
-    [Fact]
+    [ExternalOutlookSmimeCorpusFact]
     public void VerifiesAndDecryptsRealOutlookEmlAndMsgCorpusWhenAvailable() {
         string? root = Environment.GetEnvironmentVariable(CorpusVariable);
-        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root)) return;
+        Assert.False(string.IsNullOrWhiteSpace(root));
+        Assert.True(Directory.Exists(root));
         AssertExactCorpus(root!);
 
         string received = Path.Combine(root!, "received-at-smime2");
@@ -52,17 +53,19 @@ public sealed class ExternalOutlookSmimeCorpusTests {
             using EmailReadResult nested = Read(
                 received,
                 "Message from smime1 to smime2 (signed and encrypted)" + extension);
-            EmailSmimeDecryptionResult nestedDecryption = EmailSmime.Decrypt(
+            EmailSmimeProcessingResult nestedResult = EmailSmime.DecryptThenVerify(
                 nested.Document,
                 recipient,
                 OfficeSecurityProvider.Default);
-            Assert.True(nestedDecryption.Decrypted, Describe(nestedDecryption.Cryptography));
-            Assert.NotNull(nestedDecryption.DecryptedContent);
-            EmailSmimeVerificationResult nestedSignature = EmailSmime.Verify(
-                nestedDecryption.DecryptedContent!,
-                OfficeSecurityProvider.Default);
-            Assert.True(nestedSignature.IsCryptographicallyValid, Describe(nestedSignature.Cryptography));
-            Assert.Single(nestedSignature.Cryptography!.Signers);
+            Assert.True(nestedResult.Decryption.Decrypted,
+                Describe(nestedResult.Decryption.Cryptography));
+            Assert.Equal(new[] { EmailSmimeProcessingStage.Decrypt, EmailSmimeProcessingStage.Verify },
+                nestedResult.ProcessingOrder);
+            Assert.True(nestedResult.Verification?.IsCryptographicallyValid,
+                Describe(nestedResult.Verification?.Cryptography));
+            Assert.Contains(nestedResult.Diagnostics, diagnostic =>
+                diagnostic.Code == EmailSmimeDiagnosticCodes.DecryptThenVerify);
+            Assert.Single(nestedResult.Verification!.Cryptography!.Signers);
         }
     }
 

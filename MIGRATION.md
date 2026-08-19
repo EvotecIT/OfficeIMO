@@ -180,13 +180,14 @@ implementation and options belong to `OfficeIMO.Pdf`.
 | --- | --- |
 | HTML to/from RTF | Add `OfficeIMO.Html.Rtf`. Existing APIs remain in the `OfficeIMO.Html` namespace. |
 | Load or save MHT/MHTML | Add `OfficeIMO.Mhtml` and replace `using OfficeIMO.Html;` for `MhtmlDocument` or `MhtmlResource` with `using OfficeIMO.Mhtml;`. |
+| Select and sanitize an email body or resolve CID/Content-Location resources | Add `OfficeIMO.Email.Html` and call `EmailBodyProjection.Create(message)`. The base `OfficeIMO.Email` package stays HTML-free. |
 | Render an `EmailDocument` to images | Add `OfficeIMO.Email.Image`. Existing APIs remain in the `OfficeIMO.Email` namespace. |
 | Convert MHT/MHTML to PDF | Add `OfficeIMO.Mhtml.Pdf` plus `OfficeIMO.Mhtml`; use the `OfficeIMO.Mhtml` extension namespace. Plain HTML/PDF remains in `OfficeIMO.Html.Pdf`. |
 | Register HTML with Reader | `AddHtmlHandler()` now registers `.html`, `.htm`, and `.xhtml` only. |
 | Register MHT/MHTML with Reader | Reference `OfficeIMO.Reader.Email`, import `OfficeIMO.Reader.Email`, and call `AddMhtmlHandler()`. `AddEmailHandlers()` and `OfficeIMO.Reader.All` include it automatically. |
 | Read EPUB through Reader | No source change. `OfficeIMO.Reader.Epub` still reuses the HTML projection but no longer receives Email, RTF, or MHTML transitively. |
 
-No `OfficeIMO.Html.Core`, separate document-model package, or `OfficeIMO.Reader.Mhtml` package was introduced. The base HTML and Reader APIs stay focused; optional bridges carry the extra dependency edges.
+No `OfficeIMO.Html.Core`, separate document-model package, or `OfficeIMO.Reader.Mhtml` package was introduced. The base HTML, Email, and Reader APIs stay focused; optional bridges carry the extra dependency edges. `OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` now reuse `OfficeIMO.Email.Html` for body choice, RTF fallback, sanitization, and embedded-resource resolution instead of maintaining adapter-specific policies.
 
 ## OfficeIMO 3.1
 

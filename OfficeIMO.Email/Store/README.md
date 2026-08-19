@@ -385,13 +385,23 @@ EmailStorePstConversionReport report = EmailStoreConverter.ConvertToPst(
     conversionOptions: new EmailStorePstConversionOptions(
         includeAssociatedItems: true,
         includeOrphanedItems: true,
-        failOnDataLoss: false));
+        failOnDataLoss: true,
+        checkpointPath: "mailbox-converted.pst.checkpoint",
+        checkpointIntervalItems: 1_000,
+        partialResultPolicy: EmailStorePartialResultPolicy.RetainResumableState));
 ```
 
 The same API accepts every format supported by `EmailStoreSession`. Search-folder results can be copied as static
 folders, but their dynamic query definitions are not regenerated. Content that was never cached in an OST cannot
 be recovered from the offline file. The conversion report separates converted and skipped items and combines
 reader, conversion, and writer diagnostics.
+
+A migration checkpoint atomically carries the PST writer state, privacy-safe exact source identity, source catalog,
+options fingerprint, folder mapping, item counts, provenance journal, and verification progress. Resume rechecks the
+complete source before continuing, rejects same-length byte changes and option/destination changes, truncates only its
+own working files to committed lengths, and skips the already committed deterministic source prefix without duplicating
+items. The same contract is exercised for PST, OST, OLM, EMLX, Mbox, and mailbox-directory inputs. Choose
+`DiscardIncompleteState` instead when cancellation or failure must delete the checkpoint and writer-owned staging files.
 
 Conversion verification is enabled by default. The writer produces a same-directory staging PST, reopens it, and
 compares every written item under the semantic migration profile before committing the destination. With
@@ -508,7 +518,9 @@ Set `PstPassword` only when a protected PST requires checksum validation. Passwo
 - ANSI PST mutation, OST mutation/writing, in-place PST append/editing or repair, password/encryption authoring, OLM authoring, Outlook profiles and autocomplete caches, Exchange synchronization, cloud download, and server-side recovery remain outside this API area.
 - The writer currently emits Unicode PST files. It does not emit ANSI PST or OST files, and one data tree is limited to 4 GiB.
 - Synthetic always-on gates cover deterministic round trips, malformed MIME/TNEF/compound input, memory budgets,
-  checkpoints, merge/deduplication, and scale. libpff and classic Outlook mount/read/remove gates are opt-in so
+  source-bound migration checkpoints, merge/deduplication, and scale. The libpff gate independently opens and exports
+  a generated PST and validates subject, body, and attachment content; the classic Outlook gate mounts the store and
+  reads folder, recipient, body, and attachment metadata. Both gates are opt-in so
   normal builds remain dependency-free; private PST/OST corpus tests are also opt-in and retain aggregate evidence only.
 
 ## Targets and dependencies

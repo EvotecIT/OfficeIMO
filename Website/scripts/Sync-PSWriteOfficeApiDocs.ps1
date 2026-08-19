@@ -1,6 +1,6 @@
 param(
     [string] $SiteRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
-    [string] $PSWriteOfficeRoot = '',
+    [string] $PSWriteOfficeRoot = $env:PSWRITEOFFICE_ROOT,
     [switch] $SkipDocumentation,
     [switch] $SkipExamples
 )
@@ -13,12 +13,21 @@ function Resolve-RepoRoot {
         [string] $RequestedRoot
     )
 
-    $candidates = @()
     if (-not [string]::IsNullOrWhiteSpace($RequestedRoot)) {
-        $candidates += $RequestedRoot
+        try {
+            $resolvedRequestedRoot = (Resolve-Path -LiteralPath $RequestedRoot -ErrorAction Stop).Path
+        } catch {
+            throw "The explicit PSWriteOffice repository root '$RequestedRoot' was not found."
+        }
+
+        if (-not (Test-Path -LiteralPath (Join-Path $resolvedRequestedRoot 'PSWriteOffice.psd1') -PathType Leaf)) {
+            throw "The explicit PSWriteOffice repository root '$resolvedRequestedRoot' does not contain PSWriteOffice.psd1."
+        }
+
+        return $resolvedRequestedRoot
     }
 
-    $candidates += @(
+    $candidates = @(
         (Join-Path $SiteRootPath 'projects\pswriteoffice'),
         (Join-Path (Split-Path -Parent $SiteRootPath) 'PSWriteOffice'),
         'C:\Support\GitHub\PSWriteOffice',

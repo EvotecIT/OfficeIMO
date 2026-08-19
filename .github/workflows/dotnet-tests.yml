@@ -123,6 +123,7 @@ jobs:
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
             'OfficeIMO.Html/OfficeIMO.Html.csproj',
+            'OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj',
             'OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj',
             'OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj',
             'OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj',
@@ -144,6 +145,7 @@ jobs:
             return $packages[0].BaseName.Substring($id.Length + 1)
           }
           $emailVersion = Get-PackedPackageVersion 'OfficeIMO.Email'
+          $emailHtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Email.Html'
           $readerCoreVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Core'
           $readerEmailVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Email'
           $readerImageVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Image'
@@ -183,6 +185,7 @@ jobs:
             'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
+            'OfficeIMO.Email.Html',
             'OfficeIMO.Html',
             'OfficeIMO.Markdown.Html',
             'OfficeIMO.Mhtml',
@@ -205,6 +208,7 @@ jobs:
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
           foreach ($package in @(
             @{ Id = 'officeimo.email'; Version = $emailVersion },
+            @{ Id = 'officeimo.email.html'; Version = $emailHtmlVersion },
             @{ Id = 'officeimo.reader.core'; Version = $readerCoreVersion },
             @{ Id = 'officeimo.reader.email'; Version = $readerEmailVersion },
             @{ Id = 'officeimo.reader.image'; Version = $readerImageVersion },

@@ -28,4 +28,4 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 ```
 
-Install this package when Reader needs email or MHTML data. It depends on `OfficeIMO.Reader.Core`, `OfficeIMO.Email`, `OfficeIMO.Mhtml`, and the lean `OfficeIMO.Reader.Html` projection; store and address-book support do not add separate NuGet layers.
+Install this package when Reader needs email or MHTML data. It depends on `OfficeIMO.Reader.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, `OfficeIMO.Mhtml`, and the lean `OfficeIMO.Reader.Html` projection. Email HTML/text/Markdown preparation reuses the shared safe body and embedded-resource contract; store and address-book support do not add separate NuGet layers or another email model.

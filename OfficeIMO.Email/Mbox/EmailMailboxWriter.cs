@@ -57,21 +57,24 @@ public sealed class EmailMailboxWriter {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         var diagnostics = new List<EmailDiagnostic>();
+        bool hasAcceptedLoss = false;
         long bytesWritten = 0;
         int index = 0;
         foreach (EmailMailboxEntry entry in entries) {
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = SerializeEntry(entry, index, diagnostics, cancellationToken);
+            byte[] bytes = SerializeEntry(entry, index, diagnostics, cancellationToken,
+                ref hasAcceptedLoss);
             if (bytes.Length == 0 && diagnostics.Any(diagnostic =>
                 diagnostic.Severity == EmailDiagnosticSeverity.Error)) {
-                return new EmailWriteResult(bytesWritten, diagnostics.AsReadOnly(), false);
+                return CreateMailboxResult(bytesWritten, diagnostics, blocked: true,
+                    hasAcceptedLoss);
             }
             long next = checked(bytesWritten + bytes.LongLength);
             stream.Write(bytes, 0, bytes.Length);
             bytesWritten = next;
             index++;
         }
-        return new EmailWriteResult(bytesWritten, diagnostics.AsReadOnly(), false);
+        return CreateMailboxResult(bytesWritten, diagnostics, blocked: false, hasAcceptedLoss);
     }
 
     /// <summary>Asynchronously writes a mailbox file.</summary>
@@ -103,29 +106,46 @@ public sealed class EmailMailboxWriter {
         if (mailbox == null) throw new ArgumentNullException(nameof(mailbox));
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new List<EmailDiagnostic>();
+        bool hasAcceptedLoss = false;
         var messageWriter = new EmailDocumentWriter(_options.MessageOptions);
         using (EmailBoundedMemoryStream output = new EmailBoundedMemoryStream(
                    _options.MessageOptions.MaxOutputBytes)) {
             for (int index = 0; index < mailbox.Messages.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte[] entry = SerializeEntry(mailbox.Messages[index], index, diagnostics, cancellationToken,
-                    messageWriter);
+                    ref hasAcceptedLoss, messageWriter);
                 if (entry.Length == 0 && diagnostics.Any(diagnostic =>
                     diagnostic.Severity == EmailDiagnosticSeverity.Error)) {
-                    result = new EmailWriteResult(0, diagnostics.AsReadOnly(), false);
+                    result = CreateMailboxResult(0, diagnostics, blocked: true,
+                        hasAcceptedLoss);
                     return Array.Empty<byte>();
                 }
                 output.Write(entry, 0, entry.Length);
             }
             byte[] bytes = output.ToArray();
             cancellationToken.ThrowIfCancellationRequested();
-            result = new EmailWriteResult(bytes.LongLength, diagnostics.AsReadOnly(), false);
+            result = CreateMailboxResult(bytes.LongLength, diagnostics, blocked: false,
+                hasAcceptedLoss);
             return bytes;
         }
     }
 
+    private static EmailWriteResult CreateMailboxResult(long bytesWritten,
+        List<EmailDiagnostic> diagnostics, bool blocked, bool hasAcceptedLoss) => new EmailWriteResult(
+            bytesWritten, EmailFileFormat.Mbox, EmailFileFormat.Mbox, diagnostics.AsReadOnly(),
+            blocked ? EmailArtifactSourceSelection.None : EmailArtifactSourceSelection.Regenerated,
+            blocked
+                ? EmailConversionLossDisposition.Blocked
+                : hasAcceptedLoss || diagnostics.Any(item =>
+                    item.DataLossRisk != EmailDataLossRisk.None ||
+                    item.Severity == EmailDiagnosticSeverity.Error)
+                    ? EmailConversionLossDisposition.Accepted
+                    : EmailConversionLossDisposition.None,
+            EmailAttachmentContentLifetime.OperationScoped);
+
     private byte[] SerializeEntry(EmailMailboxEntry entry, int index, IList<EmailDiagnostic> diagnostics,
-        CancellationToken cancellationToken, EmailDocumentWriter? existingWriter = null) {
+        CancellationToken cancellationToken, ref bool hasAcceptedLoss,
+        EmailDocumentWriter? existingWriter = null) {
         var messageWriter = existingWriter ?? new EmailDocumentWriter(_options.MessageOptions);
         byte[] eml;
         EmailWriteResult messageResult;
@@ -136,7 +156,13 @@ public sealed class EmailMailboxWriter {
         foreach (EmailDiagnostic diagnostic in messageResult.Diagnostics) {
             diagnostics.Add(new EmailDiagnostic(diagnostic.Code, diagnostic.Message, diagnostic.Severity,
                 string.Concat("message[", index.ToString(CultureInfo.InvariantCulture), "]",
-                    diagnostic.Location == null ? string.Empty : string.Concat("/", diagnostic.Location))));
+                    diagnostic.Location == null ? string.Empty : string.Concat("/", diagnostic.Location)),
+                diagnostic.Operation, diagnostic.ByteOffset, diagnostic.LimitName,
+                diagnostic.ActualValue, diagnostic.MaximumValue, diagnostic.Disposition,
+                diagnostic.DataLossRisk, diagnostic.SuggestedAction, diagnostic.IsRetryable));
+        }
+        if (messageResult.LossDisposition == EmailConversionLossDisposition.Accepted) {
+            hasAcceptedLoss = true;
         }
         if (messageResult.HasErrors && eml.Length == 0) return Array.Empty<byte>();
 

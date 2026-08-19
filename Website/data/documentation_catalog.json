@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 170,
-    "productionComponentCount": 99,
+    "projectCount": 171,
+    "productionComponentCount": 100,
     "testProjectCount": 33,
     "benchmarkProjectCount": 16,
     "validationProjectCount": 23,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41368
+    "conceptualWordCount": 41399
   },
   "categories": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 15
+      "componentCount": 16
     },
     {
       "name": "Foundations and integrations",
@@ -183,11 +183,24 @@
       "description": "Managed email and Outlook data engine for EML, MSG/OFT, TNEF, ICS, vCard, Mbox, PST/OST, OLM, EMLX, Maildir, and Offline Address Book artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email/OfficeIMO.Email.csproj",
-      "sourceFileCount": 404,
+      "sourceFileCount": 408,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email"
+    },
+    {
+      "name": "OfficeIMO.Email.Html",
+      "packageId": "OfficeIMO.Email.Html",
+      "category": "Formats and interoperability",
+      "description": "Dependency-isolated safe HTML, RTF, text, and inline-resource projection for OfficeIMO email artifacts.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/email/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email.Html"
     },
     {
       "name": "OfficeIMO.Email.Image",

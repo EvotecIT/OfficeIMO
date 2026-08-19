@@ -47,10 +47,23 @@ public sealed class OutlookPstWriterInteropTests {
                 if (!string.Equals(Environment.GetEnvironmentVariable(
                     "OFFICEIMO_EMAIL_STORE_OUTLOOK_INTEROP_EMPTY"), "1", StringComparison.Ordinal)) {
                     string folder = writer.AddFolder("OfficeIMO Synthetic");
-                    writer.AddItem(folder, new EmailDocument {
+                    var document = new EmailDocument {
                         Subject = "OfficeIMO synthetic interoperability item",
-                        MessageClass = "IPM.Note"
+                        MessageClass = "IPM.Note",
+                        From = new EmailAddress("sender@example.test", "OfficeIMO sender")
+                    };
+                    document.Body.Text = "OfficeIMO classic Outlook semantic body";
+                    document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+                        new EmailAddress("recipient@example.test", "OfficeIMO recipient")));
+                    byte[] attachment = Encoding.UTF8.GetBytes(
+                        "OfficeIMO classic Outlook attachment evidence");
+                    document.Attachments.Add(new EmailAttachment {
+                        FileName = "outlook-evidence.txt",
+                        ContentType = "text/plain",
+                        Content = attachment,
+                        Length = attachment.LongLength
                     });
+                    writer.AddItem(folder, document);
                 }
                 writer.Complete();
             }
@@ -85,6 +98,18 @@ public sealed class OutlookPstWriterInteropTests {
                 dynamic item = folderObject.Items.Item(1);
                 Assert.Equal("OfficeIMO synthetic interoperability item",
                     Convert.ToString(item.Subject));
+                Assert.Contains("OfficeIMO classic Outlook semantic body",
+                    Convert.ToString(item.Body), StringComparison.Ordinal);
+                Assert.Equal(1, (int)item.Recipients.Count);
+                dynamic recipient = item.Recipients.Item(1);
+                Assert.Equal("recipient@example.test",
+                    Convert.ToString(recipient.Address));
+                Assert.Equal(1, (int)item.Attachments.Count);
+                dynamic attachment = item.Attachments.Item(1);
+                Assert.Equal("outlook-evidence.txt",
+                    Convert.ToString(attachment.FileName));
+                Release(attachment);
+                Release(recipient);
                 Release(item);
                 Release(folderObject);
             }

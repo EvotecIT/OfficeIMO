@@ -178,6 +178,31 @@ public sealed class EmailMailboxTests {
 
         Assert.Contains(result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
+        Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
+    }
+
+    [Fact]
+    public void Mailbox_writer_preserves_structured_child_loss_evidence() {
+        var document = new EmailDocument {
+            Subject = "Journal item",
+            OutlookItemKind = OutlookItemKind.Journal
+        };
+        var mailbox = new EmailMailbox();
+        mailbox.Messages.Add(new EmailMailboxEntry(document));
+        var messageOptions = new EmailWriterOptions(EmailConversionLossPolicy.Warn);
+
+        using var output = new MemoryStream();
+        EmailWriteResult result = new EmailMailboxWriter(
+            new EmailMailboxWriterOptions(messageOptions)).Write(mailbox, output);
+
+        EmailDiagnostic diagnostic = Assert.Single(result.Diagnostics,
+            item => item.Code == "EMAIL_OUTLOOK_ITEM_EML_REPRESENTATION_MISSING");
+        Assert.Equal("artifact-conversion", diagnostic.Operation);
+        Assert.Equal(EmailDataLossRisk.Confirmed, diagnostic.DataLossRisk);
+        Assert.Equal(EmailDiagnosticDisposition.Observed, diagnostic.Disposition);
+        Assert.StartsWith("message[0]/", diagnostic.Location, StringComparison.Ordinal);
+        Assert.False(string.IsNullOrWhiteSpace(diagnostic.SuggestedAction));
+        Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
     }
 
     [Fact]

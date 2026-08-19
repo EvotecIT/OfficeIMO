@@ -294,14 +294,16 @@ $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
 if ($catalog.repository.productionComponentCount -ne @($catalog.components).Count) {
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
+if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
+    Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
+}
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 170
-    productionComponentCount = 99
+    projectCount = 171
+    productionComponentCount = 100
     testProjectCount = 33
     benchmarkProjectCount = 16
     validationProjectCount = 23
     apiReferenceCount = 21
-    conceptualPageCount = 95
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
     $actual = [int] $catalog.repository.($expectedCount.Key)
@@ -338,6 +340,20 @@ foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
 
 $pipelinePath = Join-Path $SiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
+$psWriteOfficeSource = @($siteConfiguration.Sources | Where-Object Slug -eq 'pswriteoffice')
+if ($psWriteOfficeSource.Count -ne 1 -or
+    $psWriteOfficeSource[0].Repo -ne 'EvotecIT/PSWriteOffice' -or
+    $psWriteOfficeSource[0].Clean -ne $true -or
+    -not [string]::IsNullOrWhiteSpace([string] $psWriteOfficeSource[0].Ref)) {
+    Add-Failure 'The default PSWriteOffice source must cleanly clone the repository default branch.'
+}
+$sourceSyncStep = @($pipeline.steps | Where-Object id -eq 'sync-sources')
+if ($sourceSyncStep.Count -ne 1 -or
+    $sourceSyncStep[0].lockMode -ne 'off' -or
+    $sourceSyncStep[0].writeManifest -ne $true -or
+    -not [string]::IsNullOrWhiteSpace([string] $sourceSyncStep[0].lockPath)) {
+    Add-Failure 'The default source sync must follow remote repositories without a commit lock and record the resolved source manifest.'
+}
 $expectedApiDocsHomes = [ordered]@{
     'build-apidocs-html-rtf' = '/docs/html/'
     'build-apidocs-mhtml' = '/docs/html/'
@@ -361,10 +377,10 @@ $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {
     Add-Failure 'The NativeAOT matrix does not account for every production project.'
 }
-if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 97) {
-    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 97."
+if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 98) {
+    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 98."
 }
-if ($aotMatrix.summary.fullyRootedLibraryCount -ne 95 -or
+if ($aotMatrix.summary.fullyRootedLibraryCount -ne 96 -or
     $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
     $aotMatrix.summary.nativeExecutableCount -ne 1 -or
     $aotMatrix.summary.managedCrossPlatformProjectCount -ne 1 -or

@@ -117,10 +117,19 @@ internal static class EmailReaderProjection {
             Text = summary, Markdown = summary, Warnings = warnings.Count == 0 ? null : warnings
         });
 
-        string? body = document.Body.Text;
-        string bodyKind = "plain";
-        if (string.IsNullOrEmpty(body) && !string.IsNullOrEmpty(document.Body.Html)) { body = document.Body.Html; bodyKind = "html"; }
-        if (string.IsNullOrEmpty(body) && !string.IsNullOrEmpty(document.Body.Rtf)) { body = document.Body.Rtf; bodyKind = "rtf"; }
+        EmailBodyProjectionResult bodyProjection = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions {
+                SelectionPolicy = EmailBodySelectionPolicy.Richest,
+                RemoteResourcePolicy = EmailRemoteResourcePolicy.Block
+            });
+        projection.Diagnostics.AddRange(bodyProjection.Diagnostics);
+        if (messageIndex == 0) projection.PrimaryHtml = bodyProjection.Html;
+        string? body = bodyProjection.SourceKind == EmailBodySourceKind.PlainText
+            ? bodyProjection.Text
+            : bodyProjection.Html;
+        string bodyKind = bodyProjection.SourceKind == EmailBodySourceKind.PlainText
+            ? "plain"
+            : "html";
         if (!string.IsNullOrEmpty(body) &&
             !TryAddSemanticBody(body!, bodyKind, logicalPath, subject, messageIndex,
                 projection, options, cursor, cancellationToken)) {
@@ -170,9 +179,9 @@ internal static class EmailReaderProjection {
         ReaderOptions options,
         EmailDocumentProjectionCursor cursor,
         CancellationToken cancellationToken) {
-        string sourceName = bodyKind == "html" ? "email-body.html" : bodyKind == "rtf" ? "email-body.rtf" : string.Empty;
+        string sourceName = bodyKind == "html" ? "email-body.html" : string.Empty;
         if (sourceName.Length == 0 || !ReaderNestedContent.CanRead(sourceName)) return false;
-        byte[] bytes = bodyKind == "rtf" ? ToBytePreservingRtf(body) : Encoding.UTF8.GetBytes(body);
+        byte[] bytes = Encoding.UTF8.GetBytes(body);
         try {
             using var stream = new MemoryStream(bytes, writable: false);
             IReadOnlyList<ReaderChunk> nested = ReaderNestedContent.Read(stream, sourceName,
@@ -298,15 +307,6 @@ internal static class EmailReaderProjection {
         DetectionMaxContainerEntries = source.DetectionMaxContainerEntries
     };
 
-    private static byte[] ToBytePreservingRtf(string value) {
-        var bytes = new byte[value.Length];
-        for (int index = 0; index < value.Length; index++) {
-            if (value[index] > byte.MaxValue) throw new InvalidDataException("The preserved RTF body is not byte-preserving.");
-            bytes[index] = unchecked((byte)value[index]);
-        }
-        return bytes;
-    }
-
     private static string ResolveAttachmentSourceName(string fileName, string? contentType) {
         if (!string.IsNullOrWhiteSpace(TryExtension(fileName))) return fileName;
         string? extension = contentType?.Trim().ToLowerInvariant() switch {
@@ -356,7 +356,7 @@ internal static class EmailReaderProjection {
         result.Source.Title = primary?.Subject;
         result.Source.Author = primary?.From?.ToString();
         result.Source.Subject = primary?.Subject;
-        result.Html = primary?.Body.Html;
+        result.Html = projection.PrimaryHtml;
         result.Metadata = result.Metadata.Concat(BuildMetadata(projection)).ToArray();
         result.Diagnostics = result.Diagnostics.Concat(projection.Diagnostics.Select(MapDiagnostic)).ToArray();
         return result;
@@ -507,6 +507,7 @@ internal static class EmailReaderProjection {
         internal List<EmailDocument> Documents { get; } = new List<EmailDocument>();
         internal List<EmailMailboxEntry?> MailboxEntries { get; } = new List<EmailMailboxEntry?>();
         internal List<EmailDiagnostic> Diagnostics { get; } = new List<EmailDiagnostic>();
+        internal string? PrimaryHtml { get; set; }
         internal List<ReaderChunk> Chunks { get; } = new List<ReaderChunk>();
         internal List<OfficeDocumentAsset> Assets { get; } = new List<OfficeDocumentAsset>();
     }
