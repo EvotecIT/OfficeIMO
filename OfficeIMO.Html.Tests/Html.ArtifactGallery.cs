@@ -69,21 +69,26 @@ public partial class Html {
         string manifestMarkdown = File.ReadAllText(manifestPath);
         string manifestJson = File.ReadAllText(manifestJsonPath);
 
-        Assert.Contains("<h1>Quarterly Report</h1>", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<h1", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Quarterly Report", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<thead>", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<tfoot>", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("type=\"checkbox\"", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<select", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<img", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Roundtrip badge", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("class=\"officeimo-html officeimo-word-html\"", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-officeimo-profile=\"WordDocumentRoundTrip\"", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("--officeimo-accent:#1D4ED8", roundTripHtml, StringComparison.Ordinal);
+        Assert.Contains("@media print", roundTripHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("skipped comments are diagnostic evidence", roundTripHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("quarterly-report", manifest.Result.Scenario.Id);
         Assert.Equal(3, manifest.Result.Artifacts.Count);
         Assert.Contains(manifest.Result.Artifacts, artifact => artifact.Kind == "docx" && artifact.Length > 0 && artifact.Sha256.Length == 64);
-        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "HtmlCommentSkipped");
-        Assert.Contains(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "WordOpenXmlPackageValid");
-        Assert.DoesNotContain(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "WordOpenXmlValidationError");
-        Assert.DoesNotContain(manifest.Result.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "HtmlCommentSkipped");
+        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "WordOpenXmlPackageValid");
+        Assert.DoesNotContain(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "WordOpenXmlValidationError");
+        Assert.DoesNotContain(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
         Assert.Equal(1, manifest.ResourceManifest.AllowedCount);
         Assert.Equal(0, manifest.ResourceManifest.BlockedCount);
         Assert.Equal(new[] { OfficeHtmlConversionProfile.WordDocumentRoundTrip }, manifest.OfficeProfiles);
@@ -138,7 +143,7 @@ public partial class Html {
                 Title = "Offline Default"
             });
 
-            Assert.Contains(manifest.Result.Diagnostics.Diagnostics,
+            Assert.Contains(manifest.Result.Diagnostics,
                 diagnostic => diagnostic.Code == "ImageSkippedByPolicy");
             Assert.Contains(manifest.ResourceManifest.Resources,
                 resource => resource.Source == new Uri(localImagePath).AbsoluteUri && !resource.IsAllowed);

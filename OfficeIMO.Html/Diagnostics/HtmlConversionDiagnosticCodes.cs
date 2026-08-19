@@ -71,6 +71,24 @@ public static class HtmlConversionDiagnosticCodes {
     /// <summary>Media filtering could not safely parse or transform an active stylesheet.</summary>
     public const string MediaFilterFailed = "MediaFilterFailed";
 
+    /// <summary>An Excel pivot table was projected as static review metadata.</summary>
+    public const string ExcelPivotReviewApproximated = "ExcelPivotReviewApproximated";
+
+    /// <summary>PowerPoint master and layout inheritance was projected as static review metadata.</summary>
+    public const string PowerPointMasterReviewApproximated = "PowerPointMasterReviewApproximated";
+
+    /// <summary>A PowerPoint master or layout inventory could not be read safely.</summary>
+    public const string PowerPointMasterReviewOmitted = "PowerPointMasterReviewOmitted";
+
+    /// <summary>PowerPoint SmartArt was projected through a static semantic or text fallback.</summary>
+    public const string PowerPointSmartArtReviewApproximated = "PowerPointSmartArtReviewApproximated";
+
+    /// <summary>PowerPoint media was projected as an inert poster frame and playback inventory.</summary>
+    public const string PowerPointMediaReviewApproximated = "PowerPointMediaReviewApproximated";
+
+    /// <summary>PowerPoint picture effects were preserved as review metadata rather than editable effects.</summary>
+    public const string PowerPointEffectReviewApproximated = "PowerPointEffectReviewApproximated";
+
     /// <summary>All stable cross-adapter conversion diagnostic codes.</summary>
     public static IReadOnlyList<string> All { get; } = new ReadOnlyCollection<string>(new[] {
         SemanticContentMissing,
@@ -94,6 +112,12 @@ public static class HtmlConversionDiagnosticCodes {
         SemanticSchemaUnsupported,
         SemanticSchemaLegacy,
         SemanticRestorationTrustRequired,
-        MediaFilterFailed
+        MediaFilterFailed,
+        ExcelPivotReviewApproximated,
+        PowerPointMasterReviewApproximated,
+        PowerPointMasterReviewOmitted,
+        PowerPointSmartArtReviewApproximated,
+        PowerPointMediaReviewApproximated,
+        PowerPointEffectReviewApproximated
     });
 }

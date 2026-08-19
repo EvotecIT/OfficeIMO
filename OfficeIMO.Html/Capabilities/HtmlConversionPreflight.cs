@@ -39,8 +39,8 @@ public sealed class HtmlConversionPreflight {
         IReadOnlyList<HtmlFeaturePreflightResult> features, IReadOnlyList<HtmlDiagnostic> diagnostics) {
         Target = target;
         Contract = contract;
-        Features = features;
-        Diagnostics = diagnostics;
+        Features = Array.AsReadOnly((features ?? throw new ArgumentNullException(nameof(features))).ToArray());
+        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
     }
 
     /// <summary>Analyzed target.</summary>

@@ -1,0 +1,170 @@
+body.officeimo-pdf-html {
+    width: min(1180px, calc(100% - 40px));
+    min-height: calc(100vh - 74px);
+    margin: 30px auto 44px;
+    padding: clamp(24px, 4vw, 52px);
+    background: var(--officeimo-surface, #fff);
+    border: 1px solid var(--officeimo-border, #d7dde5);
+    border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, .10), 0 2px 8px rgba(15, 23, 42, .06);
+}
+
+body.officeimo-pdf-positioned {
+    width: 100%;
+    max-width: none;
+}
+
+.pdf-metadata,
+.pdf-outline,
+.pdf-xfa-notice {
+    max-width: 70rem;
+    margin: 0 auto 1.25rem;
+    padding: 1rem 1.1rem;
+    background: var(--officeimo-panel, #f8fafc);
+    border: 1px solid var(--officeimo-border, #d7dde5);
+    border-radius: 10px;
+}
+
+.pdf-metadata > :first-child,
+.pdf-outline > :first-child,
+.pdf-xfa-notice > :first-child {
+    margin-top: 0;
+}
+
+.pdf-metadata > :last-child,
+.pdf-outline > :last-child,
+.pdf-xfa-notice > :last-child {
+    margin-bottom: 0;
+}
+
+.pdf-outline ol {
+    margin: .35rem 0 .35rem 1.25rem;
+    padding: 0;
+}
+
+.pdf-outline a {
+    color: var(--officeimo-accent-dark, #1d4ed8);
+    text-decoration: none;
+}
+
+.pdf-xfa-notice {
+    color: var(--officeimo-warning, #713f12);
+    background: var(--officeimo-warning-soft, #fffbeb);
+    border-color: var(--officeimo-warning, #b45309);
+}
+
+body.officeimo-pdf-semantic .pdf-page {
+    max-width: 70rem;
+    margin: 0 auto 1.5rem;
+    padding: clamp(18px, 3vw, 32px);
+    background: var(--officeimo-surface, #fff);
+    border: 1px solid var(--officeimo-border, #d7dde5);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .07);
+}
+
+body.officeimo-pdf-positioned .pdf-page,
+.pdf-page[style] {
+    margin: 1rem auto;
+    padding: 0;
+    background: #fff;
+    border: 1px solid var(--officeimo-border-strong, #cbd5e1);
+    border-radius: 0;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
+    overflow: hidden;
+}
+
+.pdf-link,
+.pdf-form-widget {
+    background: color-mix(in srgb, var(--officeimo-accent, #2563eb) 8%, transparent);
+    border-color: var(--officeimo-accent, #2563eb);
+}
+
+.pdf-image-placeholder {
+    color: var(--officeimo-muted, #475569);
+    background: color-mix(in srgb, var(--officeimo-muted, #64748b) 8%, transparent);
+    border-color: var(--officeimo-muted, #64748b);
+}
+
+body.officeimo-pdf-positioned table.pdf-table {
+    display: table;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    border-collapse: collapse;
+    border-spacing: 0;
+    border-radius: 0;
+    box-shadow: none;
+    white-space: normal;
+}
+
+body.officeimo-pdf-positioned table.pdf-table th,
+body.officeimo-pdf-positioned table.pdf-table td {
+    padding: 2pt 4pt;
+    background: transparent;
+    border: 1px solid var(--officeimo-border-strong, #cbd5e1);
+    color: inherit;
+    text-align: left;
+    vertical-align: top;
+}
+
+body.officeimo-pdf-positioned table.pdf-table tbody tr:nth-child(even) > td {
+    background: transparent;
+}
+
+body.officeimo-pdf-positioned figure.pdf-image-placeholder {
+    display: block;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    border-radius: 0;
+}
+
+body.officeimo-pdf-positioned figure.pdf-image-placeholder img {
+    display: block;
+    max-width: none;
+}
+
+body.officeimo-pdf-positioned figure.pdf-image-placeholder figcaption {
+    margin: 0;
+}
+
+@media screen and (max-width: 700px) {
+    body.officeimo-pdf-html {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        padding: 18px 12px 28px;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    body.officeimo-pdf-positioned {
+        overflow-x: auto;
+    }
+}
+
+@media print {
+    body.officeimo-pdf-html {
+        width: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .pdf-metadata,
+    .pdf-outline,
+    .pdf-xfa-notice,
+    body.officeimo-pdf-semantic .pdf-page,
+    body.officeimo-pdf-positioned .pdf-page {
+        box-shadow: none;
+    }
+}

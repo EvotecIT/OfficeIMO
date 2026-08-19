@@ -2,6 +2,7 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -28,7 +29,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_WordToHtml_ResultReportsFlattenedAndOmittedWordSemantics() {
+        public void Test_WordToHtml_ResultReportsProjectedAndOmittedWordSemantics() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Tracked ").AddInsertedText("text", "Reviewer");
             doc.AddParagraph("Comment target").AddComment("Reviewer", "R", "Review note");
@@ -38,9 +39,10 @@ namespace OfficeIMO.Tests {
 
             Assert.True(result.Succeeded);
             Assert.True(result.HasLoss);
+            Assert.Contains("Tracked text", result.RequireValue(), StringComparison.Ordinal);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "TrackedRevisionTextOmitted" &&
-                diagnostic.LossKind == OfficeConversionLossKind.Omission);
+                diagnostic.Code == "TrackedRevisionsProjected" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "CommentsOmitted");
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "FieldInstructionsFlattened");
         }
@@ -62,9 +64,10 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(excluded.Report.Diagnostics, diagnostic =>
-                diagnostic.Code is "TrackedRevisionTextOmitted" or "TrackedRevisionsFlattened");
+                diagnostic.Code == "TrackedRevisionsProjected");
             Assert.Contains(included.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "TrackedRevisionTextOmitted");
+                diagnostic.Code == "TrackedRevisionsProjected");
+            Assert.Contains("Tracked header revision", included.RequireValue(), StringComparison.Ordinal);
         }
 
         [Fact]
@@ -814,6 +817,36 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Normal paragraph", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Test_WordToHtml_NamedProfiles_UseSharedPremiumDocumentShell() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Premium review");
+
+            WordToHtmlOptions options = WordToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report);
+            string html = doc.ToHtml(options);
+
+            Assert.Equal(OfficeHtmlConversionProfile.WordPrintReview, options.Profile);
+            Assert.True(options.UseSharedDocumentShell);
+            Assert.Contains("class=\"officeimo-html officeimo-word-html\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("data-officeimo-profile=\"WordPrintReview\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--officeimo-accent:#1D4ED8", html, StringComparison.Ordinal);
+            Assert.Contains("@media print", html, StringComparison.Ordinal);
+            Assert.Contains("@page officeimo-word", html, StringComparison.Ordinal);
+            Assert.Matches(@"(?s)@page officeimo-word\s*\{\s*margin:\s*0;.*?body\.officeimo-html \.word-section\s*\{\s*page:\s*officeimo-word;.*?width:\s*100%\s*!important;.*?height:\s*auto\s*!important;", html);
+            Assert.Contains("@media screen and (max-width: 700px)", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("@media (max-width: 700px)", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_RejectsNonWordProfile() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Profile boundary");
+
+            var options = new WordToHtmlOptions();
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                options.Profile = OfficeHtmlConversionProfile.ExcelSemanticTables);
         }
 
         [Fact]

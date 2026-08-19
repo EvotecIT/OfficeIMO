@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace OfficeIMO.Html;
 
 /// <summary>
@@ -19,8 +21,8 @@ public sealed class HtmlRoundTripScore {
         TargetNodeCount = targetNodeCount;
         MatchedFeatureCount = matchedFeatureCount;
         ComparedFeatureCount = comparedFeatureCount;
-        Metrics = metrics;
-        Dimensions = dimensions ?? metrics;
+        Metrics = Snapshot(metrics, nameof(metrics));
+        Dimensions = Snapshot(dimensions ?? metrics, nameof(dimensions));
         ArtifactReloadVerified = artifactReloadVerified;
         ArtifactKind = artifactKind;
     }
@@ -61,4 +63,11 @@ public sealed class HtmlRoundTripScore {
 
     /// <summary>Caller-supplied artifact kind for reload evidence, such as DOCX, XLSX, or PPTX.</summary>
     public string? ArtifactKind { get; }
+
+    private static IReadOnlyDictionary<string, double> Snapshot(IReadOnlyDictionary<string, double> values, string parameterName) {
+        if (values == null) throw new ArgumentNullException(parameterName);
+        var copy = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, double> pair in values) copy[pair.Key] = pair.Value;
+        return new ReadOnlyDictionary<string, double>(copy);
+    }
 }

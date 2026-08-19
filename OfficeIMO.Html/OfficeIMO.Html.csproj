@@ -28,6 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\OfficeHtmlDocumentShell.css" LogicalName="OfficeIMO.Html.Assets.OfficeHtmlDocumentShell.css" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

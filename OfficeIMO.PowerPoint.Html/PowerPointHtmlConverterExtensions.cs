@@ -19,11 +19,13 @@ public static partial class PowerPointHtmlConverterExtensions {
     public static PowerPointToHtmlResult ToHtmlResult(this PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions? options = null) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         PowerPointHtmlSaveOptions operation = (options ?? new PowerPointHtmlSaveOptions()).Clone();
+        operation.Validate();
         var imageDiagnostics = new List<OfficeImageExportDiagnostic>();
-        string html = operation.Profile == OfficeHtmlConversionProfile.PowerPointVisualReview
-            ? ConvertVisual(presentation, operation, imageDiagnostics)
-            : ConvertSemantic(presentation, operation);
-        return new PowerPointToHtmlResult(html, imageDiagnostics);
+        var conversionDiagnostics = new List<HtmlDiagnostic>();
+        string html = operation.ExportProfile == PowerPointHtmlExportProfile.VisualReview
+            ? ConvertVisual(presentation, operation, imageDiagnostics, conversionDiagnostics)
+            : ConvertSemantic(presentation, operation, conversionDiagnostics);
+        return new PowerPointToHtmlResult(html, imageDiagnostics, conversionDiagnostics);
     }
 
     /// <summary>
@@ -34,13 +36,15 @@ public static partial class PowerPointHtmlConverterExtensions {
         HtmlTextIO.Write(path, presentation.ToHtml(options));
     }
 
-    private static string ConvertSemantic(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options) {
+    private static string ConvertSemantic(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options,
+        IList<HtmlDiagnostic> diagnostics) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "powerpoint", options.Profile.ToString());
         body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "PowerPoint Presentation"))).Append("</h1>");
+        if (options.IncludeMasterInventory) AppendMasterInventory(body, presentation, diagnostics);
 
         int visibleIndex = 0;
         for (int i = 0; i < presentation.Slides.Count; i++) {
@@ -50,7 +54,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             }
 
             visibleIndex++;
-            AppendSemanticSlide(body, slide, i + 1, visibleIndex, extractionProof.Count > i ? extractionProof[i] : null, options);
+            AppendSemanticSlide(body, slide, i + 1, visibleIndex, extractionProof.Count > i ? extractionProof[i] : null, options, diagnostics);
         }
 
         body.Append("</main>");
@@ -58,13 +62,14 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static string ConvertVisual(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options,
-        IList<OfficeImageExportDiagnostic> imageDiagnostics) {
+        IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "powerpoint", options.Profile.ToString());
         body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "PowerPoint Visual Review"))).Append("</h1>");
+        if (options.IncludeMasterInventory) AppendMasterInventory(body, presentation, diagnostics);
 
         for (int i = 0; i < presentation.Slides.Count; i++) {
             PptCore.PowerPointSlide slide = presentation.Slides[i];
@@ -72,14 +77,15 @@ public static partial class PowerPointHtmlConverterExtensions {
                 continue;
             }
 
-            AppendVisualSlide(body, presentation, slide, i + 1, extractionProof.Count > i ? extractionProof[i] : null, options, imageDiagnostics);
+            AppendVisualSlide(body, presentation, slide, i + 1, extractionProof.Count > i ? extractionProof[i] : null, options, imageDiagnostics, diagnostics);
         }
 
         body.Append("</main>");
         return Wrap(body.ToString(), options, GetTitle(options, "PowerPoint Visual Review"));
     }
 
-    private static void AppendSemanticSlide(StringBuilder body, PptCore.PowerPointSlide slide, int slideNumber, int visibleIndex, string? extractionProof, PowerPointHtmlSaveOptions options) {
+    private static void AppendSemanticSlide(StringBuilder body, PptCore.PowerPointSlide slide, int slideNumber, int visibleIndex,
+        string? extractionProof, PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
         body.Append("<section class=\"officeimo-slide\" data-officeimo-slide=\"")
             .Append(slideNumber.ToString(CultureInfo.InvariantCulture))
             .Append('"');
@@ -89,13 +95,13 @@ public static partial class PowerPointHtmlConverterExtensions {
 
         AppendSemanticShapes(body, slide, options);
 
-        AppendSlideFeatureInventory(body, slide, options);
+        AppendSlideFeatureInventory(body, slide, options, diagnostics);
         AppendExtractionProof(body, extractionProof, options);
         body.Append("</section>");
     }
 
     private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointPresentation presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlSaveOptions options,
-        IList<OfficeImageExportDiagnostic> imageDiagnostics) {
+        IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics) {
         double width = Math.Max(1D, presentation.SlideSize.WidthPoints);
         double height = Math.Max(1D, presentation.SlideSize.HeightPoints);
         body.Append("<section class=\"officeimo-slide\" data-officeimo-slide=\"")
@@ -137,6 +143,7 @@ public static partial class PowerPointHtmlConverterExtensions {
 
         body.Append("</div></div></div>");
         AppendSnapshotDiagnostics(body, slideDiagnostics);
+        AppendAdvancedReviewInventory(body, slide, options, diagnostics);
         AppendExtractionProof(body, extractionProof, options);
         body.Append("</section>");
     }
@@ -179,6 +186,8 @@ public static partial class PowerPointHtmlConverterExtensions {
         double height = Math.Max(1D, shape.HeightPoints);
         string contentClass = shape switch {
             PptCore.PowerPointTable => " officeimo-shape-table",
+            PptCore.PowerPointMedia => " officeimo-shape-media",
+            PptCore.PowerPointSmartArt => " officeimo-shape-smartart",
             PptCore.PowerPointPicture => " officeimo-shape-picture",
             PptCore.PowerPointChart => " officeimo-shape-chart",
             _ => string.Empty
@@ -207,6 +216,10 @@ public static partial class PowerPointHtmlConverterExtensions {
             body.Append(OfficeHtmlText.Escape(NormalizeText(textBox.Text)));
         } else if (shape is PptCore.PowerPointTable table && options.IncludeTables) {
             AppendTable(body, table);
+        } else if (shape is PptCore.PowerPointMedia media && options.IncludeMedia) {
+            AppendMediaPoster(body, media);
+        } else if (shape is PptCore.PowerPointSmartArt smartArt && options.IncludeSmartArt) {
+            AppendSmartArt(body, smartArt);
         } else if (shape is PptCore.PowerPointPicture picture) {
             AppendPictureShape(body, picture);
         } else if (shape is PptCore.PowerPointChart chart) {
@@ -237,19 +250,22 @@ public static partial class PowerPointHtmlConverterExtensions {
         return transforms.Count == 0 ? string.Empty : "transform:" + string.Join(" ", transforms) + ";";
     }
 
-    private static void AppendSlideFeatureInventory(StringBuilder body, PptCore.PowerPointSlide slide, PowerPointHtmlSaveOptions options) {
+    private static void AppendSlideFeatureInventory(StringBuilder body, PptCore.PowerPointSlide slide,
+        PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
         IEnumerable<PptCore.PowerPointPicture> pictures = options.IncludeHiddenShapes
-            ? slide.Pictures
-            : slide.Pictures.Where(picture => !picture.Hidden);
+            ? slide.Pictures.Where(picture => picture is not PptCore.PowerPointMedia)
+            : slide.Pictures.Where(picture => picture is not PptCore.PowerPointMedia && !picture.Hidden);
         IEnumerable<PptCore.PowerPointChart> charts = options.IncludeHiddenShapes
             ? slide.Charts
             : slide.Charts.Where(chart => !chart.Hidden);
 
-        AppendPictureInventory(body, pictures);
-        AppendChartInventory(body, charts);
+        AppendPictureInventory(body, pictures, options, diagnostics);
+        AppendChartInventory(body, charts, diagnostics);
+        AppendAdvancedReviewInventory(body, slide, options, diagnostics);
     }
 
-    private static void AppendPictureInventory(StringBuilder body, IEnumerable<PptCore.PowerPointPicture> pictures) {
+    private static void AppendPictureInventory(StringBuilder body, IEnumerable<PptCore.PowerPointPicture> pictures,
+        PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
         List<PptCore.PowerPointPicture> pictureList = pictures.ToList();
         if (pictureList.Count == 0) {
             return;
@@ -257,6 +273,7 @@ public static partial class PowerPointHtmlConverterExtensions {
 
         body.Append("<section class=\"officeimo-feature officeimo-images\"><h3>Pictures</h3><ul class=\"officeimo-feature-list\">");
         foreach (PptCore.PowerPointPicture picture in pictureList) {
+            if (options.IncludeAdvancedEffects) AddPictureEffectDiagnostic(picture, diagnostics);
             string label = GetShapeLabel(picture);
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"picture\" data-officeimo-layer-index=\"")
                 .Append(picture.DrawingOrder.ToString(CultureInfo.InvariantCulture))
@@ -272,6 +289,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             AppendDataAttribute(body, "data-officeimo-crop-top", picture.CropTopRatio);
             AppendDataAttribute(body, "data-officeimo-crop-right", picture.CropRightRatio);
             AppendDataAttribute(body, "data-officeimo-crop-bottom", picture.CropBottomRatio);
+            if (options.IncludeAdvancedEffects) AppendPictureEffectAttributes(body, picture);
             body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
                 .Append("</span><div class=\"officeimo-feature-meta\">Size: ")
@@ -285,7 +303,15 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append("pt; Type: ")
                 .Append(OfficeHtmlText.Escape(picture.ContentType ?? string.Empty))
                 .Append("</div>");
-            AppendPicturePreview(body, picture, label);
+            if (!AppendPicturePreview(body, picture, label)) {
+                diagnostics.Add(new HtmlDiagnostic(
+                    "OfficeIMO.PowerPoint.Html",
+                    HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Picture bytes for '" + label + "' were unavailable and the picture preview was omitted.",
+                    HtmlDiagnosticSeverity.Warning,
+                    "powerpoint:picture:" + picture.DrawingOrder.ToString(CultureInfo.InvariantCulture),
+                    lossKind: OfficeConversionLossKind.Omission));
+            }
             body.Append("</li>");
         }
 
@@ -314,7 +340,8 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("=\"true\"");
     }
 
-    private static void AppendChartInventory(StringBuilder body, IEnumerable<PptCore.PowerPointChart> charts) {
+    private static void AppendChartInventory(StringBuilder body, IEnumerable<PptCore.PowerPointChart> charts,
+        IList<HtmlDiagnostic> diagnostics) {
         List<PptCore.PowerPointChart> chartList = charts.ToList();
         if (chartList.Count == 0) {
             return;
@@ -322,6 +349,15 @@ public static partial class PowerPointHtmlConverterExtensions {
 
         body.Append("<section class=\"officeimo-feature officeimo-charts\"><h3>Charts</h3><ul class=\"officeimo-feature-list\">");
         foreach (PptCore.PowerPointChart chart in chartList) {
+            if (!chart.TryGetSnapshot(out _)) {
+                diagnostics.Add(new HtmlDiagnostic(
+                    "OfficeIMO.PowerPoint.Html",
+                    HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart snapshot for '" + GetShapeLabel(chart) + "' was unavailable; semantic chart data was omitted.",
+                    HtmlDiagnosticSeverity.Warning,
+                    "powerpoint:chart:" + chart.DrawingOrder.ToString(CultureInfo.InvariantCulture),
+                    lossKind: OfficeConversionLossKind.Omission));
+            }
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
                 .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append('"');
@@ -365,11 +401,11 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("\">");
     }
 
-    private static void AppendPicturePreview(StringBuilder body, PptCore.PowerPointPicture picture, string label) {
+    private static bool AppendPicturePreview(StringBuilder body, PptCore.PowerPointPicture picture, string label) {
         string? dataUri = TryCreatePictureDataUri(picture);
         if (dataUri == null) {
             body.Append("<div class=\"officeimo-diagnostic\">Picture bytes unavailable.</div>");
-            return;
+            return false;
         }
 
         body.Append("<img class=\"officeimo-inline-image\" alt=\"")
@@ -377,6 +413,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("\" src=\"")
             .Append(OfficeHtmlText.EscapeAttribute(dataUri))
             .Append("\">");
+        return true;
     }
 
     private static string? TryCreatePictureDataUri(PptCore.PowerPointPicture picture) {
@@ -705,12 +742,12 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static string Wrap(string body, PowerPointHtmlSaveOptions options, string title) {
-        return OfficeHtmlDocumentShell.WrapBody(body, new OfficeHtmlDocumentOptions {
-            Title = title,
-            Theme = options.Theme,
-            IncludeDefaultStyles = options.IncludeDefaultStyles,
-            BodyClass = "officeimo-html officeimo-powerpoint-html"
-        });
+        OfficeHtmlDocumentOptions output = options.DocumentOutput.Clone();
+        output.Title = title;
+        output.BodyClass = OfficeHtmlDocumentShell.MergeBodyClasses(
+            "officeimo-html officeimo-powerpoint-html",
+            output.BodyClass);
+        return OfficeHtmlDocumentShell.WrapBody(body, output);
     }
 
     private static string GetTitle(PowerPointHtmlSaveOptions options, string fallback) {

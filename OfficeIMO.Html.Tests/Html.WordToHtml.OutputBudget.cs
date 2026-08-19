@@ -11,10 +11,13 @@ using M = DocumentFormat.OpenXml.Math;
 namespace OfficeIMO.Tests {
     public partial class HtmlWordToHtml {
         [Fact]
-        public void Test_WordToHtml_OutputBudgetExcludesOmittedRevisionText() {
+        public void Test_WordToHtml_OriginalViewExcludesInsertedRevisionTextFromOutputBudget() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Visible content").AddInsertedText(new string('x', 16_384), "Reviewer");
-            var options = new WordToHtmlOptions { MaxOutputCharacters = 4096 };
+            var options = new WordToHtmlOptions {
+                MaxOutputCharacters = 4096,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Original
+            };
 
             HtmlTextConversionResult result = document.ToHtmlResult(options);
 
@@ -22,8 +25,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Visible content", result.RequireValue(), StringComparison.Ordinal);
             Assert.DoesNotContain(new string('x', 256), result.RequireValue(), StringComparison.Ordinal);
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
-                diagnostic.Code == "TrackedRevisionTextOmitted" &&
-                diagnostic.LossKind == OfficeConversionLossKind.Omission);
+                diagnostic.Code == "TrackedRevisionsProjected" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         }
 
         [Fact]

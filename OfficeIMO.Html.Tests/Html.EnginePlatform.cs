@@ -24,7 +24,7 @@ public partial class Html {
         foreach (HtmlTargetCapabilityContract contract in HtmlTargetCapabilityContracts.All) {
             Assert.Contains("| " + contract.Target + " |", first, StringComparison.Ordinal);
             foreach (HtmlSemanticFeature feature in (HtmlSemanticFeature[])Enum.GetValues(typeof(HtmlSemanticFeature))) {
-                Assert.True(Enum.IsDefined(typeof(HtmlCapabilitySupportLevel), contract.GetSupport(feature)));
+                Assert.True(Enum.IsDefined(typeof(HtmlCapabilitySupportLevel), contract.HtmlToTarget.GetSupport(feature)));
             }
         }
         foreach (HtmlDiagnosticDefinition definition in HtmlDiagnosticCatalog.Ordered) {
@@ -216,13 +216,15 @@ public partial class Html {
         Assert.Contains("absolute positioning", positionedReview.SupportedCss);
         Assert.Contains("no-editable-reconstruction boundary", positionedReview.DiagnosticGuarantees);
 
-        var galleryResult = new HtmlCapabilityGalleryResult(new HtmlCapabilityGalleryScenario(
+        var galleryScenario = new HtmlCapabilityGalleryScenario(
             "market-report",
             "Market Report",
             "HTML Engine",
-            "Exercises shared OfficeIMO HTML engine contracts."));
-        galleryResult.AddArtifact(new HtmlCapabilityGalleryArtifact("source", "input-html", "market-report.input.html", "text/html", sourceHtml.Length, new string('0', 64)));
-        galleryResult.Diagnostics.Add("OfficeIMO.Tests", "HtmlCommentSkipped", "Comment skipped for manifest catalog coverage.", HtmlDiagnosticSeverity.Info);
+            "Exercises shared OfficeIMO HTML engine contracts.");
+        var galleryResult = new HtmlCapabilityGalleryResult(
+            galleryScenario,
+            new[] { new HtmlCapabilityGalleryArtifact("source", "input-html", "market-report.input.html", "text/html", sourceHtml.Length, new string('0', 64)) },
+            new[] { new HtmlDiagnostic("OfficeIMO.Tests", "HtmlCommentSkipped", "Comment skipped for manifest catalog coverage.", HtmlDiagnosticSeverity.Info) });
         var expectations = new[] {
             new HtmlCapabilityGalleryExpectation("headings", HtmlCapabilityGalleryExpectationOutcome.Preserved, "roundtrip HTML contains h1"),
             new HtmlCapabilityGalleryExpectation("blocked resources", HtmlCapabilityGalleryExpectationOutcome.Blocked, "resource manifest reports rejected data URI image"),
@@ -279,7 +281,7 @@ public partial class Html {
 
     [Fact]
     public void HtmlEnginePlatform_DeclaresOfficeHtmlLaneContracts() {
-        Assert.Equal(7, OfficeHtmlConversionProfileContracts.All.Count);
+        Assert.Equal(10, OfficeHtmlConversionProfileContracts.All.Count);
 
         OfficeHtmlConversionProfileContract wordSemantic = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.WordSemanticDocument);
         Assert.Equal("Word", wordSemantic.SourceFormat);
@@ -323,6 +325,21 @@ public partial class Html {
         Assert.Equal("OfficeIMO.Drawing", powerPointVisual.VisualPrimitiveOwner);
         Assert.Contains("positioned text frames", powerPointVisual.SupportedHtml);
         Assert.Contains("Drawing-owned slide rendering", powerPointVisual.ResourceGuarantees);
+
+        OfficeHtmlConversionProfileContract rtfSemantic = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.RtfSemanticDocument);
+        Assert.Equal("RTF", rtfSemantic.SourceFormat);
+        Assert.Equal(HtmlConversionProfile.Semantic, rtfSemantic.SharedProfile);
+        Assert.Contains("safe object fallbacks", rtfSemantic.SupportedHtml);
+        Assert.Contains("per-construct preserve/simplify/omit actions", rtfSemantic.DiagnosticGuarantees);
+
+        OfficeHtmlConversionProfileContract rtfRoundTrip = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.RtfDocumentRoundTrip);
+        Assert.Equal(HtmlConversionProfile.Document, rtfRoundTrip.SharedProfile);
+        Assert.Contains("private roundtrip metadata", rtfRoundTrip.ResourceGuarantees);
+
+        OfficeHtmlConversionProfileContract rtfPrint = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.RtfPrintReview);
+        Assert.Equal(HtmlConversionProfile.HighFidelityPrint, rtfPrint.SharedProfile);
+        Assert.Equal("OfficeIMO.Pdf", rtfPrint.VisualPrimitiveOwner);
+        Assert.Contains("print media profile", rtfPrint.ResourceGuarantees);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => OfficeHtmlConversionProfileContracts.Get((OfficeHtmlConversionProfile)99));
     }

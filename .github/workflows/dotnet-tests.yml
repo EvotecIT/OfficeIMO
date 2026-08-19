@@ -76,6 +76,23 @@ jobs:
           dotnet restore $project
           dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
 
+  html-package-consumers:
+    name: 'OfficeIMO HTML packed API consumers'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Pack and test HTML API consumers
+        shell: pwsh
+        run: ./Build/Test-HtmlPackages.ps1
+
   email-package-consumers:
     name: 'OfficeIMO email platform packed consumers'
     runs-on: windows-latest

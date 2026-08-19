@@ -23,5 +23,14 @@ public enum OfficeHtmlConversionProfile {
     PowerPointSemanticSlides,
 
     /// <summary>Slides as positioned visual-review HTML backed by shared drawing primitives.</summary>
-    PowerPointVisualReview
+    PowerPointVisualReview,
+
+    /// <summary>RTF document content as safe, accessible semantic HTML.</summary>
+    RtfSemanticDocument,
+
+    /// <summary>Trusted RTF HTML intended for editable RTF-to-HTML-to-RTF roundtrip review.</summary>
+    RtfDocumentRoundTrip,
+
+    /// <summary>RTF document HTML intended for print-oriented review.</summary>
+    RtfPrintReview
 }

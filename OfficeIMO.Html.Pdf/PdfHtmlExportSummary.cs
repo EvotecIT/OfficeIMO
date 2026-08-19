@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html.Pdf;
 
@@ -50,12 +53,15 @@ public sealed class PdfHtmlExportSummary {
         int selectedAnnotationActionCount,
         int warningCount,
         bool emitsDocumentShell,
+        bool usesSharedDocumentStyles,
+        OfficeVisualThemeKind theme,
         PdfHtmlImageExportMode imageExportMode,
         string fidelityContract,
         string unsupportedScope) {
         Profile = profile;
         ProfileId = profileId;
-        PageNumbers = pageNumbers;
+        if (pageNumbers == null) throw new ArgumentNullException(nameof(pageNumbers));
+        PageNumbers = new ReadOnlyCollection<int>(new List<int>(pageNumbers));
         SourcePageCount = sourcePageCount;
         RenderedPageCount = renderedPageCount;
         TextBlockCount = textBlockCount;
@@ -96,6 +102,8 @@ public sealed class PdfHtmlExportSummary {
         SelectedAnnotationActionCount = selectedAnnotationActionCount;
         WarningCount = warningCount;
         EmitsDocumentShell = emitsDocumentShell;
+        UsesSharedDocumentStyles = usesSharedDocumentStyles;
+        Theme = theme;
         ImageExportMode = imageExportMode;
         FidelityContract = fidelityContract;
         UnsupportedScope = unsupportedScope;
@@ -229,6 +237,12 @@ public sealed class PdfHtmlExportSummary {
 
     /// <summary>True when the output includes a complete HTML document shell.</summary>
     public bool EmitsDocumentShell { get; }
+
+    /// <summary>True when the complete output uses the shared responsive OfficeIMO document shell.</summary>
+    public bool UsesSharedDocumentStyles { get; }
+
+    /// <summary>Shared OfficeIMO visual theme selected for complete HTML output.</summary>
+    public OfficeVisualThemeKind Theme { get; }
 
     /// <summary>Image export behavior used for the generated HTML.</summary>
     public PdfHtmlImageExportMode ImageExportMode { get; }

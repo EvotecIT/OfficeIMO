@@ -49,33 +49,37 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
             options.Title,
             "PowerPoint HTML",
             "Validates PowerPoint semantic slide HTML and positioned visual review HTML for rich presentation content.");
-        var result = new HtmlCapabilityGalleryResult(scenario);
-        result.AddArtifact(HtmlCapabilityGalleryArtifact.WriteTextFile("semantic", "semantic-html", semanticPath, "text/html", semanticHtml));
-        result.AddArtifact(HtmlCapabilityGalleryArtifact.WriteTextFile("visual", "visual-html", visualPath, "text/html", visualHtml));
+        var artifacts = new List<HtmlCapabilityGalleryArtifact> {
+            HtmlCapabilityGalleryArtifact.WriteTextFile("semantic", "semantic-html", semanticPath, "text/html", semanticHtml),
+            HtmlCapabilityGalleryArtifact.WriteTextFile("visual", "visual-html", visualPath, "text/html", visualHtml)
+        };
+        var diagnostics = new List<HtmlDiagnostic>();
 
         if (visualHtml.Contains("officeimo-chart-rendered", StringComparison.Ordinal)) {
-            result.Diagnostics.Add(
+            diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.PowerPoint.Html",
                 "PowerPointChartVisualReviewRendered",
                 "PowerPoint chart visual review was rendered through the shared OfficeIMO.Drawing chart renderer.",
-                HtmlDiagnosticSeverity.Info);
+                HtmlDiagnosticSeverity.Info));
         }
 
         if (semanticHtml.Contains("officeimo-chart-data", StringComparison.Ordinal)) {
-            result.Diagnostics.Add(
+            diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.PowerPoint.Html",
                 "PowerPointChartSemanticDataPreserved",
                 "PowerPoint chart categories, series, and values were written as semantic HTML chart data.",
-                HtmlDiagnosticSeverity.Info);
+                HtmlDiagnosticSeverity.Info));
         }
 
         if (visualHtml.Contains("class=\"officeimo-shape-placeholder officeimo-chart-placeholder\"", StringComparison.Ordinal)) {
-            result.Diagnostics.Add(
+            diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.PowerPoint.Html",
                 "PowerPointChartVisualPlaceholder",
                 "PowerPoint chart visual rendering fell back to a positioned review placeholder; chart data is preserved as snapshot metadata.",
-                HtmlDiagnosticSeverity.Warning);
+                HtmlDiagnosticSeverity.Warning));
         }
+
+        var result = new HtmlCapabilityGalleryResult(scenario, artifacts, diagnostics);
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(semanticHtml, visualHtml);
         HtmlResourceManifest resources = HtmlResourcePipeline.BuildManifest(semanticHtml + visualHtml);

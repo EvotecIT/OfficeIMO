@@ -22,6 +22,10 @@ public static partial class PdfHtmlConverterExtensions {
 
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
+            if (IsPositionedTextBlockRepresentedByTable(block, page.Tables)) {
+                continue;
+            }
+
             PositionedPoint point = geometry.TransformPoint(block.XStart, block.BaselineY);
             string cssClass = block.Kind == PdfCore.PdfLogicalElementKind.Heading
                 ? "pdf-text pdf-heading"
@@ -62,6 +66,18 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         builder.AppendLine("</section>");
+    }
+
+    private static bool IsPositionedTextBlockRepresentedByTable(
+        PdfCore.PdfLogicalTextBlock block,
+        IReadOnlyList<PdfCore.PdfLogicalTable> tables) {
+        for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+            if (IsTextBlockRepresentedByTable(block, tables[tableIndex])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AppendPositionedTable(StringBuilder builder, PositionedPageGeometry geometry, PdfCore.PdfLogicalTable table) {

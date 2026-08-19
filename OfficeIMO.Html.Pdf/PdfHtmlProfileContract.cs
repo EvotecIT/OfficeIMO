@@ -30,11 +30,11 @@ public sealed class PdfHtmlProfileContract {
         IntendedUse = intendedUse;
         FidelityContract = fidelityContract;
         UnsupportedScope = unsupportedScope;
-        PreservedSignals = preservedSignals;
-        ReviewSignals = reviewSignals;
-        OutputArtifacts = outputArtifacts;
-        DiagnosticGuarantees = diagnosticGuarantees;
-        RendererBoundaries = rendererBoundaries;
+        PreservedSignals = Snapshot(preservedSignals, nameof(preservedSignals));
+        ReviewSignals = Snapshot(reviewSignals, nameof(reviewSignals));
+        OutputArtifacts = Snapshot(outputArtifacts, nameof(outputArtifacts));
+        DiagnosticGuarantees = Snapshot(diagnosticGuarantees, nameof(diagnosticGuarantees));
+        RendererBoundaries = Snapshot(rendererBoundaries, nameof(rendererBoundaries));
     }
 
     /// <summary>Adapter profile represented by this contract.</summary>
@@ -75,6 +75,11 @@ public sealed class PdfHtmlProfileContract {
 
     /// <summary>Explicit non-goals that prevent callers from treating this adapter as a full PDF renderer or editable reconstruction engine.</summary>
     public IReadOnlyList<string> RendererBoundaries { get; }
+
+    private static IReadOnlyList<string> Snapshot(IReadOnlyList<string> values, string parameterName) {
+        if (values == null) throw new ArgumentNullException(parameterName);
+        return new ReadOnlyCollection<string>(new List<string>(values));
+    }
 }
 
 /// <summary>
@@ -93,7 +98,7 @@ public static class PdfHtmlProfileContracts {
             "Born-digital parser-supported PDFs work best; scanned PDFs need an OCR adapter, and complex/unsafe PDF structures remain governed by OfficeIMO.Pdf read diagnostics.",
             new[] { "metadata", "headings", "paragraphs", "lists", "tables", "images", "links", "form-fields" },
             new[] { "page-numbers", "image-placeholders", "optional-link-sections", "optional-form-sections" },
-            new[] { "html", "export-summary" },
+            new[] { "themed-html-shell", "html-fragment", "export-summary" },
             new[] { "conversion-report-warnings", "image-embedding-policy-warnings" },
             new[] { "no-ocr", "no-pixel-perfect-rendering", "no-editable-office-reconstruction" }),
         new PdfHtmlProfileContract(
@@ -107,7 +112,7 @@ public static class PdfHtmlProfileContracts {
             "Review output is not a full PDF renderer; complex graphics, arbitrary content streams, optional content, scans, and unsupported parser structures are simplified or reported.",
             new[] { "page-geometry", "text-blocks", "tables", "images", "links", "form-widgets" },
             new[] { "absolute-text-positions", "table-bounds", "image-placements", "link-frames", "form-widget-frames", "unsafe-link-inertness" },
-            new[] { "html", "export-summary" },
+            new[] { "themed-html-shell", "html-fragment", "export-summary" },
             new[] { "conversion-report-warnings", "image-embedding-policy-warnings", "unsafe-link-sanitization" },
             new[] { "no-full-graphics-renderer", "no-optional-content-composition", "no-scan-ocr", "no-editable-office-reconstruction" })
     });

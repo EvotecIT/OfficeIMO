@@ -20,11 +20,11 @@ using ExcelDocument imported = result.RequireValue();
 imported.Save("report-roundtrip.xlsx");
 ```
 
-Semantic output carries a versioned OfficeIMO envelope and preserves worksheet names and visibility, used-range coordinates, typed text/number/boolean/date-time values, formulas, comments, merged ranges, embedded image inventory, and supported chart inventory. HTML `rowspan` and `colspan` values become native Excel merged ranges.
+Semantic output carries a versioned OfficeIMO envelope and preserves worksheet names and visibility, used-range coordinates, typed text/number/boolean/date-time values, formulas, comments, merged ranges, embedded image inventory, supported chart inventory, and inert pivot-definition review metadata. HTML `rowspan` and `colspan` values become native Excel merged ranges. Pivot refresh, drill, caches, slicers, and timelines remain native workbook behavior and are not executed in HTML.
 
 `HeaderMode` makes the first-row assumption explicit. `FirstRow` is the compatibility default and emits a real `thead` with column headers. Use `None` when every row is data.
 
-`ToExcelDocument()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists. Use `ToExcelDocumentResult()` to receive the workbook plus structured diagnostics and loss classification. Export callers can use `ToHtmlResult()` for the same evidence shape.
+`ToExcelDocument()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists. Use `ToExcelDocumentResult()` to receive the workbook plus structured diagnostics and loss classification. Export callers can use `ToHtmlResult()` for the same evidence shape; pivot simplification, truncation, unavailable chart or image content, and visual-renderer fallbacks are operation-scoped diagnostics rather than HTML-only prose.
 
 Ordinary HTML tables are available explicitly through the shared generic projector:
 
@@ -41,7 +41,7 @@ HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
 
 ## Visual review
 
-Set `Profile = OfficeHtmlConversionProfile.ExcelVisualReview` to emit review HTML through OfficeIMO's dependency-free SVG renderer. Visual-review HTML is presentation evidence; use semantic tables when the HTML must be imported back into Excel.
+Use `ExcelHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = ExcelHtmlExportProfile.VisualReview` to emit review HTML through OfficeIMO's dependency-free SVG renderer. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is presentation evidence; use semantic tables when the HTML must be imported back into Excel.
 
 ## Targets
 

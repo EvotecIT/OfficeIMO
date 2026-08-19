@@ -58,13 +58,24 @@ internal static partial class RtfHtmlWriter {
         builder.Append("<!doctype html>");
         builder.Append(newline);
         builder.Append("<html");
-        AppendLanguageDirectionAttributes(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
+        if (options.Language == null) {
+            AppendLanguageDirectionAttributes(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
+        } else {
+            builder.Append(" lang=\"");
+            builder.Append(EncodeAttribute(options.Language));
+            builder.Append('"');
+            AppendLanguageDirectionAttributes(builder, null, document.Settings.Direction);
+        }
         AppendLanguageDirectionStyleAttribute(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
         builder.Append('>');
         builder.Append(newline);
         builder.Append("<head>");
         builder.Append(newline);
         builder.Append("<meta charset=\"utf-8\">");
+        if (options.IncludeDefaultStyles) {
+            builder.Append(newline);
+            builder.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+        }
         if (options.IncludeMetadata) {
             string? title = options.Title ?? document.Info.Title;
             if (!string.IsNullOrWhiteSpace(title)) {
@@ -90,10 +101,24 @@ internal static partial class RtfHtmlWriter {
             AppendFileReferencesMetadata(builder, document, newline);
             AppendXmlNamespacesMetadata(builder, document, newline);
         }
+        if (options.IncludeDefaultStyles) {
+            builder.Append(newline);
+            builder.Append("<style>");
+            builder.Append(newline);
+            builder.Append(OfficeHtmlDocumentShell.GetThemeCss(options.Theme, newline));
+            builder.Append(newline);
+            builder.Append("</style>");
+        }
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);
-        builder.Append("<body>");
+        builder.Append("<body class=\"");
+        builder.Append(EncodeAttribute(OfficeHtmlDocumentShell.MergeBodyClasses(
+            "officeimo-html officeimo-rtf-html",
+            options.DocumentOutput.BodyClass)));
+        builder.Append("\" data-officeimo-profile=\"");
+        builder.Append(EncodeAttribute(options.Profile.ToString()));
+        builder.Append("\">");
         builder.Append(newline);
     }
 

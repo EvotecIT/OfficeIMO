@@ -15,7 +15,7 @@ internal static class HtmlConversionPreflightAnalyzer {
         var diagnostics = new List<HtmlDiagnostic>();
         foreach (HtmlSemanticFeature feature in global::OfficeIMO.Internal.EnumCompat.GetValues<HtmlSemanticFeature>()) {
             FeatureEvidence evidence = Count(feature, document, dom, semantic, blocks);
-            HtmlConversionPreflightOutcome outcome = Map(contract.GetSupport(feature));
+            HtmlConversionPreflightOutcome outcome = Map(contract.HtmlToTarget.GetSupport(feature));
             var result = new HtmlFeaturePreflightResult(feature, evidence.Count > 0, evidence.Count, outcome, evidence.Location);
             features.Add(result);
             if (evidence.Count == 0 || outcome == HtmlConversionPreflightOutcome.Supported) continue;
