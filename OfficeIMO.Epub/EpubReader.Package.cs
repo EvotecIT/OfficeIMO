@@ -215,6 +215,7 @@ internal static partial class EpubReader {
                     IsName(element, "identifier") &&
                     string.Equals(GetAttribute(element, "id"), package.UniqueIdentifierId, StringComparison.Ordinal));
                 if (declaredIdentifierElement != null) {
+                    package.ObfuscationIdentifier = declaredIdentifierElement.Value;
                     declaredIdentifier = NullIfWhiteSpace(NormalizeWhitespace(declaredIdentifierElement.Value));
                     declaredUniqueIdentifierResolved = declaredIdentifier != null;
                 }

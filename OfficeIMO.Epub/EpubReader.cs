@@ -300,7 +300,23 @@ internal static partial class EpubReader {
                         item.FullPath);
                 } else {
                     data = ReadEntryBytes(entry, options.MaxResourceBytes);
-                    totalPayloadBytes += data.LongLength;
+                    totalPayloadBytes = checked(totalPayloadBytes + data.LongLength);
+                    if (resourceEncryption?.IsFontObfuscation == true) {
+                        if (EpubFontObfuscation.TryDeobfuscate(data, resourceEncryption.Kind, package.ObfuscationIdentifier,
+                            out byte[] deobfuscated, out string? error)) {
+                            data = deobfuscated;
+                            diagnostics.Info(
+                                "epub.encryption.font-deobfuscated",
+                                $"Removed recognized EPUB font obfuscation from resource '{item.FullPath}'.",
+                                item.FullPath);
+                        } else {
+                            data = null;
+                            diagnostics.Warning(
+                                "epub.encryption.font-key-unavailable",
+                                $"Skipped obfuscated font payload for EPUB resource '{item.FullPath}': {error}",
+                                item.FullPath);
+                        }
+                    }
                 }
             }
             resources.Add(new EpubResource {
@@ -311,6 +327,7 @@ internal static partial class EpubReader {
                 Properties = item.Properties,
                 LengthBytes = entry.Length,
                 Encryption = resourceEncryption,
+                WasDeobfuscated = data != null && resourceEncryption?.IsFontObfuscation == true,
                 Data = data
             });
         }

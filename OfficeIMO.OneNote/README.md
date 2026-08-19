@@ -14,6 +14,8 @@
 
 Both desktop and FSSHTTP `.one` inputs project into the same typed model. File-format logic stays in this package; Reader and conversion packages are thin consumers.
 
+Encrypted current revisions are detected but not decrypted. Reading fails with `OneNoteFormatException` code `ONENOTE_ENCRYPTED_CURRENT_REVISION`; OfficeIMO never substitutes an older plaintext revision for the encrypted current state.
+
 ## Read, edit, and save a section
 
 ```csharp

@@ -50,7 +50,7 @@ Difference reports contain canonical paths and lengths, not message values. Supp
 
 The package detects clear-signed and opaque S/MIME as well as signed or encrypted OpenPGP/MIME wrappers. An unchanged protected document can be emitted in its source format from retained bytes. Editing it or converting it to another format is blocked by default because regeneration would invalidate its cryptographic meaning.
 
-S/MIME verification and decryption require explicit trust, revocation, and recipient-certificate choices. The original protected document is not mutated; verified or decrypted content is returned separately.
+S/MIME signing, encryption, verification, and decryption require explicit certificate, trust, revocation, and recipient choices through a caller-supplied security provider. Email owns bounded MIME composition for clear signatures, opaque signatures, recipient envelopes, and sign-then-encrypt output; certificate discovery and transport remain host responsibilities. The original protected document is not mutated during verification or decryption, and processed content is returned separately.
 
 ## Store conversion verification
 

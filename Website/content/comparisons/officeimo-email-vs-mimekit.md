@@ -16,7 +16,7 @@ MimeKit facts were last checked on 27 July 2026 against the official [MimeKit re
 | Question | OfficeIMO.Email | MimeKit |
 | --- | --- | --- |
 | EML and MIME parsing/writing | Yes | Core strength |
-| MIME standards, S/MIME, OpenPGP, DKIM, ARC | Protected-content detection and explicit verification/decryption policies; check the required operation | Deep standards-focused APIs and mature cryptographic workflows |
+| MIME standards, S/MIME, OpenPGP, DKIM, ARC | Protected-content detection plus explicit sign, encrypt, verify, and decrypt policies for S/MIME; check the required operation | Deep standards-focused APIs and mature cryptographic workflows |
 | Outlook MSG and OFT | Read, write, convert, and retain MAPI properties | Outside its primary MIME model |
 | TNEF and `winmail.dat` | Read and write typed Outlook payloads | MIME integration exists; verify the required TNEF projection |
 | PST, OST, OLM, mbox, EMLX, Maildir | Folder-aware stores, extraction, conversion, and verified new-PST export | mbox support exists; Outlook store handling is not the library's purpose |

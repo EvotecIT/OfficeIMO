@@ -48,6 +48,50 @@ public sealed class RevisionMaterializationTests {
     }
 
     [Fact]
+    public void EncryptedCurrentRevisionFailsClosedInsteadOfFallingBackToOlderPlaintext() {
+        OneNoteExtendedGuid objectSpaceId = Id(30);
+        OneNoteRevisionManifest plaintext = Revision(31, objectSpaceId, null, 1, 0);
+        OneNoteRevisionManifest encrypted = Revision(32, objectSpaceId, plaintext.Id, 1, 1);
+        encrypted.IsEncrypted = true;
+        var emptyRoot = new OneNoteFileNodeList(0, Array.Empty<OneNoteFileNodeListFragment>(), Array.Empty<OneNoteFileNode>());
+        var store = new OneNoteRevisionStore(
+            new OneNoteFileHeader(),
+            emptyRoot,
+            new[] { emptyRoot },
+            new[] { plaintext, encrypted },
+            Array.Empty<OneNoteRevisionStoreObject>(),
+            Array.Empty<OneNoteFileDataStoreObject>());
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            new OneNoteObjectSpaceMaterializer(store).TryGetCurrentSpace(objectSpaceId));
+
+        Assert.Equal("ONENOTE_ENCRYPTED_CURRENT_REVISION", exception.Code);
+        Assert.Contains("will not be substituted", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PlaintextCurrentRevisionFailsClosedWhenItsDependencyIsEncrypted() {
+        OneNoteExtendedGuid objectSpaceId = Id(40);
+        OneNoteRevisionManifest encryptedBase = Revision(41, objectSpaceId, null, 1, 0);
+        encryptedBase.IsEncrypted = true;
+        OneNoteRevisionManifest plaintextCurrent = Revision(42, objectSpaceId, encryptedBase.Id, 1, 1);
+        var emptyRoot = new OneNoteFileNodeList(0, Array.Empty<OneNoteFileNodeListFragment>(), Array.Empty<OneNoteFileNode>());
+        var store = new OneNoteRevisionStore(
+            new OneNoteFileHeader(),
+            emptyRoot,
+            new[] { emptyRoot },
+            new[] { encryptedBase, plaintextCurrent },
+            Array.Empty<OneNoteRevisionStoreObject>(),
+            Array.Empty<OneNoteFileDataStoreObject>());
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            new OneNoteObjectSpaceMaterializer(store).TryGetCurrentSpace(objectSpaceId));
+
+        Assert.Equal("ONENOTE_ENCRYPTED_REVISION_DEPENDENCY", exception.Code);
+        Assert.Contains("cannot be materialized safely", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ObjectReaderTraversesLongFileNodeListChainsWithoutCallStackRecursion() {
         const int depth = 20_000;
         var list = new OneNoteFileNodeList(

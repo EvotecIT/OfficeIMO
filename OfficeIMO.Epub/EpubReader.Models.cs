@@ -7,6 +7,7 @@ internal static partial class EpubReader {
         public string? UniqueIdentifierId { get; set; }
         public string? Title { get; set; }
         public string? Identifier { get; set; }
+        public string? ObfuscationIdentifier { get; set; }
         public string? Language { get; set; }
         public string? Creator { get; set; }
         public EpubRenditionLayout? RenditionLayout { get; set; }

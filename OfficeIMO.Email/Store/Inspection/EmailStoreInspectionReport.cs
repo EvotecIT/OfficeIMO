@@ -6,6 +6,7 @@ public sealed class EmailStoreInspectionReport {
         Format = session.Format;
         DisplayName = session.DisplayName;
         SourceLength = session.SourceLength;
+        IsPstPasswordProtected = session.IsPstPasswordProtected;
         FolderCount = session.Folders.Count;
         long itemCount = 0;
         long associatedItemCount = 0;
@@ -35,6 +36,11 @@ public sealed class EmailStoreInspectionReport {
 
     /// <summary>Validated source length.</summary>
     public long SourceLength { get; }
+
+    /// <summary>
+    /// Whether a PST source declares checksum-based password protection. This is not cryptographic encryption.
+    /// </summary>
+    public bool IsPstPasswordProtected { get; }
 
     /// <summary>Number of folders in the lightweight catalog.</summary>
     public int FolderCount { get; }

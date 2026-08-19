@@ -42,7 +42,10 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Security and protected content
 
-- [ ] Add interoperable ODF encryption/decryption only after an external producer corpus, explicit password and key policy, and fail-safe preservation evidence are available.
+- [ ] Add legacy encrypted-DOC import, encrypted-XLS authoring, and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.
+- [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
+- [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.
+- [ ] Link every non-intentional `NotSupported` protected-content catalog operation to an owning roadmap outcome, while keeping deliberate format and provider boundaries explicit rather than treating them as missing implementations.
 
 ## Document-format depth
 

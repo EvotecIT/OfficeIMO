@@ -66,6 +66,8 @@ public abstract partial class OdfDocument {
     public OdfStyleRepository Styles { get; }
     /// <summary>Non-fatal diagnostics produced while opening the package.</summary>
     public IReadOnlyList<OdfDiagnostic> Diagnostics => Package.Diagnostics;
+    /// <summary>Password-protection state for the package loaded or most recently saved.</summary>
+    public OdfSecurityInfo Security => new OdfSecurityInfo(Package.SourceIsEncrypted);
     /// <summary>Saves to the current path and returns the serialized bytes with entry-level diagnostics.</summary>
     public OdfSaveResult Save(OdfSaveOptions? options = null) {
         if (string.IsNullOrEmpty(_sourcePath)) throw new InvalidOperationException("This document has no source path. Supply a destination path or stream.");

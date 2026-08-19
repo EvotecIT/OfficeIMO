@@ -109,10 +109,29 @@ internal static class OdfZipWriter {
         writer.Write((ushort)0);
     }
 
-    private static byte[] Deflate(byte[] data) {
+    internal static byte[] Deflate(byte[] data) {
         using var output = new MemoryStream();
         using (var compressor = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
             compressor.Write(data, 0, data.Length);
+        }
+        return output.ToArray();
+    }
+
+    internal static byte[] Inflate(byte[] data, long maxBytes, string entryPath) {
+        using var source = new MemoryStream(data, writable: false);
+        using var inflater = new DeflateStream(source, CompressionMode.Decompress, leaveOpen: false);
+        using var output = new MemoryStream();
+        var buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = inflater.Read(buffer, 0, buffer.Length)) > 0) {
+            total = checked(total + read);
+            if (total > maxBytes) {
+                throw new OdfEncryptedPackageException(
+                    $"Decrypted OpenDocument entry '{entryPath}' exceeds its configured uncompressed read budget ({maxBytes}).",
+                    OdfEncryptionFailureReason.ResourceLimitExceeded, entryPath);
+            }
+            output.Write(buffer, 0, read);
         }
         return output.ToArray();
     }

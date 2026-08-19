@@ -169,6 +169,8 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.False(read.Document.Settings.RevisionProtection);
         Assert.True(read.Document.Settings.AnnotationProtection);
         Assert.False(read.Document.Settings.ReadOnlyProtection);
+        Assert.True(read.Document.Settings.HasEditingProtection);
+        Assert.False(read.Document.Settings.IsContentEncrypted);
         Assert.True(read.Document.Settings.TrackRevisions);
         Assert.Equal(3, read.Document.Settings.RevisionDisplayStyle);
         Assert.Equal(2, read.Document.Settings.RevisionBarPlacement);

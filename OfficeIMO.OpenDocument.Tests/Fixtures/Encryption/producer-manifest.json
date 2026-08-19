@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "fixture": "libreoffice-24.2-aes256.odt",
+  "kind": "ODT",
+  "producer": "LibreOffice Writer",
+  "producerVersion": "24.2.7.2 420(Build:2)",
+  "producedOn": "2026-08-19",
+  "bytes": 13017,
+  "sha256": "c6b6f5feb4c3122528eb6d12f615456deab7f23f0a48e8d9482f8706fccd870b",
+  "passwordPolicy": "Public test-only UTF-8 password OfficeIMO-ODF-test-2026",
+  "profile": "AES-256-CBC, PBKDF2-HMAC-SHA1 with 100000 iterations, SHA-256 start key, SHA-256/1K checksum",
+  "evidence": [
+    "OfficeIMO opens and validates the LibreOffice-produced encrypted package.",
+    "Wrong-password handling is classified without returning partial content.",
+    "LibreOffice opens an independently generated OfficeIMO encrypted package with the same profile."
+  ]
+}

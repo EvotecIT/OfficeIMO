@@ -1,5 +1,6 @@
 using OfficeIMO.Epub;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -45,6 +46,8 @@ public sealed class EpubPackageContractTests {
 
         EpubResource font = Assert.Single(document.Resources, item => item.Id == "font");
         Assert.NotNull(font.Data);
+        Assert.True(font.WasDeobfuscated);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, font.Data);
         Assert.Same(fontEncryption, font.Encryption);
         EpubResource protectedResource = Assert.Single(document.Resources, item => item.Id == "protected");
         Assert.Null(protectedResource.Data);
@@ -53,6 +56,9 @@ public sealed class EpubPackageContractTests {
         Assert.Contains(document.Diagnostics, item =>
             item.Code == "epub.encryption.font-obfuscation" &&
             item.Severity == EpubDiagnosticSeverity.Info &&
+            item.Path == "EPUB/fonts/book.otf");
+        Assert.Contains(document.Diagnostics, item =>
+            item.Code == "epub.encryption.font-deobfuscated" &&
             item.Path == "EPUB/fonts/book.otf");
         Assert.Contains(document.Diagnostics, item =>
             item.Code == "epub.encryption.unsupported" &&
@@ -68,6 +74,56 @@ public sealed class EpubPackageContractTests {
             item.Path == "META-INF/signatures.xml");
         Assert.DoesNotContain(document.Warnings, warning => warning.Contains("font obfuscation", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(document.Warnings, warning => warning.Contains("unsupported encryption", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Load_DeobfuscatesAdobeFontsFromCanonicalUuidBytes() {
+        byte[] clear = Enumerable.Range(0, 80).Select(index => (byte)index).ToArray();
+        byte[] package = BuildSingleFontPackage(
+            "http://ns.adobe.com/pdf/enc#RC",
+            "urn:uuid:00112233-4455-6677-8899-aabbccddeeff",
+            ApplyAdobeObfuscation(clear, "00112233445566778899aabbccddeeff"));
+
+        EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false),
+            new EpubReadOptions { IncludeResourceData = true });
+
+        EpubResource font = Assert.Single(document.Resources);
+        Assert.Equal(EpubEncryptionKind.AdobeFontObfuscation, font.Encryption!.Kind);
+        Assert.True(font.WasDeobfuscated);
+        Assert.Equal(clear, font.Data);
+    }
+
+    [Fact]
+    public void Load_IdpfKeyRemovesOnlyXmlWhitespaceFromTheRawUniqueIdentifier() {
+        const string identifier = "urn:book:\u00A0primary";
+        byte[] clear = Enumerable.Range(0, 80).Select(index => (byte)index).ToArray();
+        byte[] package = BuildSingleFontPackage(
+            "http://www.idpf.org/2008/embedding",
+            identifier,
+            ApplyIdpfObfuscation(clear, identifier));
+
+        EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false),
+            new EpubReadOptions { IncludeResourceData = true });
+
+        EpubResource font = Assert.Single(document.Resources);
+        Assert.True(font.WasDeobfuscated);
+        Assert.Equal(clear, font.Data);
+    }
+
+    [Fact]
+    public void Load_DoesNotExposeObfuscatedFontWhenIdentityKeyIsUnavailable() {
+        byte[] package = BuildSingleFontPackage(
+            "http://www.idpf.org/2008/embedding",
+            null,
+            new byte[] { 9, 8, 7, 6 });
+
+        EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false),
+            new EpubReadOptions { IncludeResourceData = true });
+
+        EpubResource font = Assert.Single(document.Resources);
+        Assert.Null(font.Data);
+        Assert.False(font.WasDeobfuscated);
+        Assert.Contains(document.Diagnostics, item => item.Code == "epub.encryption.font-key-unavailable");
     }
 
     [Fact]
@@ -312,7 +368,7 @@ public sealed class EpubPackageContractTests {
                 archive,
                 "EPUB/chapter.xhtml",
                 "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><h1>Chapter</h1><p>Body.</p></body></html>");
-            WriteBytesEntry(archive, "EPUB/fonts/book.otf", new byte[] { 1, 2, 3, 4 });
+            WriteBytesEntry(archive, "EPUB/fonts/book.otf", ApplyIdpfObfuscation(new byte[] { 1, 2, 3, 4 }, "urn:book:primary"));
             WriteBytesEntry(archive, "EPUB/protected.bin", new byte[] { 5, 6, 7, 8 });
             if (includeUnsafeEntry) {
                 archive.CreateEntry("EPUB/");
@@ -321,6 +377,47 @@ public sealed class EpubPackageContractTests {
             }
         }
         return output.ToArray();
+    }
+
+    private static byte[] BuildSingleFontPackage(string algorithm, string? identifier, byte[] fontData) {
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            WriteTextEntry(archive, "META-INF/container.xml",
+                "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles>" +
+                "<rootfile full-path=\"EPUB/package.opf\" media-type=\"application/oebps-package+xml\"/>" +
+                "</rootfiles></container>");
+            WriteTextEntry(archive, "META-INF/encryption.xml",
+                "<encryption xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" xmlns:enc=\"http://www.w3.org/2001/04/xmlenc#\">" +
+                "<enc:EncryptedData><enc:EncryptionMethod Algorithm=\"" + algorithm + "\"/><enc:CipherData>" +
+                "<enc:CipherReference URI=\"EPUB/fonts/book.otf\"/></enc:CipherData></enc:EncryptedData></encryption>");
+            string metadata = identifier == null
+                ? string.Empty
+                : "<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"book-id\">" + identifier + "</dc:identifier></metadata>";
+            WriteTextEntry(archive, "EPUB/package.opf",
+                "<package version=\"3.0\" unique-identifier=\"book-id\" xmlns=\"http://www.idpf.org/2007/opf\">" +
+                metadata + "<manifest><item id=\"font\" href=\"fonts/book.otf\" media-type=\"font/otf\"/></manifest><spine/></package>");
+            WriteBytesEntry(archive, "EPUB/fonts/book.otf", fontData);
+        }
+        return output.ToArray();
+    }
+
+    private static byte[] ApplyIdpfObfuscation(byte[] data, string identifier) {
+        using var sha1 = SHA1.Create();
+        byte[] key = sha1.ComputeHash(Encoding.UTF8.GetBytes(identifier));
+        return ApplyXor(data, key, 1040);
+    }
+
+    private static byte[] ApplyAdobeObfuscation(byte[] data, string uuidHex) {
+        byte[] key = Enumerable.Range(0, 16)
+            .Select(index => Convert.ToByte(uuidHex.Substring(index * 2, 2), 16))
+            .ToArray();
+        return ApplyXor(data, key, 1024);
+    }
+
+    private static byte[] ApplyXor(byte[] data, byte[] key, int prefixLength) {
+        byte[] result = (byte[])data.Clone();
+        for (int index = 0; index < Math.Min(prefixLength, result.Length); index++) result[index] ^= key[index % key.Length];
+        return result;
     }
 
     private static byte[] BuildCaseSensitivePackage() {

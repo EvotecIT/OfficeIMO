@@ -40,15 +40,28 @@ internal sealed class OneNoteObjectSpaceMaterializer {
         if (!_spaces.TryGetValue(id, out List<OneNoteRevisionManifest>? revisions)) return null;
         OneNoteRevisionManifest? current = revisions
             .SelectMany(revision => revision.RoleAssociations.Select(association => new { Revision = revision, Association = association }))
-            .Where(item => item.Association.Role == 1 && ContextEquals(item.Association.ContextId, contextId) && !item.Revision.IsEncrypted)
+            .Where(item => item.Association.Role == 1 && ContextEquals(item.Association.ContextId, contextId))
             .OrderBy(item => item.Association.SourceOrder)
             .Select(item => item.Revision)
             .LastOrDefault();
         if (current == null) return null;
+        if (current.IsEncrypted) {
+            throw new OneNoteFormatException(
+                "ONENOTE_ENCRYPTED_CURRENT_REVISION",
+                $"The current OneNote revision for object space '{id}' is encrypted and cannot be materialized. An older plaintext revision will not be substituted.");
+        }
+
+        IReadOnlyList<OneNoteRevisionManifest> revisionChain = GetRevisionChain(current);
+        OneNoteRevisionManifest? encryptedDependency = revisionChain.FirstOrDefault(revision => revision.IsEncrypted);
+        if (encryptedDependency != null) {
+            throw new OneNoteFormatException(
+                "ONENOTE_ENCRYPTED_REVISION_DEPENDENCY",
+                $"The current OneNote revision for object space '{id}' depends on encrypted revision '{encryptedDependency.Id}' and cannot be materialized safely.");
+        }
 
         var objects = new Dictionary<OneNoteExtendedGuid, OneNoteRevisionStoreObject>();
         var roots = new Dictionary<uint, OneNoteExtendedGuid>();
-        foreach (OneNoteRevisionManifest revision in GetRevisionChain(current)) {
+        foreach (OneNoteRevisionManifest revision in revisionChain) {
             if (_objectsByRevision.TryGetValue(revision.Id, out List<OneNoteRevisionStoreObject>? declarations)) {
                 foreach (OneNoteRevisionStoreObject declaration in declarations) objects[declaration.Id] = declaration;
             }

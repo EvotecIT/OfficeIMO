@@ -233,7 +233,7 @@ _Dependency footprint:_ `OfficeIMO.Core`; no third-party PDF parser, writer, ren
 - [x] CMS EnvelopedData encryption/decryption for S/MIME recipients
 - [x] Bounded XML Digital Signature creation, verification, and canonicalization for format-owned signing workflows
 - [x] Platform-RSA signing without exporting private keys, including CNG/HSM-compatible key handles
-- [x] One strongly typed provider explicitly supplied to the thin Word, PDF, and Email security adapters
+- [x] One strongly typed provider explicitly supplied to thin format-package security adapters
 
 _Dependency footprint:_ `OfficeIMO.Core` contracts plus `BouncyCastle.Cryptography` and `System.Security.Cryptography.Xml`; no dependency on Word, PDF, Email, or another format package. Format packages do not depend on Security.
 
@@ -241,12 +241,12 @@ _Dependency footprint:_ `OfficeIMO.Core` contracts plus `BouncyCastle.Cryptograp
 | --- | --- | --- |
 | `OfficeIMO.Word` | OPC/VBA signature discovery, evidence reporting, and fail-safe mutation policy | OPC XML signature creation/validation and VBA CMS/trust/timestamp validation |
 | `OfficeIMO.Pdf` | Signature dictionaries, byte ranges, external-signer hooks, preservation and mutation policy | Built-in CMS signing, X.509 validation, and RFC 3161 processing |
-| `OfficeIMO.Email` | MIME parsing and S/MIME carrier discovery | CMS signature verification and EnvelopedData decryption |
-| `OfficeIMO.Excel` | Open XML signature inspection and fail-safe mutation policy | Not implemented yet |
-| `OfficeIMO.PowerPoint` | Open XML and legacy signature inspection plus fail-safe mutation policy | Not implemented yet |
-| `OfficeIMO.Visio` | Open XML signature inspection plus fail-safe mutation policy | Not implemented yet |
-| `OfficeIMO.OpenDocument` | ODF signature discovery plus fail-safe mutation policy | Not implemented yet |
-| `OfficeIMO.Epub` | Bounded `META-INF/signatures.xml` discovery and diagnostics | Not implemented yet |
+| `OfficeIMO.Email` | MIME parsing, S/MIME carrier discovery, and protected-source retention | CMS signing, encryption, verification, decryption, and sign-then-encrypt for RFC 5322/MIME output |
+| `OfficeIMO.Excel` | OPC/VBA signature inspection and fail-safe mutation policy | OPC/VBA signature creation, validation, and trust evaluation |
+| `OfficeIMO.PowerPoint` | OPC, legacy, and VBA signature inspection plus fail-safe mutation policy | OPC/VBA signature creation, validation, and trust evaluation |
+| `OfficeIMO.Visio` | OPC signature inspection plus fail-safe mutation policy | OPC signature creation and validation |
+| `OfficeIMO.OpenDocument` | First-party password encryption/decryption, signature discovery, and fail-safe mutation policy | Bounded XML package-manifest signature creation and validation |
+| `OfficeIMO.Epub` | IDPF/Adobe font deobfuscation, signature discovery, and diagnostics | Bounded XML package-manifest signature creation and validation |
 
 Install `OfficeIMO.Security` only in applications that use a provider-backed operation. Its cryptographic dependencies
 therefore do not change the restore graph, trimming roots, or NativeAOT surface of ordinary format consumers.
@@ -258,6 +258,7 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 - [x] ODS sparse/repeated cells, typed values, formulas, styles, merges, sizing, visibility, names, validation, and print ranges
 - [x] ODP slides, masters/layouts, text, shapes, groups, images, crop, tables, notes, backgrounds, transitions, and basic animation metadata
 - [x] Unknown XML and package-part preservation with explicit loss and capability reports
+- [x] Dependency-free AES-256-CBC password encryption/decryption with bounded aggregate KDF work and hash-pinned LibreOffice interoperability evidence
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
@@ -399,7 +400,7 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] Seeded CRC, record-framing, and full-schema validation with progress, cancellation, and explicit limits
 - [x] Shared `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models instead of duplicate directory primitives
 
-_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing and RTF. `OfficeIMO.Security` is optional for S/MIME verification/decryption and is never pulled transitively; there is no Outlook installation, native library, or third-party message/store/OAB parser.
+_Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party OfficeIMO Drawing and RTF. `OfficeIMO.Security` is optional for S/MIME signing, encryption, verification, and decryption and is never pulled transitively; there is no Outlook installation, native library, or third-party message/store/OAB parser.
 
 #### [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md)
 

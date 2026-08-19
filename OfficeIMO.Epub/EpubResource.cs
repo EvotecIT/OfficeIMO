@@ -31,6 +31,9 @@ public sealed class EpubResource {
     /// <summary>Encryption declaration for this resource, when present.</summary>
     public EpubEncryptionInfo? Encryption { get; internal set; }
 
+    /// <summary>Whether recognized EPUB font obfuscation was removed from <see cref="Data"/>.</summary>
+    public bool WasDeobfuscated { get; internal set; }
+
     /// <summary>Optional bounded resource payload requested by the caller.</summary>
     public byte[]? Data {
         get => _data == null ? null : (byte[])_data.Clone();
