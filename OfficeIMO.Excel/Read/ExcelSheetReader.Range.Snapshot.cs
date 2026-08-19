@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
             return types;
         }
 
-        private static Type? MergeDataTableColumnType(Type? current, object? value) {
+        internal static Type? MergeDataTableColumnType(Type? current, object? value) {
             if (value == null || value == DBNull.Value) {
                 return current;
             }

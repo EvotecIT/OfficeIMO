@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
             }
             if (schemaSampleRows == 0
-                && rows > BufferedRangeStreamRowLimit
+                && (!_hasSdkWorksheetPart || rows > BufferedRangeStreamRowLimit)
                 && CanUseRangeStreamXmlReader()) {
                 if (cols > _opt.MaxDataReaderBufferedCells) {
                     throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
