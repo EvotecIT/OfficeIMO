@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "purpose": "Executable cross-producer evidence for editable PDF reverse conversions. The matrix measures successful source parsing, target serialization, package reopening, retained page scope, semantic token recall, editable structure, and explicit omission reporting.",
+  "matrixCases": 28,
+  "producers": [
+    {
+      "id": "microsoft-word-macos",
+      "producer": "Microsoft Word 16.109 on macOS",
+      "path": "OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/microsoft-word-16.109-native-word-report.pdf",
+      "expectedTables": false
+    },
+    {
+      "id": "microsoft-word-windows",
+      "producer": "Microsoft Word 16.0 on Windows",
+      "path": "OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/microsoft-word-windows-word-business-delivery-summary.pdf",
+      "expectedTables": true
+    },
+    {
+      "id": "microsoft-excel-macos",
+      "producer": "Microsoft Excel 16.109 on macOS",
+      "path": "OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/microsoft-excel-16.109-native-excel-daily-workbook.pdf",
+      "expectedTables": true
+    },
+    {
+      "id": "microsoft-powerpoint-macos",
+      "producer": "Microsoft PowerPoint 16.109 on macOS",
+      "path": "OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/microsoft-powerpoint-16.109-native-powerpoint-dense-layout.pdf",
+      "expectedTables": false
+    },
+    {
+      "id": "openpreserve-pdfa1b",
+      "producer": "Open Preservation Foundation PDF corpus",
+      "path": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf",
+      "expectedTables": false
+    },
+    {
+      "id": "verapdf-tounicode-a",
+      "producer": "veraPDF validation corpus",
+      "path": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/verapdf-tounicode-pass-a.pdf",
+      "expectedTables": false
+    },
+    {
+      "id": "verapdf-tounicode-j",
+      "producer": "veraPDF validation corpus",
+      "path": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/verapdf-tounicode-pass-j.pdf",
+      "expectedTables": false
+    }
+  ],
+  "routes": [
+    { "id": "pdf-to-docx", "target": "docx", "projection": "semantic-editable", "minimumTokenRecall": 0.25 },
+    { "id": "pdf-to-html", "target": "html", "projection": "semantic-review", "minimumTokenRecall": 0.35 },
+    { "id": "pdf-to-xlsx", "target": "xlsx", "projection": "detected-tables", "minimumTableTokenRecall": 0.50 },
+    { "id": "pdf-to-pptx", "target": "pptx", "projection": "editable-content", "minimumTokenRecall": 0.15 }
+  ],
+  "scoreDimensions": [
+    "source-open",
+    "target-serialize",
+    "target-reopen",
+    "page-scope",
+    "editable-structure",
+    "semantic-token-recall",
+    "omission-reporting"
+  ],
+  "acceptance": {
+    "requiredSourceOpenRatio": 1.0,
+    "requiredTargetSerializeRatio": 1.0,
+    "requiredTargetReopenRatio": 1.0
+  }
+}

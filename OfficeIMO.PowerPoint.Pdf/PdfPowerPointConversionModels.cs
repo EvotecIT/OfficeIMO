@@ -49,7 +49,11 @@ public sealed class PdfPowerPointTableImportEntry {
         int rowCount,
         int totalRowCount,
         bool truncated,
-        bool headerRowIncluded) {
+        bool headerRowIncluded,
+        IReadOnlyList<int>? sourcePageNumbers = null,
+        int sourceTableCount = 1,
+        int suppressedRepeatedHeaderRows = 0,
+        int additionalHeaderRowCount = 0) {
         PageIndex = pageIndex;
         PageNumber = pageNumber;
         TableIndex = tableIndex;
@@ -65,6 +69,10 @@ public sealed class PdfPowerPointTableImportEntry {
         TotalRowCount = totalRowCount;
         Truncated = truncated;
         HeaderRowIncluded = headerRowIncluded;
+        SourcePageNumbers = Array.AsReadOnly((sourcePageNumbers ?? new[] { pageNumber }).ToArray());
+        SourceTableCount = sourceTableCount;
+        SuppressedRepeatedHeaderRows = suppressedRepeatedHeaderRows;
+        AdditionalHeaderRowCount = additionalHeaderRowCount;
     }
 
     /// <summary>Zero-based page index within the selected logical page collection.</summary>
@@ -111,6 +119,18 @@ public sealed class PdfPowerPointTableImportEntry {
 
     /// <summary>True when a column-header row was written above the imported body rows.</summary>
     public bool HeaderRowIncluded { get; }
+
+    /// <summary>One-based PDF page numbers contributing rows to this imported table.</summary>
+    public IReadOnlyList<int> SourcePageNumbers { get; }
+
+    /// <summary>Number of page-level table segments combined into this logical table.</summary>
+    public int SourceTableCount { get; }
+
+    /// <summary>Number of repeated continuation header rows omitted from body data.</summary>
+    public int SuppressedRepeatedHeaderRows { get; }
+
+    /// <summary>Number of repeated header rows appended to primary header labels.</summary>
+    public int AdditionalHeaderRowCount { get; }
 }
 
 /// <summary>Describes editable objects reconstructed for one source PDF page.</summary>

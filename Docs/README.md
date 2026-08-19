@@ -41,6 +41,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 - [PDF current state](officeimo.pdf.current-state.md)
 - [PDF conversion support](officeimo.pdf-conversion-support-matrix.md)
+- [PDF reverse-conversion scorecard](pdf-reverse-conversion-scorecard.json) — executable 28-case producer/target matrix.
 - [HTML rendering support](officeimo.html-support-matrix.md)
 - [RTF support](officeimo.rtf-support-matrix.md)
 - [Email and Outlook artifact support](officeimo.email-support-matrix.md)

@@ -26,6 +26,12 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Whether grouped logical paragraphs should be imported as Word paragraphs.</summary>
         public bool ImportParagraphs { get; set; } = true;
 
+        /// <summary>
+        /// Whether semantic content should use the shared crop-, rotation-, and column-aware logical reading order.
+        /// Disable only when preserving the legacy top-to-bottom page sort is required.
+        /// </summary>
+        public bool UseSharedPageReadingOrder { get; set; } = true;
+
         /// <summary>Whether logical list items should be imported as editable Word list items.</summary>
         public bool ImportLists { get; set; } = true;
 
@@ -87,6 +93,7 @@ namespace OfficeIMO.Word.Pdf {
             IncludeEmptyPages = false,
             ImportHeadings = false,
             ImportParagraphs = false,
+            UseSharedPageReadingOrder = true,
             ImportLists = false,
             ImportTables = true,
             ImportUriLinks = false,
@@ -105,6 +112,7 @@ namespace OfficeIMO.Word.Pdf {
             IncludeEmptyPages = IncludeEmptyPages,
             ImportHeadings = ImportHeadings,
             ImportParagraphs = ImportParagraphs,
+            UseSharedPageReadingOrder = UseSharedPageReadingOrder,
             ImportLists = ImportLists,
             ImportTables = ImportTables,
             ImportUriLinks = ImportUriLinks,

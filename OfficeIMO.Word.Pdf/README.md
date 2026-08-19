@@ -103,7 +103,7 @@ foreach (var warning in import.Report.Warnings) {
 }
 ```
 
-The semantic import path preserves document metadata, page breaks, headings, paragraphs, lists, detected run color/size/emphasis, logical tables, safe URI hyperlinks, supported internal destination links, embedded images, form-widget placeholders, and conversion diagnostics when those structures are available in the PDF logical model. It creates an editable Word document; it does not claim fixed-layout page recreation or Microsoft Word rendering parity.
+The semantic import path preserves document metadata, page breaks, headings, paragraphs, lists, detected run color/size/emphasis, logical tables, safe URI hyperlinks, supported internal destination links, embedded images, form-widget placeholders, and conversion diagnostics when those structures are available in the PDF logical model. `UseSharedPageReadingOrder` defaults to `true`, so semantic items follow the core engine's crop-, rotation-, spanning-band-, and column-aware order. It creates an editable Word document; it does not claim fixed-layout page recreation or Microsoft Word rendering parity.
 
 For selected pages or custom layout analysis, read the logical model first:
 

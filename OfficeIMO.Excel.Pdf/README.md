@@ -126,6 +126,8 @@ Console.WriteLine($"Imported {report.Entries.Count} table(s).");
 report.RequireNoLoss(); // checks table-row truncation, not unrelated page content
 ```
 
+Compatible table segments continue across adjacent pages by default. The shared PDF table analysis classifies Boolean, percentage, date-time, time-only, numeric, and text columns with confidence; the import options decide which detected families become typed Excel cells.
+
 ## What it maps
 
 - Workbook sheets, selected sheet lists, visible used ranges, print areas, page setup, margins, orientation, and worksheet page breaks.

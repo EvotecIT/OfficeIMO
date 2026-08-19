@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -105,13 +106,15 @@ namespace OfficeIMO.Word.Pdf {
         private static List<ImportItem> BuildImportItems(PdfCore.PdfLogicalPage page, PdfWordImportOptions options, ImportNavigationMap navigation) {
             var items = new List<ImportItem>();
             var consumedLinks = new HashSet<PdfCore.PdfLogicalLinkAnnotation>();
+            IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder =
+                BuildReadingOrder(page, options.UseSharedPageReadingOrder);
             int sequence = 0;
 
             if (options.ImportHeadings) {
                 for (int i = 0; i < page.Headings.Count; i++) {
                     PdfCore.PdfLogicalHeading heading = page.Headings[i];
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, heading.Line, options, navigation, consumedLinks);
-                    items.Add(ImportItem.ForHeading(heading, heading.Line.BaselineY, sequence++, link, link == null ? null : heading.Text));
+                    items.Add(ImportItem.ForHeading(heading, heading.Line.BaselineY, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i), link, link == null ? null : heading.Text));
                 }
             }
 
@@ -119,14 +122,14 @@ namespace OfficeIMO.Word.Pdf {
                 for (int i = 0; i < page.Paragraphs.Count; i++) {
                     PdfCore.PdfLogicalParagraph paragraph = page.Paragraphs[i];
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, paragraph, options, navigation, consumedLinks);
-                    items.Add(ImportItem.ForParagraph(paragraph, paragraph.YTop, sequence++, link, link == null ? null : paragraph.Text));
+                    items.Add(ImportItem.ForParagraph(paragraph, paragraph.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i), link, link == null ? null : paragraph.Text));
                 }
             }
 
             if (options.ImportLists) {
                 for (int i = 0; i < page.ListItems.Count; i++) {
                     PdfCore.PdfLogicalListItem listItem = page.ListItems[i];
-                    items.Add(ImportItem.ForListItem(listItem, listItem.Line.BaselineY, sequence++));
+                    items.Add(ImportItem.ForListItem(listItem, listItem.Line.BaselineY, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.ListItem, i)));
                 }
             }
 
@@ -134,23 +137,23 @@ namespace OfficeIMO.Word.Pdf {
                 IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = PdfCore.PdfLogicalTableAnalysis.ExtractTables(page, options.MaxTableRows);
                 for (int i = 0; i < tables.Count; i++) {
                     PdfCore.PdfLogicalTableExtraction table = tables[i];
-                    items.Add(ImportItem.ForTable(table, table.Table.YTop, sequence++));
+                    items.Add(ImportItem.ForTable(table, table.Table.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Table, i)));
                 }
             }
 
-            AddLinkItems(page, options, navigation, consumedLinks, items, ref sequence);
+            AddLinkItems(page, options, navigation, consumedLinks, items, readingOrder, ref sequence);
 
             if (options.ImportImages || options.IncludeImagePlaceholders) {
                 for (int i = 0; i < page.Images.Count; i++) {
                     PdfCore.PdfLogicalImage image = page.Images[i];
                     if (image.Placements.Count == 0) {
-                        items.Add(ImportItem.ForImage(image, null, GetImageSortY(image), sequence++));
+                        items.Add(ImportItem.ForImage(image, null, GetImageSortY(image), sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, -1)));
                         continue;
                     }
 
                     for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
                         PdfCore.PdfImagePlacement placement = image.Placements[placementIndex];
-                        items.Add(ImportItem.ForImage(image, placement, placement.Y + placement.Height, sequence++));
+                        items.Add(ImportItem.ForImage(image, placement, placement.Y + placement.Height, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)));
                     }
                 }
             } else if (page.Images.Count > 0) {
@@ -168,7 +171,7 @@ namespace OfficeIMO.Word.Pdf {
             if (options.IncludeFormFieldPlaceholders) {
                 for (int i = 0; i < page.FormWidgets.Count; i++) {
                     PdfCore.PdfLogicalFormWidget widget = page.FormWidgets[i];
-                    items.Add(ImportItem.ForFormWidget(widget, widget.Y2, sequence++));
+                    items.Add(ImportItem.ForFormWidget(widget, widget.Y2, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.FormWidget, i)));
                     AddWarning(
                         options,
                         "PdfFormWidgetPlaceholder",
@@ -201,6 +204,7 @@ namespace OfficeIMO.Word.Pdf {
             ImportNavigationMap navigation,
             HashSet<PdfCore.PdfLogicalLinkAnnotation> consumedLinks,
             List<ImportItem> items,
+            IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder,
             ref int sequence) {
             if (!options.ImportUriLinks && !options.ImportInternalLinks) {
                 int uriLinkCount = page.Links.Count(link => !string.IsNullOrWhiteSpace(link.Uri));
@@ -254,7 +258,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 consumedLinks.Add(link);
-                items.Add(ImportItem.ForLink(link, GetLinkSortY(link), sequence++, displayText));
+                items.Add(ImportItem.ForLink(link, GetLinkSortY(link), sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Link, i), displayText));
             }
         }
 
@@ -381,9 +385,30 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static int CompareImportItems(ImportItem left, ImportItem right) {
+            if (left.ReadingOrderIndex.HasValue && right.ReadingOrderIndex.HasValue) {
+                int orderComparison = left.ReadingOrderIndex.Value.CompareTo(right.ReadingOrderIndex.Value);
+                if (orderComparison != 0) return orderComparison;
+            } else if (left.ReadingOrderIndex.HasValue != right.ReadingOrderIndex.HasValue) {
+                return left.ReadingOrderIndex.HasValue ? -1 : 1;
+            }
             int yComparison = right.Y.CompareTo(left.Y);
             return yComparison != 0 ? yComparison : left.Sequence.CompareTo(right.Sequence);
         }
+
+        private static IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> BuildReadingOrder(
+            PdfCore.PdfLogicalPage page,
+            bool enabled) {
+            if (!enabled) return new Dictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int>();
+            return PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(page).ToDictionary(
+                static item => (item.Kind, item.SourceIndex, item.PlacementIndex),
+                static item => item.OrderIndex);
+        }
+
+        private static int? GetReadingOrder(
+            IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder,
+            PdfCore.PdfLogicalReadingOrderKind kind,
+            int sourceIndex,
+            int placementIndex = -1) => readingOrder.TryGetValue((kind, sourceIndex, placementIndex), out int index) ? index : null;
 
         private static void AddHeading(
             WordDocument document,
@@ -906,10 +931,11 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class ImportItem {
-            private ImportItem(ImportItemKind kind, double y, int sequence) {
+            private ImportItem(ImportItemKind kind, double y, int sequence, int? readingOrderIndex) {
                 Kind = kind;
                 Y = y;
                 Sequence = sequence;
+                ReadingOrderIndex = readingOrderIndex;
             }
 
             public ImportItemKind Kind { get; }
@@ -917,6 +943,8 @@ namespace OfficeIMO.Word.Pdf {
             public double Y { get; }
 
             public int Sequence { get; }
+
+            public int? ReadingOrderIndex { get; }
 
             public PdfCore.PdfLogicalHeading? Heading { get; private set; }
 
@@ -936,26 +964,26 @@ namespace OfficeIMO.Word.Pdf {
 
             public string? LinkText { get; private set; }
 
-            public static ImportItem ForHeading(PdfCore.PdfLogicalHeading heading, double y, int sequence, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.Heading, y, sequence) { Heading = heading, Link = link, LinkText = linkText };
+            public static ImportItem ForHeading(PdfCore.PdfLogicalHeading heading, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
+                new ImportItem(ImportItemKind.Heading, y, sequence, readingOrderIndex) { Heading = heading, Link = link, LinkText = linkText };
 
-            public static ImportItem ForParagraph(PdfCore.PdfLogicalParagraph paragraph, double y, int sequence, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.Paragraph, y, sequence) { Paragraph = paragraph, Link = link, LinkText = linkText };
+            public static ImportItem ForParagraph(PdfCore.PdfLogicalParagraph paragraph, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
+                new ImportItem(ImportItemKind.Paragraph, y, sequence, readingOrderIndex) { Paragraph = paragraph, Link = link, LinkText = linkText };
 
-            public static ImportItem ForListItem(PdfCore.PdfLogicalListItem listItem, double y, int sequence) =>
-                new ImportItem(ImportItemKind.ListItem, y, sequence) { ListItem = listItem };
+            public static ImportItem ForListItem(PdfCore.PdfLogicalListItem listItem, double y, int sequence, int? readingOrderIndex) =>
+                new ImportItem(ImportItemKind.ListItem, y, sequence, readingOrderIndex) { ListItem = listItem };
 
-            public static ImportItem ForTable(PdfCore.PdfLogicalTableExtraction table, double y, int sequence) =>
-                new ImportItem(ImportItemKind.Table, y, sequence) { TableExtraction = table };
+            public static ImportItem ForTable(PdfCore.PdfLogicalTableExtraction table, double y, int sequence, int? readingOrderIndex) =>
+                new ImportItem(ImportItemKind.Table, y, sequence, readingOrderIndex) { TableExtraction = table };
 
-            public static ImportItem ForImage(PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement? placement, double y, int sequence) =>
-                new ImportItem(ImportItemKind.Image, y, sequence) { Image = image, ImagePlacement = placement };
+            public static ImportItem ForImage(PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement? placement, double y, int sequence, int? readingOrderIndex) =>
+                new ImportItem(ImportItemKind.Image, y, sequence, readingOrderIndex) { Image = image, ImagePlacement = placement };
 
-            public static ImportItem ForFormWidget(PdfCore.PdfLogicalFormWidget widget, double y, int sequence) =>
-                new ImportItem(ImportItemKind.FormWidget, y, sequence) { FormWidget = widget };
+            public static ImportItem ForFormWidget(PdfCore.PdfLogicalFormWidget widget, double y, int sequence, int? readingOrderIndex) =>
+                new ImportItem(ImportItemKind.FormWidget, y, sequence, readingOrderIndex) { FormWidget = widget };
 
-            public static ImportItem ForLink(PdfCore.PdfLogicalLinkAnnotation link, double y, int sequence, string? linkText) =>
-                new ImportItem(ImportItemKind.Link, y, sequence) { Link = link, LinkText = linkText };
+            public static ImportItem ForLink(PdfCore.PdfLogicalLinkAnnotation link, double y, int sequence, int? readingOrderIndex, string? linkText) =>
+                new ImportItem(ImportItemKind.Link, y, sequence, readingOrderIndex) { Link = link, LinkText = linkText };
         }
 
         private enum ImportItemKind {

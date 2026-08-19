@@ -92,7 +92,8 @@ internal static class PdfBenchmarkValidation {
         }
     }
 
-    private static void ValidateScenarioContent(string actual, PdfBenchmarkScenario scenario, string engine) {
+    internal static void ValidateScenarioContent(string actual, PdfBenchmarkScenario scenario, string engine) {
+        actual = Normalize(actual);
         var requiredCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int page = 1; page <= scenario.PageCount; page++) {
             foreach (string fragment in ExpectedPage(scenario, page).RequiredFragments) {
@@ -106,6 +107,18 @@ internal static class PdfBenchmarkValidation {
             if (actualCount < requiredCount) {
                 throw new InvalidDataException(
                     $"{engine} preserved {actualCount} of {requiredCount} required occurrences for '{fragment}'.");
+            }
+        }
+    }
+
+    internal static void ValidateTableScenarioContent(string actual, PdfBenchmarkScenario scenario, string engine) {
+        actual = Normalize(actual);
+        for (int page = 1; page <= scenario.PageCount; page++) {
+            foreach (string[] row in scenario.TableRows(page).Skip(1)) {
+                string fragment = Normalize(string.Concat(row));
+                if (!actual.Contains(fragment, StringComparison.Ordinal)) {
+                    throw new InvalidDataException($"{engine} did not preserve required table row '{fragment}'.");
+                }
             }
         }
     }

@@ -135,6 +135,21 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfLogicalReadingOrder_EmitsEveryPlacementOfAReusedImageResource() {
+        PdfLogicalPage page = Assert.Single(
+            PdfLogicalDocument.Load(BuildPdfWithRepeatedFormImageResource()).Pages);
+
+        PdfLogicalReadingOrderItem[] placements = PdfLogicalReadingOrderAnalysis.Analyze(page)
+            .Where(static item => item.Kind == PdfLogicalReadingOrderKind.Image)
+            .ToArray();
+
+        Assert.Equal(2, placements.Length);
+        Assert.Equal(new[] { 0, 1 }, placements.Select(static item => item.PlacementIndex));
+        Assert.Equal(2, placements.Select(static item => item.OrderIndex).Distinct().Count());
+        Assert.All(placements, static item => Assert.True(item.HasGeometry));
+    }
+
+    [Fact]
     public void PdfReadPage_GetImages_PreservesDistinctDirectImagesInFormResources() {
         PdfReadPage page = CreatePdfReadPageWithDistinctDirectFormImages();
 
