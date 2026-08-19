@@ -19,8 +19,8 @@ IReadOnlyList<OfficeImageExportResult> pages = message
     .Save("message-pages");
 ```
 
-The bridge prefers the HTML body, resolves inline CID and Content-Location resources, can convert an RTF body when HTML is absent, and safely encodes plain text as the final fallback. Rendering limits, URL policy, page selection, and diagnostics come from the shared HTML renderer.
+The renderer consumes `OfficeIMO.Email.Html` for the same body selection, untrusted sanitization, remote-resource policy, and CID/Content-Location resolution used by Reader. It can convert an RTF body when HTML is absent and safely encodes plain text as the final fallback. Rendering limits, page selection, and diagnostics come from the shared HTML renderer.
 
 Keeping this capability separate prevents MIME-only applications from acquiring AngleSharp, CSS layout, and the RTF bridge.
 
-Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Html`, and `OfficeIMO.Html.Rtf`.
+Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, and `OfficeIMO.Html`.

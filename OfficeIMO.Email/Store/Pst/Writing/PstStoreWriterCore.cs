@@ -25,6 +25,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
     private int _itemCount;
     private int _lastCheckpointItemCount;
     private bool _diagnosticsTruncated;
+    private byte[]? _applicationState;
     private bool _completed;
     private bool _finalizing;
     private bool _abandon;
@@ -46,9 +47,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         if (File.Exists(_destinationPath) && !options.OverwriteExisting) {
             throw new IOException("The destination PST already exists. Enable overwrite to replace it.");
         }
-        _temporaryPath = Path.Combine(directory,
-            string.Concat(".", Path.GetFileName(_destinationPath), ".",
-                Guid.NewGuid().ToString("N"), ".tmp"));
+        _temporaryPath = CreateWorkingTemporaryPath(_destinationPath, _providerUid);
         _nodes = new PstWriterNodeJournal(string.Concat(_temporaryPath, ".nodes"));
         _items = new PstWriterItemJournal(_temporaryPath);
         _file = new PstWriterFile(_temporaryPath);
@@ -78,6 +77,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         _itemCount = state.ItemCount;
         _lastCheckpointItemCount = state.ItemCount;
         _diagnosticsTruncated = state.DiagnosticsTruncated;
+        _applicationState = state.ApplicationState;
         foreach (FolderState folder in state.Folders) _folders.Add(folder.Nid, folder);
         _diagnostics.AddRange(state.Diagnostics);
         _nodes = new PstWriterNodeJournal(string.Concat(_temporaryPath, ".nodes"),
@@ -224,7 +224,7 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
         _items.Dispose();
         if (!_completed && !preserve) {
             DeleteCheckpointFile();
-            CleanupWorkingFiles(_temporaryPath, _destinationPath);
+            CleanupWorkingFiles(_temporaryPath, _destinationPath, _providerUid);
         }
     }
 

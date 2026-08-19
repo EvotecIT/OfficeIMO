@@ -383,7 +383,8 @@ public sealed class PackageDependencyGuardrailTests {
     [Theory]
     [InlineData("OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj", "OfficeIMO.Core", "OfficeIMO.Html", "OfficeIMO.Rtf")]
     [InlineData("OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj", "OfficeIMO.Core", "OfficeIMO.Email", "OfficeIMO.Html")]
-    [InlineData("OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj", "OfficeIMO.Core", "OfficeIMO.Email", "OfficeIMO.Html", "OfficeIMO.Html.Rtf")]
+    [InlineData("OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj", "OfficeIMO.Email", "OfficeIMO.Html", "OfficeIMO.Html.Rtf")]
+    [InlineData("OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj", "OfficeIMO.Core", "OfficeIMO.Email", "OfficeIMO.Email.Html", "OfficeIMO.Html")]
     [InlineData("OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj", "OfficeIMO.Core", "OfficeIMO.Html.Pdf", "OfficeIMO.Mhtml", "OfficeIMO.Pdf")]
     public void OptionalHtmlBridges_DeclareOnlyTheirOwningEdges(string relativeProjectPath, params string[] expectedProjects) {
         string[] references = GetProjectReferences(GetRepositoryPath(relativeProjectPath));
@@ -927,6 +928,7 @@ public sealed class PackageDependencyGuardrailTests {
                 "../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
                 "../OfficeIMO.Reader.Html/OfficeIMO.Reader.Html.csproj",
                 "../OfficeIMO.Email/OfficeIMO.Email.csproj",
+                "../OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
                 "../OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj"
             ],
             references);

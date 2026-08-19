@@ -86,7 +86,11 @@ public sealed class EmailDocumentWriter {
         }
     }
 
-    internal byte[] ToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
+    /// <summary>
+    /// Writes an artifact to memory and returns the same preservation, lifetime, diagnostic, and loss evidence used
+    /// by file and stream writes. Attachment sources are fully consumed within this call and are not retained.
+    /// </summary>
+    public byte[] ToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
         WritePreparation preparation = Prepare(document, format);
         if (!preparation.CanWrite) {
             result = preparation.CreateBlockedResult();
@@ -113,7 +117,7 @@ public sealed class EmailDocumentWriter {
                 EnsureOutputLimit(document.RawSource.LongLength);
                 return new WritePreparation(document, format, diagnostics, document.RawSource);
             }
-            diagnostics.Add(new EmailDiagnostic("EMAIL_RAW_SOURCE_SKIPPED_MODEL_CHANGED",
+            diagnostics.Add(new EmailDiagnostic(EmailArtifactDiagnosticCodes.PreservedSourceModelChanged,
                 "The preserved source was not reused because the email model changed after reading or could not be verified as unchanged.",
                 EmailDiagnosticSeverity.Warning));
         }
@@ -121,11 +125,13 @@ public sealed class EmailDocumentWriter {
         EmailConversionReport conversion = EmailConversionAnalyzer.Analyze(document, format, _options);
         diagnostics.AddRange(conversion.Diagnostics);
         if (!conversion.CanWrite) {
-            return new WritePreparation(document, format, diagnostics, preservedSource: null, canWrite: false);
+            return new WritePreparation(document, format, diagnostics, preservedSource: null,
+                hasPotentialDataLoss: conversion.HasPotentialDataLoss, canWrite: false);
         }
 
         EmailOutputPreflight.EnsurePayloadsFit(document, format, _options.MaxOutputBytes);
-        return new WritePreparation(document, format, diagnostics, preservedSource: null);
+        return new WritePreparation(document, format, diagnostics, preservedSource: null,
+            hasPotentialDataLoss: conversion.HasPotentialDataLoss);
     }
 
     private EmailWriteResult WritePrepared(WritePreparation preparation, Stream output) {
@@ -140,8 +146,7 @@ public sealed class EmailDocumentWriter {
                 MsgWriter.Write(bounded, preparation.Document, _options, preparation.Diagnostics,
                     preparation.Format == EmailFileFormat.OutlookTemplate);
             }
-            return new EmailWriteResult(bounded.BytesWritten, preparation.Diagnostics.AsReadOnly(),
-                preparation.PreservedSource != null);
+            return preparation.CreateCompletedResult(bounded.BytesWritten);
         }
     }
 
@@ -151,13 +156,13 @@ public sealed class EmailDocumentWriter {
             using (var bounded = new EmailBoundedWriteStream(output, _options.MaxOutputBytes)) {
                 await bounded.WriteAsync(preparation.PreservedSource, 0, preparation.PreservedSource.Length,
                     cancellationToken).ConfigureAwait(false);
-                return new EmailWriteResult(bounded.BytesWritten, preparation.Diagnostics.AsReadOnly(), true);
+                return preparation.CreateCompletedResult(bounded.BytesWritten);
             }
         }
 
         long bytesWritten = await EmailAsyncWritePipeline.RunAsync(output, _options.MaxOutputBytes,
             producer => SerializeGenerated(preparation, producer), cancellationToken).ConfigureAwait(false);
-        return new EmailWriteResult(bytesWritten, preparation.Diagnostics.AsReadOnly(), false);
+        return preparation.CreateCompletedResult(bytesWritten);
     }
 
     private void SerializeGenerated(WritePreparation preparation, Stream output) {
@@ -203,11 +208,13 @@ public sealed class EmailDocumentWriter {
 
     private sealed class WritePreparation {
         internal WritePreparation(EmailDocument document, EmailFileFormat format,
-            List<EmailDiagnostic> diagnostics, byte[]? preservedSource, bool canWrite = true) {
+            List<EmailDiagnostic> diagnostics, byte[]? preservedSource,
+            bool hasPotentialDataLoss = false, bool canWrite = true) {
             Document = document;
             Format = format;
             Diagnostics = diagnostics;
             PreservedSource = preservedSource;
+            HasPotentialDataLoss = hasPotentialDataLoss;
             CanWrite = canWrite;
         }
 
@@ -215,9 +222,29 @@ public sealed class EmailDocumentWriter {
         internal EmailFileFormat Format { get; }
         internal List<EmailDiagnostic> Diagnostics { get; }
         internal byte[]? PreservedSource { get; }
+        internal bool HasPotentialDataLoss { get; }
         internal bool CanWrite { get; }
 
-        internal EmailWriteResult CreateBlockedResult() =>
-            new EmailWriteResult(0, Diagnostics.AsReadOnly(), false);
+        internal EmailWriteResult CreateBlockedResult() => new EmailWriteResult(
+            0, Document.Format, Format, Diagnostics.AsReadOnly(), EmailArtifactSourceSelection.None,
+            HasPotentialDataLoss ? EmailConversionLossDisposition.Blocked : EmailConversionLossDisposition.None,
+            EmailAttachmentContentLifetime.NotAccessed);
+
+        internal EmailWriteResult CreateCompletedResult(long bytesWritten) {
+            bool hasCompletedDataLoss = HasPotentialDataLoss || Diagnostics.Any(item =>
+                item.DataLossRisk != EmailDataLossRisk.None ||
+                item.Severity == EmailDiagnosticSeverity.Error);
+            return new EmailWriteResult(
+                bytesWritten, Document.Format, Format, Diagnostics.AsReadOnly(),
+                PreservedSource != null
+                    ? EmailArtifactSourceSelection.PreservedSource
+                    : EmailArtifactSourceSelection.Regenerated,
+                hasCompletedDataLoss
+                    ? EmailConversionLossDisposition.Accepted
+                    : EmailConversionLossDisposition.None,
+                PreservedSource != null
+                    ? EmailAttachmentContentLifetime.NotAccessed
+                    : EmailAttachmentContentLifetime.OperationScoped);
+        }
     }
 }

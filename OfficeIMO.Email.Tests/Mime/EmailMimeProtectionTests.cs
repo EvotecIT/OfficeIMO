@@ -11,11 +11,16 @@ public sealed class EmailMimeProtectionTests {
         byte[] source = CreateSignedMessage(protocol);
 
         EmailReadResult read = new EmailDocumentReader().Read(source);
-        byte[] rewritten = new EmailDocumentWriter().ToBytes(read.Document, EmailFileFormat.Eml);
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(
+            read.Document, EmailFileFormat.Eml, out EmailWriteResult write);
 
         Assert.Equal(expectedKind, read.Document.Protection.Kind);
         Assert.NotNull(read.Document.RawSource);
         Assert.Equal(source, rewritten);
+        Assert.Equal(EmailArtifactSourceSelection.PreservedSource, write.SourceSelection);
+        Assert.Equal(EmailConversionLossDisposition.None, write.LossDisposition);
+        Assert.Equal(EmailAttachmentContentLifetime.NotAccessed, write.AttachmentContentLifetime);
+        Assert.Same(write, write.RequireNoLoss());
     }
 
     [Fact]
@@ -33,6 +38,10 @@ public sealed class EmailMimeProtectionTests {
         Assert.False(report.CanWrite);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_PROTECTED_CONTENT_REWRITE");
         Assert.True(result.HasErrors);
+        Assert.Equal(EmailArtifactSourceSelection.None, result.SourceSelection);
+        Assert.Equal(EmailConversionLossDisposition.Blocked, result.LossDisposition);
+        Assert.Contains(EmailArtifactDiagnosticCodes.ProtectedContentRewrite, result.DiagnosticCodes);
+        Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         Assert.Equal(0, destination.Length);
         Assert.Throws<InvalidDataException>(() => writer.ToBytes(document, EmailFileFormat.Eml));
     }
@@ -49,6 +58,10 @@ public sealed class EmailMimeProtectionTests {
 
         Assert.NotEmpty(output);
         Assert.False(result.HasErrors);
+        Assert.Equal(EmailArtifactSourceSelection.Regenerated, result.SourceSelection);
+        Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
+        Assert.Equal(EmailAttachmentContentLifetime.OperationScoped, result.AttachmentContentLifetime);
+        Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_PROTECTED_CONTENT_REWRITE" &&
             diagnostic.Severity == EmailDiagnosticSeverity.Warning);
     }

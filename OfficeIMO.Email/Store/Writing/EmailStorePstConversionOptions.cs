@@ -18,10 +18,49 @@ public sealed class EmailStorePstConversionOptions {
         bool verifyAfterWrite = true,
         EmailSemanticComparisonOptions? verificationOptions = null,
         string? verificationManifestPath = null,
-        int maxVerificationIssues = 1_000) {
+        int maxVerificationIssues = 1_000) : this(
+            checkpointPath: null,
+            overwriteExisting: overwriteExisting,
+            failOnDataLoss: failOnDataLoss,
+            continueOnItemError: continueOnItemError,
+            includeAssociatedItems: includeAssociatedItems,
+            includeOrphanedItems: includeOrphanedItems,
+            includeSearchFolders: includeSearchFolders,
+            maxItems: maxItems,
+            maxNestedMessageDepth: maxNestedMessageDepth,
+            displayName: displayName,
+            verifyAfterWrite: verifyAfterWrite,
+            verificationOptions: verificationOptions,
+            verificationManifestPath: verificationManifestPath,
+            maxVerificationIssues: maxVerificationIssues) { }
+
+    /// <summary>Creates resumable conversion options bound to a durable checkpoint path.</summary>
+    public EmailStorePstConversionOptions(
+        string? checkpointPath,
+        bool overwriteExisting = false,
+        bool failOnDataLoss = false,
+        bool continueOnItemError = true,
+        bool includeAssociatedItems = true,
+        bool includeOrphanedItems = true,
+        bool includeSearchFolders = true,
+        int maxItems = int.MaxValue,
+        int maxNestedMessageDepth = 32,
+        string? displayName = null,
+        bool verifyAfterWrite = true,
+        EmailSemanticComparisonOptions? verificationOptions = null,
+        string? verificationManifestPath = null,
+        int maxVerificationIssues = 1_000,
+        int checkpointIntervalItems = 1_000,
+        EmailStorePartialResultPolicy partialResultPolicy =
+            EmailStorePartialResultPolicy.RetainResumableState,
+        IProgress<EmailStorePstMigrationProgress>? progress = null) {
         if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
         if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
         if (maxVerificationIssues <= 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationIssues));
+        if (checkpointIntervalItems <= 0) throw new ArgumentOutOfRangeException(nameof(checkpointIntervalItems));
+        if (!Enum.IsDefined(typeof(EmailStorePartialResultPolicy), partialResultPolicy)) {
+            throw new ArgumentOutOfRangeException(nameof(partialResultPolicy));
+        }
         if (!string.IsNullOrWhiteSpace(verificationManifestPath) &&
             verificationOptions != null && !verificationOptions.UsesKeyedDigest) {
             throw new ArgumentException(
@@ -48,6 +87,10 @@ public sealed class EmailStorePstConversionOptions {
             ? null
             : verificationManifestPath;
         MaxVerificationIssues = maxVerificationIssues;
+        CheckpointPath = string.IsNullOrWhiteSpace(checkpointPath) ? null : Path.GetFullPath(checkpointPath);
+        CheckpointIntervalItems = checkpointIntervalItems;
+        PartialResultPolicy = partialResultPolicy;
+        Progress = progress;
     }
 
     /// <summary>Whether an existing destination may be atomically replaced.</summary>
@@ -87,4 +130,41 @@ public sealed class EmailStorePstConversionOptions {
     public string? VerificationManifestPath { get; }
     /// <summary>Maximum mismatch/failure details retained in memory.</summary>
     public int MaxVerificationIssues { get; }
+    /// <summary>Optional durable checkpoint. An existing checkpoint resumes the exact bound source migration.</summary>
+    public string? CheckpointPath { get; }
+    /// <summary>Number of inspected source items between atomic migration checkpoints.</summary>
+    public int CheckpointIntervalItems { get; }
+    /// <summary>Policy for incomplete writer state after cancellation or failure.</summary>
+    public EmailStorePartialResultPolicy PartialResultPolicy { get; }
+    /// <summary>Optional privacy-safe migration progress sink.</summary>
+    public IProgress<EmailStorePstMigrationProgress>? Progress { get; }
+
+    internal string GetMigrationFingerprint(string destinationPath) {
+        EmailSemanticComparisonOptions? verification = VerificationOptions;
+        string digestKeyFingerprint = string.Empty;
+        byte[]? digestKey = verification?.CopyDigestKey();
+        if (digestKey != null) {
+            try {
+                using (System.Security.Cryptography.SHA256 sha =
+                    System.Security.Cryptography.SHA256.Create()) {
+                    digestKeyFingerprint = EmailHashing.ToHexLower(sha.ComputeHash(digestKey));
+                }
+            }
+            finally { Array.Clear(digestKey, 0, digestKey.Length); }
+        }
+        string value = string.Join("|", "OfficeIMO.StoreMigration.Options.v1",
+            Path.GetFullPath(destinationPath), OverwriteExisting, FailOnDataLoss,
+            ContinueOnItemError, IncludeAssociatedItems, IncludeOrphanedItems,
+            IncludeSearchFolders, MaxItems, MaxNestedMessageDepth, DisplayName ?? string.Empty,
+            VerifyAfterWrite, VerificationManifestPath == null ? string.Empty :
+                Path.GetFullPath(VerificationManifestPath), MaxVerificationIssues,
+            verification?.Profile.ToString() ?? string.Empty,
+            verification?.IncludeAttachmentContent.ToString() ?? string.Empty,
+            verification?.MaxAttachmentBytes.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            verification?.MaxTotalAttachmentBytes.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            verification?.MaxEmbeddedMessageDepth.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            verification?.MaxDifferences.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            digestKeyFingerprint);
+        return EmailHashing.ComputeSha256HexLower(value);
+    }
 }

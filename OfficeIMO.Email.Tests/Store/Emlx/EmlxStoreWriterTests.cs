@@ -5,6 +5,37 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class EmlxStoreWriterTests {
     [Fact]
+    public void Writer_reports_the_outer_emlx_artifact_contract() {
+        var document = new EmailDocument { Subject = "EMLX result" };
+        using var output = new MemoryStream();
+
+        EmailWriteResult result = new EmailStoreEmlxWriter().Write(document, output);
+
+        Assert.Equal(EmailFileFormat.Unknown, result.SourceFormat);
+        Assert.Equal(EmailFileFormat.Emlx, result.TargetFormat);
+        Assert.Equal(EmailArtifactSourceSelection.Regenerated, result.SourceSelection);
+        Assert.Equal(EmailAttachmentContentLifetime.OperationScoped,
+            result.AttachmentContentLifetime);
+        Assert.Equal(output.Length, result.BytesWritten);
+    }
+
+    [Fact]
+    public void Blocked_inner_eml_write_reports_a_blocked_emlx_operation() {
+        var document = new EmailDocument {
+            Subject = "Blocked journal",
+            OutlookItemKind = OutlookItemKind.Journal
+        };
+        using var output = new MemoryStream();
+
+        EmailWriteResult result = new EmailStoreEmlxWriter().Write(document, output);
+
+        Assert.Equal(EmailFileFormat.Emlx, result.TargetFormat);
+        Assert.Equal(EmailArtifactSourceSelection.None, result.SourceSelection);
+        Assert.Equal(EmailConversionLossDisposition.Blocked, result.LossDisposition);
+        Assert.Empty(output.ToArray());
+    }
+
+    [Fact]
     public void WriteThenReadPreservesMessageAndAppleMetadata() {
         var document = new EmailDocument {
             Subject = "EMLX write test",

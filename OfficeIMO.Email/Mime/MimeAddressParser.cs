@@ -27,12 +27,16 @@ internal static class MimeAddressParser {
         }
         if (less >= 0 || raw.IndexOf('>') >= 0) return null;
         if (TryParseAddressWithTrailingComment(raw, decodeDisplayName, out EmailAddress? commented)) return commented;
+        if (!IsPlausibleBareAddress(raw)) return null;
         return new EmailAddress(raw, null, raw);
     }
 
     internal static EmailAddress? ParseOne(string? input, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrWhiteSpace(input)) return null;
-        return ParseOne(input, value => DecodeDisplayName(MimeTextCodec.DecodeHeader(value, diagnostics, location)));
+        EmailAddress? result = ParseOne(input,
+            value => DecodeDisplayName(MimeTextCodec.DecodeHeader(value, diagnostics, location)));
+        if (result == null) AddInvalidAddressDiagnostic(diagnostics, location);
+        return result;
     }
 
     internal static IEnumerable<EmailAddress> ParseMany(string? input, IList<EmailDiagnostic> diagnostics,
@@ -200,6 +204,37 @@ internal static class MimeAddressParser {
         string displayName = decodeDisplayName(value.Substring(open + 1, close - open - 1));
         address = new EmailAddress(addressText, displayName.Length == 0 ? null : displayName, value);
         return true;
+    }
+
+    private static bool IsPlausibleBareAddress(string value) {
+        bool quoted = false;
+        bool escaped = false;
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (character == '\\' && quoted) {
+                escaped = true;
+                continue;
+            }
+            if (character == '"') {
+                quoted = !quoted;
+                continue;
+            }
+            if (!quoted && (char.IsWhiteSpace(character) || character == ',' || character == ';' ||
+                character == '<' || character == '>')) return false;
+            if (char.IsControl(character)) return false;
+        }
+        if (quoted) return false;
+        return value.IndexOf('@') >= 0 || value.IndexOf("=?", StringComparison.Ordinal) < 0;
+    }
+
+    private static void AddInvalidAddressDiagnostic(IList<EmailDiagnostic> diagnostics, string location) {
+        diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_ADDRESS_INVALID",
+            "A malformed address-list entry was retained only in the ordered source header.",
+            EmailDiagnosticSeverity.Warning, location));
     }
 
     private static string DecodeDisplayName(string value) {

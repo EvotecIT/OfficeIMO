@@ -13,12 +13,16 @@ public sealed class EmailImageExportOptions : HtmlRenderOptions {
     /// <summary>Allows MIME related attachments to satisfy content-id and content-location image references.</summary>
     public bool IncludeInlineResources { get; set; } = true;
 
+    /// <summary>Controls whether network resources remain eligible for an explicitly configured resolver.</summary>
+    public EmailRemoteResourcePolicy RemoteResourcePolicy { get; set; } = EmailRemoteResourcePolicy.Block;
+
     /// <summary>Creates an independent email options snapshot.</summary>
     public EmailImageExportOptions CloneEmail() {
         EmailImageExportOptions clone = CopyTo(new EmailImageExportOptions());
         clone.IncludeMessageHeaders = IncludeMessageHeaders;
         clone.PreferHtmlBody = PreferHtmlBody;
         clone.IncludeInlineResources = IncludeInlineResources;
+        clone.RemoteResourcePolicy = RemoteResourcePolicy;
         return clone;
     }
 

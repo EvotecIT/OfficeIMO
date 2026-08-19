@@ -20,8 +20,7 @@ internal sealed class VerificationManifestWriter : IDisposable {
         _differencePathDigest = new HMACSHA256(differencePathKey);
         string directory = Path.GetDirectoryName(_destinationPath) ?? Path.GetFullPath(".");
         Directory.CreateDirectory(directory);
-        _temporaryPath = Path.Combine(directory, string.Concat(".", Path.GetFileName(_destinationPath),
-            ".", Guid.NewGuid().ToString("N"), ".tmp"));
+        _temporaryPath = OfficeFileCommit.CreateTemporaryPath(_destinationPath);
         _writer = new StreamWriter(new FileStream(_temporaryPath, FileMode.CreateNew,
             FileAccess.Write, FileShare.Read, 64 * 1024), new UTF8Encoding(false));
         _writer.NewLine = "\n";
