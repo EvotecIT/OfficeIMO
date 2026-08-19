@@ -279,7 +279,7 @@ public partial class Html {
 
     [Fact]
     public void HtmlEnginePlatform_DeclaresOfficeHtmlLaneContracts() {
-        Assert.Equal(7, OfficeHtmlConversionProfileContracts.All.Count);
+        Assert.Equal(10, OfficeHtmlConversionProfileContracts.All.Count);
 
         OfficeHtmlConversionProfileContract wordSemantic = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.WordSemanticDocument);
         Assert.Equal("Word", wordSemantic.SourceFormat);
@@ -323,6 +323,21 @@ public partial class Html {
         Assert.Equal("OfficeIMO.Drawing", powerPointVisual.VisualPrimitiveOwner);
         Assert.Contains("positioned text frames", powerPointVisual.SupportedHtml);
         Assert.Contains("Drawing-owned slide rendering", powerPointVisual.ResourceGuarantees);
+
+        OfficeHtmlConversionProfileContract rtfSemantic = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.RtfSemanticDocument);
+        Assert.Equal("RTF", rtfSemantic.SourceFormat);
+        Assert.Equal(HtmlConversionProfile.Semantic, rtfSemantic.SharedProfile);
+        Assert.Contains("safe object fallbacks", rtfSemantic.SupportedHtml);
+        Assert.Contains("per-construct preserve/simplify/omit actions", rtfSemantic.DiagnosticGuarantees);
+
+        OfficeHtmlConversionProfileContract rtfRoundTrip = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.RtfDocumentRoundTrip);
+        Assert.Equal(HtmlConversionProfile.Document, rtfRoundTrip.SharedProfile);
+        Assert.Contains("private roundtrip metadata", rtfRoundTrip.ResourceGuarantees);
+
+        OfficeHtmlConversionProfileContract rtfPrint = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.RtfPrintReview);
+        Assert.Equal(HtmlConversionProfile.HighFidelityPrint, rtfPrint.SharedProfile);
+        Assert.Equal("OfficeIMO.Pdf", rtfPrint.VisualPrimitiveOwner);
+        Assert.Contains("print media profile", rtfPrint.ResourceGuarantees);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => OfficeHtmlConversionProfileContracts.Get((OfficeHtmlConversionProfile)99));
     }

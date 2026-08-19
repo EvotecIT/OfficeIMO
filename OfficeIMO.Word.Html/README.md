@@ -15,18 +15,15 @@ dotnet add package OfficeIMO.Word.Html
 
 ```csharp
 using OfficeIMO.Word;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
 using WordDocument document = source.ToWordDocument(new HtmlToWordOptions());
 
-string html = document.ToHtml(new WordToHtmlOptions {
-    IncludeDefaultCss = true,
-    ExportFootnotes = true,
-    ExportEndnotes = true,
-    ExportComments = true
-});
+string html = document.ToHtml(
+    WordToHtmlOptions.CreateDocumentRoundTripProfile(OfficeVisualThemeKind.Report));
 
 HtmlTextConversionResult export = document.ToHtmlResult();
 Console.WriteLine(export.RequireValue());
@@ -48,6 +45,16 @@ foreach (HtmlDiagnostic diagnostic in result.Report.Diagnostics) {
 ```
 
 `HtmlConversionDocument` is the required source model. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `HtmlToWordOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
+
+## Export profiles and themes
+
+Word export has named profiles for the intended fidelity contract:
+
+- `CreateSemanticDocumentProfile()` produces readable, accessible document HTML.
+- `CreateDocumentRoundTripProfile()` enables editable structure, comments, section metadata, headers, footers, and trusted round-trip details.
+- `CreatePrintReviewProfile()` produces a static browser and print review without claiming browser/Word pagination parity.
+
+Each named profile uses the shared responsive OfficeIMO document shell and accepts an `OfficeVisualThemeKind`. The shell styles headings, tables, forms, figures, code, document regions, compact screens, and print output. It does not enable JavaScript, remote execution, or live browser behavior. `new WordToHtmlOptions()` and the existing `IncludeDefaultCss` switch retain their compact compatibility output unless `UseSharedDocumentShell` is selected explicitly.
 
 ## What it maps
 

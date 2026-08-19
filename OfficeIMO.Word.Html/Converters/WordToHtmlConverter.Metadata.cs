@@ -10,11 +10,18 @@ namespace OfficeIMO.Word.Html {
             IElement head,
             WordToHtmlOptions options,
             CancellationToken cancellationToken) {
-            ApplyDocumentShellMetadata(document, htmlDoc);
+            ApplyDocumentShellMetadata(document, htmlDoc, options);
 
             var charset = CreateOutputElement(htmlDoc, "meta");
             SetOutputAttribute(htmlDoc, charset, "charset", "UTF-8", "DocumentMetadata:charset");
             head.AppendChild(charset);
+
+            if (options.IncludeDefaultCss && options.UseSharedDocumentShell) {
+                var viewport = CreateOutputElement(htmlDoc, "meta");
+                SetOutputAttribute(htmlDoc, viewport, "name", "viewport", "DocumentMetadata:viewport-name");
+                SetOutputAttribute(htmlDoc, viewport, "content", "width=device-width, initial-scale=1", "DocumentMetadata:viewport-content");
+                head.AppendChild(viewport);
+            }
 
             var props = document.BuiltinDocumentProperties;
             var title = CreateOutputElement(htmlDoc, "title");
@@ -60,12 +67,12 @@ namespace OfficeIMO.Word.Html {
 
             if (options.IncludeDefaultCss) {
                 var style = CreateOutputElement(htmlDoc, "style");
-                SetMetadataText(htmlDoc, style, WordHtmlResources.DefaultCss, "DocumentMetadata:default-css");
+                SetMetadataText(htmlDoc, style, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell), "DocumentMetadata:default-css");
                 head.AppendChild(style);
             }
         }
 
-        private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc) {
+        private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc, WordToHtmlOptions options) {
             var language = document.Settings.Language;
             if (!string.IsNullOrWhiteSpace(language)) {
                 SetOutputAttribute(
@@ -74,6 +81,25 @@ namespace OfficeIMO.Word.Html {
                     "lang",
                     language!.Trim(),
                     "DocumentMetadata:language");
+            }
+
+            if (!options.IncludeDefaultCss || !options.UseSharedDocumentShell) {
+                return;
+            }
+
+            SetOutputAttribute(
+                htmlDoc,
+                htmlDoc.DocumentElement,
+                "data-officeimo-profile",
+                options.Profile.ToString(),
+                "DocumentMetadata:profile");
+            if (htmlDoc.Body != null) {
+                SetOutputAttribute(
+                    htmlDoc,
+                    htmlDoc.Body,
+                    "class",
+                    "officeimo-html officeimo-word-html",
+                    "DocumentMetadata:body-class");
             }
         }
 

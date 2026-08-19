@@ -10,6 +10,7 @@ The public APIs remain in the familiar `OfficeIMO.Html` namespace:
 
 ```csharp
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using OfficeIMO.Rtf;
 
 HtmlConversionDocument html = HtmlConversionDocument.Parse(
@@ -20,6 +21,15 @@ RtfToHtmlResult roundTrip = rtf.ToHtmlResult(
     RtfToHtmlOptions.CreateWebSafeProfile());
 roundTrip.Report.RequireNoLoss();
 ```
+
+For a complete responsive and print-aware review document, select the named print profile and a shared theme:
+
+```csharp
+string reviewHtml = rtf.ToHtml(
+    RtfToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.WordLike));
+```
+
+`CreateWebSafeProfile()` is the bounded semantic publishing profile. `CreateRoundTripProfile()` enables trusted private metadata and embedded payloads for editable HTML/RTF workflows. `CreatePrintReviewProfile()` emits a complete static document with the shared OfficeIMO stylesheet; it never enables script execution or remote browser behavior. Conversion results retain per-construct preserved, simplified, omitted, and rejected diagnostics.
 
 The bridge preserves supported structure and reports approximation or loss. Native RTF editing and exact unchanged-source preservation remain in `OfficeIMO.Rtf`.
 

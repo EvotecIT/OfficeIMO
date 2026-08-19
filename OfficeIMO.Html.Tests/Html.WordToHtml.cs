@@ -2,6 +2,7 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -814,6 +815,36 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Normal paragraph", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Test_WordToHtml_NamedProfiles_UseSharedPremiumDocumentShell() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Premium review");
+
+            WordToHtmlOptions options = WordToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report);
+            string html = doc.ToHtml(options);
+
+            Assert.Equal(OfficeHtmlConversionProfile.WordPrintReview, options.Profile);
+            Assert.True(options.UseSharedDocumentShell);
+            Assert.Contains("class=\"officeimo-html officeimo-word-html\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("data-officeimo-profile=\"WordPrintReview\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("--officeimo-accent:#1D4ED8", html, StringComparison.Ordinal);
+            Assert.Contains("@media print", html, StringComparison.Ordinal);
+            Assert.Contains("@page officeimo-word", html, StringComparison.Ordinal);
+            Assert.Matches(@"(?s)@page officeimo-word\s*\{\s*margin:\s*0;.*?body\.officeimo-html \.word-section\s*\{\s*page:\s*officeimo-word;.*?width:\s*100%\s*!important;.*?height:\s*auto\s*!important;", html);
+            Assert.Contains("@media screen and (max-width: 700px)", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("@media (max-width: 700px)", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_RejectsNonWordProfile() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Profile boundary");
+
+            var options = new WordToHtmlOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => doc.ToHtml(options));
         }
 
         [Fact]

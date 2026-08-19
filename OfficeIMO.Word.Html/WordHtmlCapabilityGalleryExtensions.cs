@@ -89,13 +89,7 @@ namespace OfficeIMO.Word.Html {
                 return options;
             }
 
-            return new WordToHtmlOptions {
-                IncludeListStyles = true,
-                IncludeTableColumnGroups = true,
-                IncludeDefaultCss = true,
-                ExportFootnotes = true,
-                ExportEndnotes = true
-            };
+            return WordToHtmlOptions.CreateDocumentRoundTripProfile(OfficeIMO.Drawing.OfficeVisualThemeKind.Report);
         }
 
         private static void AppendOpenXmlValidationDiagnostics(HtmlCapabilityGalleryResult result, MemoryStream packageStream) {

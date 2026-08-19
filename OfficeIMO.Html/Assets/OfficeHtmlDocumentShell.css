@@ -1,0 +1,494 @@
+html {
+    background: var(--officeimo-page-background);
+    color-scheme: light;
+}
+
+body.officeimo-html {
+    box-sizing: border-box;
+    margin: 0;
+    background: var(--officeimo-page-background);
+    color: var(--officeimo-text);
+    font-family: var(--officeimo-font-body);
+    font-size: var(--officeimo-font-size);
+    line-height: 1.55;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+body.officeimo-html *,
+body.officeimo-html *::before,
+body.officeimo-html *::after {
+    box-sizing: border-box;
+}
+
+body.officeimo-word-html,
+body.officeimo-rtf-html,
+main.officeimo-document {
+    width: min(1120px, calc(100% - 40px));
+    margin: 30px auto 44px;
+    padding: clamp(24px, 4vw, 52px);
+    background: var(--officeimo-surface);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, .10), 0 2px 8px rgba(15, 23, 42, .06);
+}
+
+body.officeimo-word-html,
+body.officeimo-rtf-html {
+    min-height: calc(100vh - 74px);
+}
+
+body.officeimo-html h1,
+body.officeimo-html h2,
+body.officeimo-html h3,
+body.officeimo-html h4,
+body.officeimo-html h5,
+body.officeimo-html h6 {
+    color: var(--officeimo-heading);
+    font-family: var(--officeimo-font-heading);
+    font-weight: 680;
+    line-height: 1.18;
+    letter-spacing: -.018em;
+    text-wrap: balance;
+}
+
+body.officeimo-html h1 {
+    margin: 0 0 20px;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+}
+
+body.officeimo-html h2 {
+    margin: 34px 0 14px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--officeimo-border);
+    font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+}
+
+body.officeimo-html h3 {
+    margin: 26px 0 10px;
+    font-size: 1.22rem;
+}
+
+body.officeimo-html h4,
+body.officeimo-html h5,
+body.officeimo-html h6 {
+    margin: 22px 0 8px;
+}
+
+body.officeimo-html p {
+    margin: 0 0 14px;
+}
+
+body.officeimo-html a {
+    color: var(--officeimo-accent);
+    text-decoration-thickness: .08em;
+    text-underline-offset: .16em;
+}
+
+body.officeimo-html a:hover {
+    color: var(--officeimo-accent-dark);
+}
+
+body.officeimo-html ul,
+body.officeimo-html ol {
+    margin: 0 0 18px;
+    padding-left: 1.6rem;
+}
+
+body.officeimo-html li + li {
+    margin-top: 5px;
+}
+
+body.officeimo-html blockquote {
+    margin: 20px 0;
+    padding: 14px 18px;
+    background: var(--officeimo-accent-soft);
+    border-left: 4px solid var(--officeimo-accent);
+    border-radius: 0 8px 8px 0;
+    color: var(--officeimo-muted);
+}
+
+body.officeimo-html code,
+body.officeimo-html pre,
+body.officeimo-html kbd,
+body.officeimo-html samp {
+    font-family: var(--officeimo-font-mono);
+}
+
+body.officeimo-html code {
+    padding: .12em .36em;
+    background: var(--officeimo-code-background);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 5px;
+    font-size: .9em;
+}
+
+body.officeimo-html pre,
+pre.officeimo-source-markdown {
+    max-width: 100%;
+    margin: 18px 0;
+    padding: 16px 18px;
+    overflow: auto;
+    background: var(--officeimo-code-background);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 9px;
+    line-height: 1.48;
+    white-space: pre-wrap;
+}
+
+body.officeimo-html pre code {
+    padding: 0;
+    background: transparent;
+    border: 0;
+}
+
+body.officeimo-html table,
+table.officeimo-table {
+    width: 100%;
+    margin: 18px 0 24px;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    background: var(--officeimo-surface);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 9px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+body.officeimo-html th,
+body.officeimo-html td,
+.officeimo-table th,
+.officeimo-table td {
+    padding: 9px 11px;
+    border-right: 1px solid var(--officeimo-border);
+    border-bottom: 1px solid var(--officeimo-border);
+    vertical-align: top;
+    text-align: left;
+}
+
+body.officeimo-html tr > :last-child,
+.officeimo-table tr > :last-child {
+    border-right: 0;
+}
+
+body.officeimo-html tbody tr:last-child > *,
+body.officeimo-html tfoot tr:last-child > *,
+.officeimo-table tbody tr:last-child > *,
+.officeimo-table tfoot tr:last-child > * {
+    border-bottom: 0;
+}
+
+body.officeimo-html th,
+.officeimo-table th {
+    background: var(--officeimo-table-header);
+    color: var(--officeimo-heading);
+    font-weight: 680;
+}
+
+body.officeimo-html tbody tr:nth-child(even) > td,
+.officeimo-table tbody tr:nth-child(even) > td {
+    background: var(--officeimo-table-stripe);
+}
+
+body.officeimo-html td > :last-child,
+body.officeimo-html th > :last-child {
+    margin-bottom: 0;
+}
+
+body.officeimo-html figure {
+    display: inline-flex;
+    max-width: 100%;
+    margin: 18px 0 24px;
+    padding: 12px;
+    flex-direction: column;
+    gap: 9px;
+    background: var(--officeimo-panel);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 10px;
+}
+
+body.officeimo-html img,
+body.officeimo-html svg {
+    max-width: 100%;
+    height: auto;
+}
+
+body.officeimo-html figcaption {
+    color: var(--officeimo-muted);
+    font-size: .88em;
+}
+
+body.officeimo-html input,
+body.officeimo-html select,
+body.officeimo-html textarea,
+body.officeimo-html button {
+    max-width: 100%;
+    min-height: 34px;
+    padding: 6px 9px;
+    color: var(--officeimo-text);
+    font: inherit;
+    background: var(--officeimo-surface);
+    border: 1px solid var(--officeimo-border-strong);
+    border-radius: 7px;
+}
+
+body.officeimo-html input[type="checkbox"],
+body.officeimo-html input[type="radio"] {
+    width: 1rem;
+    min-height: auto;
+    padding: 0;
+    accent-color: var(--officeimo-accent);
+}
+
+body.officeimo-html :disabled {
+    color: var(--officeimo-text);
+    background: var(--officeimo-control-disabled);
+    opacity: 1;
+}
+
+body.officeimo-html hr {
+    height: 1px;
+    margin: 28px 0;
+    background: var(--officeimo-border);
+    border: 0;
+}
+
+.officeimo-panel,
+.officeimo-sheet,
+.officeimo-slide {
+    margin: 0 0 22px;
+    padding: 20px;
+    background: var(--officeimo-surface);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 10px;
+    box-shadow: 0 2px 7px rgba(15, 23, 42, .06);
+}
+
+.officeimo-muted,
+.officeimo-diagnostic,
+.officeimo-feature-meta {
+    color: var(--officeimo-muted);
+    font-size: .86em;
+}
+
+.officeimo-diagnostic {
+    padding: 8px 10px;
+    background: var(--officeimo-warning-soft);
+    border-left: 3px solid var(--officeimo-warning);
+    border-radius: 0 6px 6px 0;
+}
+
+.officeimo-feature {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--officeimo-border);
+}
+
+.officeimo-feature h3 {
+    margin-top: 0;
+}
+
+.officeimo-feature-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 12px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.officeimo-feature-item {
+    min-width: 0;
+    padding: 12px;
+    background: var(--officeimo-panel);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 8px;
+}
+
+.officeimo-feature-label {
+    display: block;
+    color: var(--officeimo-heading);
+    font-weight: 680;
+}
+
+.officeimo-inline-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-top: 9px;
+    border: 1px solid var(--officeimo-border);
+    border-radius: 6px;
+}
+
+.officeimo-visual-page {
+    margin: 14px 0 22px;
+    padding: 14px;
+    overflow: auto;
+    background: var(--officeimo-surface);
+    border: 1px solid var(--officeimo-border);
+    border-radius: 10px;
+}
+
+.officeimo-slide-canvas {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--officeimo-border);
+    border-radius: 5px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, .12);
+}
+
+.officeimo-shape {
+    position: absolute;
+    box-sizing: border-box;
+    padding: 6px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, .86);
+    border: 1px solid var(--officeimo-border);
+}
+
+.officeimo-shape-table,
+.officeimo-shape-chart {
+    padding: 0;
+    background: #fff;
+}
+
+.officeimo-shape-picture {
+    padding: 0;
+    background: transparent;
+    border-color: transparent;
+}
+
+.officeimo-shape-picture img,
+.officeimo-chart-rendered,
+.officeimo-chart-rendered svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.officeimo-shape-picture img {
+    object-fit: fill;
+}
+
+.officeimo-shape-placeholder {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: var(--officeimo-muted);
+    background: var(--officeimo-panel);
+    font-size: 12px;
+    text-align: center;
+}
+
+.officeimo-chart-placeholder {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 10px;
+}
+
+.officeimo-chart-bars {
+    display: flex;
+    height: 64px;
+    margin-top: 8px;
+    align-items: flex-end;
+    gap: 4px;
+    border-bottom: 1px solid var(--officeimo-border);
+}
+
+.officeimo-chart-bars span {
+    display: block;
+    min-width: 10px;
+    background: var(--officeimo-accent);
+    border-radius: 3px 3px 0 0;
+}
+
+@media screen and (max-width: 700px) {
+    body.officeimo-word-html,
+    body.officeimo-rtf-html,
+    main.officeimo-document {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        padding: 22px 16px 32px;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    body.officeimo-html h1 {
+        font-size: 2rem;
+    }
+
+    body.officeimo-html table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    body.officeimo-html .word-section {
+        width: 100% !important;
+        max-width: 100%;
+        height: auto !important;
+        min-height: 0;
+        padding: 0 !important;
+    }
+
+    .officeimo-panel,
+    .officeimo-sheet,
+    .officeimo-slide {
+        padding: 15px;
+    }
+}
+
+@media print {
+    @page {
+        margin: 16mm;
+    }
+
+    @page officeimo-word {
+        margin: 0;
+    }
+
+    html,
+    body.officeimo-html {
+        background: #fff;
+    }
+
+    body.officeimo-word-html,
+    body.officeimo-rtf-html,
+    main.officeimo-document {
+        width: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    body.officeimo-html .word-section {
+        page: officeimo-word;
+        width: 100% !important;
+        max-width: 100%;
+        height: auto !important;
+        min-height: 0;
+    }
+
+    .officeimo-panel,
+    .officeimo-sheet,
+    .officeimo-slide,
+    body.officeimo-html figure,
+    body.officeimo-html table {
+        box-shadow: none;
+        break-inside: avoid;
+    }
+
+    body.officeimo-html a {
+        color: inherit;
+        text-decoration: underline;
+    }
+}

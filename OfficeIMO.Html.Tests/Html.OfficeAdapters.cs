@@ -1507,7 +1507,9 @@ public partial class HtmlOfficeAdapters {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
         });
 
-        Assert.Contains(".officeimo-shape-picture img{width:100%;height:100%;object-fit:fill;display:block;}", html, StringComparison.Ordinal);
+        Assert.Matches(
+            @"(?s)\.officeimo-shape-picture img,.*?display:\s*block;.*?width:\s*100%;.*?height:\s*100%;.*?\.officeimo-shape-picture img\s*\{\s*object-fit:\s*fill;",
+            html);
     }
 
     [Fact]
@@ -1785,6 +1787,15 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Contains("<title>Theme</title>", html, StringComparison.Ordinal);
         Assert.Contains("--officeimo-accent:#047857", html, StringComparison.Ordinal);
+        Assert.Contains("--officeimo-font-heading:", html, StringComparison.Ordinal);
+        Assert.Contains("@media print", html, StringComparison.Ordinal);
+        Assert.Contains("@media screen and (max-width: 700px)", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("@media (max-width: 700px)", html, StringComparison.Ordinal);
+        Assert.Contains("body.officeimo-html input", html, StringComparison.Ordinal);
         Assert.Contains("Styled", html, StringComparison.Ordinal);
+
+        string githubCss = OfficeHtmlDocumentShell.GetThemeCss(OfficeVisualThemeKind.GitHubLike);
+        Assert.Contains("--officeimo-accent:#0969DA", githubCss, StringComparison.Ordinal);
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeHtmlDocumentShell.GetThemeCss((OfficeVisualThemeKind)999));
     }
 }

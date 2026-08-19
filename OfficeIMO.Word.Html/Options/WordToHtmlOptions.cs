@@ -1,8 +1,76 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+
 namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options controlling Word to HTML conversion.
     /// </summary>
     public class WordToHtmlOptions {
+        /// <summary>
+        /// Creates a readable semantic-document export with shared OfficeIMO document styling.
+        /// </summary>
+        public static WordToHtmlOptions CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
+            new WordToHtmlOptions {
+                Profile = OfficeHtmlConversionProfile.WordSemanticDocument,
+                Theme = theme,
+                IncludeDefaultCss = true,
+                UseSharedDocumentShell = true,
+                IncludeFontStyles = true,
+                IncludeListStyles = true,
+                IncludeParagraphSpacingStyles = true,
+                IncludeParagraphIndentationStyles = true,
+                IncludeTableColumnGroups = true
+            };
+
+        /// <summary>
+        /// Creates a trusted editable round-trip export with document structure and private review metadata enabled.
+        /// </summary>
+        public static WordToHtmlOptions CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) =>
+            new WordToHtmlOptions {
+                Profile = OfficeHtmlConversionProfile.WordDocumentRoundTrip,
+                Theme = theme,
+                IncludeDefaultCss = true,
+                UseSharedDocumentShell = true,
+                IncludeFontStyles = true,
+                IncludeListStyles = true,
+                IncludeListDefinitions = true,
+                IncludeParagraphClasses = true,
+                IncludeRunClasses = true,
+                IncludeParagraphSpacingStyles = true,
+                IncludeParagraphIndentationStyles = true,
+                ExportComments = true,
+                ExportHeadersAndFooters = true,
+                IncludeCustomProperties = true,
+                IncludeSectionMetadata = true,
+                IncludeTableColumnGroups = true
+            };
+
+        /// <summary>
+        /// Creates a print-oriented review export with section, header, footer, and generated print styling.
+        /// </summary>
+        public static WordToHtmlOptions CreatePrintReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
+            new WordToHtmlOptions {
+                Profile = OfficeHtmlConversionProfile.WordPrintReview,
+                Theme = theme,
+                IncludeDefaultCss = true,
+                UseSharedDocumentShell = true,
+                IncludeFontStyles = true,
+                IncludeListStyles = true,
+                IncludeParagraphSpacingStyles = true,
+                IncludeParagraphIndentationStyles = true,
+                ExportComments = true,
+                ExportHeadersAndFooters = true,
+                IncludeCustomProperties = true,
+                IncludeSectionMetadata = true,
+                IncludeTableColumnGroups = true
+            };
+
+        /// <summary>Named Office-to-HTML fidelity contract represented by this export.</summary>
+        public OfficeHtmlConversionProfile Profile { get; set; } = OfficeHtmlConversionProfile.WordSemanticDocument;
+
+        /// <summary>Shared visual theme used when <see cref="IncludeDefaultCss"/> is enabled.</summary>
+        public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.WordLike;
+
         /// <summary>Maximum Open XML elements inspected during export. Defaults to 1,000,000.</summary>
         public long MaxDocumentElements { get; set; } = 1_000_000;
 
@@ -146,10 +214,18 @@ namespace OfficeIMO.Word.Html {
         /// </summary>
         public bool IncludeDefaultCss { get; set; } = false;
 
+        /// <summary>
+        /// Uses the shared responsive, print-aware OfficeIMO document shell when default CSS is included.
+        /// Named export profiles enable this automatically. The default is false for legacy output compatibility.
+        /// </summary>
+        public bool UseSharedDocumentShell { get; set; }
+
         internal OfficeIMO.Html.HtmlDiagnosticReport ConversionReport { get; } = new OfficeIMO.Html.HtmlDiagnosticReport();
 
         internal WordToHtmlOptions CloneForConversion() {
             var clone = new WordToHtmlOptions {
+                Profile = Profile,
+                Theme = Theme,
                 MaxDocumentElements = MaxDocumentElements,
                 MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
                 MaxTotalEmbeddedImageBytes = MaxTotalEmbeddedImageBytes,
@@ -175,7 +251,8 @@ namespace OfficeIMO.Word.Html {
                 IncludeSectionMetadata = IncludeSectionMetadata,
                 IncludeTableColumnGroups = IncludeTableColumnGroups,
                 EmbedImagesAsBase64 = EmbedImagesAsBase64,
-                IncludeDefaultCss = IncludeDefaultCss
+                IncludeDefaultCss = IncludeDefaultCss,
+                UseSharedDocumentShell = UseSharedDocumentShell
             };
             clone.AdditionalMetaTags.AddRange(AdditionalMetaTags);
             clone.AdditionalLinkTags.AddRange(AdditionalLinkTags);

@@ -8,6 +8,13 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         private static ExportInspection InspectExport(WordDocument document, WordToHtmlOptions options) {
+            OfficeHtmlConversionProfileContract profile = OfficeHtmlConversionProfileContracts.Get(options.Profile);
+            if (!string.Equals(profile.SourceFormat, "Word", StringComparison.Ordinal)) {
+                throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "The selected HTML conversion profile is not a Word profile.");
+            }
+            if (options.IncludeDefaultCss && options.UseSharedDocumentShell && !Enum.IsDefined(typeof(OfficeIMO.Drawing.OfficeVisualThemeKind), options.Theme)) {
+                throw new ArgumentOutOfRangeException(nameof(options.Theme));
+            }
             if (options.MaxDocumentElements <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDocumentElements));
             if (options.MaxEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedImageBytes));
             if (options.MaxTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalEmbeddedImageBytes));

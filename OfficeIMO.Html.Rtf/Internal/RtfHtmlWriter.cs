@@ -65,6 +65,10 @@ internal static partial class RtfHtmlWriter {
         builder.Append("<head>");
         builder.Append(newline);
         builder.Append("<meta charset=\"utf-8\">");
+        if (options.IncludeDefaultStyles) {
+            builder.Append(newline);
+            builder.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+        }
         if (options.IncludeMetadata) {
             string? title = options.Title ?? document.Info.Title;
             if (!string.IsNullOrWhiteSpace(title)) {
@@ -90,10 +94,24 @@ internal static partial class RtfHtmlWriter {
             AppendFileReferencesMetadata(builder, document, newline);
             AppendXmlNamespacesMetadata(builder, document, newline);
         }
+        if (options.IncludeDefaultStyles) {
+            builder.Append(newline);
+            builder.Append("<style>");
+            builder.Append(newline);
+            builder.Append(OfficeHtmlDocumentShell.GetThemeCss(options.Theme, newline));
+            builder.Append(newline);
+            builder.Append("</style>");
+        }
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);
-        builder.Append("<body>");
+        if (options.IncludeDefaultStyles) {
+            builder.Append("<body class=\"officeimo-html officeimo-rtf-html\" data-officeimo-profile=\"");
+            builder.Append(EncodeAttribute(options.Profile.ToString()));
+            builder.Append("\">");
+        } else {
+            builder.Append("<body>");
+        }
         builder.Append(newline);
     }
 

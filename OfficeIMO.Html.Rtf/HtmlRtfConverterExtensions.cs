@@ -16,6 +16,14 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(document));
         }
 
+        OfficeHtmlConversionProfileContract profile = OfficeHtmlConversionProfileContracts.Get(effectiveOptions.Profile);
+        if (!string.Equals(profile.SourceFormat, "RTF", StringComparison.Ordinal)) {
+            throw new ArgumentOutOfRangeException(nameof(effectiveOptions.Profile), effectiveOptions.Profile, "The selected HTML conversion profile is not an RTF profile.");
+        }
+        if (effectiveOptions.IncludeDefaultStyles && !Enum.IsDefined(typeof(OfficeVisualThemeKind), effectiveOptions.Theme)) {
+            throw new ArgumentOutOfRangeException(nameof(effectiveOptions.Theme));
+        }
+
         if (effectiveOptions.PreferEncapsulatedHtml &&
             document.HtmlEncapsulation != null &&
             !string.IsNullOrWhiteSpace(document.HtmlEncapsulation.Html)) {

@@ -23,6 +23,24 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 
 Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
 
+## Shared Office HTML document shell
+
+Office adapters use `OfficeHtmlDocumentShell` and `OfficeVisualThemeKind` for consistent semantic, editable round-trip, positioned-review, and print-review output. The embedded stylesheet supplies explicit palettes, readable typography, responsive page regions, tables, forms, figures, code, adapter panels, and print rules without making each adapter maintain a separate CSS implementation.
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+
+string review = OfficeHtmlDocumentShell.WrapBody(
+    "<main class=\"officeimo-document\"><h1>Review</h1></main>",
+    new OfficeHtmlDocumentOptions {
+        Title = "Conversion review",
+        Theme = OfficeVisualThemeKind.Report
+    });
+```
+
+The shell is presentation only. Parsing, resource policy, layout interpretation, conversion diagnostics, and static execution boundaries remain owned by the managed HTML engine and the destination adapter.
+
 ## Direct HTML rendering
 
 ```csharp

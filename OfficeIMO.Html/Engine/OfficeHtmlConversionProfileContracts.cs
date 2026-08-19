@@ -81,7 +81,40 @@ public static class OfficeHtmlConversionProfileContracts {
             "OfficeIMO.Drawing",
             new[] { "slide wrappers", "positioned text frames", "positioned images", "shapes", "charts", "tables", "media placeholders", "source anchors" },
             new[] { "shared asset manifest", "Drawing-owned slide rendering", "media placeholder policy", "hyperlink frame reporting" },
-            new[] { "visual simplification diagnostics", "unsupported animation/media diagnostics", "no-editable-reconstruction boundary" })
+            new[] { "visual simplification diagnostics", "unsupported animation/media diagnostics", "no-editable-reconstruction boundary" }),
+        new OfficeHtmlConversionProfileContract(
+            OfficeHtmlConversionProfile.RtfSemanticDocument,
+            "RTF",
+            "RTF Semantic Document",
+            HtmlConversionProfile.Semantic,
+            "RTF paragraphs, lists, tables, fields, links, images, notes, and safe object fallbacks as accessible HTML.",
+            "Preserve readable document structure first while rejecting unsafe resources and reporting controls that require simplification or omission.",
+            "none",
+            new[] { "headings", "paragraphs", "lists", "tables", "fields", "links", "images", "notes", "safe object fallbacks" },
+            new[] { "restrictive web URL policy", "bounded embedded image policy", "encapsulated HTML reparsing" },
+            new[] { "per-construct preserve/simplify/omit actions", "resource rejection diagnostics", "producer-control preservation diagnostics" }),
+        new OfficeHtmlConversionProfileContract(
+            OfficeHtmlConversionProfile.RtfDocumentRoundTrip,
+            "RTF",
+            "RTF Document Roundtrip",
+            HtmlConversionProfile.Document,
+            "Trusted RTF-to-HTML-to-RTF workflows where editable structure, private metadata, binary resources, and preservation diagnostics are reviewed together.",
+            "Preserve supported RTF controls and payloads through typed private metadata without presenting that metadata as safe public HTML.",
+            "none",
+            new[] { "document shell", "paragraphs", "lists", "nested tables", "fields", "images", "objects", "shapes", "notes", "headers-and-footers" },
+            new[] { "OfficeIMO trusted URL policy", "embedded image payloads", "private roundtrip metadata" },
+            new[] { "per-construct preserve/simplify/omit actions", "roundtrip preservation diagnostics", "unsafe-publication boundary" }),
+        new OfficeHtmlConversionProfileContract(
+            OfficeHtmlConversionProfile.RtfPrintReview,
+            "RTF",
+            "RTF Print Review",
+            HtmlConversionProfile.HighFidelityPrint,
+            "Styled browser and print review of RTF sections, tables, fields, images, notes, and page-break behavior.",
+            "Expose a polished static document shell and print rules while retaining explicit RTF-to-browser layout boundaries.",
+            "OfficeIMO.Pdf",
+            new[] { "document shell", "section regions", "headings", "paragraphs", "lists", "tables", "fields", "images", "notes", "page breaks" },
+            new[] { "shared OfficeIMO theme", "print media profile", "bounded web resource policy" },
+            new[] { "per-construct preserve/simplify/omit actions", "browser-layout boundary", "print-fidelity boundary" })
     }.AsReadOnly();
 
     /// <summary>Gets all source-specific Office-to-HTML profile contracts.</summary>

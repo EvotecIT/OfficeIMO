@@ -8,18 +8,41 @@ public sealed partial class RtfToHtmlOptions {
     /// Creates options for publishing untrusted RTF as semantic HTML. Private OfficeIMO round-trip
     /// metadata and inline data URI images are disabled, and only web and mail hyperlinks are allowed.
     /// </summary>
-    public static RtfToHtmlOptions CreateWebSafeProfile() => new RtfToHtmlOptions();
+    public static RtfToHtmlOptions CreateWebSafeProfile() => new RtfToHtmlOptions {
+        Profile = OfficeHtmlConversionProfile.RtfSemanticDocument
+    };
 
     /// <summary>
     /// Creates options for a trusted OfficeIMO HTML round trip. The output can contain private
     /// metadata and binary payloads and must not be published without sanitization.
     /// </summary>
     public static RtfToHtmlOptions CreateRoundTripProfile() => new RtfToHtmlOptions {
+        Profile = OfficeHtmlConversionProfile.RtfDocumentRoundTrip,
         UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile(),
         IncludeRoundTripMetadata = true,
         EmbedImagesAsDataUri = true,
         MaxEmbeddedImageBytes = int.MaxValue
     };
+
+    /// <summary>
+    /// Creates a complete, styled HTML document for browser and print review. The profile remains
+    /// static and never enables script execution or remote browser behavior.
+    /// </summary>
+    public static RtfToHtmlOptions CreatePrintReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) => new RtfToHtmlOptions {
+        Profile = OfficeHtmlConversionProfile.RtfPrintReview,
+        Theme = theme,
+        FragmentOnly = false,
+        IncludeDefaultStyles = true
+    };
+
+    /// <summary>Named Office-to-HTML fidelity contract represented by this export.</summary>
+    public OfficeHtmlConversionProfile Profile { get; set; } = OfficeHtmlConversionProfile.RtfSemanticDocument;
+
+    /// <summary>Shared visual theme used when <see cref="IncludeDefaultStyles"/> is enabled.</summary>
+    public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.WordLike;
+
+    /// <summary>Includes the shared responsive and print-aware OfficeIMO document stylesheet.</summary>
+    public bool IncludeDefaultStyles { get; set; }
 
     /// <summary>Writes only the body fragment instead of a complete HTML document.</summary>
     public bool FragmentOnly { get; set; } = true;
@@ -76,6 +99,9 @@ public sealed partial class RtfToHtmlOptions {
     /// </summary>
     /// <returns>A new <see cref="RtfToHtmlOptions"/> with the same configuration values.</returns>
     public RtfToHtmlOptions Clone() => new RtfToHtmlOptions {
+        Profile = Profile,
+        Theme = Theme,
+        IncludeDefaultStyles = IncludeDefaultStyles,
         FragmentOnly = FragmentOnly,
         IncludeMetadata = IncludeMetadata,
         PreferEncapsulatedHtml = PreferEncapsulatedHtml,
