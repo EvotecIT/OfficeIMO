@@ -44,9 +44,14 @@ internal sealed class PstWriterFile : IDisposable {
             _nextBlockBid = state.NextBlockBid;
             _nextPageBid = state.NextPageBid;
             RegisterMapPagesThrough(_nextOffset);
+            bool rebuildReferenceCounts = _blocks.PrepareLegacyReferenceCountMigration();
             foreach (PstWriterBlock block in _blocks.ReadAll()) {
                 RegisterAllocation(block.Offset,
                     PstBinary.Align(block.Length + BlockTrailerLength, 64));
+            }
+            if (rebuildReferenceCounts) {
+                RebuildInternalBlockReferences();
+                _blocks.CompleteLegacyReferenceCountMigration();
             }
         } else {
             _stream.SetLength(FirstDataOffset);
@@ -207,11 +212,132 @@ internal sealed class PstWriterFile : IDisposable {
                 PstBinary.WriteUInt32(payload, 4, childLength);
                 for (int index = 0; index < count; index++) {
                     PstBinary.WriteUInt64(payload, 8 + index * 8, children[index].Bid);
+                    AddBlockReference(children[index].Bid);
                 }
                 parents.Add(WriteBlock(payload, isInternal: true).Bid, childLength);
     }
 
     internal ulong WriteInternalBlock(byte[] payload) => WriteBlock(payload, isInternal: true).Bid;
+
+    internal void AddBlockReference(ulong bid) {
+        if (bid != 0) _blocks.AddReference(bid);
+    }
+
+    internal long GetContextDataLength(ulong dataBid, ulong subnodeBid) =>
+        checked(GetDataTreeLength(dataBid) + GetSubnodeDataLength(subnodeBid));
+
+    private long GetDataTreeLength(ulong bid) {
+        if (bid == 0) return 0;
+        PstWriterBlock block = _blocks.Get(bid);
+        if ((block.Bid & 0x02UL) == 0) return block.Length;
+        byte[] payload = ReadBlockPayload(block);
+        if (payload.Length < 8 || payload[0] != 0x01 ||
+            (payload[1] != 0x01 && payload[1] != 0x02)) {
+            throw new InvalidDataException("The PST data-tree root block is invalid.");
+        }
+        return PstBinary.UInt32(payload, 4);
+    }
+
+    private long GetSubnodeDataLength(ulong bid) {
+        if (bid == 0) return 0;
+        PstWriterBlock block = _blocks.Get(bid);
+        byte[] payload = ReadBlockPayload(block);
+        if ((block.Bid & 0x02UL) == 0 || payload.Length < 8 || payload[0] != 0x02) {
+            throw new InvalidDataException("The PST subnode-tree block is invalid.");
+        }
+        int count = PstBinary.UInt16(payload, 2);
+        if (payload[1] == 0) {
+            if (payload.Length < 8 + checked(count * 24)) {
+                throw new InvalidDataException("The PST subnode leaf entries are truncated.");
+            }
+            long length = 0;
+            for (int index = 0; index < count; index++) {
+                int offset = 8 + index * 24;
+                length = checked(length + GetContextDataLength(
+                    PstBinary.UInt64(payload, offset + 8),
+                    PstBinary.UInt64(payload, offset + 16)));
+            }
+            return length;
+        }
+        if (payload[1] == 1) {
+            if (payload.Length < 8 + checked(count * 16)) {
+                throw new InvalidDataException("The PST subnode index entries are truncated.");
+            }
+            long length = 0;
+            for (int index = 0; index < count; index++) {
+                length = checked(length + GetSubnodeDataLength(
+                    PstBinary.UInt64(payload, 8 + index * 16 + 8)));
+            }
+            return length;
+        }
+        throw new InvalidDataException("The PST subnode-tree level is unsupported.");
+    }
+
+    private byte[] ReadBlockPayload(PstWriterBlock block) {
+        var payload = new byte[block.Length];
+        _stream.Position = block.Offset;
+        int total = 0;
+        while (total < payload.Length) {
+            int read = _stream.Read(payload, total, payload.Length - total);
+            if (read == 0) throw new EndOfStreamException("The PST block payload is truncated.");
+            total += read;
+        }
+        return payload;
+    }
+
+    private void RebuildInternalBlockReferences() {
+        foreach (PstWriterBlock block in _blocks.ReadAll()) {
+            if ((block.Bid & 0x02UL) == 0 || block.Length == 0) continue;
+            var payload = new byte[block.Length];
+            _stream.Position = block.Offset;
+            int total = 0;
+            while (total < payload.Length) {
+                int read = _stream.Read(payload, total, payload.Length - total);
+                if (read == 0) {
+                    throw new EndOfStreamException(
+                        "The checkpointed PST internal block is truncated.");
+                }
+                total += read;
+            }
+            if (payload[0] == 0x01) RebuildDataTreeReferences(payload);
+            else if (payload[0] == 0x02) RebuildSubnodeReferences(payload);
+            else throw new InvalidDataException(
+                "The checkpointed PST contains an unknown internal block type.");
+        }
+    }
+
+    private void RebuildDataTreeReferences(byte[] payload) {
+        if (payload.Length < 8) {
+            throw new InvalidDataException("The checkpointed PST XBLOCK is truncated.");
+        }
+        int count = PstBinary.UInt16(payload, 2);
+        if (payload.Length < 8 + checked(count * 8)) {
+            throw new InvalidDataException("The checkpointed PST XBLOCK entries are truncated.");
+        }
+        for (int index = 0; index < count; index++) {
+            AddBlockReference(PstBinary.UInt64(payload, 8 + index * 8));
+        }
+    }
+
+    private void RebuildSubnodeReferences(byte[] payload) {
+        if (payload.Length < 8) {
+            throw new InvalidDataException("The checkpointed PST subnode block is truncated.");
+        }
+        int count = PstBinary.UInt16(payload, 2);
+        int entrySize = payload[1] == 0 ? 24 : payload[1] == 1 ? 16 : 0;
+        if (entrySize == 0 || payload.Length < 8 + checked(count * entrySize)) {
+            throw new InvalidDataException("The checkpointed PST subnode entries are invalid.");
+        }
+        for (int index = 0; index < count; index++) {
+            int offset = 8 + index * entrySize;
+            if (entrySize == 24) {
+                AddBlockReference(PstBinary.UInt64(payload, offset + 8));
+                AddBlockReference(PstBinary.UInt64(payload, offset + 16));
+            } else {
+                AddBlockReference(PstBinary.UInt64(payload, offset + 8));
+            }
+        }
+    }
 
     internal PstWriterTreeRoot WriteNodeTree(IEnumerable<PstWriterNode> sortedNodes, int count) {
         return WriteBTree(sortedNodes, count, leafEntrySize: 32, pageType: 0x81,
@@ -221,6 +347,8 @@ internal sealed class PstWriterFile : IDisposable {
                 PstBinary.WriteUInt64(page, offset + 8, node.DataBid);
                 PstBinary.WriteUInt64(page, offset + 16, node.SubnodeBid);
                 PstBinary.WriteUInt32(page, offset + 24, node.ParentNid);
+                AddBlockReference(node.DataBid);
+                AddBlockReference(node.SubnodeBid);
                 return node.Nid;
             });
     }
@@ -235,7 +363,8 @@ internal sealed class PstWriterFile : IDisposable {
                 PstBinary.WriteUInt64(page, pageOffset, block.Bid);
                 PstBinary.WriteUInt64(page, pageOffset + 8, checked((ulong)block.Offset));
                 PstBinary.WriteUInt16(page, pageOffset + 16, block.Length);
-                PstBinary.WriteUInt16(page, pageOffset + 18, 1);
+                PstBinary.WriteUInt16(page, pageOffset + 18,
+                    checked((ushort)block.ReferenceCount));
                 return PstBinary.NormalizeBid(block.Bid);
             });
     }
@@ -291,7 +420,7 @@ internal sealed class PstWriterFile : IDisposable {
         PstBinary.WriteUInt32(allocation, trailerOffset + 4, PstCrc32.Compute(payload));
         PstBinary.WriteUInt64(allocation, trailerOffset + 8, bid);
         WriteAt(offset, allocation);
-        var block = new PstWriterBlock(bid, offset, payload.Length);
+        var block = new PstWriterBlock(bid, offset, payload.Length, referenceCount: 1);
         _blocks.Add(block);
         return block;
     }

@@ -84,6 +84,20 @@ internal sealed partial class PstNdbReader {
         return result;
     }
 
+    internal long GetDataTreeLength(ulong bid) {
+        if (bid == 0) return 0;
+        var budget = CreateBudget();
+        PstBlockReference block = GetBlock(PstBinary.NormalizeBid(bid), budget);
+        if ((bid & 0x02) == 0) return block.DecodedLength;
+
+        byte[] bytes = ReadBlockPayload(block);
+        if (bytes.Length < 8 || bytes[0] != 0x01 ||
+            (bytes[1] != 0x01 && bytes[1] != 0x02)) {
+            throw new InvalidDataException("A PST data-tree internal block is malformed.");
+        }
+        return PstBinary.UInt32(bytes, 4);
+    }
+
     private void TraversePage(long offset, byte expectedType, bool isBlockTree, int depth,
         HashSet<long> path, PstTraversalBudget budget) {
         budget.CheckDepth(depth);

@@ -420,7 +420,8 @@ internal sealed partial class PstStoreWriterCore {
         if (string.Equals(candidatePath, temporaryPath, StringComparison.Ordinal)) return true;
         if (!candidatePath.StartsWith(temporaryPath, StringComparison.Ordinal)) return false;
         string suffix = candidatePath.Substring(temporaryPath.Length);
-        if (suffix == ".blocks" || suffix == ".nodes" || suffix == ".items" ||
+            if (suffix == ".blocks" || suffix == ".blocks.refcounts" ||
+                suffix == ".nodes" || suffix == ".items" ||
             suffix == ".item-data" || suffix == ".amap") return true;
         return HasGuidSuffix(suffix, ".nodes.sort.") || HasGuidSuffix(suffix, ".items.sort.") ||
             HasGuidSuffix(suffix, ".btree.") || HasGuidSuffix(suffix, ".datatree.") ||

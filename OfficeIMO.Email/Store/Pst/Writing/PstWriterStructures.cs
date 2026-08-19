@@ -15,15 +15,17 @@ internal sealed class PstWriterNode {
 }
 
 internal sealed class PstWriterBlock {
-    internal PstWriterBlock(ulong bid, long offset, int length) {
+    internal PstWriterBlock(ulong bid, long offset, int length, int referenceCount) {
         Bid = bid;
         Offset = offset;
         Length = length;
+        ReferenceCount = referenceCount;
     }
 
     internal ulong Bid { get; }
     internal long Offset { get; }
     internal int Length { get; }
+    internal int ReferenceCount { get; }
 }
 
 internal readonly struct PstWriterPageReference {

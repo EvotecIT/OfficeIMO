@@ -195,6 +195,9 @@ public static partial class MapiKnownProperties {
         public static readonly MapiPropertyKey<byte[]> SearchKey = Binary("PidTagSearchKey", 0x300B);
         /// <summary>PidTagConversationId (0x3013).</summary>
         public static readonly MapiPropertyKey<byte[]> ConversationId = Binary("PidTagConversationId", 0x3013);
+        /// <summary>PidTagConversationIndexTracking (0x3016).</summary>
+        public static readonly MapiPropertyKey<bool> ConversationIndexTracking =
+            Boolean("PidTagConversationIndexTracking", 0x3016);
         /// <summary>PidTagStoreSupportMask (0x340D).</summary>
         public static readonly MapiPropertyKey<int> StoreSupportMask = Integer("PidTagStoreSupportMask", 0x340D);
         /// <summary>PidTagContentCount (0x3602).</summary>
@@ -281,7 +284,8 @@ public static partial class MapiKnownProperties {
             MessageSize, Responsibility, MessageStatus, HasAttachments, NormalizedSubject, RtfInSync, AttachSize,
             AttachNumber, ObjectType, EntryId, RecordKey, Body, RtfCompressed, Html, NativeBodyInfo,
             InternetMessageId, InternetReferences, InReplyToId, IconIndex, ItemTemporaryFlags, RowId, DisplayName,
-            AddressType, EmailAddress, CreationTime, LastModificationTime, SearchKey, ConversationId, StoreSupportMask,
+            AddressType, EmailAddress, CreationTime, LastModificationTime, SearchKey, ConversationId,
+            ConversationIndexTracking, StoreSupportMask,
             ContentCount, ContentUnreadCount, Subfolders,
             ContainerClass, AssociatedContentCount, AttachData, AttachExtension, AttachFilename, AttachMethod,
             AttachLongFilename, RenderingPosition, AttachLongPathname, AttachMimeTag, AttachContentId,

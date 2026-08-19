@@ -99,6 +99,25 @@ internal sealed class PstHeap {
         return _ndb.ReadDataTree(subnode.DataBid, maximumBytes, _cancellationToken);
     }
 
+    internal long GetHnidLength(uint hnid, long maximumBytes) {
+        if (hnid == 0) return 0;
+        long length;
+        if ((hnid & 0x1F) == 0) {
+            length = GetAllocation(hnid).LongLength;
+        } else {
+            if (!_subnodes.TryGetValue(hnid, out PstSubnodeReference? subnode)) {
+                throw new InvalidDataException(string.Concat("The PST node does not contain subnode 0x",
+                    hnid.ToString("X", CultureInfo.InvariantCulture), "."));
+            }
+            length = _ndb.GetDataTreeLength(subnode.DataBid);
+        }
+        if (length > maximumBytes) {
+            throw new EmailStoreLimitExceededException(
+                nameof(EmailStoreReaderOptions.MaxAttachmentBytes), length, maximumBytes);
+        }
+        return length;
+    }
+
     /// <summary>Streams HNID payload blocks so large table row matrices are not retained as one tree.</summary>
     internal IEnumerable<byte[]> EnumerateHnidBlocks(uint hnid, long maximumBytes) {
         if (hnid == 0) yield break;

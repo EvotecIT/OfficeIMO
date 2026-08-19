@@ -844,13 +844,13 @@ public class PdfIccColorRenderingTests {
             Assert.True(normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out _));
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
         bool converted = true;
         OfficeColor color = OfficeColor.Black;
-        for (int index = 0; index < 4096; index++) {
-            converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
-        }
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = PdfAllocationTestSupport.MeasureMinimumThreadAllocation(() => {
+            for (int index = 0; index < 4096; index++) {
+                converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
+            }
+        });
 
         Assert.True(converted);
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), color);

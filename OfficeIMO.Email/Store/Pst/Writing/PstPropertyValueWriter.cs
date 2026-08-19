@@ -35,6 +35,24 @@ internal static class PstPropertyValueWriter {
         }
     }
 
+    internal static long GetLogicalValueSize(MapiProperty property, int codePage) {
+        if (property == null) throw new ArgumentNullException(nameof(property));
+        switch (property.PropertyType) {
+            case MapiPropertyType.Null:
+                return 0;
+            case MapiPropertyType.Integer16:
+                return 2;
+            case MapiPropertyType.Integer32:
+            case MapiPropertyType.ErrorCode:
+            case MapiPropertyType.Floating32:
+                return 4;
+            case MapiPropertyType.Boolean:
+                return 1;
+            default:
+                return EncodeVariable(property, codePage).LongLength;
+        }
+    }
+
     internal static byte[] EncodeVariable(MapiProperty property, int codePage) {
         if (property.RawData != null) return (byte[])property.RawData.Clone();
         object? value = property.Value;
