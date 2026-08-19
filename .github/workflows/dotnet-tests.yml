@@ -363,9 +363,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install schema and OpenDocument interoperability tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libxml2-utils unzip libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress
+        run: bash Build/install-libreoffice-tools.sh libxml2-utils unzip libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress
 
       - name: Build OpenDocument schema probe
         run: |
@@ -394,7 +392,9 @@ jobs:
   binary-powerpoint-libreoffice:
     name: 'Binary PowerPoint and LibreOffice'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Match the other LibreOffice jobs: a cold mirror and the interoperability
+    # proof must both fit without turning an external setup stall into a cancel.
+    timeout-minutes: 40
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -405,9 +405,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install LibreOffice Impress
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libreoffice-core libreoffice-impress
+        run: bash Build/install-libreoffice-tools.sh libreoffice-core libreoffice-impress
 
       - name: Build binary PowerPoint interoperability probe
         run: |
@@ -446,9 +444,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install LibreOffice Writer, Calc, and Impress
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress
+        run: bash Build/install-libreoffice-tools.sh libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress
 
       - name: Open, convert, and render declared corpus artifacts
         shell: pwsh
