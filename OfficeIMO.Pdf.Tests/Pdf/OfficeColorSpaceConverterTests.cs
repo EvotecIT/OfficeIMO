@@ -541,13 +541,13 @@ public class OfficeColorSpaceConverterTests {
             Assert.True(profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _));
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
         bool succeeded = true;
-        for (int index = 0; index < 1000; index++) {
-            succeeded &= profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination);
-            succeeded &= profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _);
-        }
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = PdfAllocationTestSupport.MeasureMinimumThreadAllocation(() => {
+            for (int index = 0; index < 1000; index++) {
+                succeeded &= profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination);
+                succeeded &= profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _);
+            }
+        });
 
         Assert.True(succeeded);
         Assert.Equal(0L, allocated);

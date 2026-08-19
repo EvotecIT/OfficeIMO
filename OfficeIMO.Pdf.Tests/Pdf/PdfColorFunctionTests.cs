@@ -914,13 +914,15 @@ public sealed partial class PdfColorFunctionTests {
         bool converted = true;
         OfficeColor color = OfficeColor.Black;
 #if NET8_0_OR_GREATER
-        long before = GC.GetAllocatedBytesForCurrentThread();
-#endif
+        long allocated = PdfAllocationTestSupport.MeasureMinimumThreadAllocation(() => {
+            for (int index = 0; index < 4096; index++) {
+                converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
+            }
+        });
+#else
         for (int index = 0; index < 4096; index++) {
             converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
         }
-#if NET8_0_OR_GREATER
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 #endif
 
         Assert.True(converted);
