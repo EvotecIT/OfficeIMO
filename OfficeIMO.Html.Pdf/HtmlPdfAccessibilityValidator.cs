@@ -33,7 +33,7 @@ public sealed class HtmlPdfAccessibilityIssue {
 /// <summary>Result of bounded structural accessibility validation for an HTML-derived PDF.</summary>
 public sealed class HtmlPdfAccessibilityValidationResult {
     internal HtmlPdfAccessibilityValidationResult(IReadOnlyList<HtmlPdfAccessibilityIssue> issues) {
-        Issues = issues;
+        Issues = Array.AsReadOnly((issues ?? throw new ArgumentNullException(nameof(issues))).ToArray());
     }
 
     /// <summary>True when the artifact satisfies every required validator check.</summary>

@@ -17,8 +17,27 @@ namespace OfficeIMO.Word.Html {
         public string Convert(WordDocument document, WordToHtmlOptions options) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToHtmlOptions();
-            ExportInspection exportInspection = InspectExport(document, options);
-            ReportKnownExportLimitations(document, options, exportInspection);
+            lock (document) {
+                ExportInspection exportInspection = InspectExport(document, options);
+                ReportKnownExportLimitations(document, options, exportInspection);
+                IReadOnlyList<WordRevisionInfo>? reviewInfo = options.TrackedChangePolicy == WordTrackedChangeExportPolicy.Markup && exportInspection.HasRevisions
+                    ? document.InspectReview().Revisions.Where(revision => IsSelectedReviewLocation(revision.LocationKind, options)).ToArray()
+                    : null;
+                Action restoreReviewProjection = static () => { };
+                try {
+                    restoreReviewProjection = PrepareTrackedChangeProjection(document, options, exportInspection.HasRevisions);
+                    IReadOnlyList<WordFieldInfo>? fieldInfo = options.FieldPolicy == WordFieldExportPolicy.VisibleResultWithReviewMetadata && exportInspection.HasFields
+                        ? document.InspectFields().Where(field => IsSelectedFieldLocation(field.LocationKind, options)).ToArray()
+                        : null;
+                    return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
+                } finally {
+                    restoreReviewProjection();
+                }
+            }
+        }
+
+        private string ConvertPrepared(WordDocument document, WordToHtmlOptions options,
+            IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fieldInfo, ExportInspection exportInspection) {
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
             CancellationToken cancellationToken = CancellationToken.None;
             long embeddedImageBytes = 0;
@@ -262,6 +281,7 @@ namespace OfficeIMO.Word.Html {
                                         MeasureSerializedHtmlCharacters(svgElement),
                                         "An inline SVG image cannot fit within the configured HTML output-character limit after parsing.",
                                         "InlineSvg:serialized");
+                                    ApplyImageReviewMetadata(svgElement, imgObj, options);
                                     target.Add(svgElement);
                                 } else {
                                     ReleaseOutputCharacters(htmlDoc, svgBytes.LongLength);
@@ -287,6 +307,7 @@ namespace OfficeIMO.Word.Html {
                                 if (!string.IsNullOrEmpty(imgObj.Title)) {
                                     SetOutputAttribute(imgSvg, "title", imgObj.Title!, "Image:title");
                                 }
+                                ApplyImageReviewMetadata(imgSvg, imgObj, options);
                                 target.Add(imgSvg);
                             }
                         } else {
@@ -318,6 +339,7 @@ namespace OfficeIMO.Word.Html {
                             if (!string.IsNullOrEmpty(imgObj.Title)) {
                                 SetOutputAttribute(img, "title", imgObj.Title!, "Image:title");
                             }
+                            ApplyImageReviewMetadata(img, imgObj, options);
                             target.Add(img);
                         }
                         return true;
@@ -1404,13 +1426,36 @@ namespace OfficeIMO.Word.Html {
             AppendFootnotes(htmlDoc, body, footnotes, options, cancellationToken);
             AppendEndnotes(htmlDoc, body, endnotes, options, cancellationToken);
             AppendComments(htmlDoc, body, comments, options, cancellationToken);
+            AppendReviewInventories(htmlDoc, body, reviewInfo, fieldInfo, options);
             AppendListDefinitions(htmlDoc, head, listDefinitions, cancellationToken);
             AppendStyleDefinitions(document, htmlDoc, head, paragraphStyles, runStyles, cancellationToken);
 
             using var outputWriter = new BoundedHtmlWriter(
                 options.MaxOutputCharacters,
                 actual => ThrowExportLimitExceeded(options, "WordHtmlOutputLimitExceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
-            htmlDoc.DocumentElement.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
+            if (options.EmitDocumentShell) {
+                // Preserve legacy default serialization byte-for-byte. Named shared-shell
+                // profiles opt into the explicit HTML5 document marker.
+                if (options.UseSharedDocumentShell) {
+                    outputWriter.Write("<!doctype html>");
+                    outputWriter.Write(options.NewLine);
+                }
+                htmlDoc.DocumentElement.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
+            } else {
+                bool wroteNode = false;
+                if (options.IncludeDefaultCss) {
+                    foreach (IElement style in head.QuerySelectorAll("style")) {
+                        if (wroteNode) outputWriter.Write(options.NewLine);
+                        style.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
+                        wroteNode = true;
+                    }
+                }
+                foreach (INode node in body.ChildNodes) {
+                    if (wroteNode) outputWriter.Write(options.NewLine);
+                    node.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
+                    wroteNode = true;
+                }
+            }
             OutputConstructionBudgets.Remove(htmlDoc);
             return outputWriter.ToString();
         }

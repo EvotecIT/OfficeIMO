@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">net472;$(TargetFrameworks)</TargetFrameworks>
+    <EnableOfficeIMOHtmlPackageSmoke Condition="'$(EnableOfficeIMOHtmlPackageSmoke)' == ''">false</EnableOfficeIMOHtmlPackageSmoke>
+    <OfficeIMOHtmlPackageVersion Condition="'$(OfficeIMOHtmlPackageVersion)' == ''">3.2.1-htmlapi-local</OfficeIMOHtmlPackageVersion>
+    <IsPackable>false</IsPackable>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableOfficeIMOHtmlPackageSmoke)' == 'true'">
+    <PackageReference Include="OfficeIMO.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Word.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Excel.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.PowerPoint.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Html.Rtf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Html.Pdf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+  </ItemGroup>
+
+  <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
+          Condition="'$(EnableOfficeIMOHtmlPackageSmoke)' != 'true'">
+    <Error Text="Set EnableOfficeIMOHtmlPackageSmoke=true and restore from a feed containing the packed OfficeIMO HTML packages." />
+  </Target>
+</Project>

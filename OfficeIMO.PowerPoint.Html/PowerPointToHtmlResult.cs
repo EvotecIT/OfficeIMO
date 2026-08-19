@@ -5,11 +5,16 @@ namespace OfficeIMO.PowerPoint.Html;
 
 /// <summary>PowerPoint HTML output and visual snapshot diagnostics from one conversion.</summary>
 public sealed class PowerPointToHtmlResult : HtmlConversionResult<string> {
-    internal PowerPointToHtmlResult(string value, IEnumerable<OfficeImageExportDiagnostic> imageDiagnostics)
+    internal PowerPointToHtmlResult(
+        string value,
+        IEnumerable<OfficeImageExportDiagnostic> imageDiagnostics,
+        IEnumerable<HtmlDiagnostic> conversionDiagnostics)
         : base(value) {
         if (imageDiagnostics == null) throw new ArgumentNullException(nameof(imageDiagnostics));
+        if (conversionDiagnostics == null) throw new ArgumentNullException(nameof(conversionDiagnostics));
         ImageDiagnostics = Array.AsReadOnly(imageDiagnostics.ToArray());
         AddDiagnostics(ImageDiagnostics.Select(ToHtmlDiagnostic));
+        AddDiagnostics(conversionDiagnostics);
     }
 
     /// <summary>Visual snapshot diagnostics captured while rendering positioned review HTML.</summary>

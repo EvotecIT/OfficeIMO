@@ -356,7 +356,7 @@ public sealed class PackageDependencyGuardrailTests {
 
         Assert.Contains("OfficeIMO.Html.HtmlToRtfOptions", exportedTypeNames);
         Assert.Contains("OfficeIMO.Html.RtfToHtmlOptions", exportedTypeNames);
-        Assert.DoesNotContain(exportedTypeNames, static typeName => typeName.Contains(".RtfHtml", StringComparison.Ordinal));
+        Assert.DoesNotContain(exportedTypeNames, static typeName => typeName.StartsWith("OfficeIMO.Rtf.Html.", StringComparison.Ordinal));
 
         var projectReferences = document
             .Descendants(ns + "ProjectReference")

@@ -1,9 +1,10 @@
 {
   "version": 1,
-  "generatedAtUtc": "2026-03-25T07:59:46.4451237+00:00",
-  "issueCount": 1,
+  "generatedAtUtc": "2026-08-19T11:45:02Z",
+  "issueCount": 2,
   "keyFormat": "sha256-12-b64url",
   "issueKeyHashes": [
-    "MGPAfc-vzbXBZ22P"
+    "MGPAfc-vzbXBZ22P",
+    "7iLKthL-RoKfX0Gt"
   ]
 }

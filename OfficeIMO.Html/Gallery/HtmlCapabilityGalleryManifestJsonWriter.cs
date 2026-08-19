@@ -221,7 +221,7 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
 
     private static IReadOnlyList<KeyValuePair<string, HtmlDiagnostic>> GetDiagnostics(HtmlCapabilityGalleryManifest manifest) {
         var diagnostics = new List<KeyValuePair<string, HtmlDiagnostic>>();
-        foreach (HtmlDiagnostic diagnostic in manifest.Result.Diagnostics.Diagnostics) {
+        foreach (HtmlDiagnostic diagnostic in manifest.Result.Diagnostics) {
             diagnostics.Add(new KeyValuePair<string, HtmlDiagnostic>("result", diagnostic));
         }
 

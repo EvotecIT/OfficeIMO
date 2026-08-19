@@ -16,6 +16,9 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(document));
         }
 
+        HtmlConversionProfileContracts.Get(effectiveOptions.SharedProfile);
+        effectiveOptions.DocumentOutput.Validate();
+
         if (effectiveOptions.PreferEncapsulatedHtml &&
             document.HtmlEncapsulation != null &&
             !string.IsNullOrWhiteSpace(document.HtmlEncapsulation.Html)) {

@@ -63,7 +63,7 @@ public static class HtmlCapabilityGalleryManifestWriter {
 
         builder.AppendLine();
         builder.AppendLine("## Diagnostics");
-        foreach (HtmlDiagnostic diagnostic in manifest.Result.Diagnostics.Diagnostics) {
+        foreach (HtmlDiagnostic diagnostic in manifest.Result.Diagnostics) {
             HtmlDiagnosticDefinition definition = HtmlDiagnosticCatalog.GetOrCreateGeneric(diagnostic.Code);
             builder.AppendLine("- " + diagnostic.Component + ":" + diagnostic.Code + ":" + diagnostic.Severity + ": " + diagnostic.Message + " [" + definition.Category + "]");
         }

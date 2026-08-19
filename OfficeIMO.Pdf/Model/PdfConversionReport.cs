@@ -8,12 +8,22 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfConversionReport : IOfficeConversionReport {
     private readonly List<PdfConversionWarning> _warnings = new();
     private readonly List<PdfConversionReport> _linkedReports = new();
+    private readonly IReadOnlyList<PdfConversionWarning> _readOnlyWarnings;
+    private bool _isReadOnly;
+
+    /// <summary>Creates an empty mutable report for one in-progress converter operation.</summary>
+    public PdfConversionReport() {
+        _readOnlyWarnings = _warnings.AsReadOnly();
+    }
+
+    /// <summary>True when this report is a frozen result snapshot and can no longer be modified.</summary>
+    public bool IsReadOnly => _isReadOnly;
 
     /// <summary>Warnings recorded by the converter in production order.</summary>
     public IReadOnlyList<PdfConversionWarning> Warnings {
         get {
             if (_linkedReports.Count == 0) {
-                return _warnings;
+                return _readOnlyWarnings;
             }
 
             int capacity = _warnings.Count;
@@ -126,15 +136,27 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
         return this;
     }
 
+    /// <summary>
+    /// Creates an independent, read-only snapshot of all warnings currently visible through this report.
+    /// </summary>
+    public PdfConversionReport Snapshot() {
+        var snapshot = new PdfConversionReport();
+        snapshot._warnings.AddRange(Warnings);
+        snapshot._isReadOnly = true;
+        return snapshot;
+    }
+
     /// <summary>Adds one warning to the report.</summary>
     public void Add(PdfConversionWarning warning) {
         Guard.NotNull(warning, nameof(warning));
+        EnsureMutable();
         _warnings.Add(warning);
     }
 
     /// <summary>Adds all warnings from another report.</summary>
     public void AddRange(IEnumerable<PdfConversionWarning> warnings) {
         Guard.NotNull(warnings, nameof(warnings));
+        EnsureMutable();
         foreach (PdfConversionWarning warning in warnings) {
             Add(warning);
         }
@@ -172,12 +194,14 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
 
     /// <summary>Clears warnings from a previous conversion run.</summary>
     public void Clear() {
+        EnsureMutable();
         _warnings.Clear();
         _linkedReports.Clear();
     }
 
     internal void LinkReport(PdfConversionReport report) {
         Guard.NotNull(report, nameof(report));
+        EnsureMutable();
         if (ReferenceEquals(this, report) || _linkedReports.Contains(report)) {
             return;
         }
@@ -186,7 +210,14 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     internal void ClearLinkedReports() {
+        EnsureMutable();
         _linkedReports.Clear();
+    }
+
+    private void EnsureMutable() {
+        if (_isReadOnly) {
+            throw new InvalidOperationException("The conversion report is an immutable result snapshot.");
+        }
     }
 
     private static string CreateFailureMessage(string message, IReadOnlyList<PdfConversionWarning> warnings) {

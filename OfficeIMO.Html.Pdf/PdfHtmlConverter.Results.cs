@@ -19,6 +19,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
+        options.Validate();
         IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
         string html = options.Profile switch {
             PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
@@ -130,6 +131,8 @@ public static partial class PdfHtmlConverterExtensions {
             actionSummary.SelectedAnnotationActionCount,
             options.Report.Warnings.Count,
             options.EmitDocumentShell,
+            options.EmitDocumentShell && options.IncludeDefaultStyles,
+            options.Theme,
             options.ImageExportMode,
             contract.FidelityContract,
             contract.UnsupportedScope);

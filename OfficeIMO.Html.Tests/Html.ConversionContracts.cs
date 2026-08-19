@@ -96,7 +96,8 @@ public partial class Html {
                 typeof(HtmlRtfConverterExtensions), "ToRtfDocument", "ToRtfDocumentResult",
                 typeof(HtmlRtfConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.Pdf] = new(
-                typeof(HtmlPdfConverterExtensions), "ToPdfDocument", "ToPdfDocumentResult", null, null, null),
+                typeof(HtmlPdfConverterExtensions), "ToPdfDocument", "ToPdfDocumentResult",
+                typeof(PdfHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.Image] = new(
                 typeof(HtmlImageExportExtensions), "ToPng", "ExportImage", null, null, null),
             [HtmlConversionTarget.Reader] = new(

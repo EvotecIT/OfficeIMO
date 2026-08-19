@@ -8,9 +8,9 @@ public sealed class HtmlResourceDependencyPlan {
         IReadOnlyList<HtmlResourceReference> allowedResources,
         IReadOnlyList<HtmlResourceReference> blockedResources,
         IReadOnlyList<HtmlResourceDependencySummary> summaries) {
-        AllowedResources = allowedResources ?? throw new ArgumentNullException(nameof(allowedResources));
-        BlockedResources = blockedResources ?? throw new ArgumentNullException(nameof(blockedResources));
-        Summaries = summaries ?? throw new ArgumentNullException(nameof(summaries));
+        AllowedResources = Array.AsReadOnly((allowedResources ?? throw new ArgumentNullException(nameof(allowedResources))).ToArray());
+        BlockedResources = Array.AsReadOnly((blockedResources ?? throw new ArgumentNullException(nameof(blockedResources))).ToArray());
+        Summaries = Array.AsReadOnly((summaries ?? throw new ArgumentNullException(nameof(summaries))).ToArray());
     }
 
     /// <summary>Allowed resources in source order.</summary>

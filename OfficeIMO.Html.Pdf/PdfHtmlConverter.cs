@@ -112,7 +112,7 @@ public static partial class PdfHtmlConverterExtensions {
         var builder = new StringBuilder();
         AppendDocumentStart(builder, document, options, positioned: false);
         if (options.EmitDocumentShell) {
-            builder.AppendLine("<body>");
+            AppendBodyStart(builder, options, positioned: false);
         }
 
         if (options.IncludeMetadata) {
@@ -144,16 +144,16 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return builder.ToString().TrimEnd();
+        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
     }
 
     private static string RenderPositionedReviewDocument(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
         var builder = new StringBuilder();
         AppendDocumentStart(builder, document, options, positioned: true);
         if (options.EmitDocumentShell) {
-            builder.AppendLine("<body>");
+            AppendBodyStart(builder, options, positioned: true);
         } else {
-            AppendPositionedStyles(builder);
+            AppendPositionedStyles(builder, options.IncludeDefaultStyles);
         }
 
         AppendOutlineNavigation(builder, document, pages, options);
@@ -168,7 +168,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return builder.ToString().TrimEnd();
+        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
     }
 
     private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options) {
@@ -231,7 +231,7 @@ public static partial class PdfHtmlConverterExtensions {
             ? options.DocumentTitleFallback
             : document.Metadata.Title!;
         builder.AppendLine("<!doctype html>");
-        string? language = document.CatalogLanguage;
+        string? language = options.Language ?? document.CatalogLanguage;
         builder.Append("<html");
         if (!string.IsNullOrWhiteSpace(language)) {
             builder.Append(" lang=\"");
@@ -242,6 +242,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine(">");
         builder.AppendLine("<head>");
         builder.AppendLine("<meta charset=\"utf-8\">");
+        builder.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
         builder.Append("<title>");
         builder.Append(HtmlText(title));
         builder.AppendLine("</title>");
@@ -251,28 +252,42 @@ public static partial class PdfHtmlConverterExtensions {
             AppendMeta(builder, "keywords", document.Metadata.Keywords);
         }
 
-        if (positioned) {
-            AppendPositionedStyles(builder);
+        if (options.IncludeDefaultStyles) {
+            builder.AppendLine("<style>");
+            builder.AppendLine(OfficeHtmlDocumentShell.GetThemeCss(options.Theme));
+            if (positioned) {
+                builder.AppendLine(PdfHtmlReviewStyles.GetPositioning());
+            }
+            builder.AppendLine(PdfHtmlReviewStyles.GetReview());
+            builder.AppendLine("</style>");
+        } else if (positioned) {
+            AppendPositionedStyles(builder, includeReviewStyles: false);
         }
 
         builder.AppendLine("</head>");
     }
 
-    private static void AppendPositionedStyles(StringBuilder builder) {
+    private static void AppendPositionedStyles(StringBuilder builder, bool includeReviewStyles = true) {
         builder.AppendLine("<style>");
-        builder.AppendLine(".pdf-page{position:relative;margin:1rem auto;border:1px solid #cbd5e1;background:#fff;box-sizing:border-box;overflow:hidden;}");
-        builder.AppendLine(".pdf-text{position:absolute;white-space:pre;line-height:1.2;font-family:Arial,sans-serif;font-size:10pt;}");
-        builder.AppendLine(".pdf-heading{font-weight:700;}");
-        builder.AppendLine(".pdf-list-item{padding-left:0.5rem;}");
-        builder.AppendLine(".pdf-table{position:absolute;border-collapse:collapse;font-family:Arial,sans-serif;font-size:10pt;}");
-        builder.AppendLine(".pdf-table td,.pdf-table th{border:1px solid #cbd5e1;padding:2pt 4pt;}");
-        builder.AppendLine(".pdf-link,.pdf-form-widget{position:absolute;border:1px dashed #2563eb;background:rgba(37,99,235,.08);font-size:8pt;overflow:hidden;}");
-        builder.AppendLine(".pdf-image-placeholder{font:8pt Arial,sans-serif;color:#475569;border:1px dashed #64748b;background:rgba(100,116,139,.08);box-sizing:border-box;overflow:hidden;}");
-        builder.AppendLine(".pdf-outline{margin:1rem auto;max-width:60rem;font:9pt Arial,sans-serif;box-sizing:border-box;}");
-        builder.AppendLine(".pdf-outline ol{margin:.25rem 0 .25rem 1.25rem;padding:0;}");
-        builder.AppendLine(".pdf-outline a{color:#1d4ed8;text-decoration:none;}");
-        builder.AppendLine(".pdf-xfa-notice{margin:1rem auto;padding:.5rem .75rem;max-width:60rem;border:1px solid #b45309;background:#fffbeb;color:#713f12;font:9pt Arial,sans-serif;box-sizing:border-box;}");
+        builder.AppendLine(PdfHtmlReviewStyles.GetPositioning());
+        if (includeReviewStyles) {
+            builder.AppendLine(PdfHtmlReviewStyles.GetReview());
+        }
         builder.AppendLine("</style>");
+    }
+
+    private static void AppendBodyStart(StringBuilder builder, PdfHtmlSaveOptions options, bool positioned) {
+        PdfHtmlProfileContract contract = PdfHtmlProfileContracts.Get(options.Profile);
+        builder.Append("<body class=\"");
+        builder.Append(HtmlAttribute(OfficeHtmlDocumentShell.MergeBodyClasses(
+            "officeimo-html officeimo-pdf-html",
+            positioned ? "officeimo-pdf-positioned" : "officeimo-pdf-semantic",
+            options.DocumentOutput.BodyClass)));
+        builder.Append("\" data-officeimo-html-profile=\"");
+        builder.Append(HtmlAttribute(contract.Id));
+        builder.Append("\" data-officeimo-html-theme=\"");
+        builder.Append(HtmlAttribute(options.Theme.ToString()));
+        builder.AppendLine("\">");
     }
 
     private static void AppendOutlineNavigation(StringBuilder builder, PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
@@ -832,32 +847,71 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static bool IsTextBlockRepresentedByTable(PdfCore.PdfLogicalTextBlock block, PdfCore.PdfLogicalTable table) {
-        if (block.VisualBounds is PdfCore.PdfLogicalVisualBounds blockBounds &&
-            table.VisualBounds is PdfCore.PdfLogicalVisualBounds tableBounds) {
-            double centerX = (blockBounds.Left + blockBounds.Right) / 2D;
-            double centerY = (blockBounds.Top + blockBounds.Bottom) / 2D;
-            return centerX >= tableBounds.Left && centerX <= tableBounds.Right &&
-                centerY >= tableBounds.Top && centerY <= tableBounds.Bottom;
-        }
-
-        double top = Math.Max(table.YTop, table.YBottom);
-        double bottom = Math.Min(table.YTop, table.YBottom);
-        if (block.BaselineY > top + 1D || block.BaselineY < bottom - 1D) {
+        if (table.Rows.Count == 0 || table.Columns.Count == 0) {
             return false;
         }
 
         string blockText = NormalizeComparison(block.Text);
         if (blockText.Length == 0) {
-            return true;
+            return false;
+        }
+
+        double blockLeft;
+        double blockRight;
+        if (block.VisualBounds is PdfCore.PdfLogicalVisualBounds blockBounds &&
+            table.VisualBounds is PdfCore.PdfLogicalVisualBounds tableBounds) {
+            double centerY = (blockBounds.Top + blockBounds.Bottom) / 2D;
+            if (centerY < tableBounds.Top - 1D || centerY > tableBounds.Bottom + 1D) {
+                return false;
+            }
+
+            blockLeft = Math.Min(blockBounds.Left, blockBounds.Right);
+            blockRight = Math.Max(blockBounds.Left, blockBounds.Right);
+        } else {
+            if (block.VisualBounds is not null || table.VisualBounds is not null) {
+                return false;
+            }
+
+            double top = Math.Max(table.YTop, table.YBottom);
+            double bottom = Math.Min(table.YTop, table.YBottom);
+            if (block.BaselineY > top + 1D || block.BaselineY < bottom - 1D) {
+                return false;
+            }
+
+            blockLeft = Math.Min(block.XStart, block.XEnd);
+            blockRight = Math.Max(block.XStart, block.XEnd);
+        }
+
+        var overlappingColumns = new List<int>();
+        for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
+            PdfCore.PdfLogicalTableColumn column = table.Columns[columnIndex];
+            double columnLeft = Math.Min(column.From, column.To);
+            double columnRight = Math.Max(column.From, column.To);
+            if (blockRight >= columnLeft - 1D && blockLeft <= columnRight + 1D) {
+                overlappingColumns.Add(columnIndex);
+            }
+        }
+
+        if (overlappingColumns.Count == 0) {
+            return false;
         }
 
         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            string rowText = NormalizeComparison(string.Join(" ", table.Rows[rowIndex]));
-            if (rowText.Length == 0) {
+            IReadOnlyList<string> row = table.Rows[rowIndex];
+            var representedCells = new List<string>(overlappingColumns.Count);
+            for (int columnIndex = 0; columnIndex < overlappingColumns.Count; columnIndex++) {
+                int sourceColumnIndex = overlappingColumns[columnIndex];
+                if (sourceColumnIndex < row.Count) {
+                    representedCells.Add(row[sourceColumnIndex]);
+                }
+            }
+
+            string representedText = NormalizeComparison(string.Join(" ", representedCells));
+            if (representedText.Length == 0) {
                 continue;
             }
 
-            if (ContainsOrdinal(rowText, blockText) || ContainsOrdinal(blockText, rowText)) {
+            if (ContainsOrdinal(representedText, blockText) || ContainsOrdinal(blockText, representedText)) {
                 return true;
             }
         }
@@ -997,6 +1051,9 @@ public static partial class PdfHtmlConverterExtensions {
     private static string HtmlText(string value) {
         return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
     }
+
+    private static string NormalizeOutputNewLines(string value, string newLine) =>
+        value.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", newLine);
 
     private static string HtmlAttribute(string value) {
         return System.Net.WebUtility.HtmlEncode(value ?? string.Empty).Replace("\"", "&quot;");

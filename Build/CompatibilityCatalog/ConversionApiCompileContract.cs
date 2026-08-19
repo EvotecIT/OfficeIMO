@@ -1,6 +1,8 @@
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Html.Pdf.Browser;
 using OfficeIMO.Latex;
 using OfficeIMO.Markdown;
@@ -9,9 +11,11 @@ using OfficeIMO.OneNote;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Rtf;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
 using HtmlTinkerX;
 
 internal static class ConversionApiCompileContract {
@@ -38,6 +42,31 @@ internal static class ConversionApiCompileContract {
         RtfReadResult rtfRead,
         VisioDocument visio,
         WordDocument word) {
+        OfficeHtmlDocumentOptions output = new OfficeHtmlDocumentOptions {
+            EmitDocumentShell = true,
+            IncludeDefaultStyles = true,
+            Language = "en",
+            NewLine = "\n"
+        };
+        WordToHtmlOptions wordOptions = WordToHtmlOptions.CreateDocumentRoundTripProfile();
+        wordOptions.DocumentOutput = output.Clone();
+        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        excelOptions.DocumentOutput = output.Clone();
+        PowerPointHtmlSaveOptions powerPointOptions = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        powerPointOptions.DocumentOutput = output.Clone();
+        RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
+        rtfOptions.DocumentOutput = output.Clone();
+        PdfHtmlSaveOptions pdfOptions = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        pdfOptions.DocumentOutput = output.Clone();
+        HtmlConversionProfile wordSharedProfile = wordOptions.SharedProfile;
+        HtmlConversionProfile excelSharedProfile = excelOptions.SharedProfile;
+        HtmlConversionProfile powerPointSharedProfile = powerPointOptions.SharedProfile;
+        HtmlConversionProfile rtfSharedProfile = rtfOptions.SharedProfile;
+        HtmlTargetCapabilityContract target = HtmlTargetCapabilityContracts.Get(HtmlConversionTarget.Pdf);
+        HtmlToTargetCapabilityContract htmlToTarget = target.HtmlToTarget;
+        TargetToHtmlCapabilityContract? targetToHtml = target.TargetToHtml;
+        _ = htmlToTarget.DiagnosticsContract;
+        _ = targetToHtml?.DiagnosticsContract;
         _ = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(source);
         _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToMarkdownDocumentResult(asciiDoc);
         _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToAsciiDocDocumentResult(markdown);
@@ -80,7 +109,16 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(html);
         _ = browserPdf.ToPdfDocumentResult();
         _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
-        _ = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
+        PdfHtmlConversionResult pdfHtmlResult = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
+        PdfConversionReport pdfHtmlReport = pdfHtmlResult.Report;
+        PdfConversionReport pdfHtmlSaveReport = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(pdf, stream, pdfOptions);
+        _ = pdfHtmlReport.Warnings;
+        _ = pdfHtmlSaveReport.Warnings;
+        var galleryResult = new HtmlCapabilityGalleryResult(
+            new HtmlCapabilityGalleryScenario("compat", "Compatibility", "HTML", "Established gallery API"));
+        galleryResult.AddArtifact(new HtmlCapabilityGalleryArtifact(
+            "source", "html", "source.html", "text/html", 1, new string('0', 64)));
+        galleryResult.Diagnostics.Add(new HtmlDiagnostic("Compatibility", "EstablishedApi", "Established gallery diagnostics API"));
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(rtf);
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(pdf);
         _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToPdfDocumentResult(odt);

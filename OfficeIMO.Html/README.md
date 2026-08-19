@@ -23,6 +23,31 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 
 Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
 
+## Shared Office HTML document shell
+
+Office adapters use `OfficeHtmlDocumentShell` and `OfficeVisualThemeKind` for consistent semantic, editable round-trip, positioned-review, and print-review output. The embedded stylesheet supplies explicit palettes, readable typography, responsive page regions, tables, forms, figures, code, adapter panels, and print rules without making each adapter maintain a separate CSS implementation.
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+
+string review = OfficeHtmlDocumentShell.WrapBody(
+    "<main class=\"officeimo-document\"><h1>Review</h1></main>",
+    new OfficeHtmlDocumentOptions {
+        EmitDocumentShell = true,
+        Title = "Conversion review",
+        Language = "en-GB",
+        Theme = OfficeVisualThemeKind.Report,
+        IncludeDefaultStyles = true,
+        BodyClass = "customer-review",
+        NewLine = "\n"
+    });
+```
+
+Set `EmitDocumentShell = false` to return a fragment. Adapter save options expose this object through `DocumentOutput`; their older title, language, theme, style, fragment, and newline properties remain synchronized aliases. Adapter-required body classes are retained and `BodyClass` values are appended with stable de-duplication. The shell is presentation only. Parsing, resource policy, layout interpretation, conversion diagnostics, and static execution boundaries remain owned by the managed HTML engine and the destination adapter.
+
+`HtmlTargetCapabilityContracts` describes conversion routes directionally. `HtmlToTarget` and `TargetToHtml` have independent entry points, result contracts, I/O boundaries, diagnostics, profiles, and feature classifications; a missing reverse route is represented by `TargetToHtml == null`. Catalog collections and finalized gallery or conversion results are defensive snapshots; mutable reports remain available only while callers or converters assemble a result.
+
 ## Direct HTML rendering
 
 ```csharp
@@ -168,7 +193,7 @@ var scenario = new HtmlCapabilityGalleryScenario(
     "HTML import, DOCX validation, and round-trip export proof");
 ```
 
-`HtmlDiagnosticReport` and the capability-gallery contracts provide a common shape for HTML converters, PDF bridges, readers, tests, and documentation generators.
+`HtmlDiagnosticReport` and the capability-gallery contracts provide a common shape for HTML converters, PDF bridges, readers, tests, and documentation generators. Existing gallery producers can keep using `HtmlCapabilityGalleryResult.AddArtifact` and `Diagnostics.Add` while assembling a scenario. Constructing an `HtmlCapabilityGalleryManifest` takes a defensive, read-only snapshot; the sequence-based result constructor also creates a frozen snapshot directly.
 
 Native adapters use `HtmlConversionResult<TArtifact>` when callers need conversion evidence. Each diagnostic has a stable code, severity, and `LossKind` (`Approximation`, `Omission`, or `Failure`). Convenience methods still return the native artifact directly; they throw `HtmlConversionException` when required semantic content is missing. Result methods retain the artifact and diagnostics so applications can decide how to handle the failure.
 

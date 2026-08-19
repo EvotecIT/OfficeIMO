@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Rtf;
 using Xunit;
@@ -45,6 +46,9 @@ public class RtfHtmlOptionsTests {
     [Fact]
     public void RtfToHtmlOptions_Clone_Copies_Configuration() {
         var options = new RtfToHtmlOptions {
+            Profile = OfficeHtmlConversionProfile.RtfPrintReview,
+            Theme = OfficeVisualThemeKind.Report,
+            IncludeDefaultStyles = true,
             FragmentOnly = false,
             IncludeMetadata = false,
             Title = "Clinical note",
@@ -59,6 +63,9 @@ public class RtfHtmlOptionsTests {
         RtfToHtmlOptions clone = options.Clone();
 
         Assert.NotSame(options, clone);
+        Assert.Equal(options.Profile, clone.Profile);
+        Assert.Equal(options.Theme, clone.Theme);
+        Assert.Equal(options.IncludeDefaultStyles, clone.IncludeDefaultStyles);
         Assert.Equal(options.FragmentOnly, clone.FragmentOnly);
         Assert.Equal(options.IncludeMetadata, clone.IncludeMetadata);
         Assert.Equal(options.Title, clone.Title);
@@ -69,6 +76,50 @@ public class RtfHtmlOptionsTests {
         Assert.Equal(options.MaxEmbeddedImageBytes, clone.MaxEmbeddedImageBytes);
         Assert.Same(options.ImageSourceResolver, clone.ImageSourceResolver);
         Assert.Equal(options.NewLine, clone.NewLine);
+    }
+
+    [Fact]
+    public void RtfToHtmlOptions_PrintReviewProfile_UsesSharedPremiumDocumentShell() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Premium RTF review");
+
+        RtfToHtmlOptions options = RtfToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.GitHubLike);
+        string html = document.ToHtml(options);
+
+        Assert.Equal(OfficeHtmlConversionProfile.RtfPrintReview, options.Profile);
+        Assert.False(options.FragmentOnly);
+        Assert.Contains("class=\"officeimo-html officeimo-rtf-html\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-profile=\"RtfPrintReview\"", html, StringComparison.Ordinal);
+        Assert.Contains("--officeimo-accent:#0969DA", html, StringComparison.Ordinal);
+        Assert.Contains("@media print", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Premium RTF review</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfPrintReviewProfile_RoundTripsStructuredHtmlThroughNativeRtf() {
+        const string sourceHtml = "<h1>Review</h1><ul><li>Ready</li><li>Verified</li></ul><table><thead><tr><th>State</th><th>Count</th></tr></thead><tbody><tr><td>Open</td><td>2</td></tr></tbody></table>";
+        HtmlToRtfResult import = HtmlConversionDocument.Parse(sourceHtml).ToRtfDocumentResult(HtmlToRtfOptions.CreateOfficeIMOProfile());
+
+        RtfToHtmlResult export = import.Value.ToHtmlResult(RtfToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report));
+        string html = export.RequireValue();
+
+        Assert.Contains("<h1", html, StringComparison.Ordinal);
+        Assert.Contains("Review", html, StringComparison.Ordinal);
+        Assert.Contains("</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<ul>", html, StringComparison.Ordinal);
+        Assert.Contains("<li>Ready</li>", html, StringComparison.Ordinal);
+        Assert.Contains("<table", html, StringComparison.Ordinal);
+        Assert.Contains("<th", html, StringComparison.Ordinal);
+        Assert.Contains("State", html, StringComparison.Ordinal);
+        Assert.Contains("--officeimo-accent:#1D4ED8", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(import.Report.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(export.Report.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void RtfToHtmlOptions_RejectsNonRtfProfile() {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new RtfToHtmlOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
     }
 
     [Fact]
