@@ -10,6 +10,37 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutPowerPointTests {
     [Fact]
+    public void NegativeZIndexRegionIsPlacedBehindSemanticSlideContent() {
+        const string html = "<div style='position:absolute;z-index:-2;width:140px;height:60px'>Far behind</div>" +
+            "<div style='position:absolute;z-index:-1;width:140px;height:60px'>Near behind</div>" +
+            "<p>Front semantic content</p>";
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+        PowerPointSlide slide = Assert.Single(presentation.Slides);
+        PowerPointTextBox farBehind = Assert.Single(slide.TextBoxes, box => box.Text == "Far behind");
+        PowerPointTextBox nearBehind = Assert.Single(slide.TextBoxes, box => box.Text == "Near behind");
+        PowerPointTextBox front = Assert.Single(slide.TextBoxes, box => box.Text == "Front semantic content");
+
+        Assert.True(farBehind.DrawingOrder < nearBehind.DrawingOrder);
+        Assert.True(nearBehind.DrawingOrder < front.DrawingOrder);
+    }
+
+    [Fact]
+    public void MixedFlowStackingSimplificationIsDiagnosed() {
+        const string html = "<div style='position:absolute;width:140px;height:60px'>Early region</div>" +
+            "<p>Later semantic content</p>";
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("stacking=appended-after-semantic-content", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void OpaqueRegionFillIsPaintedBeforeItsPictures() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;width:140px;height:60px;background:#ff0000'>Region" +

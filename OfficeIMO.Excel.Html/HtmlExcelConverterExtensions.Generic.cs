@@ -144,6 +144,9 @@ public static partial class HtmlExcelConverterExtensions {
                     occupied.Add(new EditableLayoutCellBounds(firstMergedRow, firstMergedColumn, lastMergedRow, lastMergedColumn));
                 }
             }
+            foreach (ExcelImage image in sheet.Images) {
+                occupied.Add(GetImageCellBounds(image));
+            }
             int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(region.X / 64D) + 1));
             int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(region.Y / 20D) + 1));
             int lastColumn = Math.Max(firstColumn, Math.Min(A1.MaxColumns,
@@ -262,6 +265,40 @@ public static partial class HtmlExcelConverterExtensions {
             FirstRow <= other.LastRow && LastRow >= other.FirstRow
             && FirstColumn <= other.LastColumn && LastColumn >= other.FirstColumn;
     }
+
+    private static EditableLayoutCellBounds GetImageCellBounds(ExcelImage image) {
+        if (image.TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels,
+                out int widthPixels, out int heightPixels)) {
+            int firstColumn = PixelToColumn(xPixels);
+            int firstRow = PixelToRow(yPixels);
+            int lastColumn = PixelToColumn((long)xPixels + Math.Max(1, widthPixels) - 1L);
+            int lastRow = PixelToRow((long)yPixels + Math.Max(1, heightPixels) - 1L);
+            return new EditableLayoutCellBounds(firstRow, firstColumn,
+                Math.Max(firstRow, lastRow), Math.Max(firstColumn, lastColumn));
+        }
+
+        int anchorRow = Math.Max(1, Math.Min(A1.MaxRows, image.RowIndex));
+        int anchorColumn = Math.Max(1, Math.Min(A1.MaxColumns, image.ColumnIndex));
+        if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
+            return new EditableLayoutCellBounds(anchorRow, anchorColumn,
+                Math.Max(anchorRow, Math.Min(A1.MaxRows, image.ToRowIndex.Value)),
+                Math.Max(anchorColumn, Math.Min(A1.MaxColumns, image.ToColumnIndex.Value)));
+        }
+
+        int columnSpan = Math.Max(1, (int)Math.Ceiling(
+            (Math.Max(0, image.OffsetXPixels) + Math.Max(1, image.WidthPixels)) / 64D));
+        int rowSpan = Math.Max(1, (int)Math.Ceiling(
+            (Math.Max(0, image.OffsetYPixels) + Math.Max(1, image.HeightPixels)) / 20D));
+        return new EditableLayoutCellBounds(anchorRow, anchorColumn,
+            Math.Min(A1.MaxRows, anchorRow + rowSpan - 1),
+            Math.Min(A1.MaxColumns, anchorColumn + columnSpan - 1));
+    }
+
+    private static int PixelToColumn(long pixels) =>
+        Math.Max(1, Math.Min(A1.MaxColumns, (int)(Math.Max(0L, pixels) / 64L) + 1));
+
+    private static int PixelToRow(long pixels) =>
+        Math.Max(1, Math.Min(A1.MaxRows, (int)(Math.Max(0L, pixels) / 20L) + 1));
 
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph

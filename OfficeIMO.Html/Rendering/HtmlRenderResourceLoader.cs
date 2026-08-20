@@ -8,6 +8,7 @@ namespace OfficeIMO.Html;
 /// </summary>
 public sealed class HtmlResourceSession {
     private int _resolverRequestCount;
+    private readonly object _diagnosticSync = new object();
     private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -155,10 +156,12 @@ public sealed class HtmlResourceSession {
             if (Interlocked.CompareExchange(ref _resolverRequestCount, current + 1, current) == current) return true;
         }
 
-        Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded,
-            "Resource resolver invocations exceeded the configured operation-wide request limit.",
-            HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + MaxResourceRequests,
-            OfficeConversionLossKind.Omission);
+        lock (_diagnosticSync) {
+            Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded,
+                "Resource resolver invocations exceeded the configured operation-wide request limit.",
+                HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + MaxResourceRequests,
+                OfficeConversionLossKind.Omission);
+        }
         return false;
     }
 

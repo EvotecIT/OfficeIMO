@@ -127,6 +127,44 @@ public sealed class HtmlEditableLayoutExcelTests {
     }
 
     [Fact]
+    public void SemanticPicturesBlockProjectedCellAnchors() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<img src='" + image + "' style='width:200px;height:80px'>" +
+            "<div style='position:absolute;left:128px;top:0;width:64px;height:20px'>After semantic picture</div>";
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+
+        (int Row, int Column)? moved = FindCellText(sheet, "After semantic picture");
+        Assert.True(moved.HasValue);
+        Assert.Equal(3, moved.Value.Column);
+        Assert.True(moved.Value.Row > 1);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
+    public void AbsoluteRegionPicturesBlockLaterCellAnchors() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;z-index:-1;left:0;top:0;width:64px;height:20px'>First" +
+            "<img src='" + image + "' style='position:absolute;left:128px;top:0;width:200px;height:80px'></div>" +
+            "<div style='position:absolute;left:128px;top:0;width:64px;height:20px'>After absolute picture</div>";
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+
+        (int Row, int Column)? moved = FindCellText(sheet, "After absolute picture");
+        Assert.True(moved.HasValue);
+        Assert.Equal(3, moved.Value.Column);
+        Assert.True(moved.Value.Row > 1);
+        Assert.Contains(sheet.Images, drawing => drawing.HasAbsoluteAnchor);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
     public void LayoutPicturesRespectSharedImageAndShapeBudgets() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;top:120px;width:120px;height:60px'>Budgeted region"
@@ -146,12 +184,18 @@ public sealed class HtmlEditableLayoutExcelTests {
     }
 
     private static bool ContainsCellText(ExcelSheet sheet, string expected) {
+        return FindCellText(sheet, expected).HasValue;
+    }
+
+    private static (int Row, int Column)? FindCellText(ExcelSheet sheet, string expected) {
+        string normalizedExpected = string.Concat(expected.Where(character => !char.IsWhiteSpace(character)));
         for (int row = 1; row <= 30; row++) {
             for (int column = 1; column <= 10; column++) {
                 if (sheet.TryGetCellText(row, column, out string value)
-                    && value.Contains(expected, StringComparison.Ordinal)) return true;
+                    && string.Concat(value.Where(character => !char.IsWhiteSpace(character)))
+                        .Contains(normalizedExpected, StringComparison.Ordinal)) return (row, column);
             }
         }
-        return false;
+        return null;
     }
 }

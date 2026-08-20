@@ -72,10 +72,22 @@ public static class HtmlEditableLayoutProjector {
     internal const string ImageAttribute = "data-officeimo-editable-layout-image";
     private const string ImageSourcePrefix = "img[officeimo-layout-image=";
     private static readonly HashSet<string> SemanticRichElementNames = new(StringComparer.OrdinalIgnoreCase) {
-        "a", "abbr", "b", "blockquote", "button", "cite", "code", "dd", "del", "details", "dfn", "dl", "dt",
-        "em", "fieldset", "form", "h1", "h2", "h3", "h4", "h5", "h6", "i", "input", "ins", "kbd", "label",
-        "li", "mark", "ol", "pre", "q", "s", "samp", "select", "strong", "sub", "summary", "sup", "table",
-        "textarea", "time", "u", "ul", "var"
+        "a", "abbr", "audio", "b", "blockquote", "br", "button", "canvas", "cite", "code", "dd", "del",
+        "details", "dfn", "dl", "dt", "em", "embed", "fieldset", "figure", "figcaption", "form", "h1", "h2",
+        "h3", "h4", "h5", "h6", "hr", "i", "iframe", "input", "ins", "kbd", "label", "li", "mark",
+        "object", "ol", "p", "picture", "pre", "q", "s", "samp", "select", "strong", "sub", "summary",
+        "sup", "svg", "table", "textarea", "time", "u", "ul", "var", "video"
+    };
+    private static readonly string[] RichTextStyleProperties = {
+        "color", "direction", "font-family", "font-size", "font-style", "font-variant", "font-weight",
+        "letter-spacing", "line-height",
+        "text-decoration", "text-decoration-color", "text-decoration-line", "text-decoration-style", "text-shadow",
+        "text-transform", "unicode-bidi", "vertical-align", "white-space", "word-spacing"
+    };
+    private static readonly string[] RichDescendantVisualStyleProperties = {
+        "background-color", "border-bottom-color", "border-bottom-style", "border-bottom-width",
+        "border-left-color", "border-left-style", "border-left-width", "border-right-color", "border-right-style",
+        "border-right-width", "border-top-color", "border-top-style", "border-top-width"
     };
 
     /// <summary>Projects bounded positioned, floating, flex, and grid regions through the managed layout engine.</summary>
@@ -113,7 +125,7 @@ public static class HtmlEditableLayoutProjector {
             if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
                 || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
-            if (ContainsSemanticRichContent(element)) {
+            if (ContainsSemanticRichContent(element, styles)) {
                 semanticRichCandidates.Add(element);
                 continue;
             }
@@ -226,7 +238,13 @@ public static class HtmlEditableLayoutProjector {
             image.RemoveAttribute(ImageAttribute);
         }
         foreach (IHtmlStyleElement style in callerStyles) style.Remove();
-        return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), sourceImages, diagnostics.Diagnostics);
+        IReadOnlyList<HtmlDiagnostic> projectionDiagnostics = rendered.Diagnostics
+            .Where(renderDiagnostic => !document.Diagnostics.Any(sourceDiagnostic =>
+                DiagnosticsAreEquivalent(sourceDiagnostic, renderDiagnostic)))
+            .Concat(diagnostics.Diagnostics)
+            .ToArray();
+        return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), sourceImages,
+            projectionDiagnostics);
     }
 
     internal static HtmlSemanticDocument BuildRemainingSemanticDocument(
@@ -356,10 +374,48 @@ public static class HtmlEditableLayoutProjector {
         return 0;
     }
 
-    private static bool ContainsSemanticRichContent(IElement element) {
+    private static bool ContainsSemanticRichContent(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        if (string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)) return false;
         if (SemanticRichElementNames.Contains(element.LocalName)) return true;
-        return element.QuerySelectorAll("*").Any(child => SemanticRichElementNames.Contains(child.LocalName));
+        if (HasDistinctRichTextStyle(element, styles)) return true;
+        return element.QuerySelectorAll("*").Any(child => {
+            if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) return false;
+            return SemanticRichElementNames.Contains(child.LocalName)
+                || HasDistinctRichTextStyle(child, styles)
+                || HasDistinctStyle(child, styles, RichDescendantVisualStyleProperties);
+        });
     }
+
+    private static bool HasDistinctRichTextStyle(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        return HasDistinctStyle(element, styles, RichTextStyleProperties);
+    }
+
+    private static bool HasDistinctStyle(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        IReadOnlyList<string> properties) {
+        if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
+            || element.ParentElement == null
+            || !styles.TryGetValue(element.ParentElement, out HtmlComputedStyle? parentStyle)) return false;
+        return properties.Any(property => !style.IsInheritedValue(property)
+            && !style.IsResetValue(property)
+            && !string.IsNullOrWhiteSpace(style.GetValue(property))
+            && !string.Equals(style.GetValue(property), parentStyle.GetValue(property),
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool DiagnosticsAreEquivalent(HtmlDiagnostic first, HtmlDiagnostic second) =>
+        string.Equals(first.Component, second.Component, StringComparison.Ordinal)
+        && string.Equals(first.Code, second.Code, StringComparison.Ordinal)
+        && string.Equals(first.Message, second.Message, StringComparison.Ordinal)
+        && first.Severity == second.Severity
+        && string.Equals(first.Source, second.Source, StringComparison.Ordinal)
+        && string.Equals(first.Detail, second.Detail, StringComparison.Ordinal)
+        && first.LossKind == second.LossKind;
 
     private static IEnumerable<HtmlRenderLayoutRegion> EnumerateRegions(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {

@@ -8,6 +8,40 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutProjectionTests {
     [Fact]
+    public void ParagraphBreakStyledSpanAndSvgRegionsRemainInSemanticFlow() {
+        const string html = "<div style='position:absolute;width:180px;height:50px'><p>Paragraph</p></div>" +
+            "<div style='position:absolute;width:180px;height:50px'>Before<br>After</div>" +
+            "<div style='position:absolute;width:180px;height:50px'><span style='color:red'>Styled</span></div>" +
+            "<div style='position:absolute;width:180px;height:50px'><svg viewBox='0 0 10 10'><circle cx='5' cy='5' r='4'/></svg></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        string remaining = projection.RemainingDocument.DocumentElement!.OuterHtml;
+        Assert.Contains("Paragraph", remaining, StringComparison.Ordinal);
+        Assert.Contains("<br>", remaining, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("color", remaining, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<svg", remaining, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(4, projection.Diagnostics.Count(diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified));
+    }
+
+    [Fact]
+    public void RendererLossDiagnosticsFlowThroughTheProjectionContract() {
+        const string html = "<div style='position:absolute;width:180px;height:50px;" +
+            "box-shadow:1px 1px 2px red,2px 2px 3px blue'>Limited effects</div>";
+        var options = new HtmlRenderOptions { MaxBoxShadowLayers = 1 };
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html), options);
+
+        Assert.Single(projection.Regions);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowLayerLimit);
+    }
+
+    [Fact]
     public void CallerStylesheetsParticipateInRegionDiscoveryWithoutLeakingIntoSemanticFlow() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<div class='placed'>Caller styled</div>");
         var options = new HtmlRenderOptions();

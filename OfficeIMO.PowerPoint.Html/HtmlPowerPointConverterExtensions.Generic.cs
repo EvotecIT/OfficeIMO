@@ -87,6 +87,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             PptCore.PowerPointSlide slide = presentation.Slides[slideIndex];
+            int semanticShapeCount = slide.Shapes.Count;
+            var negativeRegionShapes = new List<PptCore.PowerPointShape>();
             double maximumGeometry = budget.Limits.MaxAbsoluteGeometry;
             var occupied = slide.TextBoxes
                 .Select(box => new EditableLayoutSlideBounds(box.LeftPoints, box.TopPoints, box.WidthPoints, box.HeightPoints))
@@ -149,6 +151,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
                 double topOffset = top - requestedTop;
                 PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
+                var nativeRegionShapes = new List<PptCore.PowerPointShape> { textBox };
                 textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
                 if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
                 else textBox.FillTransparency = 100;
@@ -181,6 +184,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         using var stream = new MemoryStream(image.Image.Bytes);
                         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
                             pictureLeft, pictureTop, pictureWidth, pictureHeight);
+                        nativeRegionShapes.Add(picture);
                         if (!string.IsNullOrWhiteSpace(image.Image.AlternativeText)) picture.AltText = image.Image.AlternativeText;
                         if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
                         if (image.Image.SourceCrop.HasCrop) {
@@ -210,8 +214,20 @@ public static partial class HtmlPowerPointConverterExtensions {
                         HtmlDiagnosticSeverity.Info, source: region.Source,
                         detail: "backgroundLayers=" + region.BackgroundLayerCount);
                 }
+                if (region.ZIndex < 0) {
+                    negativeRegionShapes.AddRange(nativeRegionShapes);
+                } else if (semanticShapeCount > 0) {
+                    AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                        "PowerPoint appended an editable layout region above semantic slide content because exact mixed-flow stacking has no native mapping.",
+                        lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                        detail: "stacking=appended-after-semantic-content; zIndex=" + region.ZIndex
+                            + "; paintOrder=" + region.PaintOrder);
+                }
                 result.TextBoxes++;
                 occupied.Add(bounds);
+            }
+            for (int shapeIndex = negativeRegionShapes.Count - 1; shapeIndex >= 0; shapeIndex--) {
+                slide.SendToBack(negativeRegionShapes[shapeIndex]);
             }
         }
     }

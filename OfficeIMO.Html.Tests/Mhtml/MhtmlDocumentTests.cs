@@ -11,6 +11,31 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlDocumentTests {
     [Fact]
+    public async Task ConcurrentRedirectBudgetFailuresEmitOneDiagnosticPerResource() {
+        var document = new MhtmlDocument(
+            "<img src='https://example.test/a.png'><img src='https://example.test/b.png'>",
+            contentLocation: "https://example.test/page.html");
+        int calls = 0;
+        var bothFetchesStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var options = new HtmlRenderOptions();
+        MhtmlRemoteResourcePolicy policy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);
+        policy.MaximumResourceCount = 2;
+        policy.MaximumResourceRequests = 2;
+        policy.ResourceFetcher = async (request, cancellationToken) => {
+            if (Interlocked.Increment(ref calls) == 2) bothFetchesStarted.TrySetResult(true);
+            await bothFetchesStarted.Task.ConfigureAwait(false);
+            return MhtmlRemoteResourceResponse.Redirect(new Uri(request.Uri.AbsolutePath + ".next", UriKind.Relative));
+        };
+        document.ConfigureRenderOptions(options, policy);
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document.HtmlDocument, options);
+
+        Assert.Equal(2, calls);
+        Assert.Equal(2, rendered.Diagnostics.Count(diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded));
+    }
+
+    [Fact]
     public async Task RedirectHopsConsumeTheOperationWideResourceRequestBudget() {
         var document = new MhtmlDocument("<img src='https://example.test/start.png'>",
             contentLocation: "https://example.test/page.html");
