@@ -202,7 +202,10 @@ public static class OfficeProvenanceInspector {
 
     private static bool HasStructuredTextExtension(string? fileName) {
         string extension = Path.GetExtension(fileName ?? string.Empty).ToLowerInvariant();
-        return extension is ".md" or ".markdown" or ".txt" or ".yaml" or ".yml" or ".toml" or ".ini" or ".json" or ".xml" or ".adoc" or ".asciidoc" or ".tex";
+        return extension is ".md" or ".markdown" or ".txt" or ".yaml" or ".yml" or ".toml" or ".ini" or ".json" or ".xml" or
+            ".adoc" or ".asciidoc" or ".tex" or ".py" or ".rb" or ".sh" or ".ps1" or ".js" or ".mjs" or ".cjs" or ".ts" or
+            ".css" or ".sql" or ".cs" or ".vb" or ".java" or ".c" or ".h" or ".cpp" or ".hpp" or ".go" or ".rs" or ".lua" or
+            ".bat" or ".cmd";
     }
 }
 

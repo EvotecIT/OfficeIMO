@@ -35,6 +35,7 @@ public sealed partial class PdfReadPage {
         }
         for (int index = 0; index < textSpans.Count; index++) {
             PdfTextSpan span = textSpans[index];
+            if (!span.IsVisible || span.Color?.A <= 3) continue;
             var bounds = GetTextVisualBounds(span, size.Height);
             laterBounds.Add((bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, span.PaintOrder));
         }

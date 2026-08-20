@@ -125,6 +125,16 @@ internal static class OfficeProvenanceText {
             if (++delimiterCount > maximumContainerEntries) {
                 throw new InvalidDataException("The structured text exceeds the configured container-entry limit.");
             }
+            if (TryReadSingleLineBlock(
+                data,
+                begin,
+                maximumManifestBytes,
+                maximumContainerEntries,
+                out StructuredBlock? singleLineBlock)) {
+                yield return singleLineBlock!;
+                search = Math.Max(singleLineBlock!.LineEnd, begin + BeginDelimiter.Length);
+                continue;
+            }
             if (!IsStandaloneDelimiter(data, begin, BeginDelimiter.Length)) {
                 search = begin + BeginDelimiter.Length;
                 continue;
@@ -150,45 +160,171 @@ internal static class OfficeProvenanceText {
             int contentEnd = end;
             while (contentStart < contentEnd && IsAsciiWhitespace(data[contentStart])) contentStart++;
             while (contentEnd > contentStart && IsAsciiWhitespace(data[contentEnd - 1])) contentEnd--;
-            int valueLength = contentEnd - contentStart;
-            bool external = false;
-            bool valid = false;
-            long manifestLength = 0;
-            string? externalUri = null;
-            if (StartsWith(data, contentStart, valueLength, DataUriPrefix)) {
-                int base64Offset = contentStart + DataUriPrefix.Length;
-                int base64Length = contentEnd - base64Offset;
-                if (base64Length > GetMaximumBase64Length(maximumManifestBytes)) {
-                    throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
-                }
-                try {
-                    string encoded = Encoding.ASCII.GetString(data, base64Offset, base64Length);
-                    byte[] manifest = Convert.FromBase64String(encoded);
-                    manifestLength = manifest.Length;
-                    if (manifest.LongLength > maximumManifestBytes) {
-                        throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
-                    }
-                    valid = OfficeC2paManifestStore.IsValid(
-                        manifest, 0, manifest.Length, maximumManifestBytes, maximumContainerEntries, out _);
-                } catch (FormatException) {
-                    valid = false;
-                }
-            } else if (valueLength > 0) {
-                try {
-                    string value = OfficeProvenanceBinary.DecodeUtf8(data, contentStart, valueLength).Trim();
-                    if (Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) {
-                        external = true;
-                        valid = true;
-                        externalUri = uri.AbsoluteUri;
-                    }
-                } catch (DecoderFallbackException) {
-                    valid = false;
-                }
-            }
+            ParseStructuredValue(
+                data,
+                contentStart,
+                contentEnd,
+                maximumManifestBytes,
+                maximumContainerEntries,
+                out bool external,
+                out bool valid,
+                out long manifestLength,
+                out string? externalUri);
             int lineStart = FindLineStart(data, begin);
             int lineEnd = FindLineEndIncludingTerminator(data, end + EndDelimiter.Length);
             yield return new StructuredBlock(begin, lineStart, lineEnd, external, valid, manifestLength, externalUri);
             search = end + EndDelimiter.Length;
+        }
+    }
+
+    private static bool TryReadSingleLineBlock(
+        byte[] data,
+        int begin,
+        long maximumManifestBytes,
+        int maximumContainerEntries,
+        out StructuredBlock? block) {
+        block = null;
+        int lineStart = FindLineStart(data, begin);
+        int lineContentEnd = FindLineEnd(data, begin + BeginDelimiter.Length);
+        int contentStart = begin + BeginDelimiter.Length;
+        int end = IndexOf(data, EndDelimiter, contentStart);
+        bool hasSameLineEnd = end >= contentStart && end < lineContentEnd;
+
+        int prefixStart = lineStart;
+        while (prefixStart < begin && IsHorizontalWhitespace(data[prefixStart])) prefixStart++;
+        int prefixEnd = begin;
+        while (prefixEnd > prefixStart && IsHorizontalWhitespace(data[prefixEnd - 1])) prefixEnd--;
+        int prefixLength = prefixEnd - prefixStart;
+
+        if (prefixLength == 0) return false;
+        int suffixStart = hasSameLineEnd ? end + EndDelimiter.Length : lineContentEnd;
+        while (suffixStart < lineContentEnd && IsHorizontalWhitespace(data[suffixStart])) suffixStart++;
+        int suffixEnd = lineContentEnd;
+        while (suffixEnd > suffixStart && IsHorizontalWhitespace(data[suffixEnd - 1])) suffixEnd--;
+
+        if (!IsSupportedCommentEnvelope(data, prefixStart, prefixLength, suffixStart, suffixEnd - suffixStart)) {
+            return false;
+        }
+
+        int lineEnd = FindLineEndIncludingTerminator(data, lineContentEnd);
+        if (!hasSameLineEnd) {
+            block = new StructuredBlock(begin, lineStart, lineEnd, false, false, 0L, null);
+            return true;
+        }
+
+        int nestedBegin = IndexOf(data, BeginDelimiter, contentStart);
+        bool nested = nestedBegin >= contentStart && nestedBegin < end;
+        int valueStart = contentStart;
+        int valueEnd = end;
+        while (valueStart < valueEnd && IsHorizontalWhitespace(data[valueStart])) valueStart++;
+        while (valueEnd > valueStart && IsHorizontalWhitespace(data[valueEnd - 1])) valueEnd--;
+        ParseStructuredValue(
+            data,
+            valueStart,
+            valueEnd,
+            maximumManifestBytes,
+            maximumContainerEntries,
+            out bool external,
+            out bool valid,
+            out long manifestLength,
+            out string? externalUri);
+        block = new StructuredBlock(begin, lineStart, lineEnd, external, valid && !nested, manifestLength, externalUri);
+        return true;
+    }
+
+    private static bool IsSupportedCommentEnvelope(
+        byte[] data,
+        int prefixStart,
+        int prefixLength,
+        int suffixStart,
+        int suffixLength) {
+        if (MatchesAscii(data, prefixStart, prefixLength, "#") ||
+            MatchesAscii(data, prefixStart, prefixLength, "//") ||
+            MatchesAscii(data, prefixStart, prefixLength, "--") ||
+            MatchesAscii(data, prefixStart, prefixLength, ";") ||
+            MatchesAscii(data, prefixStart, prefixLength, "%") ||
+            MatchesAscii(data, prefixStart, prefixLength, "'") ||
+            MatchesAscii(data, prefixStart, prefixLength, "::") ||
+            MatchesAsciiIgnoreCase(data, prefixStart, prefixLength, "REM")) {
+            return suffixLength == 0;
+        }
+        if (MatchesAscii(data, prefixStart, prefixLength, "/*")) {
+            return MatchesAscii(data, suffixStart, suffixLength, "*/");
+        }
+        if (MatchesAscii(data, prefixStart, prefixLength, "<!--")) {
+            return MatchesAscii(data, suffixStart, suffixLength, "-->");
+        }
+        if (MatchesAscii(data, prefixStart, prefixLength, "<#")) {
+            return MatchesAscii(data, suffixStart, suffixLength, "#>");
+        }
+        return false;
+    }
+
+    private static bool MatchesAscii(byte[] data, int offset, int length, string value) {
+        if (length != value.Length) return false;
+        for (int index = 0; index < length; index++) {
+            if (data[offset + index] != (byte)value[index]) return false;
+        }
+        return true;
+    }
+
+    private static bool MatchesAsciiIgnoreCase(byte[] data, int offset, int length, string value) {
+        if (length != value.Length) return false;
+        for (int index = 0; index < length; index++) {
+            byte actual = data[offset + index];
+            byte expected = (byte)value[index];
+            if (actual >= (byte)'a' && actual <= (byte)'z') actual = (byte)(actual - 32);
+            if (expected >= (byte)'a' && expected <= (byte)'z') expected = (byte)(expected - 32);
+            if (actual != expected) return false;
+        }
+        return true;
+    }
+
+    private static void ParseStructuredValue(
+        byte[] data,
+        int contentStart,
+        int contentEnd,
+        long maximumManifestBytes,
+        int maximumContainerEntries,
+        out bool external,
+        out bool valid,
+        out long manifestLength,
+        out string? externalUri) {
+        int valueLength = contentEnd - contentStart;
+        external = false;
+        valid = false;
+        manifestLength = 0;
+        externalUri = null;
+        if (StartsWith(data, contentStart, valueLength, DataUriPrefix)) {
+            int base64Offset = contentStart + DataUriPrefix.Length;
+            int base64Length = contentEnd - base64Offset;
+            if (base64Length > GetMaximumBase64Length(maximumManifestBytes)) {
+                throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
+            }
+            try {
+                string encoded = Encoding.ASCII.GetString(data, base64Offset, base64Length);
+                byte[] manifest = Convert.FromBase64String(encoded);
+                manifestLength = manifest.Length;
+                if (manifest.LongLength > maximumManifestBytes) {
+                    throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
+                }
+                valid = OfficeC2paManifestStore.IsValid(
+                    manifest, 0, manifest.Length, maximumManifestBytes, maximumContainerEntries, out _);
+            } catch (FormatException) {
+                valid = false;
+            }
+        } else if (valueLength > 0) {
+            try {
+                string value = OfficeProvenanceBinary.DecodeUtf8(data, contentStart, valueLength).Trim();
+                if (Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) &&
+                    (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) {
+                    external = true;
+                    valid = true;
+                    externalUri = uri.AbsoluteUri;
+                }
+            } catch (DecoderFallbackException) {
+                valid = false;
+            }
         }
     }
 
@@ -305,10 +441,14 @@ internal static class OfficeProvenanceText {
         return offset;
     }
     private static int FindLineEndIncludingTerminator(byte[] data, int offset) {
-        while (offset < data.Length && data[offset] != 0x0A && data[offset] != 0x0D) offset++;
+        offset = FindLineEnd(data, offset);
         if (offset >= data.Length) return offset;
         if (data[offset] == 0x0D && offset + 1 < data.Length && data[offset + 1] == 0x0A) return offset + 2;
         return offset + 1;
+    }
+    private static int FindLineEnd(byte[] data, int offset) {
+        while (offset < data.Length && data[offset] != 0x0A && data[offset] != 0x0D) offset++;
+        return offset;
     }
     private static bool IsStandaloneDelimiter(byte[] data, int offset, int length) {
         int lineStart = FindLineStart(data, offset);

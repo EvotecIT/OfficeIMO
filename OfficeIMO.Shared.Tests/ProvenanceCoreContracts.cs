@@ -8,6 +8,8 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
+    internal static byte[] CreateManifestStoreForLifecycleTests() => CreateManifestStore();
+
     [Fact]
     public void JpegRemovesExactApp11SequenceAndPreservesOtherSegments() {
         byte[] manifest = CreateManifestStore(324);

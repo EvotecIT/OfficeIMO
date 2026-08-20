@@ -804,6 +804,10 @@ chart.SaveAsSvg("revenue-chart.svg");
 
 `ExcelDocument.InspectProvenance("input.xlsx")` reports C2PA and AI-specific IPTC metadata in the workbook and its supported embedded images. `ExcelDocument.RemoveProvenance("input.xlsx", "clean.xlsx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
 
+## Concealed-content inspection and cleanup
+
+`ExcelDocument.InspectContentSafety(...)` reports hidden sheets/rows/columns, zero geometry, tiny or transparent text, `;;;` hidden display formats, resolved low contrast, comments, hidden defined names, drawing runs/fields and ancestor groups, drawing alternative text, and Unicode evidence across XLSX/XLSM/XLSB and supported legacy XLS input. `ExcelDocument.RemoveSelectedContent(...)` clears only reviewed current payloads, isolates shared-string edits per referencing cell, and writes the original physical format. Conditional-format rendering is diagnosed rather than guessed; signed legacy XLS cleanup fails closed.
+
 ## Adjacent packages
 
 | Package | Use it for |

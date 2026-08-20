@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Optional c2patool process adapter for C2PA Content Credential signing and verification with OfficeIMO.</Description>
+    <AssemblyName>OfficeIMO.Provenance.C2pa</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Provenance.C2pa</AssemblyTitle>
+    <VersionPrefix>3.2.4</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Provenance.C2pa</PackageId>
+    <PackageTags>provenance;c2pa;content-credentials;c2patool;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IsPublishable>True</IsPublishable>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="True" PackagePath="\" />
+    <None Include="README.md" Pack="True" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Linq" />
+  </ItemGroup>
+</Project>

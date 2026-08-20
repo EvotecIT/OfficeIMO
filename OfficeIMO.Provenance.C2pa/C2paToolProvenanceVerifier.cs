@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using OfficeIMO.Provenance;
 
-namespace OfficeIMO.Security;
+namespace OfficeIMO.Provenance.C2pa;
 
 /// <summary>
 /// Provides optional C2PA content-binding, signature, and trust verification through the official
@@ -315,15 +315,6 @@ internal sealed class C2paToolProcessResult {
 
 internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     private static readonly char[] ProcessSnapshotLineSeparators = { '\r', '\n' };
-    private const string UnixShellContainmentScript =
-        "set -m; \"$@\" & child=$!; " +
-        "child_pgid=$(ps -o pgid= -p \"$child\" 2>/dev/null | tr -d ' '); " +
-        "if [ \"$child_pgid\" != \"$child\" ]; then " +
-        "if ! kill -0 \"$child\" 2>/dev/null; then wait \"$child\"; exit $?; fi; " +
-        "kill -KILL \"$child\" 2>/dev/null || true; wait \"$child\" 2>/dev/null || true; " +
-        "printf '%s\\n' 'unable to establish a dedicated c2patool process group' >&2; exit 126; fi; " +
-        "cleanup() { kill -KILL -$child 2>/dev/null || true; }; " +
-        "trap cleanup EXIT; trap 'exit 143' HUP INT TERM; wait $child; status=$?; trap - HUP INT TERM; exit $status";
     private readonly bool _useExternalUnixSessionLauncher;
 
     internal C2paToolProcessRunner(bool useExternalUnixSessionLauncher = true) {
@@ -336,17 +327,13 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         string arguments = string.Join(" ", request.Arguments.Select(QuoteArgument));
         string? sessionLauncher = _useExternalUnixSessionLauncher ? FindUnixSessionLauncher() : null;
         bool ownsUnixProcessGroup = sessionLauncher != null;
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT && sessionLauncher == null) {
+            throw new Win32Exception(2,
+                "c2patool execution on Unix requires a setsid executable so child processes can be contained safely.");
+        }
         if (sessionLauncher != null) {
             executable = sessionLauncher;
             arguments = QuoteArgument(targetExecutable) + (arguments.Length == 0 ? string.Empty : " " + arguments);
-        } else if (Environment.OSVersion.Platform != PlatformID.Win32NT) {
-            // Stock macOS has no setsid executable. Keep the verifier in a shell-owned
-            // background process group so the EXIT trap reaps descendants even when the
-            // verifier parent exits before inherited output handles close.
-            executable = "/bin/sh";
-            arguments = QuoteArgument("-c") + " " + QuoteArgument(UnixShellContainmentScript) +
-                " " + QuoteArgument("officeimo-c2patool") + " " + QuoteArgument(targetExecutable) +
-                (arguments.Length == 0 ? string.Empty : " " + arguments);
         }
         var startInfo = new ProcessStartInfo {
             FileName = executable,
@@ -509,8 +496,22 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
 
     private static string? FindUnixSessionLauncher() {
         if (Environment.OSVersion.Platform == PlatformID.Win32NT) return null;
-        foreach (string path in new[] { "/usr/bin/setsid", "/bin/setsid", "/usr/local/bin/setsid" }) {
-            if (File.Exists(path)) return path;
+        foreach (string path in new[] {
+            "/usr/bin/setsid",
+            "/bin/setsid",
+            "/usr/local/bin/setsid",
+            "/opt/homebrew/opt/util-linux/bin/setsid",
+            "/usr/local/opt/util-linux/bin/setsid"
+        }) {
+            if (File.Exists(path) && IsUnixExecutable(path)) return path;
+        }
+        string searchPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        foreach (string directory in searchPath.Split(Path.PathSeparator)) {
+            if (string.IsNullOrWhiteSpace(directory)) continue;
+            string candidate;
+            try { candidate = Path.GetFullPath(Path.Combine(directory.Trim(), "setsid")); }
+            catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException) { continue; }
+            if (File.Exists(candidate) && IsUnixExecutable(candidate)) return candidate;
         }
         return null;
     }

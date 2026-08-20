@@ -143,7 +143,94 @@ internal static partial class PdfTextEditor {
         return new TextMutationResult(current, hits.Count, warnings);
     }
 
-    private static TextRemovalResult RemoveTextPreservingUnmatchedSpans(byte[] pdf, IReadOnlyList<PdfRedactionArea> areas, PdfReadOptions? readOptions, IReadOnlyList<PageSpanKey>? exactTargets = null) {
+    internal static byte[] RemoveExactContentSafetySpans(
+        byte[] pdf,
+        IReadOnlyList<(int PageNumber, PdfTextSpan Span)> targets,
+        PdfReadOptions? readOptions) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(targets);
+#else
+        if (targets == null) throw new ArgumentNullException(nameof(targets));
+#endif
+        if (targets.Count == 0) return pdf.ToArray();
+        PageSpanKey[] keys = targets.Select(item => new PageSpanKey(item.PageNumber, item.Span)).ToArray();
+        PdfRedactionArea[] areas = keys.Select(key => {
+            SpanBounds bounds = GetBounds(key.Span);
+            return new PdfRedactionArea(key.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height, "content-safety");
+        }).ToArray();
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(
+            pdf,
+            areas,
+            readOptions,
+            keys,
+            allowInvisibleTargetRemoval: true);
+        return ApplyStampRequests(removal.Bytes, new List<PdfStamper.TextStampRequest>(removal.Restamps), readOptions);
+    }
+
+    internal static byte[] MutateExactContentSafetySpans(
+        byte[] pdf,
+        IReadOnlyList<(int PageNumber, PdfTextSpan Span)> removals,
+        IReadOnlyList<(int PageNumber, PdfTextSpan Span, int Start, int Length)> textEdits,
+        PdfReadOptions? readOptions) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(removals);
+        ArgumentNullException.ThrowIfNull(textEdits);
+#else
+        if (removals == null) throw new ArgumentNullException(nameof(removals));
+        if (textEdits == null) throw new ArgumentNullException(nameof(textEdits));
+#endif
+        if (textEdits.Count == 0) return RemoveExactContentSafetySpans(pdf, removals, readOptions);
+        var rewrites = new Dictionary<PageSpanKey, List<SpanTextEdit>>();
+        foreach (var edit in textEdits) {
+            if (edit.Start < 0 || edit.Length <= 0 || edit.Start > edit.Span.Text.Length - edit.Length) {
+                throw new InvalidOperationException("A selected PDF Unicode range no longer matches the inspected text span.");
+            }
+            var key = new PageSpanKey(edit.PageNumber, edit.Span);
+            if (!rewrites.TryGetValue(key, out List<SpanTextEdit>? ranges)) {
+                ranges = new List<SpanTextEdit>();
+                rewrites.Add(key, ranges);
+            }
+            ranges.Add(new SpanTextEdit(edit.Start, edit.Length, string.Empty));
+        }
+        PageSpanKey[] removalKeys = removals.Select(item => new PageSpanKey(item.PageNumber, item.Span)).ToArray();
+        PageSpanKey[] allKeys = removalKeys.Concat(rewrites.Keys).Distinct().ToArray();
+        PdfRedactionArea[] areas = allKeys.Select(key => {
+            SpanBounds bounds = GetBounds(key.Span);
+            return new PdfRedactionArea(key.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height, "content-safety");
+        }).ToArray();
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions, allKeys, allowInvisibleTargetRemoval: true);
+        var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
+        var rewrittenRequests = new List<PdfStamper.TextStampRequest>();
+        var positioned = new List<PositionedRewrite>();
+        foreach (KeyValuePair<PageSpanKey, List<SpanTextEdit>> rewrite in rewrites
+            .OrderBy(item => item.Key.PageNumber)
+            .ThenByDescending(item => item.Key.Span.Y)
+            .ThenBy(item => item.Key.Span.X)) {
+            PdfTextSpan sourceSpan = rewrite.Key.Span;
+            PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
+            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected);
+            PositionedTextFragment[] fragments = BuildPositionedFragments(sourceSpan, rewrite.Value, style, style);
+            positioned.Add(new PositionedRewrite(rewrite.Key.PageNumber, sourceSpan, fragments));
+        }
+        AddReflowedRewriteRequests(rewrittenRequests, positioned);
+        foreach (IGrouping<int, PageSpanKey> pageRewrites in rewrites.Keys.GroupBy(key => key.PageNumber)) {
+            EnsureAppendOrderIsSafe(
+                pdf,
+                pageRewrites.Key,
+                pageRewrites.Select(key => key.Span).ToArray(),
+                readOptions,
+                rewrittenRequests.Where(request => request.PageNumber == pageRewrites.Key).ToArray());
+        }
+        requests.AddRange(rewrittenRequests);
+        return ApplyStampRequests(removal.Bytes, requests, readOptions);
+    }
+
+    private static TextRemovalResult RemoveTextPreservingUnmatchedSpans(
+        byte[] pdf,
+        IReadOnlyList<PdfRedactionArea> areas,
+        PdfReadOptions? readOptions,
+        IReadOnlyList<PageSpanKey>? exactTargets = null,
+        bool allowInvisibleTargetRemoval = false) {
         PdfReadDocument before = PdfReadDocument.Open(pdf, readOptions);
         int[] affectedPages = areas.Select(static area => area.PageNumber).Distinct().ToArray();
         var original = new List<PageTextSpanSnapshot>();
@@ -157,7 +244,7 @@ internal static partial class PdfTextEditor {
                 bool targeted = exactTargets is null
                     ? areas.Any(area => area.PageNumber == pageNumber && Intersects(area, bounds))
                     : exactTargets.Any(target => target.PageNumber == pageNumber && SameTargetSourceSpan(span, target.Span));
-                if (targeted && !IsSafelyEditableSpan(span)) {
+                if (targeted && !allowInvisibleTargetRemoval && !IsSafelyEditableSpan(span)) {
                     throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
                 }
                 original.Add(new PageTextSpanSnapshot(pageNumber, span, targeted));

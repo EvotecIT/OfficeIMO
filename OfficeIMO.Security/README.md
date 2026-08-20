@@ -113,32 +113,6 @@ but cannot register or enable another implementation. External references and un
 Document packages remain responsible for package relationships, content types, signed-part selection, and mutation
 safety.
 
-## C2PA Content Credentials
-
-The dependency-free `OfficeProvenanceInspector` in `OfficeIMO.Core` finds C2PA carriers and IPTC Digital Source Type declarations. Cryptographic verification is optional and stays in this package through `C2paToolProvenanceVerifier`.
-
-The verifier invokes an official `c2patool` executable supplied by the application. OfficeIMO does not download, bundle, or discover the executable. Remote manifest and OCSP fetching are disabled by default; local trust material can be supplied without enabling network access.
-
-```csharp
-using OfficeIMO.Provenance;
-using OfficeIMO.Security;
-
-IOfficeProvenanceVerifier verifier = new C2paToolProvenanceVerifier("/opt/c2pa/c2patool");
-var options = new OfficeProvenanceVerificationOptions {
-    TrustAnchorsPath = "/etc/my-app/c2pa-trust-anchors.pem",
-    AllowedListPath = "/etc/my-app/c2pa-allowed-list.pem",
-    IncludeRawReport = false
-};
-
-OfficeProvenanceVerificationResult result = verifier.Verify("image.jpg", options);
-Console.WriteLine(result.Status);
-foreach (string finding in result.Findings) {
-    Console.WriteLine(finding);
-}
-```
-
-`Valid` means the configured provider found a manifest, verified it, and produced no validation findings. `Untrusted` distinguishes trust-list failures from content or signature failures reported as `Invalid`. `NotPresent`, `ProviderUnavailable`, `Indeterminate`, and `Error` remain separate outcomes so callers do not have to infer policy from exception text. Set `AllowNetworkAccess = true` only when remote manifests, remote trust material, or OCSP are part of the application’s policy. Provider output is bounded and omitted from the result unless `IncludeRawReport` is enabled.
-
 ## NativeAOT and trimming
 
 Ordinary OfficeIMO applications do not carry this package unless they opt in. The repository publishes a separate
@@ -148,7 +122,7 @@ not need linker descriptors or reflection-based registration.
 
 ## Dependency footprint
 
-- **External:** `BouncyCastle.Cryptography` 2.x, `System.Security.Cryptography.Xml`, and `System.Text.Json`. The optional C2PA path also requires a host-supplied `c2patool` executable.
+- **External:** `BouncyCastle.Cryptography` 2.x and `System.Security.Cryptography.Xml`.
 - **OfficeIMO:** the zero-dependency `OfficeIMO.Core` foundation for provider contracts and result models.
 - **Not included transitively by:** `OfficeIMO.Word`, `OfficeIMO.Pdf`, `OfficeIMO.Email`, or other format packages.
 

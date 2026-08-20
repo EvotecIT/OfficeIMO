@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using OfficeIMO.Provenance;
 
-namespace OfficeIMO.Security.Tests;
+namespace OfficeIMO.Provenance.C2pa.Tests;
 
 public sealed class C2paToolProvenanceVerifierTests {
     [Theory]
@@ -241,7 +241,7 @@ public sealed class C2paToolProvenanceVerifierTests {
     }
 
     [Fact]
-    public void UnixShellContainmentKillsOrphanedChildrenWithoutSetsid() {
+    public void UnixRunnerFailsClosedWithoutSetsid() {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         string marker = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".orphan");
         try {
@@ -252,10 +252,11 @@ public sealed class C2paToolProvenanceVerifierTests {
                 TimeSpan.FromSeconds(2),
                 1024 * 1024);
 
-            C2paToolProcessResult result = new C2paToolProcessRunner(useExternalUnixSessionLauncher: false).Run(request);
+            Win32Exception exception = Assert.Throws<Win32Exception>(() =>
+                new C2paToolProcessRunner(useExternalUnixSessionLauncher: false).Run(request));
             Thread.Sleep(1500);
 
-            Assert.Equal(0, result.ExitCode);
+            Assert.Contains("requires a setsid executable", exception.Message, StringComparison.Ordinal);
             Assert.False(File.Exists(marker));
         } finally {
             if (File.Exists(marker)) File.Delete(marker);

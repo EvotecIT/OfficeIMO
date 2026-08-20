@@ -130,6 +130,10 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 `OdfDocument.InspectProvenance("input.odt")` reports C2PA and AI-specific IPTC metadata in ODF packages and supported embedded images. `OdfDocument.RemoveProvenance("input.odt", "clean.odt")` performs a bounded package rewrite while preserving the required uncompressed, first `mimetype` entry. Signed-package mutation is blocked unless removal of invalidated ODF signature entries is requested explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
 
+## Concealed-content inspection and cleanup
+
+`OdfDocument.InspectContentSafety(...)` covers ODT, ODS, and ODP native hidden fields and containers, concealed stored values/formulas, resolved tiny/transparent/low-contrast styles, zero geometry, notes, annotations, alternative descriptions, and Unicode evidence. `OdfDocument.RemoveSelectedContent(...)` removes exact reviewed text segments or exact Unicode ranges inside stored attributes through the preservation-aware package writer. Encrypted-source cleanup and implicit signature invalidation are rejected.
+
 ## Explicit boundaries
 
 - Formula evaluation covers arithmetic, comparisons, concatenation, cell/range references, and common aggregate/math functions. External data, volatile functions, matrix formulas, and the complete OpenFormula language are not included.
