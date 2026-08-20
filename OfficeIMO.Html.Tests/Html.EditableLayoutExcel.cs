@@ -8,6 +8,26 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutExcelTests {
     [Fact]
+    public void RegionsFromTableLimitedSheetsDoNotMoveOntoNarrativeSheets() {
+        const string html = "<p>Narrative retained</p>" +
+            "<table><caption>First</caption><tr><td>First table</td></tr></table>" +
+            "<table><caption>Second</caption><tr><td>Second table" +
+            "<div style='display:grid;width:140px;height:40px'>Limited layout</div></td></tr></table>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+        limits.MaxSemanticContainers = 2;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(2, workbook.Sheets.Count);
+        Assert.DoesNotContain(workbook.Sheets, sheet => ContainsCellText(sheet, "Limited layout"));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("owning worksheet was not created", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void TableUnownedRegionsReceiveANarrativeWorksheet() {
         const string html = "<table><caption>Data</caption><tr><td>Table value</td></tr></table>" +
             "<div style='position:absolute;width:140px;height:40px'>Narrative layout</div>";

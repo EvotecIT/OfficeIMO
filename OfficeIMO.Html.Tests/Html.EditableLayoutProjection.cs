@@ -8,6 +8,20 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutProjectionTests {
     [Fact]
+    public void CallerStylesheetsParticipateInRegionDiscoveryWithoutLeakingIntoSemanticFlow() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("<div class='placed'>Caller styled</div>");
+        var options = new HtmlRenderOptions();
+        options.AdditionalStylesheets.Add(".placed{position:absolute;width:160px;height:40px}");
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            document, options);
+
+        Assert.Single(projection.Regions);
+        Assert.DoesNotContain("data-officeimo-render-stylesheet", projection.RemainingDocument.DocumentElement!.OuterHtml,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RegionTextUsesOnlyRenderedVisibleText() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>Visible" +
             "<span style='display:none'>Hidden display</span>" +

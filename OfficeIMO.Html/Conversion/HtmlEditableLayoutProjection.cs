@@ -95,6 +95,13 @@ public static class HtmlEditableLayoutProjector {
         IReadOnlyList<HtmlGenericSectionProjection> semanticSections =
             HtmlGenericDocumentProjector.CreateSections(adapterDocument);
         IReadOnlyList<IElement> semanticTables = HtmlGenericDocumentProjector.SelectRootTables(adapterDocument);
+        HtmlRenderOptions options = renderOptions?.Clone() ?? new HtmlRenderOptions();
+        options.Mode = mediaContext == HtmlCssMediaContext.Print
+            ? HtmlRenderMode.Paged
+            : HtmlRenderMode.Continuous;
+        IReadOnlyList<IHtmlStyleElement> callerStyles = HtmlRenderAdditionalStylesheetApplier.Apply(
+            adapterDocument, options.AdditionalStylesheets.ToList());
+        options.AdditionalStylesheets.Clear();
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(
             adapterDocument,
             mediaContext,
@@ -120,10 +127,6 @@ public static class HtmlEditableLayoutProjector {
                 System.Globalization.CultureInfo.InvariantCulture));
         }
 
-        HtmlRenderOptions options = renderOptions?.Clone() ?? new HtmlRenderOptions();
-        options.Mode = mediaContext == HtmlCssMediaContext.Print
-            ? HtmlRenderMode.Paged
-            : HtmlRenderMode.Continuous;
         options.EnableEditableLayoutRegions = true;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options);
         var occurrences = new List<(int Page, HtmlRenderLayoutRegion Region)>();
@@ -222,6 +225,7 @@ public static class HtmlEditableLayoutProjector {
         foreach (IElement image in adapterDocument.QuerySelectorAll("[" + ImageAttribute + "]").ToArray()) {
             image.RemoveAttribute(ImageAttribute);
         }
+        foreach (IHtmlStyleElement style in callerStyles) style.Remove();
         return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), sourceImages, diagnostics.Diagnostics);
     }
 

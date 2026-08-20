@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
+using OfficeIMO.Tests;
 using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
@@ -9,6 +10,29 @@ using Xunit;
 namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlDocumentTests {
+    [Fact]
+    public async Task RedirectHopsConsumeTheOperationWideResourceRequestBudget() {
+        var document = new MhtmlDocument("<img src='https://example.test/start.png'>",
+            contentLocation: "https://example.test/page.html");
+        int calls = 0;
+        var options = new HtmlRenderOptions();
+        MhtmlRemoteResourcePolicy policy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 2);
+        policy.MaximumResourceCount = 1;
+        policy.MaximumResourceRequests = 1;
+        policy.ResourceFetcher = (request, cancellationToken) => {
+            calls++;
+            return Task.FromResult<MhtmlRemoteResourceResponse?>(
+                MhtmlRemoteResourceResponse.Redirect(new Uri("/next.png", UriKind.Relative)));
+        };
+        document.ConfigureRenderOptions(options, policy);
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document.HtmlDocument, options);
+
+        Assert.Equal(1, calls);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded);
+    }
+
     [Fact]
     public void ConfigureRenderOptionsRetainsTheOriginalBinarySignature() {
         Assert.NotNull(typeof(MhtmlDocument).GetMethod(

@@ -25,10 +25,14 @@ internal sealed class HtmlRenderResourceByteLimitException : Exception {
 /// Policy-approved resource request passed to an application-supplied resolver.
 /// </summary>
 public sealed class HtmlRenderResourceRequest {
-    internal HtmlRenderResourceRequest(Uri uri, string source, HtmlResourceKind kind) {
+    private readonly Func<bool>? _tryReserveAdditionalRequest;
+
+    internal HtmlRenderResourceRequest(Uri uri, string source, HtmlResourceKind kind,
+        Func<bool>? tryReserveAdditionalRequest = null) {
         Uri = uri;
         Source = source;
         Kind = kind;
+        _tryReserveAdditionalRequest = tryReserveAdditionalRequest;
     }
 
     /// <summary>Absolute URI after base-URI resolution and URL-policy evaluation.</summary>
@@ -39,6 +43,8 @@ public sealed class HtmlRenderResourceRequest {
 
     /// <summary>Resource kind requested by the renderer.</summary>
     public HtmlResourceKind Kind { get; }
+
+    internal bool TryReserveAdditionalRequest() => _tryReserveAdditionalRequest?.Invoke() ?? true;
 }
 
 /// <summary>

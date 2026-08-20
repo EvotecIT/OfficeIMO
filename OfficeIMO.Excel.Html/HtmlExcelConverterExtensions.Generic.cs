@@ -15,6 +15,7 @@ public static partial class HtmlExcelConverterExtensions {
             .ToList()
             .AsReadOnly();
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var tableSheets = new Dictionary<int, ExcelSheet>();
         if (tables.Count > 0) {
             for (int index = 0; index < tables.Count; index++) {
                 if (!budget.TryReserveSemanticContainerWithTable(out string tableContainerLimit)) {
@@ -26,6 +27,7 @@ public static partial class HtmlExcelConverterExtensions {
 
                 string title = tables[index].Table?.Caption ?? "Table " + (index + 1);
                 ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(title, usedNames));
+                tableSheets[index + 1] = sheet;
                 result.Sheets++;
                 ImportTableGrid(
                     tables[index].SourceElement,
@@ -93,7 +95,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         if (editableLayout?.Regions.Count > 0) {
-            ImportEditableLayoutRegions(editableLayout.Regions, workbook, narrativeSheet, tables.Count, usedNames,
+            ImportEditableLayoutRegions(editableLayout.Regions, workbook, narrativeSheet, tableSheets, usedNames,
                 result, options, budget);
         }
     }
@@ -102,7 +104,7 @@ public static partial class HtmlExcelConverterExtensions {
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
         ExcelDocument workbook,
         ExcelSheet? narrativeSheet,
-        int semanticTableCount,
+        IReadOnlyDictionary<int, ExcelSheet> tableSheets,
         HashSet<string> usedNames,
         HtmlToExcelResult result,
         HtmlToExcelOptions options,
@@ -121,9 +123,8 @@ public static partial class HtmlExcelConverterExtensions {
 
         foreach (HtmlRenderLayoutRegion region in regions.OrderBy(item => item.PaintOrder)) {
             ExcelSheet? sheet = region.SemanticTableNumber > 0
-                && region.SemanticTableNumber <= semanticTableCount
-                && region.SemanticTableNumber <= workbook.Sheets.Count
-                ? workbook.Sheets[region.SemanticTableNumber - 1]
+                && tableSheets.TryGetValue(region.SemanticTableNumber, out ExcelSheet? tableSheet)
+                ? tableSheet
                 : region.SemanticTableNumber == 0 ? narrativeSheet : null;
             if (sheet == null) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,

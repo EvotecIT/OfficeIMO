@@ -7,6 +7,7 @@ namespace OfficeIMO.Html;
 /// caching, budgets, timeouts, cancellation evidence, canonical identities, and content digests.
 /// </summary>
 public sealed class HtmlResourceSession {
+    private int _resolverRequestCount;
     private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -99,7 +100,7 @@ public sealed class HtmlResourceSession {
     public int AcceptedResourceCount { get; private set; }
 
     /// <summary>Number of resolver requests reserved by the session.</summary>
-    public int ResolverRequestCount { get; private set; }
+    public int ResolverRequestCount => Volatile.Read(ref _resolverRequestCount);
 
     /// <summary>Resolves a manifest synchronously using the configured synchronous package resolver, when present.</summary>
     public static HtmlResourceSession Resolve(
@@ -148,9 +149,10 @@ public sealed class HtmlResourceSession {
     }
 
     internal bool TryReserveRequest(HtmlResourceReference reference) {
-        if (ResolverRequestCount < MaxResourceRequests) {
-            ResolverRequestCount++;
-            return true;
+        while (true) {
+            int current = Volatile.Read(ref _resolverRequestCount);
+            if (current >= MaxResourceRequests) break;
+            if (Interlocked.CompareExchange(ref _resolverRequestCount, current + 1, current) == current) return true;
         }
 
         Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded,
@@ -508,7 +510,8 @@ internal static class HtmlRenderResourceLoader {
                     result.MarkAttempted(reference);
                 }
 
-                tasks.Add(ResolvePendingAsync(pendingResource, uri, result.ResourceTimeout, resolver, cancellationToken));
+                tasks.Add(ResolvePendingAsync(pendingResource, uri, result.ResourceTimeout, resolver,
+                    () => result.TryReserveRequest(reference), cancellationToken));
             }
 
             if (tasks.Count == 0) continue;
@@ -576,12 +579,14 @@ internal static class HtmlRenderResourceLoader {
         Uri uri,
         TimeSpan resourceTimeout,
         ResourceResolver resolver,
+        Func<bool> tryReserveAdditionalRequest,
         CancellationToken cancellationToken) {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(resourceTimeout);
         try {
             HtmlResourceReference reference = pending.Reference;
-            var request = new HtmlRenderResourceRequest(uri, reference.Source, reference.Kind);
+            var request = new HtmlRenderResourceRequest(uri, reference.Source, reference.Kind,
+                tryReserveAdditionalRequest);
             ResourceResolution resolution = await resolver(request, timeout.Token).ConfigureAwait(false);
             return new CompletedResolution(pending, uri, resolution, null);
         } catch (Exception exception) {

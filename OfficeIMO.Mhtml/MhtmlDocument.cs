@@ -156,6 +156,7 @@ public sealed class MhtmlDocument {
         for (int redirectNumber = 0; ; redirectNumber++) {
             if (!HtmlUrlPolicyEvaluator.IsAllowed(current.AbsoluteUri, resourceUrlPolicy)
                 || !remoteResourcePolicy.AllowsRequest(current, BaseUri)) return null;
+            if (redirectNumber > 0 && !request.TryReserveAdditionalRequest()) return null;
             MhtmlRemoteResourceResponse? response = await remoteResourcePolicy.ResourceFetcher!(
                 new MhtmlRemoteResourceRequest(current, request.Source, request.Kind, redirectNumber),
                 cancellationToken).ConfigureAwait(false);
