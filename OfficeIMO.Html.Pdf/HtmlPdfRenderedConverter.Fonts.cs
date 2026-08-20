@@ -249,6 +249,8 @@ internal static partial class HtmlPdfRenderedConverter {
             yield return visual;
             IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
                 ? clipGroup.Visuals
+                : visual is HtmlRenderLayoutRegion layoutRegion
+                    ? layoutRegion.Visuals
                 : visual is HtmlRenderPathClipGroup pathClipGroup
                     ? pathClipGroup.Visuals
                     : visual is HtmlRenderEffectGroup effectGroup

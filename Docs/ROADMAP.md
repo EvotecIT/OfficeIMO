@@ -32,14 +32,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Define an explicit lossy scan-compression product with image-selection, downsampling, quality, color, metadata, accessibility, signature-invalidation, and measurable visual-difference policies. Keep it separate from the deterministic lossless optimizer.
 - [ ] Evaluate an explicit XFA inspection or conversion product only with licensed specification coverage, hostile-input limits, external fixtures, and a fail-closed migration path to AcroForm or static visual output. Do not execute XFA in the core reader.
 
-## HTML, RTF, and lightweight markup
-
-- [ ] Map bounded positioned and floating HTML regions into editable DOCX anchors or RTF frames when their containing block, offsets, wrap policy, and z-order have a native representation. Add producer fixtures for multi-column and paged sections, and retain stable simplify-or-omit diagnostics for browser layout that cannot be represented natively.
-- [ ] Map bounded flex, grid, and positioned HTML regions into destination-native XLSX cell/drawing anchors and PPTX slide geometry when placement remains editable. Add supported multi-layer backgrounds, shadows, and picture effects per destination, with reopen and visual evidence plus stable diagnostics for flattened layers and unsupported effects.
-- [ ] Expand RTF parsing and writing for complex tables, fields, embedded pictures and objects, destination groups, Unicode and code-page edge cases, lists, and producer-specific controls using independent Word, WordPad, and Outlook fixtures with deterministic preservation diagnostics.
-- [ ] Define named Markdown, AsciiDoc, and LaTeX profiles so extensions are opt-in and testable. Add safe AsciiDoc includes through a bounded resolver, attributes, tables, admonitions, cross-references, and common macros; add typed LaTeX mathematics, citations, references, figures, tables, and safe local macro definitions without arbitrary TeX package or command execution.
-- [ ] Harden MHTML-to-PDF for malformed multipart recovery, legacy encodings, nested related resources, duplicate content identifiers, `Content-Location` resolution, redirects, and bounded remote-resource policy. Reuse the managed HTML/CSS tier and continue to reject script execution.
-
 ## Security and protected content
 
 - [ ] Add OCR-backed concealed-text assessment for raster images using bounded OCR regions plus pixel, geometry, and contrast evidence, with explicit safe-redaction policy. Never classify image metadata alone as visible or concealed text.

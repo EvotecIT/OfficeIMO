@@ -8,7 +8,8 @@ public static partial class HtmlExcelConverterExtensions {
         ExcelDocument workbook,
         HtmlToExcelResult result,
         HtmlToExcelOptions options,
-        HtmlImportBudget budget) {
+        HtmlImportBudget budget,
+        HtmlEditableLayoutProjection? editableLayout) {
         IReadOnlyList<HtmlSemanticBlock> tables = document.RootTables
             .Where(table => table.Table?.Rows.Any(row => row.Cells.Count > 0) == true)
             .ToList()
@@ -89,6 +90,167 @@ public static partial class HtmlExcelConverterExtensions {
                 imageRow = Math.Min(A1.MaxRows, lastRow + 2);
             }
             ImportGenericImages(document, imageSheet, result, budget, ref imageRow);
+        }
+
+        if (editableLayout?.Regions.Count > 0) {
+            ImportEditableLayoutRegions(editableLayout.Regions, workbook, result, options, budget);
+        }
+    }
+
+    private static void ImportEditableLayoutRegions(
+        IReadOnlyList<HtmlRenderLayoutRegion> regions,
+        ExcelDocument workbook,
+        HtmlToExcelResult result,
+        HtmlToExcelOptions options,
+        HtmlImportBudget budget) {
+        ExcelSheet sheet;
+        if (workbook.Sheets.Count == 0) {
+            sheet = workbook.AddWorksheet("Imported");
+            result.Sheets++;
+        } else {
+            sheet = workbook.Sheets[0];
+        }
+
+        var occupied = new List<EditableLayoutCellBounds>();
+        if (A1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
+                out int usedLastRow, out int usedLastColumn)) {
+            occupied.Add(new EditableLayoutCellBounds(usedFirstRow, usedFirstColumn, usedLastRow, usedLastColumn));
+        }
+        foreach (var merged in sheet.GetMergedRanges()) {
+            if (A1.TryParseRange(merged.A1Range, out int firstMergedRow, out int firstMergedColumn,
+                    out int lastMergedRow, out int lastMergedColumn)) {
+                occupied.Add(new EditableLayoutCellBounds(firstMergedRow, firstMergedColumn, lastMergedRow, lastMergedColumn));
+            }
+        }
+
+        foreach (HtmlRenderLayoutRegion region in regions.OrderBy(item => item.PaintOrder)) {
+            int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(region.X / 64D) + 1));
+            int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(region.Y / 20D) + 1));
+            int lastColumn = Math.Max(firstColumn, Math.Min(A1.MaxColumns,
+                firstColumn + Math.Max(1, (int)Math.Ceiling(region.Width / 64D)) - 1));
+            int lastRow = Math.Max(firstRow, Math.Min(A1.MaxRows,
+                firstRow + Math.Max(1, (int)Math.Ceiling(region.Height / 20D)) - 1));
+            int requestedFirstRow = firstRow;
+            var bounds = new EditableLayoutCellBounds(firstRow, firstColumn, lastRow, lastColumn);
+            while (occupied.Any(existing => existing.Intersects(bounds))) {
+                int rowSpan = bounds.LastRow - bounds.FirstRow;
+                int nextRow = occupied.Where(existing => existing.Intersects(bounds))
+                    .Max(existing => existing.LastRow) + 2;
+                if (nextRow > A1.MaxRows || rowSpan > A1.MaxRows - nextRow) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An editable HTML layout region was omitted because no non-overlapping native cell anchor remained.",
+                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                        "MaxRows=" + A1.MaxRows);
+                    bounds = default;
+                    break;
+                }
+                bounds = new EditableLayoutCellBounds(nextRow, firstColumn, nextRow + rowSpan, lastColumn);
+            }
+            if (bounds.FirstRow == 0) continue;
+            firstRow = bounds.FirstRow;
+            lastRow = bounds.LastRow;
+            if (firstRow != requestedFirstRow) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "Excel moved an editable layout region to the next non-overlapping cell anchor.",
+                    lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                    detail: "requestedRow=" + requestedFirstRow + "; actualRow=" + firstRow);
+            }
+            if (!TrySetCellTextValue(sheet, firstRow, firstColumn, region.SourceText, result, budget)) {
+                continue;
+            }
+            ExcelCell cell = sheet.CellAt(firstRow, firstColumn);
+            sheet.CellWrapText(firstRow, firstColumn);
+            if (region.BackgroundColor.HasValue) cell.SetFillColor(region.BackgroundColor.Value.ToRgbHex());
+            if (lastRow > firstRow || lastColumn > firstColumn) {
+                string range = BuildCellReference(firstRow, firstColumn) + ":" + BuildCellReference(lastRow, lastColumn);
+                sheet.MergeRange(range);
+                result.MergedRanges++;
+            }
+            result.Cells++;
+            occupied.Add(bounds);
+
+            if (options.ImportImages) {
+                foreach ((HtmlRenderImage Image, double Opacity) image in EnumerateLayoutImages(region.Visuals, 1D)) {
+                    if (!ExcelSheet.IsSupportedImageContentType(image.Image.ContentType)) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                            "A layout-region image used an unsupported native Excel image type.",
+                            lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source,
+                            detail: "mediaType=" + image.Image.ContentType);
+                        continue;
+                    }
+                    if (!budget.TryReserveImageWithShape(image.Image.Bytes.LongLength,
+                            out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                            "A layout-region image was omitted because the shared image or drawing limit was reached.",
+                            lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source, detail: imageLimit);
+                        continue;
+                    }
+                    using HtmlImportBudgetReservation imageReservationScope = imageReservation;
+                    ExcelImage nativeImage = sheet.AddImageAbsolute(
+                        Math.Max(0, (int)Math.Round(image.Image.X)),
+                        Math.Max(0, (int)Math.Round(image.Image.Y)),
+                        image.Image.Bytes,
+                        image.Image.ContentType,
+                        Math.Max(1, (int)Math.Round(image.Image.Width)),
+                        Math.Max(1, (int)Math.Round(image.Image.Height)),
+                        altText: image.Image.AlternativeText);
+                    if (image.Opacity < 0.999D) {
+                        nativeImage.TransparencyPercent = (int)Math.Round((1D - image.Opacity) * 100D);
+                    }
+                    result.Images++;
+                    imageReservation.Commit();
+                }
+            }
+            if (region.BackgroundLayerCount > 0) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened,
+                    "Excel retained supported image layers as drawing anchors and the solid region background as an editable cell fill.",
+                    HtmlDiagnosticSeverity.Info, source: region.Source,
+                    detail: "backgroundLayers=" + region.BackgroundLayerCount);
+            }
+            if (region.BoxShadowLayerCount > 0) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
+                    "Excel cells do not have a native editable CSS box-shadow equivalent; the region geometry and content were retained.",
+                    lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                    detail: "shadowLayers=" + region.BoxShadowLayerCount);
+            }
+        }
+    }
+
+    private readonly struct EditableLayoutCellBounds {
+        internal EditableLayoutCellBounds(int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            FirstRow = firstRow;
+            FirstColumn = firstColumn;
+            LastRow = lastRow;
+            LastColumn = lastColumn;
+        }
+
+        internal int FirstRow { get; }
+        internal int FirstColumn { get; }
+        internal int LastRow { get; }
+        internal int LastColumn { get; }
+
+        internal bool Intersects(EditableLayoutCellBounds other) =>
+            FirstRow <= other.LastRow && LastRow >= other.FirstRow
+            && FirstColumn <= other.LastColumn && LastColumn >= other.FirstColumn;
+    }
+
+    private static IEnumerable<(HtmlRenderImage Image, double Opacity)> EnumerateLayoutImages(
+        IEnumerable<HtmlRenderVisual> visuals,
+        double opacity) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderImage image) yield return (image, opacity);
+            IEnumerable<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderEffectGroup effect => effect.Visuals,
+                HtmlRenderLayoutRegion region => region.Visuals,
+                HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                HtmlRenderClipGroup clip => clip.Visuals,
+                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+                _ => null
+            };
+            if (children == null) continue;
+            double childOpacity = visual is HtmlRenderEffectGroup group ? opacity * group.Opacity : opacity;
+            foreach ((HtmlRenderImage Image, double Opacity) child in EnumerateLayoutImages(children, childOpacity)) yield return child;
         }
     }
 

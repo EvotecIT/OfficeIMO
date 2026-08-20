@@ -234,6 +234,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxLayoutOperations = MaxLayoutOperations;
         target.MaxRunningStringCharacters = MaxRunningStringCharacters;
         target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
+        target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
         return target;
     }
 
@@ -241,6 +242,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     internal int? ResponsiveImageCandidateLimit { get; set; }
+
+    // Only the shared projector may opt the renderer into interpreting its private DOM marker.
+    internal bool EnableEditableLayoutRegions { get; set; }
 
     internal void Validate() {
         ValidateImageExportOptions();

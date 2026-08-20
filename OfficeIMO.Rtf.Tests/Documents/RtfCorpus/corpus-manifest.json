@@ -77,6 +77,21 @@
       "adapters": [ "Core", "Html", "Markdown", "Word" ]
     },
     {
+      "id": "outlook-16-mapi-html-encapsulation",
+      "file": "producers/microsoft-outlook/outlook-16-mapi-html-encapsulated.rtf",
+      "evidenceClass": "producer-generated",
+      "producer": "Microsoft Outlook",
+      "producerVersion": "16.0.0.20228",
+      "origin": "Generated deterministically from an unsent in-memory HTML MailItem through Outlook RTFBody by Build/ProducerCorpus/OutlookRtfFixture/New-OutlookRtfFixture.ps1; no message was saved or sent",
+      "license": "Original fixture content MIT; generated output redistributable as repository test data",
+      "redistributionAllowed": true,
+      "sha256": "3b55e2dc13a126c7eb61e5c655a923267e381a94398e68f1e31b9e68d570ec73",
+      "features": [ "outlook-mapi", "fromhtml", "htmltag", "unicode", "list", "table", "producer-controls" ],
+      "requiredText": [ "Outlook MAPI HTML fixture", "Zażółć gęślą jaźń", "Bandage" ],
+      "requiredControls": [ "\\fromhtml1", "\\htmltag", "\\pntext" ],
+      "adapters": [ "Core", "Html", "Markdown", "Word" ]
+    },
+    {
       "id": "word-16-modern-features",
       "file": "producers/microsoft-word/word-16-modern-features.rtf",
       "evidenceClass": "producer-generated",
@@ -264,6 +279,19 @@
   ],
   "externalArtifacts": [
     {
+      "id": "wordpad-windows-10-sample",
+      "producer": "Microsoft WordPad",
+      "producerVersion": "Windows 10 build 19041 RichEdit dialect",
+      "origin": "Public fixture named wordpad_sample.rtf whose body identifies it as a WordPad sample; pinned to dgellow/zig-rtf commit 6e956962f203a0b743f2cf0bb22205ba22e1fc00 and independently identified by the native Riched20 10.0.19041 generator header",
+      "sourceUrl": "https://raw.githubusercontent.com/dgellow/zig-rtf/6e956962f203a0b743f2cf0bb22205ba22e1fc00/test/data/wordpad_sample.rtf",
+      "observedAtUtc": "2026-08-20T00:00:00Z",
+      "bytes": 339,
+      "sha256": "88a60acd324f59246e096329b52d82f0bcef152577b2157fa215124780b9413a",
+      "redistributionAllowed": false,
+      "redistributionNote": "The upstream repository has no declared redistribution license, so OfficeIMO retains immutable provenance and executable hash/header evidence without copying the bytes.",
+      "requiredHeaderFragments": [ "\\rtf1\\ansi\\ansicpg1252", "\\generator Riched20 10.0.19041", "sample document from WordPad" ]
+    },
+    {
       "id": "google-docs-public-export",
       "producer": "Google Docs",
       "producerVersion": "Web RTF export observed 2026-08-04",
@@ -348,7 +376,8 @@
   ],
   "producerCoverage": [
     { "producer": "Microsoft Word", "status": "verified", "fixtureIds": [ "word-16-modern-features" ], "note": "Producer generation and normalized OfficeIMO output reopen verified with Word 16." },
-    { "producer": "Microsoft Outlook", "status": "partial", "fixtureIds": [ "outlook-16-html-save-as-rtf", "synthetic-outlook-html-encapsulation" ], "note": "Real Outlook Save As RTF plus synthetic HTML encapsulation grammar; genuine decompressed MAPI HTML-encapsulated RTF remains to be added." },
+    { "producer": "Microsoft WordPad", "status": "verified-external", "fixtureIds": [], "externalArtifactIds": [ "wordpad-windows-10-sample" ], "note": "A public WordPad sample is pinned by immutable commit, byte length, SHA-256, self-identifying body text, and the native Windows 10 RichEdit generator header; product-path verification runs without redistributing unlicensed bytes." },
+    { "producer": "Microsoft Outlook", "status": "verified-generated", "fixtureIds": [ "outlook-16-html-save-as-rtf", "outlook-16-mapi-html-encapsulation" ], "note": "Independent Outlook 16 Save As and in-memory MAPI RTFBody fixtures cover rich document export plus genuine fromhtml/htmltag encapsulation; the synthetic grammar fixture remains as a minimal focused control case." },
     { "producer": "LibreOffice Writer", "status": "upstream-regression-only", "fixtureIds": [ "libreoffice-upstream-bin-skipping", "libreoffice-upstream-numbering-override", "libreoffice-upstream-change-tracking", "libreoffice-upstream-textframe-table" ], "note": "Pinned LibreOffice QA inputs are real upstream regression evidence but are not represented as current Writer-authored exports." },
     { "producer": "Google Docs", "status": "verified-external", "fixtureIds": [], "externalArtifactIds": [ "google-docs-public-export" ], "note": "A genuine public Google Docs RTF export is pinned by endpoint, byte length, hash, and header evidence without copying unlicensed bytes." },
     { "producer": "macOS TextEdit", "status": "verified-external", "fixtureIds": [], "externalArtifactIds": [ "textedit-linkback-readme" ], "note": "A genuine TextEdit/cocoartf sample is pinned to an immutable upstream commit and validated by hash and dialect header." },

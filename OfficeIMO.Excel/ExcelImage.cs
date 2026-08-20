@@ -49,6 +49,43 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Gets or sets DrawingML picture transparency from 0 through 100 percent.
+        /// Null removes the explicit alpha transform.
+        /// </summary>
+        public int? TransparencyPercent {
+            get {
+                int? amount = _picture.BlipFill?.Blip?
+                    .GetFirstChild<A.AlphaModulationFixed>()?.Amount?.Value;
+                return amount.HasValue
+                    ? (int)Math.Round((100000 - amount.Value) / 1000D)
+                    : null;
+            }
+            set {
+                if (value is < 0 or > 100) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Transparency must be between 0 and 100.");
+                }
+                A.Blip? blip = _picture.BlipFill?.Blip;
+                if (blip == null) return;
+                A.AlphaModulationFixed? alpha = blip.GetFirstChild<A.AlphaModulationFixed>();
+                if (!value.HasValue) {
+                    alpha?.Remove();
+                    Save();
+                    return;
+                }
+                foreach (OpenXmlElement transform in blip.ChildElements
+                             .Where(child => child.LocalName.StartsWith("alpha", StringComparison.Ordinal)).ToArray()) {
+                    transform.Remove();
+                }
+                alpha = new A.AlphaModulationFixed {
+                    Amount = checked((int)Math.Round((100D - value.Value) * 1000D,
+                        MidpointRounding.AwayFromZero))
+                };
+                blip.Append(alpha);
+                Save();
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the image alternative text description.
         /// </summary>
         public string Description {

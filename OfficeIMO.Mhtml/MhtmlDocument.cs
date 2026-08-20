@@ -18,11 +18,11 @@ public sealed class MhtmlDocument {
         HtmlConversionDocumentOptions? htmlOptions = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         _resources = (resources ?? Enumerable.Empty<MhtmlResource>()).ToArray();
-        _mimeDiagnostics = Array.Empty<EmailDiagnostic>();
         ContentLocation = NormalizeOptional(contentLocation);
         RootContentId = NormalizeContentId(rootContentId);
         Subject = NormalizeOptional(subject);
         BaseUri = ResolveBaseUri(ContentLocation, null);
+        _mimeDiagnostics = BuildResourceDiagnostics(_resources, BaseUri);
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
         _mimeDocument = CreateMimeDocument(html, _resources, ContentLocation, RootContentId, Subject);
     }
@@ -47,7 +47,7 @@ public sealed class MhtmlDocument {
         _resources = _mimeDocument.Attachments.Where(static attachment => attachment.IsMimeRelated)
             .Select(MhtmlResource.FromEmailAttachment)
             .ToArray();
-        _mimeDiagnostics = readResult.Diagnostics;
+        _mimeDiagnostics = readResult.Diagnostics.Concat(BuildResourceDiagnostics(_resources, BaseUri)).ToArray();
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
     }
 
@@ -117,8 +117,11 @@ public sealed class MhtmlDocument {
     /// The hyperlink policy is left unchanged, and an existing resolver remains a policy-checked fallback for
     /// resources absent from the archive.
     /// </summary>
-    public void ConfigureRenderOptions(HtmlRenderOptions options) {
+    public void ConfigureRenderOptions(HtmlRenderOptions options,
+        MhtmlRemoteResourcePolicy? remoteResourcePolicy = null) {
         if (options == null) throw new ArgumentNullException(nameof(options));
+        remoteResourcePolicy ??= MhtmlRemoteResourcePolicy.CreateEmbeddedOnlyProfile();
+        remoteResourcePolicy.ApplyLimits(options);
         options.BaseUri ??= BaseUri;
         options.UrlPolicy ??= HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy fallbackResourceUrlPolicy = (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
@@ -135,7 +138,11 @@ public sealed class MhtmlDocument {
             HtmlResolvedResource? embedded = await embeddedResolver(request, cancellationToken).ConfigureAwait(false);
             if (embedded != null || fallbackResolver == null) return embedded;
             if (!HtmlUrlPolicyEvaluator.IsAllowed(request.Uri.AbsoluteUri, fallbackResourceUrlPolicy)) return null;
-            return await fallbackResolver(request, cancellationToken).ConfigureAwait(false);
+            if (!remoteResourcePolicy.AllowsRequest(request.Uri, BaseUri)) return null;
+            HtmlResolvedResource? fallback = await fallbackResolver(request, cancellationToken).ConfigureAwait(false);
+            return fallback != null && remoteResourcePolicy.AllowsResult(BaseUri, fallback)
+                ? fallback
+                : null;
         };
     }
 
@@ -257,6 +264,38 @@ public sealed class MhtmlDocument {
     private static void AddArchiveUri(HashSet<string> archiveUris, string? value, Uri baseUri) {
         if (string.IsNullOrWhiteSpace(value)) return;
         if (Uri.TryCreate(baseUri, value, out Uri? resolved)) archiveUris.Add(resolved.AbsoluteUri);
+    }
+
+    private static IReadOnlyList<EmailDiagnostic> BuildResourceDiagnostics(
+        IReadOnlyList<MhtmlResource> resources,
+        Uri baseUri) {
+        var diagnostics = new List<EmailDiagnostic>();
+        var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var contentLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int index = 0; index < resources.Count; index++) {
+            MhtmlResource resource = resources[index];
+            if (!string.IsNullOrWhiteSpace(resource.ContentId) && !contentIds.Add(resource.ContentId!)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.DuplicateContentId,
+                    "Duplicate Content-ID was retained in archive order; the first resource is used for resolution.",
+                    location: "resource[" + index + "]"));
+            }
+            if (string.IsNullOrWhiteSpace(resource.ContentLocation)) continue;
+            if (!Uri.TryCreate(baseUri, resource.ContentLocation, out Uri? resolved)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.InvalidContentLocation,
+                    "Content-Location could not be resolved against the archive base URI.",
+                    location: "resource[" + index + "]"));
+                continue;
+            }
+            if (!contentLocations.Add(resolved.AbsoluteUri)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.DuplicateContentLocation,
+                    "Duplicate Content-Location was retained in archive order; the first resource is used for resolution.",
+                    location: "resource[" + index + "]"));
+            }
+        }
+        return diagnostics;
     }
 
     private static Uri ResolveBaseUri(string? contentLocation, Uri? sourceBaseUri) {

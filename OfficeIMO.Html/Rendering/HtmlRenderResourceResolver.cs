@@ -48,10 +48,26 @@ public sealed class HtmlResolvedResource {
     private readonly byte[] _bytes;
 
     /// <summary>Creates a resolved resource snapshot.</summary>
-    public HtmlResolvedResource(byte[] bytes, string contentType) {
+    public HtmlResolvedResource(byte[] bytes, string contentType)
+        : this(bytes, contentType, null, 0, hasRedirectProvenance: false) {
+    }
+
+    /// <summary>
+    /// Creates a resolved resource snapshot with optional redirect provenance. Network-backed resolvers should
+    /// report the final URI and redirect count so archive and host policies can enforce their redirect boundary.
+    /// </summary>
+    public HtmlResolvedResource(byte[] bytes, string contentType, Uri? finalUri, int redirectCount = 0)
+        : this(bytes, contentType, finalUri, redirectCount, hasRedirectProvenance: true) {
+    }
+
+    private HtmlResolvedResource(byte[] bytes, string contentType, Uri? finalUri, int redirectCount, bool hasRedirectProvenance) {
         if (bytes == null || bytes.Length == 0) throw new ArgumentException("Resolved resources require non-empty bytes.", nameof(bytes));
+        if (redirectCount < 0) throw new ArgumentOutOfRangeException(nameof(redirectCount));
         _bytes = (byte[])bytes.Clone();
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType.Trim();
+        FinalUri = finalUri;
+        RedirectCount = redirectCount;
+        HasRedirectProvenance = hasRedirectProvenance;
     }
 
     /// <summary>Resolved resource bytes.</summary>
@@ -66,4 +82,13 @@ public sealed class HtmlResolvedResource {
 
     /// <summary>Declared media type.</summary>
     public string ContentType { get; }
+
+    /// <summary>Final URI after redirects, when the resolver can report it.</summary>
+    public Uri? FinalUri { get; }
+
+    /// <summary>Number of redirects followed by the resolver.</summary>
+    public int RedirectCount { get; }
+
+    /// <summary>Whether the resolver explicitly reported final-URI and redirect metadata.</summary>
+    public bool HasRedirectProvenance { get; }
 }

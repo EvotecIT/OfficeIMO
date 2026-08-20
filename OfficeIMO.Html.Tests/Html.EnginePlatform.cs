@@ -16,7 +16,7 @@ public partial class Html {
 
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
-        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
         foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
             Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
         }

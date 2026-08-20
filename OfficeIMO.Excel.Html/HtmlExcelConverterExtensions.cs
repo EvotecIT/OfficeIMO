@@ -25,9 +25,19 @@ public static partial class HtmlExcelConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateDocumentForConversion(mediaContext);
-        HtmlSemanticDocument semanticDocument = document.CreateSemanticDocumentForConversion(mediaContext);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
-        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, document.Diagnostics);
+        bool targetSemantic = adapterDocument.QuerySelector("section.officeimo-sheet") != null;
+        HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions && !targetSemantic
+            && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, HtmlEditableLayoutRegionKinds.All)
+            ? HtmlEditableLayoutProjector.Project(document, mediaContext: mediaContext)
+            : null;
+        HtmlSemanticDocument semanticDocument = editableLayout == null
+            ? document.CreateSemanticDocumentForConversion(mediaContext)
+            : HtmlEditableLayoutProjector.BuildRemainingSemanticDocument(editableLayout, mediaContext, document.Limits);
+        IEnumerable<HtmlDiagnostic> diagnostics = editableLayout == null
+            ? document.Diagnostics
+            : document.Diagnostics.Concat(editableLayout.Diagnostics);
+        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, diagnostics, editableLayout);
     }
 
     private static HtmlToExcelResult ImportDocument(
@@ -35,7 +45,8 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticDocument semanticDocument,
         HtmlInputTrust trust,
         HtmlToExcelOptions options,
-        IEnumerable<HtmlDiagnostic>? initialDiagnostics = null) {
+        IEnumerable<HtmlDiagnostic>? initialDiagnostics = null,
+        HtmlEditableLayoutProjection? editableLayout = null) {
         options.Limits.Validate();
         if (!Enum.IsDefined(typeof(HtmlImportMode), options.Mode)) throw new ArgumentOutOfRangeException(nameof(options.Mode));
         ExcelDocument workbook = ExcelDocument.Create();
@@ -62,12 +73,12 @@ public static partial class HtmlExcelConverterExtensions {
                 "Target-specific Excel restoration was not applied because the v2 envelope requires caller-trusted input.",
                 HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
                 detail: "restoration=" + envelope.RestorationMode);
-            ImportGenericDocument(semanticDocument, workbook, result, options, budget);
+            ImportGenericDocument(semanticDocument, workbook, result, options, budget, editableLayout);
             return result;
         }
 
         if (!useSemantic) {
-            ImportGenericDocument(semanticDocument, workbook, result, options, budget);
+            ImportGenericDocument(semanticDocument, workbook, result, options, budget, editableLayout);
             return result;
         }
 

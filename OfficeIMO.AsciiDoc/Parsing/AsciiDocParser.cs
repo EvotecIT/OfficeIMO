@@ -124,7 +124,7 @@ internal static class AsciiDocParser {
 
         BindBlockMetadata(blocks);
         BindListContinuations(blocks);
-        var document = new AsciiDocDocument(sourceText, syntaxTree, blocks, diagnostics);
+        var document = new AsciiDocDocument(sourceText, syntaxTree, blocks, diagnostics, options.Profile);
         return new AsciiDocParseResult(document, diagnostics);
     }
 

@@ -1,6 +1,6 @@
 # OfficeIMO RTF support matrix
 
-Last reviewed: 2026-08-04
+Last reviewed: 2026-08-20
 
 Use this matrix to check whether an RTF workflow is fully modeled, broadly supported with a named fidelity boundary, preserved without semantic editing, or available only for extraction. The [machine-readable capability catalog](officeimo.rtf-capabilities.json) exposes the same classifications to tooling.
 
@@ -58,7 +58,7 @@ The untrusted profile is intentionally conservative. Applications can clone or c
 | Capability | Status | Contract and boundary |
 | --- | --- | --- |
 | <!-- capability:dbcs --> DBCS and font charset switching | Broad | Windows code pages 932, 936, 949, and 950 are decoded through `System.Text.Encoding.CodePages`; Word-style `fcharset` changes are honored. Composite-font parity is not claimed. |
-| <!-- capability:outlook-html --> Outlook HTML encapsulation | Broad | `fromhtml`, `htmltag`, `htmlrtf`, and `mhtmltag` are recognized, modeled, written, and preferred by HTML conversion. The grammar is tested; real `fromhtml` producer evidence is still open. |
+| <!-- capability:outlook-html --> Outlook HTML encapsulation | Broad | `fromhtml`, `htmltag`, `htmlrtf`, and `mhtmltag` are recognized, modeled, written, and preferred by HTML conversion. Focused grammar tests are backed by a reproducible Outlook 16 in-memory MAPI `RTFBody` fixture with genuine `fromhtml` and `htmltag` controls. |
 | <!-- capability:styles-numbering --> Styles and numbering | Broad | Common paragraph, character, and table styles plus list definitions/overrides map through Word. Theme and latent-style parity remains outside the current contract. |
 | <!-- capability:nested-tables --> Nested tables | Broad | Native core, HTML, and Word nesting is supported. Markdown, PDF, and Reader flatten nested tables and report that action. |
 | <!-- capability:images --> Images | Broad | PNG, JPEG, and supported DIB data use the shared drawing layer. Markdown has a media callback; PDF accepts a WMF/EMF converter callback. |
@@ -67,7 +67,7 @@ The untrusted profile is intentionally conservative. Applications can clone or c
 | <!-- capability:word-workflows --> Word workflows | Broad | Result-bearing mail merge, cross-run find/replace, field update, append/merge, and comparison route through `OfficeIMO.Word` and return combined conversion/workflow reports. |
 | <!-- capability:pdf-adapter --> PDF bridge | Broad | Export maps semantic layout, tables, images, links, notes, and headers/footers. Import is logical extraction, not lossless PDF reconstruction. |
 | <!-- capability:reader-adapter --> Reader bridge | Extractive | Emits bounded chunks, Markdown-friendly tables, image placeholders, source metadata, and parser/conversion warnings. |
-| <!-- capability:producer-corpus --> Producer corpus | Broad | Interoperability coverage includes real Word 16 and Outlook 16 files, four LibreOffice regressions, external Google Docs, macOS TextEdit/RTFD, Epic EHI, CRM-workflow, and helpdesk-workflow artifacts, and a reproducibly generated GemBox.Document fixture. CRM and helpdesk files are workflow evidence, not vendor-native exports. |
+| <!-- capability:producer-corpus --> Producer corpus | Broad | Interoperability coverage includes real Word 16, reproducible Outlook 16 Save As and MAPI HTML-encapsulation files, a pinned external WordPad/RichEdit artifact, four LibreOffice regressions, external Google Docs, macOS TextEdit/RTFD, Epic EHI, CRM-workflow, and helpdesk-workflow artifacts, and a reproducibly generated GemBox.Document fixture. CRM and helpdesk files are workflow evidence, not vendor-native exports. |
 
 Each producer entry identifies whether its bytes are redistributed, verified externally, generated reproducibly, or synthetic. This prevents a grammar sample from being mistaken for producer interoperability. The [producer manifest](../OfficeIMO.Rtf.Tests/Documents/RtfCorpus/corpus-manifest.json) records exact provenance; `Build/Test-RtfExternalProducerEvidence.ps1` reproduces bounded read, web-safe HTML, Markdown, and diagnostic-preserving Word conversion for external samples.
 

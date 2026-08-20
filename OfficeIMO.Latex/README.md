@@ -16,6 +16,20 @@ first.Command.GetRequiredArgument(0)!.Content = "Updated section";
 string updated = document.ToLatex();
 ```
 
+Named profiles make semantic assumptions explicit and testable:
+
+```csharp
+LatexDocument semantic = LatexDocument.Parse(
+    source,
+    LatexParseOptions.CreateProfile(LatexDocumentProfile.OfficeIMO)).Document;
+
+LatexDocument preserved = LatexDocument.Parse(
+    source,
+    LatexParseOptions.CreateProfile(LatexDocumentProfile.PreserveOnly)).Document;
+```
+
+`OfficeIMO` binds the typed document semantics described below. `PreserveOnly` retains the structural syntax tree without profile-specific headings, paragraphs, lists, figures, tables, citations, references, labels, theorems, or macro-definition projections. Both profiles remain lossless and non-executing.
+
 The profile recognizes article/report/book structure, paragraphs, lists, figures, tabular data, labels/references, citations, theorem-like environments, and inline/display math. Unknown commands and environments remain source-backed instead of disappearing.
 
 `\verb` and verbatim-like environments are opaque tokenizer nodes: braces, percent signs, commands, and environment-looking text inside them are never reparsed as LaTeX structure. The default set includes `verbatim`, `Verbatim`, `lstlisting`, `minted`, and `comment`; add producer-specific names through `LatexParseOptions.VerbatimEnvironmentNames`. Unterminated opaque constructs produce structural diagnostics.

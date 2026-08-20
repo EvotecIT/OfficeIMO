@@ -336,6 +336,12 @@ namespace OfficeIMO.Word.Html {
         public bool ImportHtmlComments { get; set; }
 
         /// <summary>
+        /// When true, bounded positioned and floating HTML regions are retained as editable page-anchored text boxes.
+        /// Browser-only layouts that do not have one stable native box remain in semantic flow with diagnostics.
+        /// </summary>
+        public bool ImportEditableLayoutRegions { get; set; } = true;
+
+        /// <summary>
         /// Author name used for native Word comments created from raw HTML comment nodes.
         /// </summary>
         public string HtmlCommentAuthor { get; set; } = "HTML";
@@ -422,6 +428,7 @@ namespace OfficeIMO.Word.Html {
                 StyleMissingHandler = StyleMissingHandler,
                 EnableAccessibilityDiagnostics = EnableAccessibilityDiagnostics,
                 ImportHtmlComments = ImportHtmlComments,
+                ImportEditableLayoutRegions = ImportEditableLayoutRegions,
                 HtmlCommentAuthor = HtmlCommentAuthor,
                 HtmlCommentInitials = HtmlCommentInitials,
                 UnsupportedCssHandling = UnsupportedCssHandling,

@@ -1,6 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
+using OfficeIMO.Tests.Pdf;
+using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;
@@ -129,5 +132,185 @@ public sealed class MhtmlDocumentTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => MhtmlDocument.Load(stream));
 
         Assert.Contains("multipart/related", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DuplicateIdentifiersAndLocationsAreFirstWinsAndDiagnosed() {
+        var document = new MhtmlDocument(
+            "<img src='cid:logo'><img src='images/logo.png'>",
+            new[] {
+                new MhtmlResource(new byte[] { 1 }, "image/png", "logo", "images/logo.png"),
+                new MhtmlResource(new byte[] { 2 }, "image/png", "LOGO", "./images/logo.png")
+            },
+            "https://example.test/archive/page.html");
+
+        HtmlRenderResourceResolver resolver = document.CreateResourceResolver();
+        HtmlResolvedResource? byId = await resolver(
+            new HtmlRenderResourceRequest(new Uri("cid:logo"), "cid:logo", HtmlResourceKind.Image),
+            CancellationToken.None);
+        HtmlResolvedResource? byLocation = await resolver(
+            new HtmlRenderResourceRequest(new Uri("https://example.test/archive/images/logo.png"), "images/logo.png", HtmlResourceKind.Image),
+            CancellationToken.None);
+
+        Assert.Equal(new byte[] { 1 }, byId!.Bytes);
+        Assert.Equal(new byte[] { 1 }, byLocation!.Bytes);
+        Assert.Contains(document.MimeDiagnostics, diagnostic => diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentId);
+        Assert.Contains(document.MimeDiagnostics, diagnostic => diagnostic.Code == MhtmlDiagnosticCodes.DuplicateContentLocation);
+    }
+
+    [Fact]
+    public void MalformedClosingBoundaryIsRecoveredWithStableMimeDiagnostic() {
+        const string archive = "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=archive; type=\"text/html\"\r\n\r\n" +
+            "--archive\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<p>Recovered</p>\r\n";
+        using var stream = new MemoryStream(Encoding.ASCII.GetBytes(archive));
+
+        MhtmlDocument document = MhtmlDocument.Load(stream);
+
+        Assert.Contains("Recovered", document.Html, StringComparison.Ordinal);
+        Assert.Contains(document.MimeDiagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED");
+    }
+
+    [Fact]
+    public void LegacyCharsetAndNestedRelatedResourcesFlowThroughSharedMimeReader() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding legacy = Encoding.GetEncoding(1250);
+        const string header = "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer; type=\"text/html\"\r\n\r\n" +
+            "--outer\r\nContent-Type: multipart/alternative; boundary=inner\r\n\r\n" +
+            "--inner\r\nContent-Type: text/plain; charset=windows-1250\r\n\r\nFallback\r\n" +
+            "--inner\r\nContent-Type: text/html; charset=windows-1250\r\n" +
+            "Content-Location: https://example.test/page.html\r\n\r\n";
+        const string tail = "\r\n--inner--\r\n" +
+            "--outer\r\nContent-Type: image/png\r\nContent-ID: <nested-logo>\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nAQID\r\n--outer--\r\n";
+        byte[] prefix = Encoding.ASCII.GetBytes(header);
+        byte[] html = legacy.GetBytes("<p>Zażółć gęślą</p><img src='cid:nested-logo'>");
+        byte[] suffix = Encoding.ASCII.GetBytes(tail);
+        using var stream = new MemoryStream(prefix.Concat(html).Concat(suffix).ToArray());
+
+        MhtmlDocument document = MhtmlDocument.Load(stream);
+
+        Assert.Contains("Zażółć gęślą", document.Html, StringComparison.Ordinal);
+        Assert.Equal("nested-logo", Assert.Single(document.Resources).ContentId);
+    }
+
+    [Fact]
+    public async Task RemoteFallbackIsOfflineByDefaultAndSameOriginRedirectBoundedWhenEnabled() {
+        var document = new MhtmlDocument("<img src='https://example.test/missing.png'>",
+            contentLocation: "https://example.test/page.html");
+        int offlineCalls = 0;
+        var offline = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                offlineCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(new byte[] { 1 }, "image/png"));
+            }
+        };
+        document.ConfigureRenderOptions(offline);
+
+        HtmlResolvedResource? offlineResult = await offline.ResourceResolver!(
+            new HtmlRenderResourceRequest(new Uri("https://example.test/missing.png"), "https://example.test/missing.png", HtmlResourceKind.Image),
+            CancellationToken.None);
+
+        Assert.Null(offlineResult);
+        Assert.Equal(0, offlineCalls);
+
+        var bounded = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(new byte[] { 2 }, "image/png", request.Uri, redirectCount: 1))
+        };
+        document.ConfigureRenderOptions(bounded, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+
+        HtmlResolvedResource? accepted = await bounded.ResourceResolver!(
+            new HtmlRenderResourceRequest(new Uri("https://example.test/missing.png"), "https://example.test/missing.png", HtmlResourceKind.Image),
+            CancellationToken.None);
+        Assert.NotNull(accepted);
+
+        var missingProvenance = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(new byte[] { 4 }, "image/png"))
+        };
+        document.ConfigureRenderOptions(missingProvenance, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+        HtmlResolvedResource? missingProvenanceResult = await missingProvenance.ResourceResolver!(
+            new HtmlRenderResourceRequest(new Uri("https://example.test/missing.png"), "https://example.test/missing.png", HtmlResourceKind.Image),
+            CancellationToken.None);
+        Assert.Null(missingProvenanceResult);
+
+        var redirected = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(new byte[] { 3 }, "image/png", new Uri("https://other.test/image.png"), redirectCount: 1))
+        };
+        document.ConfigureRenderOptions(redirected, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+        HtmlResolvedResource? rejected = await redirected.ResourceResolver!(
+            new HtmlRenderResourceRequest(new Uri("https://example.test/missing.png"), "https://example.test/missing.png", HtmlResourceKind.Image),
+            CancellationToken.None);
+
+        Assert.Null(rejected);
+    }
+
+    [Fact]
+    public void ActiveContentRemainsFilteredByManagedHtmlTier() {
+        var document = new MhtmlDocument("<script>alert(1)</script><p>safe</p>");
+
+        Assert.DoesNotContain("alert(1)", document.HtmlDocument.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<script></script>", document.HtmlDocument.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("safe", document.HtmlDocument.HtmlForConversion, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MalformedLegacyNestedArchiveConvertsThroughManagedPdfTierWithMimeDiagnostics() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding legacy = Encoding.GetEncoding(1250);
+        const string header = "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/related; boundary=outer; type=\"text/html\"\r\n\r\n" +
+            "--outer\r\nContent-Type: multipart/alternative; boundary=inner\r\n\r\n" +
+            "--inner\r\nContent-Type: text/html; charset=windows-1250\r\n" +
+            "Content-Location: https://example.test/page.html\r\n\r\n";
+        string tail = "\r\n--inner--\r\n" +
+            "--outer\r\nContent-Type: image/png\r\nContent-ID: <logo>\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\n" +
+            Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2)) + "\r\n";
+        byte[] prefix = Encoding.ASCII.GetBytes(header);
+        byte[] html = legacy.GetBytes("<script>document.write('executed')</script><h1>Zażółć MHTML</h1><img src='cid:logo'>");
+        byte[] suffix = Encoding.ASCII.GetBytes(tail);
+        using var stream = new MemoryStream(prefix.Concat(html).Concat(suffix).ToArray());
+
+        MhtmlDocument document = MhtmlDocument.Load(stream);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("Zażółć MHTML", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("executed", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.Warnings, warning => warning.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED");
+    }
+
+    [Fact]
+    public async Task ExplicitSameOriginRemotePolicyFlowsThroughMhtmlPdfAndRejectsRedirectEscape() {
+        var document = new MhtmlDocument(
+            "<img src='https://example.test/allowed.png'><img src='https://example.test/escaped.png'>",
+            contentLocation: "https://example.test/page.html");
+        int calls = 0;
+        var options = new HtmlPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            ResourceResolver = (request, cancellationToken) => {
+                calls++;
+                Uri finalUri = request.Uri.AbsolutePath.EndsWith("escaped.png", StringComparison.Ordinal)
+                    ? new Uri("https://other.test/escaped.png")
+                    : request.Uri;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    PdfPngTestImages.CreateRgbPng(2, 2),
+                    "image/png",
+                    finalUri,
+                    redirectCount: 1));
+            }
+        };
+        document.ConfigureRenderOptions(options, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+
+        PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
+
+        Assert.Equal(2, calls);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile);
+        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 }

@@ -10,7 +10,7 @@ public static class HtmlSupportMatrixWriter {
         var builder = new StringBuilder();
         builder.AppendLine("# OfficeIMO HTML support matrix");
         builder.AppendLine();
-        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.");
+        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.");
         builder.AppendLine();
         builder.AppendLine("## Conversion profiles");
 
@@ -36,6 +36,21 @@ public static class HtmlSupportMatrixWriter {
             if (contract.TargetToHtml != null) {
                 AppendRoute(builder, contract, "Target to HTML", contract.TargetToHtml);
             }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("## Native editable-layout projection");
+        builder.AppendLine();
+        builder.AppendLine("The shared projector accepts only bounded single-surface regions. Regions fragmented across pages or columns remain in source flow with `HtmlEditableLayoutRegionFragmented` instead of acquiring ambiguous native geometry. Destination collision avoidance is reported with `HtmlEditableLayoutPlacementSimplified`.");
+        builder.AppendLine();
+        builder.AppendLine("| Target | Native regions | Native geometry | Paint and picture effects | Diagnostic boundary |");
+        builder.AppendLine("| --- | --- | --- | --- | --- |");
+        foreach (HtmlEditableLayoutCapabilityContract contract in HtmlEditableLayoutCapabilityContracts.All) {
+            builder.Append("| ").Append(contract.Target).Append(" | ")
+                .Append(EscapeCell(contract.NativeRegions)).Append(" | ")
+                .Append(EscapeCell(contract.NativeGeometry)).Append(" | ")
+                .Append(EscapeCell(contract.NativePaintAndEffects)).Append(" | ")
+                .Append(EscapeCell(contract.DiagnosticBoundary)).AppendLine(" |");
         }
 
         builder.AppendLine();

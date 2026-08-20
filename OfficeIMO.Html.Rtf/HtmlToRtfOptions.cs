@@ -42,6 +42,11 @@ public sealed partial class HtmlToRtfOptions {
     public bool IgnoreInsignificantWhitespace { get; set; } = true;
 
     /// <summary>
+    /// When true, bounded positioned and floating HTML regions are retained as editable native RTF paragraph frames.
+    /// </summary>
+    public bool ImportEditableLayoutRegions { get; set; } = true;
+
+    /// <summary>
     /// Optional maximum number of parsed HTML element and text nodes allowed for a conversion operation.
     /// When exceeded, conversion stops with <see cref="HtmlRtfConversionLimitException"/> and an error diagnostic.
     /// </summary>
@@ -71,6 +76,7 @@ public sealed partial class HtmlToRtfOptions {
         ResourceUrlPolicy = ResourceUrlPolicy?.Clone(),
         PreserveUnknownTagsAsText = PreserveUnknownTagsAsText,
         IgnoreInsignificantWhitespace = IgnoreInsignificantWhitespace,
+        ImportEditableLayoutRegions = ImportEditableLayoutRegions,
         MaxHtmlNodes = MaxHtmlNodes,
         MaxHtmlDepth = MaxHtmlDepth
     };

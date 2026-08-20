@@ -2,6 +2,22 @@ namespace OfficeIMO.AsciiDoc;
 
 /// <summary>Explicit preprocessing options for attributes, conditionals, and includes.</summary>
 public sealed class AsciiDocProcessorOptions {
+    /// <summary>Named profile assigned to the original and processed documents.</summary>
+    public AsciiDocDocumentProfile Profile { get; set; } = AsciiDocDocumentProfile.OfficeIMO;
+
+    /// <summary>
+    /// Creates bounded processing options for the requested profile. Includes and custom extensions remain disabled
+    /// until a caller supplies an explicit resolver or registry.
+    /// </summary>
+    public static AsciiDocProcessorOptions CreateProfile(AsciiDocDocumentProfile profile) =>
+        profile switch {
+            AsciiDocDocumentProfile.OfficeIMO => new AsciiDocProcessorOptions(),
+            AsciiDocDocumentProfile.PreserveOnly => new AsciiDocProcessorOptions {
+                Profile = AsciiDocDocumentProfile.PreserveOnly
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown AsciiDoc document profile.")
+        };
+
     /// <summary>Initial document attributes.</summary>
     public IReadOnlyDictionary<string, string>? Attributes { get; set; }
 

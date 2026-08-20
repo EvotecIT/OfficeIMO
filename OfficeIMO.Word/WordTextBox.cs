@@ -6,6 +6,7 @@ using DrawingHorizontalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing
 using DrawingVerticalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalAlignment;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 using V = DocumentFormat.OpenXml.Vml;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -419,6 +420,38 @@ namespace OfficeIMO.Word {
                 }
 
                 EnsureAnchorExtent(anchor, cx: 0L, cy: value).Cy = value;
+            }
+        }
+
+        /// <summary>Gets or sets the DrawingML text-box fill color as a six-digit RGB value.</summary>
+        public string FillColorHex {
+            get {
+                A.RgbColorModelHex? rgb = DrawingShapeProperties?
+                    .GetFirstChild<A.SolidFill>()?
+                    .GetFirstChild<A.RgbColorModelHex>();
+                return rgb?.Val?.Value?.TrimStart('#').ToUpperInvariant() ?? string.Empty;
+            }
+            set {
+                ShapeProperties? properties = DrawingShapeProperties;
+                if (properties == null) return;
+                properties.RemoveAllChildren<A.NoFill>();
+                A.SolidFill? fill = properties.GetFirstChild<A.SolidFill>();
+                if (fill == null) {
+                    fill = new A.SolidFill();
+                    A.PresetGeometry? geometry = properties.GetFirstChild<A.PresetGeometry>();
+                    if (geometry != null) properties.InsertAfter(fill, geometry);
+                    else properties.Append(fill);
+                }
+                fill.RemoveAllChildren();
+                fill.Append(new A.RgbColorModelHex { Val = (value ?? string.Empty).Trim().TrimStart('#').ToUpperInvariant() });
+            }
+        }
+
+        /// <summary>Gets or sets the native DrawingML anchor stacking order.</summary>
+        public uint ZOrder {
+            get => _anchor?.RelativeHeight?.Value ?? 0U;
+            set {
+                if (_anchor != null) _anchor.RelativeHeight = value;
             }
         }
 

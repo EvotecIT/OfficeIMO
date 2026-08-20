@@ -106,6 +106,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : visual is HtmlRenderPathClipGroup pathClip ? pathClip.Visuals
             : visual is HtmlRenderEffectGroup effect ? effect.Visuals
             : visual is HtmlRenderSemanticGroup semantic ? semantic.Visuals
+            : visual is HtmlRenderLayoutRegion region ? region.Visuals
             : visual is HtmlRenderLogicalTextGroup logicalText ? logicalText.Visuals
             : null;
 
@@ -164,6 +165,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 semantic.HeaderScope,
                 semantic.LayoutY,
                 semantic.StructureElementKey);
+        }
+
+
+        if (visual is HtmlRenderLayoutRegion region) {
+            return new HtmlRenderLayoutRegion(
+                region.SourceKey,
+                region.RegionKind,
+                region.SourceText,
+                region.Position,
+                region.FloatSide,
+                region.ZIndex,
+                region.BackgroundLayerCount,
+                region.BoxShadowLayerCount,
+                region.BackgroundColor,
+                region.X,
+                region.Y,
+                region.Width,
+                region.Height,
+                children,
+                region.PaintOrder,
+                region.Source,
+                region.LayoutY);
         }
 
         HtmlRenderLogicalTextGroup logicalText = (HtmlRenderLogicalTextGroup)visual;

@@ -1,7 +1,8 @@
 # OfficeIMO.AsciiDoc support matrix
 
 - Status: bounded-profile implementation
-- Updated: 2026-07-10
+- Updated: 2026-08-20
+- Profiles: `AsciiDocDocumentProfile.OfficeIMO`, `AsciiDocDocumentProfile.PreserveOnly`
 - Runtime dependencies: BCL and existing OfficeIMO project references only
 
 This matrix describes the implemented contract. It is not a claim of complete Asciidoctor compatibility.
@@ -28,6 +29,7 @@ This matrix describes the implemented contract. It is not a claim of complete As
 | Variable-length delimiters | Semantic | Listing, literal, example, sidebar, quote, passthrough, and comment delimiters accept matching repeated-marker lines of four or more characters. This lets generated content contain the normal four-character fence unchanged. |
 | Resource budgets | Semantic | Input length, block count, inline-node count, nesting, processing output, resources, and expansion are bounded. |
 | Parser implementation | Semantic | Stateful scanners; no regular-expression parser or external process. |
+| Named profiles | Semantic | `AsciiDocParseOptions.CreateProfile` and `AsciiDocProcessorOptions.CreateProfile` pin the lossless document contract. Parsing never enables includes or registered extensions; both require explicit processor configuration. |
 
 ## Blocks and metadata
 

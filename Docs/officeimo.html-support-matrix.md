@@ -1,6 +1,6 @@
 # OfficeIMO HTML support matrix
 
-This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.
+This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.
 
 ## Conversion profiles
 
@@ -60,6 +60,17 @@ This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabil
 | Pdf | Target to HTML | `OfficeIMO.Html.Pdf` | PdfDocument / PDF bytes | `PdfHtmlConverterExtensions.ToHtml` | `PdfHtmlConversionResult` | Semantic, PositionedReview | Return review HTML and its report in memory or save it synchronously or asynchronously to a path or caller-owned stream. | PdfHtmlConversionResult exposes an immutable conversion report and per-construct fidelity outcomes. |
 | Image | HTML to target | `OfficeIMO.Html` | PNG / JPEG / TIFF / SVG / WebP | `HtmlConversionDocument.ToPng / ToSvg / ToJpeg / ToTiff / ToWebp` | `OfficeImageExportResult` | ContinuousScreen, PagedPrint | Use the shared synchronous or asynchronous render pipeline for in-memory, path, stream, and paged fluent image outputs. | OfficeImageExportResult exposes ordered structured diagnostics with native, simplification, omission, and error outcomes. |
 | Reader | HTML to target | `OfficeIMO.Reader.Html` | OfficeDocumentReadResult / ReaderChunk | `OfficeDocumentReader.ReadDocument (after AddHtmlHandler)` | `OfficeDocumentReadResult` | Default, Portable, UntrustedHtml, Mhtml | Registered Reader handlers accept path or caller-owned stream input with cancellation and asynchronous document reads. | OfficeDocumentReadResult exposes ordered structured diagnostics with native, simplification, omission, and error outcomes. |
+
+## Native editable-layout projection
+
+The shared projector accepts only bounded single-surface regions. Regions fragmented across pages or columns remain in source flow with `HtmlEditableLayoutRegionFragmented` instead of acquiring ambiguous native geometry. Destination collision avoidance is reported with `HtmlEditableLayoutPlacementSimplified`.
+
+| Target | Native regions | Native geometry | Paint and picture effects | Diagnostic boundary |
+| --- | --- | --- | --- | --- |
+| Word | bounded positioned and floating regions | page-relative DrawingML text-box anchors with exact offsets, size, wrap, and z-order | solid fill | extra background layers and CSS shadows remain editable without those effects and are diagnosed |
+| Rtf | bounded positioned and floating regions | page-anchored RTF paragraph frames with exact offsets, size, and wrap controls | solid frame background | background image layers, shadows, and explicit stacking metadata are diagnosed |
+| Excel | bounded positioned, floating, flex, and grid regions | editable merged-cell regions plus absolute DrawingML picture anchors | cell fills, supported background/image layers, and picture alpha | cell shadows and unsupported image/effect types are diagnosed |
+| PowerPoint | bounded positioned, floating, flex, and grid regions | editable slide text boxes and DrawingML pictures in rendered geometry | solid fills, supported background/image layers, picture alpha, and one native outer shadow | additional shadow layers and unsupported image/effect types are diagnosed |
 
 ## Target semantic capability contracts
 
@@ -154,6 +165,11 @@ This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabil
 | CssFidelity | `MediaFilterFailed` | Warning | An active stylesheet could not be filtered safely for the selected media. | Correct invalid CSS or simplify nested media rules. |
 | CssFidelity | `UnsupportedCssDeclaration` | Warning | A CSS declaration could not be mapped to the target document model. | Prefer document-friendly CSS or route visual-first workloads through the high-fidelity print profile. |
 | CssSyntax | `HtmlRenderPositionZIndexPending` | Warning | A z-index declaration could not be parsed as an integer or auto and therefore used auto stacking. | Use auto or an integer z-index value. |
+| EditableLayout | `HtmlEditableLayoutBackgroundLayersFlattened` | Warning | The destination retained supported native paint but flattened or omitted additional CSS background layers. | Use supported bounded image layers or a visual-first target when every browser paint layer is required. |
+| EditableLayout | `HtmlEditableLayoutEffectUnsupported` | Warning | The destination retained editable content and geometry without one or more unsupported CSS effects. | Use the destination's documented native picture and shadow subset or a visual-first target. |
+| EditableLayout | `HtmlEditableLayoutPlacementSimplified` | Warning | The destination moved an editable region to preserve existing native content or avoid an invalid overlapping anchor. | Use non-overlapping bounded regions or a visual-first target when exact browser overlap is required. |
+| EditableLayout | `HtmlEditableLayoutRegionFragmented` | Warning | A repeated or fragmented layout region remained in semantic flow because one native geometry would be ambiguous. | Split the source into bounded single-surface regions or retain semantic flow. |
+| EditableLayout | `HtmlEditableLayoutRegionProjected` | Info | A bounded single-surface HTML layout region was exposed for native editable projection. | Inspect the destination result contract for its native geometry and effect mapping. |
 | ImageFidelity | `HtmlRenderSvgContentUnsupported` | Warning | SVG content could not be represented completely by the bounded shared vector scene. | Use supported primitives or paths, bounded local shape/group references, local linear/radial paint servers, user-space masks, standard blend modes, positioned tspan text, and affine transforms; unsupported filters and external references require a caller-managed fallback. |
 | ImageFidelity | `HtmlRenderSvgRasterFallback` | Info | A caller-supplied image codec rasterized SVG features outside the bounded shared vector scene. | Keep the codec configured when visual fidelity matters more than searchable vector content, or simplify the SVG to the supported vector subset. |
 | Interactivity | `HtmlRenderChoiceBlankLabelStaticFallback` | Warning | A select containing a blank option label used faithful static rendering instead of an interactive PDF choice field that would invent visible text. | Use non-empty option labels when an interactive PDF choice field is required, or keep the blank label when preserving the authored choice UI is more important. |

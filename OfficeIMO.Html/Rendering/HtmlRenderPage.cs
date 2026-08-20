@@ -91,6 +91,8 @@ public sealed class HtmlRenderPage {
         foreach (HtmlRenderVisual visual in visuals) {
             if (visual is HtmlRenderSemanticGroup semanticGroup) {
                 foreach (HtmlRenderVisual child in FlattenSemanticGroups(semanticGroup.Visuals)) yield return child;
+            } else if (visual is HtmlRenderLayoutRegion layoutRegion) {
+                foreach (HtmlRenderVisual child in FlattenSemanticGroups(layoutRegion.Visuals)) yield return child;
             } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 foreach (HtmlRenderVisual child in FlattenSemanticGroups(logicalTextGroup.Visuals)) yield return child;
             } else if (visual is HtmlRenderFormField formField) {
@@ -154,6 +156,8 @@ public sealed class HtmlRenderPage {
             AddEffectGroup(drawing, effectGroup, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         } else if (visual is HtmlRenderSemanticGroup semanticGroup) {
             foreach (HtmlRenderVisual child in semanticGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        } else if (visual is HtmlRenderLayoutRegion layoutRegion) {
+            foreach (HtmlRenderVisual child in layoutRegion.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
             foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         } else if (visual is HtmlRenderFormField formField) {
@@ -289,6 +293,8 @@ public sealed class HtmlRenderPage {
                 ? Math.Max(visual.X + visual.Width, MaximumRight(effectGroup.Visuals))
             : visual is HtmlRenderSemanticGroup semanticGroup
                 ? Math.Max(visual.X + visual.Width, MaximumRight(semanticGroup.Visuals))
+            : visual is HtmlRenderLayoutRegion layoutRegion
+                ? Math.Max(visual.X + visual.Width, MaximumRight(layoutRegion.Visuals))
             : visual is HtmlRenderLogicalTextGroup logicalTextGroup
                 ? Math.Max(visual.X + visual.Width, MaximumRight(logicalTextGroup.Visuals))
                 : visual.X + visual.Width)
@@ -304,6 +310,8 @@ public sealed class HtmlRenderPage {
                 ? Math.Max(visual.Y + visual.Height, MaximumBottom(effectGroup.Visuals))
             : visual is HtmlRenderSemanticGroup semanticGroup
                 ? Math.Max(visual.Y + visual.Height, MaximumBottom(semanticGroup.Visuals))
+            : visual is HtmlRenderLayoutRegion layoutRegion
+                ? Math.Max(visual.Y + visual.Height, MaximumBottom(layoutRegion.Visuals))
             : visual is HtmlRenderLogicalTextGroup logicalTextGroup
                 ? Math.Max(visual.Y + visual.Height, MaximumBottom(logicalTextGroup.Visuals))
                 : visual.Y + visual.Height)
@@ -319,6 +327,8 @@ public sealed class HtmlRenderPage {
                     ? Math.Min(visual.X, MinimumLeft(effectGroup.Visuals))
                 : visual is HtmlRenderSemanticGroup semanticGroup
                     ? Math.Min(visual.X, MinimumLeft(semanticGroup.Visuals))
+                : visual is HtmlRenderLayoutRegion layoutRegion
+                    ? Math.Min(visual.X, MinimumLeft(layoutRegion.Visuals))
                 : visual is HtmlRenderLogicalTextGroup logicalTextGroup
                     ? Math.Min(visual.X, MinimumLeft(logicalTextGroup.Visuals))
                     : visual.X)
@@ -334,6 +344,8 @@ public sealed class HtmlRenderPage {
                     ? Math.Min(visual.Y, MinimumTop(effectGroup.Visuals))
                 : visual is HtmlRenderSemanticGroup semanticGroup
                     ? Math.Min(visual.Y, MinimumTop(semanticGroup.Visuals))
+                : visual is HtmlRenderLayoutRegion layoutRegion
+                    ? Math.Min(visual.Y, MinimumTop(layoutRegion.Visuals))
                 : visual is HtmlRenderLogicalTextGroup logicalTextGroup
                     ? Math.Min(visual.Y, MinimumTop(logicalTextGroup.Visuals))
                     : visual.Y)

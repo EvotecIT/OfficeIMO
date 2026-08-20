@@ -46,6 +46,8 @@ foreach (HtmlDiagnostic diagnostic in result.Report.Diagnostics) {
 
 `HtmlConversionDocument` is the required source model. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `HtmlToWordOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
 
+The document result path projects bounded, single-surface `position:absolute`, `position:fixed`, and left/right floating regions into editable page-relative DrawingML text-box anchors. Exact offsets, size, native wrapping, solid fill, and z-order are retained. Repeated or fragmented paged regions stay in semantic flow, and CSS background layers or shadows without a Word-native editable equivalent produce stable layout diagnostics. Set `ImportEditableLayoutRegions = false` to keep every region in semantic flow.
+
 ## Export profiles and themes
 
 Word export has named profiles for the intended fidelity contract:

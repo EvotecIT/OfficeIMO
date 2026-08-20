@@ -23,6 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         floatStyle.UnsupportedFloat = string.Empty;
         floatStyle.UnsupportedClear = string.Empty;
         HtmlRenderFlowBlock block = LayoutElement(element, outerWidth, floatStyle, parentStyle, depth + 1);
+        block = WrapEditableLayoutRegion(block, element, style, HtmlRenderLayoutRegionKind.Floating);
         runs.Add(new HtmlInlineRun(
             block,
             style,

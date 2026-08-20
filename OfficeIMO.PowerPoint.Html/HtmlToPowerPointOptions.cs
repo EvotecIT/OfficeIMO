@@ -45,12 +45,16 @@ public sealed class HtmlToPowerPointOptions {
     /// </summary>
     public bool ImportNotes { get; set; } = true;
 
+    /// <summary>Maps bounded positioned, floating, flex, and grid regions to editable slide geometry.</summary>
+    public bool ImportEditableLayoutRegions { get; set; } = true;
+
     internal HtmlToPowerPointOptions Clone() => new HtmlToPowerPointOptions {
         Limits = Limits.Clone(),
         Mode = Mode,
         ImportTables = ImportTables,
         ImportPictures = ImportPictures,
         ImportChartInventory = ImportChartInventory,
-        ImportNotes = ImportNotes
+        ImportNotes = ImportNotes,
+        ImportEditableLayoutRegions = ImportEditableLayoutRegions
     };
 }

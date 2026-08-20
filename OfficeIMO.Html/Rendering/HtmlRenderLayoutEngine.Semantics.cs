@@ -30,8 +30,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderSemanticGroupRole role;
         if (style.SemanticArtifact) role = HtmlRenderSemanticGroupRole.Artifact;
         else if (style.SemanticGroupRoleOverride.HasValue) role = style.SemanticGroupRoleOverride.Value;
-        else if (!TryResolveSemanticGroupRole(element.TagName, out role)) return listBlock;
-        return listBlock.WithVisuals(new[] {
+        else if (!TryResolveSemanticGroupRole(element.TagName, out role)) return WrapEditableLayoutRegion(listBlock, element, style);
+        HtmlRenderFlowBlock semanticBlock = listBlock.WithVisuals(new[] {
             new HtmlRenderSemanticGroup(
                 role,
                 0D,
@@ -43,6 +43,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderStyleResolver.DescribeSource(element),
                 structureElementKey: structureElementKey)
         });
+        return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
     private HtmlRenderFlowBlock ApplySpecializedElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
@@ -66,11 +67,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }));
             }
         }
-        if (!style.SemanticArtifact && !style.SemanticGroupRoleOverride.HasValue) return block;
+        if (!style.SemanticArtifact && !style.SemanticGroupRoleOverride.HasValue) return WrapEditableLayoutRegion(block, element, style);
         HtmlRenderSemanticGroupRole role = style.SemanticArtifact
             ? HtmlRenderSemanticGroupRole.Artifact
             : style.SemanticGroupRoleOverride!.Value;
-        return block.WithVisuals(new[] {
+        HtmlRenderFlowBlock semanticBlock = block.WithVisuals(new[] {
             new HtmlRenderSemanticGroup(
                 role,
                 0D,
@@ -82,6 +83,57 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderStyleResolver.DescribeSource(element),
                 structureElementKey: structureElementKey)
         });
+        return WrapEditableLayoutRegion(semanticBlock, element, style);
+    }
+
+    private HtmlRenderFlowBlock WrapEditableLayoutRegion(
+        HtmlRenderFlowBlock block,
+        IElement element,
+        HtmlRenderBoxStyle style,
+        HtmlRenderLayoutRegionKind? forcedKind = null) {
+        if (!_options.EnableEditableLayoutRegions) return block;
+        string? sourceKey = element.GetAttribute(HtmlEditableLayoutProjector.RegionAttribute);
+        if (string.IsNullOrWhiteSpace(sourceKey)) return block;
+        if (!forcedKind.HasValue
+            && style.Position != "absolute" && style.Position != "fixed"
+            && style.FloatSide != "left" && style.FloatSide != "right"
+            && style.Display != "flex" && style.Display != "inline-flex"
+            && style.Display != "grid" && style.Display != "inline-grid") return block;
+        HtmlRenderLayoutRegionKind kind = forcedKind ?? ResolveEditableLayoutRegionKind(style);
+        int zIndex = int.TryParse(style.ZIndex, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out int parsedZIndex) ? parsedZIndex : 0;
+        double availableBoxWidth = Math.Max(1D, block.Width - style.MarginLeft - style.MarginRight);
+        double boxWidth = ResolveBoxWidth(availableBoxWidth, style);
+        double boxHeight = style.ExplicitHeight.HasValue || style.AspectRatio.HasValue
+            ? ResolveBoxHeight(Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom), boxWidth, style)
+            : Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom);
+        return block.WithVisuals(new[] {
+            new HtmlRenderLayoutRegion(
+                sourceKey!,
+                kind,
+                CollapseFlexText(element.TextContent),
+                style.Position,
+                style.FloatSide,
+                zIndex,
+                style.BackgroundImageLayerCount,
+                style.BoxShadowLayerCount,
+                style.BackgroundColor,
+                style.MarginLeft,
+                style.MarginTop,
+                boxWidth,
+                boxHeight,
+                block.Visuals,
+                0,
+                HtmlRenderStyleResolver.DescribeSource(element))
+        });
+    }
+
+    private static HtmlRenderLayoutRegionKind ResolveEditableLayoutRegionKind(HtmlRenderBoxStyle style) {
+        if (style.Position == "absolute" || style.Position == "fixed") return HtmlRenderLayoutRegionKind.Positioned;
+        if (style.FloatSide == "left" || style.FloatSide == "right") return HtmlRenderLayoutRegionKind.Floating;
+        return style.Display == "grid" || style.Display == "inline-grid"
+            ? HtmlRenderLayoutRegionKind.Grid
+            : HtmlRenderLayoutRegionKind.Flex;
     }
 
     private IReadOnlyList<HtmlRenderFlowBlock> ApplyFlattenedElementSemantics(

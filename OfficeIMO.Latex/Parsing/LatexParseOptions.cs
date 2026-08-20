@@ -22,6 +22,16 @@ public sealed class LatexParseOptions {
         "verbatim", "verbatim*", "Verbatim", "lstlisting", "minted", "comment"
     };
 
+    /// <summary>Creates bounded parsing options for the requested named profile.</summary>
+    public static LatexParseOptions CreateProfile(LatexDocumentProfile profile) =>
+        profile switch {
+            LatexDocumentProfile.OfficeIMO => new LatexParseOptions(),
+            LatexDocumentProfile.PreserveOnly => new LatexParseOptions {
+                Profile = LatexDocumentProfile.PreserveOnly
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown LaTeX document profile.")
+        };
+
     /// <summary>Semantic profile. Defaults to OfficeIMO.</summary>
     public LatexDocumentProfile Profile { get; set; } = LatexDocumentProfile.OfficeIMO;
     /// <summary>Maximum input characters.</summary>
