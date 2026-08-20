@@ -339,9 +339,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool CanUseNativeOpenXmlPath(ExcelReadOptions options) =>
-            !options.InferSchema
-            && string.IsNullOrWhiteSpace(options.A1Range)
-            && options.CellValueConverter == null;
+            options.CellValueConverter == null
+            && (options.InferSchema || string.IsNullOrWhiteSpace(options.A1Range));
 
         private static DbDataReader OpenOpenXmlSheet(
             ExcelDocumentReader owner,

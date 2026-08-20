@@ -192,10 +192,27 @@ namespace OfficeIMO.Excel {
                 _options,
                 DateSystem,
                 _parts);
-            return (DbDataReader)reader.ReadUsedRangeAsDataReader(
-                hasHeaderRow,
-                schemaSampleRows: 0,
-                cancellationToken);
+            DbDataReader dataReader = string.IsNullOrWhiteSpace(_options.A1Range)
+                ? (DbDataReader)reader.ReadUsedRangeAsDataReader(
+                    hasHeaderRow,
+                    schemaSampleRows: 0,
+                    cancellationToken)
+                : (DbDataReader)reader.ReadRangeAsDataReader(
+                    _options.A1Range!,
+                    hasHeaderRow,
+                    chunkRows: Math.Min(1024, _options.MaxDataReaderChunkRows),
+                    schemaSampleRows: 0,
+                    ct: cancellationToken);
+
+            return _options.InferSchema && _options.SchemaSampleRows > 0
+                ? ExcelSchemaInferenceDataReader.Create(
+                    dataReader,
+                    _options.SchemaSampleRows,
+                    _options.MaxDataReaderSchemaSampleRows,
+                    _options.MaxDataReaderBufferedCells,
+                    _options.Culture,
+                    cancellationToken)
+                : dataReader;
         }
 
         private string ReadWorkbookPartName() {

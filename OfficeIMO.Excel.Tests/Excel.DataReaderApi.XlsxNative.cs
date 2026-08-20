@@ -29,6 +29,119 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsxTabularWorkbook_InfersSchemaAndReplaysAnExplicitRange() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            var options = new ExcelReadOptions {
+                A1Range = "A1:A3",
+                InferSchema = true,
+                SchemaSampleRows = 1
+            };
+            using var workbook = XlsxTabularWorkbook.Open(path, options);
+            using DbDataReader reader = workbook.OpenTable(
+                "Data",
+                hasHeaderRow: true,
+                CancellationToken.None);
+
+            Assert.Equal(typeof(double), reader.GetFieldType(0));
+            DataReaderSchemaContractAssertions.AssertCanonicalSchema(reader);
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+            Assert.True(reader.Read());
+            Assert.Equal(43, reader.GetInt32(0));
+            Assert.False(reader.Read());
+            reader.Close();
+            Assert.False(reader.HasRows);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void XlsxTabularWorkbook_EnforcesTheSchemaSampleRowLimit() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            var options = new ExcelReadOptions {
+                InferSchema = true,
+                SchemaSampleRows = 2,
+                MaxDataReaderSchemaSampleRows = 1
+            };
+            using var workbook = XlsxTabularWorkbook.Open(path, options);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => workbook.OpenTable(
+                "Data",
+                hasHeaderRow: true,
+                CancellationToken.None));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void XlsxTabularWorkbook_ChargesOnlyRowsActuallyBufferedForSchema() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            var options = new ExcelReadOptions {
+                A1Range = "A1:A3",
+                InferSchema = true,
+                SchemaSampleRows = 1024,
+                MaxDataReaderBufferedCells = 2
+            };
+            using var workbook = XlsxTabularWorkbook.Open(path, options);
+            using DbDataReader reader = workbook.OpenTable(
+                "Data",
+                hasHeaderRow: true,
+                CancellationToken.None);
+
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+            Assert.True(reader.Read());
+            Assert.Equal(43, reader.GetInt32(0));
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void XlsxTabularWorkbook_PreservesGetCharsAndGetBytesAcrossSchemaReplay() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.XlsxNativeSchemaGetters.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(1, 2, "Optional");
+                sheet.CellValue(2, 1, "Sampled");
+                sheet.CellValue(3, 1, "Streamed");
+                document.Save();
+            }
+
+            var options = new ExcelReadOptions {
+                InferSchema = true,
+                SchemaSampleRows = 1
+            };
+            using var workbook = XlsxTabularWorkbook.Open(path, options);
+            using DbDataReader reader = workbook.OpenTable(
+                "Data",
+                hasHeaderRow: true,
+                CancellationToken.None);
+
+            Assert.True(reader.Read());
+            Assert.Equal(0, reader.GetChars(1, 0, null, 0, 0));
+            Assert.Throws<NotSupportedException>(() => reader.GetBytes(0, 0, null, 0, 0));
+
+            Assert.True(reader.Read());
+            Assert.Equal(0, reader.GetChars(1, 0, null, 0, 0));
+            Assert.Throws<NotSupportedException>(() => reader.GetBytes(0, 0, null, 0, 0));
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_ReusesValidatedSharedStringIndexForCachedFormula() {
         string path = Path.Combine(
             Path.GetTempPath(),

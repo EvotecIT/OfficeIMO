@@ -89,6 +89,9 @@ namespace OfficeIMO.Excel {
                     _utf8SourceOrdinalOffset = firstColumn - utf8SourceFirstColumn;
                 } else if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
                     _utf8Source = utf8Source;
+                } else if (!owner._hasSdkWorksheetPart) {
+                    throw new XlsxTabularFastPathNotSupportedException(
+                        $"Worksheet '{owner._sheetName}' requires the Open XML SDK fallback path.");
                 } else {
                     _stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
                     RewindWorksheetStream(_stream);
