@@ -1,6 +1,6 @@
 # OfficeIMO provenance support matrix
 
-OfficeIMO separates bounded structural inspection and selective removal from optional cryptographic verification and signing. `OfficeIMO.Core` owns format parsers, transformation policy, Unicode evidence, and provider-neutral contracts. `OfficeIMO.Security` owns verification and signing through a host-supplied `c2patool` executable.
+OfficeIMO separates bounded structural inspection and selective removal from optional cryptographic verification and signing. `OfficeIMO.Core` owns format parsers, transformation policy, Unicode evidence, and provider-neutral contracts. `OfficeIMO.Provenance.C2pa` is the optional adapter for verification and signing through a host-supplied `c2patool` executable.
 
 ## Evidence model
 
@@ -30,7 +30,7 @@ OfficeIMO separates bounded structural inspection and selective removal from opt
 
 ## Verification and provider boundary
 
-Structural inspection reports whether the carrier shape is safe to interpret or mutate; it does not establish authenticity, content binding, signer identity, or certificate trust. `C2paToolProvenanceVerifier` in `OfficeIMO.Security` performs optional provider-backed verification and fails closed on malformed provider reports. The external executable and trust material are supplied by the host and are not bundled with OfficeIMO.
+Structural inspection reports whether the carrier shape is safe to interpret or mutate; it does not establish authenticity, content binding, signer identity, or certificate trust. `C2paToolProvenanceVerifier` in `OfficeIMO.Provenance.C2pa` performs optional provider-backed verification and fails closed on malformed provider reports. The external executable and trust material are supplied by the host and are not bundled with OfficeIMO.
 
 `IOfficeProvenanceSignalDetector` is the extension point for vendor-specific watermark and disclosure services. Each result retains the provider name, signal type, and `Detected`, `NotDetected`, `Inconclusive`, `ProviderUnavailable`, or `Error` status. `OfficeProvenanceAssessment` combines those results with structural, verification, and Unicode evidence without producing an `IsAi` property.
 

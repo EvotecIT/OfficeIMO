@@ -113,64 +113,6 @@ but cannot register or enable another implementation. External references and un
 Document packages remain responsible for package relationships, content types, signed-part selection, and mutation
 safety.
 
-## C2PA Content Credentials
-
-The dependency-free `OfficeProvenanceInspector` in `OfficeIMO.Core` finds C2PA carriers and IPTC Digital Source Type declarations. Cryptographic verification and claim signing are optional and stay in this package through the host-supplied `c2patool` adapter.
-
-The verifier invokes an official `c2patool` executable supplied by the application. OfficeIMO does not download, bundle, or discover the executable. Remote manifest and OCSP fetching are disabled by default; local trust material can be supplied without enabling network access.
-
-```csharp
-using OfficeIMO.Provenance;
-using OfficeIMO.Security;
-
-IOfficeProvenanceVerifier verifier = new C2paToolProvenanceVerifier("/opt/c2pa/c2patool");
-var options = new OfficeProvenanceVerificationOptions {
-    TrustAnchorsPath = "/etc/my-app/c2pa-trust-anchors.pem",
-    AllowedListPath = "/etc/my-app/c2pa-allowed-list.pem",
-    IncludeRawReport = false
-};
-
-OfficeProvenanceVerificationResult result = verifier.Verify("image.jpg", options);
-Console.WriteLine(result.Status);
-foreach (string finding in result.Findings) {
-    Console.WriteLine(finding);
-}
-```
-
-`Valid` means the configured provider found a manifest, verified it, and produced no validation findings. `Untrusted` distinguishes trust-list failures from content or signature failures reported as `Invalid`. `NotPresent`, `ProviderUnavailable`, `Indeterminate`, and `Error` remain separate outcomes so callers do not have to infer policy from exception text. Set `AllowNetworkAccess = true` only when remote manifests, remote trust material, or OCSP are part of the application’s policy. Provider output is bounded and omitted from the result unless `IncludeRawReport` is enabled.
-
-For production signing, keep private keys outside OfficeIMO and `c2patool`. Supply a subprocess signer backed by your HSM, KMS, key vault, or signing service:
-
-```csharp
-using OfficeIMO.Provenance;
-using OfficeIMO.Security;
-
-IOfficeProvenanceSigner signer = new C2paToolProvenanceSigner(
-    executablePath: "/opt/c2pa/c2patool",
-    signerPath: "/opt/my-app/c2pa-kms-signer --profile production");
-
-var claim = new OfficeProvenanceClaim(
-    "OfficeIMO/3.2.4",
-    new[] {
-        new OfficeProvenanceAction(OfficeProvenanceActionKind.Opened),
-        new OfficeProvenanceAction(
-            OfficeProvenanceActionKind.Edited,
-            OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia)
-    },
-    title: "Edited image");
-
-OfficeProvenanceSigningResult signed = signer.Sign(
-    new OfficeProvenanceSigningRequest(
-        inputPath: "edited.png",
-        outputPath: "signed.png",
-        claim: claim,
-        parentPath: "original.png"));
-```
-
-The adapter requires `c2patool` 0.27.0 or newer. It writes the manifest definition and provider output to temporary/staging paths, requires a separately embedded C2PA manifest before commit, and atomically installs the finished asset. A provider error or partial output cannot replace the source or an existing destination. `CreateWithBuiltInTestCredentials(...)` is an explicit development-only path and every successful result carries a warning that it is not a production credential.
-
-For a new asset, the first action must be `Created` with a concrete IPTC Digital Source Type. For a derived asset with `parentPath`, the first action must be `Opened`. The adapter passes those intents to current c2patool, which creates the required `c2pa.actions.v2` first action and, for derived assets, the matching `parentOf` ingredient reference. Later application actions are emitted in the same v2 assertion. It does not emit any watermark action: standards-defined watermark actions require real soft-binding assertions and therefore need a future watermark provider rather than a label alone. The adapter commits only output formats that both the installed tool can sign and OfficeIMO.Core can structurally confirm.
-
 ## NativeAOT and trimming
 
 Ordinary OfficeIMO applications do not carry this package unless they opt in. The repository publishes a separate
@@ -180,7 +122,7 @@ not need linker descriptors or reflection-based registration.
 
 ## Dependency footprint
 
-- **External:** `BouncyCastle.Cryptography` 2.x, `System.Security.Cryptography.Xml`, and `System.Text.Json`. The optional C2PA path also requires a host-supplied `c2patool` executable.
+- **External:** `BouncyCastle.Cryptography` 2.x and `System.Security.Cryptography.Xml`.
 - **OfficeIMO:** the zero-dependency `OfficeIMO.Core` foundation for provider contracts and result models.
 - **Not included transitively by:** `OfficeIMO.Word`, `OfficeIMO.Pdf`, `OfficeIMO.Email`, or other format packages.
 

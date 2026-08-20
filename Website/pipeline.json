@@ -1283,6 +1283,7 @@
         "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
         "../OfficeIMO.Rtf.Markdown/OfficeIMO.Rtf.Markdown.csproj",
         "../OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
+        "../OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj",
         "../OfficeIMO.Security/OfficeIMO.Security.csproj",
         "../OfficeIMO.Tool/OfficeIMO.Tool.csproj",
         "../OfficeIMO.Visio/OfficeIMO.Visio.csproj",

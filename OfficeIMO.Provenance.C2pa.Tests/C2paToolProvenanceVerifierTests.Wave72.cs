@@ -1,9 +1,8 @@
 using System.IO;
 using System.Runtime.InteropServices;
-using OfficeIMO.Security;
 using Xunit;
 
-namespace OfficeIMO.Security.Tests;
+namespace OfficeIMO.Provenance.C2pa.Tests;
 
 public sealed partial class C2paToolProvenanceVerifierTestsWave72 {
     [Fact]

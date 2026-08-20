@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using OfficeIMO.Provenance;
 
-namespace OfficeIMO.Security.Tests;
+namespace OfficeIMO.Provenance.C2pa.Tests;
 
 public sealed class C2paToolProvenanceVerifierTests {
     [Theory]

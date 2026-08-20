@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Optional CMS, S/MIME, RFC 3161, X.509, and XML Digital Signature support for OfficeIMO packages.</Description>
-    <AssemblyName>OfficeIMO.Security</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Security</AssemblyTitle>
+    <Description>Optional c2patool process adapter for C2PA Content Credential signing and verification with OfficeIMO.</Description>
+    <AssemblyName>OfficeIMO.Provenance.C2pa</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Provenance.C2pa</AssemblyTitle>
     <VersionPrefix>3.2.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Security</PackageId>
-    <PackageTags>security;cms;smime;pkcs7;rfc3161;x509;xmldsig;bouncycastle;officeimo</PackageTags>
+    <PackageId>OfficeIMO.Provenance.C2pa</PackageId>
+    <PackageTags>provenance;c2pa;content-credentials;c2patool;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -25,8 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BouncyCastle.Cryptography" Version="[2.7.0, 3.0.0)" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
+    <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa.Tests" />
   </ItemGroup>
 
   <ItemGroup>

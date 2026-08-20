@@ -41,6 +41,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Security" />
     <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\*.cs" Link="Internal\Compound\%(Filename)%(Extension)" />
     <None Include="..\Assets\OfficeIMO.png">

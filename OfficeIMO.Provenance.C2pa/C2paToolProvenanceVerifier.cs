@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using OfficeIMO.Provenance;
 
-namespace OfficeIMO.Security;
+namespace OfficeIMO.Provenance.C2pa;
 
 /// <summary>
 /// Provides optional C2PA content-binding, signature, and trust verification through the official

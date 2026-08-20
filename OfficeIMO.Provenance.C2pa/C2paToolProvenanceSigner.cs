@@ -5,7 +5,7 @@ using System.Text.Json;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
 
-namespace OfficeIMO.Security;
+namespace OfficeIMO.Provenance.C2pa;
 
 /// <summary>
 /// Creates C2PA Content Credentials through the official <c>c2patool</c> command-line application.
