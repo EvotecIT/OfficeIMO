@@ -420,8 +420,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Provenance.C2pa",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Provenance.C2pa.Tests", "OfficeIMO.Provenance.C2pa.Tests\OfficeIMO.Provenance.C2pa.Tests.csproj", "{5651664A-927E-4433-A05F-2F541764BB7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Provenance.C2pa.AotSmoke", "OfficeIMO.Provenance.C2pa.AotSmoke\OfficeIMO.Provenance.C2pa.AotSmoke.csproj", "{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -2244,18 +2242,6 @@ Global
 		{5651664A-927E-4433-A05F-2F541764BB7D}.Release|x64.Build.0 = Release|Any CPU
 		{5651664A-927E-4433-A05F-2F541764BB7D}.Release|x86.ActiveCfg = Release|Any CPU
 		{5651664A-927E-4433-A05F-2F541764BB7D}.Release|x86.Build.0 = Release|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Debug|x64.Build.0 = Debug|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Debug|x86.Build.0 = Debug|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Release|x64.ActiveCfg = Release|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Release|x64.Build.0 = Release|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Release|x86.ActiveCfg = Release|Any CPU
-		{00A06DA0-7617-4FDF-BBFA-BDD786F6FFFB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
