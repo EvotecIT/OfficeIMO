@@ -13,6 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             else if (visual is HtmlRenderPathClipGroup pathClip) text.Append(ResolveLogicalText(pathClip.Visuals, string.Empty));
             else if (visual is HtmlRenderEffectGroup effect) text.Append(ResolveLogicalText(effect.Visuals, string.Empty));
             else if (visual is HtmlRenderSemanticGroup semantic) text.Append(ResolveLogicalText(semantic.Visuals, string.Empty));
+            else if (visual is HtmlRenderLayoutRegion region) text.Append(ResolveLogicalText(region.Visuals, string.Empty));
         }
         return text.Length == 0 ? fallback : text.ToString();
     }

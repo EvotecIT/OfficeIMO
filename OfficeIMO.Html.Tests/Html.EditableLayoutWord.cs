@@ -9,6 +9,20 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutWordTests {
     [Fact]
+    public void PositionedFormControlsStayInSemanticFlow() {
+        const string html = "<div style='position:absolute;width:180px;height:50px'>" +
+            "<select name='status'><option>Draft</option><option selected>Approved</option></select></div>";
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        using WordDocument word = result.Value;
+
+        Assert.Empty(word.TextBoxes);
+        Assert.Equal("Approved", Assert.Single(word.DropDownLists).SelectedValue);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
     public void PositionedRegionRetainsItsForegroundPictureAndEffects() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 3));
         string html = "<div style='position:absolute;width:180px;height:70px;background-image:url(\"" + image + "\")'>" +

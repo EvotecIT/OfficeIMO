@@ -8,6 +8,22 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutExcelTests {
     [Fact]
+    public void TableUnownedRegionsReceiveANarrativeWorksheet() {
+        const string html = "<table><caption>Data</caption><tr><td>Table value</td></tr></table>" +
+            "<div style='position:absolute;width:140px;height:40px'>Narrative layout</div>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(2, workbook.Sheets.Count);
+        Assert.Equal("Imported", workbook.Sheets[1].Name);
+        Assert.True(ContainsCellText(workbook.Sheets[1], "Narrative layout"));
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("owning worksheet was not created", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void RegionsInsideLaterRootTablesUseTheirOwningWorksheets() {
         const string html = "<table><caption>First</caption><tr><td>One<div style='display:grid;width:140px;height:40px'>First layout</div></td></tr></table>" +
             "<table><caption>Second</caption><tr><td>Two<div style='display:grid;width:140px;height:40px'>Second layout</div></td></tr></table>";

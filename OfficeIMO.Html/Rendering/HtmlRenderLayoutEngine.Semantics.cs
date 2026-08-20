@@ -111,7 +111,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             new HtmlRenderLayoutRegion(
                 sourceKey!,
                 kind,
-                CollapseFlexText(element.TextContent),
+                CollapseFlexText(ResolveLogicalText(block.Visuals, string.Empty)),
                 style.Position,
                 style.FloatSide,
                 zIndex,

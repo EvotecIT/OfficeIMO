@@ -19,16 +19,18 @@ await result.SaveAsync("quarterly-update.pdf");
 
 The result combines MIME, HTML-rendering, and PDF diagnostics. Local-file and remote-network access remain governed by the HTML resource policy; embedded archive resources do not silently widen it.
 
-Conversion is offline by default. To allow missing archive resources through a host resolver, apply an explicit bounded MHTML policy to the same options before conversion. The resolver must report its final URI and redirect count so cross-origin or excessive redirects fail closed:
+Conversion is offline by default. To allow missing archive resources, apply an explicit bounded MHTML policy to the same options before conversion. The application fetcher must return exactly one response with automatic redirects disabled so OfficeIMO can approve every redirect target before requesting it:
 
 ```csharp
 var options = new HtmlPdfSaveOptions {
-    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
-    ResourceResolver = applicationResolver
+    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 };
-archive.ConfigureRenderOptions(
-    options,
-    MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 2));
+MhtmlRemoteResourcePolicy remote = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 2);
+remote.ResourceFetcher = async (request, cancellationToken) => {
+    // Return MhtmlRemoteResourceResponse.Redirect(location) for a 3xx response.
+    return await applicationOneHopFetcher(request, cancellationToken);
+};
+archive.ConfigureRenderOptions(options, remote);
 
 PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(options);
 ```

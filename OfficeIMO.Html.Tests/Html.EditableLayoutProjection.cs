@@ -8,6 +8,34 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutProjectionTests {
     [Fact]
+    public void RegionTextUsesOnlyRenderedVisibleText() {
+        const string html = "<div style='position:absolute;width:180px;height:50px'>Visible" +
+            "<span style='display:none'>Hidden display</span>" +
+            "<span style='visibility:hidden'>Hidden visibility</span></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        HtmlRenderLayoutRegion region = Assert.Single(projection.Regions);
+        Assert.Contains("Visible", region.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", region.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RichSemanticRegionsStayInNormalDocumentFlow() {
+        const string html = "<div style='position:absolute;width:180px;height:50px'>" +
+            "<strong>Bold</strong><a href='https://example.test'>Link</a></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        Assert.Contains("Bold", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
     public void PositionedFlexAndFloatingGridProduceSingleNativeRegions() {
         const string html = "<div style='position:absolute;display:flex;width:160px;height:40px'>Positioned flex</div>" +
             "<div style='float:right;display:grid;width:140px;height:40px'>Floating grid</div>";

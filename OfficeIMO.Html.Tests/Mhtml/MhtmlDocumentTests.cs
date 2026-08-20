@@ -10,6 +10,13 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlDocumentTests {
     [Fact]
+    public void ConfigureRenderOptionsRetainsTheOriginalBinarySignature() {
+        Assert.NotNull(typeof(MhtmlDocument).GetMethod(
+            nameof(MhtmlDocument.ConfigureRenderOptions),
+            new[] { typeof(HtmlRenderOptions) }));
+    }
+
+    [Fact]
     public async Task LoadSelectsDeclaredRootAndResolvesCidResource() {
         const string archive = "MIME-Version: 1.0\r\n" +
             "Subject: Saved page\r\n" +

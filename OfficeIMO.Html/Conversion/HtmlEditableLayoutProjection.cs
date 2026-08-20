@@ -71,6 +71,12 @@ public static class HtmlEditableLayoutProjector {
     internal const string RegionAttribute = "data-officeimo-editable-layout-region";
     internal const string ImageAttribute = "data-officeimo-editable-layout-image";
     private const string ImageSourcePrefix = "img[officeimo-layout-image=";
+    private static readonly HashSet<string> SemanticRichElementNames = new(StringComparer.OrdinalIgnoreCase) {
+        "a", "abbr", "b", "blockquote", "button", "cite", "code", "dd", "del", "details", "dfn", "dl", "dt",
+        "em", "fieldset", "form", "h1", "h2", "h3", "h4", "h5", "h6", "i", "input", "ins", "kbd", "label",
+        "li", "mark", "ol", "pre", "q", "s", "samp", "select", "strong", "sub", "summary", "sup", "table",
+        "textarea", "time", "u", "ul", "var"
+    };
 
     /// <summary>Projects bounded positioned, floating, flex, and grid regions through the managed layout engine.</summary>
     public static HtmlEditableLayoutProjection Project(
@@ -95,10 +101,15 @@ public static class HtmlEditableLayoutProjector {
             document.Limits);
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
+        var semanticRichCandidates = new List<IElement>();
         foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
             if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
                 || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
+            if (ContainsSemanticRichContent(element)) {
+                semanticRichCandidates.Add(element);
+                continue;
+            }
             string sourceKey = (++key).ToString(System.Globalization.CultureInfo.InvariantCulture);
             element.SetAttribute(RegionAttribute, sourceKey);
             candidateElements[sourceKey] = element;
@@ -121,6 +132,12 @@ public static class HtmlEditableLayoutProjector {
         }
 
         var diagnostics = new HtmlDiagnosticReport();
+        foreach (IElement element in semanticRichCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "An editable layout region stayed in semantic flow so rich document content would not be flattened.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "semanticContent=true", OfficeConversionLossKind.Approximation);
+        }
         var accepted = new List<HtmlRenderLayoutRegion>();
         foreach (IGrouping<string, (int Page, HtmlRenderLayoutRegion Region)> group in occurrences.GroupBy(item => item.Region.SourceKey)) {
             int occurrenceCount = group.Count();
@@ -333,6 +350,11 @@ public static class HtmlEditableLayoutProjector {
             if (ReferenceEquals(owners[index], element) || owners[index].Contains(element)) return index + 1;
         }
         return 0;
+    }
+
+    private static bool ContainsSemanticRichContent(IElement element) {
+        if (SemanticRichElementNames.Contains(element.LocalName)) return true;
+        return element.QuerySelectorAll("*").Any(child => SemanticRichElementNames.Contains(child.LocalName));
     }
 
     private static IEnumerable<HtmlRenderLayoutRegion> EnumerateRegions(IEnumerable<HtmlRenderVisual> visuals) {

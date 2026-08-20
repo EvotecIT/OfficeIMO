@@ -7,6 +7,22 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutRtfTests {
     [Fact]
+    public void PositionedRichContentStaysInSemanticFlow() {
+        const string html = "<div style='position:absolute;width:200px;height:60px'>" +
+            "<strong>Bold</strong> <a href='https://example.test'>Linked</a></div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\b ", rtf, StringComparison.Ordinal);
+        Assert.Contains("HYPERLINK", rtf, StringComparison.Ordinal);
+        Assert.Contains("https://example.test", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
     public void PositionedRegionRetainsEmbeddedPngPicture() {
         byte[] png = PdfPngTestImages.CreateRgbPng(4, 3);
         string image = "data:image/png;base64," + Convert.ToBase64String(png);

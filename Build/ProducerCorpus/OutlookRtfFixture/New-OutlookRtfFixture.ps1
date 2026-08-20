@@ -26,12 +26,13 @@ try {
     $directory = [System.IO.Path]::GetDirectoryName($resolvedOutput)
     [System.IO.Directory]::CreateDirectory($directory) | Out-Null
     [System.IO.File]::WriteAllBytes($resolvedOutput, $bytes)
+    $sha256 = (Get-FileHash -LiteralPath $resolvedOutput -Algorithm SHA256).Hash.ToLowerInvariant()
 
     [pscustomobject]@{
         OutlookVersion = $outlook.Version
         OutputPath = $resolvedOutput
         Bytes = $bytes.Length
-        Sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+        Sha256 = $sha256
     }
 } finally {
     if ($mail) {

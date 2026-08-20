@@ -117,8 +117,14 @@ public sealed class MhtmlDocument {
     /// The hyperlink policy is left unchanged. Remote resources absent from the archive are fetched only
     /// through the policy's one-hop resolver so every redirect destination is approved before it is requested.
     /// </summary>
+    public void ConfigureRenderOptions(HtmlRenderOptions options) => ConfigureRenderOptions(options, null);
+
+    /// <summary>
+    /// Applies the archive base URI, resource-only URL policy, embedded-resource resolver, and explicit
+    /// bounded remote-resource policy to render options.
+    /// </summary>
     public void ConfigureRenderOptions(HtmlRenderOptions options,
-        MhtmlRemoteResourcePolicy? remoteResourcePolicy = null) {
+        MhtmlRemoteResourcePolicy? remoteResourcePolicy) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         remoteResourcePolicy ??= MhtmlRemoteResourcePolicy.CreateEmbeddedOnlyProfile();
         remoteResourcePolicy.ApplyLimits(options);

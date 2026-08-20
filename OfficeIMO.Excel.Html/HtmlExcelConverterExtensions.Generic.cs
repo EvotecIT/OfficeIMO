@@ -93,7 +93,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         if (editableLayout?.Regions.Count > 0) {
-            ImportEditableLayoutRegions(editableLayout.Regions, workbook, narrativeSheet, tables.Count,
+            ImportEditableLayoutRegions(editableLayout.Regions, workbook, narrativeSheet, tables.Count, usedNames,
                 result, options, budget);
         }
     }
@@ -103,12 +103,20 @@ public static partial class HtmlExcelConverterExtensions {
         ExcelDocument workbook,
         ExcelSheet? narrativeSheet,
         int semanticTableCount,
+        HashSet<string> usedNames,
         HtmlToExcelResult result,
         HtmlToExcelOptions options,
         HtmlImportBudget budget) {
-        if (workbook.Sheets.Count == 0) {
-            narrativeSheet = workbook.AddWorksheet("Imported");
-            result.Sheets++;
+        if (narrativeSheet == null && regions.Any(region => region.SemanticTableNumber == 0)) {
+            if (budget.TryReserveSemanticContainer(out string narrativeContainerLimit)) {
+                narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
+                result.Sheets++;
+            } else {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "Table-unowned editable HTML layout regions were omitted because their narrative worksheet could not be created.",
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission,
+                    detail: narrativeContainerLimit);
+            }
         }
 
         foreach (HtmlRenderLayoutRegion region in regions.OrderBy(item => item.PaintOrder)) {
