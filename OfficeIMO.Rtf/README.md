@@ -52,6 +52,12 @@ The profile caps input bytes and characters, group depth/count, token count, tex
 
 The core never fetches external resources. `RtfReadOptions.CreateCompatibilityProfile()` restores the former unbounded, object-materializing, all-schemes behavior for trusted legacy inputs only.
 
+## Inspect and remove concealed content
+
+Use `RtfDocument.InspectContentSafety(...)` before sending an untrusted document to a model or automated reviewer. It reports native hidden runs (`\\v`), deleted revisions, tiny or near-zero-scaled text, resolved low-contrast text, non-primary destinations, and suspicious Unicode controls. These findings describe concealment risk; they do not prove that AI authored the document.
+
+Cleanup is explicit and selection-based. Pass finding identifiers from the inspected report to `RtfDocument.RemoveSelectedContent(...)`; OfficeIMO removes only matching semantic text runs or exact reviewed Unicode ranges, including ranges inside alternate HTML encapsulation, writes a normalized RTF artifact, and reinspects the result. Use the shared [content-safety support matrix](../Docs/officeimo.content-safety-support-matrix.md) for exact coverage and format-specific limits.
+
 ## Require no conversion loss
 
 All adapters use `RtfConversionReport` for preserved, flattened, omitted, and blocked content:

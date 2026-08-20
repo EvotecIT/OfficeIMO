@@ -319,3 +319,7 @@ Use `HtmlDataUri` when the payload is textual. Its `DecodeText()` method honors 
 ## Content provenance
 
 `HtmlProvenance.Inspect(html)` reports embedded `<script type="application/c2pa">` carriers, external `<link rel="c2pa-manifest">` references, and provenance inside supported embedded image data URIs. `HtmlProvenance.Remove(html)` removes only selected, structurally valid carriers by default. Inspection and removal never fetch external resources. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
+## Concealed-content inspection and cleanup
+
+`HtmlContentSafety.Inspect(html)` evaluates the bounded CSS cascade and reports hidden, transparent, tiny, zero-size, clipped, off-canvas, and low-contrast text together with comments, scripts/styles, templates, metadata, alternative text, ARIA labels, and hidden form values. `HtmlContentSafety.RemoveSelected(...)` removes only reviewed current findings—including exact Unicode ranges inside machine-only text nodes—and reinspects the serialized HTML. An empty file selection preserves the source bytes and encoding. No script runs and no external resource is fetched.

@@ -610,6 +610,10 @@ PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns
 
 `PowerPointPresentation.InspectProvenance("input.pptx")` reports C2PA and AI-specific IPTC metadata in the presentation and its supported embedded images. `PowerPointPresentation.RemoveProvenance("input.pptx", "clean.pptx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
 
+## Concealed-content inspection and cleanup
+
+`PowerPointPresentation.InspectContentSafety(...)` reports hidden slides/shapes/groups, zero or fully off-canvas geometry, tiny/transparent/low-contrast text, notes, classic and modern comments, alternative text, and Unicode evidence. `PowerPointPresentation.RemoveSelectedContent(...)` uses the native PPTX/PPTM or legacy PPT writer and reinspects the output. Existing signature mutation is blocked unless an explicit supported policy is selected.
+
 ## Adjacent packages
 
 | Package | Use it for |

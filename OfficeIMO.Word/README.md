@@ -432,6 +432,10 @@ OfficeProvenanceRemovalResult result = WordDocument.RemoveProvenance("input.docx
 
 Mutation of a signed package is blocked by default. Set `SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` only when removing the now-invalid package signature is intentional. Optional cryptographic C2PA verification is provided by `OfficeIMO.Security`.
 
+## Concealed-content inspection and cleanup
+
+`WordDocument.InspectContentSafety(...)` reports native/inherited hidden runs, deleted revisions, tiny or zero-geometry text, explicit low contrast, comments/notes, alternative text, and exact Unicode evidence. Pass reviewed finding IDs to `WordDocument.RemoveSelectedContent(...)`; the package is reopened after cleanup, and signed-document mutation fails closed by default. These findings describe ingestion risk, not AI authorship.
+
 ## Adjacent packages
 
 `OfficeIMO.Word` owns the Word model. Conversion and export packages stay separate so consumers only take the dependencies they need:

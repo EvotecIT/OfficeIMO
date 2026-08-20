@@ -42,6 +42,9 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Security and protected content
 
+- [ ] Add OCR-backed concealed-text assessment for raster images using bounded OCR regions plus pixel, geometry, and contrast evidence, with explicit safe-redaction policy. Never classify image metadata alone as visible or concealed text.
+- [ ] Add native SVG text-visibility inspection and exact cleanup across presentation attributes, computed CSS, clipping, opacity, geometry, paint order, and background resolution, with browser-rendered adversarial fixtures.
+- [ ] Add package-preserving concealed-HTML inspection and cleanup for MHTML and EPUB, including bounded MIME/resource handling, stylesheet resolution, signed-package mutation policy, and reopen validation.
 - [ ] Add legacy encrypted-DOC import, encrypted-XLS authoring, and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.
 - [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
 - [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.

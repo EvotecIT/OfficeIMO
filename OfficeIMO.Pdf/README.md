@@ -786,6 +786,10 @@ OfficeProvenanceRemovalResult result = PdfProvenance.RemoveFile("input.pdf", "cl
 
 The PDF owner recognizes the standards-defined embedded file with media type `application/c2pa` and `/AFRelationship /C2PA_Manifest`. Removal uses a bounded, targeted object-graph rewrite that leaves unrelated attachment associations in place. Malformed indirect-object candidates remain untouched unless the caller disables `RequireStructurallyValidCarrier`; direct file-spec dictionaries are inspected but cannot be removed safely. A signed PDF is never silently rewritten or stripped; handle its signature through an explicit PDF signature workflow first. Optional cryptographic C2PA verification is provided by `OfficeIMO.Security`.
 
+## Concealed-content inspection and cleanup
+
+`PdfDocument.InspectContentSafety(...)` reports non-painting text render modes, effective transparency, clipping, tiny/zero/off-canvas geometry, paint-order-resolved low contrast, and Unicode evidence from decoded spans. `PdfDocument.RemoveSelectedContent(...)` physically removes exact selected spans and can rewrite reviewed Unicode ranges in ordinary painted or painted low-contrast spans while verifying neighboring text restoration. Unicode sub-findings whose restamp could change concealment remain report-only, while their whole concealed span remains removable. Encrypted and signed PDFs are rejected; hidden optional-content nesting that cannot be mapped to an exact removable span is diagnosed instead of guessed.
+
 ### Generate a formal e-invoice carrier
 
 ```csharp

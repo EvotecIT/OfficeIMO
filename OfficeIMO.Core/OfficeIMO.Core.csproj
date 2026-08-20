@@ -34,6 +34,9 @@
     <InternalsVisibleTo Include="OfficeIMO.CSV" />
     <InternalsVisibleTo Include="OfficeIMO.Excel" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument" />
     <InternalsVisibleTo Include="OfficeIMO.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Security" />

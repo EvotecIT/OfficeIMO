@@ -171,7 +171,32 @@ foreach (OfficeProvenanceSignalResult signal in assessment.ProviderSignals) {
 
 `IOfficeProvenanceSignalDetector` is deliberately provider-specific. A detector reports its own durable-media watermark, statistical-text watermark, visible disclosure, or deterministic artifact and keeps `NotDetected`, `Inconclusive`, `ProviderUnavailable`, and `Error` distinct. OfficeIMO does not turn the absence of one vendor's signal into “human-authored.”
 
-Use `OfficeTextIntegrityInspector` to report exact invisible and context-sensitive Unicode code points. It reports offsets, code points, and risk; it does not call those characters an AI watermark. Cleanup has no blanket mode: callers pass only reviewed findings to `OfficeTextIntegrityCleaner.RemoveSelected`, so legitimate joiners, variation selectors, and typographic spaces are not silently normalized.
+Use `OfficeTextIntegrityInspector` to report exact invisible and context-sensitive Unicode code points. It reports offsets, code points, and risk; it does not call those characters an AI watermark. Format content-safety reports also mirror these as selectable `NonPrintingUnicode` findings when the owning adapter can verify and rewrite the exact native text node. Cleanup has no blanket mode: callers pass only reviewed finding IDs, so legitimate joiners, variation selectors, and typographic spaces are not silently normalized.
+
+### Inspect concealed content before model ingestion
+
+`OfficeIMO.ContentSafety` is separate from provenance. It reports native hidden text, white-on-white or otherwise low-contrast text, tiny or zero-size text, off-canvas/clipped content, notes/comments/alternative text, and exact Unicode evidence through the format package that understands the file. Concealment can be legitimate accessibility, review, layout, or metadata content; it is not an AI watermark or an authorship verdict.
+
+```csharp
+using OfficeIMO.ContentSafety;
+using OfficeIMO.Word;
+
+OfficeContentSafetyReport report = WordDocument.InspectContentSafety("candidate.docx");
+foreach (OfficeContentSafetyFinding finding in report.Findings) {
+    Console.WriteLine($"{finding.Risk}: {finding.Kind} at {finding.Location}");
+}
+
+OfficeContentSafetyFinding[] reviewed = report.Findings
+    .Where(item => item.IsInstructionLike)
+    .ToArray();
+
+WordDocument.RemoveSelectedContent(
+    "candidate.docx",
+    "candidate.cleaned.docx",
+    new OfficeContentCleanupSelection(reviewed.Select(item => item.Id)));
+```
+
+Cleanup is always selection-based and stale-evidence checked. The adapter reopens and reinspects the rewritten artifact; it does not provide a blanket “remove anything unusual” switch. See the [content safety support matrix](../Docs/officeimo.content-safety-support-matrix.md) for exact format coverage and renderer boundaries.
 
 Transformations can make an existing Content Credential invalid. `OfficeProvenanceLifecycle.FinalizeFile` makes the disposition explicit:
 
