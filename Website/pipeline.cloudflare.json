@@ -2,18 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.web.pipelinespec.schema.json",
   "steps": [
     {
-      "task": "cloudflare",
-      "id": "purge-site-query-variants",
-      "operation": "purge",
-      "siteConfig": "./site.json",
-      "purgeMode": "hostname",
-      "zoneIdEnv": "CLOUDFLARE_ZONE_ID",
-      "tokenEnv": "CLOUDFLARE_API_TOKEN"
-    },
-    {
       "task": "deployment-verify",
       "id": "verify-converter-deployment",
-      "dependsOn": "purge-site-query-variants",
       "pathPrefixes": "/apps/officeimo-converter/",
       "attempts": 12,
       "delayMs": 30000,
