@@ -315,9 +315,10 @@ internal sealed class C2paToolProcessResult {
 
 internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     private static readonly char[] ProcessSnapshotLineSeparators = { '\r', '\n' };
+    // Use the external utility because shell builtins parse negative process-group operands inconsistently.
     private const string UnixShellContainmentScript =
         "set -m; \"$@\" & child=$!; " +
-        "cleanup() { kill -KILL \"-$child\" 2>/dev/null || true; }; " +
+        "cleanup() { /bin/kill -s KILL -- \"-$child\" 2>/dev/null || true; }; " +
         "finish() { status=$1; trap - 0 HUP INT TERM; cleanup; exit \"$status\"; }; " +
         "trap cleanup 0; trap 'exit 143' HUP INT TERM; " +
         "child_pgid=$(ps -o pgid= -p \"$child\" 2>/dev/null | tr -d ' '); " +
