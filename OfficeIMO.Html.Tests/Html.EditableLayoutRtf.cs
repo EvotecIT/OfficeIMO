@@ -60,6 +60,19 @@ public sealed class HtmlEditableLayoutRtfTests {
     }
 
     [Fact]
+    public void OversizedFrameCoordinateIsBoundedWithStableDiagnostic() {
+        const string html = "<div style='position:absolute;left:300000000px;top:24px;width:180px;height:70px'>Bounded frame</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
+            item.ToPlainText().Contains("Bounded frame", StringComparison.Ordinal));
+
+        Assert.Equal(int.MaxValue, paragraph.Frame.HorizontalPositionTwips);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
     public void PositionedAndFloatingRegionsReopenAsEditableRtfFrames() {
         const string html = "<style>" +
             ".positioned{position:absolute;left:32px;top:24px;width:240px;height:72px;background:#dbeafe;z-index:4}" +

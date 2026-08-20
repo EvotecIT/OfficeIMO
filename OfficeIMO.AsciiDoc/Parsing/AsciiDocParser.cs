@@ -568,6 +568,10 @@ internal static class AsciiDocParser {
     }
 
     private static void ValidateOptions(string source, AsciiDocParseOptions options) {
+        if (options.Profile != AsciiDocDocumentProfile.OfficeIMO
+            && options.Profile != AsciiDocDocumentProfile.PreserveOnly) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Profile must be a defined AsciiDoc document profile.");
+        }
         if (options.MaximumInputLength.HasValue && options.MaximumInputLength.Value < 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "MaximumInputLength cannot be negative.");
         }

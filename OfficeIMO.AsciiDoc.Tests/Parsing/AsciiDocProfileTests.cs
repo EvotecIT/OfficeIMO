@@ -38,5 +38,9 @@ public sealed class AsciiDocProfileTests {
             AsciiDocParseOptions.CreateProfile((AsciiDocDocumentProfile)999));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             AsciiDocProcessorOptions.CreateProfile((AsciiDocDocumentProfile)999));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            AsciiDocDocument.Parse("= Invalid profile", new AsciiDocParseOptions {
+                Profile = (AsciiDocDocumentProfile)999
+            }));
     }
 }

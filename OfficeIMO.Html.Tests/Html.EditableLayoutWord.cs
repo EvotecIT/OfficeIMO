@@ -3,6 +3,11 @@ using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Tests.Pdf;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;
@@ -49,6 +54,48 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Contains(":alphaModFix amt=\"40000\"", documentXml, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened);
+    }
+
+    [Fact]
+    public async Task RemoteRegionPictureIsFetchedAndEmbeddedByAsyncImport() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(4, 3);
+        using var httpClient = new HttpClient(new RegionImageHandler(_ => {
+            var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(png)
+            };
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            return Task.FromResult(response);
+        }));
+        var options = new HtmlToWordOptions {
+            HttpClient = httpClient,
+            ImageProcessing = ImageProcessingMode.Embed
+        };
+        const string html = "<div style='position:absolute;width:180px;height:70px'>" +
+            "<img alt='Remote region' src='https://images.example.test/region.png'></div>";
+
+        HtmlToWordResult result = await HtmlConversionDocument.Parse(html).ToWordDocumentResultAsync(options);
+        using var stream = new MemoryStream();
+        result.Value.Save(stream);
+        result.Value.Dispose();
+
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(stream.ToArray()), false);
+        Assert.Single(package.MainDocumentPart!.ImageParts);
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionImageOmitted);
+    }
+
+    [Fact]
+    public void OversizedPageCoordinateIsBoundedWithStableDiagnostic() {
+        const string html = "<div style='position:absolute;left:300000px;top:24px;width:180px;height:70px'>Bounded anchor</div>";
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        using WordDocument word = result.Value;
+
+        Assert.Equal(int.MaxValue, Assert.Single(word.TextBoxes).HorizontalPositionOffset);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("nativeRange", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -100,5 +147,17 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
         Assert.True(result.Succeeded);
+    }
+
+    private sealed class RegionImageHandler : HttpMessageHandler {
+        private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
+
+        internal RegionImageHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) {
+            _handler = handler;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) => _handler(request);
     }
 }

@@ -60,6 +60,10 @@ public static partial class HtmlRtfConverterExtensions {
         const double twipsPerCssPixel = 15D;
         foreach (HtmlRenderLayoutRegion region in projection.Regions.OrderBy(item => item.PaintOrder)) {
             RtfParagraph paragraph = document.AddParagraph(region.SourceText);
+            int horizontalPosition = ToBoundedFrameCoordinate(
+                region.X, twipsPerCssPixel, out bool horizontalSimplified);
+            int verticalPosition = ToBoundedFrameCoordinate(
+                region.Y, twipsPerCssPixel, out bool verticalSimplified);
             paragraph.Frame
                 .SetSize(
                     checked((int)Math.Round(region.Width * twipsPerCssPixel)),
@@ -67,13 +71,19 @@ public static partial class HtmlRtfConverterExtensions {
                 .SetAnchors(RtfParagraphFrameHorizontalAnchor.Page, RtfParagraphFrameVerticalAnchor.Page)
                 .SetPosition(
                     RtfParagraphFrameHorizontalPosition.Absolute,
-                    checked((int)Math.Round(region.X * twipsPerCssPixel)),
+                    horizontalPosition,
                     RtfParagraphFrameVerticalPosition.Absolute,
-                    checked((int)Math.Round(region.Y * twipsPerCssPixel)))
+                    verticalPosition)
                 .SetWrapping(
                     noWrap: region.RegionKind == HtmlRenderLayoutRegionKind.Positioned,
                     overlayText: region.RegionKind == HtmlRenderLayoutRegionKind.Positioned,
                     noOverlap: region.RegionKind == HtmlRenderLayoutRegionKind.Floating);
+            if (horizontalSimplified || verticalSimplified) {
+                options.AddDiagnostic(HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "RTF bounded an editable layout frame's page position to its native coordinate range.",
+                    region.Source, severity: HtmlRtfConversionDiagnosticSeverity.Warning,
+                    action: RtfConversionAction.Substituted);
+            }
             if (region.BackgroundColor.HasValue) {
                 paragraph.SetBackgroundColor(document.AddColor(
                     region.BackgroundColor.Value.R,
@@ -85,35 +95,15 @@ public static partial class HtmlRtfConverterExtensions {
                 HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: false)
                     .ToList()
                     .AsReadOnly();
-            for (int imageIndex = 0; imageIndex < sourceImages.Count; imageIndex++) {
-                AngleSharp.Html.Dom.IHtmlImageElement sourceImage = sourceImages[imageIndex];
-                string source = HtmlImageSourceResolver.ResolveImageSource(
-                    sourceImage, options.BaseUri, options.GetResourceUrlPolicy());
-                if (!TryReadRtfRegionImage(source, out RtfImageFormat format, out byte[] bytes, out string detail)) {
-                    options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
-                        HtmlEditableLayoutDiagnosticCodes.RegionImageOmitted,
-                        "A picture inside an editable RTF layout region was omitted.",
-                        HtmlRtfConversionDiagnosticSeverity.Warning,
-                        string.IsNullOrWhiteSpace(source) ? region.Source : source,
-                        detail,
-                        RtfConversionAction.Omitted));
-                    continue;
-                }
-                RtfImage nativeImage = paragraph.AddImage(format, bytes);
-                nativeImage.Description = sourceImage.AlternativeText;
-                if (imageIndex >= renderedImages.Count) continue;
-                (HtmlRenderImage visual, double opacity) = renderedImages[imageIndex];
-                nativeImage.DesiredWidthTwips = checked((int)Math.Round(visual.Width * twipsPerCssPixel));
-                nativeImage.DesiredHeightTwips = checked((int)Math.Round(visual.Height * twipsPerCssPixel));
-                if (opacity < 0.999D || visual.SourceCrop.HasCrop) {
-                    options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
-                        HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
-                        "RTF retained an editable region picture without unsupported CSS alpha or source-crop effects.",
-                        HtmlRtfConversionDiagnosticSeverity.Warning,
-                        visual.Source,
-                        "opacity=" + opacity.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
-                            + "; crop=" + visual.SourceCrop.HasCrop,
-                        RtfConversionAction.Substituted));
+            var projectedSources = new HashSet<AngleSharp.Html.Dom.IHtmlImageElement>();
+            foreach ((HtmlRenderImage visual, double opacity) in renderedImages) {
+                AngleSharp.Html.Dom.IHtmlImageElement? sourceImage = projection.GetSourceImage(visual);
+                if (sourceImage == null || !projectedSources.Add(sourceImage)) continue;
+                AddRtfRegionImage(paragraph, sourceImage, visual, opacity, region, options, twipsPerCssPixel);
+            }
+            foreach (AngleSharp.Html.Dom.IHtmlImageElement sourceImage in sourceImages) {
+                if (projectedSources.Add(sourceImage)) {
+                    AddRtfRegionImage(paragraph, sourceImage, null, 1D, region, options, twipsPerCssPixel);
                 }
             }
             if (region.BackgroundLayerCount > 0) {
@@ -129,6 +119,61 @@ public static partial class HtmlRtfConverterExtensions {
                     action: RtfConversionAction.Substituted);
             }
         }
+    }
+
+    private static void AddRtfRegionImage(
+        RtfParagraph paragraph,
+        AngleSharp.Html.Dom.IHtmlImageElement sourceImage,
+        HtmlRenderImage? visual,
+        double opacity,
+        HtmlRenderLayoutRegion region,
+        HtmlToRtfOptions options,
+        double twipsPerCssPixel) {
+        string source = HtmlImageSourceResolver.ResolveImageSource(
+            sourceImage, options.BaseUri, options.GetResourceUrlPolicy());
+        if (!TryReadRtfRegionImage(source, out RtfImageFormat format, out byte[] bytes, out string detail)) {
+            options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
+                HtmlEditableLayoutDiagnosticCodes.RegionImageOmitted,
+                "A picture inside an editable RTF layout region was omitted.",
+                HtmlRtfConversionDiagnosticSeverity.Warning,
+                string.IsNullOrWhiteSpace(source) ? region.Source : source,
+                detail,
+                RtfConversionAction.Omitted));
+            return;
+        }
+        RtfImage nativeImage = paragraph.AddImage(format, bytes);
+        nativeImage.Description = sourceImage.AlternativeText;
+        if (visual == null) return;
+        nativeImage.DesiredWidthTwips = checked((int)Math.Round(visual.Width * twipsPerCssPixel));
+        nativeImage.DesiredHeightTwips = checked((int)Math.Round(visual.Height * twipsPerCssPixel));
+        if (opacity < 0.999D || visual.SourceCrop.HasCrop) {
+            options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
+                HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
+                "RTF retained an editable region picture without unsupported CSS alpha or source-crop effects.",
+                HtmlRtfConversionDiagnosticSeverity.Warning,
+                visual.Source,
+                "opacity=" + opacity.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                    + "; crop=" + visual.SourceCrop.HasCrop,
+                RtfConversionAction.Substituted));
+        }
+    }
+
+    private static int ToBoundedFrameCoordinate(double cssPixels, double unitsPerCssPixel, out bool simplified) {
+        double value = Math.Round(cssPixels * unitsPerCssPixel);
+        if (double.IsNaN(value)) {
+            simplified = true;
+            return 0;
+        }
+        if (value <= int.MinValue) {
+            simplified = value < int.MinValue;
+            return int.MinValue;
+        }
+        if (value >= int.MaxValue) {
+            simplified = value > int.MaxValue;
+            return int.MaxValue;
+        }
+        simplified = false;
+        return (int)value;
     }
 
     private static bool TryReadRtfRegionImage(

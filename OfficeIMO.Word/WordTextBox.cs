@@ -435,14 +435,15 @@ namespace OfficeIMO.Word {
                 ShapeProperties? properties = DrawingShapeProperties;
                 if (properties == null) return;
                 properties.RemoveAllChildren<A.NoFill>();
-                A.SolidFill? fill = properties.GetFirstChild<A.SolidFill>();
-                if (fill == null) {
-                    fill = new A.SolidFill();
-                    A.PresetGeometry? geometry = properties.GetFirstChild<A.PresetGeometry>();
-                    if (geometry != null) properties.InsertAfter(fill, geometry);
-                    else properties.Append(fill);
-                }
-                fill.RemoveAllChildren();
+                properties.RemoveAllChildren<A.SolidFill>();
+                properties.RemoveAllChildren<A.GradientFill>();
+                properties.RemoveAllChildren<A.BlipFill>();
+                properties.RemoveAllChildren<A.PatternFill>();
+                properties.RemoveAllChildren<A.GroupFill>();
+                var fill = new A.SolidFill();
+                A.PresetGeometry? geometry = properties.GetFirstChild<A.PresetGeometry>();
+                if (geometry != null) properties.InsertAfter(fill, geometry);
+                else properties.Append(fill);
                 fill.Append(new A.RgbColorModelHex { Val = (value ?? string.Empty).Trim().TrimStart('#').ToUpperInvariant() });
             }
         }

@@ -27,8 +27,10 @@ internal partial class HtmlToWordConverter {
             WordTextBox textBox = document.AddTextBox(region.SourceText, wrapping);
             textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            textBox.HorizontalPositionOffset = checked((int)Math.Round(region.X * emusPerCssPixel));
-            textBox.VerticalPositionOffset = checked((int)Math.Round(region.Y * emusPerCssPixel));
+            int horizontalOffset = ToBoundedAnchorOffset(region.X, emusPerCssPixel, out bool horizontalSimplified);
+            int verticalOffset = ToBoundedAnchorOffset(region.Y, emusPerCssPixel, out bool verticalSimplified);
+            textBox.HorizontalPositionOffset = horizontalOffset;
+            textBox.VerticalPositionOffset = verticalOffset;
             textBox.Width = checked((long)Math.Round(region.Width * emusPerCssPixel));
             textBox.Height = checked((long)Math.Round(region.Height * emusPerCssPixel));
             textBox.RelativeWidthPercentage = 0;
@@ -37,6 +39,16 @@ internal partial class HtmlToWordConverter {
             zOrder = zOrder < 1L ? 1L : zOrder > uint.MaxValue ? uint.MaxValue : zOrder;
             textBox.ZOrder = checked((uint)zOrder);
             if (region.BackgroundColor.HasValue) textBox.FillColorHex = region.BackgroundColor.Value.ToRgbHex();
+            if (horizontalSimplified || verticalSimplified) {
+                options.ConversionReport.Add("OfficeIMO.Word.Html",
+                    HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "Word bounded an editable layout region's page anchor to its native coordinate range.",
+                    HtmlDiagnosticSeverity.Warning, region.Source,
+                    "x=" + region.X.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; y=" + region.Y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; nativeRange=" + int.MinValue + ".." + int.MaxValue,
+                    OfficeConversionLossKind.Approximation);
+            }
 
             WordParagraph paragraph = textBox.Paragraphs.First();
             IReadOnlyList<IHtmlImageElement> sourceImages = projection.GetSourceImages(region);
@@ -44,25 +56,15 @@ internal partial class HtmlToWordConverter {
                 HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: false)
                     .ToList()
                     .AsReadOnly();
-            for (int imageIndex = 0; imageIndex < sourceImages.Count; imageIndex++) {
-                int before = paragraph.EnumerateImages().Count();
-                ProcessImage(sourceImages[imageIndex], document, options, paragraph, headerFooter: null,
-                    resolveContainerWidthTwips: () => checked((int)Math.Round(region.Width * 15D)));
-                IReadOnlyList<WordImage> paragraphImages = paragraph.EnumerateImages().ToList().AsReadOnly();
-                if (paragraphImages.Count <= before) {
-                    AddRegionImageOmitted(options, region, sourceImages[imageIndex].Source,
-                        "The active Word image policy or resource limits rejected the picture.");
-                    continue;
-                }
-                if (imageIndex >= renderedImages.Count) continue;
-                WordImage nativeImage = paragraphImages[paragraphImages.Count - 1];
-                (HtmlRenderImage visual, double opacity) = renderedImages[imageIndex];
-                if (opacity < 0.999D) nativeImage.Transparency = (int)Math.Round((1D - opacity) * 100D);
-                if (visual.SourceCrop.HasCrop) {
-                    nativeImage.CropLeft = ToCropPercentage(visual.SourceCrop.Left);
-                    nativeImage.CropTop = ToCropPercentage(visual.SourceCrop.Top);
-                    nativeImage.CropRight = ToCropPercentage(visual.SourceCrop.Right);
-                    nativeImage.CropBottom = ToCropPercentage(visual.SourceCrop.Bottom);
+            var projectedSources = new HashSet<IHtmlImageElement>();
+            foreach ((HtmlRenderImage visual, double opacity) in renderedImages) {
+                IHtmlImageElement? sourceImage = projection.GetSourceImage(visual);
+                if (sourceImage == null || !projectedSources.Add(sourceImage)) continue;
+                AddEditableRegionImage(sourceImage, visual, opacity, document, options, paragraph, region);
+            }
+            foreach (IHtmlImageElement sourceImage in sourceImages) {
+                if (projectedSources.Add(sourceImage)) {
+                    AddEditableRegionImage(sourceImage, null, 1D, document, options, paragraph, region);
                 }
             }
 
@@ -87,6 +89,52 @@ internal partial class HtmlToWordConverter {
 
     private static int ToCropPercentage(double fraction) =>
         checked((int)Math.Round(Math.Max(0D, Math.Min(1D, fraction)) * 100000D));
+
+    private void AddEditableRegionImage(
+        IHtmlImageElement sourceImage,
+        HtmlRenderImage? visual,
+        double opacity,
+        WordDocument document,
+        HtmlToWordOptions options,
+        WordParagraph paragraph,
+        HtmlRenderLayoutRegion region) {
+        int before = paragraph.EnumerateImages().Count();
+        ProcessImage(sourceImage, document, options, paragraph, headerFooter: null,
+            resolveContainerWidthTwips: () => checked((int)Math.Round(region.Width * 15D)));
+        IReadOnlyList<WordImage> paragraphImages = paragraph.EnumerateImages().ToList().AsReadOnly();
+        if (paragraphImages.Count <= before) {
+            AddRegionImageOmitted(options, region, sourceImage.Source,
+                "The active Word image policy or resource limits rejected the picture.");
+            return;
+        }
+        if (visual == null) return;
+        WordImage nativeImage = paragraphImages[paragraphImages.Count - 1];
+        if (opacity < 0.999D) nativeImage.Transparency = (int)Math.Round((1D - opacity) * 100D);
+        if (visual.SourceCrop.HasCrop) {
+            nativeImage.CropLeft = ToCropPercentage(visual.SourceCrop.Left);
+            nativeImage.CropTop = ToCropPercentage(visual.SourceCrop.Top);
+            nativeImage.CropRight = ToCropPercentage(visual.SourceCrop.Right);
+            nativeImage.CropBottom = ToCropPercentage(visual.SourceCrop.Bottom);
+        }
+    }
+
+    private static int ToBoundedAnchorOffset(double cssPixels, double unitsPerCssPixel, out bool simplified) {
+        double value = Math.Round(cssPixels * unitsPerCssPixel);
+        if (double.IsNaN(value)) {
+            simplified = true;
+            return 0;
+        }
+        if (value <= int.MinValue) {
+            simplified = value < int.MinValue;
+            return int.MinValue;
+        }
+        if (value >= int.MaxValue) {
+            simplified = value > int.MaxValue;
+            return int.MaxValue;
+        }
+        simplified = false;
+        return (int)value;
+    }
 
     private static void AddRegionImageOmitted(
         HtmlToWordOptions options,

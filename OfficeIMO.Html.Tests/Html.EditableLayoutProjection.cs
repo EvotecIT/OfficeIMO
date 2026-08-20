@@ -115,6 +115,30 @@ public sealed class HtmlEditableLayoutProjectionTests {
     }
 
     [Fact]
+    public void RegionImagesFollowRenderedFlexOrderByStableSourceMarker() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(
+            OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;display:flex;width:160px;height:60px'>" +
+            "<img alt='Dom first' src='" + image + "' style='order:2;width:12px;height:12px'>" +
+            "<img alt='Visual first' src='" + image + "' style='order:1;width:12px;height:12px'></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        HtmlRenderLayoutRegion region = Assert.Single(projection.Regions);
+        IReadOnlyList<AngleSharp.Html.Dom.IHtmlImageElement> sources = projection.GetSourceImages(region);
+        Assert.Equal(new[] { "Visual first", "Dom first" }, sources.Select(source => source.AlternativeText));
+        IReadOnlyList<HtmlRenderImage> rendered = HtmlEditableLayoutProjector
+            .EnumerateImages(region.Visuals, includeBackgroundImages: false)
+            .Select(item => item.Image)
+            .ToList();
+        Assert.Equal(new[] { "img[officeimo-layout-image=2]", "img[officeimo-layout-image=1]" },
+            rendered.Select(imageVisual => imageVisual.Source));
+        Assert.Equal("Visual first", projection.GetSourceImage(rendered[0])!.AlternativeText);
+        Assert.Equal("Dom first", projection.GetSourceImage(rendered[1])!.AlternativeText);
+    }
+
+    [Fact]
     public void RequestedPrintMediaUsesPagedRenderLayout() {
         const string html = "<style>.region{position:absolute;width:100px;height:20px}" +
             "@media print{.region{width:220px}}</style><div class='region'>Print region</div>";

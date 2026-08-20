@@ -43,15 +43,18 @@ public sealed class HtmlEditableLayoutProjection {
         HtmlRenderDocument renderedDocument,
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
         IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages,
+        IReadOnlyDictionary<string, IHtmlImageElement> sourceImagesByRenderKey,
         IReadOnlyList<HtmlDiagnostic> diagnostics) {
         RemainingDocument = remainingDocument;
         RenderedDocument = renderedDocument;
         Regions = regions;
         _sourceImages = sourceImages;
+        _sourceImagesByRenderKey = sourceImagesByRenderKey;
         Diagnostics = diagnostics;
     }
 
     private readonly IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> _sourceImages;
+    private readonly IReadOnlyDictionary<string, IHtmlImageElement> _sourceImagesByRenderKey;
 
     /// <summary>Backend-neutral rendered evidence used to derive native geometry.</summary>
     public HtmlRenderDocument RenderedDocument { get; }
@@ -64,6 +67,11 @@ public sealed class HtmlEditableLayoutProjection {
         _sourceImages.TryGetValue(region.SourceKey, out IReadOnlyList<IHtmlImageElement>? images)
             ? images
             : Array.Empty<IHtmlImageElement>();
+    internal IHtmlImageElement? GetSourceImage(HtmlRenderImage renderedImage) =>
+        renderedImage.Source != null
+            && _sourceImagesByRenderKey.TryGetValue(renderedImage.Source, out IHtmlImageElement? sourceImage)
+                ? sourceImage
+                : null;
 }
 
 /// <summary>Creates one shared editable-layout plan for DOCX, RTF, XLSX, and PPTX adapters.</summary>
@@ -212,20 +220,12 @@ public static class HtmlEditableLayoutProjector {
         var acceptedKeys = new HashSet<string>(accepted.Select(region => region.SourceKey), StringComparer.Ordinal);
         IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages = accepted.ToDictionary(
             region => region.SourceKey,
-            region => {
-                var renderedSources = new HashSet<string>(
-                    EnumerateImages(region.Visuals, includeBackgroundImages: false)
-                        .Select(item => item.Image.Source ?? string.Empty),
-                    StringComparer.Ordinal);
-                return (IReadOnlyList<IHtmlImageElement>)candidateElements[region.SourceKey]
-                    .QuerySelectorAll("img")
-                    .OfType<IHtmlImageElement>()
-                    .Where(image => renderedSources.Contains(DescribeImageSource(
-                        image.GetAttribute(ImageAttribute))))
-                    .ToList()
-                    .AsReadOnly();
-            },
+            region => CreateOrderedSourceImages(region, candidateElements[region.SourceKey], styles),
             StringComparer.Ordinal);
+        IReadOnlyDictionary<string, IHtmlImageElement> sourceImagesByRenderKey = sourceImages.Values
+            .SelectMany(images => images)
+            .ToDictionary(image => DescribeImageSource(image.GetAttribute(ImageAttribute)), image => image,
+                StringComparer.Ordinal);
         foreach (IHtmlImageElement image in sourceImages.Values.SelectMany(images => images)) {
             image.RemoveAttribute(ImageAttribute);
         }
@@ -244,7 +244,7 @@ public static class HtmlEditableLayoutProjector {
             .Concat(diagnostics.Diagnostics)
             .ToArray();
         return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), sourceImages,
-            projectionDiagnostics);
+            sourceImagesByRenderKey, projectionDiagnostics);
     }
 
     internal static HtmlSemanticDocument BuildRemainingSemanticDocument(
@@ -366,6 +366,59 @@ public static class HtmlEditableLayoutProjector {
 
     internal static string DescribeImageSource(string? key) =>
         ImageSourcePrefix + (key ?? string.Empty) + "]";
+
+    private static IReadOnlyList<IHtmlImageElement> CreateOrderedSourceImages(
+        HtmlRenderLayoutRegion region,
+        IElement regionElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        var sourceItems = regionElement.QuerySelectorAll("img")
+            .OfType<IHtmlImageElement>()
+            .Where(image => IsProjectionImageVisible(image, regionElement, styles))
+            .Select(image => new {
+                Image = image,
+                RenderKey = DescribeImageSource(image.GetAttribute(ImageAttribute))
+            })
+            .ToList();
+        var sourceByRenderKey = sourceItems.ToDictionary(
+            item => item.RenderKey, item => item.Image, StringComparer.Ordinal);
+        var ordered = new List<IHtmlImageElement>();
+        var retainedKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((HtmlRenderImage image, double _) in EnumerateImages(
+                     region.Visuals, includeBackgroundImages: false)) {
+            string renderKey = image.Source ?? string.Empty;
+            if (retainedKeys.Add(renderKey)
+                && sourceByRenderKey.TryGetValue(renderKey, out IHtmlImageElement? sourceImage)) {
+                ordered.Add(sourceImage);
+            }
+        }
+
+        // External resources intentionally render as placeholders during the synchronous geometry pass.
+        // Keep their source elements after the renderer-ordered images so the destination's async resolver
+        // can still fetch and embed them. Hidden descendants remain excluded.
+        foreach (var item in sourceItems) {
+            if (retainedKeys.Add(item.RenderKey)) ordered.Add(item.Image);
+        }
+        return ordered.AsReadOnly();
+    }
+
+    private static bool IsProjectionImageVisible(
+        IHtmlImageElement image,
+        IElement regionElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        for (IElement? current = image; current != null; current = current.ParentElement) {
+            if (styles.TryGetValue(current, out HtmlComputedStyle? style)) {
+                string display = style.GetValue("display").Trim();
+                string visibility = style.GetValue("visibility").Trim();
+                if (display.Equals("none", StringComparison.OrdinalIgnoreCase)
+                    || visibility.Equals("hidden", StringComparison.OrdinalIgnoreCase)
+                    || visibility.Equals("collapse", StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+            }
+            if (ReferenceEquals(current, regionElement)) break;
+        }
+        return true;
+    }
 
     private static int TryGetOwningElementNumber(IElement element, IReadOnlyList<IElement> owners) {
         for (int index = 0; index < owners.Count; index++) {
