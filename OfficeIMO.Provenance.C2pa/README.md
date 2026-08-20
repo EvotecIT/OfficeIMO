@@ -12,6 +12,8 @@ Structural inspection, lifecycle policy, claims, Unicode evidence, and carrier r
 
 OfficeIMO does not download, bundle, or auto-discover `c2patool`. Install a supported build from the [official c2pa-rs releases](https://github.com/contentauth/c2pa-rs/releases), then supply either an absolute executable path or a command name already available through your application's controlled `PATH`:
 
+On Unix hosts, the adapter also requires `setsid` so the external tool and any descendants remain in a process group that OfficeIMO can terminate on timeout or disposal. Linux distributions normally provide it through `util-linux`. On macOS, install the Homebrew `util-linux` formula (`brew install util-linux`); the adapter recognizes its standard Apple Silicon and Intel keg paths even when the formula is not linked into `PATH`. If `setsid` is unavailable, verification and signing fail closed without launching `c2patool`.
+
 ```csharp
 using OfficeIMO.Provenance;
 using OfficeIMO.Provenance.C2pa;

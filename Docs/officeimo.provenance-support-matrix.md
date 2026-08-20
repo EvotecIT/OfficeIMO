@@ -67,4 +67,5 @@ For signed Office, OpenDocument, EPUB, or PDF packages, use the owning package's
 - Strict removal preserves duplicate, competing, malformed, unsupported, signed, or structurally shared carriers when a targeted rewrite could discard unrelated data.
 - Resource limits are configurable through `OfficeProvenanceOptions` and `OfficeProvenanceRemovalOptions`; inputs that exceed them are rejected instead of partially inspected.
 - Cryptographic signing and verification currently depend on the external `c2patool` adapter. Core inspection, assessment, lifecycle policy, text integrity, and removal remain dependency-free.
+- Unix process containment requires `setsid` from `util-linux`. The adapter recognizes standard Linux paths and Homebrew's macOS keg paths, and fails closed before launching `c2patool` when a session launcher is unavailable.
 - BMFF/AVIF, audio, and video C2PA carriers are not parsed by OfficeIMO.Core. The signer commits only formats that Core can independently confirm after the installed tool signs them.
