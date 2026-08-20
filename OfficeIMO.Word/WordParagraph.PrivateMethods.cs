@@ -12,10 +12,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         internal OpenXmlElement Location() {
-            int count = 0;
             var parent = this._paragraph.Parent;
 
-            do {
+            while (parent != null) {
                 if (parent is Header
                     or Footer
                     or Document
@@ -25,14 +24,10 @@ namespace OfficeIMO.Word {
                     return parent;
                 }
 
-                if (parent != null) {
-                    parent = parent.Parent;
-                }
+                parent = parent.Parent;
+            }
 
-                count++;
-            } while (count < 10 && parent != null);
-
-            throw new InvalidOperationException("Unable to determine the paragraph's document story within 10 ancestors.");
+            throw new InvalidOperationException("Unable to determine the paragraph's document story.");
         }
 
         /// <summary>

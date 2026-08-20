@@ -1,11 +1,41 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutWordTests {
+    [Fact]
+    public void PositionedRegionRetainsItsForegroundPictureAndEffects() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 3));
+        string html = "<div style='position:absolute;width:180px;height:70px;background-image:url(\"" + image + "\")'>" +
+            "Region picture<img alt='Region marker' src='" + image + "' style='width:24px;height:18px;opacity:.4'></div>";
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionImageOmitted);
+        using var stream = new MemoryStream();
+        result.Value.Save(stream);
+        result.Value.Dispose();
+
+        byte[] bytes = stream.ToArray();
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes),
+            new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+        Assert.Single(reopened.TextBoxes, textBox => textBox.Paragraphs.Any(paragraph =>
+            paragraph.Text.Contains("Region picture", StringComparison.Ordinal)));
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(bytes), false);
+        Assert.Single(package.MainDocumentPart!.ImageParts);
+        using var reader = new StreamReader(package.MainDocumentPart!.GetStream());
+        string documentXml = reader.ReadToEnd();
+        Assert.Contains(":blip", documentXml, StringComparison.Ordinal);
+        Assert.Contains(":alphaModFix amt=\"40000\"", documentXml, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened);
+    }
+
     [Fact]
     public void PositionedAndFloatingRegionsReopenAsEditableWordAnchors() {
         const string html = "<style>" +

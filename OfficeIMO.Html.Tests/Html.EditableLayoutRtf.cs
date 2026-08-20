@@ -1,10 +1,29 @@
 using OfficeIMO.Html;
 using OfficeIMO.Rtf;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutRtfTests {
+    [Fact]
+    public void PositionedRegionRetainsEmbeddedPngPicture() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(4, 3);
+        string image = "data:image/png;base64," + Convert.ToBase64String(png);
+        string html = "<div style='position:absolute;width:180px;height:70px'>Region picture" +
+            "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px'></div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfReadResult reopened = RtfDocument.Read(result.Value.ToRtf());
+
+        RtfParagraph paragraph = Assert.Single(reopened.Document.Paragraphs, item =>
+            item.ToPlainText().Contains("Region picture", StringComparison.Ordinal));
+        RtfImage picture = Assert.Single(paragraph.Inlines.OfType<RtfImage>());
+        Assert.Equal(RtfImageFormat.Png, picture.Format);
+        Assert.Equal(360, picture.DesiredWidthTwips);
+        Assert.Equal(270, picture.DesiredHeightTwips);
+    }
+
     [Fact]
     public void PositionedAndFloatingRegionsReopenAsEditableRtfFrames() {
         const string html = "<style>" +

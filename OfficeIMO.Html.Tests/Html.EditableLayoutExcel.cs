@@ -48,8 +48,11 @@ public sealed class HtmlEditableLayoutExcelTests {
 
     [Fact]
     public void OverlappingRegionsMoveToDistinctNonOverlappingCellAnchors() {
-        const string html = "<div style='position:absolute;left:32px;top:200px;width:240px;height:72px'>First region</div>"
-            + "<div style='position:absolute;left:32px;top:200px;width:240px;height:72px'>Second region</div>";
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;left:32px;top:200px;width:240px;height:72px'>First region" +
+            "<img alt='First picture' src='" + image + "' style='width:12px;height:12px'></div>" +
+            "<div style='position:absolute;left:32px;top:200px;width:240px;height:72px'>Second region" +
+            "<img alt='Second picture' src='" + image + "' style='width:12px;height:12px'></div>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
@@ -61,6 +64,13 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.Equal("Second region", second);
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "B13:E16");
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "B18:E21");
+        ExcelImage[] images = sheet.Images.ToArray();
+        Assert.Equal(2, images.Length);
+        ExcelImage firstImage = images[0];
+        ExcelImage secondImage = images[1];
+        Assert.True(firstImage.TryGetAbsoluteAnchorBounds(out _, out int firstY, out _, out _));
+        Assert.True(secondImage.TryGetAbsoluteAnchorBounds(out _, out int secondY, out _, out _));
+        Assert.True(secondY >= firstY + 80D);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }

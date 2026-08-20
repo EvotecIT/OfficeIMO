@@ -76,6 +76,8 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
     public OfficeColor? BackgroundColor { get; }
     /// <summary>One-based render surface containing this unfragmented region.</summary>
     public int SurfaceNumber { get; internal set; } = 1;
+    /// <summary>One-based generic semantic section that owns this region.</summary>
+    public int SemanticSectionNumber { get; internal set; } = 1;
     /// <summary>Ordered visual children for destination-specific native projection or fidelity fallback.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
@@ -86,6 +88,7 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
             _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)),
             paintOrder, Source, LayoutY + offsetY);
         translated.SurfaceNumber = SurfaceNumber;
+        translated.SemanticSectionNumber = SemanticSectionNumber;
         return translated;
     }
 
@@ -96,6 +99,7 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
             _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)),
             paintOrder, Source, LayoutY);
         translated.SurfaceNumber = SurfaceNumber;
+        translated.SemanticSectionNumber = SemanticSectionNumber;
         return translated;
     }
 }

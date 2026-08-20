@@ -149,6 +149,7 @@ public static partial class HtmlExcelConverterExtensions {
             if (bounds.FirstRow == 0) continue;
             firstRow = bounds.FirstRow;
             lastRow = bounds.LastRow;
+            double rowDisplacementPixels = (firstRow - requestedFirstRow) * 20D;
             if (firstRow != requestedFirstRow) {
                 AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
                     "Excel moved an editable layout region to the next non-overlapping cell anchor.",
@@ -170,7 +171,8 @@ public static partial class HtmlExcelConverterExtensions {
             occupied.Add(bounds);
 
             if (options.ImportImages) {
-                foreach ((HtmlRenderImage Image, double Opacity) image in EnumerateLayoutImages(region.Visuals, 1D)) {
+                foreach ((HtmlRenderImage Image, double Opacity) image in
+                         HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: true)) {
                     if (!ExcelSheet.IsSupportedImageContentType(image.Image.ContentType)) {
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                             "A layout-region image used an unsupported native Excel image type.",
@@ -188,7 +190,7 @@ public static partial class HtmlExcelConverterExtensions {
                     using HtmlImportBudgetReservation imageReservationScope = imageReservation;
                     ExcelImage nativeImage = sheet.AddImageAbsolute(
                         Math.Max(0, (int)Math.Round(image.Image.X)),
-                        Math.Max(0, (int)Math.Round(image.Image.Y)),
+                        Math.Max(0, (int)Math.Round(image.Image.Y + rowDisplacementPixels)),
                         image.Image.Bytes,
                         image.Image.ContentType,
                         Math.Max(1, (int)Math.Round(image.Image.Width)),
@@ -196,6 +198,13 @@ public static partial class HtmlExcelConverterExtensions {
                         altText: image.Image.AlternativeText);
                     if (image.Opacity < 0.999D) {
                         nativeImage.TransparencyPercent = (int)Math.Round((1D - image.Opacity) * 100D);
+                    }
+                    if (image.Image.SourceCrop.HasCrop) {
+                        nativeImage.SetCropRatio(
+                            image.Image.SourceCrop.Left,
+                            image.Image.SourceCrop.Top,
+                            image.Image.SourceCrop.Right,
+                            image.Image.SourceCrop.Bottom);
                     }
                     result.Images++;
                     imageReservation.Commit();
@@ -232,26 +241,6 @@ public static partial class HtmlExcelConverterExtensions {
         internal bool Intersects(EditableLayoutCellBounds other) =>
             FirstRow <= other.LastRow && LastRow >= other.FirstRow
             && FirstColumn <= other.LastColumn && LastColumn >= other.FirstColumn;
-    }
-
-    private static IEnumerable<(HtmlRenderImage Image, double Opacity)> EnumerateLayoutImages(
-        IEnumerable<HtmlRenderVisual> visuals,
-        double opacity) {
-        foreach (HtmlRenderVisual visual in visuals) {
-            if (visual is HtmlRenderImage image) yield return (image, opacity);
-            IEnumerable<HtmlRenderVisual>? children = visual switch {
-                HtmlRenderEffectGroup effect => effect.Visuals,
-                HtmlRenderLayoutRegion region => region.Visuals,
-                HtmlRenderSemanticGroup semantic => semantic.Visuals,
-                HtmlRenderLogicalTextGroup logical => logical.Visuals,
-                HtmlRenderClipGroup clip => clip.Visuals,
-                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
-                _ => null
-            };
-            if (children == null) continue;
-            double childOpacity = visual is HtmlRenderEffectGroup group ? opacity * group.Opacity : opacity;
-            foreach ((HtmlRenderImage Image, double Opacity) child in EnumerateLayoutImages(children, childOpacity)) yield return child;
-        }
     }
 
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>

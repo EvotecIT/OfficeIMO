@@ -42,50 +42,11 @@ public static partial class WordHtmlConverterExtensions {
                 : PrepareWordSourceDocument(editableLayout.RemainingDocument, document, resolved.ConversionReport),
             resolved,
             cancellationToken).ConfigureAwait(false);
-        if (editableLayout?.Regions.Count > 0) AddEditableLayoutRegions(wordDocument, editableLayout.Regions, resolved);
-        return CreateResult(wordDocument, resolved);
-    }
-
-    private static void AddEditableLayoutRegions(
-        WordDocument document,
-        IReadOnlyList<HtmlRenderLayoutRegion> regions,
-        HtmlToWordOptions options) {
-        const double emusPerCssPixel = 9525D;
-        int order = 0;
-        foreach (HtmlRenderLayoutRegion region in regions.OrderBy(item => item.PaintOrder)) {
-            WordImageTextWrapping wrapping = region.RegionKind == HtmlRenderLayoutRegionKind.Floating
-                ? WordImageTextWrapping.Square
-                : region.ZIndex < 0 ? WordImageTextWrapping.BehindText : WordImageTextWrapping.InFrontOfText;
-            WordTextBox textBox = document.AddTextBox(region.SourceText, wrapping);
-            textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-            textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            textBox.HorizontalPositionOffset = checked((int)Math.Round(region.X * emusPerCssPixel));
-            textBox.VerticalPositionOffset = checked((int)Math.Round(region.Y * emusPerCssPixel));
-            textBox.Width = checked((long)Math.Round(region.Width * emusPerCssPixel));
-            textBox.Height = checked((long)Math.Round(region.Height * emusPerCssPixel));
-            textBox.RelativeWidthPercentage = 0;
-            textBox.RelativeHeightPercentage = 0;
-            long zOrder = 251659264L + region.ZIndex * 1024L + order++;
-            zOrder = zOrder < 1L ? 1L : zOrder > uint.MaxValue ? uint.MaxValue : zOrder;
-            textBox.ZOrder = checked((uint)zOrder);
-            if (region.BackgroundColor.HasValue) textBox.FillColorHex = region.BackgroundColor.Value.ToRgbHex();
-            if (region.BackgroundLayerCount > 0) {
-                options.ConversionReport.Add("OfficeIMO.Word.Html",
-                    HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened,
-                    "Word retained the solid editable text-box background; extra CSS background image layers were omitted.",
-                    HtmlDiagnosticSeverity.Warning, region.Source,
-                    "backgroundLayers=" + region.BackgroundLayerCount,
-                    OfficeConversionLossKind.Approximation);
-            }
-            if (region.BoxShadowLayerCount > 0) {
-                options.ConversionReport.Add("OfficeIMO.Word.Html",
-                    HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
-                    "Word retained editable region geometry and content without unsupported CSS box-shadow layers.",
-                    HtmlDiagnosticSeverity.Warning, region.Source,
-                    "shadowLayers=" + region.BoxShadowLayerCount,
-                    OfficeConversionLossKind.Approximation);
-            }
+        if (editableLayout?.Regions.Count > 0) {
+            await converter.AddEditableLayoutRegionsAsync(
+                wordDocument, editableLayout, resolved, cancellationToken).ConfigureAwait(false);
         }
+        return CreateResult(wordDocument, resolved);
     }
 
     private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options) {

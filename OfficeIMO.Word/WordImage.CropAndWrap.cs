@@ -261,9 +261,15 @@ namespace OfficeIMO.Word {
 
                 if (alpha == null) {
                     alpha = new AlphaModulationFixed();
-                    blip.Append(alpha);
                 }
                 alpha.Amount = 100000 - value.Value * 1000;
+                A.BlipExtensionList? extensions = blip.GetFirstChild<A.BlipExtensionList>();
+                if (extensions != null) {
+                    if (alpha.Parent != null) alpha.Remove();
+                    blip.InsertBefore(alpha, extensions);
+                } else if (alpha.Parent == null) {
+                    blip.Append(alpha);
+                }
             }
         }
 

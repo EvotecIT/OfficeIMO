@@ -8,6 +8,19 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutProjectionTests {
     [Fact]
+    public void RequestedPrintMediaUsesPagedRenderLayout() {
+        const string html = "<style>.region{position:absolute;width:100px;height:20px}" +
+            "@media print{.region{width:220px}}</style><div class='region'>Print region</div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html),
+            mediaContext: HtmlCssMediaContext.Print);
+
+        Assert.Equal(HtmlRenderMode.Paged, projection.RenderedDocument.Mode);
+        Assert.InRange(Assert.Single(projection.Regions).Width, 219.9D, 220.1D);
+    }
+
+    [Fact]
     public void PublicVisualKindValuesRemainBackwardCompatible() {
         Assert.Equal(0, (int)HtmlRenderVisualKind.Shape);
         Assert.Equal(8, (int)HtmlRenderVisualKind.SemanticGroup);

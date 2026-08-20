@@ -32,6 +32,8 @@ public static class HtmlEditableLayoutDiagnosticCodes {
     public const string EffectUnsupported = "HtmlEditableLayoutEffectUnsupported";
     /// <summary>A native destination moved or resized a region to preserve existing editable content.</summary>
     public const string PlacementSimplified = "HtmlEditableLayoutPlacementSimplified";
+    /// <summary>A region image could not be retained by the destination's native editable representation.</summary>
+    public const string RegionImageOmitted = "HtmlEditableLayoutRegionImageOmitted";
 }
 
 /// <summary>Shared rendered placement plan consumed by thin native target adapters.</summary>
@@ -40,12 +42,16 @@ public sealed class HtmlEditableLayoutProjection {
         IHtmlDocument remainingDocument,
         HtmlRenderDocument renderedDocument,
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
+        IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages,
         IReadOnlyList<HtmlDiagnostic> diagnostics) {
         RemainingDocument = remainingDocument;
         RenderedDocument = renderedDocument;
         Regions = regions;
+        _sourceImages = sourceImages;
         Diagnostics = diagnostics;
     }
+
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> _sourceImages;
 
     /// <summary>Backend-neutral rendered evidence used to derive native geometry.</summary>
     public HtmlRenderDocument RenderedDocument { get; }
@@ -54,6 +60,10 @@ public sealed class HtmlEditableLayoutProjection {
     /// <summary>Projection diagnostics, including stable fragmentation decisions.</summary>
     public IReadOnlyList<HtmlDiagnostic> Diagnostics { get; }
     internal IHtmlDocument RemainingDocument { get; }
+    internal IReadOnlyList<IHtmlImageElement> GetSourceImages(HtmlRenderLayoutRegion region) =>
+        _sourceImages.TryGetValue(region.SourceKey, out IReadOnlyList<IHtmlImageElement>? images)
+            ? images
+            : Array.Empty<IHtmlImageElement>();
 }
 
 /// <summary>Creates one shared editable-layout plan for DOCX, RTF, XLSX, and PPTX adapters.</summary>
@@ -72,6 +82,8 @@ public static class HtmlEditableLayoutProjector {
         foreach (IElement element in adapterDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
             element.RemoveAttribute(RegionAttribute);
         }
+        IReadOnlyList<HtmlGenericSectionProjection> semanticSections =
+            HtmlGenericDocumentProjector.CreateSections(adapterDocument);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(
             adapterDocument,
             mediaContext,
@@ -87,9 +99,10 @@ public static class HtmlEditableLayoutProjector {
             candidateElements[sourceKey] = element;
         }
 
-        HtmlRenderOptions options = renderOptions?.Clone() ?? new HtmlRenderOptions {
-            Mode = HtmlRenderMode.Continuous
-        };
+        HtmlRenderOptions options = renderOptions?.Clone() ?? new HtmlRenderOptions();
+        options.Mode = mediaContext == HtmlCssMediaContext.Print
+            ? HtmlRenderMode.Paged
+            : HtmlRenderMode.Continuous;
         options.EnableEditableLayoutRegions = true;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options);
         var occurrences = new List<(int Page, HtmlRenderLayoutRegion Region)>();
@@ -118,6 +131,21 @@ public static class HtmlEditableLayoutProjector {
             accepted.Add(selected);
         }
 
+        var sectionOwned = new List<HtmlRenderLayoutRegion>();
+        foreach (HtmlRenderLayoutRegion region in accepted) {
+            IElement element = candidateElements[region.SourceKey];
+            if (!TryGetSemanticSectionNumber(element, semanticSections, out int sectionNumber, out int matchCount)) {
+                diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.RegionFragmented,
+                    "An editable layout region crossed generic semantic section boundaries and remained in semantic flow.",
+                    HtmlDiagnosticSeverity.Warning, region.Source,
+                    "semanticSections=" + matchCount, OfficeConversionLossKind.Approximation);
+                continue;
+            }
+            region.SemanticSectionNumber = sectionNumber;
+            sectionOwned.Add(region);
+        }
+        accepted = sectionOwned;
+
         var preliminaryKeys = new HashSet<string>(accepted.Select(region => region.SourceKey), StringComparer.Ordinal);
         accepted = accepted.Where(region => !HasAcceptedAncestor(
                 candidateElements[region.SourceKey], preliminaryKeys))
@@ -129,12 +157,20 @@ public static class HtmlEditableLayoutProjector {
         }
 
         var acceptedKeys = new HashSet<string>(accepted.Select(region => region.SourceKey), StringComparer.Ordinal);
+        IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages = accepted.ToDictionary(
+            region => region.SourceKey,
+            region => (IReadOnlyList<IHtmlImageElement>)candidateElements[region.SourceKey]
+                .QuerySelectorAll("img")
+                .OfType<IHtmlImageElement>()
+                .ToList()
+                .AsReadOnly(),
+            StringComparer.Ordinal);
         foreach (IElement element in adapterDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
             string? sourceKey = element.GetAttribute(RegionAttribute);
             if (sourceKey != null && acceptedKeys.Contains(sourceKey)) element.Remove();
             else element.RemoveAttribute(RegionAttribute);
         }
-        return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), diagnostics.Diagnostics);
+        return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), sourceImages, diagnostics.Diagnostics);
     }
 
     internal static HtmlSemanticDocument BuildRemainingSemanticDocument(
@@ -154,6 +190,33 @@ public static class HtmlEditableLayoutProjector {
                 && html.IndexOf("float", StringComparison.OrdinalIgnoreCase) >= 0)
             || ((regionKinds & (HtmlEditableLayoutRegionKinds.Flex | HtmlEditableLayoutRegionKinds.Grid)) != 0
                 && html.IndexOf("display", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    internal static IEnumerable<(HtmlRenderImage Image, double Opacity)> EnumerateImages(
+        IEnumerable<HtmlRenderVisual> visuals,
+        bool includeBackgroundImages,
+        double opacity = 1D) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderImage image
+                && (includeBackgroundImages || !IsBackgroundImage(image))) {
+                yield return (image, opacity);
+            }
+            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderEffectGroup effect => effect.Visuals,
+                HtmlRenderLayoutRegion region => region.Visuals,
+                HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                HtmlRenderClipGroup clip => clip.Visuals,
+                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+                _ => null
+            };
+            if (children == null) continue;
+            double childOpacity = visual is HtmlRenderEffectGroup group ? opacity * group.Opacity : opacity;
+            foreach ((HtmlRenderImage Image, double Opacity) child in EnumerateImages(
+                         children, includeBackgroundImages, childOpacity)) {
+                yield return child;
+            }
+        }
     }
 
     private static bool TryGetCandidateKind(
@@ -204,6 +267,28 @@ public static class HtmlEditableLayoutProjector {
         }
         return false;
     }
+
+    private static bool TryGetSemanticSectionNumber(
+        IElement element,
+        IReadOnlyList<HtmlGenericSectionProjection> sections,
+        out int sectionNumber,
+        out int matchCount) {
+        var matches = new List<int>();
+        for (int index = 0; index < sections.Count; index++) {
+            if (sections[index].Blocks.Any(block => ReferenceEquals(block, element)
+                    || block.Contains(element)
+                    || element.Contains(block))) {
+                matches.Add(index + 1);
+            }
+        }
+        if (matches.Count == 0 && sections.Count == 1) matches.Add(1);
+        matchCount = matches.Count;
+        sectionNumber = matches.Count == 1 ? matches[0] : 0;
+        return matches.Count == 1;
+    }
+
+    private static bool IsBackgroundImage(HtmlRenderImage image) =>
+        image.Source?.IndexOf(":background-image", StringComparison.Ordinal) >= 0;
 
     private static IEnumerable<HtmlRenderLayoutRegion> EnumerateRegions(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {

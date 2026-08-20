@@ -34,14 +34,14 @@ public static class HtmlEditableLayoutCapabilityContracts {
             HtmlConversionTarget.Word,
             "bounded positioned and floating regions",
             "page-relative DrawingML text-box anchors with exact offsets, size, wrap, and z-order",
-            "solid fill",
-            "extra background layers and CSS shadows remain editable without those effects and are diagnosed"),
+            "solid fill plus policy-approved inline pictures with native crop and alpha",
+            "extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Rtf,
             "bounded positioned and floating regions",
             "page-anchored RTF paragraph frames with exact offsets, size, and wrap controls",
-            "solid frame background",
-            "background image layers, shadows, and explicit stacking metadata are diagnosed"),
+            "solid frame background plus embedded PNG/JPEG pictures",
+            "background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Excel,
             "bounded positioned, floating, flex, and grid regions",

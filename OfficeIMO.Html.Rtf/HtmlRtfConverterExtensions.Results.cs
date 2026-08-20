@@ -25,7 +25,7 @@ public static partial class HtmlRtfConverterExtensions {
         HtmlNormalizer.SanitizePreparedDocumentStructure(sourceDocument);
         HtmlActiveMediaFilter.Filter(sourceDocument, document.MediaContext);
         RtfDocument rtfDocument = RtfHtmlReader.Read(sourceDocument, resolved);
-        if (editableLayout?.Regions.Count > 0) AddEditableLayoutFrames(rtfDocument, editableLayout.Regions, resolved);
+        if (editableLayout?.Regions.Count > 0) AddEditableLayoutFrames(rtfDocument, editableLayout, resolved);
         return new HtmlToRtfResult(
             rtfDocument,
             document.Diagnostics.Concat(document.ResourceManifest.Diagnostics).Concat(resolved.HtmlDiagnostics),
@@ -54,10 +54,10 @@ public static partial class HtmlRtfConverterExtensions {
 
     private static void AddEditableLayoutFrames(
         RtfDocument document,
-        IReadOnlyList<HtmlRenderLayoutRegion> regions,
+        HtmlEditableLayoutProjection projection,
         HtmlToRtfOptions options) {
         const double twipsPerCssPixel = 15D;
-        foreach (HtmlRenderLayoutRegion region in regions.OrderBy(item => item.PaintOrder)) {
+        foreach (HtmlRenderLayoutRegion region in projection.Regions.OrderBy(item => item.PaintOrder)) {
             RtfParagraph paragraph = document.AddParagraph(region.SourceText);
             paragraph.Frame
                 .SetSize(
@@ -79,6 +79,42 @@ public static partial class HtmlRtfConverterExtensions {
                     region.BackgroundColor.Value.G,
                     region.BackgroundColor.Value.B));
             }
+            IReadOnlyList<AngleSharp.Html.Dom.IHtmlImageElement> sourceImages = projection.GetSourceImages(region);
+            IReadOnlyList<(HtmlRenderImage Image, double Opacity)> renderedImages =
+                HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: false)
+                    .ToList()
+                    .AsReadOnly();
+            for (int imageIndex = 0; imageIndex < sourceImages.Count; imageIndex++) {
+                AngleSharp.Html.Dom.IHtmlImageElement sourceImage = sourceImages[imageIndex];
+                string source = HtmlImageSourceResolver.ResolveImageSource(
+                    sourceImage, options.BaseUri, options.GetResourceUrlPolicy());
+                if (!TryReadRtfRegionImage(source, out RtfImageFormat format, out byte[] bytes, out string detail)) {
+                    options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
+                        HtmlEditableLayoutDiagnosticCodes.RegionImageOmitted,
+                        "A picture inside an editable RTF layout region was omitted.",
+                        HtmlRtfConversionDiagnosticSeverity.Warning,
+                        string.IsNullOrWhiteSpace(source) ? region.Source : source,
+                        detail,
+                        RtfConversionAction.Omitted));
+                    continue;
+                }
+                RtfImage nativeImage = paragraph.AddImage(format, bytes);
+                nativeImage.Description = sourceImage.AlternativeText;
+                if (imageIndex >= renderedImages.Count) continue;
+                (HtmlRenderImage visual, double opacity) = renderedImages[imageIndex];
+                nativeImage.DesiredWidthTwips = checked((int)Math.Round(visual.Width * twipsPerCssPixel));
+                nativeImage.DesiredHeightTwips = checked((int)Math.Round(visual.Height * twipsPerCssPixel));
+                if (opacity < 0.999D || visual.SourceCrop.HasCrop) {
+                    options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
+                        HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
+                        "RTF retained an editable region picture without unsupported CSS alpha or source-crop effects.",
+                        HtmlRtfConversionDiagnosticSeverity.Warning,
+                        visual.Source,
+                        "opacity=" + opacity.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                            + "; crop=" + visual.SourceCrop.HasCrop,
+                        RtfConversionAction.Substituted));
+                }
+            }
             if (region.BackgroundLayerCount > 0) {
                 options.AddDiagnostic(HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened,
                     "RTF retained the solid editable frame background; extra CSS background image layers were omitted.",
@@ -92,6 +128,36 @@ public static partial class HtmlRtfConverterExtensions {
                     action: RtfConversionAction.Substituted);
             }
         }
+    }
+
+    private static bool TryReadRtfRegionImage(
+        string source,
+        out RtfImageFormat format,
+        out byte[] bytes,
+        out string detail) {
+        format = RtfImageFormat.Unknown;
+        bytes = Array.Empty<byte>();
+        detail = string.Empty;
+        if (!HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) || !dataUri.IsBase64) {
+            detail = "RTF layout-region pictures must use an embedded base64 PNG or JPEG data URI.";
+            return false;
+        }
+        if (dataUri.MediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase)) {
+            format = RtfImageFormat.Png;
+        } else if (dataUri.MediaType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
+                   || dataUri.MediaType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)) {
+            format = RtfImageFormat.Jpeg;
+        } else {
+            detail = "The RTF editable frame supports PNG and JPEG picture payloads.";
+            return false;
+        }
+        if (!dataUri.TryDecodeBytes(out bytes) || bytes.Length == 0) {
+            detail = "The embedded layout-region picture payload could not be decoded.";
+            format = RtfImageFormat.Unknown;
+            bytes = Array.Empty<byte>();
+            return false;
+        }
+        return true;
     }
 
     /// <summary>Exports RTF to semantic HTML and returns structured conversion evidence.</summary>

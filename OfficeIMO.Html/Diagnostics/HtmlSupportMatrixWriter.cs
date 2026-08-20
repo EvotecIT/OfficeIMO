@@ -41,7 +41,7 @@ public static class HtmlSupportMatrixWriter {
         builder.AppendLine();
         builder.AppendLine("## Native editable-layout projection");
         builder.AppendLine();
-        builder.AppendLine("The shared projector accepts only bounded single-surface regions. Regions fragmented across pages or columns remain in source flow with `HtmlEditableLayoutRegionFragmented` instead of acquiring ambiguous native geometry. Destination collision avoidance is reported with `HtmlEditableLayoutPlacementSimplified`.");
+        builder.AppendLine("The shared projector accepts only bounded single-surface, single-semantic-section regions. Regions fragmented across pages, columns, or destination sections remain in source flow with `HtmlEditableLayoutRegionFragmented` instead of acquiring ambiguous native geometry. Destination collision avoidance is reported with `HtmlEditableLayoutPlacementSimplified`, and region pictures rejected by policy, format support, or limits use `HtmlEditableLayoutRegionImageOmitted`.");
         builder.AppendLine();
         builder.AppendLine("| Target | Native regions | Native geometry | Paint and picture effects | Diagnostic boundary |");
         builder.AppendLine("| --- | --- | --- | --- | --- |");

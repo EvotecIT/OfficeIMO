@@ -80,7 +80,9 @@ namespace OfficeIMO.Excel {
                     Amount = checked((int)Math.Round((100D - value.Value) * 1000D,
                         MidpointRounding.AwayFromZero))
                 };
-                blip.Append(alpha);
+                A.BlipExtensionList? extensions = blip.GetFirstChild<A.BlipExtensionList>();
+                if (extensions != null) blip.InsertBefore(alpha, extensions);
+                else blip.Append(alpha);
                 Save();
             }
         }
