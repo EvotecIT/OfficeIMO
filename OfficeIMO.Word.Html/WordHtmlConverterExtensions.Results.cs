@@ -32,7 +32,8 @@ public static partial class WordHtmlConverterExtensions {
             ? HtmlEditableLayoutProjector.Project(
                 document,
                 mediaContext: mediaContext,
-                regionKinds: regionKinds)
+                regionKinds: regionKinds,
+                maximumEditableSurfaceNumber: mediaContext == HtmlCssMediaContext.Print ? 0 : 1)
             : null;
         if (editableLayout != null) resolved.ConversionReport.AddRange(editableLayout.Diagnostics);
         var converter = new HtmlToWordConverter();

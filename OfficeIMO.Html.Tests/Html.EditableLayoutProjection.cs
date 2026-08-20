@@ -8,6 +8,37 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutProjectionTests {
     [Fact]
+    public void PositionedFlexAndFloatingGridProduceSingleNativeRegions() {
+        const string html = "<div style='position:absolute;display:flex;width:160px;height:40px'>Positioned flex</div>" +
+            "<div style='float:right;display:grid;width:140px;height:40px'>Floating grid</div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Equal(2, projection.Regions.Count);
+        Assert.Contains(projection.Regions, region => region.RegionKind == HtmlRenderLayoutRegionKind.Positioned);
+        Assert.Contains(projection.Regions, region => region.RegionKind == HtmlRenderLayoutRegionKind.Floating);
+        Assert.DoesNotContain(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionFragmented);
+    }
+
+    [Fact]
+    public void HiddenRegionImagesDoNotEnterNativeSourceAssociation() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(
+            OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;width:160px;height:60px'>" +
+            "<img alt='Hidden' src='" + image + "' style='display:none'>" +
+            "<img alt='Visible' src='" + image + "' style='width:12px;height:12px'></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        HtmlRenderLayoutRegion region = Assert.Single(projection.Regions);
+        AngleSharp.Html.Dom.IHtmlImageElement source = Assert.Single(projection.GetSourceImages(region));
+        Assert.Equal("Visible", source.AlternativeText);
+    }
+
+    [Fact]
     public void RequestedPrintMediaUsesPagedRenderLayout() {
         const string html = "<style>.region{position:absolute;width:100px;height:20px}" +
             "@media print{.region{width:220px}}</style><div class='region'>Print region</div>";

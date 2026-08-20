@@ -78,6 +78,8 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
     public int SurfaceNumber { get; internal set; } = 1;
     /// <summary>One-based generic semantic section that owns this region.</summary>
     public int SemanticSectionNumber { get; internal set; } = 1;
+    /// <summary>One-based owning root semantic table, or zero for narrative content.</summary>
+    public int SemanticTableNumber { get; internal set; }
     /// <summary>Ordered visual children for destination-specific native projection or fidelity fallback.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
@@ -89,6 +91,7 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
             paintOrder, Source, LayoutY + offsetY);
         translated.SurfaceNumber = SurfaceNumber;
         translated.SemanticSectionNumber = SemanticSectionNumber;
+        translated.SemanticTableNumber = SemanticTableNumber;
         return translated;
     }
 
@@ -100,6 +103,7 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
             paintOrder, Source, LayoutY);
         translated.SurfaceNumber = SurfaceNumber;
         translated.SemanticSectionNumber = SemanticSectionNumber;
+        translated.SemanticTableNumber = SemanticTableNumber;
         return translated;
     }
 }

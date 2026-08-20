@@ -5,7 +5,10 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
-        string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
+        string? editableImageKey = element.GetAttribute(HtmlEditableLayoutProjector.ImageAttribute);
+        string sourceDescription = string.IsNullOrWhiteSpace(editableImageKey)
+            ? HtmlRenderStyleResolver.DescribeSource(element)
+            : HtmlEditableLayoutProjector.DescribeImageSource(editableImageKey);
         IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
         string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
         byte[]? bytes = null;

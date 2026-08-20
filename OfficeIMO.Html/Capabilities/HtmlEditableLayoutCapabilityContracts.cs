@@ -35,19 +35,19 @@ public static class HtmlEditableLayoutCapabilityContracts {
             "bounded positioned and floating regions",
             "page-relative DrawingML text-box anchors with exact offsets, size, wrap, and z-order",
             "solid fill plus policy-approved inline pictures with native crop and alpha",
-            "extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
+            "paged print regions stay in semantic flow when page ownership cannot be mapped; extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Rtf,
             "bounded positioned and floating regions",
             "page-anchored RTF paragraph frames with exact offsets, size, and wrap controls",
             "solid frame background plus embedded PNG/JPEG pictures",
-            "background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
+            "paged print regions stay in semantic flow when page ownership cannot be mapped; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Excel,
             "bounded positioned, floating, flex, and grid regions",
             "editable merged-cell regions plus absolute DrawingML picture anchors",
             "cell fills, supported background/image layers, and picture alpha",
-            "cell shadows and unsupported image/effect types are diagnosed"),
+            "worksheet ownership, cell shadows, and unsupported image/effect types are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.PowerPoint,
             "bounded positioned, floating, flex, and grid regions",

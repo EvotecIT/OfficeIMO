@@ -262,7 +262,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         style.Position = "static";
         style.ZIndex = "auto";
-        HtmlRenderFlowBlock block = LayoutElement(request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
+        HtmlRenderFlowBlock block = LayoutElementWithoutEditableRegionMarker(
+            request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
         block = WrapEditableLayoutRegion(block, request.Element, request.Style, HtmlRenderLayoutRegionKind.Positioned);
         int artifactIndex = 0;
         foreach (FlattenedSemanticBoundary boundary in request.FlattenedSemanticBoundaries) {

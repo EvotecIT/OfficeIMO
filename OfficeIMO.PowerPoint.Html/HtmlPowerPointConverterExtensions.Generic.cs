@@ -148,6 +148,10 @@ public static partial class HtmlPowerPointConverterExtensions {
                     continue;
                 }
                 double topOffset = top - requestedTop;
+                PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
+                textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
+                if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
+                else textBox.FillTransparency = 100;
 
                 if (options.ImportPictures) {
                     foreach ((HtmlRenderImage Image, double Opacity) image in
@@ -191,10 +195,6 @@ public static partial class HtmlPowerPointConverterExtensions {
                     }
                 }
 
-                PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
-                textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
-                if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
-                else textBox.FillTransparency = 100;
                 if (region.BoxShadowLayerCount > 0) {
                     textBox.SetShadow("000000", blurPoints: 4D, distancePoints: 2D, angleDegrees: 45D, transparencyPercent: 45);
                     if (region.BoxShadowLayerCount > 1) {

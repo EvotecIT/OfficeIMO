@@ -11,6 +11,7 @@ public sealed class HtmlEditableLayoutRtfTests {
         byte[] png = PdfPngTestImages.CreateRgbPng(4, 3);
         string image = "data:image/png;base64," + Convert.ToBase64String(png);
         string html = "<div style='position:absolute;width:180px;height:70px'>Region picture" +
+            "<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
             "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
@@ -22,6 +23,24 @@ public sealed class HtmlEditableLayoutRtfTests {
         Assert.Equal(RtfImageFormat.Png, picture.Format);
         Assert.Equal(360, picture.DesiredWidthTwips);
         Assert.Equal(270, picture.DesiredHeightTwips);
+    }
+
+    [Fact]
+    public void PrintRegionsStaySemanticWhenRenderedPageOwnershipCannotBeMapped() {
+        const string html = "<div style='position:absolute;width:160px;height:40px'>Print anchor</div>" +
+            "<section style='break-before:page'><p>Later page</p></section>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+            Profile = HtmlConversionProfile.HighFidelityPrint
+        });
+
+        HtmlToRtfResult result = document.ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.Contains("Print anchor", string.Join("\n", result.Value.Paragraphs.Select(
+            paragraph => paragraph.ToPlainText())), StringComparison.Ordinal);
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
 
     [Fact]

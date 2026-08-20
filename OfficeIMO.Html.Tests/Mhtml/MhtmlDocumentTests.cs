@@ -216,37 +216,47 @@ public sealed class MhtmlDocumentTests {
         Assert.Null(offlineResult);
         Assert.Equal(0, offlineCalls);
 
-        var bounded = new HtmlRenderOptions {
-            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
-                new HtmlResolvedResource(new byte[] { 2 }, "image/png", request.Uri, redirectCount: 1))
+        int boundedCalls = 0;
+        var bounded = new HtmlRenderOptions();
+        MhtmlRemoteResourcePolicy boundedPolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);
+        boundedPolicy.ResourceFetcher = (request, cancellationToken) => {
+            boundedCalls++;
+            return Task.FromResult<MhtmlRemoteResourceResponse?>(request.RedirectNumber == 0
+                ? MhtmlRemoteResourceResponse.Redirect(new Uri("/final.png", UriKind.Relative))
+                : new MhtmlRemoteResourceResponse(new byte[] { 2 }, "image/png"));
         };
-        document.ConfigureRenderOptions(bounded, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+        document.ConfigureRenderOptions(bounded, boundedPolicy);
 
         HtmlResolvedResource? accepted = await bounded.ResourceResolver!(
             new HtmlRenderResourceRequest(new Uri("https://example.test/missing.png"), "https://example.test/missing.png", HtmlResourceKind.Image),
             CancellationToken.None);
         Assert.NotNull(accepted);
+        Assert.Equal(2, boundedCalls);
+        Assert.Equal(new Uri("https://example.test/final.png"), accepted!.FinalUri);
+        Assert.Equal(1, accepted.RedirectCount);
 
-        var missingProvenance = new HtmlRenderOptions {
-            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
-                new HtmlResolvedResource(new byte[] { 4 }, "image/png"))
-        };
-        document.ConfigureRenderOptions(missingProvenance, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
-        HtmlResolvedResource? missingProvenanceResult = await missingProvenance.ResourceResolver!(
+        var missingFetcher = new HtmlRenderOptions();
+        document.ConfigureRenderOptions(missingFetcher, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+        HtmlResolvedResource? missingFetcherResult = await missingFetcher.ResourceResolver!(
             new HtmlRenderResourceRequest(new Uri("https://example.test/missing.png"), "https://example.test/missing.png", HtmlResourceKind.Image),
             CancellationToken.None);
-        Assert.Null(missingProvenanceResult);
+        Assert.Null(missingFetcherResult);
 
-        var redirected = new HtmlRenderOptions {
-            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
-                new HtmlResolvedResource(new byte[] { 3 }, "image/png", new Uri("https://other.test/image.png"), redirectCount: 1))
+        int redirectedCalls = 0;
+        var redirected = new HtmlRenderOptions();
+        MhtmlRemoteResourcePolicy redirectedPolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);
+        redirectedPolicy.ResourceFetcher = (request, cancellationToken) => {
+            redirectedCalls++;
+            return Task.FromResult<MhtmlRemoteResourceResponse?>(
+                MhtmlRemoteResourceResponse.Redirect(new Uri("https://other.test/image.png")));
         };
-        document.ConfigureRenderOptions(redirected, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+        document.ConfigureRenderOptions(redirected, redirectedPolicy);
         HtmlResolvedResource? rejected = await redirected.ResourceResolver!(
             new HtmlRenderResourceRequest(new Uri("https://example.test/missing.png"), "https://example.test/missing.png", HtmlResourceKind.Image),
             CancellationToken.None);
 
         Assert.Null(rejected);
+        Assert.Equal(1, redirectedCalls);
     }
 
     [Fact]
@@ -292,20 +302,17 @@ public sealed class MhtmlDocumentTests {
             contentLocation: "https://example.test/page.html");
         int calls = 0;
         var options = new HtmlPdfSaveOptions {
-            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
-            ResourceResolver = (request, cancellationToken) => {
-                calls++;
-                Uri finalUri = request.Uri.AbsolutePath.EndsWith("escaped.png", StringComparison.Ordinal)
-                    ? new Uri("https://other.test/escaped.png")
-                    : request.Uri;
-                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
-                    PdfPngTestImages.CreateRgbPng(2, 2),
-                    "image/png",
-                    finalUri,
-                    redirectCount: 1));
-            }
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         };
-        document.ConfigureRenderOptions(options, MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1));
+        MhtmlRemoteResourcePolicy remotePolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);
+        remotePolicy.ResourceFetcher = (request, cancellationToken) => {
+                calls++;
+                return Task.FromResult<MhtmlRemoteResourceResponse?>(
+                    request.Uri.AbsolutePath.EndsWith("escaped.png", StringComparison.Ordinal)
+                        ? MhtmlRemoteResourceResponse.Redirect(new Uri("https://other.test/escaped.png"))
+                        : new MhtmlRemoteResourceResponse(PdfPngTestImages.CreateRgbPng(2, 2), "image/png"));
+        };
+        document.ConfigureRenderOptions(options, remotePolicy);
 
         PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
 

@@ -93,37 +93,48 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         if (editableLayout?.Regions.Count > 0) {
-            ImportEditableLayoutRegions(editableLayout.Regions, workbook, result, options, budget);
+            ImportEditableLayoutRegions(editableLayout.Regions, workbook, narrativeSheet, tables.Count,
+                result, options, budget);
         }
     }
 
     private static void ImportEditableLayoutRegions(
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
         ExcelDocument workbook,
+        ExcelSheet? narrativeSheet,
+        int semanticTableCount,
         HtmlToExcelResult result,
         HtmlToExcelOptions options,
         HtmlImportBudget budget) {
-        ExcelSheet sheet;
         if (workbook.Sheets.Count == 0) {
-            sheet = workbook.AddWorksheet("Imported");
+            narrativeSheet = workbook.AddWorksheet("Imported");
             result.Sheets++;
-        } else {
-            sheet = workbook.Sheets[0];
-        }
-
-        var occupied = new List<EditableLayoutCellBounds>();
-        if (A1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
-                out int usedLastRow, out int usedLastColumn)) {
-            occupied.Add(new EditableLayoutCellBounds(usedFirstRow, usedFirstColumn, usedLastRow, usedLastColumn));
-        }
-        foreach (var merged in sheet.GetMergedRanges()) {
-            if (A1.TryParseRange(merged.A1Range, out int firstMergedRow, out int firstMergedColumn,
-                    out int lastMergedRow, out int lastMergedColumn)) {
-                occupied.Add(new EditableLayoutCellBounds(firstMergedRow, firstMergedColumn, lastMergedRow, lastMergedColumn));
-            }
         }
 
         foreach (HtmlRenderLayoutRegion region in regions.OrderBy(item => item.PaintOrder)) {
+            ExcelSheet? sheet = region.SemanticTableNumber > 0
+                && region.SemanticTableNumber <= semanticTableCount
+                && region.SemanticTableNumber <= workbook.Sheets.Count
+                ? workbook.Sheets[region.SemanticTableNumber - 1]
+                : region.SemanticTableNumber == 0 ? narrativeSheet : null;
+            if (sheet == null) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "An editable HTML layout region was omitted because its owning worksheet was not created.",
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                    "semanticTable=" + region.SemanticTableNumber + "; worksheets=" + workbook.Sheets.Count);
+                continue;
+            }
+            var occupied = new List<EditableLayoutCellBounds>();
+            if (A1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
+                    out int usedLastRow, out int usedLastColumn)) {
+                occupied.Add(new EditableLayoutCellBounds(usedFirstRow, usedFirstColumn, usedLastRow, usedLastColumn));
+            }
+            foreach (var merged in sheet.GetMergedRanges()) {
+                if (A1.TryParseRange(merged.A1Range, out int firstMergedRow, out int firstMergedColumn,
+                        out int lastMergedRow, out int lastMergedColumn)) {
+                    occupied.Add(new EditableLayoutCellBounds(firstMergedRow, firstMergedColumn, lastMergedRow, lastMergedColumn));
+                }
+            }
             int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(region.X / 64D) + 1));
             int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(region.Y / 20D) + 1));
             int lastColumn = Math.Max(firstColumn, Math.Min(A1.MaxColumns,

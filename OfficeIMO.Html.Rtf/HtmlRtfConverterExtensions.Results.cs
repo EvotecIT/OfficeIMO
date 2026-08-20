@@ -17,7 +17,8 @@ public static partial class HtmlRtfConverterExtensions {
             ? HtmlEditableLayoutProjector.Project(
                 document,
                 mediaContext: document.MediaContext,
-                regionKinds: regionKinds)
+                regionKinds: regionKinds,
+                maximumEditableSurfaceNumber: document.MediaContext == HtmlCssMediaContext.Print ? 0 : 1)
             : null;
         AddEditableLayoutDiagnostics(editableLayout, resolved);
         AngleSharp.Html.Dom.IHtmlDocument sourceDocument = editableLayout?.RemainingDocument

@@ -32,6 +32,12 @@ public sealed class MhtmlRemoteResourcePolicy {
     /// <summary>Maximum redirects a resolver may follow. Defaults to zero.</summary>
     public int MaximumRedirects { get; set; }
 
+    /// <summary>
+    /// Optional one-hop remote fetcher. It must return redirects without following them; OfficeIMO
+    /// validates each next URI before invoking the fetcher again.
+    /// </summary>
+    public MhtmlRemoteResourceFetcher? ResourceFetcher { get; set; }
+
     /// <summary>Additional allowed origins, expressed as absolute HTTP or HTTPS URI strings.</summary>
     public ISet<string> AllowedOrigins => _allowedOrigins;
 
@@ -62,13 +68,6 @@ public sealed class MhtmlRemoteResourcePolicy {
     internal bool AllowsRequest(Uri uri, Uri archiveBaseUri) {
         if (!AllowRemoteResources || !IsRemote(uri)) return false;
         return IsAllowedOrigin(uri, archiveBaseUri);
-    }
-
-    internal bool AllowsResult(Uri archiveBaseUri, HtmlResolvedResource resource) {
-        if (!resource.HasRedirectProvenance || resource.FinalUri == null) return false;
-        if (resource.RedirectCount > MaximumRedirects) return false;
-        Uri finalUri = resource.FinalUri;
-        return IsRemote(finalUri) && IsAllowedOrigin(finalUri, archiveBaseUri);
     }
 
     private bool IsAllowedOrigin(Uri uri, Uri archiveBaseUri) {

@@ -1,12 +1,39 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Tests.Pdf;
 using Xunit;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutPowerPointTests {
+    [Fact]
+    public void OpaqueRegionFillIsPaintedBeforeItsPictures() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;width:140px;height:60px;background:#ff0000'>Region" +
+            "<img src='" + image + "' style='width:12px;height:12px'></div>";
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using var stream = new MemoryStream();
+        result.Value.Save(stream);
+        result.Value.Dispose();
+
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(stream.ToArray()), false);
+        P.ShapeTree tree = package.PresentationPart!.SlideParts.Single().Slide.CommonSlideData!.ShapeTree!;
+        int regionIndex = tree.ChildElements
+            .Select((element, index) => (element, index))
+            .Single(item => item.element is P.Shape shape
+                && shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value?.StartsWith("HTML ", StringComparison.Ordinal) == true)
+            .index;
+        int pictureIndex = tree.ChildElements
+            .Select((element, index) => (element, index))
+            .Single(item => item.element is P.Picture)
+            .index;
+        Assert.True(regionIndex < pictureIndex);
+    }
+
     [Fact]
     public void ProjectedPicturesHonorImportPicturesOption() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));

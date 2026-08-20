@@ -69,21 +69,26 @@ public sealed class HtmlEditableLayoutProjection {
 /// <summary>Creates one shared editable-layout plan for DOCX, RTF, XLSX, and PPTX adapters.</summary>
 public static class HtmlEditableLayoutProjector {
     internal const string RegionAttribute = "data-officeimo-editable-layout-region";
+    internal const string ImageAttribute = "data-officeimo-editable-layout-image";
+    private const string ImageSourcePrefix = "img[officeimo-layout-image=";
 
     /// <summary>Projects bounded positioned, floating, flex, and grid regions through the managed layout engine.</summary>
     public static HtmlEditableLayoutProjection Project(
         HtmlConversionDocument document,
         HtmlRenderOptions? renderOptions = null,
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen,
-        HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All) {
+        HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
+        int? maximumEditableSurfaceNumber = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if ((regionKinds & ~HtmlEditableLayoutRegionKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(regionKinds));
+        if (maximumEditableSurfaceNumber < 0) throw new ArgumentOutOfRangeException(nameof(maximumEditableSurfaceNumber));
         IHtmlDocument adapterDocument = document.CreateSourceDocumentForConversion();
         foreach (IElement element in adapterDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
             element.RemoveAttribute(RegionAttribute);
         }
         IReadOnlyList<HtmlGenericSectionProjection> semanticSections =
             HtmlGenericDocumentProjector.CreateSections(adapterDocument);
+        IReadOnlyList<IElement> semanticTables = HtmlGenericDocumentProjector.SelectRootTables(adapterDocument);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(
             adapterDocument,
             mediaContext,
@@ -97,6 +102,11 @@ public static class HtmlEditableLayoutProjector {
             string sourceKey = (++key).ToString(System.Globalization.CultureInfo.InvariantCulture);
             element.SetAttribute(RegionAttribute, sourceKey);
             candidateElements[sourceKey] = element;
+        }
+        int imageKey = 0;
+        foreach (IElement image in adapterDocument.QuerySelectorAll("img")) {
+            image.SetAttribute(ImageAttribute, (++imageKey).ToString(
+                System.Globalization.CultureInfo.InvariantCulture));
         }
 
         HtmlRenderOptions options = renderOptions?.Clone() ?? new HtmlRenderOptions();
@@ -128,6 +138,15 @@ public static class HtmlEditableLayoutProjector {
                 .Select(item => item.Region)
                 .First();
             selected.SurfaceNumber = group.First().Page;
+            if (maximumEditableSurfaceNumber.HasValue
+                && selected.SurfaceNumber > maximumEditableSurfaceNumber.Value) {
+                diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "An editable layout region stayed in semantic flow because its rendered surface cannot be mapped natively by this destination.",
+                    HtmlDiagnosticSeverity.Warning, selected.Source,
+                    "surface=" + selected.SurfaceNumber + "; maximumEditableSurface=" + maximumEditableSurfaceNumber.Value,
+                    OfficeConversionLossKind.Approximation);
+                continue;
+            }
             accepted.Add(selected);
         }
 
@@ -142,6 +161,8 @@ public static class HtmlEditableLayoutProjector {
                 continue;
             }
             region.SemanticSectionNumber = sectionNumber;
+            region.SemanticTableNumber = TryGetOwningElementNumber(
+                candidateElements[region.SourceKey], semanticTables);
             sectionOwned.Add(region);
         }
         accepted = sectionOwned;
@@ -159,16 +180,30 @@ public static class HtmlEditableLayoutProjector {
         var acceptedKeys = new HashSet<string>(accepted.Select(region => region.SourceKey), StringComparer.Ordinal);
         IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages = accepted.ToDictionary(
             region => region.SourceKey,
-            region => (IReadOnlyList<IHtmlImageElement>)candidateElements[region.SourceKey]
-                .QuerySelectorAll("img")
-                .OfType<IHtmlImageElement>()
-                .ToList()
-                .AsReadOnly(),
+            region => {
+                var renderedSources = new HashSet<string>(
+                    EnumerateImages(region.Visuals, includeBackgroundImages: false)
+                        .Select(item => item.Image.Source ?? string.Empty),
+                    StringComparer.Ordinal);
+                return (IReadOnlyList<IHtmlImageElement>)candidateElements[region.SourceKey]
+                    .QuerySelectorAll("img")
+                    .OfType<IHtmlImageElement>()
+                    .Where(image => renderedSources.Contains(DescribeImageSource(
+                        image.GetAttribute(ImageAttribute))))
+                    .ToList()
+                    .AsReadOnly();
+            },
             StringComparer.Ordinal);
+        foreach (IHtmlImageElement image in sourceImages.Values.SelectMany(images => images)) {
+            image.RemoveAttribute(ImageAttribute);
+        }
         foreach (IElement element in adapterDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
             string? sourceKey = element.GetAttribute(RegionAttribute);
             if (sourceKey != null && acceptedKeys.Contains(sourceKey)) element.Remove();
             else element.RemoveAttribute(RegionAttribute);
+        }
+        foreach (IElement image in adapterDocument.QuerySelectorAll("[" + ImageAttribute + "]").ToArray()) {
+            image.RemoveAttribute(ImageAttribute);
         }
         return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), sourceImages, diagnostics.Diagnostics);
     }
@@ -289,6 +324,16 @@ public static class HtmlEditableLayoutProjector {
 
     private static bool IsBackgroundImage(HtmlRenderImage image) =>
         image.Source?.IndexOf(":background-image", StringComparison.Ordinal) >= 0;
+
+    internal static string DescribeImageSource(string? key) =>
+        ImageSourcePrefix + (key ?? string.Empty) + "]";
+
+    private static int TryGetOwningElementNumber(IElement element, IReadOnlyList<IElement> owners) {
+        for (int index = 0; index < owners.Count; index++) {
+            if (ReferenceEquals(owners[index], element) || owners[index].Contains(element)) return index + 1;
+        }
+        return 0;
+    }
 
     private static IEnumerable<HtmlRenderLayoutRegion> EnumerateRegions(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {

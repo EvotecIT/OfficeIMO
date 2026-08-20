@@ -114,8 +114,8 @@ public sealed class MhtmlDocument {
 
     /// <summary>
     /// Applies the archive base URI, resource-only URL policy, and embedded-resource resolver to render options.
-    /// The hyperlink policy is left unchanged, and an existing resolver remains a policy-checked fallback for
-    /// resources absent from the archive.
+    /// The hyperlink policy is left unchanged. Remote resources absent from the archive are fetched only
+    /// through the policy's one-hop resolver so every redirect destination is approved before it is requested.
     /// </summary>
     public void ConfigureRenderOptions(HtmlRenderOptions options,
         MhtmlRemoteResourcePolicy? remoteResourcePolicy = null) {
@@ -133,17 +133,38 @@ public sealed class MhtmlDocument {
         resourceUrlPolicy.DisallowFileUrls = false;
         options.ResourceUrlPolicy = resourceUrlPolicy;
         HtmlRenderResourceResolver embeddedResolver = CreateResourceResolver();
-        HtmlRenderResourceResolver? fallbackResolver = options.ResourceResolver;
         options.ResourceResolver = async (request, cancellationToken) => {
             HtmlResolvedResource? embedded = await embeddedResolver(request, cancellationToken).ConfigureAwait(false);
-            if (embedded != null || fallbackResolver == null) return embedded;
-            if (!HtmlUrlPolicyEvaluator.IsAllowed(request.Uri.AbsoluteUri, fallbackResourceUrlPolicy)) return null;
-            if (!remoteResourcePolicy.AllowsRequest(request.Uri, BaseUri)) return null;
-            HtmlResolvedResource? fallback = await fallbackResolver(request, cancellationToken).ConfigureAwait(false);
-            return fallback != null && remoteResourcePolicy.AllowsResult(BaseUri, fallback)
-                ? fallback
-                : null;
+            if (embedded != null || remoteResourcePolicy.ResourceFetcher == null) return embedded;
+            return await ResolveRemoteResourceAsync(request, fallbackResourceUrlPolicy,
+                remoteResourcePolicy, cancellationToken).ConfigureAwait(false);
         };
+    }
+
+    private async Task<HtmlResolvedResource?> ResolveRemoteResourceAsync(
+        HtmlRenderResourceRequest request,
+        HtmlUrlPolicy resourceUrlPolicy,
+        MhtmlRemoteResourcePolicy remoteResourcePolicy,
+        CancellationToken cancellationToken) {
+        Uri current = request.Uri;
+        for (int redirectNumber = 0; ; redirectNumber++) {
+            if (!HtmlUrlPolicyEvaluator.IsAllowed(current.AbsoluteUri, resourceUrlPolicy)
+                || !remoteResourcePolicy.AllowsRequest(current, BaseUri)) return null;
+            MhtmlRemoteResourceResponse? response = await remoteResourcePolicy.ResourceFetcher!(
+                new MhtmlRemoteResourceRequest(current, request.Source, request.Kind, redirectNumber),
+                cancellationToken).ConfigureAwait(false);
+            if (response == null) return null;
+            if (response.RedirectLocation == null) {
+                byte[]? bytes = response.EncodedBytes;
+                return bytes == null
+                    ? null
+                    : new HtmlResolvedResource(bytes, response.ContentType, current, redirectNumber);
+            }
+            if (redirectNumber >= remoteResourcePolicy.MaximumRedirects) return null;
+            current = response.RedirectLocation.IsAbsoluteUri
+                ? response.RedirectLocation
+                : new Uri(current, response.RedirectLocation);
+        }
     }
 
     /// <summary>Serializes the archive to deterministic MHTML bytes.</summary>

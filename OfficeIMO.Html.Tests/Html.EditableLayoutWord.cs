@@ -12,7 +12,8 @@ public sealed class HtmlEditableLayoutWordTests {
     public void PositionedRegionRetainsItsForegroundPictureAndEffects() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 3));
         string html = "<div style='position:absolute;width:180px;height:70px;background-image:url(\"" + image + "\")'>" +
-            "Region picture<img alt='Region marker' src='" + image + "' style='width:24px;height:18px;opacity:.4'></div>";
+            "Region picture<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
+            "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px;opacity:.4'></div>";
 
         HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
@@ -34,6 +35,23 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Contains(":alphaModFix amt=\"40000\"", documentXml, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened);
+    }
+
+    [Fact]
+    public void PrintRegionsStaySemanticWhenRenderedPageOwnershipCannotBeMapped() {
+        const string html = "<div style='position:absolute;width:160px;height:40px'>Print anchor</div>" +
+            "<section style='break-before:page'><p>Later page</p></section>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+            Profile = HtmlConversionProfile.HighFidelityPrint
+        });
+
+        HtmlToWordResult result = document.ToWordDocumentResult();
+        using WordDocument word = result.Value;
+
+        Assert.Empty(word.TextBoxes);
+        Assert.NotEmpty(word.Find("Print anchor", StringComparison.Ordinal));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
 
     [Fact]

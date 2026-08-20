@@ -8,6 +8,21 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutExcelTests {
     [Fact]
+    public void RegionsInsideLaterRootTablesUseTheirOwningWorksheets() {
+        const string html = "<table><caption>First</caption><tr><td>One<div style='display:grid;width:140px;height:40px'>First layout</div></td></tr></table>" +
+            "<table><caption>Second</caption><tr><td>Two<div style='display:grid;width:140px;height:40px'>Second layout</div></td></tr></table>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(2, workbook.Sheets.Count);
+        Assert.True(ContainsCellText(workbook.Sheets[0], "First layout"));
+        Assert.False(ContainsCellText(workbook.Sheets[0], "Second layout"));
+        Assert.True(ContainsCellText(workbook.Sheets[1], "Second layout"));
+    }
+
+    [Fact]
     public void PositionedAndGridRegionsReopenAsEditableCellAnchors() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 3));
         string html = "<style>" +
@@ -92,5 +107,15 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.Single(Assert.Single(workbook.Sheets).Images);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    private static bool ContainsCellText(ExcelSheet sheet, string expected) {
+        for (int row = 1; row <= 30; row++) {
+            for (int column = 1; column <= 10; column++) {
+                if (sheet.TryGetCellText(row, column, out string value)
+                    && value.Contains(expected, StringComparison.Ordinal)) return true;
+            }
+        }
+        return false;
     }
 }

@@ -67,9 +67,9 @@ The shared projector accepts only bounded single-surface, single-semantic-sectio
 
 | Target | Native regions | Native geometry | Paint and picture effects | Diagnostic boundary |
 | --- | --- | --- | --- | --- |
-| Word | bounded positioned and floating regions | page-relative DrawingML text-box anchors with exact offsets, size, wrap, and z-order | solid fill plus policy-approved inline pictures with native crop and alpha | extra background layers, CSS shadows, and policy-rejected pictures are diagnosed |
-| Rtf | bounded positioned and floating regions | page-anchored RTF paragraph frames with exact offsets, size, and wrap controls | solid frame background plus embedded PNG/JPEG pictures | background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed |
-| Excel | bounded positioned, floating, flex, and grid regions | editable merged-cell regions plus absolute DrawingML picture anchors | cell fills, supported background/image layers, and picture alpha | cell shadows and unsupported image/effect types are diagnosed |
+| Word | bounded positioned and floating regions | page-relative DrawingML text-box anchors with exact offsets, size, wrap, and z-order | solid fill plus policy-approved inline pictures with native crop and alpha | paged print regions stay in semantic flow when page ownership cannot be mapped; extra background layers, CSS shadows, and policy-rejected pictures are diagnosed |
+| Rtf | bounded positioned and floating regions | page-anchored RTF paragraph frames with exact offsets, size, and wrap controls | solid frame background plus embedded PNG/JPEG pictures | paged print regions stay in semantic flow when page ownership cannot be mapped; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed |
+| Excel | bounded positioned, floating, flex, and grid regions | editable merged-cell regions plus absolute DrawingML picture anchors | cell fills, supported background/image layers, and picture alpha | worksheet ownership, cell shadows, and unsupported image/effect types are diagnosed |
 | PowerPoint | bounded positioned, floating, flex, and grid regions | editable slide text boxes and DrawingML pictures in rendered geometry | solid fills, supported background/image layers, picture alpha, and one native outer shadow | additional shadow layers and unsupported image/effect types are diagnosed |
 
 ## Target semantic capability contracts

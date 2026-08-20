@@ -136,6 +136,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : HtmlRenderLayoutRegionKind.Flex;
     }
 
+    private HtmlRenderFlowBlock LayoutElementWithoutEditableRegionMarker(
+        IElement element,
+        double containingWidth,
+        HtmlRenderBoxStyle style,
+        HtmlRenderBoxStyle parentStyle,
+        int depth) {
+        string? sourceKey = element.GetAttribute(HtmlEditableLayoutProjector.RegionAttribute);
+        if (sourceKey == null) return LayoutElement(element, containingWidth, style, parentStyle, depth);
+        element.RemoveAttribute(HtmlEditableLayoutProjector.RegionAttribute);
+        try {
+            return LayoutElement(element, containingWidth, style, parentStyle, depth);
+        } finally {
+            element.SetAttribute(HtmlEditableLayoutProjector.RegionAttribute, sourceKey);
+        }
+    }
+
     private IReadOnlyList<HtmlRenderFlowBlock> ApplyFlattenedElementSemantics(
         IReadOnlyList<HtmlRenderFlowBlock> blocks,
         FlattenedSemanticBoundary boundary) {
