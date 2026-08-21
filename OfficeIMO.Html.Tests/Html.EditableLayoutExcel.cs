@@ -58,6 +58,23 @@ public sealed class HtmlEditableLayoutExcelTests {
     }
 
     [Fact]
+    public void EmptyNarrativeSheetDoesNotReserveTheA1Sentinel() {
+        const string html = "<table><tr><td>Table value</td></tr></table>"
+            + "<div style='position:absolute;left:-48px;top:-48px;width:32px;height:10px'>Origin</div>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        Assert.Equal(2, workbook.Sheets.Count);
+        ExcelSheet sheet = workbook.Sheets[1];
+
+        Assert.True(sheet.TryGetCellText(1, 1, out string text));
+        Assert.Equal("Origin", text);
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("next non-overlapping cell anchor", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void RegionsInsideLaterRootTablesUseTheirOwningWorksheets() {
         const string html = "<table style='height:800px'><caption>First</caption><tr><td>One<div style='display:grid;width:140px;height:40px'>First layout</div></td></tr></table>" +
             "<table><caption>Second</caption><tr><td>Two<div style='display:grid;width:140px;height:40px'>Second layout</div></td></tr></table>";

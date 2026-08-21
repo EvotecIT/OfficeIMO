@@ -127,6 +127,57 @@ public sealed class HtmlEditableLayoutProjectionTests {
     }
 
     [Fact]
+    public void ClippedAndScrollingRegionsStayInDiagnosedSemanticFlow() {
+        const string html = "<div style='position:absolute;width:80px;height:20px;overflow:hidden'>"
+            + "Visible<span style='position:absolute;left:200px'>Clipped</span></div>"
+            + "<div style='position:absolute;width:80px;height:20px'>"
+            + "Visible<span style='overflow:auto;width:10px;height:10px'>Scrolled</span></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        Assert.Equal(2, projection.Diagnostics.Count(diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.EffectUnsupported
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("overflow", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void NestedPositionedChildrenKeepTheirParentInSemanticFlow() {
+        const string html = "<div style='position:absolute;width:180px;height:50px'>"
+            + "<span style='position:absolute;left:8px;top:4px'>First</span>"
+            + "<span style='position:absolute;left:90px;top:24px'>Second</span></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "nestedLayoutPlacement=true; semanticFlow=true");
+    }
+
+    [Fact]
+    public void BookmarkTargetRegionsAndNestedCandidatesRemainInSemanticFlow() {
+        const string html = "<a href='#target'>Jump</a>"
+            + "<div style='position:absolute;width:180px;height:50px'>"
+            + "<span id='target'>Target</span>"
+            + "<span style='position:absolute;left:90px'>Nested</span></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        string remaining = projection.RemainingDocument.Body!.InnerHtml;
+        Assert.Contains("href=\"#target\"", remaining, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("id=\"target\"", remaining, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "bookmarkTarget=true; semanticFlow=true");
+    }
+
+    [Fact]
     public void RegionTextUsesOnlyRenderedVisibleText() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>Visible" +
             "<span style='display:none'>Hidden display</span>" +
@@ -308,16 +359,16 @@ public sealed class HtmlEditableLayoutProjectionTests {
     }
 
     [Fact]
-    public void NestedCandidateRegionsProjectOnlyTheOwningOuterRegion() {
+    public void NestedCandidateRegionsRemainInDiagnosedSemanticFlow() {
         const string html = "<section style='display:grid;width:260px'><div style='display:flex;width:180px'>Nested editable</div></section>";
 
         HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(HtmlConversionDocument.Parse(html));
 
-        HtmlRenderLayoutRegion region = Assert.Single(projection.Regions);
-        Assert.Equal(HtmlRenderLayoutRegionKind.Grid, region.RegionKind);
-        Assert.Equal("Nested editable", region.SourceText);
-        Assert.Single(projection.Diagnostics, diagnostic =>
-            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
+        Assert.Empty(projection.Regions);
+        Assert.Contains("Nested editable", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "nestedLayoutPlacement=true; semanticFlow=true");
     }
 
     [Fact]

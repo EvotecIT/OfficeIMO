@@ -154,29 +154,42 @@ public static class HtmlEditableLayoutProjector {
             document.Limits);
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
+        var semanticFlowRoots = new List<IElement>();
         var semanticRichCandidates = new List<IElement>();
         var inheritedTypographyCandidates = new List<IElement>();
         var multiChildLayoutKeys = new HashSet<string>(StringComparer.Ordinal);
+        var nestedLayoutPlacementKeys = new HashSet<string>(StringComparer.Ordinal);
+        var bookmarkTargetCandidates = new List<IElement>();
         var effectCandidates = new List<(IElement Element, string Detail)>();
         var mixedInlineImageCandidates = new List<IElement>();
         foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
             if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
                 || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
+            if (semanticFlowRoots.Any(root => root.Contains(element))) continue;
+            if (ContainsBookmarkTarget(element)) {
+                bookmarkTargetCandidates.Add(element);
+                semanticFlowRoots.Add(element);
+                continue;
+            }
             if (TryGetNonNativeRegionEffect(element, styles, out string effectDetail)) {
                 effectCandidates.Add((element, effectDetail));
+                semanticFlowRoots.Add(element);
                 continue;
             }
             if (preserveMixedInlineContent && ContainsMixedInlineImageContent(element, styles)) {
                 mixedInlineImageCandidates.Add(element);
+                semanticFlowRoots.Add(element);
                 continue;
             }
             if (HasInheritedRichTextStyle(element, styles)) {
                 inheritedTypographyCandidates.Add(element);
+                semanticFlowRoots.Add(element);
                 continue;
             }
             if (ContainsSemanticRichContent(element, styles)) {
                 semanticRichCandidates.Add(element);
+                semanticFlowRoots.Add(element);
                 continue;
             }
             string sourceKey = (++key).ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -185,6 +198,9 @@ public static class HtmlEditableLayoutProjector {
             if (IsFlexOrGridDisplay(style)
                 && HasMultipleVisibleLayoutChildren(element, styles)) {
                 multiChildLayoutKeys.Add(sourceKey);
+            }
+            if (ContainsNestedLayoutPlacement(element, styles)) {
+                nestedLayoutPlacementKeys.Add(sourceKey);
             }
         }
         int imageKey = 0;
@@ -207,6 +223,12 @@ public static class HtmlEditableLayoutProjector {
         }
 
         var diagnostics = new HtmlDiagnosticReport();
+        foreach (IElement element in bookmarkTargetCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "An editable layout region stayed in semantic flow so its bookmark target would remain addressable.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "bookmarkTarget=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
+        }
         foreach (IElement element in semanticRichCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
                 "An editable layout region stayed in semantic flow so rich document content would not be flattened.",
@@ -271,6 +293,14 @@ public static class HtmlEditableLayoutProjector {
                     OfficeConversionLossKind.Approximation);
                 continue;
             }
+            if (nestedLayoutPlacementKeys.Contains(selected.SourceKey)) {
+                diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "An editable layout region stayed in semantic flow because flattening its nested layout placement would lose child geometry.",
+                    HtmlDiagnosticSeverity.Warning, selected.Source,
+                    "nestedLayoutPlacement=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
+                continue;
+            }
+            if (HasAcceptedAncestor(candidateElements[selected.SourceKey], nestedLayoutPlacementKeys)) continue;
             if (multiChildLayoutKeys.Contains(selected.SourceKey)) {
                 diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
                     "A flex or grid editable layout region stayed in semantic flow because its child placement cannot be represented by one native text container.",
@@ -569,6 +599,12 @@ public static class HtmlEditableLayoutProjector {
         });
     }
 
+    private static bool ContainsBookmarkTarget(IElement element) {
+        if (!string.IsNullOrWhiteSpace(element.GetAttribute("id"))) return true;
+        return element.QuerySelectorAll("[id]").Any(target =>
+            !string.IsNullOrWhiteSpace(target.GetAttribute("id")));
+    }
+
     private static bool ContainsMixedInlineImageContent(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
@@ -601,6 +637,26 @@ public static class HtmlEditableLayoutProjector {
             || display.Equals("inline-flex", StringComparison.OrdinalIgnoreCase)
             || display.Equals("grid", StringComparison.OrdinalIgnoreCase)
             || display.Equals("inline-grid", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool ContainsNestedLayoutPlacement(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        return element.QuerySelectorAll("*").Any(child =>
+            child is not IHtmlImageElement
+            && IsProjectionElementVisible(child, element, styles)
+            && styles.TryGetValue(child, out HtmlComputedStyle? childStyle)
+            && HasLayoutPlacementStyle(childStyle));
+    }
+
+    private static bool HasLayoutPlacementStyle(HtmlComputedStyle style) {
+        string position = style.GetValue("position").Trim();
+        string floatSide = style.GetValue("float").Trim();
+        return position.Equals("absolute", StringComparison.OrdinalIgnoreCase)
+            || position.Equals("fixed", StringComparison.OrdinalIgnoreCase)
+            || floatSide.Equals("left", StringComparison.OrdinalIgnoreCase)
+            || floatSide.Equals("right", StringComparison.OrdinalIgnoreCase)
+            || IsFlexOrGridDisplay(style);
     }
 
     private static void AppendInlineContentOrder(
@@ -651,6 +707,9 @@ public static class HtmlEditableLayoutProjector {
         AddNonDefaultEffect(style, "clip-path", "none", effects, prefix);
         AddNonDefaultEffect(style, "filter", "none", effects, prefix);
         AddNonDefaultEffect(style, "mix-blend-mode", "normal", effects, prefix);
+        AddNonDefaultEffect(style, "overflow", "visible", effects, prefix);
+        AddNonDefaultEffect(style, "overflow-x", "visible", effects, prefix);
+        AddNonDefaultEffect(style, "overflow-y", "visible", effects, prefix);
     }
 
     private static void AddNonDefaultEffect(

@@ -134,7 +134,8 @@ public static partial class HtmlExcelConverterExtensions {
                 continue;
             }
             var occupied = new List<EditableLayoutCellBounds>();
-            if (A1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
+            if (sheet.EnumerateCells().Any()
+                && A1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
                     out int usedLastRow, out int usedLastColumn)) {
                 occupied.Add(new EditableLayoutCellBounds(usedFirstRow, usedFirstColumn, usedLastRow, usedLastColumn));
             }
