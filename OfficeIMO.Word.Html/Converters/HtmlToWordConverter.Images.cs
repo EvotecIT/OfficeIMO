@@ -842,15 +842,20 @@ namespace OfficeIMO.Word.Html {
         private async Task PrefetchRemoteImagesAsync(
             IHtmlDocument document,
             HtmlToWordOptions options,
+            CancellationToken cancellationToken) =>
+            await PrefetchRemoteImagesAsync(
+                document.QuerySelectorAll("img").OfType<IHtmlImageElement>(),
+                options,
+                cancellationToken).ConfigureAwait(false);
+
+        private async Task PrefetchRemoteImagesAsync(
+            IEnumerable<IHtmlImageElement> images,
+            HtmlToWordOptions options,
             CancellationToken cancellationToken) {
             var sources = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (IElement element in document.QuerySelectorAll("img")) {
+            foreach (IHtmlImageElement image in images) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!(element is IHtmlImageElement image)) {
-                    continue;
-                }
-
                 int remoteCandidateProbeCount = 0;
                 foreach (string candidate in EnumerateWordImageSourceCandidates(image, options)) {
                     string resolved = ResolveImageSourcePath(candidate, image, options);

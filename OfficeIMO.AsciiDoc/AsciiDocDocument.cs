@@ -11,11 +11,13 @@ public sealed partial class AsciiDocDocument {
         AsciiDocSourceText source,
         AsciiDocSyntaxTree syntaxTree,
         IReadOnlyList<AsciiDocBlock> blocks,
-        IReadOnlyList<AsciiDocDiagnostic> diagnostics) {
+        IReadOnlyList<AsciiDocDiagnostic> diagnostics,
+        AsciiDocDocumentProfile profile) {
         Source = source;
         SyntaxTree = syntaxTree;
         _blocks = blocks;
         _diagnostics = diagnostics;
+        Profile = profile;
     }
 
     /// <summary>Original source text and line mapping.</summary>
@@ -23,6 +25,9 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Lossless syntax tree.</summary>
     public AsciiDocSyntaxTree SyntaxTree { get; }
+
+    /// <summary>Selected bounded document profile.</summary>
+    public AsciiDocDocumentProfile Profile { get; }
 
     /// <summary>Typed top-level source blocks, including trivia and comments.</summary>
     public IReadOnlyList<AsciiDocBlock> Blocks => _blocks;

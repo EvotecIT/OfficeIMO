@@ -22,6 +22,16 @@ public sealed class LatexParseOptions {
         "verbatim", "verbatim*", "Verbatim", "lstlisting", "minted", "comment"
     };
 
+    /// <summary>Creates bounded parsing options for the requested named profile.</summary>
+    public static LatexParseOptions CreateProfile(LatexDocumentProfile profile) =>
+        profile switch {
+            LatexDocumentProfile.OfficeIMO => new LatexParseOptions(),
+            LatexDocumentProfile.PreserveOnly => new LatexParseOptions {
+                Profile = LatexDocumentProfile.PreserveOnly
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown LaTeX document profile.")
+        };
+
     /// <summary>Semantic profile. Defaults to OfficeIMO.</summary>
     public LatexDocumentProfile Profile { get; set; } = LatexDocumentProfile.OfficeIMO;
     /// <summary>Maximum input characters.</summary>
@@ -53,4 +63,15 @@ public sealed class LatexParseOptions {
 
     /// <summary>Maximum tokens consumed across one explicit safe macro expansion.</summary>
     public int MaximumExpansionTokenCount { get; set; } = 2_000_000;
+
+    internal void ValidateNamedModes() {
+        if (Profile != LatexDocumentProfile.OfficeIMO && Profile != LatexDocumentProfile.PreserveOnly) {
+            throw new ArgumentOutOfRangeException(nameof(Profile), Profile, "Unknown LaTeX document profile.");
+        }
+        if (MacroExpansion != LatexMacroExpansion.None
+            && MacroExpansion != LatexMacroExpansion.SafeSimpleDefinitions) {
+            throw new ArgumentOutOfRangeException(nameof(MacroExpansion), MacroExpansion,
+                "Unknown LaTeX macro expansion mode.");
+        }
+    }
 }

@@ -4,6 +4,19 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlReader {
+    internal static void ValidateDomLimits(IHtmlDocument htmlDocument, HtmlToRtfOptions options) {
+        HtmlDomLimitTracker? limits = HtmlDomLimitTracker.Create(options.MaxHtmlNodes, options.MaxHtmlDepth);
+        if (limits == null) return;
+        try {
+            ValidateNode(
+                HtmlDocumentParser.GetConversionRoot(htmlDocument, useBodyContentsOnly: false),
+                limits,
+                depth: 0);
+        } catch (HtmlDomLimitException exception) {
+            ThrowLimitExceeded(options, exception);
+        }
+    }
+
     private static void ReadDom(IHtmlDocument htmlDocument, HtmlToRtfOptions options, RtfDocument document) {
         Uri? effectiveBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(htmlDocument, options.BaseUri);
         var context = new ReadContext(document, options, effectiveBaseUri);
@@ -15,6 +28,25 @@ internal static partial class RtfHtmlReader {
         }
 
         context.TrimEmptyTrailingParagraph();
+    }
+
+    private static void ValidateNode(INode node, HtmlDomLimitTracker limits, int depth) {
+        if (node is IText) {
+            limits.RecordNode();
+            return;
+        }
+
+        if (node is IElement) {
+            limits.RecordElementStart(depth + 1);
+            foreach (INode child in node.ChildNodes) {
+                ValidateNode(child, limits, depth + 1);
+            }
+            return;
+        }
+
+        foreach (INode child in node.ChildNodes) {
+            ValidateNode(child, limits, depth);
+        }
     }
 
     private static void TraverseNode(INode node, ReadContext context, HtmlDomLimitTracker? limits, int depth) {

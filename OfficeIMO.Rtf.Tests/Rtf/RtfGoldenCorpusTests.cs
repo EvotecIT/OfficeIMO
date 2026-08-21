@@ -109,6 +109,8 @@ public class RtfGoldenCorpusTests {
         Dictionary<string, ExternalArtifact> externalArtifacts = manifest.ExternalArtifacts.ToDictionary(item => item.Id, StringComparer.Ordinal);
 
         Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Microsoft Word" && item.Status == "verified");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Microsoft WordPad" && item.Status == "verified-external");
+        Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Microsoft Outlook" && item.Status == "verified-generated");
         Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "Google Docs" && item.Status == "verified-external");
         Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "macOS TextEdit" && item.Status == "verified-external");
         Assert.Contains(manifest.ProducerCoverage, item => item.Producer == "EHR workflow" && item.Status == "verified-external");

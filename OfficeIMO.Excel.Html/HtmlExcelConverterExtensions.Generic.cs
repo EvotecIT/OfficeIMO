@@ -8,12 +8,15 @@ public static partial class HtmlExcelConverterExtensions {
         ExcelDocument workbook,
         HtmlToExcelResult result,
         HtmlToExcelOptions options,
-        HtmlImportBudget budget) {
-        IReadOnlyList<HtmlSemanticBlock> tables = document.RootTables
-            .Where(table => table.Table?.Rows.Any(row => row.Cells.Count > 0) == true)
+        HtmlImportBudget budget,
+        HtmlEditableLayoutProjection? editableLayout) {
+        IReadOnlyList<(int Number, HtmlSemanticBlock Block)> tables = document.RootTables
+            .Select((table, index) => (Number: index + 1, Block: table))
+            .Where(item => item.Block.Table?.Rows.Any(row => row.Cells.Count > 0) == true)
             .ToList()
             .AsReadOnly();
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var tableSheets = new Dictionary<int, ExcelSheet>();
         if (tables.Count > 0) {
             for (int index = 0; index < tables.Count; index++) {
                 if (!budget.TryReserveSemanticContainerWithTable(out string tableContainerLimit)) {
@@ -23,11 +26,14 @@ public static partial class HtmlExcelConverterExtensions {
                     break;
                 }
 
-                string title = tables[index].Table?.Caption ?? "Table " + (index + 1);
+                HtmlSemanticBlock table = tables[index].Block;
+                int semanticTableNumber = tables[index].Number;
+                string title = table.Table?.Caption ?? "Table " + semanticTableNumber;
                 ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(title, usedNames));
+                tableSheets[semanticTableNumber] = sheet;
                 result.Sheets++;
                 ImportTableGrid(
-                    tables[index].SourceElement,
+                    table.SourceElement,
                     sheet,
                     result,
                     options,
@@ -36,7 +42,7 @@ public static partial class HtmlExcelConverterExtensions {
                     1,
                     importedFormulaCells: null,
                     useSemanticValues: false);
-                ApplySemanticTableFormatting(tables[index].Table, sheet, result, budget, 1, 1);
+                ApplySemanticTableFormatting(table.Table, sheet, result, budget, 1, 1);
             }
         }
 
@@ -90,7 +96,263 @@ public static partial class HtmlExcelConverterExtensions {
             }
             ImportGenericImages(document, imageSheet, result, budget, ref imageRow);
         }
+
+        if (editableLayout?.Regions.Count > 0) {
+            ImportEditableLayoutRegions(editableLayout.Regions, workbook, narrativeSheet, tableSheets, usedNames,
+                result, options, budget);
+        }
     }
+
+    private static void ImportEditableLayoutRegions(
+        IReadOnlyList<HtmlRenderLayoutRegion> regions,
+        ExcelDocument workbook,
+        ExcelSheet? narrativeSheet,
+        IReadOnlyDictionary<int, ExcelSheet> tableSheets,
+        HashSet<string> usedNames,
+        HtmlToExcelResult result,
+        HtmlToExcelOptions options,
+        HtmlImportBudget budget) {
+        if (narrativeSheet == null && regions.Any(region => region.SemanticTableNumber == 0)) {
+            if (budget.TryReserveSemanticContainer(out string narrativeContainerLimit)) {
+                narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
+                result.Sheets++;
+            } else {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "Table-unowned editable HTML layout regions were omitted because their narrative worksheet could not be created.",
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission,
+                    detail: narrativeContainerLimit);
+            }
+        }
+
+        foreach (HtmlRenderLayoutRegion region in regions.OrderBy(item => item.PaintOrder)) {
+            ExcelSheet? sheet = region.SemanticTableNumber > 0
+                && tableSheets.TryGetValue(region.SemanticTableNumber, out ExcelSheet? tableSheet)
+                ? tableSheet
+                : region.SemanticTableNumber == 0 ? narrativeSheet : null;
+            if (sheet == null) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "An editable HTML layout region was omitted because its owning worksheet was not created.",
+                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                    "semanticTable=" + region.SemanticTableNumber + "; worksheets=" + workbook.Sheets.Count);
+                continue;
+            }
+            var occupied = new List<EditableLayoutCellBounds>();
+            if (sheet.EnumerateCells().Any()
+                && A1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
+                    out int usedLastRow, out int usedLastColumn)) {
+                occupied.Add(new EditableLayoutCellBounds(usedFirstRow, usedFirstColumn, usedLastRow, usedLastColumn));
+            }
+            foreach (var merged in sheet.GetMergedRanges()) {
+                if (A1.TryParseRange(merged.A1Range, out int firstMergedRow, out int firstMergedColumn,
+                        out int lastMergedRow, out int lastMergedColumn)) {
+                    occupied.Add(new EditableLayoutCellBounds(firstMergedRow, firstMergedColumn, lastMergedRow, lastMergedColumn));
+                }
+            }
+            foreach (ExcelImage image in sheet.Images) {
+                occupied.Add(GetImageCellBounds(image));
+            }
+            double maximumGeometry = Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
+            double localRegionX = NormalizeEditableLayoutGeometry(
+                region.X - region.SemanticTableOriginX, 0D, -maximumGeometry, maximumGeometry,
+                budget, result, "editable layout region left");
+            double localRegionY = NormalizeEditableLayoutGeometry(
+                region.Y - region.SemanticTableOriginY, 0D, -maximumGeometry, maximumGeometry,
+                budget, result, "editable layout region top");
+            double regionWidth = NormalizeEditableLayoutGeometry(
+                region.Width, maximumGeometry, 1D, maximumGeometry,
+                budget, result, "editable layout region width");
+            double regionHeight = NormalizeEditableLayoutGeometry(
+                region.Height, maximumGeometry, 1D, maximumGeometry,
+                budget, result, "editable layout region height");
+            if (localRegionX < 0D || localRegionY < 0D) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "Excel clamped a negative editable layout coordinate to the first worksheet row or column.",
+                    lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                    detail: "requestedX=" + localRegionX.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; requestedY=" + localRegionY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; minimumRow=1; minimumColumn=1");
+            }
+            int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(localRegionX / 64D) + 1));
+            int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(localRegionY / 20D) + 1));
+            int lastColumn = Math.Max(firstColumn, Math.Min(A1.MaxColumns,
+                firstColumn + Math.Max(1, (int)Math.Min(A1.MaxColumns, Math.Ceiling(regionWidth / 64D))) - 1));
+            int lastRow = Math.Max(firstRow, Math.Min(A1.MaxRows,
+                firstRow + Math.Max(1, (int)Math.Min(A1.MaxRows, Math.Ceiling(regionHeight / 20D))) - 1));
+            int requestedFirstRow = firstRow;
+            var bounds = new EditableLayoutCellBounds(firstRow, firstColumn, lastRow, lastColumn);
+            while (occupied.Any(existing => existing.Intersects(bounds))) {
+                int rowSpan = bounds.LastRow - bounds.FirstRow;
+                int nextRow = occupied.Where(existing => existing.Intersects(bounds))
+                    .Max(existing => existing.LastRow) + 2;
+                if (nextRow > A1.MaxRows || rowSpan > A1.MaxRows - nextRow) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An editable HTML layout region was omitted because no non-overlapping native cell anchor remained.",
+                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                        "MaxRows=" + A1.MaxRows);
+                    bounds = default;
+                    break;
+                }
+                bounds = new EditableLayoutCellBounds(nextRow, firstColumn, nextRow + rowSpan, lastColumn);
+            }
+            if (bounds.FirstRow == 0) continue;
+            firstRow = bounds.FirstRow;
+            lastRow = bounds.LastRow;
+            double rowDisplacementPixels = (firstRow - requestedFirstRow) * 20D;
+            if (firstRow != requestedFirstRow) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "Excel moved an editable layout region to the next non-overlapping cell anchor.",
+                    lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                    detail: "requestedRow=" + requestedFirstRow + "; actualRow=" + firstRow);
+            }
+            if (!TrySetCellTextValue(sheet, firstRow, firstColumn, region.SourceText, result, budget)) {
+                continue;
+            }
+            ExcelCell cell = sheet.CellAt(firstRow, firstColumn);
+            sheet.CellWrapText(firstRow, firstColumn);
+            if (region.BackgroundColor.HasValue) cell.SetFillColor(region.BackgroundColor.Value.ToRgbHex());
+            if (lastRow > firstRow || lastColumn > firstColumn) {
+                string range = BuildCellReference(firstRow, firstColumn) + ":" + BuildCellReference(lastRow, lastColumn);
+                sheet.MergeRange(range);
+                result.MergedRanges++;
+            }
+            result.Cells++;
+            occupied.Add(bounds);
+
+            if (options.ImportImages) {
+                foreach (HtmlEditableLayoutPicture image in
+                         HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: false)) {
+                    if (!ExcelSheet.IsSupportedImageContentType(image.ContentType)) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                            "A layout-region image used an unsupported native Excel image type.",
+                            lossKind: OfficeConversionLossKind.Omission, source: image.Source,
+                            detail: "mediaType=" + image.ContentType);
+                        continue;
+                    }
+                    if (!budget.TryReserveImageWithShape(image.Bytes.LongLength,
+                            out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                            "A layout-region image was omitted because the shared image or drawing limit was reached.",
+                            lossKind: OfficeConversionLossKind.Omission, source: image.Source, detail: imageLimit);
+                        continue;
+                    }
+                    using HtmlImportBudgetReservation imageReservationScope = imageReservation;
+                    double imageLeft = NormalizeEditableLayoutGeometry(
+                        image.X - region.SemanticTableOriginX, 0D, 0D, maximumGeometry,
+                        budget, result, "editable layout picture left");
+                    double imageTop = NormalizeEditableLayoutGeometry(
+                        image.Y - region.SemanticTableOriginY + rowDisplacementPixels,
+                        0D, 0D, maximumGeometry,
+                        budget, result, "editable layout picture top");
+                    double imageWidth = NormalizeEditableLayoutGeometry(
+                        image.Width, maximumGeometry, 1D, maximumGeometry,
+                        budget, result, "editable layout picture width");
+                    double imageHeight = NormalizeEditableLayoutGeometry(
+                        image.Height, maximumGeometry, 1D, maximumGeometry,
+                        budget, result, "editable layout picture height");
+                    ExcelImage nativeImage = sheet.AddImageAbsolute(
+                        (int)Math.Round(imageLeft),
+                        (int)Math.Round(imageTop),
+                        image.Bytes,
+                        image.ContentType,
+                        (int)Math.Round(imageWidth),
+                        (int)Math.Round(imageHeight),
+                        altText: image.AlternativeText);
+                    if (image.Opacity < 0.999D) {
+                        nativeImage.TransparencyPercent = (int)Math.Round((1D - image.Opacity) * 100D);
+                    }
+                    if (image.SourceCrop.HasCrop) {
+                        nativeImage.SetCropRatio(
+                            image.SourceCrop.Left,
+                            image.SourceCrop.Top,
+                            image.SourceCrop.Right,
+                            image.SourceCrop.Bottom);
+                    }
+                    result.Images++;
+                    imageReservation.Commit();
+                }
+            }
+            if (region.BackgroundLayerCount > 0) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened,
+                    "Excel omitted region background-image drawings so they could not cover editable cell text; the solid region background remains an editable cell fill.",
+                    HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation, source: region.Source,
+                    detail: "backgroundLayers=" + region.BackgroundLayerCount + "; backgroundPictures=omitted");
+            }
+            if (region.BoxShadowLayerCount > 0) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
+                    "Excel cells do not have a native editable CSS box-shadow equivalent; the region geometry and content were retained.",
+                    lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                    detail: "shadowLayers=" + region.BoxShadowLayerCount);
+            }
+        }
+    }
+
+    private static double NormalizeEditableLayoutGeometry(
+        double value,
+        double fallback,
+        double minimum,
+        double maximum,
+        HtmlImportBudget budget,
+        HtmlToExcelResult result,
+        string source) {
+        if (budget.TryNormalizeRange(value, fallback, minimum, maximum, out double normalized)) return normalized;
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+            "Invalid or out-of-range " + source + " metadata used its safe fallback.",
+            lossKind: OfficeConversionLossKind.Approximation, source: source,
+            detail: "MaxAbsoluteGeometry=" + maximum.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return normalized;
+    }
+
+    private readonly struct EditableLayoutCellBounds {
+        internal EditableLayoutCellBounds(int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            FirstRow = firstRow;
+            FirstColumn = firstColumn;
+            LastRow = lastRow;
+            LastColumn = lastColumn;
+        }
+
+        internal int FirstRow { get; }
+        internal int FirstColumn { get; }
+        internal int LastRow { get; }
+        internal int LastColumn { get; }
+
+        internal bool Intersects(EditableLayoutCellBounds other) =>
+            FirstRow <= other.LastRow && LastRow >= other.FirstRow
+            && FirstColumn <= other.LastColumn && LastColumn >= other.FirstColumn;
+    }
+
+    private static EditableLayoutCellBounds GetImageCellBounds(ExcelImage image) {
+        if (image.TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels,
+                out int widthPixels, out int heightPixels)) {
+            int firstColumn = PixelToColumn(xPixels);
+            int firstRow = PixelToRow(yPixels);
+            int lastColumn = PixelToColumn((long)xPixels + Math.Max(1, widthPixels) - 1L);
+            int lastRow = PixelToRow((long)yPixels + Math.Max(1, heightPixels) - 1L);
+            return new EditableLayoutCellBounds(firstRow, firstColumn,
+                Math.Max(firstRow, lastRow), Math.Max(firstColumn, lastColumn));
+        }
+
+        int anchorRow = Math.Max(1, Math.Min(A1.MaxRows, image.RowIndex));
+        int anchorColumn = Math.Max(1, Math.Min(A1.MaxColumns, image.ColumnIndex));
+        if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
+            return new EditableLayoutCellBounds(anchorRow, anchorColumn,
+                Math.Max(anchorRow, Math.Min(A1.MaxRows, image.ToRowIndex.Value)),
+                Math.Max(anchorColumn, Math.Min(A1.MaxColumns, image.ToColumnIndex.Value)));
+        }
+
+        int columnSpan = Math.Max(1, (int)Math.Ceiling(
+            (Math.Max(0, image.OffsetXPixels) + Math.Max(1, image.WidthPixels)) / 64D));
+        int rowSpan = Math.Max(1, (int)Math.Ceiling(
+            (Math.Max(0, image.OffsetYPixels) + Math.Max(1, image.HeightPixels)) / 20D));
+        return new EditableLayoutCellBounds(anchorRow, anchorColumn,
+            Math.Min(A1.MaxRows, anchorRow + rowSpan - 1),
+            Math.Min(A1.MaxColumns, anchorColumn + columnSpan - 1));
+    }
+
+    private static int PixelToColumn(long pixels) =>
+        Math.Max(1, Math.Min(A1.MaxColumns, (int)(Math.Max(0L, pixels) / 64L) + 1));
+
+    private static int PixelToRow(long pixels) =>
+        Math.Max(1, Math.Min(A1.MaxRows, (int)(Math.Max(0L, pixels) / 20L) + 1));
 
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph

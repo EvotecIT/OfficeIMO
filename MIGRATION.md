@@ -9,7 +9,13 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: editable HTML layout projection defaults
+
+HTML imports to Word and RTF now project bounded positioned, floating, flex, or grid regions into destination-native editable geometry by default when that destination supports the region. Excel and PowerPoint apply the same projection on their ordinary-HTML `Auto` and `Generic` import paths; their default `Semantic` modes remain strict round-trip paths and do not project ordinary HTML. Older ordinary-HTML imports kept the same content only in semantic flow. Applications that require the previous flow-only output can set `ImportEditableLayoutRegions = false` on the applicable `HtmlToWordOptions`, `HtmlToRtfOptions`, `HtmlToExcelOptions`, or `HtmlToPowerPointOptions`. Regions that cannot be represented safely or natively continue in semantic flow or produce stable simplification and omission diagnostics.
+
 ## OfficeIMO 3.2: bounded object-table and MHTML ingestion defaults
+
+Remote MHTML fallback now uses `MhtmlRemoteResourcePolicy.ResourceFetcher`, whose callback returns one `MhtmlRemoteResourceResponse` without automatically following redirects. Move remote MHTML network logic out of `HtmlRenderOptions.ResourceResolver`, disable automatic redirect handling in the application fetcher, and return `MhtmlRemoteResourceResponse.Redirect(location)` for each redirect. OfficeIMO validates every hop before the next request. Embedded `cid:` and `Content-Location` resolution is unchanged.
 
 Direct `ObjectFlattener.Flatten`, `GetPaths`, and `ResolvePaths` calls and object-backed Excel and PowerPoint tables now default to at most 16,384 projected columns. Object tables additionally default to at most 1,000,000 cells, including the header row. Set `ObjectFlattenerOptions.MaxColumns` or `MaxCells` explicitly when a trusted workflow needs a different application-level limit. Excel output remains constrained by worksheet dimensions. The object and explicit-binding `PowerPointSlide.AddTable` overloads apply stricter format-safety ceilings of 1,024 columns and 100,000 cells; split larger trusted datasets into multiple tables.
 

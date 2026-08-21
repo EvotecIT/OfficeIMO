@@ -1,11 +1,12 @@
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
-using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 using DrawingHorizontalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment;
 using DrawingVerticalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalAlignment;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 using V = DocumentFormat.OpenXml.Vml;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -419,6 +420,38 @@ namespace OfficeIMO.Word {
                 }
 
                 EnsureAnchorExtent(anchor, cx: 0L, cy: value).Cy = value;
+            }
+        }
+
+        /// <summary>Gets or sets the DrawingML text-box fill color as a six-digit RGB value.</summary>
+        public string FillColorHex {
+            get {
+                A.RgbColorModelHex? rgb = DrawingShapeProperties?
+                    .GetFirstChild<A.SolidFill>()?
+                    .GetFirstChild<A.RgbColorModelHex>();
+                return rgb?.Val?.Value?.TrimStart('#').ToUpperInvariant() ?? string.Empty;
+            }
+            set {
+                string normalized = Helpers.NormalizeSixDigitRgb(value, nameof(value));
+                ShapeProperties? properties = DrawingShapeProperties;
+                if (properties == null) return;
+                properties.RemoveAllChildren<A.NoFill>();
+                properties.RemoveAllChildren<A.SolidFill>();
+                properties.RemoveAllChildren<A.GradientFill>();
+                properties.RemoveAllChildren<A.BlipFill>();
+                properties.RemoveAllChildren<A.PatternFill>();
+                properties.RemoveAllChildren<A.GroupFill>();
+                var fill = new A.SolidFill();
+                WordDrawingFillOrdering.InsertAfterGeometryOrBeforeFormatting(properties, fill);
+                fill.Append(new A.RgbColorModelHex { Val = normalized });
+            }
+        }
+
+        /// <summary>Gets or sets the native DrawingML anchor stacking order.</summary>
+        public uint ZOrder {
+            get => _anchor?.RelativeHeight?.Value ?? 0U;
+            set {
+                if (_anchor != null) _anchor.RelativeHeight = value;
             }
         }
 

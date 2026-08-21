@@ -1,6 +1,40 @@
 namespace OfficeIMO.Latex.Tests;
 
 public sealed class LatexProfileRegressionTests {
+    [Theory]
+    [InlineData(LatexDocumentProfile.OfficeIMO, true)]
+    [InlineData(LatexDocumentProfile.PreserveOnly, false)]
+    public void NamedProfilesAreExplicitBoundedAndLossless(LatexDocumentProfile profile, bool recognized) {
+        const string source = "\\documentclass{article}\n\\begin{document}\n\\section{Profile} $x^2$ \\cite{source}\n\\end{document}\n";
+
+        LatexDocument document = LatexDocument.Parse(source, LatexParseOptions.CreateProfile(profile)).Document;
+
+        Assert.Equal(profile, document.Profile);
+        Assert.Equal(recognized, document.IsRecognizedProfile);
+        Assert.Equal(source, document.ToLatex());
+        Assert.Equal(LatexMacroExpansion.None, LatexParseOptions.CreateProfile(profile).MacroExpansion);
+    }
+
+    [Fact]
+    public void UnknownNamedProfileIsRejected() {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LatexParseOptions.CreateProfile((LatexDocumentProfile)999));
+    }
+
+    [Fact]
+    public void DirectParseRejectsUnknownNamedProfile() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.Parse(
+            "\\begin{document}Profile\\end{document}",
+            new LatexParseOptions { Profile = (LatexDocumentProfile)999 }));
+    }
+
+    [Fact]
+    public void DirectParseRejectsUnknownMacroExpansionMode() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.Parse(
+            "\\begin{document}Macro\\end{document}",
+            new LatexParseOptions { MacroExpansion = (LatexMacroExpansion)999 }));
+    }
+
     [Fact]
     public void PreserveOnly_RetainsStructuralModelWithoutOfficeProfileSemantics() {
         const string source =

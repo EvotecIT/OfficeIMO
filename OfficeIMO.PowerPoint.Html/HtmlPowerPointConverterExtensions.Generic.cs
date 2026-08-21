@@ -10,7 +10,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointPresentation presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
-        HtmlImportBudget budget) {
+        HtmlImportBudget budget,
+        HtmlEditableLayoutProjection? editableLayout) {
         foreach (HtmlSemanticSection section in document.Sections) {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -54,6 +55,338 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
             }
         }
+
+        if (editableLayout?.Regions.Count > 0) {
+            ImportEditableLayoutRegions(editableLayout.Regions, presentation, options, result, budget);
+        }
+    }
+
+    private static void ImportEditableLayoutRegions(
+        IReadOnlyList<HtmlRenderLayoutRegion> regions,
+        PptCore.PowerPointPresentation presentation,
+        HtmlToPowerPointOptions options,
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget) {
+        if (presentation.Slides.Count == 0) {
+            presentation.AddSlide();
+            result.Slides++;
+        }
+
+        foreach (IGrouping<int, HtmlRenderLayoutRegion> sectionGroup in regions
+                     .GroupBy(region => region.SemanticSectionNumber)
+                     .OrderBy(group => group.Key)) {
+            int slideIndex = sectionGroup.Key - 1;
+            if (slideIndex < 0 || slideIndex >= presentation.Slides.Count) {
+                foreach (HtmlRenderLayoutRegion region in sectionGroup) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An editable HTML layout region was omitted because its owning semantic slide was not created.",
+                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                        "semanticSection=" + sectionGroup.Key + "; slides=" + presentation.Slides.Count);
+                }
+                continue;
+            }
+
+            PptCore.PowerPointSlide slide = presentation.Slides[slideIndex];
+            int semanticShapeCount = slide.Shapes.Count;
+            var negativeRegionShapes = new List<PptCore.PowerPointShape>();
+            double maximumGeometry = budget.Limits.MaxAbsoluteGeometry;
+            IReadOnlyList<HtmlRenderLayoutRegion> orderedRegions = sectionGroup
+                .OrderBy(item => item.PaintOrder)
+                .ToList();
+            var shapeReservations = new Dictionary<HtmlRenderLayoutRegion, HtmlImportBudgetReservation>();
+            var shapeReservationFailures = new Dictionary<HtmlRenderLayoutRegion, string>();
+            foreach (HtmlRenderLayoutRegion region in orderedRegions) {
+                if (!budget.IsMetadataWithinLimit(region.SourceText, out _)) continue;
+                if (budget.TryReserveShape(out HtmlImportBudgetReservation reservation, out string detail)) {
+                    shapeReservations[region] = reservation;
+                } else {
+                    shapeReservationFailures[region] = detail;
+                }
+            }
+            var occupied = slide.TextBoxes
+                .Select(box => new EditableLayoutSlideBounds(box.LeftPoints, box.TopPoints, box.WidthPoints, box.HeightPoints))
+                .Concat(slide.Pictures.Select(picture => new EditableLayoutSlideBounds(
+                    picture.LeftPoints, picture.TopPoints, picture.WidthPoints, picture.HeightPoints)))
+                .Concat(slide.Tables.Select(table => new EditableLayoutSlideBounds(
+                    table.LeftPoints, table.TopPoints, table.WidthPoints, table.HeightPoints)))
+                .Concat(sectionGroup.Where(region =>
+                        region.RegionKind == HtmlRenderLayoutRegionKind.Positioned
+                        && shapeReservations.ContainsKey(region))
+                    .Select(region => CreateBoundedCollisionBounds(region, maximumGeometry)))
+                .ToList();
+
+            for (int regionIndex = 0; regionIndex < orderedRegions.Count; regionIndex++) {
+                HtmlRenderLayoutRegion region = orderedRegions[regionIndex];
+                if (!budget.IsMetadataWithinLimit(region.SourceText, out string metadataLimit)) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An editable HTML layout region was omitted because its text exceeded the shared metadata limit.",
+                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source, metadataLimit);
+                    continue;
+                }
+                if (!shapeReservations.TryGetValue(region, out HtmlImportBudgetReservation? shapeReservation)) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An editable HTML layout region was omitted because the native shape limit was reached.",
+                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                        shapeReservationFailures.TryGetValue(region, out string? shapeLimit)
+                            ? shapeLimit
+                            : nameof(HtmlImportLimits.MaxShapes));
+                    continue;
+                }
+                using HtmlImportBudgetReservation reservedShape = shapeReservation!;
+                double localRegionX = region.X - region.SemanticSectionOriginX;
+                double localRegionY = region.Y - region.SemanticSectionOriginY;
+                double left = NormalizeGeometry(localRegionX * 0.75D, 0D, -maximumGeometry,
+                    budget, result, "editable layout region left");
+                double top = NormalizeGeometry(localRegionY * 0.75D, 0D, -maximumGeometry,
+                    budget, result, "editable layout region top");
+                double width = NormalizeGeometry(region.Width * 0.75D, 1D, 1D,
+                    budget, result, "editable layout region width");
+                double height = NormalizeGeometry(region.Height * 0.75D, 1D, 1D,
+                    budget, result, "editable layout region height");
+                double requestedTop = top;
+                var bounds = new EditableLayoutSlideBounds(left, top, width, height);
+                bool placementAvailable = true;
+                if (region.RegionKind != HtmlRenderLayoutRegionKind.Positioned) {
+                    while (occupied.Any(existing => existing.Intersects(bounds))) {
+                        double nextTop = occupied.Where(existing => existing.Intersects(bounds))
+                            .Max(existing => existing.Bottom) + 8D;
+                        if (nextTop > maximumGeometry) {
+                            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                                "An editable HTML layout region was omitted because no bounded non-overlapping slide position remained.",
+                                HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                                "MaxAbsoluteGeometry=" + maximumGeometry.ToString(
+                                    System.Globalization.CultureInfo.InvariantCulture));
+                            placementAvailable = false;
+                            break;
+                        }
+                        top = nextTop;
+                        bounds = new EditableLayoutSlideBounds(left, top, width, height);
+                    }
+                    if (placementAvailable && Math.Abs(top - requestedTop) > 0.01D) {
+                        AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                            "PowerPoint moved an in-flow editable layout region below existing native slide content.",
+                            lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                            detail: "requestedTop=" + requestedTop.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
+                                + "; actualTop=" + top.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+                    }
+                }
+                if (!placementAvailable) {
+                    shapeReservation.Dispose();
+                    shapeReservations.Remove(region);
+                    RetryShapeReservationsAfterRollback(
+                        orderedRegions,
+                        regionIndex + 1,
+                        shapeReservations,
+                        shapeReservationFailures,
+                        budget,
+                        occupied,
+                        maximumGeometry);
+                    continue;
+                }
+                double topOffset = top - requestedTop;
+                var nativeRegionShapes = new List<PptCore.PowerPointShape>();
+                bool hasBackgroundPicture = options.ImportPictures
+                    && region.BackgroundColor.HasValue
+                    && HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: true)
+                        .Any(item => item.IsBackground);
+                bool importBackgroundPictures = options.ImportPictures;
+                HtmlImportBudgetReservation? backgroundFillReservation = null;
+                if (hasBackgroundPicture) {
+                    if (budget.TryReserveShape(out HtmlImportBudgetReservation reservation, out string fillLimit)) {
+                        backgroundFillReservation = reservation;
+                    } else {
+                        importBackgroundPictures = false;
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                            "PowerPoint omitted editable background pictures because the separate native backing fill exceeded the shape limit.",
+                            lossKind: OfficeConversionLossKind.Omission, source: region.Source, detail: fillLimit);
+                    }
+                }
+
+                using HtmlImportBudgetReservation? backgroundFillReservationScope = backgroundFillReservation;
+                if (backgroundFillReservation != null) {
+                    PptCore.PowerPointAutoShape backingFill = slide.AddRectanglePoints(
+                        left, top, width, height, "HTML background " + region.SourceKey);
+                    backingFill.FillColor = region.BackgroundColor!.Value.ToRgbHex();
+                    backgroundFillReservation.Commit();
+                    nativeRegionShapes.Add(backingFill);
+                }
+                int retainedBackgroundPictures = 0;
+                if (importBackgroundPictures) {
+                    retainedBackgroundPictures = AddEditableLayoutPictures(slide, region, backgroundImages: true,
+                        left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
+                }
+                PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
+                reservedShape.Commit();
+                nativeRegionShapes.Add(textBox);
+                textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
+                if (backgroundFillReservation != null) textBox.FillTransparency = 100;
+                else if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
+                else textBox.FillTransparency = 100;
+
+                if (options.ImportPictures) {
+                    AddEditableLayoutPictures(slide, region, backgroundImages: false,
+                        left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
+                }
+
+                if (region.BoxShadowLayerCount > 0) {
+                    textBox.SetShadow("000000", blurPoints: 4D, distancePoints: 2D, angleDegrees: 45D, transparencyPercent: 45);
+                    AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
+                        region.BoxShadowLayerCount > 1
+                            ? "PowerPoint approximated the first editable CSS shadow and omitted additional shadow layers."
+                            : "PowerPoint approximated the editable CSS shadow with one native outer shadow.",
+                        lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                        detail: "shadowLayers=" + region.BoxShadowLayerCount
+                            + "; nativeShadowParameters=approximated");
+                }
+                if (region.BackgroundLayerCount > 0) {
+                    int omittedBackgroundLayers = Math.Max(0, region.BackgroundLayerCount - retainedBackgroundPictures);
+                    string backgroundLayerMessage = omittedBackgroundLayers == 0
+                        ? "PowerPoint retained supported background images as native pictures and used the editable text-box fill for the region background."
+                        : retainedBackgroundPictures > 0
+                            ? "PowerPoint retained supported background images as native pictures but omitted other background layers without a native editable representation."
+                            : "PowerPoint omitted background layers without a native editable representation.";
+                    AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened,
+                        backgroundLayerMessage,
+                        omittedBackgroundLayers > 0 ? HtmlDiagnosticSeverity.Warning : HtmlDiagnosticSeverity.Info,
+                        omittedBackgroundLayers > 0 ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.None,
+                        region.Source,
+                        "backgroundLayers=" + region.BackgroundLayerCount
+                            + "; retainedNativePictures=" + retainedBackgroundPictures
+                            + "; omittedLayers=" + omittedBackgroundLayers);
+                }
+                if (region.ZIndex < 0) {
+                    negativeRegionShapes.AddRange(nativeRegionShapes);
+                } else if (semanticShapeCount > 0) {
+                    AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                        "PowerPoint appended an editable layout region above semantic slide content because exact mixed-flow stacking has no native mapping.",
+                        lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                        detail: "stacking=appended-after-semantic-content; zIndex=" + region.ZIndex
+                            + "; paintOrder=" + region.PaintOrder);
+                }
+                result.TextBoxes++;
+                occupied.Add(bounds);
+            }
+            for (int shapeIndex = negativeRegionShapes.Count - 1; shapeIndex >= 0; shapeIndex--) {
+                slide.SendToBack(negativeRegionShapes[shapeIndex]);
+            }
+        }
+    }
+
+    private static void RetryShapeReservationsAfterRollback(
+        IReadOnlyList<HtmlRenderLayoutRegion> orderedRegions,
+        int startIndex,
+        IDictionary<HtmlRenderLayoutRegion, HtmlImportBudgetReservation> reservations,
+        IDictionary<HtmlRenderLayoutRegion, string> failures,
+        HtmlImportBudget budget,
+        ICollection<EditableLayoutSlideBounds> occupied,
+        double maximumGeometry) {
+        for (int index = startIndex; index < orderedRegions.Count; index++) {
+            HtmlRenderLayoutRegion candidate = orderedRegions[index];
+            if (reservations.ContainsKey(candidate)
+                || !budget.IsMetadataWithinLimit(candidate.SourceText, out _)) {
+                continue;
+            }
+            if (!budget.TryReserveShape(out HtmlImportBudgetReservation reservation, out string detail)) {
+                failures[candidate] = detail;
+                continue;
+            }
+            reservations[candidate] = reservation;
+            failures.Remove(candidate);
+            if (candidate.RegionKind == HtmlRenderLayoutRegionKind.Positioned) {
+                occupied.Add(CreateBoundedCollisionBounds(candidate, maximumGeometry));
+            }
+            return;
+        }
+    }
+
+    private static int AddEditableLayoutPictures(
+        PptCore.PowerPointSlide slide,
+        HtmlRenderLayoutRegion region,
+        bool backgroundImages,
+        double left,
+        double top,
+        double topOffset,
+        double maximumGeometry,
+        HtmlImportBudget budget,
+        HtmlToPowerPointResult result,
+        ICollection<PptCore.PowerPointShape> nativeRegionShapes) {
+        int retainedPictures = 0;
+        foreach (HtmlEditableLayoutPicture image in
+                 HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: true)
+                     .Where(item => item.IsBackground == backgroundImages)) {
+            if (!TryGetImagePartType(image.ContentType, out OfficeImageFormat imageType)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                    "A layout-region picture used an unsupported native PowerPoint image type.",
+                    lossKind: OfficeConversionLossKind.Omission, source: image.Source);
+                continue;
+            }
+            if (!budget.TryReserveImageWithShape(image.Bytes.LongLength,
+                    out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "A layout-region picture was omitted because the shared image or shape limit was reached.",
+                    lossKind: OfficeConversionLossKind.Omission, source: image.Source, detail: imageLimit);
+                continue;
+            }
+            using HtmlImportBudgetReservation imageReservationScope = imageReservation;
+            double pictureLeft = NormalizeGeometry(
+                (image.X - region.SemanticSectionOriginX) * 0.75D, left, -maximumGeometry,
+                budget, result, "editable layout picture left");
+            double pictureTop = NormalizeGeometry(
+                (image.Y - region.SemanticSectionOriginY) * 0.75D + topOffset, top, -maximumGeometry,
+                budget, result, "editable layout picture top");
+            double pictureWidth = NormalizeGeometry(image.Width * 0.75D, 1D, 1D,
+                budget, result, "editable layout picture width");
+            double pictureHeight = NormalizeGeometry(image.Height * 0.75D, 1D, 1D,
+                budget, result, "editable layout picture height");
+            using var stream = new MemoryStream(image.Bytes);
+            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
+                pictureLeft, pictureTop, pictureWidth, pictureHeight);
+            nativeRegionShapes.Add(picture);
+            if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.AltText = image.AlternativeText;
+            if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
+            if (image.SourceCrop.HasCrop) {
+                picture.Crop(
+                    image.SourceCrop.Left * 100D,
+                    image.SourceCrop.Top * 100D,
+                    image.SourceCrop.Right * 100D,
+                    image.SourceCrop.Bottom * 100D);
+            }
+            result.Pictures++;
+            imageReservation.Commit();
+            retainedPictures++;
+        }
+        return retainedPictures;
+    }
+
+    private static EditableLayoutSlideBounds CreateBoundedCollisionBounds(
+        HtmlRenderLayoutRegion region,
+        double maximumGeometry) {
+        double left = Math.Max(-maximumGeometry, Math.Min(maximumGeometry,
+            (region.X - region.SemanticSectionOriginX) * 0.75D));
+        double top = Math.Max(-maximumGeometry, Math.Min(maximumGeometry,
+            (region.Y - region.SemanticSectionOriginY) * 0.75D));
+        double width = Math.Max(1D, Math.Min(maximumGeometry, region.Width * 0.75D));
+        double height = Math.Max(1D, Math.Min(maximumGeometry, region.Height * 0.75D));
+        return new EditableLayoutSlideBounds(left, top, width, height);
+    }
+
+    private readonly struct EditableLayoutSlideBounds {
+        internal EditableLayoutSlideBounds(double left, double top, double width, double height) {
+            Left = left;
+            Top = top;
+            Width = width;
+            Height = height;
+        }
+
+        internal double Left { get; }
+        internal double Top { get; }
+        internal double Width { get; }
+        internal double Height { get; }
+        internal double Right => Left + Width;
+        internal double Bottom => Top + Height;
+
+        internal bool Intersects(EditableLayoutSlideBounds other) =>
+            Left < other.Right && Right > other.Left && Top < other.Bottom && Bottom > other.Top;
     }
 
     private static IEnumerable<HtmlSemanticResource> EnumerateInlineResources(HtmlSemanticBlock block) {

@@ -165,6 +165,7 @@ public sealed class HtmlRenderDocument {
             ? pathClipGroup.Visuals
         : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
         : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals
+        : visual is HtmlRenderLayoutRegion layoutRegion ? layoutRegion.Visuals
         : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals
         : visual is HtmlRenderFormField formField ? formField.Visuals : null;
 

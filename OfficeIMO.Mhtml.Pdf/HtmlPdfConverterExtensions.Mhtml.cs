@@ -131,13 +131,35 @@ public static class MhtmlPdfConverterExtensions {
     private static HtmlPdfSaveOptions PrepareMhtmlOptions(MhtmlDocument document, HtmlPdfSaveOptions? options) {
         HtmlPdfSaveOptions operation = options?.ClonePdf() ?? new HtmlPdfSaveOptions();
         operation.BaseUri ??= document.BaseUri;
-        operation.EmbeddedPackageResourceResolver = document.CreateResourceResolver();
-        if (!operation.ResourcePolicy.AllowEmbeddedPackageResources) return operation;
+        bool allowEmbeddedResources = operation.ResourcePolicy.AllowEmbeddedPackageResources;
+        operation.EmbeddedPackageResourceResolver = allowEmbeddedResources
+            ? document.CreateResourceResolver()
+            : null;
         operation.EmbeddedPackageHostResourceUrlPolicy = operation.GetResourceUrlPolicy().Clone();
         HtmlRenderResourceResolver? hostResolver = operation.ResourceResolver;
+        bool ownsHostResolver = document.TryReconfigureOwnedResourceResolver(
+            hostResolver,
+            allowEmbeddedResources,
+            out HtmlRenderResourceResolver? configuredHostResolver);
+        bool preserveHostResolver = hostResolver != null
+            && (!operation.ResourcePolicy.AllowRemoteResourceResolution
+                || ownsHostResolver);
+        if (!allowEmbeddedResources) {
+            operation.ResourceResolver = preserveHostResolver
+                ? configuredHostResolver ?? hostResolver
+                : RejectResourceAsync;
+            return operation;
+        }
         document.ConfigureRenderOptions(operation);
-        operation.ResourceResolver = hostResolver;
+        if (preserveHostResolver) operation.ResourceResolver = configuredHostResolver ?? hostResolver;
         return operation;
+    }
+
+    private static Task<HtmlResolvedResource?> RejectResourceAsync(
+        HtmlRenderResourceRequest request,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<HtmlResolvedResource?>(null);
     }
 
     private static PdfCore.PdfDocumentConversionResult AddMhtmlDiagnostics(PdfCore.PdfDocumentConversionResult result, MhtmlDocument document) =>

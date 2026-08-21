@@ -4,6 +4,7 @@ using OfficeIMO.Word;
 using Xunit;
 using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
 using Color = OfficeIMO.Drawing.OfficeColor;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     /// <summary>
@@ -443,6 +444,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, textBox.RelativeWidthPercentage);
             document.Save();
             Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
+        }
+
+        [Fact]
+        public void TextBoxSolidFillReplacesEveryAlternateDrawingFill() {
+            using WordDocument document = WordDocument.Create();
+            WordTextBox textBox = document.AddTextBox("Fill choice");
+            DocumentFormat.OpenXml.Office2010.Word.DrawingShape.ShapeProperties properties =
+                Assert.IsType<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.ShapeProperties>(
+                    textBox.DrawingShapeProperties);
+            properties.Append(new A.GradientFill());
+            properties.Append(new A.PatternFill());
+
+            textBox.FillColorHex = "ABCDEF";
+
+            Assert.Equal("ABCDEF", textBox.FillColorHex);
+            Assert.Single(properties.Elements<A.SolidFill>());
+            Assert.Empty(properties.Elements<A.NoFill>());
+            Assert.Empty(properties.Elements<A.GradientFill>());
+            Assert.Empty(properties.Elements<A.BlipFill>());
+            Assert.Empty(properties.Elements<A.PatternFill>());
+            Assert.Empty(properties.Elements<A.GroupFill>());
         }
 
 

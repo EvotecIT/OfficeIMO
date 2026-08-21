@@ -8,10 +8,11 @@ public static class AsciiDocProcessor {
         options ??= new AsciiDocProcessorOptions();
         ValidateOptions(options);
 
-        AsciiDocDocument sourceDocument = AsciiDocDocument.Parse(source).Document;
+        AsciiDocParseOptions parseOptions = AsciiDocParseOptions.CreateProfile(options.Profile);
+        AsciiDocDocument sourceDocument = AsciiDocDocument.Parse(source, parseOptions).Document;
         var state = new PreprocessorState(options);
         string processed = state.ProcessSource(source, options.SourceName, 0);
-        AsciiDocDocument document = AsciiDocDocument.Parse(processed).Document;
+        AsciiDocDocument document = AsciiDocDocument.Parse(processed, parseOptions).Document;
         return new AsciiDocProcessingResult(sourceDocument, document, processed, state.Attributes, state.Diagnostics);
     }
 

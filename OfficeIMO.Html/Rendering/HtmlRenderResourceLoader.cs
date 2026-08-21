@@ -7,6 +7,8 @@ namespace OfficeIMO.Html;
 /// caching, budgets, timeouts, cancellation evidence, canonical identities, and content digests.
 /// </summary>
 public sealed class HtmlResourceSession {
+    private int _resolverRequestCount;
+    private readonly object _diagnosticSync = new object();
     private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -99,7 +101,7 @@ public sealed class HtmlResourceSession {
     public int AcceptedResourceCount { get; private set; }
 
     /// <summary>Number of resolver requests reserved by the session.</summary>
-    public int ResolverRequestCount { get; private set; }
+    public int ResolverRequestCount => Volatile.Read(ref _resolverRequestCount);
 
     /// <summary>Resolves a manifest synchronously using the configured synchronous package resolver, when present.</summary>
     public static HtmlResourceSession Resolve(
@@ -135,33 +137,75 @@ public sealed class HtmlResourceSession {
     internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
         AcceptedResourceBytes += resource.Length;
         AcceptedResourceCount++;
+        string canonicalSource = GetCanonicalSource(reference, resource);
+        AddAliases(reference, canonicalSource, resource);
+        _entries.Add(CreateEntry(reference.Kind, reference.Source, canonicalSource, resource));
+    }
+
+    private void AddAliases(
+        HtmlResourceReference reference,
+        string canonicalSource,
+        HtmlResolvedResource resource) {
         if (reference.Source.Length > 0) {
             _resources[reference.Source] = resource;
-            _resolvedSources[reference.Source] = reference.ResolvedSource;
+            _resolvedSources[reference.Source] = canonicalSource;
         }
 
         if (reference.ResolvedSource.Length > 0) {
             _resources[reference.ResolvedSource] = resource;
-            _resolvedSources[reference.ResolvedSource] = reference.ResolvedSource;
+            _resolvedSources[reference.ResolvedSource] = canonicalSource;
         }
-        _entries.Add(CreateEntry(reference.Kind, reference.Source, reference.ResolvedSource, resource));
+        if (canonicalSource.Length > 0) {
+            _resources[canonicalSource] = resource;
+            _resolvedSources[canonicalSource] = canonicalSource;
+        }
     }
 
+    private static string GetCanonicalSource(HtmlResourceReference reference, HtmlResolvedResource resource) =>
+        resource.FinalUri?.IsAbsoluteUri == true
+            ? resource.FinalUri.AbsoluteUri
+            : reference.ResolvedSource;
+
     internal bool TryReserveRequest(HtmlResourceReference reference) {
-        if (ResolverRequestCount < MaxResourceRequests) {
-            ResolverRequestCount++;
-            return true;
+        while (true) {
+            int current = Volatile.Read(ref _resolverRequestCount);
+            if (current >= MaxResourceRequests) break;
+            if (Interlocked.CompareExchange(ref _resolverRequestCount, current + 1, current) == current) return true;
         }
 
-        Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded,
-            "Resource resolver invocations exceeded the configured operation-wide request limit.",
-            HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + MaxResourceRequests,
-            OfficeConversionLossKind.Omission);
+        lock (_diagnosticSync) {
+            Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded,
+                "Resource resolver invocations exceeded the configured operation-wide request limit.",
+                HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + MaxResourceRequests,
+                OfficeConversionLossKind.Omission);
+        }
         return false;
     }
 
-    internal bool TryAccept(HtmlResourceReference reference, HtmlResolvedResource resource, out bool stop) {
+    internal bool TryAccept(
+        HtmlResourceReference reference,
+        HtmlResolvedResource resource,
+        out bool stop,
+        out bool alreadyAccepted) {
         stop = false;
+        alreadyAccepted = false;
+        string canonicalSource = GetCanonicalSource(reference, resource);
+        if (canonicalSource.Length > 0 && _resources.TryGetValue(canonicalSource, out HtmlResolvedResource? accepted)) {
+            if (!IsAcceptedContentType(reference.Kind, accepted.ContentType)) {
+                Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceContentTypeRejected,
+                    "A resolver returned a canonical resource incompatible with the requested resource kind.",
+                    HtmlDiagnosticSeverity.Warning, reference.Source,
+                    reference.Kind + ":" + accepted.ContentType, OfficeConversionLossKind.Omission);
+                return false;
+            }
+            AddAliases(reference, canonicalSource, accepted);
+            if (reference.Kind == HtmlResourceKind.Stylesheet) {
+                PropagateStylesheetState(_budgetedStylesheets, reference, canonicalSource);
+                PropagateStylesheetState(_rejectedStylesheets, reference, canonicalSource);
+            }
+            alreadyAccepted = true;
+            return true;
+        }
         long length = resource.Length;
         if (length > MaxResourceBytes) {
             Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded,
@@ -285,9 +329,22 @@ public sealed class HtmlResourceSession {
     internal bool WasStylesheetRejected(string? source, string? resolvedSource) =>
         ContainsStylesheetState(_rejectedStylesheets, source, resolvedSource);
 
-    private static void MarkStylesheetState(HashSet<string> state, HtmlResourceReference reference) {
+    private void MarkStylesheetState(HashSet<string> state, HtmlResourceReference reference) {
         if (reference.Source.Length > 0) state.Add(reference.Source);
         if (reference.ResolvedSource.Length > 0) state.Add(reference.ResolvedSource);
+        if (TryGetResolvedSource(reference.Source, reference.ResolvedSource, out string canonicalSource)
+            && canonicalSource.Length > 0) {
+            state.Add(canonicalSource);
+        }
+    }
+
+    private void PropagateStylesheetState(
+        HashSet<string> state,
+        HtmlResourceReference reference,
+        string canonicalSource) {
+        if (canonicalSource.Length > 0 && state.Contains(canonicalSource)) {
+            MarkStylesheetState(state, reference);
+        }
     }
 
     private static bool ContainsStylesheetState(HashSet<string> state, string? source, string? resolvedSource) =>
@@ -508,7 +565,8 @@ internal static class HtmlRenderResourceLoader {
                     result.MarkAttempted(reference);
                 }
 
-                tasks.Add(ResolvePendingAsync(pendingResource, uri, result.ResourceTimeout, resolver, cancellationToken));
+                tasks.Add(ResolvePendingAsync(pendingResource, uri, result.ResourceTimeout, resolver,
+                    () => result.TryReserveRequest(reference), cancellationToken));
             }
 
             if (tasks.Count == 0) continue;
@@ -543,10 +601,38 @@ internal static class HtmlRenderResourceLoader {
                     continue;
                 }
 
-                if (!result.TryAccept(reference, resource, out bool stopAfterResource)) {
+                Uri resourceUri = item.Uri;
+                if (resource.FinalUri?.IsAbsoluteUri == true) {
+                    string approvedFinalSource = HtmlUrlPolicyEvaluator.ResolveUrl(
+                        resource.FinalUri.AbsoluteUri,
+                        baseUri: null,
+                        HtmlResourceUrlPolicy.Create(result.ResourcePolicy));
+                    if (!Uri.TryCreate(approvedFinalSource, UriKind.Absolute, out Uri? approvedFinalUri)
+                        || !approvedFinalUri.Equals(resource.FinalUri)) {
+                        diagnostics.Add(
+                            ComponentName,
+                            GetPolicyRejectionCode(reference.Kind),
+                            "A resolver-reported final resource URI was rejected by the configured URL policy.",
+                            HtmlDiagnosticSeverity.Warning,
+                            reference.Source,
+                            resource.FinalUri.AbsoluteUri,
+                            OfficeConversionLossKind.Omission);
+                        continue;
+                    }
+
+                    resourceUri = resource.FinalUri;
+                }
+
+                if (!result.TryAccept(
+                        reference,
+                        resource,
+                        out bool stopAfterResource,
+                        out bool alreadyAccepted)) {
                     if (stopAfterResource) stop = true;
                     continue;
                 }
+                seen.Add(resourceUri.AbsoluteUri);
+                if (alreadyAccepted) continue;
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
                     if (cssBudget != null
@@ -559,7 +645,7 @@ internal static class HtmlRenderResourceLoader {
                     EnqueueStylesheetResources(
                         pending,
                         css,
-                        item.Uri,
+                        resourceUri,
                         pendingResource.ImportDepth,
                         resourceOptions,
                         result.MaxStylesheetImportDepth,
@@ -576,12 +662,14 @@ internal static class HtmlRenderResourceLoader {
         Uri uri,
         TimeSpan resourceTimeout,
         ResourceResolver resolver,
+        Func<bool> tryReserveAdditionalRequest,
         CancellationToken cancellationToken) {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(resourceTimeout);
         try {
             HtmlResourceReference reference = pending.Reference;
-            var request = new HtmlRenderResourceRequest(uri, reference.Source, reference.Kind);
+            var request = new HtmlRenderResourceRequest(uri, reference.Source, reference.Kind,
+                tryReserveAdditionalRequest);
             ResourceResolution resolution = await resolver(request, timeout.Token).ConfigureAwait(false);
             return new CompletedResolution(pending, uri, resolution, null);
         } catch (Exception exception) {
@@ -656,6 +744,18 @@ internal static class HtmlRenderResourceLoader {
 
             pending.Enqueue(new PendingResource(reference, importDepth + 1));
         }
+    }
+
+    private static string GetPolicyRejectionCode(HtmlResourceKind kind) {
+        return kind switch {
+            HtmlResourceKind.Image => "ImageResourceRejectedByPolicy",
+            HtmlResourceKind.Stylesheet => "StylesheetResourceRejectedByPolicy",
+            HtmlResourceKind.Hyperlink => "HyperlinkRejectedByPolicy",
+            HtmlResourceKind.Script => "ScriptResourceRejectedByPolicy",
+            HtmlResourceKind.Media => "MediaResourceRejectedByPolicy",
+            HtmlResourceKind.Font => "FontResourceRejectedByPolicy",
+            _ => "HtmlResourceRejectedByPolicy"
+        };
     }
 
     private static bool IsLoadableKind(HtmlResourceKind kind) =>

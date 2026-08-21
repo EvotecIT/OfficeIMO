@@ -24,8 +24,22 @@ AsciiDocProcessingResult processed = AsciiDocProcessor.Process(
     new AsciiDocProcessorOptions {
         // Null keeps includes disabled. A resolver must be supplied explicitly.
         IncludeResolver = null
-    });
+});
 ```
+
+Select a named parsing profile explicitly when the caller must pin the semantic contract. Both profiles are lossless; `OfficeIMO` exposes typed common constructs, while `PreserveOnly` identifies a preservation-oriented pipeline. Neither profile reads includes or runs extensions during parsing.
+
+```csharp
+AsciiDocDocument preserved = AsciiDocDocument.Parse(
+    source,
+    AsciiDocParseOptions.CreateProfile(AsciiDocDocumentProfile.PreserveOnly)).Document;
+
+AsciiDocProcessorOptions bounded = AsciiDocProcessorOptions.CreateProfile(
+    AsciiDocDocumentProfile.OfficeIMO);
+bounded.IncludeResolver = new AsciiDocRootedFileIncludeResolver(contentRoot);
+```
+
+The rooted resolver denies remote, absolute, traversal, and symbolic-link escape targets by default. Attributes, conditionals, line/tag include selection, and caller-registered directives are processed only by `AsciiDocProcessor`, under its include depth/count/character and extension invocation limits.
 
 ## Current limits
 

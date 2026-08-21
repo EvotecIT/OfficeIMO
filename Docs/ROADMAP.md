@@ -34,11 +34,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## HTML, RTF, and lightweight markup
 
-- [ ] Map bounded positioned and floating HTML regions into editable DOCX anchors or RTF frames when their containing block, offsets, wrap policy, and z-order have a native representation. Add producer fixtures for multi-column and paged sections, and retain stable simplify-or-omit diagnostics for browser layout that cannot be represented natively.
-- [ ] Map bounded flex, grid, and positioned HTML regions into destination-native XLSX cell/drawing anchors and PPTX slide geometry when placement remains editable. Add supported multi-layer backgrounds, shadows, and picture effects per destination, with reopen and visual evidence plus stable diagnostics for flattened layers and unsupported effects.
-- [ ] Expand RTF parsing and writing for complex tables, fields, embedded pictures and objects, destination groups, Unicode and code-page edge cases, lists, and producer-specific controls using independent Word, WordPad, and Outlook fixtures with deterministic preservation diagnostics.
-- [ ] Define named Markdown, AsciiDoc, and LaTeX profiles so extensions are opt-in and testable. Add safe AsciiDoc includes through a bounded resolver, attributes, tables, admonitions, cross-references, and common macros; add typed LaTeX mathematics, citations, references, figures, tables, and safe local macro definitions without arbitrary TeX package or command execution.
-- [ ] Harden MHTML-to-PDF for malformed multipart recovery, legacy encodings, nested related resources, duplicate content identifiers, `Content-Location` resolution, redirects, and bounded remote-resource policy. Reuse the managed HTML/CSS tier and continue to reject script execution.
+- [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
 
 ## Security and protected content
 

@@ -47,24 +47,86 @@ public static class HtmlRenderEngine {
     /// Renders a prepared HTML DOM without reparsing source text or mutating the caller's document.
     /// </summary>
     internal static HtmlRenderDocument Render(IHtmlDocument document, HtmlRenderOptions? options = null) =>
-        Render(document, options, CancellationToken.None);
+        Render(document, options, HtmlConversionLimits.CreateUntrustedProfile(),
+            sourceAlreadyValidated: false, cancellationToken: CancellationToken.None);
+
+    /// <summary>
+    /// Renders a prepared DOM that already passed the owning conversion document's source checks.
+    /// The supplied limits remain authoritative for DOM and CSS complexity during the render pass.
+    /// </summary>
+    internal static HtmlRenderDocument Render(
+        IHtmlDocument document,
+        HtmlRenderOptions? options,
+        HtmlConversionLimits limits) =>
+        Render(document, options, limits, sourceAlreadyValidated: true,
+            cancellationToken: CancellationToken.None);
+
+    /// <summary>
+    /// Renders a prepared DOM under the owning conversion document's base URI, URL policies,
+    /// and validated complexity limits.
+    /// </summary>
+    internal static HtmlRenderDocument Render(
+        IHtmlDocument document,
+        HtmlRenderOptions? options,
+        HtmlConversionDocument owningDocument) {
+        if (owningDocument == null) throw new ArgumentNullException(nameof(owningDocument));
+        return Render(document, options, owningDocument, owningDocument.Limits);
+    }
+
+    /// <summary>
+    /// Renders a prepared DOM under its owning document policies and an adapter-intersected limit profile.
+    /// </summary>
+    internal static HtmlRenderDocument Render(
+        IHtmlDocument document,
+        HtmlRenderOptions? options,
+        HtmlConversionDocument owningDocument,
+        HtmlConversionLimits limits) {
+        if (owningDocument == null) throw new ArgumentNullException(nameof(owningDocument));
+        if (limits == null) throw new ArgumentNullException(nameof(limits));
+        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        resolved.BaseUri ??= owningDocument.BaseUri;
+        ApplyDocumentPolicies(owningDocument, resolved);
+        return Render(document, resolved, HtmlConversionLimits.Intersect(owningDocument.Limits, limits));
+    }
 
     internal static HtmlRenderDocument Render(
         IHtmlDocument document,
         HtmlRenderOptions? options,
+        CancellationToken cancellationToken) =>
+        Render(document, options, HtmlConversionLimits.CreateUntrustedProfile(),
+            sourceAlreadyValidated: false, cancellationToken);
+
+    private static HtmlRenderDocument Render(
+        IHtmlDocument document,
+        HtmlRenderOptions? options,
+        HtmlConversionLimits limits,
+        bool sourceAlreadyValidated,
         CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        if (limits == null) throw new ArgumentNullException(nameof(limits));
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        HtmlConversionLimits effectiveLimits = limits.Clone();
+        effectiveLimits.Validate();
+        if (sourceAlreadyValidated) {
+            resolved.MaxHtmlNodes = Math.Min(
+                resolved.MaxHtmlNodes,
+                effectiveLimits.MaxHtmlNodes ?? int.MaxValue);
+        }
         resolved.Validate();
         return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
-            HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
+            HtmlEditableLayoutProjector.CopyMarkers(document, renderDocument);
+            if (!sourceAlreadyValidated) {
+                HtmlRenderInputGuard.ValidateSource(
+                    renderDocument.DocumentElement?.OuterHtml ?? string.Empty,
+                    resolved);
+            }
             return RenderDocument(
                 renderDocument,
                 resolved,
                 initialDiagnostics: null,
-                HtmlConversionLimits.CreateUntrustedProfile(),
+                effectiveLimits,
                 operationCancellationToken);
         });
     }

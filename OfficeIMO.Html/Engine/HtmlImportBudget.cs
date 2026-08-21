@@ -52,6 +52,15 @@ internal sealed class HtmlImportBudget {
     internal bool TryReserveShape(out string detail) =>
         TryIncrement(ref _shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail);
 
+    internal bool TryReserveShape(
+        out HtmlImportBudgetReservation reservation,
+        out string detail) {
+        reservation = null!;
+        if (!TryReserveShape(out detail)) return false;
+        reservation = new HtmlImportBudgetReservation(() => _shapes--);
+        return true;
+    }
+
     internal bool TryReserveAnnotation(out string detail) =>
         TryIncrement(ref _annotations, _limits.MaxAnnotations, nameof(HtmlImportLimits.MaxAnnotations), out detail);
 
@@ -60,10 +69,17 @@ internal sealed class HtmlImportBudget {
         out HtmlImportBudgetReservation reservation,
         out string detail) {
         reservation = null!;
-        if (!TryGetImageByteCount(dataUri, out long bytes, out detail)
-            || !CanIncrement(_shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail)) {
-            return false;
-        }
+        if (!TryGetImageByteCount(dataUri, out long bytes, out detail)) return false;
+        return TryReserveImageWithShape(bytes, out reservation, out detail);
+    }
+
+    internal bool TryReserveImageWithShape(
+        long bytes,
+        out HtmlImportBudgetReservation reservation,
+        out string detail) {
+        reservation = null!;
+        if (!CanReserveImageBytes(bytes, out detail)
+            || !CanIncrement(_shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail)) return false;
 
         _images++;
         _imageBytes += bytes;
@@ -204,12 +220,6 @@ internal sealed class HtmlImportBudget {
     }
 
     private bool TryGetImageByteCount(HtmlImageDataUri dataUri, out long bytes, out string detail) {
-        if (_images >= _limits.MaxImages) {
-            bytes = 0L;
-            detail = Detail(nameof(HtmlImportLimits.MaxImages), _images + 1L, _limits.MaxImages);
-            return false;
-        }
-
         try {
             bytes = dataUri.EstimateDecodedByteCount();
         } catch (FormatException) {
@@ -218,6 +228,14 @@ internal sealed class HtmlImportBudget {
             return false;
         }
 
+        return CanReserveImageBytes(bytes, out detail);
+    }
+
+    private bool CanReserveImageBytes(long bytes, out string detail) {
+        if (_images >= _limits.MaxImages) {
+            detail = Detail(nameof(HtmlImportLimits.MaxImages), _images + 1L, _limits.MaxImages);
+            return false;
+        }
         if (bytes <= 0L || bytes > _limits.MaxImageBytes) {
             detail = Detail(nameof(HtmlImportLimits.MaxImageBytes), bytes, _limits.MaxImageBytes);
             return false;

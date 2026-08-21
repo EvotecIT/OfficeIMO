@@ -18,11 +18,11 @@ public sealed class MhtmlDocument {
         HtmlConversionDocumentOptions? htmlOptions = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         _resources = (resources ?? Enumerable.Empty<MhtmlResource>()).ToArray();
-        _mimeDiagnostics = Array.Empty<EmailDiagnostic>();
         ContentLocation = NormalizeOptional(contentLocation);
         RootContentId = NormalizeContentId(rootContentId);
         Subject = NormalizeOptional(subject);
         BaseUri = ResolveBaseUri(ContentLocation, null);
+        _mimeDiagnostics = BuildResourceDiagnostics(_resources, BaseUri);
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
         _mimeDocument = CreateMimeDocument(html, _resources, ContentLocation, RootContentId, Subject);
     }
@@ -47,7 +47,7 @@ public sealed class MhtmlDocument {
         _resources = _mimeDocument.Attachments.Where(static attachment => attachment.IsMimeRelated)
             .Select(MhtmlResource.FromEmailAttachment)
             .ToArray();
-        _mimeDiagnostics = readResult.Diagnostics;
+        _mimeDiagnostics = readResult.Diagnostics.Concat(BuildResourceDiagnostics(_resources, BaseUri)).ToArray();
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
     }
 
@@ -114,11 +114,20 @@ public sealed class MhtmlDocument {
 
     /// <summary>
     /// Applies the archive base URI, resource-only URL policy, and embedded-resource resolver to render options.
-    /// The hyperlink policy is left unchanged, and an existing resolver remains a policy-checked fallback for
-    /// resources absent from the archive.
+    /// The hyperlink policy is left unchanged. Remote resources absent from the archive are fetched only
+    /// through the policy's one-hop resolver so every redirect destination is approved before it is requested.
     /// </summary>
-    public void ConfigureRenderOptions(HtmlRenderOptions options) {
+    public void ConfigureRenderOptions(HtmlRenderOptions options) => ConfigureRenderOptions(options, null);
+
+    /// <summary>
+    /// Applies the archive base URI, resource-only URL policy, embedded-resource resolver, and explicit
+    /// bounded remote-resource policy to render options.
+    /// </summary>
+    public void ConfigureRenderOptions(HtmlRenderOptions options,
+        MhtmlRemoteResourcePolicy? remoteResourcePolicy) {
         if (options == null) throw new ArgumentNullException(nameof(options));
+        remoteResourcePolicy ??= MhtmlRemoteResourcePolicy.CreateEmbeddedOnlyProfile();
+        remoteResourcePolicy.ApplyLimits(options);
         options.BaseUri ??= BaseUri;
         options.UrlPolicy ??= HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy fallbackResourceUrlPolicy = (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
@@ -129,14 +138,61 @@ public sealed class MhtmlDocument {
         }
         resourceUrlPolicy.DisallowFileUrls = false;
         options.ResourceUrlPolicy = resourceUrlPolicy;
-        HtmlRenderResourceResolver embeddedResolver = CreateResourceResolver();
-        HtmlRenderResourceResolver? fallbackResolver = options.ResourceResolver;
-        options.ResourceResolver = async (request, cancellationToken) => {
-            HtmlResolvedResource? embedded = await embeddedResolver(request, cancellationToken).ConfigureAwait(false);
-            if (embedded != null || fallbackResolver == null) return embedded;
-            if (!HtmlUrlPolicyEvaluator.IsAllowed(request.Uri.AbsoluteUri, fallbackResourceUrlPolicy)) return null;
-            return await fallbackResolver(request, cancellationToken).ConfigureAwait(false);
-        };
+        options.ResourceResolver = new ManagedResourceResolver(
+            this,
+            fallbackResourceUrlPolicy,
+            remoteResourcePolicy,
+            includeEmbeddedResources: true).ResolveAsync;
+    }
+
+    /// <summary>
+    /// Reuses only a resolver created by this archive while selecting whether embedded MIME resources remain visible.
+    /// This lets optional bridge packages retain the policy-owned one-hop remote resolver without trusting arbitrary delegates.
+    /// </summary>
+    internal bool TryReconfigureOwnedResourceResolver(
+        HtmlRenderResourceResolver? resolver,
+        bool includeEmbeddedResources,
+        out HtmlRenderResourceResolver? configuredResolver) {
+        if (resolver?.Target is ManagedResourceResolver managed
+            && ReferenceEquals(managed.Document, this)) {
+            configuredResolver = managed.WithEmbeddedResolution(includeEmbeddedResources).ResolveAsync;
+            return true;
+        }
+
+        configuredResolver = null;
+        return false;
+    }
+
+    private async Task<HtmlResolvedResource?> ResolveRemoteResourceAsync(
+        HtmlRenderResourceRequest request,
+        HtmlUrlPolicy resourceUrlPolicy,
+        MhtmlRemoteResourcePolicy remoteResourcePolicy,
+        CancellationToken cancellationToken) {
+        Uri current = request.Uri;
+        for (int redirectNumber = 0; ; redirectNumber++) {
+            string approvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(
+                current.AbsoluteUri,
+                baseUri: null,
+                resourceUrlPolicy);
+            if (!Uri.TryCreate(approvedSource, UriKind.Absolute, out Uri? approvedUri)
+                || !approvedUri.Equals(current)
+                || !remoteResourcePolicy.AllowsRequest(current, BaseUri)) return null;
+            if (redirectNumber > 0 && !request.TryReserveAdditionalRequest()) return null;
+            MhtmlRemoteResourceResponse? response = await remoteResourcePolicy.ResourceFetcher!(
+                new MhtmlRemoteResourceRequest(current, request.Source, request.Kind, redirectNumber),
+                cancellationToken).ConfigureAwait(false);
+            if (response == null) return null;
+            if (response.RedirectLocation == null) {
+                byte[]? bytes = response.EncodedBytes;
+                return bytes == null
+                    ? null
+                    : new HtmlResolvedResource(bytes, response.ContentType, current, redirectNumber);
+            }
+            if (redirectNumber >= remoteResourcePolicy.MaximumRedirects) return null;
+            current = response.RedirectLocation.IsAbsoluteUri
+                ? response.RedirectLocation
+                : new Uri(current, response.RedirectLocation);
+        }
     }
 
     /// <summary>Serializes the archive to deterministic MHTML bytes.</summary>
@@ -259,6 +315,38 @@ public sealed class MhtmlDocument {
         if (Uri.TryCreate(baseUri, value, out Uri? resolved)) archiveUris.Add(resolved.AbsoluteUri);
     }
 
+    private static IReadOnlyList<EmailDiagnostic> BuildResourceDiagnostics(
+        IReadOnlyList<MhtmlResource> resources,
+        Uri baseUri) {
+        var diagnostics = new List<EmailDiagnostic>();
+        var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var contentLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int index = 0; index < resources.Count; index++) {
+            MhtmlResource resource = resources[index];
+            if (!string.IsNullOrWhiteSpace(resource.ContentId) && !contentIds.Add(resource.ContentId!)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.DuplicateContentId,
+                    "Duplicate Content-ID was retained in archive order; the first resource is used for resolution.",
+                    location: "resource[" + index + "]"));
+            }
+            if (string.IsNullOrWhiteSpace(resource.ContentLocation)) continue;
+            if (!Uri.TryCreate(baseUri, resource.ContentLocation, out Uri? resolved)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.InvalidContentLocation,
+                    "Content-Location could not be resolved against the archive base URI.",
+                    location: "resource[" + index + "]"));
+                continue;
+            }
+            if (!contentLocations.Add(resolved.AbsoluteUri)) {
+                diagnostics.Add(new EmailDiagnostic(
+                    MhtmlDiagnosticCodes.DuplicateContentLocation,
+                    "Duplicate Content-Location was retained in archive order; the first resource is used for resolution.",
+                    location: "resource[" + index + "]"));
+            }
+        }
+        return diagnostics;
+    }
+
     private static Uri ResolveBaseUri(string? contentLocation, Uri? sourceBaseUri) {
         if (!string.IsNullOrWhiteSpace(contentLocation)) {
             if (Uri.TryCreate(contentLocation, UriKind.Absolute, out Uri? absolute)) return absolute;
@@ -300,4 +388,46 @@ public sealed class MhtmlDocument {
 
     private static string? NormalizeContentId(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value!.Trim().Trim('<', '>');
+
+    private sealed class ManagedResourceResolver {
+        private readonly HtmlUrlPolicy _fallbackResourceUrlPolicy;
+        private readonly MhtmlRemoteResourcePolicy _remoteResourcePolicy;
+        private readonly bool _includeEmbeddedResources;
+
+        internal ManagedResourceResolver(
+            MhtmlDocument document,
+            HtmlUrlPolicy fallbackResourceUrlPolicy,
+            MhtmlRemoteResourcePolicy remoteResourcePolicy,
+            bool includeEmbeddedResources) {
+            Document = document;
+            _fallbackResourceUrlPolicy = fallbackResourceUrlPolicy;
+            _remoteResourcePolicy = remoteResourcePolicy;
+            _includeEmbeddedResources = includeEmbeddedResources;
+        }
+
+        internal MhtmlDocument Document { get; }
+
+        internal ManagedResourceResolver WithEmbeddedResolution(bool includeEmbeddedResources) =>
+            includeEmbeddedResources == _includeEmbeddedResources
+                ? this
+                : new ManagedResourceResolver(
+                    Document,
+                    _fallbackResourceUrlPolicy,
+                    _remoteResourcePolicy,
+                    includeEmbeddedResources);
+
+        internal async Task<HtmlResolvedResource?> ResolveAsync(
+            HtmlRenderResourceRequest request,
+            CancellationToken cancellationToken) {
+            HtmlResolvedResource? embedded = _includeEmbeddedResources
+                ? await Document.ResolveResourceAsync(request, cancellationToken).ConfigureAwait(false)
+                : null;
+            if (embedded != null || _remoteResourcePolicy.ResourceFetcher == null) return embedded;
+            return await Document.ResolveRemoteResourceAsync(
+                request,
+                _fallbackResourceUrlPolicy,
+                _remoteResourcePolicy,
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
 }

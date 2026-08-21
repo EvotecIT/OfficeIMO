@@ -66,6 +66,8 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static IEnumerable<HtmlRenderVisual>? LogicalTextChildVisuals(HtmlRenderVisual visual) => visual is HtmlRenderClipGroup clipGroup
         ? clipGroup.Visuals
+        : visual is HtmlRenderLayoutRegion layoutRegion
+            ? layoutRegion.Visuals
         : visual is HtmlRenderPathClipGroup pathClipGroup
             ? pathClipGroup.Visuals
             : visual is HtmlRenderEffectGroup effectGroup

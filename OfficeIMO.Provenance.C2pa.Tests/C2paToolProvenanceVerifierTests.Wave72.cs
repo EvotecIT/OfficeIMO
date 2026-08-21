@@ -1,5 +1,4 @@
 using System.IO;
-using System.Runtime.InteropServices;
 using Xunit;
 
 namespace OfficeIMO.Provenance.C2pa.Tests;
@@ -7,31 +6,11 @@ namespace OfficeIMO.Provenance.C2pa.Tests;
 public sealed partial class C2paToolProvenanceVerifierTestsWave72 {
     [Fact]
     public void ProcessRunnerRejectsNonUtf8ProviderOutput() {
-        string executable;
-        IReadOnlyList<string> arguments;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            executable = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.System),
-                "WindowsPowerShell",
-                "v1.0",
-                "powershell.exe");
-            arguments = new[] {
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                "[Console]::OpenStandardOutput().Write([byte[]](255),0,1)"
-            };
-        } else {
-            executable = "/bin/sh";
-            arguments = new[] { "-c", "printf '\\377'" };
-        }
-        var request = new C2paToolProcessRequest(
-            executable,
-            arguments,
-            Path.GetTempPath(),
-            TimeSpan.FromSeconds(5),
-            1024);
+        using var output = new MemoryStream(new byte[] { 0xFF });
 
-        Assert.Throws<InvalidDataException>(() => new C2paToolProcessRunner().Run(request));
+        Assert.Throws<InvalidDataException>(() => C2paToolProcessRunner
+            .ReadBoundedAsync(output, 1024, "standard output")
+            .GetAwaiter()
+            .GetResult());
     }
 }

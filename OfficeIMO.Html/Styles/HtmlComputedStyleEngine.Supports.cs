@@ -441,20 +441,22 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, CascadedProperty> properties,
         IReadOnlyDictionary<string, string>? parentProperties,
         out IReadOnlyCollection<string> inheritedProperties,
-        out IReadOnlyCollection<string> resetProperties) {
+        out IReadOnlyCollection<string> resetProperties,
+        out IReadOnlyCollection<string> specifiedProperties) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
             CascadedProperty? effective = ResolveLayerRevert(pair.Value);
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) inherited.Add(pair.Key);
-            }
-            else if (effective?.RevertsLayer == true
-                && IsInheritedProperty(pair.Key)
-                && parentProperties != null
-                && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
+                else specified.Add(pair.Key);
+            } else if (effective?.RevertsLayer == true
+                  && IsInheritedProperty(pair.Key)
+                  && parentProperties != null
+                  && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
                 raw[pair.Key] = inheritedValue;
                 inherited.Add(pair.Key);
             } else {
@@ -483,6 +485,8 @@ public static partial class HtmlComputedStyleEngine {
         inheritedProperties = inherited;
         reset.ExceptWith(resolved.Keys);
         resetProperties = reset;
+        specified.IntersectWith(resolved.Keys);
+        specifiedProperties = specified;
         return resolved;
     }
 

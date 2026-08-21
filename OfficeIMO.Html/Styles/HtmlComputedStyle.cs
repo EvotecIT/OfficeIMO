@@ -8,15 +8,18 @@ public sealed class HtmlComputedStyle {
     private readonly IReadOnlyDictionary<string, string> _readOnlyProperties;
     private readonly HashSet<string> _inheritedProperties;
     private readonly HashSet<string> _resetProperties;
+    private readonly HashSet<string> _specifiedProperties;
 
     internal HtmlComputedStyle(
         IDictionary<string, string> properties,
         IEnumerable<string>? inheritedProperties = null,
-        IEnumerable<string>? resetProperties = null) {
+        IEnumerable<string>? resetProperties = null,
+        IEnumerable<string>? specifiedProperties = null) {
         _properties = new Dictionary<string, string>(properties ?? throw new ArgumentNullException(nameof(properties)), HtmlCssPropertyNameComparer.Instance);
         _readOnlyProperties = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(_properties);
         _inheritedProperties = new HashSet<string>(inheritedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
         _resetProperties = new HashSet<string>(resetProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
+        _specifiedProperties = new HashSet<string>(specifiedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
     }
 
     /// <summary>All computed properties known to the lightweight style engine.</summary>
@@ -36,6 +39,9 @@ public sealed class HtmlComputedStyle {
 
     internal bool IsResetValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _resetProperties.Contains(propertyName.Trim());
+
+    internal bool IsSpecifiedValue(string propertyName) =>
+        !string.IsNullOrWhiteSpace(propertyName) && _specifiedProperties.Contains(propertyName.Trim());
 }
 
 internal sealed class HtmlCssPropertyNameComparer : IEqualityComparer<string> {

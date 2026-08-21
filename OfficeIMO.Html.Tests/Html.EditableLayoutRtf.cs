@@ -1,0 +1,178 @@
+using OfficeIMO.Html;
+using OfficeIMO.Rtf;
+using OfficeIMO.Tests.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Html.Tests;
+
+public sealed class HtmlEditableLayoutRtfTests {
+    [Fact]
+    public void PositionedRichContentStaysInSemanticFlow() {
+        const string html = "<div style='position:absolute;width:200px;height:60px'>" +
+            "<strong>Bold</strong> <a href='https://example.test'>Linked</a></div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\b ", rtf, StringComparison.Ordinal);
+        Assert.Contains("HYPERLINK", rtf, StringComparison.Ordinal);
+        Assert.Contains("https://example.test", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
+    public void PositionedRegionRetainsEmbeddedPngPicture() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(4, 3);
+        string image = "data:image/png;base64," + Convert.ToBase64String(png);
+        string html = "<div style='position:absolute;width:180px;height:70px'>" +
+            "<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
+            "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px'></div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
+            item.Inlines.OfType<RtfImage>().Any());
+        RtfImage picture = Assert.Single(paragraph.Inlines.OfType<RtfImage>());
+        Assert.Equal(RtfImageFormat.Png, picture.Format);
+        Assert.Equal(360, picture.DesiredWidthTwips);
+        Assert.Equal(270, picture.DesiredHeightTwips);
+        Assert.Contains(@"\pict", result.Value.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PositionedRegionCannotBypassRtfNodeLimit() {
+        string html = "<div style='position:absolute;width:180px;height:70px'>" +
+            string.Concat(Enumerable.Range(0, 12).Select(index => "<span>" + index + "</span>")) +
+            "</div>";
+        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        options.MaxHtmlNodes = 10;
+
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
+            () => HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options));
+
+        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlNodes), exception.LimitSource);
+    }
+
+    [Fact]
+    public void PositionedRegionCannotBypassRtfDepthLimit() {
+        const string html = "<div style='position:absolute;width:180px;height:70px'>" +
+            "<span><span><span><span><span><span>Deep</span></span></span></span></span></span>" +
+            "</div>";
+        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        options.MaxHtmlDepth = 5;
+
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
+            () => HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options));
+
+        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlDepth), exception.LimitSource);
+    }
+
+    [Fact]
+    public void PrintRegionsStaySemanticWhenRenderedPageOwnershipCannotBeMapped() {
+        const string html = "<div style='position:absolute;width:160px;height:40px'>Print anchor</div>" +
+            "<section style='break-before:page'><p>Later page</p></section>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+            Profile = HtmlConversionProfile.HighFidelityPrint
+        });
+
+        HtmlToRtfResult result = document.ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.Contains("Print anchor", string.Join("\n", result.Value.Paragraphs.Select(
+            paragraph => paragraph.ToPlainText())), StringComparison.Ordinal);
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
+    public void MultiPageContinuousRegionsStaySemanticWithoutAmbiguousPageFrames() {
+        const string html = "<div style='height:1400px'>Long semantic flow</div>" +
+            "<div style='position:absolute;top:24px;width:160px;height:40px'>Ambiguous frame</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains("Ambiguous frame", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void OversizedFrameCoordinateIsBoundedWithStableDiagnostic() {
+        const string html = "<div style='position:absolute;left:300000000px;top:24px;width:180px;height:70px'>Bounded frame</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
+            item.ToPlainText().Contains("Bounded frame", StringComparison.Ordinal));
+
+        Assert.Equal(int.MaxValue, paragraph.Frame.HorizontalPositionTwips);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
+    public void OversizedFrameSizeIsBoundedWithStableDiagnostic() {
+        const string html = "<div style='position:absolute;width:1000000000000000px;height:1000000000000000px'>Bounded size</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
+            item.ToPlainText().Contains("Bounded size", StringComparison.Ordinal));
+
+        Assert.Equal(int.MaxValue, paragraph.Frame.WidthTwips);
+        Assert.Equal(-int.MaxValue, paragraph.Frame.HeightTwips);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
+    public void MixedInlinePictureRegionStaysOutOfNativeFrames() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;width:180px;height:50px'>Before" +
+            "<img alt='Middle' src='" + image + "'>After</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Detail == "mixedInlinePictures=true");
+    }
+
+    [Fact]
+    public void PositionedAndFloatingRegionsReopenAsEditableRtfFrames() {
+        const string html = "<style>" +
+            ".positioned{position:absolute;left:32px;top:24px;width:240px;height:72px;background:#dbeafe;z-index:4}" +
+            ".floating{float:right;width:120px;height:48px;background:#fef3c7}" +
+            ".flex{display:flex;width:300px}</style>" +
+            "<p>Ordinary flow</p><div class='positioned'>Editable positioned</div>" +
+            "<div class='floating'>Editable float</div><div class='flex'><span>Flex remains</span></div>";
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        RtfReadResult reopened = RtfDocument.Read(rtf);
+        RtfParagraph positioned = Assert.Single(reopened.Document.Paragraphs, paragraph =>
+            paragraph.ToPlainText().Contains("Editable positioned", StringComparison.Ordinal));
+        RtfParagraph floating = Assert.Single(reopened.Document.Paragraphs, paragraph =>
+            paragraph.ToPlainText().Contains("Editable float", StringComparison.Ordinal));
+
+        Assert.Equal(1200, positioned.Frame.HorizontalPositionTwips);
+        Assert.Equal(1080, positioned.Frame.VerticalPositionTwips);
+        Assert.Equal(3600, positioned.Frame.WidthTwips);
+        Assert.Equal(-1080, positioned.Frame.HeightTwips);
+        Assert.True(positioned.Frame.NoWrap);
+        Assert.True(positioned.Frame.OverlayText);
+        Assert.False(floating.Frame.NoWrap);
+        Assert.True(floating.Frame.NoOverlap);
+        Assert.Contains("Flex remains", string.Join("\n", reopened.Document.Paragraphs.Select(paragraph => paragraph.ToPlainText())), StringComparison.Ordinal);
+        Assert.Contains(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\pvpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
+        Assert.True(result.Succeeded);
+    }
+}

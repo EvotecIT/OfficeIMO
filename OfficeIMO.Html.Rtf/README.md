@@ -33,4 +33,6 @@ string reviewHtml = rtf.ToHtml(
 
 The bridge preserves supported structure and reports approximation or loss. Native RTF editing and exact unchanged-source preservation remain in `OfficeIMO.Rtf`.
 
+Bounded, single-surface positioned and floating HTML regions map to editable page-anchored RTF paragraph frames with native size, offsets, wrap controls, and solid backgrounds. Repeated or fragmented paged regions stay in semantic flow; background image layers, shadows, and stacking metadata without an RTF frame equivalent are diagnosed. Set `HtmlToRtfOptions.ImportEditableLayoutRegions = false` to retain semantic flow only.
+
 Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Rtf`.

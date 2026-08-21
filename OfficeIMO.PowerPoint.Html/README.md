@@ -34,6 +34,8 @@ HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
 
 `Semantic` remains the strict round-trip default. `Auto` uses a supported semantic envelope when present and otherwise groups ordinary headings, text, lists, tables, and embedded images into slides; `Generic` always uses that projection. `HtmlToPowerPointOptions.Limits` bounds slides, shapes, tables, cells, images, chart data, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
 
+On the ordinary HTML path, bounded positioned, floating, flex, and grid regions become editable slide text boxes and DrawingML pictures at rendered geometry. Solid fills, supported background/image layers, picture opacity, and the first box-shadow layer use native PowerPoint constructs. Additional shadows and unsupported effects receive stable diagnostics. Set `ImportEditableLayoutRegions = false` to retain semantic flow only.
+
 `SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToPowerPointPresentation()` or `ToPowerPointPresentationResult()` on the prepared document. Stream overloads leave caller-owned streams open.
 
 ## Positioned review

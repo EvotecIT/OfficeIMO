@@ -10,6 +10,31 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public async Task HtmlResourceSession_RejectsResolverFinalUriOutsideResourcePolicy() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/site.css'>");
+        HtmlUrlPolicy policy = HtmlUrlPolicy.CreateWebOnlyProfile();
+        policy.ResolvedUrlTransform = value =>
+            value.Contains("blocked.example.test", StringComparison.OrdinalIgnoreCase) ? null : value;
+        var options = new HtmlRenderOptions {
+            ResourceUrlPolicy = policy,
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(
+                    Encoding.UTF8.GetBytes("body{color:red}"),
+                    "text/css",
+                    new Uri("https://blocked.example.test/site.css")))
+        };
+
+        HtmlResourceSession session = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
+
+        Assert.Empty(session.Resources);
+        Assert.Equal(0, session.AcceptedResourceCount);
+        Assert.Contains(session.Diagnostics, diagnostic =>
+            diagnostic.Code == "StylesheetResourceRejectedByPolicy"
+            && diagnostic.Detail == "https://blocked.example.test/site.css");
+    }
+
+    [Fact]
     public async Task HtmlResourceSession_OwnsDedupMimeBudgetsCacheAndDigestEvidence() {
         byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
@@ -44,6 +69,44 @@ public sealed partial class HtmlRenderingTests {
         HtmlResourceSession rejected = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
         Assert.Empty(rejected.Resources);
         Assert.Contains(rejected.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceContentTypeRejected);
+    }
+
+    [Fact]
+    public async Task HtmlResourceSession_DeduplicatesConcurrentAliasesByRedirectedFinalUri() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<img src='https://assets.example.test/a.png'>" +
+            "<img src='https://assets.example.test/b.png'>" +
+            "<img src='https://assets.example.test/c.png'>");
+        var options = new HtmlRenderOptions {
+            MaxConcurrentResourceLoads = 3,
+            MaxResourceBytes = png.Length,
+            MaxResourceCount = 2,
+            MaxResourceRequests = 3,
+            MaxTotalResourceBytes = png.Length * 2L,
+            ResourceResolver = (request, cancellationToken) => {
+                Uri finalUri = request.Uri.AbsolutePath == "/c.png"
+                    ? request.Uri
+                    : new Uri("https://cdn.example.test/shared.png");
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(png, "image/png", finalUri));
+            }
+        };
+
+        HtmlResourceSession session = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
+
+        Assert.Equal(2, session.AcceptedResourceCount);
+        Assert.Equal(png.Length * 2L, session.AcceptedResourceBytes);
+        Assert.Equal(2, session.Resources.Count);
+        Assert.DoesNotContain(session.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded);
+        Assert.True(session.TryGet("https://assets.example.test/a.png", null, out HtmlResolvedResource first));
+        Assert.True(session.TryGet("https://assets.example.test/b.png", null, out HtmlResolvedResource second));
+        Assert.Same(first, second);
+        Assert.Contains(session.Resources, entry =>
+            entry.CanonicalSource == "https://cdn.example.test/shared.png");
+        Assert.Contains(session.Resources, entry =>
+            entry.CanonicalSource == "https://assets.example.test/c.png");
     }
 
     [Fact]

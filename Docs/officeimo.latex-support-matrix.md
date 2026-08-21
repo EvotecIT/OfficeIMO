@@ -1,8 +1,8 @@
 # OfficeIMO.Latex support matrix
 
 - Status: bounded-profile implementation
-- Updated: 2026-07-10
-- Profile: `LatexDocumentProfile.OfficeIMO`
+- Updated: 2026-08-20
+- Profiles: `LatexDocumentProfile.OfficeIMO`, `LatexDocumentProfile.PreserveOnly`
 - Runtime dependencies: BCL and existing OfficeIMO project references only
 
 `OfficeIMO.Latex` provides LaTeX document interoperability. It is not a TeX engine, package runtime, or promise that arbitrary `.tex` projects can be compiled.
@@ -30,6 +30,7 @@
 | Original encoding and BOM | Unsupported | The engine's fidelity contract is decoded character source, not byte-for-byte file encoding. |
 | TeX execution | Unsupported | Parsing never invokes TeX, a shell, an external process, or package code. |
 | `PreserveOnly` profile | Semantic structure only | Tokens, syntax, commands, environments, and math remain available, while OfficeIMO headings, paragraphs, lists, figures, tables, references, theorems, and macro semantics are deliberately not bound. |
+| Named profile factory | Semantic | `LatexParseOptions.CreateProfile` rejects unknown profiles and keeps macro expansion disabled until the caller explicitly selects `SafeSimpleDefinitions`. |
 
 ## OfficeIMO document profile
 

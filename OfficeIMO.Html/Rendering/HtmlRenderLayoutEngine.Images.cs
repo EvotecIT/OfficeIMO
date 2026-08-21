@@ -5,7 +5,10 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
-        string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
+        string? editableImageKey = HtmlEditableLayoutProjector.GetImageSourceKey(element);
+        string sourceDescription = string.IsNullOrWhiteSpace(editableImageKey)
+            ? HtmlRenderStyleResolver.DescribeSource(element)
+            : HtmlEditableLayoutProjector.DescribeImageSource(editableImageKey);
         IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
         string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
         byte[]? bytes = null;
@@ -63,7 +66,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     hasIntrinsicSize ? intrinsicHeight : 0D,
                     sourceDescription,
                     out OfficeDrawing? svgDrawing) && svgDrawing != null) {
-                    AddSvgImageVisual(objectVisuals, svgDrawing, imageX, imageY, placement, alternativeText, link, sourceDescription);
+                    AddSvgImageVisual(objectVisuals, svgDrawing, bytes, imageX, imageY, placement, alternativeText,
+                        link, sourceDescription);
                     addedObject = true;
                 }
             } else {
@@ -207,6 +211,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static void AddSvgImageVisual(
         ICollection<HtmlRenderVisual> visuals,
         OfficeDrawing drawing,
+        byte[] imageBytes,
         double imageX,
         double imageY,
         ReplacedObjectPlacement placement,
@@ -225,7 +230,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visuals.Count,
                 alternativeText,
                 link,
-                sourceDescription));
+                sourceDescription,
+                imageBytes: imageBytes,
+                imageContentType: "image/svg+xml",
+                sourceCrop: placement.SourceCrop));
             return;
         }
 
@@ -246,7 +254,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             0,
             alternativeText,
             link,
-            sourceDescription);
+            sourceDescription,
+            imageBytes: imageBytes,
+            imageContentType: "image/svg+xml",
+            sourceCrop: placement.SourceCrop,
+            imageX: visibleX,
+            imageY: visibleY,
+            imageWidth: placement.Width,
+            imageHeight: placement.Height);
         visuals.Add(new HtmlRenderClipGroup(
             visibleX,
             visibleY,

@@ -168,7 +168,9 @@ namespace OfficeIMO.PowerPoint {
             alpha ??= new A.AlphaModulationFixed();
             alpha.Amount = checked((int)Math.Round(opacity.Value * 100000D,
                 MidpointRounding.AwayFromZero));
-            blip.Append(alpha);
+            A.BlipExtensionList? extensions = blip.GetFirstChild<A.BlipExtensionList>();
+            if (extensions != null) blip.InsertBefore(alpha, extensions);
+            else blip.Append(alpha);
         }
 
         private OpenXmlElement? ResolveThemeFill() {

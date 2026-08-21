@@ -51,6 +51,9 @@ public sealed class HtmlToExcelOptions {
     /// </summary>
     public bool AllowUntrustedFormulas { get; set; }
 
+    /// <summary>Maps bounded positioned, floating, flex, and grid regions to editable cells and drawing anchors.</summary>
+    public bool ImportEditableLayoutRegions { get; set; } = true;
+
     internal HtmlToExcelOptions Clone() => new HtmlToExcelOptions {
         Limits = Limits.Clone(),
         Mode = Mode,
@@ -58,6 +61,7 @@ public sealed class HtmlToExcelOptions {
         ImportChartInventory = ImportChartInventory,
         ImportComments = ImportComments,
         ImportFormulas = ImportFormulas,
-        AllowUntrustedFormulas = AllowUntrustedFormulas
+        AllowUntrustedFormulas = AllowUntrustedFormulas,
+        ImportEditableLayoutRegions = ImportEditableLayoutRegions
     };
 }
