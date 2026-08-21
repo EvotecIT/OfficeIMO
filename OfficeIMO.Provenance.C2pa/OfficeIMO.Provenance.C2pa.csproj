@@ -3,7 +3,7 @@
     <Description>Optional c2patool process adapter for C2PA Content Credential signing and verification with OfficeIMO.</Description>
     <AssemblyName>OfficeIMO.Provenance.C2pa</AssemblyName>
     <AssemblyTitle>OfficeIMO.Provenance.C2pa</AssemblyTitle>
-    <VersionPrefix>3.2.4</VersionPrefix>
+    <VersionPrefix>3.2.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

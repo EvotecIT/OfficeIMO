@@ -3,7 +3,7 @@
     <Description>Optional HtmlTinkerX browser-PDF bridge for OfficeIMO.</Description>
     <AssemblyName>OfficeIMO.Html.Pdf.Browser</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html.Pdf.Browser</AssemblyTitle>
-    <VersionPrefix>3.2.4</VersionPrefix>
+    <VersionPrefix>3.2.5</VersionPrefix>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

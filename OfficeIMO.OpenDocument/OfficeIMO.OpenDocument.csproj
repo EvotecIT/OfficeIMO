@@ -3,7 +3,7 @@
     <Description>Native OpenDocument ODT, ODS, and ODP reader, writer, and preservation-aware document model for .NET.</Description>
     <AssemblyName>OfficeIMO.OpenDocument</AssemblyName>
     <AssemblyTitle>OfficeIMO.OpenDocument</AssemblyTitle>
-    <VersionPrefix>3.2.4</VersionPrefix>
+    <VersionPrefix>3.2.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

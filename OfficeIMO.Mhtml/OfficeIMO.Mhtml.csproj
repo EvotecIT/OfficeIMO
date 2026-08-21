@@ -3,7 +3,7 @@
     <Description>MHTML archive loading, saving, HTML projection, and embedded MIME resources for OfficeIMO.</Description>
     <AssemblyName>OfficeIMO.Mhtml</AssemblyName>
     <AssemblyTitle>OfficeIMO.Mhtml</AssemblyTitle>
-    <VersionPrefix>3.2.4</VersionPrefix>
+    <VersionPrefix>3.2.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
