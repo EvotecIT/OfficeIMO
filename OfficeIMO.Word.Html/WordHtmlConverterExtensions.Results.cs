@@ -28,6 +28,7 @@ public static partial class WordHtmlConverterExtensions {
         HtmlEditableLayoutRegionKinds regionKinds =
             HtmlEditableLayoutRegionKinds.Positioned | HtmlEditableLayoutRegionKinds.Floating;
         var projectionOptions = new HtmlRenderOptions();
+        projectionOptions.PageSize = ResolveWordProjectionPageSize(resolved);
         foreach (string stylesheet in resolved.StylesheetContents.Where(value => !string.IsNullOrWhiteSpace(value))) {
             projectionOptions.AdditionalStylesheets.Add(stylesheet);
         }
@@ -82,6 +83,29 @@ public static partial class WordHtmlConverterExtensions {
         AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
         return source.QuerySelector("body [class], body [id]") != null;
     }
+
+    private static OfficeIMO.Drawing.OfficePageSize ResolveWordProjectionPageSize(HtmlToWordOptions options) {
+        WordPageSizeDefinition definition = ResolveWordPageSizeDefinition(options.DefaultPageSize);
+        double widthInches = definition.WidthTwips / 1440D;
+        double heightInches = definition.HeightTwips / 1440D;
+        if (options.DefaultOrientation == OfficePageOrientation.Landscape) {
+            (widthInches, heightInches) = (heightInches, widthInches);
+        }
+        return new OfficeIMO.Drawing.OfficePageSize(widthInches, heightInches);
+    }
+
+    private static WordPageSizeDefinition ResolveWordPageSizeDefinition(WordPageSize? pageSize) =>
+        pageSize switch {
+            WordPageSize.A3 => WordPageSizes.A3,
+            WordPageSize.A5 => WordPageSizes.A5,
+            WordPageSize.A6 => WordPageSizes.A6,
+            WordPageSize.B5 => WordPageSizes.B5,
+            WordPageSize.Executive => WordPageSizes.Executive,
+            WordPageSize.Legal => WordPageSizes.Legal,
+            WordPageSize.Letter => WordPageSizes.Letter,
+            WordPageSize.Statement => WordPageSizes.Statement,
+            _ => WordPageSizes.A4
+        };
 
     private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options) {
         return new HtmlToWordResult(document, options.ConversionReport);

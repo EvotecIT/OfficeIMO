@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Word.Html;
 
 internal partial class HtmlToWordConverter {
+    internal const long MaximumDrawingExtent = 27_273_042_316_900L;
+
     internal async Task AddEditableLayoutRegionsAsync(
         WordDocument document,
         HtmlEditableLayoutProjection projection,
@@ -53,7 +55,7 @@ internal partial class HtmlToWordConverter {
                         + "; width=" + region.Width.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
                         + "; height=" + region.Height.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
                         + "; nativeRange=" + int.MinValue + ".." + int.MaxValue
-                        + "; sizeRange=1.." + long.MaxValue,
+                        + "; sizeRange=1.." + MaximumDrawingExtent,
                     OfficeConversionLossKind.Approximation);
             }
 
@@ -146,15 +148,15 @@ internal partial class HtmlToWordConverter {
         return (int)value;
     }
 
-    private static long ToBoundedAnchorSize(double cssPixels, double unitsPerCssPixel, out bool simplified) {
+    internal static long ToBoundedAnchorSize(double cssPixels, double unitsPerCssPixel, out bool simplified) {
         double value = Math.Round(cssPixels * unitsPerCssPixel);
         if (double.IsNaN(value) || value <= 1D) {
             simplified = value != 1D;
             return 1L;
         }
-        if (value >= long.MaxValue) {
-            simplified = value > long.MaxValue;
-            return long.MaxValue;
+        if (value >= MaximumDrawingExtent) {
+            simplified = value > MaximumDrawingExtent;
+            return MaximumDrawingExtent;
         }
         simplified = false;
         return (long)value;

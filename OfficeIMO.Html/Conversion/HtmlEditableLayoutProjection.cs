@@ -154,7 +154,7 @@ public static partial class HtmlEditableLayoutProjector {
             document.Limits);
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
-        var semanticFlowRoots = new List<IElement>();
+        var semanticFlowRoots = new HashSet<IElement>();
         var semanticRichCandidates = new List<IElement>();
         var inheritedTypographyCandidates = new List<IElement>();
         var multiChildLayoutKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -167,7 +167,7 @@ public static partial class HtmlEditableLayoutProjector {
             if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
                 || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
-            if (semanticFlowRoots.Any(root => root.Contains(element))) continue;
+            if (HasSemanticFlowAncestor(element, semanticFlowRoots)) continue;
             if (ContainsHtmlComment(element)) {
                 commentBearingCandidates.Add(element);
                 semanticFlowRoots.Add(element);
@@ -216,7 +216,7 @@ public static partial class HtmlEditableLayoutProjector {
         }
 
         options.EnableEditableLayoutRegions = true;
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options, document.Limits);
         double continuousSurfaceHeight = rendered.Pages.Count == 0
             ? 0D
             : rendered.Pages.Max(page => page.Height);
@@ -287,11 +287,16 @@ public static partial class HtmlEditableLayoutProjector {
             selected.SemanticSectionOriginY = selectedOccurrence.SectionOriginY;
             selected.SemanticTableOriginX = selectedOccurrence.TableOriginX;
             selected.SemanticTableOriginY = selectedOccurrence.TableOriginY;
-            if (continuousPageOwnershipUnavailable) {
+            bool selectedPageOwnershipUnavailable = continuousPageOwnershipUnavailable
+                || (options.Mode == HtmlRenderMode.Continuous
+                    && maximumEditableContinuousSurfaceHeight.HasValue
+                    && selected.Y >= maximumEditableContinuousSurfaceHeight.Value);
+            if (selectedPageOwnershipUnavailable) {
                 diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
                     "An editable layout region stayed in semantic flow because a multi-page continuous coordinate cannot be mapped to one page-relative native anchor.",
                     HtmlDiagnosticSeverity.Warning, selected.Source,
                     "continuousSurfaceHeight=" + continuousSurfaceHeight.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; regionY=" + selected.Y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
                         + "; maximumPageHeight=" + maximumEditableContinuousSurfaceHeight!.Value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture),
                     OfficeConversionLossKind.Approximation);
                 continue;

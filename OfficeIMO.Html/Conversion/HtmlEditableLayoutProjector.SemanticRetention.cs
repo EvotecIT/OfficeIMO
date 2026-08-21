@@ -4,6 +4,13 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlEditableLayoutProjector {
+    private static bool HasSemanticFlowAncestor(IElement element, ISet<IElement> semanticFlowRoots) {
+        for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+            if (semanticFlowRoots.Contains(ancestor)) return true;
+        }
+        return false;
+    }
+
     private static bool ContainsSemanticRichContent(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
@@ -138,6 +145,12 @@ public static partial class HtmlEditableLayoutProjector {
                 System.Globalization.CultureInfo.InvariantCulture, out double parsedOpacity)
             && parsedOpacity < 0.999D) {
             effects.Add(prefix + "opacity=" + opacity);
+        }
+        string backgroundColor = style.GetValue("background-color").Trim();
+        if (backgroundColor.Length > 0
+            && HtmlRenderCssValues.TryColor(backgroundColor, out OfficeIMO.Drawing.OfficeColor parsedBackground)
+            && parsedBackground.A < byte.MaxValue) {
+            effects.Add(prefix + "background-color=" + backgroundColor);
         }
         AddNonDefaultEffect(style, "transform", "none", effects, prefix);
         AddNonDefaultEffect(style, "clip-path", "none", effects, prefix);

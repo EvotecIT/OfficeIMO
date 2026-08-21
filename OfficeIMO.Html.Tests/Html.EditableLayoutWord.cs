@@ -127,8 +127,8 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         WordTextBox textBox = Assert.Single(word.TextBoxes);
-        Assert.Equal(long.MaxValue, textBox.Width);
-        Assert.Equal(long.MaxValue, textBox.Height);
+        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Width);
+        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Height);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
