@@ -145,6 +145,89 @@ public sealed class HtmlEditableLayoutWordTests {
     }
 
     [Fact]
+    public void MultiPageContinuousRegionsStaySemanticWithoutAmbiguousPageAnchors() {
+        const string html = "<div style='height:1400px'>Long semantic flow</div>" +
+            "<div style='position:absolute;top:24px;width:160px;height:40px'>Ambiguous anchor</div>";
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        using WordDocument word = result.Value;
+
+        Assert.Empty(word.TextBoxes);
+        Assert.NotEmpty(word.Find("Ambiguous anchor", StringComparison.Ordinal));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CallerStylesheetContentsParticipateInEditableLayoutProjection() {
+        const string html = "<div class='positioned'>Caller styled anchor</div>";
+        var options = new HtmlToWordOptions();
+        options.StylesheetContents.Add(
+            ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        using WordDocument word = result.Value;
+
+        Assert.Single(word.TextBoxes);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
+    }
+
+    [Fact]
+    public void ConfiguredStylesheetPathsKeepPotentialRegionsInDiagnosedSemanticFlow() {
+        string path = Path.GetTempFileName();
+        try {
+            File.WriteAllText(path,
+                ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
+            var options = new HtmlToWordOptions();
+            options.StylesheetPaths.Add(path);
+
+            HtmlToWordResult result = HtmlConversionDocument.Parse(
+                "<div class='positioned'>Path styled anchor</div>").ToWordDocumentResult(options);
+            using WordDocument word = result.Value;
+
+            Assert.Empty(word.TextBoxes);
+            Assert.NotEmpty(word.Find("Path styled anchor", StringComparison.Ordinal));
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+                && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task AllowedDocumentStylesheetLinksKeepPotentialRegionsInDiagnosedSemanticFlow() {
+        using var httpClient = new HttpClient(new RegionImageHandler(_ => {
+            var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent(
+                    ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}")
+            };
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/css");
+            return Task.FromResult(response);
+        }));
+        var options = new HtmlToWordOptions {
+            AllowDocumentStylesheetLinks = true,
+            HttpClient = httpClient
+        };
+        options.AllowedStylesheetHosts.Add("styles.example.test");
+        const string html = "<link rel='stylesheet' href='https://styles.example.test/layout.css'>" +
+            "<div class='positioned'>Linked styled anchor</div>";
+
+        HtmlToWordResult result = await HtmlConversionDocument.Parse(html)
+            .ToWordDocumentResultAsync(options);
+        using WordDocument word = result.Value;
+
+        Assert.Empty(word.TextBoxes);
+        Assert.NotEmpty(word.Find("Linked styled anchor", StringComparison.Ordinal));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
+    }
+
+    [Fact]
     public void PositionedAndFloatingRegionsReopenAsEditableWordAnchors() {
         const string html = "<style>" +
             ".positioned{position:absolute;left:32px;top:24px;width:240px;height:72px;background:#dbeafe;z-index:4}" +

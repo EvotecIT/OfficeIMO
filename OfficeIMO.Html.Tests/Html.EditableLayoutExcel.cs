@@ -138,6 +138,22 @@ public sealed class HtmlEditableLayoutExcelTests {
     }
 
     [Fact]
+    public void NegativeRegionCoordinatesAreClampedWithStableDiagnostic() {
+        const string html = "<div style='position:absolute;left:-128px;top:-40px;width:128px;height:40px'>Clamped anchor</div>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+
+        Assert.True(FindCellText(sheet, "Clamped anchor").HasValue);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("minimumColumn=1", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void OverlappingRegionsMoveToDistinctNonOverlappingCellAnchors() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;left:32px;top:200px;width:240px;height:72px'>First region" +

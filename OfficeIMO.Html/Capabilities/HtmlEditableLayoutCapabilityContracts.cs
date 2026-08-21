@@ -35,19 +35,19 @@ public static class HtmlEditableLayoutCapabilityContracts {
             "bounded positioned and floating regions",
             "page-relative DrawingML text-box anchors with bounded native offsets and size, wrap, and z-order",
             "solid fill plus policy-approved inline pictures with native crop and alpha",
-            "semantic-rich, mixed inline text/picture, region or descendant paint-effect, and paged print regions stay in flow when native ownership would flatten, reorder, or mispaint content; extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
+            "semantic-rich, mixed inline text/picture, region or descendant paint-effect, paged print, multi-page continuous, and external-stylesheet-owned regions stay in flow when native ownership would flatten, reorder, mispaint, or lose page ownership; extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Rtf,
             "bounded positioned and floating regions",
             "page-anchored RTF paragraph frames with bounded native offsets and size plus wrap controls",
             "solid frame background plus embedded PNG/JPEG pictures",
-            "semantic-rich, mixed inline text/picture, region or descendant paint-effect, and paged print regions stay in flow when native ownership would flatten, reorder, or mispaint content; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
+            "semantic-rich, mixed inline text/picture, region or descendant paint-effect, paged print, and multi-page continuous regions stay in flow when native ownership would flatten, reorder, mispaint, or lose page ownership; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Excel,
             "bounded positioned, floating, flex, and grid regions",
             "editable merged-cell regions plus absolute DrawingML picture anchors",
             "cell fills, foreground DrawingML pictures, and picture alpha",
-            "semantic-rich, root/descendant border, and region or descendant paint-effect regions stay in flow; background image layers are omitted to keep editable cell text visible, while worksheet ownership, bounds, cell shadows, and unsupported image/effect types are diagnosed"),
+            "semantic-rich, root/descendant border, and region or descendant paint-effect regions stay in flow; background image layers are omitted to keep editable cell text visible, while worksheet ownership, negative-coordinate clamping, bounds, cell shadows, and unsupported image/effect types are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.PowerPoint,
             "bounded positioned, floating, flex, and grid regions",

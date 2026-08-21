@@ -160,6 +160,14 @@ public static partial class HtmlExcelConverterExtensions {
             double regionHeight = NormalizeEditableLayoutGeometry(
                 region.Height, maximumGeometry, 1D, maximumGeometry,
                 budget, result, "editable layout region height");
+            if (localRegionX < 0D || localRegionY < 0D) {
+                AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "Excel clamped a negative editable layout coordinate to the first worksheet row or column.",
+                    lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                    detail: "requestedX=" + localRegionX.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; requestedY=" + localRegionY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; minimumRow=1; minimumColumn=1");
+            }
             int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(localRegionX / 64D) + 1));
             int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(localRegionY / 20D) + 1));
             int lastColumn = Math.Max(firstColumn, Math.Min(A1.MaxColumns,

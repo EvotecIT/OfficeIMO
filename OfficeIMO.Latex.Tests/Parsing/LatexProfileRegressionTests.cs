@@ -22,6 +22,20 @@ public sealed class LatexProfileRegressionTests {
     }
 
     [Fact]
+    public void DirectParseRejectsUnknownNamedProfile() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.Parse(
+            "\\begin{document}Profile\\end{document}",
+            new LatexParseOptions { Profile = (LatexDocumentProfile)999 }));
+    }
+
+    [Fact]
+    public void DirectParseRejectsUnknownMacroExpansionMode() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => LatexDocument.Parse(
+            "\\begin{document}Macro\\end{document}",
+            new LatexParseOptions { MacroExpansion = (LatexMacroExpansion)999 }));
+    }
+
+    [Fact]
     public void PreserveOnly_RetainsStructuralModelWithoutOfficeProfileSemantics() {
         const string source =
             "\\documentclass{article}\n" +

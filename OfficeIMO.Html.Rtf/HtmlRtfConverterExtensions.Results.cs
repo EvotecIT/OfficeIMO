@@ -21,7 +21,8 @@ public static partial class HtmlRtfConverterExtensions {
                 document,
                 mediaContext: document.MediaContext,
                 regionKinds: regionKinds,
-                maximumEditableSurfaceNumber: document.MediaContext == HtmlCssMediaContext.Print ? 0 : 1)
+                maximumEditableSurfaceNumber: document.MediaContext == HtmlCssMediaContext.Print ? 0 : 1,
+                maximumEditableContinuousSurfaceHeight: new HtmlRenderOptions().PageHeight)
             : null;
         AddEditableLayoutDiagnostics(editableLayout, resolved);
         AngleSharp.Html.Dom.IHtmlDocument sourceDocument = editableLayout?.RemainingDocument

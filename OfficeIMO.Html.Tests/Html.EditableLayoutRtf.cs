@@ -87,6 +87,22 @@ public sealed class HtmlEditableLayoutRtfTests {
     }
 
     [Fact]
+    public void MultiPageContinuousRegionsStaySemanticWithoutAmbiguousPageFrames() {
+        const string html = "<div style='height:1400px'>Long semantic flow</div>" +
+            "<div style='position:absolute;top:24px;width:160px;height:40px'>Ambiguous frame</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains("Ambiguous frame", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void OversizedFrameCoordinateIsBoundedWithStableDiagnostic() {
         const string html = "<div style='position:absolute;left:300000000px;top:24px;width:180px;height:70px'>Bounded frame</div>";
 

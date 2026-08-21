@@ -106,6 +106,7 @@ public static class HtmlEditableLayoutProjector {
         HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
         int? maximumEditableSurfaceNumber = null) => ProjectCore(
             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
+            maximumEditableContinuousSurfaceHeight: null,
             preserveMixedInlineContent: false);
 
     internal static HtmlEditableLayoutProjection ProjectPreservingMixedInlineContent(
@@ -113,8 +114,10 @@ public static class HtmlEditableLayoutProjector {
         HtmlRenderOptions? renderOptions = null,
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen,
         HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
-        int? maximumEditableSurfaceNumber = null) => ProjectCore(
+        int? maximumEditableSurfaceNumber = null,
+        double? maximumEditableContinuousSurfaceHeight = null) => ProjectCore(
             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
+            maximumEditableContinuousSurfaceHeight,
             preserveMixedInlineContent: true);
 
     private static HtmlEditableLayoutProjection ProjectCore(
@@ -123,10 +126,14 @@ public static class HtmlEditableLayoutProjector {
         HtmlCssMediaContext mediaContext,
         HtmlEditableLayoutRegionKinds regionKinds,
         int? maximumEditableSurfaceNumber,
+        double? maximumEditableContinuousSurfaceHeight,
         bool preserveMixedInlineContent) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if ((regionKinds & ~HtmlEditableLayoutRegionKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(regionKinds));
         if (maximumEditableSurfaceNumber < 0) throw new ArgumentOutOfRangeException(nameof(maximumEditableSurfaceNumber));
+        if (maximumEditableContinuousSurfaceHeight <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(maximumEditableContinuousSurfaceHeight));
+        }
         IHtmlDocument adapterDocument = document.CreateSourceDocumentForConversion();
         foreach (IElement element in adapterDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
             element.RemoveAttribute(RegionAttribute);
@@ -178,6 +185,12 @@ public static class HtmlEditableLayoutProjector {
 
         options.EnableEditableLayoutRegions = true;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options);
+        double continuousSurfaceHeight = rendered.Pages.Count == 0
+            ? 0D
+            : rendered.Pages.Max(page => page.Height);
+        bool continuousPageOwnershipUnavailable = options.Mode == HtmlRenderMode.Continuous
+            && maximumEditableContinuousSurfaceHeight.HasValue
+            && continuousSurfaceHeight > maximumEditableContinuousSurfaceHeight.Value;
         var occurrences = new List<EditableLayoutRegionOccurrence>();
         foreach (HtmlRenderPage page in rendered.Pages) {
             occurrences.AddRange(EnumerateRegions(page.Scene, page.PageNumber, null));
@@ -224,6 +237,15 @@ public static class HtmlEditableLayoutProjector {
             selected.SemanticSectionOriginY = selectedOccurrence.SectionOriginY;
             selected.SemanticTableOriginX = selectedOccurrence.TableOriginX;
             selected.SemanticTableOriginY = selectedOccurrence.TableOriginY;
+            if (continuousPageOwnershipUnavailable) {
+                diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "An editable layout region stayed in semantic flow because a multi-page continuous coordinate cannot be mapped to one page-relative native anchor.",
+                    HtmlDiagnosticSeverity.Warning, selected.Source,
+                    "continuousSurfaceHeight=" + continuousSurfaceHeight.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; maximumPageHeight=" + maximumEditableContinuousSurfaceHeight!.Value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture),
+                    OfficeConversionLossKind.Approximation);
+                continue;
+            }
             if (maximumEditableSurfaceNumber.HasValue
                 && selected.SurfaceNumber > maximumEditableSurfaceNumber.Value) {
                 diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
@@ -305,15 +327,26 @@ public static class HtmlEditableLayoutProjector {
 
     internal static bool MayContainEditableLayoutRegions(
         HtmlConversionDocument document,
-        HtmlEditableLayoutRegionKinds regionKinds) {
+        HtmlEditableLayoutRegionKinds regionKinds,
+        IEnumerable<string>? additionalStylesheets = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        string html = document.SourceHtml;
+        if (MayContainEditableLayoutRegions(document.SourceHtml, regionKinds)) return true;
+        return additionalStylesheets != null
+            && additionalStylesheets.Any(stylesheet =>
+                MayContainEditableLayoutRegions(stylesheet, regionKinds));
+    }
+
+    private static bool MayContainEditableLayoutRegions(
+        string? html,
+        HtmlEditableLayoutRegionKinds regionKinds) {
+        if (string.IsNullOrWhiteSpace(html)) return false;
+        string content = html!;
         return ((regionKinds & HtmlEditableLayoutRegionKinds.Positioned) != 0
-                && html.IndexOf("position", StringComparison.OrdinalIgnoreCase) >= 0)
+                && content.IndexOf("position", StringComparison.OrdinalIgnoreCase) >= 0)
             || ((regionKinds & HtmlEditableLayoutRegionKinds.Floating) != 0
-                && html.IndexOf("float", StringComparison.OrdinalIgnoreCase) >= 0)
+                && content.IndexOf("float", StringComparison.OrdinalIgnoreCase) >= 0)
             || ((regionKinds & (HtmlEditableLayoutRegionKinds.Flex | HtmlEditableLayoutRegionKinds.Grid)) != 0
-                && html.IndexOf("display", StringComparison.OrdinalIgnoreCase) >= 0);
+                && content.IndexOf("display", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     internal static IEnumerable<(HtmlRenderImage Image, double Opacity)> EnumerateImages(

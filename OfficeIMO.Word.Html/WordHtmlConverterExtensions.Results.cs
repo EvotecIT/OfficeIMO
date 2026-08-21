@@ -27,13 +27,32 @@ public static partial class WordHtmlConverterExtensions {
             : HtmlCssMediaContext.Screen;
         HtmlEditableLayoutRegionKinds regionKinds =
             HtmlEditableLayoutRegionKinds.Positioned | HtmlEditableLayoutRegionKinds.Floating;
+        var projectionOptions = new HtmlRenderOptions();
+        foreach (string stylesheet in resolved.StylesheetContents.Where(value => !string.IsNullOrWhiteSpace(value))) {
+            projectionOptions.AdditionalStylesheets.Add(stylesheet);
+        }
+        bool externalStylesheetBoundary = HasExternalEditableLayoutStylesheetBoundary(document, resolved);
+        if (resolved.ImportEditableLayoutRegions
+            && externalStylesheetBoundary
+            && HasExternallyStyledLayoutCandidate(document)) {
+            resolved.ConversionReport.Add("OfficeIMO.Word.Html",
+                HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "Word kept potential editable layout regions in semantic flow because external stylesheet sources are applied by the destination importer after shared projection.",
+                HtmlDiagnosticSeverity.Warning, "stylesheet",
+                "externalStylesheetSources=true; semanticFlow=true",
+                OfficeConversionLossKind.Approximation);
+        }
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions
-            && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, regionKinds)
+            && !externalStylesheetBoundary
+            && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(
+                document, regionKinds, projectionOptions.AdditionalStylesheets)
             ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
                 document,
+                renderOptions: projectionOptions,
                 mediaContext: mediaContext,
                 regionKinds: regionKinds,
-                maximumEditableSurfaceNumber: mediaContext == HtmlCssMediaContext.Print ? 0 : 1)
+                maximumEditableSurfaceNumber: mediaContext == HtmlCssMediaContext.Print ? 0 : 1,
+                maximumEditableContinuousSurfaceHeight: projectionOptions.PageHeight)
             : null;
         if (editableLayout != null) resolved.ConversionReport.AddRange(editableLayout.Diagnostics);
         var converter = new HtmlToWordConverter();
@@ -48,6 +67,20 @@ public static partial class WordHtmlConverterExtensions {
                 wordDocument, editableLayout, resolved, cancellationToken).ConfigureAwait(false);
         }
         return CreateResult(wordDocument, resolved);
+    }
+
+    private static bool HasExternalEditableLayoutStylesheetBoundary(
+        HtmlConversionDocument document,
+        HtmlToWordOptions options) {
+        if (options.StylesheetPaths.Any(path => !string.IsNullOrWhiteSpace(path))) return true;
+        if (!options.AllowDocumentStylesheetLinks) return false;
+        AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
+        return source.QuerySelectorAll("link[rel~='stylesheet'][href]").Length > 0;
+    }
+
+    private static bool HasExternallyStyledLayoutCandidate(HtmlConversionDocument document) {
+        AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
+        return source.QuerySelector("body [class], body [id]") != null;
     }
 
     private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options) {

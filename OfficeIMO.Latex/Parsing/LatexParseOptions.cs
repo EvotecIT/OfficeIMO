@@ -63,4 +63,15 @@ public sealed class LatexParseOptions {
 
     /// <summary>Maximum tokens consumed across one explicit safe macro expansion.</summary>
     public int MaximumExpansionTokenCount { get; set; } = 2_000_000;
+
+    internal void ValidateNamedModes() {
+        if (Profile != LatexDocumentProfile.OfficeIMO && Profile != LatexDocumentProfile.PreserveOnly) {
+            throw new ArgumentOutOfRangeException(nameof(Profile), Profile, "Unknown LaTeX document profile.");
+        }
+        if (MacroExpansion != LatexMacroExpansion.None
+            && MacroExpansion != LatexMacroExpansion.SafeSimpleDefinitions) {
+            throw new ArgumentOutOfRangeException(nameof(MacroExpansion), MacroExpansion,
+                "Unknown LaTeX macro expansion mode.");
+        }
+    }
 }

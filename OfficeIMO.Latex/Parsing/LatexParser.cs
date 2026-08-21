@@ -11,6 +11,7 @@ internal static class LatexParser {
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         options ??= new LatexParseOptions();
+        options.ValidateNamedModes();
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(source, options, cancellationToken);
         var sourceText = new LatexSourceText(source);
