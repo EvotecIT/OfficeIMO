@@ -485,13 +485,10 @@ public static partial class HtmlEditableLayoutProjector {
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         IReadOnlyList<string> properties) {
-        if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
-            || element.ParentElement == null
-            || !styles.TryGetValue(element.ParentElement, out HtmlComputedStyle? parentStyle)) return false;
-        return properties.Any(property => !style.IsInheritedValue(property)
+        if (!styles.TryGetValue(element, out HtmlComputedStyle? style)) return false;
+        return properties.Any(property => style.IsSpecifiedValue(property)
+            && !style.IsInheritedValue(property)
             && !style.IsResetValue(property)
-            && !string.IsNullOrWhiteSpace(style.GetValue(property))
-            && !string.Equals(style.GetValue(property), parentStyle.GetValue(property),
-                StringComparison.OrdinalIgnoreCase));
+            && !string.IsNullOrWhiteSpace(style.GetValue(property)));
     }
 }

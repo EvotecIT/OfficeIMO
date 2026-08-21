@@ -83,7 +83,7 @@ public static partial class HtmlEditableLayoutProjector {
         "a", "abbr", "audio", "b", "blockquote", "br", "button", "canvas", "cite", "code", "dd", "del",
         "details", "dfn", "dl", "dt", "em", "embed", "fieldset", "figure", "figcaption", "form", "h1", "h2",
         "h3", "h4", "h5", "h6", "hr", "i", "iframe", "input", "ins", "kbd", "label", "li", "mark",
-        "object", "ol", "p", "picture", "pre", "q", "s", "samp", "select", "strong", "sub", "summary",
+        "meter", "object", "ol", "p", "picture", "pre", "progress", "q", "s", "samp", "select", "strong", "sub", "summary",
         "sup", "svg", "table", "textarea", "time", "u", "ul", "var", "video",
         "math", "ruby", "rb", "rp", "rt", "rtc"
     };

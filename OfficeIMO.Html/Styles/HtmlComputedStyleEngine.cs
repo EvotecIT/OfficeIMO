@@ -382,8 +382,10 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
-        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties, out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties);
-        var style = new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties);
+        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
+            out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties,
+            out IReadOnlyCollection<string> specifiedProperties);
+        var style = new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
         computed[element] = style;
 
         double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
@@ -455,8 +457,10 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (!matched) return null;
-        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties, out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties);
-        return new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties);
+        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties,
+            out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties,
+            out IReadOnlyCollection<string> specifiedProperties);
+        return new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
     }
 
 }
