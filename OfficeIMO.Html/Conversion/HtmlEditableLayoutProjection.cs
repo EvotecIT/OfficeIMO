@@ -104,7 +104,26 @@ public static class HtmlEditableLayoutProjector {
         HtmlRenderOptions? renderOptions = null,
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen,
         HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
-        int? maximumEditableSurfaceNumber = null) {
+        int? maximumEditableSurfaceNumber = null) => ProjectCore(
+            document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
+            preserveMixedInlineContent: false);
+
+    internal static HtmlEditableLayoutProjection ProjectPreservingMixedInlineContent(
+        HtmlConversionDocument document,
+        HtmlRenderOptions? renderOptions = null,
+        HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen,
+        HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
+        int? maximumEditableSurfaceNumber = null) => ProjectCore(
+            document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
+            preserveMixedInlineContent: true);
+
+    private static HtmlEditableLayoutProjection ProjectCore(
+        HtmlConversionDocument document,
+        HtmlRenderOptions? renderOptions,
+        HtmlCssMediaContext mediaContext,
+        HtmlEditableLayoutRegionKinds regionKinds,
+        int? maximumEditableSurfaceNumber,
+        bool preserveMixedInlineContent) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if ((regionKinds & ~HtmlEditableLayoutRegionKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(regionKinds));
         if (maximumEditableSurfaceNumber < 0) throw new ArgumentOutOfRangeException(nameof(maximumEditableSurfaceNumber));
@@ -139,7 +158,7 @@ public static class HtmlEditableLayoutProjector {
                 effectCandidates.Add((element, effectDetail));
                 continue;
             }
-            if (ContainsMixedInlineImageContent(element, styles)) {
+            if (preserveMixedInlineContent && ContainsMixedInlineImageContent(element, styles)) {
                 mixedInlineImageCandidates.Add(element);
                 continue;
             }
@@ -203,6 +222,8 @@ public static class HtmlEditableLayoutProjector {
             EditableLayoutRegionOccurrence selectedOccurrence = group.First(item => ReferenceEquals(item.Region, selected));
             selected.SemanticSectionOriginX = selectedOccurrence.SectionOriginX;
             selected.SemanticSectionOriginY = selectedOccurrence.SectionOriginY;
+            selected.SemanticTableOriginX = selectedOccurrence.TableOriginX;
+            selected.SemanticTableOriginY = selectedOccurrence.TableOriginY;
             if (maximumEditableSurfaceNumber.HasValue
                 && selected.SurfaceNumber > maximumEditableSurfaceNumber.Value) {
                 diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
@@ -390,7 +411,7 @@ public static class HtmlEditableLayoutProjector {
         return matches.Count == 1;
     }
 
-    private static bool IsBackgroundImage(HtmlRenderImage image) =>
+    internal static bool IsBackgroundImage(HtmlRenderImage image) =>
         image.Source?.IndexOf(":background-image", StringComparison.Ordinal) >= 0;
 
     internal static string DescribeImageSource(string? key) =>
@@ -475,9 +496,7 @@ public static class HtmlEditableLayoutProjector {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         var contentOrder = new List<bool>();
         AppendInlineContentOrder(element, element, styles, contentOrder);
-        int firstImage = contentOrder.IndexOf(true);
-        int lastImage = contentOrder.LastIndexOf(true);
-        return firstImage > 0 && lastImage >= firstImage && lastImage < contentOrder.Count - 1;
+        return contentOrder.Contains(true) && contentOrder.Contains(false);
     }
 
     private static void AppendInlineContentOrder(
@@ -502,30 +521,43 @@ public static class HtmlEditableLayoutProjector {
         out string detail) {
         var effects = new List<string>();
         for (IElement? current = element; current != null; current = current.ParentElement) {
-            if (!styles.TryGetValue(current, out HtmlComputedStyle? style)) continue;
-            string opacity = style.GetValue("opacity").Trim();
-            if (double.TryParse(opacity, System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out double parsedOpacity)
-                && parsedOpacity < 0.999D) {
-                effects.Add("opacity=" + opacity);
-            }
-            AddNonDefaultEffect(style, "transform", "none", effects);
-            AddNonDefaultEffect(style, "clip-path", "none", effects);
-            AddNonDefaultEffect(style, "filter", "none", effects);
-            AddNonDefaultEffect(style, "mix-blend-mode", "normal", effects);
+            AddNonNativeEffects(current, styles, effects, "");
+        }
+        foreach (IElement descendant in element.QuerySelectorAll("*")) {
+            AddNonNativeEffects(descendant, styles, effects, "descendant:");
         }
         detail = string.Join("; ", effects.Distinct(StringComparer.OrdinalIgnoreCase));
         return effects.Count > 0;
+    }
+
+    private static void AddNonNativeEffects(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        ICollection<string> effects,
+        string prefix) {
+        if (!styles.TryGetValue(element, out HtmlComputedStyle? style)) return;
+        string opacity = style.GetValue("opacity").Trim();
+        if (element is not IHtmlImageElement
+            && double.TryParse(opacity, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out double parsedOpacity)
+            && parsedOpacity < 0.999D) {
+            effects.Add(prefix + "opacity=" + opacity);
+        }
+        AddNonDefaultEffect(style, "transform", "none", effects, prefix);
+        AddNonDefaultEffect(style, "clip-path", "none", effects, prefix);
+        AddNonDefaultEffect(style, "filter", "none", effects, prefix);
+        AddNonDefaultEffect(style, "mix-blend-mode", "normal", effects, prefix);
     }
 
     private static void AddNonDefaultEffect(
         HtmlComputedStyle style,
         string property,
         string defaultValue,
-        ICollection<string> effects) {
+        ICollection<string> effects,
+        string prefix = "") {
         string value = style.GetValue(property).Trim();
         if (value.Length > 0 && !value.Equals(defaultValue, StringComparison.OrdinalIgnoreCase)) {
-            effects.Add(property + "=" + value);
+            effects.Add(prefix + property + "=" + value);
         }
     }
 
@@ -561,18 +593,25 @@ public static class HtmlEditableLayoutProjector {
     private static IEnumerable<EditableLayoutRegionOccurrence> EnumerateRegions(
         IEnumerable<HtmlRenderVisual> visuals,
         int pageNumber,
-        (double X, double Y)? sectionOrigin) {
+        (double X, double Y)? sectionOrigin,
+        (double X, double Y)? tableOrigin = null) {
         foreach (HtmlRenderVisual visual in visuals) {
             (double X, double Y)? childSectionOrigin = sectionOrigin == null
                 && visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Section } section
                     ? (section.X, section.Y)
                     : sectionOrigin;
+            (double X, double Y)? childTableOrigin = tableOrigin == null
+                && visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Table } table
+                    ? (table.X, table.Y)
+                    : tableOrigin;
             if (visual is HtmlRenderLayoutRegion region) {
                 yield return new EditableLayoutRegionOccurrence(
-                    pageNumber, region, childSectionOrigin?.X ?? 0D, childSectionOrigin?.Y ?? 0D);
+                    pageNumber, region,
+                    childSectionOrigin?.X ?? 0D, childSectionOrigin?.Y ?? 0D,
+                    childTableOrigin?.X ?? 0D, childTableOrigin?.Y ?? 0D);
             }
             foreach (EditableLayoutRegionOccurrence child in EnumerateRegions(
-                         GetChildren(visual), pageNumber, childSectionOrigin)) yield return child;
+                         GetChildren(visual), pageNumber, childSectionOrigin, childTableOrigin)) yield return child;
         }
     }
 
@@ -581,17 +620,23 @@ public static class HtmlEditableLayoutProjector {
             int page,
             HtmlRenderLayoutRegion region,
             double sectionOriginX,
-            double sectionOriginY) {
+            double sectionOriginY,
+            double tableOriginX,
+            double tableOriginY) {
             Page = page;
             Region = region;
             SectionOriginX = sectionOriginX;
             SectionOriginY = sectionOriginY;
+            TableOriginX = tableOriginX;
+            TableOriginY = tableOriginY;
         }
 
         internal int Page { get; }
         internal HtmlRenderLayoutRegion Region { get; }
         internal double SectionOriginX { get; }
         internal double SectionOriginY { get; }
+        internal double TableOriginX { get; }
+        internal double TableOriginY { get; }
     }
 
     private static IEnumerable<HtmlRenderVisual> GetChildren(HtmlRenderVisual visual) => visual switch {

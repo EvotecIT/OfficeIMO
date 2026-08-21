@@ -11,6 +11,59 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlDocumentTests {
     [Fact]
+    public async Task RedirectedStylesheetUsesFinalUriForDependenciesAndCanonicalIdentity() {
+        var document = new MhtmlDocument(
+            "<link rel='stylesheet' href='https://example.test/style.css'><p>Redirected style</p>",
+            contentLocation: "https://example.test/page.html");
+        var requested = new List<Uri>();
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        MhtmlRemoteResourcePolicy policy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);
+        policy.ResourceFetcher = (request, cancellationToken) => {
+            requested.Add(request.Uri);
+            MhtmlRemoteResourceResponse response = request.Uri.AbsolutePath switch {
+                "/style.css" => MhtmlRemoteResourceResponse.Redirect(
+                    new Uri("/assets/style.css", UriKind.Relative)),
+                "/assets/style.css" => new MhtmlRemoteResourceResponse(
+                    Encoding.UTF8.GetBytes("p{background-image:url(image.png)}"), "text/css"),
+                "/assets/image.png" => new MhtmlRemoteResourceResponse(png, "image/png"),
+                _ => new MhtmlRemoteResourceResponse(Array.Empty<byte>(), "application/octet-stream")
+            };
+            return Task.FromResult<MhtmlRemoteResourceResponse?>(response);
+        };
+        var options = new HtmlRenderOptions();
+        document.ConfigureRenderOptions(options, policy);
+
+        HtmlResourceSession session = await HtmlResourceSession.ResolveAsync(
+            document.HtmlDocument.ResourceManifest, options);
+
+        Assert.Contains(new Uri("https://example.test/assets/image.png"), requested);
+        Assert.DoesNotContain(new Uri("https://example.test/image.png"), requested);
+        Assert.Contains(session.Resources, entry =>
+            entry.Kind == HtmlResourceKind.Stylesheet
+            && entry.CanonicalSource == "https://example.test/assets/style.css");
+    }
+
+    [Fact]
+    public void RemotePolicyRejectsRelationallyInconsistentResourceLimits() {
+        var document = new MhtmlDocument("<p>Limits</p>", contentLocation: "https://example.test/page.html");
+        MhtmlRemoteResourcePolicy bytePolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile();
+        bytePolicy.MaximumResourceBytes = 10;
+        bytePolicy.MaximumTotalResourceBytes = 5;
+
+        ArgumentOutOfRangeException byteException = Assert.Throws<ArgumentOutOfRangeException>(
+            () => document.ConfigureRenderOptions(new HtmlRenderOptions(), bytePolicy));
+        Assert.Equal(nameof(MhtmlRemoteResourcePolicy.MaximumTotalResourceBytes), byteException.ParamName);
+
+        MhtmlRemoteResourcePolicy requestPolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile();
+        requestPolicy.MaximumResourceCount = 2;
+        requestPolicy.MaximumResourceRequests = 1;
+
+        ArgumentOutOfRangeException requestException = Assert.Throws<ArgumentOutOfRangeException>(
+            () => document.ConfigureRenderOptions(new HtmlRenderOptions(), requestPolicy));
+        Assert.Equal(nameof(MhtmlRemoteResourcePolicy.MaximumResourceRequests), requestException.ParamName);
+    }
+
+    [Fact]
     public async Task ConcurrentRedirectBudgetFailuresEmitOneDiagnosticPerResource() {
         var document = new MhtmlDocument(
             "<img src='https://example.test/a.png'><img src='https://example.test/b.png'>",

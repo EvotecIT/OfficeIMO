@@ -31,7 +31,7 @@ public sealed class HtmlEditableLayoutWordTests {
     public void PositionedRegionRetainsItsForegroundPictureAndEffects() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 3));
         string html = "<div style='position:absolute;width:180px;height:70px;background-image:url(\"" + image + "\")'>" +
-            "Region picture<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
+            "<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
             "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px;opacity:.4'></div>";
 
         HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
@@ -44,8 +44,7 @@ public sealed class HtmlEditableLayoutWordTests {
         byte[] bytes = stream.ToArray();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes),
             new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-        Assert.Single(reopened.TextBoxes, textBox => textBox.Paragraphs.Any(paragraph =>
-            paragraph.Text.Contains("Region picture", StringComparison.Ordinal)));
+        Assert.Single(reopened.TextBoxes);
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(bytes), false);
         Assert.Single(package.MainDocumentPart!.ImageParts);
         using var reader = new StreamReader(package.MainDocumentPart!.GetStream());

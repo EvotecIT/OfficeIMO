@@ -29,7 +29,7 @@ public static partial class WordHtmlConverterExtensions {
             HtmlEditableLayoutRegionKinds.Positioned | HtmlEditableLayoutRegionKinds.Floating;
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, regionKinds)
-            ? HtmlEditableLayoutProjector.Project(
+            ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
                 document,
                 mediaContext: mediaContext,
                 regionKinds: regionKinds,

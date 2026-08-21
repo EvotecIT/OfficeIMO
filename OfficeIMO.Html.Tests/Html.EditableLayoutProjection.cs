@@ -86,7 +86,8 @@ public sealed class HtmlEditableLayoutProjectionTests {
     [Fact]
     public void RegionAndAncestorPaintEffectsKeepContentInSemanticFlow() {
         const string html = "<div style='opacity:0'><div style='position:absolute;width:180px;height:50px'>Hidden by ancestor</div></div>" +
-            "<div style='position:absolute;width:180px;height:50px;transform:rotate(4deg)'>Transformed</div>";
+            "<div style='position:absolute;width:180px;height:50px;transform:rotate(4deg)'>Transformed</div>" +
+            "<div style='position:absolute;width:180px;height:50px'>Visible<span style='opacity:0'>Hidden descendant</span></div>";
 
         HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
             HtmlConversionDocument.Parse(html));
@@ -94,12 +95,14 @@ public sealed class HtmlEditableLayoutProjectionTests {
         Assert.Empty(projection.Regions);
         Assert.Contains("Hidden by ancestor", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
         Assert.Contains("Transformed", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
-        Assert.Equal(2, projection.Diagnostics.Count(diagnostic =>
+        Assert.Equal(3, projection.Diagnostics.Count(diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.EffectUnsupported));
         Assert.Contains(projection.Diagnostics, diagnostic =>
             diagnostic.Detail != null && diagnostic.Detail.Contains("opacity=0", StringComparison.Ordinal));
         Assert.Contains(projection.Diagnostics, diagnostic =>
             diagnostic.Detail != null && diagnostic.Detail.Contains("transform=", StringComparison.Ordinal));
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Detail != null && diagnostic.Detail.Contains("descendant:opacity=0", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -107,9 +110,13 @@ public sealed class HtmlEditableLayoutProjectionTests {
         string image = "data:image/png;base64," + Convert.ToBase64String(
             OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;width:180px;height:50px'>Before" +
-            "<img alt='Middle' src='" + image + "'>After</div>";
+            "<img alt='Middle' src='" + image + "'>After</div>" +
+            "<div style='position:absolute;width:180px;height:50px'><img alt='First' src='" + image + "'>After</div>" +
+            "<div style='position:absolute;width:180px;height:50px'>Before<img alt='Last' src='" + image + "'></div>" +
+            "<div style='position:absolute;width:180px;height:50px'><img alt='First' src='" + image + "'>Middle" +
+            "<img alt='Last' src='" + image + "'></div>";
 
-        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
             HtmlConversionDocument.Parse(html));
 
         Assert.Empty(projection.Regions);
@@ -118,9 +125,9 @@ public sealed class HtmlEditableLayoutProjectionTests {
         int picture = remaining.IndexOf("<img", StringComparison.OrdinalIgnoreCase);
         int after = remaining.IndexOf("After", StringComparison.Ordinal);
         Assert.True(before >= 0 && before < picture && picture < after);
-        Assert.Contains(projection.Diagnostics, diagnostic =>
+        Assert.Equal(4, projection.Diagnostics.Count(diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
-            && diagnostic.Detail == "mixedInlinePictures=true");
+            && diagnostic.Detail == "mixedInlinePictures=true"));
     }
 
     [Fact]

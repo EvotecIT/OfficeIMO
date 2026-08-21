@@ -192,6 +192,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             rebuiltRegion.SemanticSectionOriginX = region.SemanticSectionOriginX;
             rebuiltRegion.SemanticSectionOriginY = region.SemanticSectionOriginY;
             rebuiltRegion.SemanticTableNumber = region.SemanticTableNumber;
+            rebuiltRegion.SemanticTableOriginX = region.SemanticTableOriginX;
+            rebuiltRegion.SemanticTableOriginY = region.SemanticTableOriginY;
             return rebuiltRegion;
         }
 

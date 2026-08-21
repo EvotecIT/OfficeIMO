@@ -147,8 +147,10 @@ public static partial class HtmlExcelConverterExtensions {
             foreach (ExcelImage image in sheet.Images) {
                 occupied.Add(GetImageCellBounds(image));
             }
-            int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(region.X / 64D) + 1));
-            int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(region.Y / 20D) + 1));
+            double localRegionX = region.X - region.SemanticTableOriginX;
+            double localRegionY = region.Y - region.SemanticTableOriginY;
+            int firstColumn = Math.Max(1, Math.Min(A1.MaxColumns, (int)Math.Floor(localRegionX / 64D) + 1));
+            int firstRow = Math.Max(1, Math.Min(A1.MaxRows, (int)Math.Floor(localRegionY / 20D) + 1));
             int lastColumn = Math.Max(firstColumn, Math.Min(A1.MaxColumns,
                 firstColumn + Math.Max(1, (int)Math.Ceiling(region.Width / 64D)) - 1));
             int lastRow = Math.Max(firstRow, Math.Min(A1.MaxRows,
@@ -212,8 +214,9 @@ public static partial class HtmlExcelConverterExtensions {
                     }
                     using HtmlImportBudgetReservation imageReservationScope = imageReservation;
                     ExcelImage nativeImage = sheet.AddImageAbsolute(
-                        Math.Max(0, (int)Math.Round(image.Image.X)),
-                        Math.Max(0, (int)Math.Round(image.Image.Y + rowDisplacementPixels)),
+                        Math.Max(0, (int)Math.Round(image.Image.X - region.SemanticTableOriginX)),
+                        Math.Max(0, (int)Math.Round(
+                            image.Image.Y - region.SemanticTableOriginY + rowDisplacementPixels)),
                         image.Image.Bytes,
                         image.Image.ContentType,
                         Math.Max(1, (int)Math.Round(image.Image.Width)),

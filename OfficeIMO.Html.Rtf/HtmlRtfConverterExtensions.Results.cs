@@ -14,7 +14,7 @@ public static partial class HtmlRtfConverterExtensions {
             HtmlEditableLayoutRegionKinds.Positioned | HtmlEditableLayoutRegionKinds.Floating;
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, regionKinds)
-            ? HtmlEditableLayoutProjector.Project(
+            ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
                 document,
                 mediaContext: document.MediaContext,
                 regionKinds: regionKinds,

@@ -66,6 +66,29 @@ public sealed class HtmlEditableLayoutPowerPointTests {
     }
 
     [Fact]
+    public void RegionBackgroundPictureIsPaintedBehindItsTextBox() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>.background{position:absolute;width:140px;height:60px;background-image:url('" + image +
+            "');background-repeat:no-repeat;background-size:140px 60px}</style>" +
+            "<div class='background'>Text over background</div>";
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        PowerPointSlide generatedSlide = Assert.Single(result.Value.Slides);
+        PowerPointPicture background = Assert.Single(generatedSlide.Pictures);
+        PowerPointTextBox text = Assert.Single(generatedSlide.TextBoxes, box =>
+            box.Name?.StartsWith("HTML ", StringComparison.Ordinal) == true);
+        Assert.True(background.DrawingOrder < text.DrawingOrder);
+        using var stream = new MemoryStream();
+        result.Value.Save(stream);
+        result.Value.Dispose();
+
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            new MemoryStream(stream.ToArray()),
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+        Assert.Single(Assert.Single(reopened.Slides).Pictures);
+    }
+
+    [Fact]
     public void ProjectedPicturesHonorImportPicturesOption() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;width:140px;height:60px'>Region" +

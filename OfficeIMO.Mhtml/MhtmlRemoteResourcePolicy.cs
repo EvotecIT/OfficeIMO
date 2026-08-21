@@ -82,8 +82,16 @@ public sealed class MhtmlRemoteResourcePolicy {
         if (MaximumRedirects < 0) throw new ArgumentOutOfRangeException(nameof(MaximumRedirects));
         if (MaximumResourceBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResourceBytes));
         if (MaximumTotalResourceBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumTotalResourceBytes));
+        if (MaximumTotalResourceBytes < MaximumResourceBytes) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumTotalResourceBytes),
+                "The total resource-byte limit must be at least the per-resource byte limit.");
+        }
         if (MaximumResourceCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResourceCount));
         if (MaximumResourceRequests < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResourceRequests));
+        if (MaximumResourceRequests < MaximumResourceCount) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumResourceRequests),
+                "The resource-request limit must be at least the accepted-resource count limit.");
+        }
         if (ResourceTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(ResourceTimeout));
         foreach (string origin in _allowedOrigins) {
             if (!TryNormalizeOrigin(origin, out _)) {

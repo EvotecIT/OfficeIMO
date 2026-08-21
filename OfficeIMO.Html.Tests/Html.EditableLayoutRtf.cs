@@ -26,19 +26,18 @@ public sealed class HtmlEditableLayoutRtfTests {
     public void PositionedRegionRetainsEmbeddedPngPicture() {
         byte[] png = PdfPngTestImages.CreateRgbPng(4, 3);
         string image = "data:image/png;base64," + Convert.ToBase64String(png);
-        string html = "<div style='position:absolute;width:180px;height:70px'>Region picture" +
+        string html = "<div style='position:absolute;width:180px;height:70px'>" +
             "<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
             "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
-        RtfReadResult reopened = RtfDocument.Read(result.Value.ToRtf());
-
-        RtfParagraph paragraph = Assert.Single(reopened.Document.Paragraphs, item =>
-            item.ToPlainText().Contains("Region picture", StringComparison.Ordinal));
+        RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
+            item.Inlines.OfType<RtfImage>().Any());
         RtfImage picture = Assert.Single(paragraph.Inlines.OfType<RtfImage>());
         Assert.Equal(RtfImageFormat.Png, picture.Format);
         Assert.Equal(360, picture.DesiredWidthTwips);
         Assert.Equal(270, picture.DesiredHeightTwips);
+        Assert.Contains(@"\pict", result.Value.ToRtf(), StringComparison.Ordinal);
     }
 
     [Fact]

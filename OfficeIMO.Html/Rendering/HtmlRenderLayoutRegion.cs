@@ -84,6 +84,10 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
     internal double SemanticSectionOriginY { get; set; }
     /// <summary>One-based owning root semantic table, or zero for narrative content.</summary>
     public int SemanticTableNumber { get; internal set; }
+    /// <summary>Rendered horizontal origin of the owning root semantic table.</summary>
+    internal double SemanticTableOriginX { get; set; }
+    /// <summary>Rendered vertical origin of the owning root semantic table.</summary>
+    internal double SemanticTableOriginY { get; set; }
     /// <summary>Ordered visual children for destination-specific native projection or fidelity fallback.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
@@ -98,6 +102,8 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
         translated.SemanticSectionOriginX = SemanticSectionOriginX + offsetX;
         translated.SemanticSectionOriginY = SemanticSectionOriginY + offsetY;
         translated.SemanticTableNumber = SemanticTableNumber;
+        translated.SemanticTableOriginX = SemanticTableOriginX + offsetX;
+        translated.SemanticTableOriginY = SemanticTableOriginY + offsetY;
         return translated;
     }
 
@@ -112,6 +118,8 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
         translated.SemanticSectionOriginX = SemanticSectionOriginX + offsetX;
         translated.SemanticSectionOriginY = SemanticSectionOriginY;
         translated.SemanticTableNumber = SemanticTableNumber;
+        translated.SemanticTableOriginX = SemanticTableOriginX + offsetX;
+        translated.SemanticTableOriginY = SemanticTableOriginY;
         return translated;
     }
 }

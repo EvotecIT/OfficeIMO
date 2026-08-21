@@ -152,55 +152,20 @@ public static partial class HtmlPowerPointConverterExtensions {
                     continue;
                 }
                 double topOffset = top - requestedTop;
+                var nativeRegionShapes = new List<PptCore.PowerPointShape>();
+                if (options.ImportPictures) {
+                    AddEditableLayoutPictures(slide, region, backgroundImages: true,
+                        left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
+                }
                 PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
-                var nativeRegionShapes = new List<PptCore.PowerPointShape> { textBox };
+                nativeRegionShapes.Add(textBox);
                 textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
                 if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
                 else textBox.FillTransparency = 100;
 
                 if (options.ImportPictures) {
-                    foreach ((HtmlRenderImage Image, double Opacity) image in
-                             HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: true)) {
-                        if (!TryGetImagePartType(image.Image.ContentType, out OfficeImageFormat imageType)) {
-                            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
-                                "A layout-region picture used an unsupported native PowerPoint image type.",
-                                lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source);
-                            continue;
-                        }
-                        if (!budget.TryReserveImageWithShape(image.Image.Bytes.LongLength,
-                                out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
-                            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                                "A layout-region picture was omitted because the shared image or shape limit was reached.",
-                                lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source, detail: imageLimit);
-                            continue;
-                        }
-                        using HtmlImportBudgetReservation imageReservationScope = imageReservation;
-                        double pictureLeft = NormalizeGeometry(
-                            (image.Image.X - region.SemanticSectionOriginX) * 0.75D, left, -maximumGeometry,
-                            budget, result, "editable layout picture left");
-                        double pictureTop = NormalizeGeometry(
-                            (image.Image.Y - region.SemanticSectionOriginY) * 0.75D + topOffset, top, -maximumGeometry,
-                            budget, result, "editable layout picture top");
-                        double pictureWidth = NormalizeGeometry(image.Image.Width * 0.75D, 1D, 1D,
-                            budget, result, "editable layout picture width");
-                        double pictureHeight = NormalizeGeometry(image.Image.Height * 0.75D, 1D, 1D,
-                            budget, result, "editable layout picture height");
-                        using var stream = new MemoryStream(image.Image.Bytes);
-                        PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
-                            pictureLeft, pictureTop, pictureWidth, pictureHeight);
-                        nativeRegionShapes.Add(picture);
-                        if (!string.IsNullOrWhiteSpace(image.Image.AlternativeText)) picture.AltText = image.Image.AlternativeText;
-                        if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
-                        if (image.Image.SourceCrop.HasCrop) {
-                            picture.Crop(
-                                image.Image.SourceCrop.Left * 100D,
-                                image.Image.SourceCrop.Top * 100D,
-                                image.Image.SourceCrop.Right * 100D,
-                                image.Image.SourceCrop.Bottom * 100D);
-                        }
-                        result.Pictures++;
-                        imageReservation.Commit();
-                    }
+                    AddEditableLayoutPictures(slide, region, backgroundImages: false,
+                        left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
                 }
 
                 if (region.BoxShadowLayerCount > 0) {
@@ -233,6 +198,62 @@ public static partial class HtmlPowerPointConverterExtensions {
             for (int shapeIndex = negativeRegionShapes.Count - 1; shapeIndex >= 0; shapeIndex--) {
                 slide.SendToBack(negativeRegionShapes[shapeIndex]);
             }
+        }
+    }
+
+    private static void AddEditableLayoutPictures(
+        PptCore.PowerPointSlide slide,
+        HtmlRenderLayoutRegion region,
+        bool backgroundImages,
+        double left,
+        double top,
+        double topOffset,
+        double maximumGeometry,
+        HtmlImportBudget budget,
+        HtmlToPowerPointResult result,
+        ICollection<PptCore.PowerPointShape> nativeRegionShapes) {
+        foreach ((HtmlRenderImage Image, double Opacity) image in
+                 HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: true)
+                     .Where(item => HtmlEditableLayoutProjector.IsBackgroundImage(item.Image) == backgroundImages)) {
+            if (!TryGetImagePartType(image.Image.ContentType, out OfficeImageFormat imageType)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                    "A layout-region picture used an unsupported native PowerPoint image type.",
+                    lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source);
+                continue;
+            }
+            if (!budget.TryReserveImageWithShape(image.Image.Bytes.LongLength,
+                    out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "A layout-region picture was omitted because the shared image or shape limit was reached.",
+                    lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source, detail: imageLimit);
+                continue;
+            }
+            using HtmlImportBudgetReservation imageReservationScope = imageReservation;
+            double pictureLeft = NormalizeGeometry(
+                (image.Image.X - region.SemanticSectionOriginX) * 0.75D, left, -maximumGeometry,
+                budget, result, "editable layout picture left");
+            double pictureTop = NormalizeGeometry(
+                (image.Image.Y - region.SemanticSectionOriginY) * 0.75D + topOffset, top, -maximumGeometry,
+                budget, result, "editable layout picture top");
+            double pictureWidth = NormalizeGeometry(image.Image.Width * 0.75D, 1D, 1D,
+                budget, result, "editable layout picture width");
+            double pictureHeight = NormalizeGeometry(image.Image.Height * 0.75D, 1D, 1D,
+                budget, result, "editable layout picture height");
+            using var stream = new MemoryStream(image.Image.Bytes);
+            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
+                pictureLeft, pictureTop, pictureWidth, pictureHeight);
+            nativeRegionShapes.Add(picture);
+            if (!string.IsNullOrWhiteSpace(image.Image.AlternativeText)) picture.AltText = image.Image.AlternativeText;
+            if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
+            if (image.Image.SourceCrop.HasCrop) {
+                picture.Crop(
+                    image.Image.SourceCrop.Left * 100D,
+                    image.Image.SourceCrop.Top * 100D,
+                    image.Image.SourceCrop.Right * 100D,
+                    image.Image.SourceCrop.Bottom * 100D);
+            }
+            result.Pictures++;
+            imageReservation.Commit();
         }
     }
 

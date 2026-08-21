@@ -59,7 +59,7 @@ public sealed class HtmlEditableLayoutExcelTests {
 
     [Fact]
     public void RegionsInsideLaterRootTablesUseTheirOwningWorksheets() {
-        const string html = "<table><caption>First</caption><tr><td>One<div style='display:grid;width:140px;height:40px'>First layout</div></td></tr></table>" +
+        const string html = "<table style='height:800px'><caption>First</caption><tr><td>One<div style='display:grid;width:140px;height:40px'>First layout</div></td></tr></table>" +
             "<table><caption>Second</caption><tr><td>Two<div style='display:grid;width:140px;height:40px'>Second layout</div></td></tr></table>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
@@ -70,6 +70,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.True(ContainsCellText(workbook.Sheets[0], "First layout"));
         Assert.False(ContainsCellText(workbook.Sheets[0], "Second layout"));
         Assert.True(ContainsCellText(workbook.Sheets[1], "Second layout"));
+        Assert.InRange(FindCellText(workbook.Sheets[1], "Second layout")!.Value.Row, 1, 10);
     }
 
     [Fact]

@@ -137,16 +137,23 @@ public sealed class HtmlResourceSession {
     internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
         AcceptedResourceBytes += resource.Length;
         AcceptedResourceCount++;
+        string canonicalSource = resource.FinalUri?.IsAbsoluteUri == true
+            ? resource.FinalUri.AbsoluteUri
+            : reference.ResolvedSource;
         if (reference.Source.Length > 0) {
             _resources[reference.Source] = resource;
-            _resolvedSources[reference.Source] = reference.ResolvedSource;
+            _resolvedSources[reference.Source] = canonicalSource;
         }
 
         if (reference.ResolvedSource.Length > 0) {
             _resources[reference.ResolvedSource] = resource;
-            _resolvedSources[reference.ResolvedSource] = reference.ResolvedSource;
+            _resolvedSources[reference.ResolvedSource] = canonicalSource;
         }
-        _entries.Add(CreateEntry(reference.Kind, reference.Source, reference.ResolvedSource, resource));
+        if (canonicalSource.Length > 0) {
+            _resources[canonicalSource] = resource;
+            _resolvedSources[canonicalSource] = canonicalSource;
+        }
+        _entries.Add(CreateEntry(reference.Kind, reference.Source, canonicalSource, resource));
     }
 
     internal bool TryReserveRequest(HtmlResourceReference reference) {
@@ -553,6 +560,10 @@ internal static class HtmlRenderResourceLoader {
                     if (stopAfterResource) stop = true;
                     continue;
                 }
+                Uri resourceUri = resource.FinalUri?.IsAbsoluteUri == true
+                    ? resource.FinalUri
+                    : item.Uri;
+                seen.Add(resourceUri.AbsoluteUri);
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
                     if (cssBudget != null
@@ -565,7 +576,7 @@ internal static class HtmlRenderResourceLoader {
                     EnqueueStylesheetResources(
                         pending,
                         css,
-                        item.Uri,
+                        resourceUri,
                         pendingResource.ImportDepth,
                         resourceOptions,
                         result.MaxStylesheetImportDepth,
