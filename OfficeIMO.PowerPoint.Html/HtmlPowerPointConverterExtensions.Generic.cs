@@ -169,8 +169,32 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (!placementAvailable) continue;
                 double topOffset = top - requestedTop;
                 var nativeRegionShapes = new List<PptCore.PowerPointShape>();
+                bool hasBackgroundPicture = options.ImportPictures
+                    && region.BackgroundColor.HasValue
+                    && HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: true)
+                        .Any(item => HtmlEditableLayoutProjector.IsBackgroundImage(item.Image));
+                bool importBackgroundPictures = options.ImportPictures;
+                HtmlImportBudgetReservation? backgroundFillReservation = null;
+                if (hasBackgroundPicture) {
+                    if (budget.TryReserveShape(out HtmlImportBudgetReservation reservation, out string fillLimit)) {
+                        backgroundFillReservation = reservation;
+                    } else {
+                        importBackgroundPictures = false;
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                            "PowerPoint omitted editable background pictures because the separate native backing fill exceeded the shape limit.",
+                            lossKind: OfficeConversionLossKind.Omission, source: region.Source, detail: fillLimit);
+                    }
+                }
+                using HtmlImportBudgetReservation? backgroundFillReservationScope = backgroundFillReservation;
+                if (backgroundFillReservation != null) {
+                    PptCore.PowerPointAutoShape backingFill = slide.AddRectanglePoints(
+                        left, top, width, height, "HTML background " + region.SourceKey);
+                    backingFill.FillColor = region.BackgroundColor!.Value.ToRgbHex();
+                    backgroundFillReservation.Commit();
+                    nativeRegionShapes.Add(backingFill);
+                }
                 int retainedBackgroundPictures = 0;
-                if (options.ImportPictures) {
+                if (importBackgroundPictures) {
                     retainedBackgroundPictures = AddEditableLayoutPictures(slide, region, backgroundImages: true,
                         left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
                 }
@@ -178,7 +202,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                 reservedShape.Commit();
                 nativeRegionShapes.Add(textBox);
                 textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
-                if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
+                if (backgroundFillReservation != null) textBox.FillTransparency = 100;
+                else if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
                 else textBox.FillTransparency = 100;
 
                 if (options.ImportPictures) {

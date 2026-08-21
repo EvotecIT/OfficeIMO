@@ -216,7 +216,7 @@ public static partial class HtmlEditableLayoutProjector {
         }
 
         options.EnableEditableLayoutRegions = true;
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options, document.Limits);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options, document);
         double continuousSurfaceHeight = rendered.Pages.Count == 0
             ? 0D
             : rendered.Pages.Max(page => page.Height);

@@ -789,26 +789,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             if (visual is HtmlRenderLayoutRegion layoutRegion) {
                 IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(layoutRegion.Visuals, start, end);
-                if (children.Count > 0) {
-                    fragment.Add(new HtmlRenderLayoutRegion(
-                        layoutRegion.SourceKey,
-                        layoutRegion.RegionKind,
-                        layoutRegion.SourceText,
-                        layoutRegion.Position,
-                        layoutRegion.FloatSide,
-                        layoutRegion.ZIndex,
-                        layoutRegion.BackgroundLayerCount,
-                        layoutRegion.BoxShadowLayerCount,
-                        layoutRegion.BackgroundColor,
-                        layoutRegion.X,
-                        layoutRegion.Y - start,
-                        layoutRegion.Width,
-                        Math.Max(0.01D, intersectionBottom - intersectionTop),
-                        children,
-                        fragment.Count,
-                        layoutRegion.Source,
-                        layoutRegion.LayoutY - start));
-                }
+                fragment.Add(new HtmlRenderLayoutRegion(
+                    layoutRegion.SourceKey,
+                    layoutRegion.RegionKind,
+                    layoutRegion.SourceText,
+                    layoutRegion.Position,
+                    layoutRegion.FloatSide,
+                    layoutRegion.ZIndex,
+                    layoutRegion.BackgroundLayerCount,
+                    layoutRegion.BoxShadowLayerCount,
+                    layoutRegion.BackgroundColor,
+                    layoutRegion.X,
+                    layoutRegion.Y - start,
+                    layoutRegion.Width,
+                    Math.Max(0.01D, intersectionBottom - intersectionTop),
+                    children,
+                    fragment.Count,
+                    layoutRegion.Source,
+                    layoutRegion.LayoutY - start));
                 continue;
             }
 

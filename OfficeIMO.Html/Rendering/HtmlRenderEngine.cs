@@ -61,6 +61,21 @@ public static class HtmlRenderEngine {
         Render(document, options, limits, sourceAlreadyValidated: true,
             cancellationToken: CancellationToken.None);
 
+    /// <summary>
+    /// Renders a prepared DOM under the owning conversion document's base URI, URL policies,
+    /// and validated complexity limits.
+    /// </summary>
+    internal static HtmlRenderDocument Render(
+        IHtmlDocument document,
+        HtmlRenderOptions? options,
+        HtmlConversionDocument owningDocument) {
+        if (owningDocument == null) throw new ArgumentNullException(nameof(owningDocument));
+        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        resolved.BaseUri ??= owningDocument.BaseUri;
+        ApplyDocumentPolicies(owningDocument, resolved);
+        return Render(document, resolved, owningDocument.Limits);
+    }
+
     internal static HtmlRenderDocument Render(
         IHtmlDocument document,
         HtmlRenderOptions? options,
