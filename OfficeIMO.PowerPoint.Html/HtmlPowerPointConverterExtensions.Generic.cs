@@ -187,12 +187,13 @@ public static partial class HtmlPowerPointConverterExtensions {
 
                 if (region.BoxShadowLayerCount > 0) {
                     textBox.SetShadow("000000", blurPoints: 4D, distancePoints: 2D, angleDegrees: 45D, transparencyPercent: 45);
-                    if (region.BoxShadowLayerCount > 1) {
-                        AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
-                            "PowerPoint retained the first editable shadow and omitted additional CSS shadow layers.",
-                            lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
-                            detail: "shadowLayers=" + region.BoxShadowLayerCount);
-                    }
+                    AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
+                        region.BoxShadowLayerCount > 1
+                            ? "PowerPoint approximated the first editable CSS shadow and omitted additional shadow layers."
+                            : "PowerPoint approximated the editable CSS shadow with one native outer shadow.",
+                        lossKind: OfficeConversionLossKind.Approximation, source: region.Source,
+                        detail: "shadowLayers=" + region.BoxShadowLayerCount
+                            + "; nativeShadowParameters=approximated");
                 }
                 if (region.BackgroundLayerCount > 0) {
                     AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened,

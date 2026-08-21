@@ -90,7 +90,7 @@ public static class HtmlEditableLayoutProjector {
         "color", "direction", "font-family", "font-size", "font-style", "font-variant", "font-weight",
         "letter-spacing", "line-height",
         "text-decoration", "text-decoration-color", "text-decoration-line", "text-decoration-style", "text-shadow",
-        "text-transform", "unicode-bidi", "vertical-align", "white-space", "word-spacing"
+        "text-align", "text-transform", "unicode-bidi", "vertical-align", "white-space", "word-spacing"
     };
     private static readonly string[] RichDescendantVisualStyleProperties = {
         "background-color", "border-bottom-color", "border-bottom-style", "border-bottom-width",
@@ -156,6 +156,7 @@ public static class HtmlEditableLayoutProjector {
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
         var semanticRichCandidates = new List<IElement>();
         var inheritedTypographyCandidates = new List<IElement>();
+        var multiChildLayoutKeys = new HashSet<string>(StringComparer.Ordinal);
         var effectCandidates = new List<(IElement Element, string Detail)>();
         var mixedInlineImageCandidates = new List<IElement>();
         foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
@@ -181,6 +182,10 @@ public static class HtmlEditableLayoutProjector {
             string sourceKey = (++key).ToString(System.Globalization.CultureInfo.InvariantCulture);
             element.SetAttribute(RegionAttribute, sourceKey);
             candidateElements[sourceKey] = element;
+            if (IsFlexOrGridDisplay(style)
+                && HasMultipleVisibleLayoutChildren(element, styles)) {
+                multiChildLayoutKeys.Add(sourceKey);
+            }
         }
         int imageKey = 0;
         foreach (IElement image in adapterDocument.QuerySelectorAll("img")) {
@@ -266,6 +271,14 @@ public static class HtmlEditableLayoutProjector {
                     OfficeConversionLossKind.Approximation);
                 continue;
             }
+            if (multiChildLayoutKeys.Contains(selected.SourceKey)) {
+                diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "A flex or grid editable layout region stayed in semantic flow because its child placement cannot be represented by one native text container.",
+                    HtmlDiagnosticSeverity.Warning, selected.Source,
+                    "multipleLayoutChildren=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
+                continue;
+            }
+            if (HasAcceptedAncestor(candidateElements[selected.SourceKey], multiChildLayoutKeys)) continue;
             accepted.Add(selected);
         }
 
@@ -512,8 +525,14 @@ public static class HtmlEditableLayoutProjector {
     private static bool IsProjectionImageVisible(
         IHtmlImageElement image,
         IElement regionElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) =>
+        IsProjectionElementVisible(image, regionElement, styles);
+
+    private static bool IsProjectionElementVisible(
+        IElement element,
+        IElement regionElement,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
-        for (IElement? current = image; current != null; current = current.ParentElement) {
+        for (IElement? current = element; current != null; current = current.ParentElement) {
             if (styles.TryGetValue(current, out HtmlComputedStyle? style)) {
                 string display = style.GetValue("display").Trim();
                 string visibility = style.GetValue("visibility").Trim();
@@ -556,6 +575,32 @@ public static class HtmlEditableLayoutProjector {
         var contentOrder = new List<bool>();
         AppendInlineContentOrder(element, element, styles, contentOrder);
         return contentOrder.Contains(true) && contentOrder.Contains(false);
+    }
+
+    private static bool HasMultipleVisibleLayoutChildren(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        int visibleChildren = 0;
+        foreach (INode child in element.ChildNodes) {
+            if (child is IElement childElement) {
+                if (!IsProjectionElementVisible(childElement, element, styles)
+                    || (string.IsNullOrWhiteSpace(childElement.TextContent)
+                        && childElement.QuerySelector("img") == null)) continue;
+            } else if (string.IsNullOrWhiteSpace(child.TextContent)) {
+                continue;
+            }
+            visibleChildren++;
+            if (visibleChildren > 1) return true;
+        }
+        return false;
+    }
+
+    private static bool IsFlexOrGridDisplay(HtmlComputedStyle style) {
+        string display = style.GetValue("display").Trim();
+        return display.Equals("flex", StringComparison.OrdinalIgnoreCase)
+            || display.Equals("inline-flex", StringComparison.OrdinalIgnoreCase)
+            || display.Equals("grid", StringComparison.OrdinalIgnoreCase)
+            || display.Equals("inline-grid", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AppendInlineContentOrder(

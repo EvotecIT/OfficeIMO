@@ -19,7 +19,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
             ".positioned{position:absolute;left:32px;top:200px;width:240px;height:72px;background:#dbeafe;z-index:4}" +
             ".grid{display:grid;grid-template-columns:1fr 1fr;width:300px;height:80px;background:#fef3c7}" +
             "</style><p>Ordinary flow</p><div class='positioned'>Editable positioned</div>" +
-            "<div class='grid'><span>Grid A</span><span>Grid B</span></div>";
+            "<div class='grid'>Grid content</div>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
         HtmlToWordResult wordResult = source.ToWordDocumentResult();
@@ -51,7 +51,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         PowerPointSlide powerPointSlide = Assert.Single(powerPoint.Slides);
         PowerPointTextBox ordinaryFlow = Assert.Single(powerPointSlide.TextBoxes, box => box.Text == "Ordinary flow");
         PowerPointTextBox positionedBox = Assert.Single(powerPointSlide.TextBoxes, box => box.Text == "Editable positioned");
-        PowerPointTextBox gridBox = Assert.Single(powerPointSlide.TextBoxes, box => box.Text == "Grid AGrid B");
+        PowerPointTextBox gridBox = Assert.Single(powerPointSlide.TextBoxes, box => box.Text == "Grid content");
         Assert.False(Overlaps(ordinaryFlow, gridBox));
         Assert.False(Overlaps(positionedBox, gridBox));
         byte[] powerPointPng = powerPointSlide.ToPng();

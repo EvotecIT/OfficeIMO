@@ -243,7 +243,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "background-position:left top,right bottom;box-shadow:2px 2px 4px #555,4px 4px 8px #999}" +
             ".grid{display:grid;grid-template-columns:1fr 1fr;width:300px;height:80px;background:#fef3c7}" +
             "</style><div class='positioned'>Editable positioned<img src='" + image + "' style='opacity:.4;width:24px;height:18px'></div>" +
-            "<div class='grid'><span>Grid A</span><span>Grid B</span></div>";
+            "<div class='grid'>Grid A Grid B</div>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
             .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using var stream = new MemoryStream();
@@ -255,7 +255,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         PowerPointSlide slide = Assert.Single(reopened.Slides);
         PowerPointTextBox positioned = Assert.Single(slide.TextBoxes, box => box.Text == "Editable positioned");
-        PowerPointTextBox grid = Assert.Single(slide.TextBoxes, box => box.Text == "Grid AGrid B");
+        PowerPointTextBox grid = Assert.Single(slide.TextBoxes, box => box.Text == "Grid A Grid B");
 
         Assert.InRange(positioned.LeftPoints, 59.9D, 60.1D);
         Assert.InRange(positioned.TopPoints, 53.9D, 54.1D);
@@ -273,6 +273,20 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void SingleCssShadowApproximationIsDiagnosed() {
+        const string html = "<div style='position:absolute;width:180px;height:50px;"
+            + "box-shadow:inset 20px 0 0 rgba(255,0,0,.3)'>Shadowed</div>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.EffectUnsupported
+            && diagnostic.Detail == "shadowLayers=1; nativeShadowParameters=approximated");
     }
 
     [Fact]

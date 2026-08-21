@@ -94,6 +94,39 @@ public sealed class HtmlEditableLayoutProjectionTests {
     }
 
     [Fact]
+    public void AuthoredTextAlignmentKeepsRegionInSemanticFlow() {
+        const string html = "<div style='position:absolute;width:160px;height:40px;text-align:center'>Aligned</div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        Assert.Contains("text-align:center", projection.RemainingDocument.Body!.InnerHtml,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "semanticContent=true");
+    }
+
+    [Fact]
+    public void MultiChildFlexAndGridRegionsStayInDiagnosedSemanticFlow() {
+        const string html = "<div style='position:absolute;display:flex;gap:24px;width:240px;height:40px'>"
+            + "Flex A<span>Flex B</span></div>"
+            + "<div style='display:grid;grid-template-columns:1fr 1fr;width:240px;height:40px'>"
+            + "<span>Grid A</span><span>Grid B</span></div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        Assert.Contains("Flex A", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Grid B", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Equal(2, projection.Diagnostics.Count(diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "multipleLayoutChildren=true; semanticFlow=true"));
+    }
+
+    [Fact]
     public void RegionTextUsesOnlyRenderedVisibleText() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>Visible" +
             "<span style='display:none'>Hidden display</span>" +
@@ -294,8 +327,8 @@ public sealed class HtmlEditableLayoutProjectionTests {
             ".flex{display:flex;width:240px;gap:8px}.grid{display:grid;grid-template-columns:1fr 1fr;width:220px}" +
             "</style><main><p>Normal flow</p>" +
             "<div class='absolute'>Positioned editable</div>" +
-            "<div class='flex'><span>Flex A</span><span>Flex B</span></div>" +
-            "<div class='grid'><span>Grid A</span><span>Grid B</span></div></main>";
+            "<div class='flex'>Flex content</div>" +
+            "<div class='grid'>Grid content</div></main>";
 
         HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(HtmlConversionDocument.Parse(html));
 

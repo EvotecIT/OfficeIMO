@@ -82,7 +82,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             "background-position:left top,right bottom;box-shadow:2px 2px 4px #555}" +
             ".grid{display:grid;grid-template-columns:1fr 1fr;width:300px;height:80px;background:#fef3c7}" +
             "</style><div class='positioned'>Editable positioned<img src='" + image + "' style='opacity:.4;width:24px;height:18px'></div>" +
-            "<div class='grid'><span>Grid A</span><span>Grid B</span></div>";
+            "<div class='grid'>Grid A Grid B</div>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using var stream = new MemoryStream();
@@ -98,7 +98,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.Equal("Editable positioned", positioned);
         Assert.Equal("DBEAFE", sheet.CellAt(13, 2).GetStyle().FillColorHex);
         Assert.True(sheet.TryGetCellText(3, 1, out string grid));
-        Assert.Equal("Grid AGrid B", grid);
+        Assert.Equal("Grid A Grid B", grid);
         Assert.Equal("FEF3C7", sheet.CellAt(3, 1).GetStyle().FillColorHex);
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "B13:E16");
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "A3:E6");

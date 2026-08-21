@@ -35,25 +35,25 @@ public static class HtmlEditableLayoutCapabilityContracts {
             "bounded positioned and floating regions",
             "page-relative DrawingML text-box anchors with bounded native offsets and size, wrap, and z-order",
             "solid fill plus policy-approved inline pictures with native crop and alpha",
-            "semantic-rich, inherited-typography, mixed inline text/picture, region or descendant paint-effect, paged print, multi-page continuous, and external-stylesheet-owned regions stay in flow when native ownership would flatten, reorder, mispaint, or lose page ownership; extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
+            "semantic-rich, authored or inherited text-alignment/typography, mixed inline text/picture, multi-child flex/grid, region or descendant paint-effect, paged print, multi-page continuous, and external-stylesheet-owned regions stay in flow when native ownership would flatten, reorder, mispaint, or lose page ownership; extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Rtf,
             "bounded positioned and floating regions",
             "page-anchored RTF paragraph frames with bounded native offsets and size plus wrap controls",
             "solid frame background plus embedded PNG/JPEG pictures",
-            "semantic-rich, inherited-typography, mixed inline text/picture, region or descendant paint-effect, paged print, and multi-page continuous regions stay in flow when native ownership would flatten, reorder, mispaint, or lose page ownership; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
+            "semantic-rich, authored or inherited text-alignment/typography, mixed inline text/picture, multi-child flex/grid, region or descendant paint-effect, paged print, and multi-page continuous regions stay in flow when native ownership would flatten, reorder, mispaint, or lose page ownership; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Excel,
-            "bounded positioned, floating, flex, and grid regions",
+            "bounded positioned, floating, and single-content flex and grid regions",
             "editable merged-cell regions plus absolute DrawingML picture anchors",
             "cell fills, foreground DrawingML pictures, and picture alpha",
-            "semantic-rich, inherited-typography, root/descendant border, and region or descendant paint-effect regions stay in flow; background image layers are omitted to keep editable cell text visible, while worksheet ownership, negative-coordinate clamping, bounds, cell shadows, and unsupported image/effect types are diagnosed"),
+            "semantic-rich, authored or inherited text-alignment/typography, multi-child flex/grid, root/descendant border, and region or descendant paint-effect regions stay in flow; background image layers are omitted to keep editable cell text visible, while worksheet ownership, negative-coordinate clamping, bounds, cell shadows, and unsupported image/effect types are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.PowerPoint,
-            "bounded positioned, floating, flex, and grid regions",
+            "bounded positioned, floating, and single-content flex and grid regions",
             "editable slide text boxes and DrawingML pictures in section-local rendered geometry",
-            "solid fills, supported background/image layers, picture alpha, and one native outer shadow",
-            "semantic-rich, inherited-typography, root/descendant border, and region or descendant paint-effect regions stay in flow; collision bounds include only successfully imported native shapes, while collision simplification, additional shadow layers, and unsupported image/effect types are diagnosed")
+            "solid fills, supported background/image layers, picture alpha, and one approximated native outer shadow",
+            "semantic-rich, authored or inherited text-alignment/typography, multi-child flex/grid, root/descendant border, and region or descendant paint-effect regions stay in flow; collision bounds include only successfully imported native shapes, while collision simplification, every CSS shadow parameter approximation, additional shadow layers, and unsupported image/effect types are diagnosed")
     });
 
     /// <summary>Gets every native editable-layout contract in stable destination order.</summary>
