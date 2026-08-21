@@ -463,10 +463,7 @@ namespace OfficeIMO.Word {
                         var solid = spPr.GetFirstChild<A.SolidFill>();
                         if (solid == null) {
                             solid = new A.SolidFill();
-                            // Insert after geometry if possible
-                            var geom = (OpenXmlElement?)spPr.GetFirstChild<A.CustomGeometry>() ?? spPr.GetFirstChild<A.PresetGeometry>();
-                            if (geom != null) spPr.InsertAfter(solid, geom);
-                            else spPr.Append(solid);
+                            WordDrawingFillOrdering.InsertAfterGeometryOrBeforeFormatting(spPr, solid);
                         }
                         var rgb = solid.GetFirstChild<A.RgbColorModelHex>();
                         if (rgb == null) {

@@ -4,6 +4,12 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlEditableLayoutProjector {
+    private static readonly string[] NonNativeInsetPlacementProperties = {
+        "left", "right", "top", "bottom", "inset",
+        "inset-inline", "inset-inline-start", "inset-inline-end",
+        "inset-block", "inset-block-start", "inset-block-end"
+    };
+
     private static bool HasSemanticFlowAncestor(IElement element, ISet<IElement> semanticFlowRoots) {
         for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
             if (semanticFlowRoots.Contains(ancestor)) return true;
@@ -190,9 +196,29 @@ public static partial class HtmlEditableLayoutProjector {
         string floatSide = style.GetValue("float").Trim();
         return position.Equals("absolute", StringComparison.OrdinalIgnoreCase)
             || position.Equals("fixed", StringComparison.OrdinalIgnoreCase)
+            || ((position.Equals("relative", StringComparison.OrdinalIgnoreCase)
+                    || position.Equals("sticky", StringComparison.OrdinalIgnoreCase))
+                && HasNonZeroInsetPlacement(style))
             || floatSide.Equals("left", StringComparison.OrdinalIgnoreCase)
             || floatSide.Equals("right", StringComparison.OrdinalIgnoreCase)
             || IsFlexOrGridDisplay(style);
+    }
+
+    private static bool HasNonZeroInsetPlacement(HtmlComputedStyle style) {
+        return NonNativeInsetPlacementProperties.Any(property =>
+            HasNonZeroInsetValue(style.GetValue(property)));
+    }
+
+    private static bool HasNonZeroInsetValue(string value) {
+        string[] tokens = value.Trim().Replace("/", " ").Split(
+            new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        return tokens.Any(token =>
+            !token.Equals("auto", StringComparison.OrdinalIgnoreCase)
+            && !token.Equals("initial", StringComparison.OrdinalIgnoreCase)
+            && !token.Equals("unset", StringComparison.OrdinalIgnoreCase)
+            && !token.Equals("revert", StringComparison.OrdinalIgnoreCase)
+            && !token.Equals("revert-layer", StringComparison.OrdinalIgnoreCase)
+            && !IsZeroCssValue(token));
     }
 
     private static void AppendInlineContentOrder(

@@ -38,6 +38,7 @@ internal partial class HtmlToWordConverter {
             textBox.VerticalPositionOffset = verticalOffset;
             textBox.Width = nativeWidth;
             textBox.Height = nativeHeight;
+            textBox.AutoFit = WordTextBoxAutoFitType.NoAutoFit;
             textBox.RelativeWidthPercentage = 0;
             textBox.RelativeHeightPercentage = 0;
             long zOrder = 251659264L + region.ZIndex * 1024L + order++;

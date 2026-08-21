@@ -441,9 +441,7 @@ namespace OfficeIMO.Word {
                 properties.RemoveAllChildren<A.PatternFill>();
                 properties.RemoveAllChildren<A.GroupFill>();
                 var fill = new A.SolidFill();
-                A.PresetGeometry? geometry = properties.GetFirstChild<A.PresetGeometry>();
-                if (geometry != null) properties.InsertAfter(fill, geometry);
-                else properties.Append(fill);
+                WordDrawingFillOrdering.InsertAfterGeometryOrBeforeFormatting(properties, fill);
                 fill.Append(new A.RgbColorModelHex { Val = (value ?? string.Empty).Trim().TrimStart('#').ToUpperInvariant() });
             }
         }
