@@ -119,8 +119,16 @@ internal partial class HtmlToWordConverter {
                 "The active Word image policy or resource limits rejected the picture.");
             return;
         }
-        if (visual == null) return;
         WordImage nativeImage = paragraphImages[paragraphImages.Count - 1];
+        WordImage editableImage = nativeImage.Clone(paragraph);
+        nativeImage._Image.Remove();
+        nativeImage = editableImage;
+        nativeImage.Transparency = null;
+        nativeImage.CropLeft = null;
+        nativeImage.CropTop = null;
+        nativeImage.CropRight = null;
+        nativeImage.CropBottom = null;
+        if (visual == null) return;
         if (opacity < 0.999D) nativeImage.Transparency = (int)Math.Round((1D - opacity) * 100D);
         if (visual.SourceCrop.HasCrop) {
             nativeImage.CropLeft = ToCropPercentage(visual.SourceCrop.Left);

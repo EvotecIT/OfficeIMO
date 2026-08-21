@@ -94,6 +94,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!_options.EnableEditableLayoutRegions) return block;
         string? sourceKey = element.GetAttribute(HtmlEditableLayoutProjector.RegionAttribute);
         if (string.IsNullOrWhiteSpace(sourceKey)) return block;
+        if (!style.PaintVisible) return block;
         if (!forcedKind.HasValue
             && style.Position != "absolute" && style.Position != "fixed"
             && style.FloatSide != "left" && style.FloatSide != "right"

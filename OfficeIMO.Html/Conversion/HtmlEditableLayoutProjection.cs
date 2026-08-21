@@ -107,7 +107,8 @@ public static partial class HtmlEditableLayoutProjector {
         int? maximumEditableSurfaceNumber = null) => ProjectCore(
             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
             maximumEditableContinuousSurfaceHeight: null,
-            preserveMixedInlineContent: false);
+            preserveMixedInlineContent: false,
+            limits: null);
 
     internal static HtmlEditableLayoutProjection ProjectPreservingMixedInlineContent(
         HtmlConversionDocument document,
@@ -115,10 +116,12 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen,
         HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
         int? maximumEditableSurfaceNumber = null,
-        double? maximumEditableContinuousSurfaceHeight = null) => ProjectCore(
+        double? maximumEditableContinuousSurfaceHeight = null,
+        HtmlConversionLimits? limits = null) => ProjectCore(
             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
             maximumEditableContinuousSurfaceHeight,
-            preserveMixedInlineContent: true);
+            preserveMixedInlineContent: true,
+            limits);
 
     private static HtmlEditableLayoutProjection ProjectCore(
         HtmlConversionDocument document,
@@ -127,7 +130,8 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlEditableLayoutRegionKinds regionKinds,
         int? maximumEditableSurfaceNumber,
         double? maximumEditableContinuousSurfaceHeight,
-        bool preserveMixedInlineContent) {
+        bool preserveMixedInlineContent,
+        HtmlConversionLimits? limits) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if ((regionKinds & ~HtmlEditableLayoutRegionKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(regionKinds));
         if (maximumEditableSurfaceNumber < 0) throw new ArgumentOutOfRangeException(nameof(maximumEditableSurfaceNumber));
@@ -142,6 +146,9 @@ public static partial class HtmlEditableLayoutProjector {
             HtmlGenericDocumentProjector.CreateSections(adapterDocument);
         IReadOnlyList<IElement> semanticTables = HtmlGenericDocumentProjector.SelectRootTables(adapterDocument);
         HtmlRenderOptions options = renderOptions?.Clone() ?? new HtmlRenderOptions();
+        HtmlConversionLimits effectiveLimits = limits == null
+            ? document.Limits.Clone()
+            : HtmlConversionLimits.Intersect(document.Limits, limits);
         options.Mode = mediaContext == HtmlCssMediaContext.Print
             ? HtmlRenderMode.Paged
             : HtmlRenderMode.Continuous;
@@ -151,7 +158,7 @@ public static partial class HtmlEditableLayoutProjector {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(
             adapterDocument,
             mediaContext,
-            document.Limits);
+            effectiveLimits);
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
         var semanticFlowRoots = new HashSet<IElement>();
@@ -162,6 +169,7 @@ public static partial class HtmlEditableLayoutProjector {
         var nestedLayoutPlacementKeys = new HashSet<string>(StringComparer.Ordinal);
         var bookmarkTargetCandidates = new List<IElement>();
         var commentBearingCandidates = new List<IElement>();
+        var paintHiddenCandidates = new List<IElement>();
         var effectCandidates = new List<(IElement Element, string Detail)>();
         var mixedInlineImageCandidates = new List<IElement>();
         foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
@@ -169,6 +177,11 @@ public static partial class HtmlEditableLayoutProjector {
                 || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
             if (HasSemanticFlowAncestor(element, semanticFlowRoots)) continue;
+            if (!IsProjectionElementVisible(element, element, styles)) {
+                paintHiddenCandidates.Add(element);
+                semanticFlowRoots.Add(element);
+                continue;
+            }
             if (ContainsHtmlComment(element)) {
                 commentBearingCandidates.Add(element);
                 semanticFlowRoots.Add(element);
@@ -222,7 +235,8 @@ public static partial class HtmlEditableLayoutProjector {
         }
 
         options.EnableEditableLayoutRegions = true;
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options, document);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
+            adapterDocument, options, document, effectiveLimits);
         double continuousSurfaceHeight = rendered.Pages.Count == 0
             ? 0D
             : rendered.Pages.Max(page => page.Height);
@@ -246,6 +260,12 @@ public static partial class HtmlEditableLayoutProjector {
                 "An editable layout region stayed in semantic flow so its bookmark target would remain addressable.",
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
                 "bookmarkTarget=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
+        }
+        foreach (IElement element in paintHiddenCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "A paint-hidden editable layout region stayed in semantic flow rather than becoming visible destination-native geometry.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "paintVisible=false; semanticFlow=true", OfficeConversionLossKind.Approximation);
         }
         foreach (IElement element in semanticRichCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,

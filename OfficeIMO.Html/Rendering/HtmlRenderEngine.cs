@@ -70,10 +70,23 @@ public static class HtmlRenderEngine {
         HtmlRenderOptions? options,
         HtmlConversionDocument owningDocument) {
         if (owningDocument == null) throw new ArgumentNullException(nameof(owningDocument));
+        return Render(document, options, owningDocument, owningDocument.Limits);
+    }
+
+    /// <summary>
+    /// Renders a prepared DOM under its owning document policies and an adapter-intersected limit profile.
+    /// </summary>
+    internal static HtmlRenderDocument Render(
+        IHtmlDocument document,
+        HtmlRenderOptions? options,
+        HtmlConversionDocument owningDocument,
+        HtmlConversionLimits limits) {
+        if (owningDocument == null) throw new ArgumentNullException(nameof(owningDocument));
+        if (limits == null) throw new ArgumentNullException(nameof(limits));
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.BaseUri ??= owningDocument.BaseUri;
         ApplyDocumentPolicies(owningDocument, resolved);
-        return Render(document, resolved, owningDocument.Limits);
+        return Render(document, resolved, HtmlConversionLimits.Intersect(owningDocument.Limits, limits));
     }
 
     internal static HtmlRenderDocument Render(

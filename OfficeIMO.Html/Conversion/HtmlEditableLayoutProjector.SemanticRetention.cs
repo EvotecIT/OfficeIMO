@@ -14,12 +14,16 @@ public static partial class HtmlEditableLayoutProjector {
     private static bool ContainsSemanticRichContent(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
-        if (string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)) return false;
+        if (string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+            return HasVisibleRootBorder(element, styles);
+        }
         if (SemanticRichElementNames.Contains(element.LocalName)) return true;
         if (HasDistinctRichTextStyle(element, styles)) return true;
         if (HasVisibleRootBorder(element, styles)) return true;
         return element.QuerySelectorAll("*").Any(child => {
-            if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) return false;
+            if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+                return HasVisibleRootBorder(child, styles);
+            }
             return SemanticRichElementNames.Contains(child.LocalName)
                 || HasDistinctRichTextStyle(child, styles)
                 || HasDistinctStyle(child, styles, RichDescendantVisualStyleProperties);

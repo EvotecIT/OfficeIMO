@@ -9,6 +9,8 @@ public static partial class WordHtmlConverterExtensions {
     public static HtmlToWordResult ToWordDocumentResult(this HtmlConversionDocument document, HtmlToWordOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
+        HtmlToWordConverter.ValidateDocumentLimits(
+            document.CreateSourceDocumentForConversion(), resolved);
         EnsureOfflineSynchronousImport(document, resolved);
         return ToWordDocumentResultAsync(document, resolved).GetAwaiter().GetResult();
     }
@@ -22,6 +24,8 @@ public static partial class WordHtmlConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         resolved.ConversionReport.AddRange(document.Diagnostics);
+        HtmlToWordConverter.ValidateDocumentLimits(
+            document.CreateSourceDocumentForConversion(), resolved);
         HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
             ? HtmlCssMediaContext.Print
             : HtmlCssMediaContext.Screen;
@@ -43,18 +47,31 @@ public static partial class WordHtmlConverterExtensions {
                 "externalStylesheetSources=true; semanticFlow=true",
                 OfficeConversionLossKind.Approximation);
         }
-        HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions
+        HtmlEditableLayoutProjection? editableLayout = null;
+        if (resolved.ImportEditableLayoutRegions
             && !externalStylesheetBoundary
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(
-                document, regionKinds, projectionOptions.AdditionalStylesheets)
-            ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
-                document,
-                renderOptions: projectionOptions,
-                mediaContext: mediaContext,
-                regionKinds: regionKinds,
-                maximumEditableSurfaceNumber: mediaContext == HtmlCssMediaContext.Print ? 0 : 1,
-                maximumEditableContinuousSurfaceHeight: projectionOptions.PageHeight)
-            : null;
+                document, regionKinds, projectionOptions.AdditionalStylesheets)) {
+            try {
+                editableLayout = HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
+                    document,
+                    renderOptions: projectionOptions,
+                    mediaContext: mediaContext,
+                    regionKinds: regionKinds,
+                    maximumEditableSurfaceNumber: mediaContext == HtmlCssMediaContext.Print ? 0 : 1,
+                    maximumEditableContinuousSurfaceHeight: projectionOptions.PageHeight,
+                    limits: resolved.Limits);
+            } catch (HtmlDomLimitException exception) {
+                HtmlToWordConverter.ThrowLimitExceeded(
+                    resolved,
+                    exception.Code,
+                    exception.Message,
+                    exception.LimitSource,
+                    exception.Actual,
+                    exception.Limit);
+                throw;
+            }
+        }
         if (editableLayout != null) resolved.ConversionReport.AddRange(editableLayout.Diagnostics);
         var converter = new HtmlToWordConverter();
         WordDocument wordDocument = await converter.ConvertAsync(
