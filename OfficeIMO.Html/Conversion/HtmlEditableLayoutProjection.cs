@@ -779,13 +779,17 @@ public static partial class HtmlEditableLayoutProjector {
         IElement element,
         IElement regionElement,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        if (styles.TryGetValue(element, out HtmlComputedStyle? elementStyle)) {
+            string effectiveVisibility = elementStyle.GetValue("visibility").Trim();
+            if (effectiveVisibility.Equals("hidden", StringComparison.OrdinalIgnoreCase)
+                || effectiveVisibility.Equals("collapse", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+        }
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (styles.TryGetValue(current, out HtmlComputedStyle? style)) {
                 string display = style.GetValue("display").Trim();
-                string visibility = style.GetValue("visibility").Trim();
-                if (display.Equals("none", StringComparison.OrdinalIgnoreCase)
-                    || visibility.Equals("hidden", StringComparison.OrdinalIgnoreCase)
-                    || visibility.Equals("collapse", StringComparison.OrdinalIgnoreCase)) {
+                if (display.Equals("none", StringComparison.OrdinalIgnoreCase)) {
                     return false;
                 }
             }
