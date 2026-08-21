@@ -91,7 +91,7 @@ public static partial class HtmlEditableLayoutProjector {
         "color", "direction", "font-family", "font-size", "font-style", "font-variant", "font-weight",
         "letter-spacing", "line-height",
         "text-decoration", "text-decoration-color", "text-decoration-line", "text-decoration-style", "text-shadow",
-        "text-align", "text-transform", "unicode-bidi", "vertical-align", "white-space", "word-spacing"
+        "text-align", "text-indent", "text-transform", "unicode-bidi", "vertical-align", "white-space", "word-spacing"
     };
     private static readonly string[] RichDescendantVisualStyleProperties = {
         "background-color", "border-bottom-color", "border-bottom-style", "border-bottom-width",
