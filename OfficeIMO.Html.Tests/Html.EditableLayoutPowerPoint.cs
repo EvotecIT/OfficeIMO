@@ -9,6 +9,26 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutPowerPointTests {
+    [Theory]
+    [InlineData("section", false)]
+    [InlineData("article", true)]
+    public void RootGroupingRegionKeepsItsOwningSemanticSlide(string groupingElement, bool wrapInMain) {
+        string second = "<" + groupingElement + " style='position:absolute;width:180px;height:50px'>"
+            + "<span>Second slide region</span></" + groupingElement + ">";
+        if (wrapInMain) second = "<main>" + second + "</main>";
+        const string first = "<section><p>First slide</p></section>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(first + second)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Equal(2, presentation.Slides.Count);
+        Assert.Contains(presentation.Slides[0].TextBoxes, box => box.Text == "First slide");
+        Assert.Contains(presentation.Slides[1].TextBoxes, box => box.Text == "Second slide region");
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("owning semantic slide was not created", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void NegativeZIndexRegionIsPlacedBehindSemanticSlideContent() {
         const string html = "<div style='position:absolute;z-index:-2;width:140px;height:60px'>Far behind</div>" +

@@ -14,6 +14,28 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutWordTests {
     [Fact]
+    public void PositionedRegionWithRawCommentStaysInSemanticFlow() {
+        const string html = "<div style='position:absolute;width:180px;height:50px'>"
+            + "Visible <!-- reviewer note -->text.</div>";
+        var options = new HtmlToWordOptions {
+            ImportHtmlComments = true,
+            HtmlCommentAuthor = "HTML Reviewer",
+            HtmlCommentInitials = "HR"
+        };
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        using WordDocument word = result.Value;
+
+        Assert.Empty(word.TextBoxes);
+        Assert.Equal("Visible text.", string.Concat(word.Paragraphs.Select(paragraph => paragraph.Text)));
+        WordComment comment = Assert.Single(word.Comments);
+        Assert.Equal("reviewer note", comment.Text);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "htmlComment=true; semanticFlow=true");
+    }
+
+    [Fact]
     public void PositionedFormControlsStayInSemanticFlow() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>" +
             "<select name='status'><option>Draft</option><option selected>Approved</option></select></div>";

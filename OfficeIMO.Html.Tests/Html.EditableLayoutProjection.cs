@@ -7,6 +7,24 @@ using Xunit;
 namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutProjectionTests {
+    [Theory]
+    [InlineData("border-radius:50%", "border-radius=50%")]
+    [InlineData("border-top-left-radius:8px", "border-top-left-radius=8px")]
+    public void RoundedFillRegionStaysInDiagnosedSemanticFlow(string radiusStyle, string expectedDetail) {
+        const string html = "<div style='position:absolute;width:40px;height:40px;"
+            + "background:red;{0}'>Rounded</div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(string.Format(System.Globalization.CultureInfo.InvariantCulture, html, radiusStyle)));
+
+        Assert.Empty(projection.Regions);
+        Assert.Contains("Rounded", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.EffectUnsupported
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains(expectedDetail, StringComparison.Ordinal));
+    }
+
     [Fact]
     public void ParagraphBreakStyledSpanAndSvgRegionsRemainInSemanticFlow() {
         const string html = "<div style='position:absolute;width:180px;height:50px'><p>Paragraph</p></div>" +
