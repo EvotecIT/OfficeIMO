@@ -17,17 +17,53 @@ public static partial class HtmlEditableLayoutProjector {
         if (string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
             return HasVisibleRootBorder(element, styles);
         }
-        if (SemanticRichElementNames.Contains(element.LocalName)) return true;
+        if (IsSemanticRichElement(element)) return true;
+        if (HasLanguageMetadata(element)) return true;
         if (HasDistinctRichTextStyle(element, styles)) return true;
         if (HasVisibleRootBorder(element, styles)) return true;
         return element.QuerySelectorAll("*").Any(child => {
             if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
                 return HasVisibleRootBorder(child, styles);
             }
-            return SemanticRichElementNames.Contains(child.LocalName)
+            return IsSemanticRichElement(child)
+                || HasLanguageMetadata(child)
                 || HasDistinctRichTextStyle(child, styles)
                 || HasDistinctStyle(child, styles, RichDescendantVisualStyleProperties);
         });
+    }
+
+    private static bool IsSemanticRichElement(IElement element) =>
+        SemanticRichElementNames.Contains(element.LocalName)
+        || string.Equals(element.NamespaceUri, "http://www.w3.org/1998/Math/MathML",
+            StringComparison.OrdinalIgnoreCase);
+
+    private static bool HasLanguageMetadata(IElement element) =>
+        !string.IsNullOrWhiteSpace(element.GetAttribute("lang"))
+        || !string.IsNullOrWhiteSpace(element.GetAttribute("xml:lang"));
+
+    private static bool ContainsGeneratedPseudoContent(
+        IElement element,
+        HtmlComputedStyleSet styles) {
+        if (HasGeneratedPseudoContent(element, styles)) return true;
+        return element.QuerySelectorAll("*").Any(child => HasGeneratedPseudoContent(child, styles));
+    }
+
+    private static bool HasGeneratedPseudoContent(IElement element, HtmlComputedStyleSet styles) =>
+        HasGeneratedPseudoContent(element, HtmlPseudoElementKind.Before, styles)
+        || HasGeneratedPseudoContent(element, HtmlPseudoElementKind.After, styles);
+
+    private static bool HasGeneratedPseudoContent(
+        IElement element,
+        HtmlPseudoElementKind kind,
+        HtmlComputedStyleSet styles) {
+        if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle style)
+            || style.GetValue("display").Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        string content = style.GetValue("content").Trim();
+        return content.Length > 0
+            && !content.Equals("normal", StringComparison.OrdinalIgnoreCase)
+            && !content.Equals("none", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ContainsBookmarkTarget(IElement element) {
@@ -54,10 +90,18 @@ public static partial class HtmlEditableLayoutProjector {
 
     private static bool ContainsMixedInlineImageContent(
         IElement element,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        bool preserveEdgeSequences) {
         var contentOrder = new List<bool>();
         AppendInlineContentOrder(element, element, styles, contentOrder);
-        return contentOrder.Contains(true) && contentOrder.Contains(false);
+        if (!contentOrder.Contains(true) || !contentOrder.Contains(false)) return false;
+        if (preserveEdgeSequences) return true;
+        for (int index = 1; index < contentOrder.Count - 1; index++) {
+            if (contentOrder[index]
+                && contentOrder.Take(index).Contains(false)
+                && contentOrder.Skip(index + 1).Contains(false)) return true;
+        }
+        return false;
     }
 
     private static bool HasMultipleVisibleLayoutChildren(
@@ -172,13 +216,13 @@ public static partial class HtmlEditableLayoutProjector {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         out string detail) {
         var effects = new List<string>();
-        AddNonNativeBoxInsets(element, styles, effects, "");
+        AddNonNativeBoxModelSpacing(element, styles, effects, "");
         for (IElement? current = element; current != null; current = current.ParentElement) {
             AddNonNativeEffects(current, styles, effects, "");
         }
         foreach (IElement descendant in element.QuerySelectorAll("*")) {
             AddNonNativeEffects(descendant, styles, effects, "descendant:");
-            AddNonNativeBoxInsets(descendant, styles, effects, "descendant:");
+            AddNonNativeBoxModelSpacing(descendant, styles, effects, "descendant:");
         }
         detail = string.Join("; ", effects.Distinct(StringComparer.OrdinalIgnoreCase));
         return effects.Count > 0;
@@ -243,7 +287,7 @@ public static partial class HtmlEditableLayoutProjector {
             : "outline-style=" + outlineStyle + "; outline-width=" + widthValue));
     }
 
-    private static void AddNonNativeBoxInsets(
+    private static void AddNonNativeBoxModelSpacing(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         ICollection<string> effects,
@@ -260,6 +304,17 @@ public static partial class HtmlEditableLayoutProjector {
         AddNonZeroEffect(style, "padding-inline", effects, prefix);
         AddNonZeroEffect(style, "padding-inline-start", effects, prefix);
         AddNonZeroEffect(style, "padding-inline-end", effects, prefix);
+        AddNonZeroEffect(style, "margin", effects, prefix);
+        AddNonZeroEffect(style, "margin-top", effects, prefix);
+        AddNonZeroEffect(style, "margin-right", effects, prefix);
+        AddNonZeroEffect(style, "margin-bottom", effects, prefix);
+        AddNonZeroEffect(style, "margin-left", effects, prefix);
+        AddNonZeroEffect(style, "margin-block", effects, prefix);
+        AddNonZeroEffect(style, "margin-block-start", effects, prefix);
+        AddNonZeroEffect(style, "margin-block-end", effects, prefix);
+        AddNonZeroEffect(style, "margin-inline", effects, prefix);
+        AddNonZeroEffect(style, "margin-inline-start", effects, prefix);
+        AddNonZeroEffect(style, "margin-inline-end", effects, prefix);
     }
 
     private static void AddNonZeroEffect(

@@ -32,7 +32,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 || adapterDocument.QuerySelector("section.officeimo-slide") != null);
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions && !targetSemantic
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, HtmlEditableLayoutRegionKinds.All)
-            ? HtmlEditableLayoutProjector.Project(document, mediaContext: mediaContext)
+            ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
+                document, mediaContext: mediaContext, preserveNestedImagePlacement: false,
+                preserveMixedInlineEdgeSequences: false)
             : null;
         HtmlSemanticDocument semanticDocument = editableLayout == null
             ? document.CreateSemanticDocumentForConversion(mediaContext)

@@ -84,7 +84,8 @@ public static partial class HtmlEditableLayoutProjector {
         "details", "dfn", "dl", "dt", "em", "embed", "fieldset", "figure", "figcaption", "form", "h1", "h2",
         "h3", "h4", "h5", "h6", "hr", "i", "iframe", "input", "ins", "kbd", "label", "li", "mark",
         "object", "ol", "p", "picture", "pre", "q", "s", "samp", "select", "strong", "sub", "summary",
-        "sup", "svg", "table", "textarea", "time", "u", "ul", "var", "video"
+        "sup", "svg", "table", "textarea", "time", "u", "ul", "var", "video",
+        "math", "ruby", "rb", "rp", "rt", "rtc"
     };
     private static readonly string[] RichTextStyleProperties = {
         "color", "direction", "font-family", "font-size", "font-style", "font-variant", "font-weight",
@@ -108,6 +109,8 @@ public static partial class HtmlEditableLayoutProjector {
             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
             maximumEditableContinuousSurfaceHeight: null,
             preserveMixedInlineContent: false,
+            preserveNestedImagePlacement: false,
+            preserveMixedInlineEdgeSequences: false,
             limits: null);
 
     internal static HtmlEditableLayoutProjection ProjectPreservingMixedInlineContent(
@@ -117,10 +120,14 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
         int? maximumEditableSurfaceNumber = null,
         double? maximumEditableContinuousSurfaceHeight = null,
-        HtmlConversionLimits? limits = null) => ProjectCore(
+        HtmlConversionLimits? limits = null,
+        bool preserveNestedImagePlacement = true,
+        bool preserveMixedInlineEdgeSequences = true) => ProjectCore(
             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
             maximumEditableContinuousSurfaceHeight,
             preserveMixedInlineContent: true,
+            preserveNestedImagePlacement,
+            preserveMixedInlineEdgeSequences,
             limits);
 
     private static HtmlEditableLayoutProjection ProjectCore(
@@ -131,6 +138,8 @@ public static partial class HtmlEditableLayoutProjector {
         int? maximumEditableSurfaceNumber,
         double? maximumEditableContinuousSurfaceHeight,
         bool preserveMixedInlineContent,
+        bool preserveNestedImagePlacement,
+        bool preserveMixedInlineEdgeSequences,
         HtmlConversionLimits? limits) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if ((regionKinds & ~HtmlEditableLayoutRegionKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(regionKinds));
@@ -155,10 +164,9 @@ public static partial class HtmlEditableLayoutProjector {
         IReadOnlyList<IHtmlStyleElement> callerStyles = HtmlRenderAdditionalStylesheetApplier.Apply(
             adapterDocument, options.AdditionalStylesheets.ToList());
         options.AdditionalStylesheets.Clear();
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(
-            adapterDocument,
-            mediaContext,
-            effectiveLimits);
+        HtmlComputedStyleSet computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
+            adapterDocument, options, effectiveLimits);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = computedStyles.Elements;
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
         var semanticFlowRoots = new HashSet<IElement>();
@@ -170,6 +178,7 @@ public static partial class HtmlEditableLayoutProjector {
         var bookmarkTargetCandidates = new List<IElement>();
         var commentBearingCandidates = new List<IElement>();
         var paintHiddenCandidates = new List<IElement>();
+        var generatedContentCandidates = new List<IElement>();
         var effectCandidates = new List<(IElement Element, string Detail)>();
         var mixedInlineImageCandidates = new List<IElement>();
         foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
@@ -179,6 +188,11 @@ public static partial class HtmlEditableLayoutProjector {
             if (HasSemanticFlowAncestor(element, semanticFlowRoots)) continue;
             if (!IsProjectionElementVisible(element, element, styles)) {
                 paintHiddenCandidates.Add(element);
+                semanticFlowRoots.Add(element);
+                continue;
+            }
+            if (ContainsGeneratedPseudoContent(element, computedStyles)) {
+                generatedContentCandidates.Add(element);
                 semanticFlowRoots.Add(element);
                 continue;
             }
@@ -202,7 +216,8 @@ public static partial class HtmlEditableLayoutProjector {
                 semanticFlowRoots.Add(element);
                 continue;
             }
-            if (preserveMixedInlineContent && ContainsMixedInlineImageContent(element, styles)) {
+            if (preserveMixedInlineContent
+                && ContainsMixedInlineImageContent(element, styles, preserveMixedInlineEdgeSequences)) {
                 mixedInlineImageCandidates.Add(element);
                 semanticFlowRoots.Add(element);
                 continue;
@@ -224,7 +239,7 @@ public static partial class HtmlEditableLayoutProjector {
                 && HasMultipleVisibleLayoutChildren(element, styles)) {
                 multiChildLayoutKeys.Add(sourceKey);
             }
-            if (ContainsNestedLayoutPlacement(element, styles, includeImages: preserveMixedInlineContent)) {
+            if (ContainsNestedLayoutPlacement(element, styles, includeImages: preserveNestedImagePlacement)) {
                 nestedLayoutPlacementKeys.Add(sourceKey);
             }
         }
@@ -266,6 +281,12 @@ public static partial class HtmlEditableLayoutProjector {
                 "A paint-hidden editable layout region stayed in semantic flow rather than becoming visible destination-native geometry.",
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
                 "paintVisible=false; semanticFlow=true", OfficeConversionLossKind.Approximation);
+        }
+        foreach (IElement element in generatedContentCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "An editable layout region stayed in semantic flow so generated pseudo-element content and paint would remain intact.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "generatedContent=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
         }
         foreach (IElement element in semanticRichCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
