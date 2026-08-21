@@ -342,15 +342,13 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
-            StandardErrorEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true)
+            RedirectStandardError = true
         };
         using var process = new Process { StartInfo = startInfo };
         process.Start();
         using C2paToolProcessContainment containment = C2paToolProcessContainment.Create(process, ownsUnixProcessGroup);
-        Task<string> stdout = ReadBoundedAsync(process.StandardOutput, request.MaximumOutputBytes, "standard output");
-        Task<string> stderr = ReadBoundedAsync(process.StandardError, request.MaximumOutputBytes, "standard error");
+        Task<string> stdout = ReadBoundedAsync(process.StandardOutput.BaseStream, request.MaximumOutputBytes, "standard output");
+        Task<string> stderr = ReadBoundedAsync(process.StandardError.BaseStream, request.MaximumOutputBytes, "standard error");
         Stopwatch timer = Stopwatch.StartNew();
         while (true) {
             if (process.WaitForExit(50)) break;
@@ -375,8 +373,14 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         return new C2paToolProcessResult(process.ExitCode, stdout.Result, stderr.Result);
     }
 
-    private static Task<string> ReadBoundedAsync(TextReader reader, long maximumBytes, string streamName) => Task.Run(() => {
+    internal static Task<string> ReadBoundedAsync(Stream stream, long maximumBytes, string streamName) => Task.Run(() => {
         try {
+            using var reader = new StreamReader(
+                stream,
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 4096,
+                leaveOpen: true);
             var builder = new StringBuilder();
             char[] buffer = new char[4096];
             long bytes = 0;
