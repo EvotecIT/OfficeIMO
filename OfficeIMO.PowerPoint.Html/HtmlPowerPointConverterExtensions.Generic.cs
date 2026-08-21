@@ -90,6 +90,16 @@ public static partial class HtmlPowerPointConverterExtensions {
             int semanticShapeCount = slide.Shapes.Count;
             var negativeRegionShapes = new List<PptCore.PowerPointShape>();
             double maximumGeometry = budget.Limits.MaxAbsoluteGeometry;
+            var shapeReservations = new Dictionary<HtmlRenderLayoutRegion, HtmlImportBudgetReservation>();
+            var shapeReservationFailures = new Dictionary<HtmlRenderLayoutRegion, string>();
+            foreach (HtmlRenderLayoutRegion region in sectionGroup.OrderBy(item => item.PaintOrder)) {
+                if (!budget.IsMetadataWithinLimit(region.SourceText, out _)) continue;
+                if (budget.TryReserveShape(out HtmlImportBudgetReservation reservation, out string detail)) {
+                    shapeReservations[region] = reservation;
+                } else {
+                    shapeReservationFailures[region] = detail;
+                }
+            }
             var occupied = slide.TextBoxes
                 .Select(box => new EditableLayoutSlideBounds(box.LeftPoints, box.TopPoints, box.WidthPoints, box.HeightPoints))
                 .Concat(slide.Pictures.Select(picture => new EditableLayoutSlideBounds(
@@ -98,8 +108,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     table.LeftPoints, table.TopPoints, table.WidthPoints, table.HeightPoints)))
                 .Concat(sectionGroup.Where(region =>
                         region.RegionKind == HtmlRenderLayoutRegionKind.Positioned
-                        && budget.IsMetadataWithinLimit(region.SourceText, out _)
-                        && budget.CanReserveShape(out _))
+                        && shapeReservations.ContainsKey(region))
                     .Select(region => CreateBoundedCollisionBounds(region, maximumGeometry)))
                 .ToList();
 
@@ -110,6 +119,16 @@ public static partial class HtmlPowerPointConverterExtensions {
                         HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source, metadataLimit);
                     continue;
                 }
+                if (!shapeReservations.TryGetValue(region, out HtmlImportBudgetReservation? shapeReservation)) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An editable HTML layout region was omitted because the native shape limit was reached.",
+                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                        shapeReservationFailures.TryGetValue(region, out string? shapeLimit)
+                            ? shapeLimit
+                            : nameof(HtmlImportLimits.MaxShapes));
+                    continue;
+                }
+                using HtmlImportBudgetReservation reservedShape = shapeReservation!;
                 double localRegionX = region.X - region.SemanticSectionOriginX;
                 double localRegionY = region.Y - region.SemanticSectionOriginY;
                 double left = NormalizeGeometry(localRegionX * 0.75D, 0D, -maximumGeometry,
@@ -148,12 +167,6 @@ public static partial class HtmlPowerPointConverterExtensions {
                     }
                 }
                 if (!placementAvailable) continue;
-                if (!budget.TryReserveShape(out string shapeLimit)) {
-                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "An editable HTML layout region was omitted because the native shape limit was reached.",
-                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source, shapeLimit);
-                    continue;
-                }
                 double topOffset = top - requestedTop;
                 var nativeRegionShapes = new List<PptCore.PowerPointShape>();
                 if (options.ImportPictures) {
@@ -161,6 +174,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
                 }
                 PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
+                reservedShape.Commit();
                 nativeRegionShapes.Add(textBox);
                 textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
                 if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();

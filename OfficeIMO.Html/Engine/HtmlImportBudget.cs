@@ -52,8 +52,14 @@ internal sealed class HtmlImportBudget {
     internal bool TryReserveShape(out string detail) =>
         TryIncrement(ref _shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail);
 
-    internal bool CanReserveShape(out string detail) =>
-        CanIncrement(_shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail);
+    internal bool TryReserveShape(
+        out HtmlImportBudgetReservation reservation,
+        out string detail) {
+        reservation = null!;
+        if (!TryReserveShape(out detail)) return false;
+        reservation = new HtmlImportBudgetReservation(() => _shapes--);
+        return true;
+    }
 
     internal bool TryReserveAnnotation(out string detail) =>
         TryIncrement(ref _annotations, _limits.MaxAnnotations, nameof(HtmlImportLimits.MaxAnnotations), out detail);

@@ -117,6 +117,22 @@ public sealed partial class HtmlConversionDocument {
     }
 
     /// <summary>
+    /// Policy-normalizes an independently prepared source clone while retaining temporary adapter
+    /// markers. This lets an adapter remove selected subtrees without falling back to raw URLs.
+    /// </summary>
+    internal IHtmlDocument CreatePolicyNormalizedDocumentForConversion(IHtmlDocument preparedDocument) {
+        if (preparedDocument == null) throw new ArgumentNullException(nameof(preparedDocument));
+        return AnalyzeSource(() => {
+            string adapterHtml = HtmlNormalizer.Normalize(
+                preparedDocument,
+                ConfigureAdapterNormalization(preparedDocument, _options));
+            IHtmlDocument normalized = HtmlDocumentParser.ParseDocument(adapterHtml);
+            HtmlConversionInputGuard.ValidateDocument(normalized, _options.Limits);
+            return normalized;
+        });
+    }
+
+    /// <summary>
     /// Creates an unfiltered source DOM for renderers that apply their own concrete viewport,
     /// hyperlink, and resource policies. This keeps an explicitly configured resolver capable of
     /// authorizing a source that a generic untrusted adapter would omit.

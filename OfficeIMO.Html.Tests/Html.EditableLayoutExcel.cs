@@ -154,6 +154,21 @@ public sealed class HtmlEditableLayoutExcelTests {
     }
 
     [Fact]
+    public void ProjectedRegionCannotReintroducePolicyRejectedSemanticHyperlinks() {
+        const string html = "<a href='javascript:alert(1)'>Unsafe link</a>"
+            + "<div style='position:absolute;left:120px;top:80px;width:128px;height:40px'>Projected</div>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            html,
+            new HtmlConversionDocumentOptions { UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile() });
+
+        HtmlToExcelResult result = document.ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Empty(Assert.Single(workbook.Sheets).GetHyperlinks());
+    }
+
+    [Fact]
     public void OverlappingRegionsMoveToDistinctNonOverlappingCellAnchors() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;left:32px;top:200px;width:240px;height:72px'>First region" +

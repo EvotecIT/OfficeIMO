@@ -56,6 +56,44 @@ public sealed class HtmlEditableLayoutProjectionTests {
     }
 
     [Fact]
+    public void AcceptedRegionsLeaveAPolicyNormalizedSemanticRemainder() {
+        const string html = "<a href='javascript:alert(1)'>Unsafe</a>"
+            + "<a href='docs/start.html'>Guide</a>"
+            + "<img src='file:///secret/picture.png' alt='Rejected'>"
+            + "<div style='position:absolute;width:160px;height:40px'>Projected</div>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            html,
+            new HtmlConversionDocumentOptions {
+                BaseUri = new Uri("https://example.test/root/page.html"),
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+                ResourceUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            });
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(document);
+
+        Assert.Single(projection.Regions);
+        string remaining = projection.RemainingDocument.DocumentElement!.OuterHtml;
+        Assert.DoesNotContain("javascript:", remaining, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("file:///", remaining, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("https://example.test/root/docs/start.html", remaining, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InheritedTypographyKeepsRegionInDiagnosedSemanticFlow() {
+        const string html = "<body style='color:red;font-weight:700'>"
+            + "<div style='position:absolute;width:160px;height:40px'>Inherited style</div></body>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        Assert.Contains("Inherited style", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "inheritedTypography=true; semanticFlow=true");
+    }
+
+    [Fact]
     public void RegionTextUsesOnlyRenderedVisibleText() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>Visible" +
             "<span style='display:none'>Hidden display</span>" +

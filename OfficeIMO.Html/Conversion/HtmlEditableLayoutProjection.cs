@@ -155,6 +155,7 @@ public static class HtmlEditableLayoutProjector {
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
         var semanticRichCandidates = new List<IElement>();
+        var inheritedTypographyCandidates = new List<IElement>();
         var effectCandidates = new List<(IElement Element, string Detail)>();
         var mixedInlineImageCandidates = new List<IElement>();
         foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
@@ -167,6 +168,10 @@ public static class HtmlEditableLayoutProjector {
             }
             if (preserveMixedInlineContent && ContainsMixedInlineImageContent(element, styles)) {
                 mixedInlineImageCandidates.Add(element);
+                continue;
+            }
+            if (HasInheritedRichTextStyle(element, styles)) {
+                inheritedTypographyCandidates.Add(element);
                 continue;
             }
             if (ContainsSemanticRichContent(element, styles)) {
@@ -202,6 +207,12 @@ public static class HtmlEditableLayoutProjector {
                 "An editable layout region stayed in semantic flow so rich document content would not be flattened.",
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
                 "semanticContent=true", OfficeConversionLossKind.Approximation);
+        }
+        foreach (IElement element in inheritedTypographyCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "An editable layout region stayed in semantic flow so inherited typography would remain intact.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "inheritedTypography=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
         }
         foreach ((IElement element, string detail) in effectCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
@@ -290,32 +301,46 @@ public static class HtmlEditableLayoutProjector {
         }
 
         var acceptedKeys = new HashSet<string>(accepted.Select(region => region.SourceKey), StringComparer.Ordinal);
-        IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages = accepted.ToDictionary(
+        IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> orderedSourceImages = accepted.ToDictionary(
             region => region.SourceKey,
             region => CreateOrderedSourceImages(region, candidateElements[region.SourceKey], styles),
+            StringComparer.Ordinal);
+        foreach (IHtmlStyleElement style in callerStyles) style.Remove();
+        IHtmlDocument remainingDocument = document.CreatePolicyNormalizedDocumentForConversion(adapterDocument);
+        IReadOnlyDictionary<string, IHtmlImageElement> normalizedImagesByMarker = remainingDocument
+            .QuerySelectorAll("img[" + ImageAttribute + "]")
+            .OfType<IHtmlImageElement>()
+            .Where(image => !string.IsNullOrWhiteSpace(image.GetAttribute(ImageAttribute)))
+            .ToDictionary(image => image.GetAttribute(ImageAttribute)!, image => image, StringComparer.Ordinal);
+        IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> sourceImages = orderedSourceImages.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<IHtmlImageElement>)pair.Value
+                .Select(image => image.GetAttribute(ImageAttribute))
+                .Where(marker => marker != null && normalizedImagesByMarker.ContainsKey(marker))
+                .Select(marker => normalizedImagesByMarker[marker!])
+                .ToArray(),
             StringComparer.Ordinal);
         IReadOnlyDictionary<string, IHtmlImageElement> sourceImagesByRenderKey = sourceImages.Values
             .SelectMany(images => images)
             .ToDictionary(image => DescribeImageSource(image.GetAttribute(ImageAttribute)), image => image,
                 StringComparer.Ordinal);
-        foreach (IHtmlImageElement image in sourceImages.Values.SelectMany(images => images)) {
+        foreach (IHtmlImageElement image in orderedSourceImages.Values.SelectMany(images => images)) {
             image.RemoveAttribute(ImageAttribute);
         }
-        foreach (IElement element in adapterDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
+        foreach (IElement element in remainingDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
             string? sourceKey = element.GetAttribute(RegionAttribute);
             if (sourceKey != null && acceptedKeys.Contains(sourceKey)) element.Remove();
             else element.RemoveAttribute(RegionAttribute);
         }
-        foreach (IElement image in adapterDocument.QuerySelectorAll("[" + ImageAttribute + "]").ToArray()) {
+        foreach (IElement image in remainingDocument.QuerySelectorAll("[" + ImageAttribute + "]").ToArray()) {
             image.RemoveAttribute(ImageAttribute);
         }
-        foreach (IHtmlStyleElement style in callerStyles) style.Remove();
         IReadOnlyList<HtmlDiagnostic> projectionDiagnostics = rendered.Diagnostics
             .Where(renderDiagnostic => !document.Diagnostics.Any(sourceDiagnostic =>
                 DiagnosticsAreEquivalent(sourceDiagnostic, renderDiagnostic)))
             .Concat(diagnostics.Diagnostics)
             .ToArray();
-        return new HtmlEditableLayoutProjection(adapterDocument, rendered, accepted.AsReadOnly(), sourceImages,
+        return new HtmlEditableLayoutProjection(remainingDocument, rendered, accepted.AsReadOnly(), sourceImages,
             sourceImagesByRenderKey, projectionDiagnostics);
     }
 
@@ -599,6 +624,14 @@ public static class HtmlEditableLayoutProjector {
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         return HasDistinctStyle(element, styles, RichTextStyleProperties);
+    }
+
+    private static bool HasInheritedRichTextStyle(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        return styles.TryGetValue(element, out HtmlComputedStyle? style)
+            && RichTextStyleProperties.Any(property => style.IsInheritedValue(property)
+                && !string.IsNullOrWhiteSpace(style.GetValue(property)));
     }
 
     private static bool HasVisibleRootBorder(
