@@ -184,6 +184,32 @@ public sealed class HtmlEditableLayoutPowerPointTests {
     }
 
     [Fact]
+    public void OmittedPositionedRegionDoesNotDisplaceFollowingInFlowRegion() {
+        const string html = "<div style='position:absolute;left:0;top:0;width:300px;height:80px'>Metadata too long</div>" +
+            "<div style='display:grid;width:300px;height:80px'>Grid</div>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxMetadataCharacters = 4;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToPowerPointResult baseline = HtmlConversionDocument.Parse(
+                "<div style='display:grid;width:300px;height:80px'>Grid</div>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using PowerPointPresentation presentation = result.Value;
+        using PowerPointPresentation baselinePresentation = baseline.Value;
+        PowerPointSlide slide = Assert.Single(presentation.Slides);
+
+        Assert.DoesNotContain(slide.TextBoxes, box => box.Text.Contains("Metadata", StringComparison.Ordinal));
+        PowerPointTextBox grid = Assert.Single(slide.TextBoxes, box => box.Text == "Grid");
+        PowerPointTextBox baselineGrid = Assert.Single(
+            Assert.Single(baselinePresentation.Slides).TextBoxes, box => box.Text == "Grid");
+        Assert.Equal(baselineGrid.TopPoints, grid.TopPoints, precision: 3);
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Message.Contains("moved", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void PositionedAndGridRegionsReopenAsEditableSlideGeometry() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 3));
         string html = "<style>" +

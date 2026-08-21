@@ -483,6 +483,7 @@ public static class HtmlEditableLayoutProjector {
         if (string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)) return false;
         if (SemanticRichElementNames.Contains(element.LocalName)) return true;
         if (HasDistinctRichTextStyle(element, styles)) return true;
+        if (HasVisibleRootBorder(element, styles)) return true;
         return element.QuerySelectorAll("*").Any(child => {
             if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) return false;
             return SemanticRichElementNames.Contains(child.LocalName)
@@ -565,6 +566,13 @@ public static class HtmlEditableLayoutProjector {
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         return HasDistinctStyle(element, styles, RichTextStyleProperties);
+    }
+
+    private static bool HasVisibleRootBorder(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        return styles.TryGetValue(element, out HtmlComputedStyle? style)
+            && HtmlCssBoxStrokeParser.HasBorderDeclaration(style);
     }
 
     private static bool HasDistinctStyle(

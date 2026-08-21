@@ -556,13 +556,32 @@ internal static class HtmlRenderResourceLoader {
                     continue;
                 }
 
+                Uri resourceUri = item.Uri;
+                if (resource.FinalUri?.IsAbsoluteUri == true) {
+                    string approvedFinalSource = HtmlUrlPolicyEvaluator.ResolveUrl(
+                        resource.FinalUri.AbsoluteUri,
+                        baseUri: null,
+                        HtmlResourceUrlPolicy.Create(result.ResourcePolicy));
+                    if (!Uri.TryCreate(approvedFinalSource, UriKind.Absolute, out Uri? approvedFinalUri)
+                        || !approvedFinalUri.Equals(resource.FinalUri)) {
+                        diagnostics.Add(
+                            ComponentName,
+                            GetPolicyRejectionCode(reference.Kind),
+                            "A resolver-reported final resource URI was rejected by the configured URL policy.",
+                            HtmlDiagnosticSeverity.Warning,
+                            reference.Source,
+                            resource.FinalUri.AbsoluteUri,
+                            OfficeConversionLossKind.Omission);
+                        continue;
+                    }
+
+                    resourceUri = resource.FinalUri;
+                }
+
                 if (!result.TryAccept(reference, resource, out bool stopAfterResource)) {
                     if (stopAfterResource) stop = true;
                     continue;
                 }
-                Uri resourceUri = resource.FinalUri?.IsAbsoluteUri == true
-                    ? resource.FinalUri
-                    : item.Uri;
                 seen.Add(resourceUri.AbsoluteUri);
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
@@ -675,6 +694,18 @@ internal static class HtmlRenderResourceLoader {
 
             pending.Enqueue(new PendingResource(reference, importDepth + 1));
         }
+    }
+
+    private static string GetPolicyRejectionCode(HtmlResourceKind kind) {
+        return kind switch {
+            HtmlResourceKind.Image => "ImageResourceRejectedByPolicy",
+            HtmlResourceKind.Stylesheet => "StylesheetResourceRejectedByPolicy",
+            HtmlResourceKind.Hyperlink => "HyperlinkRejectedByPolicy",
+            HtmlResourceKind.Script => "ScriptResourceRejectedByPolicy",
+            HtmlResourceKind.Media => "MediaResourceRejectedByPolicy",
+            HtmlResourceKind.Font => "FontResourceRejectedByPolicy",
+            _ => "HtmlResourceRejectedByPolicy"
+        };
     }
 
     private static bool IsLoadableKind(HtmlResourceKind kind) =>

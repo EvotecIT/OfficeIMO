@@ -84,6 +84,20 @@ public sealed class HtmlEditableLayoutProjectionTests {
     }
 
     [Fact]
+    public void RegionRootBorderStaysInSemanticFlowInsteadOfBeingSilentlyFlattened() {
+        const string html = "<div style='position:absolute;width:180px;height:50px;border:3px solid red'>Bordered</div>";
+
+        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(projection.Regions);
+        Assert.Contains("Bordered", projection.RemainingDocument.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail == "semanticContent=true");
+    }
+
+    [Fact]
     public void RegionAndAncestorPaintEffectsKeepContentInSemanticFlow() {
         const string html = "<div style='opacity:0'><div style='position:absolute;width:180px;height:50px'>Hidden by ancestor</div></div>" +
             "<div style='position:absolute;width:180px;height:50px;transform:rotate(4deg)'>Transformed</div>" +

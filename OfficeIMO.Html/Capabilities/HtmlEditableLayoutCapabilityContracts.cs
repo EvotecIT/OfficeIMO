@@ -46,14 +46,14 @@ public static class HtmlEditableLayoutCapabilityContracts {
             HtmlConversionTarget.Excel,
             "bounded positioned, floating, flex, and grid regions",
             "editable merged-cell regions plus absolute DrawingML picture anchors",
-            "cell fills, supported background/image layers, and picture alpha",
-            "semantic-rich and region or descendant paint-effect regions stay in flow; worksheet ownership, cell shadows, and unsupported image/effect types are diagnosed"),
+            "cell fills, foreground DrawingML pictures, and picture alpha",
+            "semantic-rich, root/descendant border, and region or descendant paint-effect regions stay in flow; background image layers are omitted to keep editable cell text visible, while worksheet ownership, bounds, cell shadows, and unsupported image/effect types are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.PowerPoint,
             "bounded positioned, floating, flex, and grid regions",
             "editable slide text boxes and DrawingML pictures in section-local rendered geometry",
             "solid fills, supported background/image layers, picture alpha, and one native outer shadow",
-            "semantic-rich and region or descendant paint-effect regions stay in flow; additional shadow layers and unsupported image/effect types are diagnosed")
+            "semantic-rich, root/descendant border, and region or descendant paint-effect regions stay in flow; collision simplification, additional shadow layers, and unsupported image/effect types are diagnosed")
     });
 
     /// <summary>Gets every native editable-layout contract in stable destination order.</summary>

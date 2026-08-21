@@ -96,7 +96,10 @@ public static partial class HtmlPowerPointConverterExtensions {
                     picture.LeftPoints, picture.TopPoints, picture.WidthPoints, picture.HeightPoints)))
                 .Concat(slide.Tables.Select(table => new EditableLayoutSlideBounds(
                     table.LeftPoints, table.TopPoints, table.WidthPoints, table.HeightPoints)))
-                .Concat(sectionGroup.Where(region => region.RegionKind == HtmlRenderLayoutRegionKind.Positioned)
+                .Concat(sectionGroup.Where(region =>
+                        region.RegionKind == HtmlRenderLayoutRegionKind.Positioned
+                        && budget.IsMetadataWithinLimit(region.SourceText, out _)
+                        && budget.CanReserveShape(out _))
                     .Select(region => CreateBoundedCollisionBounds(region, maximumGeometry)))
                 .ToList();
 

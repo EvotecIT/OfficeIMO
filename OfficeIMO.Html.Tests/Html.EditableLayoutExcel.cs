@@ -102,6 +102,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.Equal("FEF3C7", sheet.CellAt(3, 1).GetStyle().FillColorHex);
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "B13:E16");
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "A3:E6");
+        Assert.Single(sheet.Images);
         Assert.Contains(sheet.Images, drawing => drawing.TransparencyPercent == 60);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened);
@@ -110,6 +111,30 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.EffectUnsupported);
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void ExtremeRegionAndPictureGeometryUsesBoundedNativeFallbacks() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;left:1000000000000000px;top:1000000000000000px;" +
+            "width:1000000000000000px;height:1000000000000000px'>Bounded" +
+            "<img src='" + image + "' style='position:absolute;left:0;top:0;width:12px;height:12px'></div>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxAbsoluteGeometry = 640D;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+
+        Assert.True(ContainsCellText(sheet, "Bounded"));
+        ExcelImage picture = Assert.Single(sheet.Images);
+        Assert.InRange(picture.WidthPixels, 1, 12);
+        Assert.InRange(picture.HeightPixels, 1, 12);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid
+            && diagnostic.Source != null
+            && diagnostic.Source.Contains("editable layout region width", StringComparison.Ordinal));
     }
 
     [Fact]
