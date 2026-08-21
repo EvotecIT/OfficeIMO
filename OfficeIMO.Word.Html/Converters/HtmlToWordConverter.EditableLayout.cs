@@ -62,20 +62,20 @@ internal partial class HtmlToWordConverter {
 
             WordParagraph paragraph = textBox.Paragraphs.First();
             IReadOnlyList<IHtmlImageElement> sourceImages = projection.GetSourceImages(region);
-            IReadOnlyList<(HtmlRenderImage Image, double Opacity)> renderedImages =
-                HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: false)
+            IReadOnlyList<HtmlEditableLayoutPicture> renderedImages =
+                HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: false)
                     .ToList()
                     .AsReadOnly();
             var projectedSources = new HashSet<IHtmlImageElement>();
-            foreach ((HtmlRenderImage visual, double opacity) in renderedImages) {
-                IHtmlImageElement? sourceImage = projection.GetSourceImage(visual);
+            foreach (HtmlEditableLayoutPicture visual in renderedImages) {
+                IHtmlImageElement? sourceImage = projection.GetSourceImage(visual.Source);
                 if (sourceImage == null || !projectedSources.Add(sourceImage)) continue;
-                AddEditableRegionImage(sourceImage, visual, opacity, document, options, paragraph, region,
+                AddEditableRegionImage(sourceImage, visual, document, options, paragraph, region,
                     containerWidthTwips);
             }
             foreach (IHtmlImageElement sourceImage in sourceImages) {
                 if (projectedSources.Add(sourceImage)) {
-                    AddEditableRegionImage(sourceImage, null, 1D, document, options, paragraph, region,
+                    AddEditableRegionImage(sourceImage, null, document, options, paragraph, region,
                         containerWidthTwips);
                 }
             }
@@ -104,13 +104,13 @@ internal partial class HtmlToWordConverter {
 
     private void AddEditableRegionImage(
         IHtmlImageElement sourceImage,
-        HtmlRenderImage? visual,
-        double opacity,
+        HtmlEditableLayoutPicture? visual,
         WordDocument document,
         HtmlToWordOptions options,
         WordParagraph paragraph,
         HtmlRenderLayoutRegion region,
         int containerWidthTwips) {
+        ReportAccessibilityDiagnostics(sourceImage);
         int before = paragraph.EnumerateImages().Count();
         ProcessImage(sourceImage, document, options, paragraph, headerFooter: null,
             resolveContainerWidthTwips: () => containerWidthTwips);
@@ -129,13 +129,18 @@ internal partial class HtmlToWordConverter {
         nativeImage.CropTop = null;
         nativeImage.CropRight = null;
         nativeImage.CropBottom = null;
-        if (visual == null) return;
-        if (opacity < 0.999D) nativeImage.Transparency = (int)Math.Round((1D - opacity) * 100D);
-        if (visual.SourceCrop.HasCrop) {
-            nativeImage.CropLeft = ToCropPercentage(visual.SourceCrop.Left);
-            nativeImage.CropTop = ToCropPercentage(visual.SourceCrop.Top);
-            nativeImage.CropRight = ToCropPercentage(visual.SourceCrop.Right);
-            nativeImage.CropBottom = ToCropPercentage(visual.SourceCrop.Bottom);
+        if (!visual.HasValue) return;
+        HtmlEditableLayoutPicture renderedPicture = visual.Value;
+        nativeImage.Width = renderedPicture.Width;
+        nativeImage.Height = renderedPicture.Height;
+        if (renderedPicture.Opacity < 0.999D) {
+            nativeImage.Transparency = (int)Math.Round((1D - renderedPicture.Opacity) * 100D);
+        }
+        if (renderedPicture.SourceCrop.HasCrop) {
+            nativeImage.CropLeft = ToCropPercentage(renderedPicture.SourceCrop.Left);
+            nativeImage.CropTop = ToCropPercentage(renderedPicture.SourceCrop.Top);
+            nativeImage.CropRight = ToCropPercentage(renderedPicture.SourceCrop.Right);
+            nativeImage.CropBottom = ToCropPercentage(renderedPicture.SourceCrop.Bottom);
         }
     }
 

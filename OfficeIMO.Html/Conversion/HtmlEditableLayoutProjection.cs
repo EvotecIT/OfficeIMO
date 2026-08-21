@@ -67,11 +67,49 @@ public sealed class HtmlEditableLayoutProjection {
         _sourceImages.TryGetValue(region.SourceKey, out IReadOnlyList<IHtmlImageElement>? images)
             ? images
             : Array.Empty<IHtmlImageElement>();
-    internal IHtmlImageElement? GetSourceImage(HtmlRenderImage renderedImage) =>
-        renderedImage.Source != null
-            && _sourceImagesByRenderKey.TryGetValue(renderedImage.Source, out IHtmlImageElement? sourceImage)
+    internal IHtmlImageElement? GetSourceImage(HtmlRenderImage renderedImage) => GetSourceImage(renderedImage.Source);
+    internal IHtmlImageElement? GetSourceImage(string? renderedSource) =>
+        renderedSource != null
+            && _sourceImagesByRenderKey.TryGetValue(renderedSource, out IHtmlImageElement? sourceImage)
                 ? sourceImage
                 : null;
+}
+
+internal readonly struct HtmlEditableLayoutPicture {
+    internal HtmlEditableLayoutPicture(
+        byte[] bytes,
+        string contentType,
+        double x,
+        double y,
+        double width,
+        double height,
+        string? alternativeText,
+        string? source,
+        OfficeImageSourceCrop sourceCrop,
+        double opacity) {
+        Bytes = bytes;
+        ContentType = contentType;
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+        AlternativeText = alternativeText;
+        Source = source;
+        SourceCrop = sourceCrop;
+        Opacity = opacity;
+    }
+
+    internal byte[] Bytes { get; }
+    internal string ContentType { get; }
+    internal double X { get; }
+    internal double Y { get; }
+    internal double Width { get; }
+    internal double Height { get; }
+    internal string? AlternativeText { get; }
+    internal string? Source { get; }
+    internal OfficeImageSourceCrop SourceCrop { get; }
+    internal double Opacity { get; }
+    internal bool IsBackground => Source?.IndexOf(":background-image", StringComparison.Ordinal) >= 0;
 }
 
 /// <summary>Creates one shared editable-layout plan for DOCX, RTF, XLSX, and PPTX adapters.</summary>
@@ -586,6 +624,43 @@ public static partial class HtmlEditableLayoutProjector {
         }
     }
 
+    internal static IEnumerable<HtmlEditableLayoutPicture> EnumeratePictures(
+        IEnumerable<HtmlRenderVisual> visuals,
+        bool includeBackgroundImages,
+        double opacity = 1D) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            HtmlEditableLayoutPicture? picture = visual switch {
+                HtmlRenderImage image => new HtmlEditableLayoutPicture(
+                    image.EncodedBytes, image.ContentType, image.X, image.Y, image.Width, image.Height,
+                    image.AlternativeText, image.Source, image.SourceCrop, opacity),
+                HtmlRenderDrawing drawing when drawing.ImageBytes is { Length: > 0 } imageBytes
+                    && !string.IsNullOrWhiteSpace(drawing.ImageContentType) => new HtmlEditableLayoutPicture(
+                        imageBytes, drawing.ImageContentType!, drawing.ImageX, drawing.ImageY,
+                        drawing.ImageWidth, drawing.ImageHeight,
+                        drawing.AlternativeText, drawing.Source, drawing.SourceCrop, opacity),
+                _ => null
+            };
+            if (picture.HasValue && (includeBackgroundImages || !picture.Value.IsBackground)) {
+                yield return picture.Value;
+            }
+            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderEffectGroup effect => effect.Visuals,
+                HtmlRenderLayoutRegion region => region.Visuals,
+                HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                HtmlRenderClipGroup clip => clip.Visuals,
+                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+                _ => null
+            };
+            if (children == null) continue;
+            double childOpacity = visual is HtmlRenderEffectGroup group ? opacity * group.Opacity : opacity;
+            foreach (HtmlEditableLayoutPicture child in EnumeratePictures(
+                         children, includeBackgroundImages, childOpacity)) {
+                yield return child;
+            }
+        }
+    }
+
     private static bool TryGetCandidateKind(
         IElement element,
         HtmlComputedStyle style,
@@ -676,9 +751,9 @@ public static partial class HtmlEditableLayoutProjector {
             item => item.RenderKey, item => item.Image, StringComparer.Ordinal);
         var ordered = new List<IHtmlImageElement>();
         var retainedKeys = new HashSet<string>(StringComparer.Ordinal);
-        foreach ((HtmlRenderImage image, double _) in EnumerateImages(
+        foreach (HtmlEditableLayoutPicture picture in EnumeratePictures(
                      region.Visuals, includeBackgroundImages: false)) {
-            string renderKey = image.Source ?? string.Empty;
+            string renderKey = picture.Source ?? string.Empty;
             if (retainedKeys.Add(renderKey)
                 && sourceByRenderKey.TryGetValue(renderKey, out IHtmlImageElement? sourceImage)) {
                 ordered.Add(sourceImage);

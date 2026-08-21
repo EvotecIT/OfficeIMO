@@ -187,8 +187,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                 var nativeRegionShapes = new List<PptCore.PowerPointShape>();
                 bool hasBackgroundPicture = options.ImportPictures
                     && region.BackgroundColor.HasValue
-                    && HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: true)
-                        .Any(item => HtmlEditableLayoutProjector.IsBackgroundImage(item.Image));
+                    && HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: true)
+                        .Any(item => item.IsBackground);
                 bool importBackgroundPictures = options.ImportPictures;
                 HtmlImportBudgetReservation? backgroundFillReservation = null;
                 if (hasBackgroundPicture) {
@@ -311,45 +311,45 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlToPowerPointResult result,
         ICollection<PptCore.PowerPointShape> nativeRegionShapes) {
         int retainedPictures = 0;
-        foreach ((HtmlRenderImage Image, double Opacity) image in
-                 HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: true)
-                     .Where(item => HtmlEditableLayoutProjector.IsBackgroundImage(item.Image) == backgroundImages)) {
-            if (!TryGetImagePartType(image.Image.ContentType, out OfficeImageFormat imageType)) {
+        foreach (HtmlEditableLayoutPicture image in
+                 HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: true)
+                     .Where(item => item.IsBackground == backgroundImages)) {
+            if (!TryGetImagePartType(image.ContentType, out OfficeImageFormat imageType)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                     "A layout-region picture used an unsupported native PowerPoint image type.",
-                    lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source);
+                    lossKind: OfficeConversionLossKind.Omission, source: image.Source);
                 continue;
             }
-            if (!budget.TryReserveImageWithShape(image.Image.Bytes.LongLength,
+            if (!budget.TryReserveImageWithShape(image.Bytes.LongLength,
                     out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "A layout-region picture was omitted because the shared image or shape limit was reached.",
-                    lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source, detail: imageLimit);
+                    lossKind: OfficeConversionLossKind.Omission, source: image.Source, detail: imageLimit);
                 continue;
             }
             using HtmlImportBudgetReservation imageReservationScope = imageReservation;
             double pictureLeft = NormalizeGeometry(
-                (image.Image.X - region.SemanticSectionOriginX) * 0.75D, left, -maximumGeometry,
+                (image.X - region.SemanticSectionOriginX) * 0.75D, left, -maximumGeometry,
                 budget, result, "editable layout picture left");
             double pictureTop = NormalizeGeometry(
-                (image.Image.Y - region.SemanticSectionOriginY) * 0.75D + topOffset, top, -maximumGeometry,
+                (image.Y - region.SemanticSectionOriginY) * 0.75D + topOffset, top, -maximumGeometry,
                 budget, result, "editable layout picture top");
-            double pictureWidth = NormalizeGeometry(image.Image.Width * 0.75D, 1D, 1D,
+            double pictureWidth = NormalizeGeometry(image.Width * 0.75D, 1D, 1D,
                 budget, result, "editable layout picture width");
-            double pictureHeight = NormalizeGeometry(image.Image.Height * 0.75D, 1D, 1D,
+            double pictureHeight = NormalizeGeometry(image.Height * 0.75D, 1D, 1D,
                 budget, result, "editable layout picture height");
-            using var stream = new MemoryStream(image.Image.Bytes);
+            using var stream = new MemoryStream(image.Bytes);
             PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
                 pictureLeft, pictureTop, pictureWidth, pictureHeight);
             nativeRegionShapes.Add(picture);
-            if (!string.IsNullOrWhiteSpace(image.Image.AlternativeText)) picture.AltText = image.Image.AlternativeText;
+            if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.AltText = image.AlternativeText;
             if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
-            if (image.Image.SourceCrop.HasCrop) {
+            if (image.SourceCrop.HasCrop) {
                 picture.Crop(
-                    image.Image.SourceCrop.Left * 100D,
-                    image.Image.SourceCrop.Top * 100D,
-                    image.Image.SourceCrop.Right * 100D,
-                    image.Image.SourceCrop.Bottom * 100D);
+                    image.SourceCrop.Left * 100D,
+                    image.SourceCrop.Top * 100D,
+                    image.SourceCrop.Right * 100D,
+                    image.SourceCrop.Bottom * 100D);
             }
             result.Pictures++;
             imageReservation.Commit();

@@ -219,53 +219,53 @@ public static partial class HtmlExcelConverterExtensions {
             occupied.Add(bounds);
 
             if (options.ImportImages) {
-                foreach ((HtmlRenderImage Image, double Opacity) image in
-                         HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: false)) {
-                    if (!ExcelSheet.IsSupportedImageContentType(image.Image.ContentType)) {
+                foreach (HtmlEditableLayoutPicture image in
+                         HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: false)) {
+                    if (!ExcelSheet.IsSupportedImageContentType(image.ContentType)) {
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                             "A layout-region image used an unsupported native Excel image type.",
-                            lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source,
-                            detail: "mediaType=" + image.Image.ContentType);
+                            lossKind: OfficeConversionLossKind.Omission, source: image.Source,
+                            detail: "mediaType=" + image.ContentType);
                         continue;
                     }
-                    if (!budget.TryReserveImageWithShape(image.Image.Bytes.LongLength,
+                    if (!budget.TryReserveImageWithShape(image.Bytes.LongLength,
                             out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                             "A layout-region image was omitted because the shared image or drawing limit was reached.",
-                            lossKind: OfficeConversionLossKind.Omission, source: image.Image.Source, detail: imageLimit);
+                            lossKind: OfficeConversionLossKind.Omission, source: image.Source, detail: imageLimit);
                         continue;
                     }
                     using HtmlImportBudgetReservation imageReservationScope = imageReservation;
                     double imageLeft = NormalizeEditableLayoutGeometry(
-                        image.Image.X - region.SemanticTableOriginX, 0D, 0D, maximumGeometry,
+                        image.X - region.SemanticTableOriginX, 0D, 0D, maximumGeometry,
                         budget, result, "editable layout picture left");
                     double imageTop = NormalizeEditableLayoutGeometry(
-                        image.Image.Y - region.SemanticTableOriginY + rowDisplacementPixels,
+                        image.Y - region.SemanticTableOriginY + rowDisplacementPixels,
                         0D, 0D, maximumGeometry,
                         budget, result, "editable layout picture top");
                     double imageWidth = NormalizeEditableLayoutGeometry(
-                        image.Image.Width, maximumGeometry, 1D, maximumGeometry,
+                        image.Width, maximumGeometry, 1D, maximumGeometry,
                         budget, result, "editable layout picture width");
                     double imageHeight = NormalizeEditableLayoutGeometry(
-                        image.Image.Height, maximumGeometry, 1D, maximumGeometry,
+                        image.Height, maximumGeometry, 1D, maximumGeometry,
                         budget, result, "editable layout picture height");
                     ExcelImage nativeImage = sheet.AddImageAbsolute(
                         (int)Math.Round(imageLeft),
                         (int)Math.Round(imageTop),
-                        image.Image.Bytes,
-                        image.Image.ContentType,
+                        image.Bytes,
+                        image.ContentType,
                         (int)Math.Round(imageWidth),
                         (int)Math.Round(imageHeight),
-                        altText: image.Image.AlternativeText);
+                        altText: image.AlternativeText);
                     if (image.Opacity < 0.999D) {
                         nativeImage.TransparencyPercent = (int)Math.Round((1D - image.Opacity) * 100D);
                     }
-                    if (image.Image.SourceCrop.HasCrop) {
+                    if (image.SourceCrop.HasCrop) {
                         nativeImage.SetCropRatio(
-                            image.Image.SourceCrop.Left,
-                            image.Image.SourceCrop.Top,
-                            image.Image.SourceCrop.Right,
-                            image.Image.SourceCrop.Bottom);
+                            image.SourceCrop.Left,
+                            image.SourceCrop.Top,
+                            image.SourceCrop.Right,
+                            image.SourceCrop.Bottom);
                     }
                     result.Images++;
                     imageReservation.Commit();
