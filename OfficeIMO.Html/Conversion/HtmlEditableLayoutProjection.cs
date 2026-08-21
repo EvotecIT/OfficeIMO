@@ -340,7 +340,7 @@ public static partial class HtmlEditableLayoutProjector {
         }
         foreach ((IElement element, string detail) in effectCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
-                "An editable layout region stayed in semantic flow because its box model or paint effect has no exact destination-native representation.",
+                "An editable layout region stayed in semantic flow because its layout, box model, or paint effect has no exact destination-native representation.",
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
                 detail + "; semanticFlow=true", OfficeConversionLossKind.Approximation);
         }

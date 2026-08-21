@@ -217,12 +217,14 @@ public static partial class HtmlEditableLayoutProjector {
         out string detail) {
         var effects = new List<string>();
         AddNonNativeBoxModelSpacing(element, styles, effects, "");
+        AddNonNativeLayoutFormatting(element, styles, effects, "");
         for (IElement? current = element; current != null; current = current.ParentElement) {
             AddNonNativeEffects(current, styles, effects, "");
         }
         foreach (IElement descendant in element.QuerySelectorAll("*")) {
             AddNonNativeEffects(descendant, styles, effects, "descendant:");
             AddNonNativeBoxModelSpacing(descendant, styles, effects, "descendant:");
+            AddNonNativeLayoutFormatting(descendant, styles, effects, "descendant:");
         }
         detail = string.Join("; ", effects.Distinct(StringComparer.OrdinalIgnoreCase));
         return effects.Count > 0;
@@ -260,6 +262,81 @@ public static partial class HtmlEditableLayoutProjector {
         AddNonZeroEffect(style, "border-top-right-radius", effects, prefix);
         AddNonZeroEffect(style, "border-bottom-right-radius", effects, prefix);
         AddNonZeroEffect(style, "border-bottom-left-radius", effects, prefix);
+    }
+
+    private static void AddNonNativeLayoutFormatting(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        ICollection<string> effects,
+        string prefix) {
+        if (!styles.TryGetValue(element, out HtmlComputedStyle? style)) return;
+
+        bool hasMultiColumnLayout = HasNonDefaultLayoutValue(style, "column-count", "auto", "1")
+            || HasNonDefaultLayoutValue(style, "column-width", "auto")
+            || HasNonDefaultLayoutValue(style, "columns", "auto", "auto auto");
+        if (hasMultiColumnLayout) {
+            AddNonDefaultLayoutValue(style, "column-count", effects, prefix, "auto", "1");
+            AddNonDefaultLayoutValue(style, "column-width", effects, prefix, "auto");
+            AddNonDefaultLayoutValue(style, "columns", effects, prefix, "auto", "auto auto");
+            AddNonDefaultLayoutValue(style, "column-gap", effects, prefix, "normal");
+            AddNonDefaultLayoutValue(style, "column-rule", effects, prefix, "none");
+            AddNonDefaultLayoutValue(style, "column-rule-style", effects, prefix, "none");
+            AddNonDefaultLayoutValue(style, "column-rule-width", effects, prefix, "medium", "0", "0px");
+            AddNonDefaultLayoutValue(style, "column-rule-color", effects, prefix, "currentcolor");
+        }
+
+        if (IsFlexOrGridDisplay(style)) {
+            AddNonDefaultLayoutValue(style, "justify-content", effects, prefix, "normal", "flex-start", "start");
+            AddNonDefaultLayoutValue(style, "align-items", effects, prefix, "normal", "stretch");
+            AddNonDefaultLayoutValue(style, "align-content", effects, prefix, "normal", "stretch");
+            AddNonDefaultLayoutValue(style, "place-content", effects, prefix, "normal", "normal normal", "stretch", "stretch stretch");
+
+            string display = style.GetValue("display").Trim();
+            if (display.IndexOf("grid", StringComparison.OrdinalIgnoreCase) >= 0) {
+                AddNonDefaultLayoutValue(style, "justify-items", effects, prefix, "normal", "stretch");
+                AddNonDefaultLayoutValue(style, "place-items", effects, prefix, "normal", "normal normal", "stretch", "stretch stretch");
+            }
+        }
+
+        if (element.ParentElement != null
+            && styles.TryGetValue(element.ParentElement, out HtmlComputedStyle? parentStyle)
+            && IsFlexOrGridDisplay(parentStyle)) {
+            AddNonDefaultLayoutValue(style, "align-self", effects, prefix, "auto", "normal", "stretch");
+            AddNonDefaultLayoutValue(style, "justify-self", effects, prefix, "auto", "normal", "stretch");
+            AddNonDefaultLayoutValue(style, "place-self", effects, prefix, "auto", "auto auto", "normal", "normal normal", "stretch", "stretch stretch");
+
+            string parentDisplay = parentStyle.GetValue("display").Trim();
+            if (parentDisplay.IndexOf("grid", StringComparison.OrdinalIgnoreCase) >= 0) {
+                AddNonDefaultLayoutValue(style, "grid-column", effects, prefix, "auto", "auto / auto");
+                AddNonDefaultLayoutValue(style, "grid-column-start", effects, prefix, "auto");
+                AddNonDefaultLayoutValue(style, "grid-column-end", effects, prefix, "auto");
+                AddNonDefaultLayoutValue(style, "grid-row", effects, prefix, "auto", "auto / auto");
+                AddNonDefaultLayoutValue(style, "grid-row-start", effects, prefix, "auto");
+                AddNonDefaultLayoutValue(style, "grid-row-end", effects, prefix, "auto");
+            }
+        }
+    }
+
+    private static bool HasNonDefaultLayoutValue(
+        HtmlComputedStyle style,
+        string property,
+        params string[] defaultValues) {
+        string value = style.GetValue(property).Trim();
+        return value.Length > 0
+            && !defaultValues.Any(defaultValue => value.Equals(defaultValue, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void AddNonDefaultLayoutValue(
+        HtmlComputedStyle style,
+        string property,
+        ICollection<string> effects,
+        string prefix,
+        params string[] defaultValues) {
+        string value = style.GetValue(property).Trim();
+        if (value.Length > 0
+            && !defaultValues.Any(defaultValue => value.Equals(defaultValue, StringComparison.OrdinalIgnoreCase))) {
+            effects.Add(prefix + property + "=" + value);
+        }
     }
 
     private static void AddOutlineEffect(

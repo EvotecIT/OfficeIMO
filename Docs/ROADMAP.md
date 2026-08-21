@@ -32,6 +32,10 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Define an explicit lossy scan-compression product with image-selection, downsampling, quality, color, metadata, accessibility, signature-invalidation, and measurable visual-difference policies. Keep it separate from the deterministic lossless optimizer.
 - [ ] Evaluate an explicit XFA inspection or conversion product only with licensed specification coverage, hostile-input limits, external fixtures, and a fail-closed migration path to AcroForm or static visual output. Do not execute XFA in the core reader.
 
+## HTML, RTF, and lightweight markup
+
+- [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
+
 ## Security and protected content
 
 - [ ] Add OCR-backed concealed-text assessment for raster images using bounded OCR regions plus pixel, geometry, and contrast evidence, with explicit safe-redaction policy. Never classify image metadata alone as visible or concealed text.

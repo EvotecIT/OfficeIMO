@@ -11,7 +11,7 @@ OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIM
 
 ## OfficeIMO 3.2: editable HTML layout projection defaults
 
-HTML imports to Word, RTF, Excel, and PowerPoint now project bounded positioned, floating, flex, or grid regions into destination-native editable geometry by default when that destination supports the region. Older versions kept the same content only in ordinary semantic flow. Applications that require the previous flow-only output can set `ImportEditableLayoutRegions = false` on `HtmlToWordOptions`, `HtmlToRtfOptions`, `HtmlToExcelOptions`, or `HtmlToPowerPointOptions`. Regions that cannot be represented safely or natively continue in semantic flow or produce stable simplification and omission diagnostics.
+HTML imports to Word and RTF now project bounded positioned, floating, flex, or grid regions into destination-native editable geometry by default when that destination supports the region. Excel and PowerPoint apply the same projection on their ordinary-HTML `Auto` and `Generic` import paths; their default `Semantic` modes remain strict round-trip paths and do not project ordinary HTML. Older ordinary-HTML imports kept the same content only in semantic flow. Applications that require the previous flow-only output can set `ImportEditableLayoutRegions = false` on the applicable `HtmlToWordOptions`, `HtmlToRtfOptions`, `HtmlToExcelOptions`, or `HtmlToPowerPointOptions`. Regions that cannot be represented safely or natively continue in semantic flow or produce stable simplification and omission diagnostics.
 
 ## OfficeIMO 3.2: bounded object-table and MHTML ingestion defaults
 
