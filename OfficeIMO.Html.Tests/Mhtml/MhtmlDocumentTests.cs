@@ -10,6 +10,62 @@ using Xunit;
 namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlDocumentTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RedirectTargetsPassTheFullUrlPolicyBeforeFetcherInvocation(bool rewriteTarget) {
+        var document = new MhtmlDocument(
+            "<img src='https://example.test/start.png'>",
+            contentLocation: "https://example.test/page.html");
+        var requested = new List<Uri>();
+        var options = new HtmlRenderOptions {
+            ResourceUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        };
+        options.ResourceUrlPolicy.ResolvedUrlTransform = value =>
+            value.Contains("/blocked.png", StringComparison.Ordinal)
+                ? rewriteTarget
+                    ? value.Replace("/blocked.png", "/rewritten.png")
+                    : null
+                : value;
+        MhtmlRemoteResourcePolicy policy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);
+        policy.ResourceFetcher = (request, cancellationToken) => {
+            requested.Add(request.Uri);
+            return Task.FromResult<MhtmlRemoteResourceResponse?>(
+                MhtmlRemoteResourceResponse.Redirect(new Uri("/blocked.png", UriKind.Relative)));
+        };
+        document.ConfigureRenderOptions(options, policy);
+
+        HtmlResolvedResource? resource = await options.ResourceResolver!(
+            new HtmlRenderResourceRequest(
+                new Uri("https://example.test/start.png"),
+                "https://example.test/start.png",
+                HtmlResourceKind.Image),
+            CancellationToken.None);
+
+        Assert.Null(resource);
+        Assert.Equal(new[] { new Uri("https://example.test/start.png") }, requested);
+    }
+
+    [Fact]
+    public void EmbeddedOnlyConfigurationPreservesCallerSharedResourceLimits() {
+        var document = new MhtmlDocument("<p>Embedded only</p>");
+        var options = new HtmlRenderOptions {
+            MaxResourceBytes = 25L * 1024L * 1024L,
+            MaxTotalResourceBytes = 100L * 1024L * 1024L,
+            MaxResourceCount = 500,
+            MaxResourceRequests = 1000,
+            ResourceTimeout = TimeSpan.FromMinutes(2D)
+        };
+
+        document.ConfigureRenderOptions(options);
+
+        Assert.Equal(25L * 1024L * 1024L, options.MaxResourceBytes);
+        Assert.Equal(100L * 1024L * 1024L, options.MaxTotalResourceBytes);
+        Assert.Equal(500, options.MaxResourceCount);
+        Assert.Equal(1000, options.MaxResourceRequests);
+        Assert.Equal(TimeSpan.FromMinutes(2D), options.ResourceTimeout);
+    }
+
     [Fact]
     public async Task RedirectedStylesheetUsesFinalUriForDependenciesAndCanonicalIdentity() {
         var document = new MhtmlDocument(

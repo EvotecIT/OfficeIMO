@@ -41,23 +41,24 @@ public sealed class MhtmlRemoteResourcePolicy {
     /// <summary>Additional allowed origins, expressed as absolute HTTP or HTTPS URI strings.</summary>
     public ISet<string> AllowedOrigins => _allowedOrigins;
 
-    /// <summary>Maximum bytes accepted from one fallback resource.</summary>
+    /// <summary>Maximum bytes accepted from one resource while remote fallback is enabled.</summary>
     public long MaximumResourceBytes { get; set; } = 10L * 1024L * 1024L;
 
-    /// <summary>Maximum total bytes accepted from fallback and embedded resources during one render.</summary>
+    /// <summary>Maximum total resource bytes accepted during one render while remote fallback is enabled.</summary>
     public long MaximumTotalResourceBytes { get; set; } = 50L * 1024L * 1024L;
 
-    /// <summary>Maximum resources accepted during one render.</summary>
+    /// <summary>Maximum resources accepted during one render while remote fallback is enabled.</summary>
     public int MaximumResourceCount { get; set; } = 256;
 
-    /// <summary>Maximum resolver invocations attempted during one render.</summary>
+    /// <summary>Maximum resolver invocations attempted during one render while remote fallback is enabled.</summary>
     public int MaximumResourceRequests { get; set; } = 512;
 
-    /// <summary>Maximum duration of one resolver invocation.</summary>
+    /// <summary>Maximum duration of one resolver invocation while remote fallback is enabled.</summary>
     public TimeSpan ResourceTimeout { get; set; } = TimeSpan.FromSeconds(30D);
 
     internal void ApplyLimits(HtmlRenderOptions options) {
         Validate();
+        if (!AllowRemoteResources || ResourceFetcher == null) return;
         options.MaxResourceBytes = Math.Min(options.MaxResourceBytes, MaximumResourceBytes);
         options.MaxTotalResourceBytes = Math.Min(options.MaxTotalResourceBytes, MaximumTotalResourceBytes);
         options.MaxResourceCount = Math.Min(options.MaxResourceCount, MaximumResourceCount);

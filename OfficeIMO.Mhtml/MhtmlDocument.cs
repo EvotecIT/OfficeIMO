@@ -154,7 +154,12 @@ public sealed class MhtmlDocument {
         CancellationToken cancellationToken) {
         Uri current = request.Uri;
         for (int redirectNumber = 0; ; redirectNumber++) {
-            if (!HtmlUrlPolicyEvaluator.IsAllowed(current.AbsoluteUri, resourceUrlPolicy)
+            string approvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(
+                current.AbsoluteUri,
+                baseUri: null,
+                resourceUrlPolicy);
+            if (!Uri.TryCreate(approvedSource, UriKind.Absolute, out Uri? approvedUri)
+                || !approvedUri.Equals(current)
                 || !remoteResourcePolicy.AllowsRequest(current, BaseUri)) return null;
             if (redirectNumber > 0 && !request.TryReserveAdditionalRequest()) return null;
             MhtmlRemoteResourceResponse? response = await remoteResourcePolicy.ResourceFetcher!(
