@@ -205,7 +205,7 @@ public static partial class HtmlEditableLayoutProjector {
                 && HasMultipleVisibleLayoutChildren(element, styles)) {
                 multiChildLayoutKeys.Add(sourceKey);
             }
-            if (ContainsNestedLayoutPlacement(element, styles)) {
+            if (ContainsNestedLayoutPlacement(element, styles, includeImages: preserveMixedInlineContent)) {
                 nestedLayoutPlacementKeys.Add(sourceKey);
             }
         }
@@ -255,7 +255,7 @@ public static partial class HtmlEditableLayoutProjector {
         }
         foreach ((IElement element, string detail) in effectCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
-                "An editable layout region stayed in semantic flow because its region-level paint effect has no exact destination-native representation.",
+                "An editable layout region stayed in semantic flow because its box model or paint effect has no exact destination-native representation.",
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
                 detail + "; semanticFlow=true", OfficeConversionLossKind.Approximation);
         }

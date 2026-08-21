@@ -169,8 +169,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (!placementAvailable) continue;
                 double topOffset = top - requestedTop;
                 var nativeRegionShapes = new List<PptCore.PowerPointShape>();
+                int retainedBackgroundPictures = 0;
                 if (options.ImportPictures) {
-                    AddEditableLayoutPictures(slide, region, backgroundImages: true,
+                    retainedBackgroundPictures = AddEditableLayoutPictures(slide, region, backgroundImages: true,
                         left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
                 }
                 PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
@@ -196,10 +197,20 @@ public static partial class HtmlPowerPointConverterExtensions {
                             + "; nativeShadowParameters=approximated");
                 }
                 if (region.BackgroundLayerCount > 0) {
+                    int omittedBackgroundLayers = Math.Max(0, region.BackgroundLayerCount - retainedBackgroundPictures);
+                    string backgroundLayerMessage = omittedBackgroundLayers == 0
+                        ? "PowerPoint retained supported background images as native pictures and used the editable text-box fill for the region background."
+                        : retainedBackgroundPictures > 0
+                            ? "PowerPoint retained supported background images as native pictures but omitted other background layers without a native editable representation."
+                            : "PowerPoint omitted background layers without a native editable representation.";
                     AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened,
-                        "PowerPoint retained supported image layers as native pictures and used the editable text-box fill for the region background.",
-                        HtmlDiagnosticSeverity.Info, source: region.Source,
-                        detail: "backgroundLayers=" + region.BackgroundLayerCount);
+                        backgroundLayerMessage,
+                        omittedBackgroundLayers > 0 ? HtmlDiagnosticSeverity.Warning : HtmlDiagnosticSeverity.Info,
+                        omittedBackgroundLayers > 0 ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.None,
+                        region.Source,
+                        "backgroundLayers=" + region.BackgroundLayerCount
+                            + "; retainedNativePictures=" + retainedBackgroundPictures
+                            + "; omittedLayers=" + omittedBackgroundLayers);
                 }
                 if (region.ZIndex < 0) {
                     negativeRegionShapes.AddRange(nativeRegionShapes);
@@ -219,7 +230,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
     }
 
-    private static void AddEditableLayoutPictures(
+    private static int AddEditableLayoutPictures(
         PptCore.PowerPointSlide slide,
         HtmlRenderLayoutRegion region,
         bool backgroundImages,
@@ -230,6 +241,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlImportBudget budget,
         HtmlToPowerPointResult result,
         ICollection<PptCore.PowerPointShape> nativeRegionShapes) {
+        int retainedPictures = 0;
         foreach ((HtmlRenderImage Image, double Opacity) image in
                  HtmlEditableLayoutProjector.EnumerateImages(region.Visuals, includeBackgroundImages: true)
                      .Where(item => HtmlEditableLayoutProjector.IsBackgroundImage(item.Image) == backgroundImages)) {
@@ -272,7 +284,9 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
             result.Pictures++;
             imageReservation.Commit();
+            retainedPictures++;
         }
+        return retainedPictures;
     }
 
     private static EditableLayoutSlideBounds CreateBoundedCollisionBounds(

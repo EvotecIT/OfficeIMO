@@ -84,9 +84,10 @@ public static partial class HtmlEditableLayoutProjector {
 
     private static bool ContainsNestedLayoutPlacement(
         IElement element,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        bool includeImages) {
         return element.QuerySelectorAll("*").Any(child =>
-            child is not IHtmlImageElement
+            (includeImages || child is not IHtmlImageElement)
             && IsProjectionElementVisible(child, element, styles)
             && styles.TryGetValue(child, out HtmlComputedStyle? childStyle)
             && HasLayoutPlacementStyle(childStyle));
@@ -123,11 +124,13 @@ public static partial class HtmlEditableLayoutProjector {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
         out string detail) {
         var effects = new List<string>();
+        AddNonNativeBoxInsets(element, styles, effects, "");
         for (IElement? current = element; current != null; current = current.ParentElement) {
             AddNonNativeEffects(current, styles, effects, "");
         }
         foreach (IElement descendant in element.QuerySelectorAll("*")) {
             AddNonNativeEffects(descendant, styles, effects, "descendant:");
+            AddNonNativeBoxInsets(descendant, styles, effects, "descendant:");
         }
         detail = string.Join("; ", effects.Distinct(StringComparer.OrdinalIgnoreCase));
         return effects.Count > 0;
@@ -164,6 +167,25 @@ public static partial class HtmlEditableLayoutProjector {
         AddNonZeroEffect(style, "border-top-right-radius", effects, prefix);
         AddNonZeroEffect(style, "border-bottom-right-radius", effects, prefix);
         AddNonZeroEffect(style, "border-bottom-left-radius", effects, prefix);
+    }
+
+    private static void AddNonNativeBoxInsets(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        ICollection<string> effects,
+        string prefix) {
+        if (!styles.TryGetValue(element, out HtmlComputedStyle? style)) return;
+        AddNonZeroEffect(style, "padding", effects, prefix);
+        AddNonZeroEffect(style, "padding-top", effects, prefix);
+        AddNonZeroEffect(style, "padding-right", effects, prefix);
+        AddNonZeroEffect(style, "padding-bottom", effects, prefix);
+        AddNonZeroEffect(style, "padding-left", effects, prefix);
+        AddNonZeroEffect(style, "padding-block", effects, prefix);
+        AddNonZeroEffect(style, "padding-block-start", effects, prefix);
+        AddNonZeroEffect(style, "padding-block-end", effects, prefix);
+        AddNonZeroEffect(style, "padding-inline", effects, prefix);
+        AddNonZeroEffect(style, "padding-inline-start", effects, prefix);
+        AddNonZeroEffect(style, "padding-inline-end", effects, prefix);
     }
 
     private static void AddNonZeroEffect(
