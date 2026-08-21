@@ -1,12 +1,12 @@
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
-using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 using DrawingHorizontalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment;
 using DrawingVerticalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalAlignment;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
 using V = DocumentFormat.OpenXml.Vml;
-using A = DocumentFormat.OpenXml.Drawing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -432,6 +432,7 @@ namespace OfficeIMO.Word {
                 return rgb?.Val?.Value?.TrimStart('#').ToUpperInvariant() ?? string.Empty;
             }
             set {
+                string normalized = Helpers.NormalizeSixDigitRgb(value, nameof(value));
                 ShapeProperties? properties = DrawingShapeProperties;
                 if (properties == null) return;
                 properties.RemoveAllChildren<A.NoFill>();
@@ -442,7 +443,7 @@ namespace OfficeIMO.Word {
                 properties.RemoveAllChildren<A.GroupFill>();
                 var fill = new A.SolidFill();
                 WordDrawingFillOrdering.InsertAfterGeometryOrBeforeFormatting(properties, fill);
-                fill.Append(new A.RgbColorModelHex { Val = (value ?? string.Empty).Trim().TrimStart('#').ToUpperInvariant() });
+                fill.Append(new A.RgbColorModelHex { Val = normalized });
             }
         }
 

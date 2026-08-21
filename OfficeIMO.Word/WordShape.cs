@@ -1,9 +1,9 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
-using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 #nullable enable annotations
@@ -446,14 +446,14 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
             set {
-                string? v = value;
-                if (!string.IsNullOrEmpty(v) && !v.StartsWith("#", StringComparison.Ordinal)) v = "#" + v;
+                string normalized = Helpers.NormalizeSixDigitRgb(value, nameof(value));
+                string v = "#" + normalized;
                 if (_rectangle != null) _rectangle.FillColor = v;
                 if (_roundRectangle != null) _roundRectangle.FillColor = v;
                 if (_ellipse != null) _ellipse.FillColor = v;
                 if (_polygon != null) _polygon.FillColor = v;
                 if (_shape != null) _shape.FillColor = v;
-                if (_wpsShape != null && !string.IsNullOrEmpty(v)) {
+                if (_wpsShape != null) {
                     var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
                     if (spPr != null) {
                         // Remove NoFill if present
@@ -471,7 +471,7 @@ namespace OfficeIMO.Word {
                             solid.RemoveAllChildren();
                             solid.Append(rgb);
                         }
-                        rgb.Val = v!.TrimStart('#');
+                        rgb.Val = normalized;
                     }
                 }
             }

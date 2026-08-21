@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlEditableLayoutReviewWave17Tests {
     [Fact]
-    public void ProjectionRenderUsesOwningDocumentNodeLimits() {
+    public void ProjectionRenderIntersectsCallerAndOwningDocumentNodeLimits() {
         var limits = HtmlConversionLimits.CreateTrustedProfile();
         limits.MaxHtmlNodes = 64;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -16,11 +16,14 @@ public sealed class HtmlEditableLayoutReviewWave17Tests {
             "<p>One</p><p>Two</p><p>Three</p>",
             new HtmlConversionDocumentOptions { Limits = limits });
 
-        HtmlEditableLayoutProjection projection = HtmlEditableLayoutProjector.Project(
-            document,
-            new HtmlRenderOptions { MaxHtmlNodes = 2 });
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlEditableLayoutProjector.Project(
+                document,
+                new HtmlRenderOptions { MaxHtmlNodes = 2 }));
 
-        Assert.Single(projection.Regions);
+        Assert.Equal(HtmlRenderDiagnosticCodes.NodeLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxHtmlNodes), exception.LimitSource);
+        Assert.Equal(2, exception.Limit);
     }
 
     [Fact]

@@ -57,6 +57,21 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Normalizes a required six-digit hexadecimal RGB value for DrawingML color attributes.
+        /// </summary>
+        internal static string NormalizeSixDigitRgb(string? color, string paramName) {
+            string normalized = color?.Trim() ?? string.Empty;
+            if (normalized.StartsWith("#", StringComparison.Ordinal)) normalized = normalized.Substring(1);
+            if (normalized.Length != 6 || normalized.Any(character =>
+                character is not (>= '0' and <= '9')
+                && character is not (>= 'A' and <= 'F')
+                && character is not (>= 'a' and <= 'f'))) {
+                throw new ArgumentException("Color must be a six-digit hexadecimal RGB value.", paramName);
+            }
+            return normalized.ToUpperInvariant();
+        }
+
         internal static string? NormalizeOpenXmlColor(string? color) {
             if (color == null) {
                 return null;

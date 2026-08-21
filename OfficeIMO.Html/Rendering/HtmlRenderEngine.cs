@@ -109,7 +109,9 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits effectiveLimits = limits.Clone();
         effectiveLimits.Validate();
         if (sourceAlreadyValidated) {
-            resolved.MaxHtmlNodes = effectiveLimits.MaxHtmlNodes ?? int.MaxValue;
+            resolved.MaxHtmlNodes = Math.Min(
+                resolved.MaxHtmlNodes,
+                effectiveLimits.MaxHtmlNodes ?? int.MaxValue);
         }
         resolved.Validate();
         return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
