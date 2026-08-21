@@ -17,6 +17,8 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
+        internal bool HasAppliedExternalStylesheet { get; private set; }
+
         private async Task LoadAndParseCssAsync(Url url, CancellationToken cancellationToken) {
             if (!Uri.TryCreate(url.Href, UriKind.Absolute, out var uri)) {
                 return;
@@ -245,6 +247,10 @@ namespace OfficeIMO.Word.Html {
                     _stylesheetCache[cacheKey] = Array.Empty<ICssStyleRule>();
                     return;
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(key) && rules.Length > 0) {
+                HasAppliedExternalStylesheet = true;
             }
 
             foreach (var rule in rules) {

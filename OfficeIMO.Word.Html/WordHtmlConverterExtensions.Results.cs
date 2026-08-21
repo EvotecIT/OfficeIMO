@@ -33,20 +33,14 @@ public static partial class WordHtmlConverterExtensions {
             HtmlEditableLayoutRegionKinds.Positioned | HtmlEditableLayoutRegionKinds.Floating;
         var projectionOptions = new HtmlRenderOptions();
         projectionOptions.PageSize = ResolveWordProjectionPageSize(resolved);
+        projectionOptions.ViewportWidth = projectionOptions.PageWidth;
         foreach (string stylesheet in resolved.StylesheetContents.Where(value => !string.IsNullOrWhiteSpace(value))) {
             projectionOptions.AdditionalStylesheets.Add(stylesheet);
         }
         bool externalStylesheetBoundary = HasExternalEditableLayoutStylesheetBoundary(document, resolved);
-        if (resolved.ImportEditableLayoutRegions
+        bool externallyStyledLayoutCandidate = resolved.ImportEditableLayoutRegions
             && externalStylesheetBoundary
-            && HasExternallyStyledLayoutCandidate(document)) {
-            resolved.ConversionReport.Add("OfficeIMO.Word.Html",
-                HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
-                "Word kept potential editable layout regions in semantic flow because external stylesheet sources are applied by the destination importer after shared projection.",
-                HtmlDiagnosticSeverity.Warning, "stylesheet",
-                "externalStylesheetSources=true; semanticFlow=true",
-                OfficeConversionLossKind.Approximation);
-        }
+            && HasExternallyStyledLayoutCandidate(document);
         HtmlEditableLayoutProjection? editableLayout = null;
         if (resolved.ImportEditableLayoutRegions
             && !externalStylesheetBoundary
@@ -82,6 +76,14 @@ public static partial class WordHtmlConverterExtensions {
                 : PrepareWordSourceDocument(editableLayout.RemainingDocument, document, resolved.ConversionReport),
             resolved,
             cancellationToken).ConfigureAwait(false);
+        if (externallyStyledLayoutCandidate && converter.HasAppliedExternalStylesheet) {
+            resolved.ConversionReport.Add("OfficeIMO.Word.Html",
+                HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "Word kept potential editable layout regions in semantic flow because external stylesheet sources are applied by the destination importer after shared projection.",
+                HtmlDiagnosticSeverity.Warning, "stylesheet",
+                "externalStylesheetSources=true; semanticFlow=true",
+                OfficeConversionLossKind.Approximation);
+        }
         if (editableLayout?.Regions.Count > 0) {
             await converter.AddEditableLayoutRegionsAsync(
                 wordDocument, editableLayout, resolved, cancellationToken).ConfigureAwait(false);
@@ -100,7 +102,7 @@ public static partial class WordHtmlConverterExtensions {
 
     private static bool HasExternallyStyledLayoutCandidate(HtmlConversionDocument document) {
         AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
-        return source.QuerySelector("body [class], body [id]") != null;
+        return source.QuerySelector("body *") != null;
     }
 
     private static OfficeIMO.Drawing.OfficePageSize ResolveWordProjectionPageSize(HtmlToWordOptions options) {

@@ -199,6 +199,10 @@ public sealed class HtmlResourceSession {
                 return false;
             }
             AddAliases(reference, canonicalSource, accepted);
+            if (reference.Kind == HtmlResourceKind.Stylesheet) {
+                PropagateStylesheetState(_budgetedStylesheets, reference, canonicalSource);
+                PropagateStylesheetState(_rejectedStylesheets, reference, canonicalSource);
+            }
             alreadyAccepted = true;
             return true;
         }
@@ -325,9 +329,22 @@ public sealed class HtmlResourceSession {
     internal bool WasStylesheetRejected(string? source, string? resolvedSource) =>
         ContainsStylesheetState(_rejectedStylesheets, source, resolvedSource);
 
-    private static void MarkStylesheetState(HashSet<string> state, HtmlResourceReference reference) {
+    private void MarkStylesheetState(HashSet<string> state, HtmlResourceReference reference) {
         if (reference.Source.Length > 0) state.Add(reference.Source);
         if (reference.ResolvedSource.Length > 0) state.Add(reference.ResolvedSource);
+        if (TryGetResolvedSource(reference.Source, reference.ResolvedSource, out string canonicalSource)
+            && canonicalSource.Length > 0) {
+            state.Add(canonicalSource);
+        }
+    }
+
+    private void PropagateStylesheetState(
+        HashSet<string> state,
+        HtmlResourceReference reference,
+        string canonicalSource) {
+        if (canonicalSource.Length > 0 && state.Contains(canonicalSource)) {
+            MarkStylesheetState(state, reference);
+        }
     }
 
     private static bool ContainsStylesheetState(HashSet<string> state, string? source, string? resolvedSource) =>

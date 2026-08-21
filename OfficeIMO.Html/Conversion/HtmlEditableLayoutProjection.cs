@@ -80,11 +80,11 @@ public static partial class HtmlEditableLayoutProjector {
     internal const string ImageAttribute = "data-officeimo-editable-layout-image";
     private const string ImageSourcePrefix = "img[officeimo-layout-image=";
     private static readonly HashSet<string> SemanticRichElementNames = new(StringComparer.OrdinalIgnoreCase) {
-        "a", "abbr", "audio", "b", "blockquote", "br", "button", "canvas", "cite", "code", "dd", "del",
-        "details", "dfn", "dl", "dt", "em", "embed", "fieldset", "figure", "figcaption", "form", "h1", "h2",
+        "a", "abbr", "audio", "b", "big", "blockquote", "br", "button", "canvas", "center", "cite", "code", "dd", "del",
+        "details", "dfn", "dl", "dt", "em", "embed", "fieldset", "figure", "figcaption", "font", "form", "h1", "h2",
         "h3", "h4", "h5", "h6", "hr", "i", "iframe", "input", "ins", "kbd", "label", "li", "mark",
-        "meter", "object", "ol", "p", "picture", "pre", "progress", "q", "s", "samp", "select", "strong", "sub", "summary",
-        "sup", "svg", "table", "textarea", "time", "u", "ul", "var", "video",
+        "meter", "object", "ol", "p", "picture", "pre", "progress", "q", "s", "samp", "select", "small", "strike", "strong", "sub", "summary",
+        "sup", "svg", "table", "textarea", "time", "tt", "u", "ul", "var", "video",
         "math", "ruby", "rb", "rp", "rt", "rtc"
     };
     private static readonly string[] RichTextStyleProperties = {
