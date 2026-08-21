@@ -222,7 +222,9 @@ public static partial class HtmlEditableLayoutProjector {
             elementsInDocumentOrder, styles);
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
+        var candidateRootElements = new HashSet<IElement>();
         var semanticFlowRoots = new HashSet<IElement>();
+        var unsupportedPositionedElementCandidates = new List<IElement>();
         var semanticRichCandidates = new List<IElement>();
         var multipleBlockContentCandidates = new List<IElement>();
         var inheritedTypographyCandidates = new List<IElement>();
@@ -236,8 +238,20 @@ public static partial class HtmlEditableLayoutProjector {
         var effectCandidates = new List<(IElement Element, string Detail)>();
         var mixedInlineImageCandidates = new List<IElement>();
         foreach (IElement element in elementsInDocumentOrder) {
-            if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
-                || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
+            if (!styles.TryGetValue(element, out HtmlComputedStyle? style)) continue;
+            if ((regionKinds & HtmlEditableLayoutRegionKinds.Positioned) != 0
+                && IsUnsupportedPositionedElement(element, style)) {
+                if (HasSemanticFlowAncestor(element, semanticFlowRoots)
+                    || HasSemanticFlowAncestor(element, candidateRootElements)) continue;
+                if (!IsProjectionElementVisible(element, element, styles)) {
+                    paintHiddenCandidates.Add(element);
+                } else {
+                    unsupportedPositionedElementCandidates.Add(element);
+                }
+                semanticFlowRoots.Add(element);
+                continue;
+            }
+            if (!TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
             if (HasSemanticFlowAncestor(element, semanticFlowRoots)) continue;
             if (!IsProjectionElementVisible(element, element, styles)) {
@@ -299,6 +313,7 @@ public static partial class HtmlEditableLayoutProjector {
             string sourceKey = (++key).ToString(System.Globalization.CultureInfo.InvariantCulture);
             SetRegionSourceKey(element, sourceKey);
             candidateElements[sourceKey] = element;
+            candidateRootElements.Add(element);
             if (IsFlexOrGridDisplay(style)
                 && HasMultipleVisibleLayoutChildren(element, styles)) {
                 multiChildLayoutKeys.Add(sourceKey);
@@ -328,6 +343,13 @@ public static partial class HtmlEditableLayoutProjector {
         }
 
         var diagnostics = new HtmlDiagnosticReport();
+        foreach (IElement element in unsupportedPositionedElementCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "A positioned non-container element stayed in semantic flow because its geometry has no destination-native editable-region mapping.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "unsupportedPositionedElement=" + element.LocalName.ToLowerInvariant() + "; semanticFlow=true",
+                OfficeConversionLossKind.Approximation);
+        }
         foreach (IElement element in commentBearingCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
                 "An editable layout region stayed in semantic flow so its raw HTML comments could remain available to the destination.",
@@ -665,21 +687,9 @@ public static partial class HtmlEditableLayoutProjector {
         IElement element,
         HtmlComputedStyle style,
         out HtmlEditableLayoutRegionKinds kind) {
-        switch (element.LocalName.ToLowerInvariant()) {
-            case "div":
-            case "section":
-            case "article":
-            case "aside":
-            case "header":
-            case "footer":
-            case "nav":
-            case "main":
-            case "figure":
-            case "figcaption":
-                break;
-            default:
-                kind = HtmlEditableLayoutRegionKinds.None;
-                return false;
+        if (!IsEditableLayoutContainer(element)) {
+            kind = HtmlEditableLayoutRegionKinds.None;
+            return false;
         }
         string position = style.GetValue("position").Trim().ToLowerInvariant();
         string floatSide = style.GetValue("float").Trim().ToLowerInvariant();

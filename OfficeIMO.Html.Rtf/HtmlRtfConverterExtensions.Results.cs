@@ -20,10 +20,11 @@ public static partial class HtmlRtfConverterExtensions {
             ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
                 document,
                 mediaContext: document.MediaContext,
-                 regionKinds: regionKinds,
-                 maximumEditableSurfaceNumber: document.MediaContext == HtmlCssMediaContext.Print ? 0 : 1,
+                regionKinds: regionKinds,
+                maximumEditableSurfaceNumber: document.MediaContext == HtmlCssMediaContext.Print ? 0 : 1,
                 maximumEditableContinuousSurfaceHeight: new HtmlRenderOptions().PageHeight,
-                preserveRegionsAfterForcedPageBreaks: true)
+                preserveRegionsAfterForcedPageBreaks: true,
+                preserveUnrenderedSourceImages: true)
             : null;
         AddEditableLayoutDiagnostics(editableLayout, resolved);
         AngleSharp.Html.Dom.IHtmlDocument sourceDocument = editableLayout?.RemainingDocument

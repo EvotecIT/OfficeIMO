@@ -17,6 +17,25 @@ public static partial class HtmlEditableLayoutProjector {
         return false;
     }
 
+    private static bool IsUnsupportedPositionedElement(IElement element, HtmlComputedStyle style) {
+        if (IsEditableLayoutContainer(element)) return false;
+        string position = style.GetValue("position").Trim();
+        return position.Equals("absolute", StringComparison.OrdinalIgnoreCase)
+            || position.Equals("fixed", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsEditableLayoutContainer(IElement element) =>
+        element.LocalName.Equals("div", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("section", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("article", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("aside", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("header", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("footer", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("nav", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("main", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("figure", StringComparison.OrdinalIgnoreCase)
+        || element.LocalName.Equals("figcaption", StringComparison.OrdinalIgnoreCase);
+
     private static bool ContainsSemanticRichContent(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
