@@ -137,9 +137,15 @@ public sealed class HtmlResourceSession {
     internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
         AcceptedResourceBytes += resource.Length;
         AcceptedResourceCount++;
-        string canonicalSource = resource.FinalUri?.IsAbsoluteUri == true
-            ? resource.FinalUri.AbsoluteUri
-            : reference.ResolvedSource;
+        string canonicalSource = GetCanonicalSource(reference, resource);
+        AddAliases(reference, canonicalSource, resource);
+        _entries.Add(CreateEntry(reference.Kind, reference.Source, canonicalSource, resource));
+    }
+
+    private void AddAliases(
+        HtmlResourceReference reference,
+        string canonicalSource,
+        HtmlResolvedResource resource) {
         if (reference.Source.Length > 0) {
             _resources[reference.Source] = resource;
             _resolvedSources[reference.Source] = canonicalSource;
@@ -153,8 +159,12 @@ public sealed class HtmlResourceSession {
             _resources[canonicalSource] = resource;
             _resolvedSources[canonicalSource] = canonicalSource;
         }
-        _entries.Add(CreateEntry(reference.Kind, reference.Source, canonicalSource, resource));
     }
+
+    private static string GetCanonicalSource(HtmlResourceReference reference, HtmlResolvedResource resource) =>
+        resource.FinalUri?.IsAbsoluteUri == true
+            ? resource.FinalUri.AbsoluteUri
+            : reference.ResolvedSource;
 
     internal bool TryReserveRequest(HtmlResourceReference reference) {
         while (true) {
@@ -172,8 +182,26 @@ public sealed class HtmlResourceSession {
         return false;
     }
 
-    internal bool TryAccept(HtmlResourceReference reference, HtmlResolvedResource resource, out bool stop) {
+    internal bool TryAccept(
+        HtmlResourceReference reference,
+        HtmlResolvedResource resource,
+        out bool stop,
+        out bool alreadyAccepted) {
         stop = false;
+        alreadyAccepted = false;
+        string canonicalSource = GetCanonicalSource(reference, resource);
+        if (canonicalSource.Length > 0 && _resources.TryGetValue(canonicalSource, out HtmlResolvedResource? accepted)) {
+            if (!IsAcceptedContentType(reference.Kind, accepted.ContentType)) {
+                Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceContentTypeRejected,
+                    "A resolver returned a canonical resource incompatible with the requested resource kind.",
+                    HtmlDiagnosticSeverity.Warning, reference.Source,
+                    reference.Kind + ":" + accepted.ContentType, OfficeConversionLossKind.Omission);
+                return false;
+            }
+            AddAliases(reference, canonicalSource, accepted);
+            alreadyAccepted = true;
+            return true;
+        }
         long length = resource.Length;
         if (length > MaxResourceBytes) {
             Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded,
@@ -578,11 +606,16 @@ internal static class HtmlRenderResourceLoader {
                     resourceUri = resource.FinalUri;
                 }
 
-                if (!result.TryAccept(reference, resource, out bool stopAfterResource)) {
+                if (!result.TryAccept(
+                        reference,
+                        resource,
+                        out bool stopAfterResource,
+                        out bool alreadyAccepted)) {
                     if (stopAfterResource) stop = true;
                     continue;
                 }
                 seen.Add(resourceUri.AbsoluteUri);
+                if (alreadyAccepted) continue;
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
                     if (cssBudget != null

@@ -10,6 +10,9 @@ public static partial class HtmlRtfConverterExtensions {
         resolved.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
         resolved.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
         if (resolved.BaseUri == null) resolved.BaseUri = document.BaseUri;
+        if (resolved.MaxHtmlNodes.HasValue || resolved.MaxHtmlDepth.HasValue) {
+            RtfHtmlReader.ValidateDomLimits(document.CreateSourceDocumentForConversion(), resolved);
+        }
         HtmlEditableLayoutRegionKinds regionKinds =
             HtmlEditableLayoutRegionKinds.Positioned | HtmlEditableLayoutRegionKinds.Floating;
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions
@@ -148,8 +151,16 @@ public static partial class HtmlRtfConverterExtensions {
         RtfImage nativeImage = paragraph.AddImage(format, bytes);
         nativeImage.Description = sourceImage.AlternativeText;
         if (visual == null) return;
-        nativeImage.DesiredWidthTwips = checked((int)Math.Round(visual.Width * twipsPerCssPixel));
-        nativeImage.DesiredHeightTwips = checked((int)Math.Round(visual.Height * twipsPerCssPixel));
+        nativeImage.DesiredWidthTwips = ToBoundedFrameSize(
+            visual.Width, twipsPerCssPixel, out bool widthSimplified);
+        nativeImage.DesiredHeightTwips = ToBoundedFrameSize(
+            visual.Height, twipsPerCssPixel, out bool heightSimplified);
+        if (widthSimplified || heightSimplified) {
+            options.AddDiagnostic(HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "RTF bounded an editable layout picture's size to its native range.",
+                visual.Source, severity: HtmlRtfConversionDiagnosticSeverity.Warning,
+                action: RtfConversionAction.Substituted);
+        }
         if (opacity < 0.999D || visual.SourceCrop.HasCrop) {
             options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
                 HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,

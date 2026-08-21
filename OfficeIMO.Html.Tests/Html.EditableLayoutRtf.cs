@@ -41,6 +41,34 @@ public sealed class HtmlEditableLayoutRtfTests {
     }
 
     [Fact]
+    public void PositionedRegionCannotBypassRtfNodeLimit() {
+        string html = "<div style='position:absolute;width:180px;height:70px'>" +
+            string.Concat(Enumerable.Range(0, 12).Select(index => "<span>" + index + "</span>")) +
+            "</div>";
+        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        options.MaxHtmlNodes = 10;
+
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
+            () => HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options));
+
+        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlNodes), exception.LimitSource);
+    }
+
+    [Fact]
+    public void PositionedRegionCannotBypassRtfDepthLimit() {
+        const string html = "<div style='position:absolute;width:180px;height:70px'>" +
+            "<span><span><span><span><span><span>Deep</span></span></span></span></span></span>" +
+            "</div>";
+        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        options.MaxHtmlDepth = 5;
+
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
+            () => HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options));
+
+        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlDepth), exception.LimitSource);
+    }
+
+    [Fact]
     public void PrintRegionsStaySemanticWhenRenderedPageOwnershipCannotBeMapped() {
         const string html = "<div style='position:absolute;width:160px;height:40px'>Print anchor</div>" +
             "<section style='break-before:page'><p>Later page</p></section>";

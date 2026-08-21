@@ -72,6 +72,44 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlResourceSession_DeduplicatesConcurrentAliasesByRedirectedFinalUri() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<img src='https://assets.example.test/a.png'>" +
+            "<img src='https://assets.example.test/b.png'>" +
+            "<img src='https://assets.example.test/c.png'>");
+        var options = new HtmlRenderOptions {
+            MaxConcurrentResourceLoads = 3,
+            MaxResourceBytes = png.Length,
+            MaxResourceCount = 2,
+            MaxResourceRequests = 3,
+            MaxTotalResourceBytes = png.Length * 2L,
+            ResourceResolver = (request, cancellationToken) => {
+                Uri finalUri = request.Uri.AbsolutePath == "/c.png"
+                    ? request.Uri
+                    : new Uri("https://cdn.example.test/shared.png");
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(png, "image/png", finalUri));
+            }
+        };
+
+        HtmlResourceSession session = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
+
+        Assert.Equal(2, session.AcceptedResourceCount);
+        Assert.Equal(png.Length * 2L, session.AcceptedResourceBytes);
+        Assert.Equal(2, session.Resources.Count);
+        Assert.DoesNotContain(session.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded);
+        Assert.True(session.TryGet("https://assets.example.test/a.png", null, out HtmlResolvedResource first));
+        Assert.True(session.TryGet("https://assets.example.test/b.png", null, out HtmlResolvedResource second));
+        Assert.Same(first, second);
+        Assert.Contains(session.Resources, entry =>
+            entry.CanonicalSource == "https://cdn.example.test/shared.png");
+        Assert.Contains(session.Resources, entry =>
+            entry.CanonicalSource == "https://assets.example.test/c.png");
+    }
+
+    [Fact]
     public async Task HtmlRender_ResolvesResourcesConcurrentlyWithinTheConfiguredBound() {
         int active = 0;
         int maximumActive = 0;
