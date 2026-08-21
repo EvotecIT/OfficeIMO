@@ -156,6 +156,7 @@ public static partial class HtmlEditableLayoutProjector {
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
         var semanticFlowRoots = new HashSet<IElement>();
         var semanticRichCandidates = new List<IElement>();
+        var multipleBlockContentCandidates = new List<IElement>();
         var inheritedTypographyCandidates = new List<IElement>();
         var multiChildLayoutKeys = new HashSet<string>(StringComparer.Ordinal);
         var nestedLayoutPlacementKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -175,6 +176,11 @@ public static partial class HtmlEditableLayoutProjector {
             }
             if (ContainsBookmarkTarget(element)) {
                 bookmarkTargetCandidates.Add(element);
+                semanticFlowRoots.Add(element);
+                continue;
+            }
+            if (ContainsMultipleVisibleBlockContentItems(element, styles)) {
+                multipleBlockContentCandidates.Add(element);
                 semanticFlowRoots.Add(element);
                 continue;
             }
@@ -246,6 +252,12 @@ public static partial class HtmlEditableLayoutProjector {
                 "An editable layout region stayed in semantic flow so rich document content would not be flattened.",
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
                 "semanticContent=true", OfficeConversionLossKind.Approximation);
+        }
+        foreach (IElement element in multipleBlockContentCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "An editable layout region stayed in semantic flow so visible block boundaries would not be flattened into one native text run.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "multipleBlockChildren=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
         }
         foreach (IElement element in inheritedTypographyCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,

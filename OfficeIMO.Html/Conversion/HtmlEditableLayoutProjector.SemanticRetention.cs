@@ -74,6 +74,50 @@ public static partial class HtmlEditableLayoutProjector {
         return false;
     }
 
+    private static bool ContainsMultipleVisibleBlockContentItems(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        return HasMultipleVisibleBlockContentItems(element, element, styles)
+            || element.QuerySelectorAll("*").Any(parent =>
+                HasMultipleVisibleBlockContentItems(parent, element, styles));
+    }
+
+    private static bool HasMultipleVisibleBlockContentItems(
+        IElement parent,
+        IElement region,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        int visibleContentItems = 0;
+        bool hasBlockItem = false;
+        foreach (INode child in parent.ChildNodes) {
+            if (child is IElement childElement) {
+                if (!IsProjectionElementVisible(childElement, region, styles)
+                    || string.IsNullOrWhiteSpace(childElement.TextContent)
+                        && childElement.QuerySelector("img") == null) continue;
+                if (styles.TryGetValue(childElement, out HtmlComputedStyle? childStyle)
+                    && IsBlockBoundaryDisplay(childElement, childStyle.GetValue("display"))) {
+                    hasBlockItem = true;
+                }
+            } else if (string.IsNullOrWhiteSpace(child.TextContent)) {
+                continue;
+            }
+            visibleContentItems++;
+            if (hasBlockItem && visibleContentItems > 1) return true;
+        }
+        return false;
+    }
+
+    private static bool IsBlockBoundaryDisplay(IElement element, string value) {
+        string display = value.Trim();
+        if (display.Length == 0) return HtmlRenderStyleResolver.IsDefaultBlockElement(element);
+        return !display.Equals("none", StringComparison.OrdinalIgnoreCase)
+            && !display.Equals("contents", StringComparison.OrdinalIgnoreCase)
+            && !display.Equals("inline", StringComparison.OrdinalIgnoreCase)
+            && !display.Equals("inline-block", StringComparison.OrdinalIgnoreCase)
+            && !display.Equals("inline-flex", StringComparison.OrdinalIgnoreCase)
+            && !display.Equals("inline-grid", StringComparison.OrdinalIgnoreCase)
+            && !display.Equals("inline-table", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsFlexOrGridDisplay(HtmlComputedStyle style) {
         string display = style.GetValue("display").Trim();
         return display.Equals("flex", StringComparison.OrdinalIgnoreCase)
@@ -159,6 +203,7 @@ public static partial class HtmlEditableLayoutProjector {
         AddNonDefaultEffect(style, "clip-path", "none", effects, prefix);
         AddNonDefaultEffect(style, "filter", "none", effects, prefix);
         AddNonDefaultEffect(style, "mix-blend-mode", "normal", effects, prefix);
+        AddOutlineEffect(style, effects, prefix);
         AddNonDefaultEffect(style, "overflow", "visible", effects, prefix);
         AddNonDefaultEffect(style, "overflow-x", "visible", effects, prefix);
         AddNonDefaultEffect(style, "overflow-y", "visible", effects, prefix);
@@ -167,6 +212,31 @@ public static partial class HtmlEditableLayoutProjector {
         AddNonZeroEffect(style, "border-top-right-radius", effects, prefix);
         AddNonZeroEffect(style, "border-bottom-right-radius", effects, prefix);
         AddNonZeroEffect(style, "border-bottom-left-radius", effects, prefix);
+    }
+
+    private static void AddOutlineEffect(
+        HtmlComputedStyle style,
+        ICollection<string> effects,
+        string prefix) {
+        string shorthand = style.GetValue("outline").Trim();
+        string widthValue = style.GetValue("outline-width").Trim();
+        string styleValue = style.GetValue("outline-style").Trim();
+        string colorValue = style.GetValue("outline-color").Trim();
+        string offsetValue = style.GetValue("outline-offset").Trim();
+        if (shorthand.Length == 0 && widthValue.Length == 0 && styleValue.Length == 0
+            && colorValue.Length == 0 && offsetValue.Length == 0) return;
+        if (!HtmlCssBoxStrokeParser.TryParseOutline(
+                style, 100D, 16D, 16D, 100D, 100D,
+                OfficeIMO.Drawing.OfficeColor.Black,
+                out double width, out string outlineStyle, out _, out _, out string detail)) {
+            effects.Add(prefix + (detail.Length > 0 ? detail : "outline=unsupported"));
+            return;
+        }
+        if (width <= 0D || outlineStyle.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || outlineStyle.Equals("hidden", StringComparison.OrdinalIgnoreCase)) return;
+        effects.Add(prefix + (shorthand.Length > 0
+            ? "outline=" + shorthand
+            : "outline-style=" + outlineStyle + "; outline-width=" + widthValue));
     }
 
     private static void AddNonNativeBoxInsets(

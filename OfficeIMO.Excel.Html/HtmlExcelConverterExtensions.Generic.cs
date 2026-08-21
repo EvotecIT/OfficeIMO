@@ -10,8 +10,9 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlToExcelOptions options,
         HtmlImportBudget budget,
         HtmlEditableLayoutProjection? editableLayout) {
-        IReadOnlyList<HtmlSemanticBlock> tables = document.RootTables
-            .Where(table => table.Table?.Rows.Any(row => row.Cells.Count > 0) == true)
+        IReadOnlyList<(int Number, HtmlSemanticBlock Block)> tables = document.RootTables
+            .Select((table, index) => (Number: index + 1, Block: table))
+            .Where(item => item.Block.Table?.Rows.Any(row => row.Cells.Count > 0) == true)
             .ToList()
             .AsReadOnly();
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -25,12 +26,14 @@ public static partial class HtmlExcelConverterExtensions {
                     break;
                 }
 
-                string title = tables[index].Table?.Caption ?? "Table " + (index + 1);
+                HtmlSemanticBlock table = tables[index].Block;
+                int semanticTableNumber = tables[index].Number;
+                string title = table.Table?.Caption ?? "Table " + semanticTableNumber;
                 ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(title, usedNames));
-                tableSheets[index + 1] = sheet;
+                tableSheets[semanticTableNumber] = sheet;
                 result.Sheets++;
                 ImportTableGrid(
-                    tables[index].SourceElement,
+                    table.SourceElement,
                     sheet,
                     result,
                     options,
@@ -39,7 +42,7 @@ public static partial class HtmlExcelConverterExtensions {
                     1,
                     importedFormulaCells: null,
                     useSemanticValues: false);
-                ApplySemanticTableFormatting(tables[index].Table, sheet, result, budget, 1, 1);
+                ApplySemanticTableFormatting(table.Table, sheet, result, budget, 1, 1);
             }
         }
 
