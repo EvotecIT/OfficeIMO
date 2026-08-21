@@ -62,8 +62,9 @@ public static partial class HtmlRtfConverterExtensions {
         HtmlEditableLayoutProjection projection,
         HtmlToRtfOptions options) {
         const double twipsPerCssPixel = 15D;
+        int insertionIndex = 0;
         foreach (HtmlRenderLayoutRegion region in projection.Regions.OrderBy(item => item.PaintOrder)) {
-            RtfParagraph paragraph = document.AddParagraph(region.SourceText);
+            RtfParagraph paragraph = document.InsertParagraph(insertionIndex++, region.SourceText);
             int horizontalPosition = ToBoundedFrameCoordinate(
                 region.X, twipsPerCssPixel, out bool horizontalSimplified);
             int verticalPosition = ToBoundedFrameCoordinate(
@@ -78,9 +79,13 @@ public static partial class HtmlRtfConverterExtensions {
                     -nativeHeight)
                 .SetAnchors(RtfParagraphFrameHorizontalAnchor.Page, RtfParagraphFrameVerticalAnchor.Page)
                 .SetPosition(
-                    RtfParagraphFrameHorizontalPosition.Absolute,
+                    horizontalPosition < 0
+                        ? RtfParagraphFrameHorizontalPosition.NegativeAbsolute
+                        : RtfParagraphFrameHorizontalPosition.Absolute,
                     horizontalPosition,
-                    RtfParagraphFrameVerticalPosition.Absolute,
+                    verticalPosition < 0
+                        ? RtfParagraphFrameVerticalPosition.NegativeAbsolute
+                        : RtfParagraphFrameVerticalPosition.Absolute,
                     verticalPosition)
                 .SetWrapping(
                     noWrap: region.RegionKind == HtmlRenderLayoutRegionKind.Positioned,

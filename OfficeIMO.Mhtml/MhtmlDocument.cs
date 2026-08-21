@@ -138,13 +138,29 @@ public sealed class MhtmlDocument {
         }
         resourceUrlPolicy.DisallowFileUrls = false;
         options.ResourceUrlPolicy = resourceUrlPolicy;
-        HtmlRenderResourceResolver embeddedResolver = CreateResourceResolver();
-        options.ResourceResolver = async (request, cancellationToken) => {
-            HtmlResolvedResource? embedded = await embeddedResolver(request, cancellationToken).ConfigureAwait(false);
-            if (embedded != null || remoteResourcePolicy.ResourceFetcher == null) return embedded;
-            return await ResolveRemoteResourceAsync(request, fallbackResourceUrlPolicy,
-                remoteResourcePolicy, cancellationToken).ConfigureAwait(false);
-        };
+        options.ResourceResolver = new ManagedResourceResolver(
+            this,
+            fallbackResourceUrlPolicy,
+            remoteResourcePolicy,
+            includeEmbeddedResources: true).ResolveAsync;
+    }
+
+    /// <summary>
+    /// Reuses only a resolver created by this archive while selecting whether embedded MIME resources remain visible.
+    /// This lets optional bridge packages retain the policy-owned one-hop remote resolver without trusting arbitrary delegates.
+    /// </summary>
+    internal bool TryReconfigureOwnedResourceResolver(
+        HtmlRenderResourceResolver? resolver,
+        bool includeEmbeddedResources,
+        out HtmlRenderResourceResolver? configuredResolver) {
+        if (resolver?.Target is ManagedResourceResolver managed
+            && ReferenceEquals(managed.Document, this)) {
+            configuredResolver = managed.WithEmbeddedResolution(includeEmbeddedResources).ResolveAsync;
+            return true;
+        }
+
+        configuredResolver = null;
+        return false;
     }
 
     private async Task<HtmlResolvedResource?> ResolveRemoteResourceAsync(
@@ -372,4 +388,46 @@ public sealed class MhtmlDocument {
 
     private static string? NormalizeContentId(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value!.Trim().Trim('<', '>');
+
+    private sealed class ManagedResourceResolver {
+        private readonly HtmlUrlPolicy _fallbackResourceUrlPolicy;
+        private readonly MhtmlRemoteResourcePolicy _remoteResourcePolicy;
+        private readonly bool _includeEmbeddedResources;
+
+        internal ManagedResourceResolver(
+            MhtmlDocument document,
+            HtmlUrlPolicy fallbackResourceUrlPolicy,
+            MhtmlRemoteResourcePolicy remoteResourcePolicy,
+            bool includeEmbeddedResources) {
+            Document = document;
+            _fallbackResourceUrlPolicy = fallbackResourceUrlPolicy;
+            _remoteResourcePolicy = remoteResourcePolicy;
+            _includeEmbeddedResources = includeEmbeddedResources;
+        }
+
+        internal MhtmlDocument Document { get; }
+
+        internal ManagedResourceResolver WithEmbeddedResolution(bool includeEmbeddedResources) =>
+            includeEmbeddedResources == _includeEmbeddedResources
+                ? this
+                : new ManagedResourceResolver(
+                    Document,
+                    _fallbackResourceUrlPolicy,
+                    _remoteResourcePolicy,
+                    includeEmbeddedResources);
+
+        internal async Task<HtmlResolvedResource?> ResolveAsync(
+            HtmlRenderResourceRequest request,
+            CancellationToken cancellationToken) {
+            HtmlResolvedResource? embedded = _includeEmbeddedResources
+                ? await Document.ResolveResourceAsync(request, cancellationToken).ConfigureAwait(false)
+                : null;
+            if (embedded != null || _remoteResourcePolicy.ResourceFetcher == null) return embedded;
+            return await Document.ResolveRemoteResourceAsync(
+                request,
+                _fallbackResourceUrlPolicy,
+                _remoteResourcePolicy,
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
 }

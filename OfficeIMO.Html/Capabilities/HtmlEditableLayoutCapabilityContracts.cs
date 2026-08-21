@@ -39,7 +39,7 @@ public static class HtmlEditableLayoutCapabilityContracts {
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Rtf,
             "bounded positioned and floating regions",
-            "page-anchored RTF paragraph frames with bounded native offsets and size plus wrap controls",
+            "first-page RTF paragraph frames with bounded signed native offsets, negative-capable controls, size, and wrap controls",
             "solid frame background plus embedded PNG/JPEG pictures",
             "semantic-rich, visible multi-block, raw-comment-bearing, bookmark-target, padded, rounded, outlined, authored or inherited text-alignment/typography, mixed inline text/picture, nested-placement including positioned pictures, multi-child flex/grid, clipped or scrolling, region or descendant paint-effect, paged print, and multi-page continuous regions stay in flow when native ownership would flatten, reorder, reveal, mispaint, break links, or lose page ownership; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
