@@ -99,6 +99,36 @@ public sealed class HtmlEditableLayoutWordTests {
     }
 
     [Fact]
+    public void OversizedAnchorSizeIsBoundedWithStableDiagnostic() {
+        const string html = "<div style='position:absolute;width:1000000000000000px;height:1000000000000000px'>Bounded size</div>";
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        using WordDocument word = result.Value;
+
+        WordTextBox textBox = Assert.Single(word.TextBoxes);
+        Assert.Equal(long.MaxValue, textBox.Width);
+        Assert.Equal(long.MaxValue, textBox.Height);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("sizeRange", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void MixedInlinePictureRegionStaysOutOfNativeTextBoxes() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;width:180px;height:50px'>Before" +
+            "<img alt='Middle' src='" + image + "'>After</div>";
+
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        using WordDocument word = result.Value;
+
+        Assert.Empty(word.TextBoxes);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Detail == "mixedInlinePictures=true");
+    }
+
+    [Fact]
     public void PrintRegionsStaySemanticWhenRenderedPageOwnershipCannotBeMapped() {
         const string html = "<div style='position:absolute;width:160px;height:40px'>Print anchor</div>" +
             "<section style='break-before:page'><p>Later page</p></section>";

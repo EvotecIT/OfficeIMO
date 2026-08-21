@@ -78,6 +78,10 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
     public int SurfaceNumber { get; internal set; } = 1;
     /// <summary>One-based generic semantic section that owns this region.</summary>
     public int SemanticSectionNumber { get; internal set; } = 1;
+    /// <summary>Rendered horizontal origin of the owning semantic section.</summary>
+    internal double SemanticSectionOriginX { get; set; }
+    /// <summary>Rendered vertical origin of the owning semantic section.</summary>
+    internal double SemanticSectionOriginY { get; set; }
     /// <summary>One-based owning root semantic table, or zero for narrative content.</summary>
     public int SemanticTableNumber { get; internal set; }
     /// <summary>Ordered visual children for destination-specific native projection or fidelity fallback.</summary>
@@ -91,6 +95,8 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
             paintOrder, Source, LayoutY + offsetY);
         translated.SurfaceNumber = SurfaceNumber;
         translated.SemanticSectionNumber = SemanticSectionNumber;
+        translated.SemanticSectionOriginX = SemanticSectionOriginX + offsetX;
+        translated.SemanticSectionOriginY = SemanticSectionOriginY + offsetY;
         translated.SemanticTableNumber = SemanticTableNumber;
         return translated;
     }
@@ -103,6 +109,8 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
             paintOrder, Source, LayoutY);
         translated.SurfaceNumber = SurfaceNumber;
         translated.SemanticSectionNumber = SemanticSectionNumber;
+        translated.SemanticSectionOriginX = SemanticSectionOriginX + offsetX;
+        translated.SemanticSectionOriginY = SemanticSectionOriginY;
         translated.SemanticTableNumber = SemanticTableNumber;
         return translated;
     }

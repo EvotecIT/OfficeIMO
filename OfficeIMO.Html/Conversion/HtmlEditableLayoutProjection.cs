@@ -129,10 +129,20 @@ public static class HtmlEditableLayoutProjector {
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
         var semanticRichCandidates = new List<IElement>();
+        var effectCandidates = new List<(IElement Element, string Detail)>();
+        var mixedInlineImageCandidates = new List<IElement>();
         foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
             if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
                 || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
+            if (TryGetNonNativeRegionEffect(element, styles, out string effectDetail)) {
+                effectCandidates.Add((element, effectDetail));
+                continue;
+            }
+            if (ContainsMixedInlineImageContent(element, styles)) {
+                mixedInlineImageCandidates.Add(element);
+                continue;
+            }
             if (ContainsSemanticRichContent(element, styles)) {
                 semanticRichCandidates.Add(element);
                 continue;
@@ -149,9 +159,9 @@ public static class HtmlEditableLayoutProjector {
 
         options.EnableEditableLayoutRegions = true;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(adapterDocument, options);
-        var occurrences = new List<(int Page, HtmlRenderLayoutRegion Region)>();
+        var occurrences = new List<EditableLayoutRegionOccurrence>();
         foreach (HtmlRenderPage page in rendered.Pages) {
-            foreach (HtmlRenderLayoutRegion region in EnumerateRegions(page.Scene)) occurrences.Add((page.PageNumber, region));
+            occurrences.AddRange(EnumerateRegions(page.Scene, page.PageNumber, null));
         }
 
         var diagnostics = new HtmlDiagnosticReport();
@@ -161,8 +171,20 @@ public static class HtmlEditableLayoutProjector {
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
                 "semanticContent=true", OfficeConversionLossKind.Approximation);
         }
+        foreach ((IElement element, string detail) in effectCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
+                "An editable layout region stayed in semantic flow because its region-level paint effect has no exact destination-native representation.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                detail + "; semanticFlow=true", OfficeConversionLossKind.Approximation);
+        }
+        foreach (IElement element in mixedInlineImageCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "An editable layout region stayed in semantic flow so inline picture and text order would remain intact.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                "mixedInlinePictures=true", OfficeConversionLossKind.Approximation);
+        }
         var accepted = new List<HtmlRenderLayoutRegion>();
-        foreach (IGrouping<string, (int Page, HtmlRenderLayoutRegion Region)> group in occurrences.GroupBy(item => item.Region.SourceKey)) {
+        foreach (IGrouping<string, EditableLayoutRegionOccurrence> group in occurrences.GroupBy(item => item.Region.SourceKey)) {
             int occurrenceCount = group.Count();
             int pageCount = group.Select(item => item.Page).Distinct().Count();
             if (occurrenceCount != 1) {
@@ -178,6 +200,9 @@ public static class HtmlEditableLayoutProjector {
                 .Select(item => item.Region)
                 .First();
             selected.SurfaceNumber = group.First().Page;
+            EditableLayoutRegionOccurrence selectedOccurrence = group.First(item => ReferenceEquals(item.Region, selected));
+            selected.SemanticSectionOriginX = selectedOccurrence.SectionOriginX;
+            selected.SemanticSectionOriginY = selectedOccurrence.SectionOriginY;
             if (maximumEditableSurfaceNumber.HasValue
                 && selected.SurfaceNumber > maximumEditableSurfaceNumber.Value) {
                 diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
@@ -201,6 +226,10 @@ public static class HtmlEditableLayoutProjector {
                 continue;
             }
             region.SemanticSectionNumber = sectionNumber;
+            if (semanticSections.Count <= 1) {
+                region.SemanticSectionOriginX = 0D;
+                region.SemanticSectionOriginY = 0D;
+            }
             region.SemanticTableNumber = TryGetOwningElementNumber(
                 candidateElements[region.SourceKey], semanticTables);
             sectionOwned.Add(region);
@@ -441,6 +470,65 @@ public static class HtmlEditableLayoutProjector {
         });
     }
 
+    private static bool ContainsMixedInlineImageContent(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        var contentOrder = new List<bool>();
+        AppendInlineContentOrder(element, element, styles, contentOrder);
+        int firstImage = contentOrder.IndexOf(true);
+        int lastImage = contentOrder.LastIndexOf(true);
+        return firstImage > 0 && lastImage >= firstImage && lastImage < contentOrder.Count - 1;
+    }
+
+    private static void AppendInlineContentOrder(
+        INode node,
+        IElement region,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        ICollection<bool> contentOrder) {
+        foreach (INode child in node.ChildNodes) {
+            if (child is IHtmlImageElement image) {
+                if (IsProjectionImageVisible(image, region, styles)) contentOrder.Add(true);
+            } else if (child is IElement childElement) {
+                AppendInlineContentOrder(childElement, region, styles, contentOrder);
+            } else if (!string.IsNullOrWhiteSpace(child.TextContent)) {
+                contentOrder.Add(false);
+            }
+        }
+    }
+
+    private static bool TryGetNonNativeRegionEffect(
+        IElement element,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles,
+        out string detail) {
+        var effects = new List<string>();
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            if (!styles.TryGetValue(current, out HtmlComputedStyle? style)) continue;
+            string opacity = style.GetValue("opacity").Trim();
+            if (double.TryParse(opacity, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double parsedOpacity)
+                && parsedOpacity < 0.999D) {
+                effects.Add("opacity=" + opacity);
+            }
+            AddNonDefaultEffect(style, "transform", "none", effects);
+            AddNonDefaultEffect(style, "clip-path", "none", effects);
+            AddNonDefaultEffect(style, "filter", "none", effects);
+            AddNonDefaultEffect(style, "mix-blend-mode", "normal", effects);
+        }
+        detail = string.Join("; ", effects.Distinct(StringComparer.OrdinalIgnoreCase));
+        return effects.Count > 0;
+    }
+
+    private static void AddNonDefaultEffect(
+        HtmlComputedStyle style,
+        string property,
+        string defaultValue,
+        ICollection<string> effects) {
+        string value = style.GetValue(property).Trim();
+        if (value.Length > 0 && !value.Equals(defaultValue, StringComparison.OrdinalIgnoreCase)) {
+            effects.Add(property + "=" + value);
+        }
+    }
+
     private static bool HasDistinctRichTextStyle(
         IElement element,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
@@ -470,11 +558,40 @@ public static class HtmlEditableLayoutProjector {
         && string.Equals(first.Detail, second.Detail, StringComparison.Ordinal)
         && first.LossKind == second.LossKind;
 
-    private static IEnumerable<HtmlRenderLayoutRegion> EnumerateRegions(IEnumerable<HtmlRenderVisual> visuals) {
+    private static IEnumerable<EditableLayoutRegionOccurrence> EnumerateRegions(
+        IEnumerable<HtmlRenderVisual> visuals,
+        int pageNumber,
+        (double X, double Y)? sectionOrigin) {
         foreach (HtmlRenderVisual visual in visuals) {
-            if (visual is HtmlRenderLayoutRegion region) yield return region;
-            foreach (HtmlRenderLayoutRegion child in EnumerateRegions(GetChildren(visual))) yield return child;
+            (double X, double Y)? childSectionOrigin = sectionOrigin == null
+                && visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Section } section
+                    ? (section.X, section.Y)
+                    : sectionOrigin;
+            if (visual is HtmlRenderLayoutRegion region) {
+                yield return new EditableLayoutRegionOccurrence(
+                    pageNumber, region, childSectionOrigin?.X ?? 0D, childSectionOrigin?.Y ?? 0D);
+            }
+            foreach (EditableLayoutRegionOccurrence child in EnumerateRegions(
+                         GetChildren(visual), pageNumber, childSectionOrigin)) yield return child;
         }
+    }
+
+    private readonly struct EditableLayoutRegionOccurrence {
+        internal EditableLayoutRegionOccurrence(
+            int page,
+            HtmlRenderLayoutRegion region,
+            double sectionOriginX,
+            double sectionOriginY) {
+            Page = page;
+            Region = region;
+            SectionOriginX = sectionOriginX;
+            SectionOriginY = sectionOriginY;
+        }
+
+        internal int Page { get; }
+        internal HtmlRenderLayoutRegion Region { get; }
+        internal double SectionOriginX { get; }
+        internal double SectionOriginY { get; }
     }
 
     private static IEnumerable<HtmlRenderVisual> GetChildren(HtmlRenderVisual visual) => visual switch {

@@ -169,7 +169,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
 
         if (visual is HtmlRenderLayoutRegion region) {
-            return new HtmlRenderLayoutRegion(
+            var rebuiltRegion = new HtmlRenderLayoutRegion(
                 region.SourceKey,
                 region.RegionKind,
                 region.SourceText,
@@ -187,6 +187,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 region.PaintOrder,
                 region.Source,
                 region.LayoutY);
+            rebuiltRegion.SurfaceNumber = region.SurfaceNumber;
+            rebuiltRegion.SemanticSectionNumber = region.SemanticSectionNumber;
+            rebuiltRegion.SemanticSectionOriginX = region.SemanticSectionOriginX;
+            rebuiltRegion.SemanticSectionOriginY = region.SemanticSectionOriginY;
+            rebuiltRegion.SemanticTableNumber = region.SemanticTableNumber;
+            return rebuiltRegion;
         }
 
         HtmlRenderLogicalTextGroup logicalText = (HtmlRenderLogicalTextGroup)visual;

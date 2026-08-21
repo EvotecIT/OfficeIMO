@@ -29,24 +29,31 @@ internal partial class HtmlToWordConverter {
             textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
             int horizontalOffset = ToBoundedAnchorOffset(region.X, emusPerCssPixel, out bool horizontalSimplified);
             int verticalOffset = ToBoundedAnchorOffset(region.Y, emusPerCssPixel, out bool verticalSimplified);
+            long nativeWidth = ToBoundedAnchorSize(region.Width, emusPerCssPixel, out bool widthSimplified);
+            long nativeHeight = ToBoundedAnchorSize(region.Height, emusPerCssPixel, out bool heightSimplified);
+            int containerWidthTwips = ToBoundedContainerWidth(region.Width, out bool containerWidthSimplified);
             textBox.HorizontalPositionOffset = horizontalOffset;
             textBox.VerticalPositionOffset = verticalOffset;
-            textBox.Width = checked((long)Math.Round(region.Width * emusPerCssPixel));
-            textBox.Height = checked((long)Math.Round(region.Height * emusPerCssPixel));
+            textBox.Width = nativeWidth;
+            textBox.Height = nativeHeight;
             textBox.RelativeWidthPercentage = 0;
             textBox.RelativeHeightPercentage = 0;
             long zOrder = 251659264L + region.ZIndex * 1024L + order++;
             zOrder = zOrder < 1L ? 1L : zOrder > uint.MaxValue ? uint.MaxValue : zOrder;
             textBox.ZOrder = checked((uint)zOrder);
             if (region.BackgroundColor.HasValue) textBox.FillColorHex = region.BackgroundColor.Value.ToRgbHex();
-            if (horizontalSimplified || verticalSimplified) {
+            if (horizontalSimplified || verticalSimplified || widthSimplified
+                || heightSimplified || containerWidthSimplified) {
                 options.ConversionReport.Add("OfficeIMO.Word.Html",
                     HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
-                    "Word bounded an editable layout region's page anchor to its native coordinate range.",
+                    "Word bounded an editable layout region's page anchor or size to its native range.",
                     HtmlDiagnosticSeverity.Warning, region.Source,
                     "x=" + region.X.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
                         + "; y=" + region.Y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
-                        + "; nativeRange=" + int.MinValue + ".." + int.MaxValue,
+                        + "; width=" + region.Width.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; height=" + region.Height.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+                        + "; nativeRange=" + int.MinValue + ".." + int.MaxValue
+                        + "; sizeRange=1.." + long.MaxValue,
                     OfficeConversionLossKind.Approximation);
             }
 
@@ -60,11 +67,13 @@ internal partial class HtmlToWordConverter {
             foreach ((HtmlRenderImage visual, double opacity) in renderedImages) {
                 IHtmlImageElement? sourceImage = projection.GetSourceImage(visual);
                 if (sourceImage == null || !projectedSources.Add(sourceImage)) continue;
-                AddEditableRegionImage(sourceImage, visual, opacity, document, options, paragraph, region);
+                AddEditableRegionImage(sourceImage, visual, opacity, document, options, paragraph, region,
+                    containerWidthTwips);
             }
             foreach (IHtmlImageElement sourceImage in sourceImages) {
                 if (projectedSources.Add(sourceImage)) {
-                    AddEditableRegionImage(sourceImage, null, 1D, document, options, paragraph, region);
+                    AddEditableRegionImage(sourceImage, null, 1D, document, options, paragraph, region,
+                        containerWidthTwips);
                 }
             }
 
@@ -97,10 +106,11 @@ internal partial class HtmlToWordConverter {
         WordDocument document,
         HtmlToWordOptions options,
         WordParagraph paragraph,
-        HtmlRenderLayoutRegion region) {
+        HtmlRenderLayoutRegion region,
+        int containerWidthTwips) {
         int before = paragraph.EnumerateImages().Count();
         ProcessImage(sourceImage, document, options, paragraph, headerFooter: null,
-            resolveContainerWidthTwips: () => checked((int)Math.Round(region.Width * 15D)));
+            resolveContainerWidthTwips: () => containerWidthTwips);
         IReadOnlyList<WordImage> paragraphImages = paragraph.EnumerateImages().ToList().AsReadOnly();
         if (paragraphImages.Count <= before) {
             AddRegionImageOmitted(options, region, sourceImage.Source,
@@ -127,6 +137,34 @@ internal partial class HtmlToWordConverter {
         if (value <= int.MinValue) {
             simplified = value < int.MinValue;
             return int.MinValue;
+        }
+        if (value >= int.MaxValue) {
+            simplified = value > int.MaxValue;
+            return int.MaxValue;
+        }
+        simplified = false;
+        return (int)value;
+    }
+
+    private static long ToBoundedAnchorSize(double cssPixels, double unitsPerCssPixel, out bool simplified) {
+        double value = Math.Round(cssPixels * unitsPerCssPixel);
+        if (double.IsNaN(value) || value <= 1D) {
+            simplified = value != 1D;
+            return 1L;
+        }
+        if (value >= long.MaxValue) {
+            simplified = value > long.MaxValue;
+            return long.MaxValue;
+        }
+        simplified = false;
+        return (long)value;
+    }
+
+    private static int ToBoundedContainerWidth(double cssPixels, out bool simplified) {
+        double value = Math.Round(cssPixels * 15D);
+        if (double.IsNaN(value) || value <= 1D) {
+            simplified = value != 1D;
+            return 1;
         }
         if (value >= int.MaxValue) {
             simplified = value > int.MaxValue;

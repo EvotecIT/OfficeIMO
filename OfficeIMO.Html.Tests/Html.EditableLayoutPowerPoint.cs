@@ -98,6 +98,35 @@ public sealed class HtmlEditableLayoutPowerPointTests {
     }
 
     [Fact]
+    public void LaterSemanticSlideUsesSectionLocalProjectedCoordinates() {
+        const string html = "<section style='height:900px'><h1>First slide</h1></section>" +
+            "<section><h1>Second slide</h1><div style='position:absolute;left:20px;top:30px;width:140px;height:60px'>Local region</div></section>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Equal(2, presentation.Slides.Count);
+        PowerPointTextBox region = Assert.Single(presentation.Slides[1].TextBoxes, box => box.Text == "Local region");
+        Assert.InRange(region.LeftPoints, 0D, 150D);
+        Assert.InRange(region.TopPoints, 0D, 150D);
+    }
+
+    [Fact]
+    public void ExplicitGenericModeProjectsRegionsInsideSemanticLookingSlideClasses() {
+        const string html = "<section class='officeimo-slide'><h1>Generic slide</h1>" +
+            "<div style='position:absolute;width:140px;height:60px'>Generic region</div></section>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, box => box.Text == "Generic region");
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
+    }
+
+    [Fact]
     public void ProjectedRegionHonorsMetadataAndGeometryLimits() {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;left:900px;top:800px;width:700px;height:600px'>Short" +

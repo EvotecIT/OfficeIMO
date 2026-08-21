@@ -26,7 +26,10 @@ public static partial class HtmlPowerPointConverterExtensions {
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateDocumentForConversion(mediaContext);
         HtmlToPowerPointOptions resolved = options?.Clone() ?? new HtmlToPowerPointOptions();
-        bool targetSemantic = adapterDocument.QuerySelector("section.officeimo-slide") != null;
+        bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
+            && (resolved.Mode == HtmlImportMode.Semantic
+                || OfficeHtmlSemanticEnvelope.Inspect(adapterDocument, "powerpoint").IsPresent
+                || adapterDocument.QuerySelector("section.officeimo-slide") != null);
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions && !targetSemantic
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, HtmlEditableLayoutRegionKinds.All)
             ? HtmlEditableLayoutProjector.Project(document, mediaContext: mediaContext)

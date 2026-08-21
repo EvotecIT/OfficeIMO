@@ -73,6 +73,34 @@ public sealed class HtmlEditableLayoutRtfTests {
     }
 
     [Fact]
+    public void OversizedFrameSizeIsBoundedWithStableDiagnostic() {
+        const string html = "<div style='position:absolute;width:1000000000000000px;height:1000000000000000px'>Bounded size</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
+            item.ToPlainText().Contains("Bounded size", StringComparison.Ordinal));
+
+        Assert.Equal(int.MaxValue, paragraph.Frame.WidthTwips);
+        Assert.Equal(-int.MaxValue, paragraph.Frame.HeightTwips);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
+    }
+
+    [Fact]
+    public void MixedInlinePictureRegionStaysOutOfNativeFrames() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<div style='position:absolute;width:180px;height:50px'>Before" +
+            "<img alt='Middle' src='" + image + "'>After</div>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        string rtf = result.Value.ToRtf();
+
+        Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Detail == "mixedInlinePictures=true");
+    }
+
+    [Fact]
     public void PositionedAndFloatingRegionsReopenAsEditableRtfFrames() {
         const string html = "<style>" +
             ".positioned{position:absolute;left:32px;top:24px;width:240px;height:72px;background:#dbeafe;z-index:4}" +

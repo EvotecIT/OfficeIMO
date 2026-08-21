@@ -64,10 +64,14 @@ public static partial class HtmlRtfConverterExtensions {
                 region.X, twipsPerCssPixel, out bool horizontalSimplified);
             int verticalPosition = ToBoundedFrameCoordinate(
                 region.Y, twipsPerCssPixel, out bool verticalSimplified);
+            int nativeWidth = ToBoundedFrameSize(
+                region.Width, twipsPerCssPixel, out bool widthSimplified);
+            int nativeHeight = ToBoundedFrameSize(
+                region.Height, twipsPerCssPixel, out bool heightSimplified);
             paragraph.Frame
                 .SetSize(
-                    checked((int)Math.Round(region.Width * twipsPerCssPixel)),
-                    -checked((int)Math.Round(region.Height * twipsPerCssPixel)))
+                    nativeWidth,
+                    -nativeHeight)
                 .SetAnchors(RtfParagraphFrameHorizontalAnchor.Page, RtfParagraphFrameVerticalAnchor.Page)
                 .SetPosition(
                     RtfParagraphFrameHorizontalPosition.Absolute,
@@ -78,9 +82,9 @@ public static partial class HtmlRtfConverterExtensions {
                     noWrap: region.RegionKind == HtmlRenderLayoutRegionKind.Positioned,
                     overlayText: region.RegionKind == HtmlRenderLayoutRegionKind.Positioned,
                     noOverlap: region.RegionKind == HtmlRenderLayoutRegionKind.Floating);
-            if (horizontalSimplified || verticalSimplified) {
+            if (horizontalSimplified || verticalSimplified || widthSimplified || heightSimplified) {
                 options.AddDiagnostic(HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
-                    "RTF bounded an editable layout frame's page position to its native coordinate range.",
+                    "RTF bounded an editable layout frame's page position or size to its native range.",
                     region.Source, severity: HtmlRtfConversionDiagnosticSeverity.Warning,
                     action: RtfConversionAction.Substituted);
             }
@@ -167,6 +171,20 @@ public static partial class HtmlRtfConverterExtensions {
         if (value <= int.MinValue) {
             simplified = value < int.MinValue;
             return int.MinValue;
+        }
+        if (value >= int.MaxValue) {
+            simplified = value > int.MaxValue;
+            return int.MaxValue;
+        }
+        simplified = false;
+        return (int)value;
+    }
+
+    private static int ToBoundedFrameSize(double cssPixels, double unitsPerCssPixel, out bool simplified) {
+        double value = Math.Round(cssPixels * unitsPerCssPixel);
+        if (double.IsNaN(value) || value <= 1D) {
+            simplified = value != 1D;
+            return 1;
         }
         if (value >= int.MaxValue) {
             simplified = value > int.MaxValue;

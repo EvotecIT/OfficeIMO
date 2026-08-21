@@ -8,6 +8,20 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutExcelTests {
     [Fact]
+    public void ExplicitGenericModeProjectsRegionsInsideSemanticLookingSheetClasses() {
+        const string html = "<section class='officeimo-sheet'><h1>Generic sheet</h1>" +
+            "<div style='position:absolute;width:140px;height:40px'>Generic region</div></section>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Contains(workbook.Sheets, sheet => ContainsCellText(sheet, "Generic region"));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
+    }
+
+    [Fact]
     public void RegionsFromTableLimitedSheetsDoNotMoveOntoNarrativeSheets() {
         const string html = "<p>Narrative retained</p>" +
             "<table><caption>First</caption><tr><td>First table</td></tr></table>" +

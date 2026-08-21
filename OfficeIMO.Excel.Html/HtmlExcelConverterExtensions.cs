@@ -26,7 +26,10 @@ public static partial class HtmlExcelConverterExtensions {
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateDocumentForConversion(mediaContext);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
-        bool targetSemantic = adapterDocument.QuerySelector("section.officeimo-sheet") != null;
+        bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
+            && (resolved.Mode == HtmlImportMode.Semantic
+                || OfficeHtmlSemanticEnvelope.Inspect(adapterDocument, "excel").IsPresent
+                || adapterDocument.QuerySelector("section.officeimo-sheet") != null);
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions && !targetSemantic
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, HtmlEditableLayoutRegionKinds.All)
             ? HtmlEditableLayoutProjector.Project(document, mediaContext: mediaContext)

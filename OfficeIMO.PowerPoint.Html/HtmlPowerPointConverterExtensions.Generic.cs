@@ -107,9 +107,11 @@ public static partial class HtmlPowerPointConverterExtensions {
                         HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source, metadataLimit);
                     continue;
                 }
-                double left = NormalizeGeometry(region.X * 0.75D, 0D, -maximumGeometry,
+                double localRegionX = region.X - region.SemanticSectionOriginX;
+                double localRegionY = region.Y - region.SemanticSectionOriginY;
+                double left = NormalizeGeometry(localRegionX * 0.75D, 0D, -maximumGeometry,
                     budget, result, "editable layout region left");
-                double top = NormalizeGeometry(region.Y * 0.75D, 0D, -maximumGeometry,
+                double top = NormalizeGeometry(localRegionY * 0.75D, 0D, -maximumGeometry,
                     budget, result, "editable layout region top");
                 double width = NormalizeGeometry(region.Width * 0.75D, 1D, 1D,
                     budget, result, "editable layout region width");
@@ -173,9 +175,11 @@ public static partial class HtmlPowerPointConverterExtensions {
                             continue;
                         }
                         using HtmlImportBudgetReservation imageReservationScope = imageReservation;
-                        double pictureLeft = NormalizeGeometry(image.Image.X * 0.75D, left, -maximumGeometry,
+                        double pictureLeft = NormalizeGeometry(
+                            (image.Image.X - region.SemanticSectionOriginX) * 0.75D, left, -maximumGeometry,
                             budget, result, "editable layout picture left");
-                        double pictureTop = NormalizeGeometry(image.Image.Y * 0.75D + topOffset, top, -maximumGeometry,
+                        double pictureTop = NormalizeGeometry(
+                            (image.Image.Y - region.SemanticSectionOriginY) * 0.75D + topOffset, top, -maximumGeometry,
                             budget, result, "editable layout picture top");
                         double pictureWidth = NormalizeGeometry(image.Image.Width * 0.75D, 1D, 1D,
                             budget, result, "editable layout picture width");
@@ -235,8 +239,10 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static EditableLayoutSlideBounds CreateBoundedCollisionBounds(
         HtmlRenderLayoutRegion region,
         double maximumGeometry) {
-        double left = Math.Max(-maximumGeometry, Math.Min(maximumGeometry, region.X * 0.75D));
-        double top = Math.Max(-maximumGeometry, Math.Min(maximumGeometry, region.Y * 0.75D));
+        double left = Math.Max(-maximumGeometry, Math.Min(maximumGeometry,
+            (region.X - region.SemanticSectionOriginX) * 0.75D));
+        double top = Math.Max(-maximumGeometry, Math.Min(maximumGeometry,
+            (region.Y - region.SemanticSectionOriginY) * 0.75D));
         double width = Math.Max(1D, Math.Min(maximumGeometry, region.Width * 0.75D));
         double height = Math.Max(1D, Math.Min(maximumGeometry, region.Height * 0.75D));
         return new EditableLayoutSlideBounds(left, top, width, height);
