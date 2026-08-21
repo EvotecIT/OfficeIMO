@@ -279,6 +279,9 @@ public static partial class HtmlEditableLayoutProjector {
         AddNonDefaultEffect(style, "clip-path", "none", effects, prefix);
         AddNonDefaultEffect(style, "filter", "none", effects, prefix);
         AddNonDefaultEffect(style, "mix-blend-mode", "normal", effects, prefix);
+        if (prefix.Length > 0) {
+            AddNonDefaultEffect(style, "background-image", "none", effects, prefix);
+        }
         AddOutlineEffect(style, effects, prefix);
         AddNonDefaultEffect(style, "overflow", "visible", effects, prefix);
         AddNonDefaultEffect(style, "overflow-x", "visible", effects, prefix);
@@ -296,6 +299,16 @@ public static partial class HtmlEditableLayoutProjector {
         ICollection<string> effects,
         string prefix) {
         if (!styles.TryGetValue(element, out HtmlComputedStyle? style)) return;
+
+        if (prefix.Length > 0 && IsInlineFormattingContext(style)) {
+            AddNonDefaultLayoutValue(style, "width", effects, prefix, "auto");
+            AddNonDefaultLayoutValue(style, "height", effects, prefix, "auto");
+            AddNonDefaultLayoutValue(style, "min-width", effects, prefix, "auto", "0", "0px");
+            AddNonDefaultLayoutValue(style, "min-height", effects, prefix, "auto", "0", "0px");
+            AddNonDefaultLayoutValue(style, "max-width", effects, prefix, "none");
+            AddNonDefaultLayoutValue(style, "max-height", effects, prefix, "none");
+            AddNonDefaultLayoutValue(style, "aspect-ratio", effects, prefix, "auto");
+        }
 
         bool hasMultiColumnLayout = HasNonDefaultLayoutValue(style, "column-count", "auto", "1")
             || HasNonDefaultLayoutValue(style, "column-width", "auto")
@@ -341,6 +354,14 @@ public static partial class HtmlEditableLayoutProjector {
                 AddNonDefaultLayoutValue(style, "grid-row-end", effects, prefix, "auto");
             }
         }
+    }
+
+    private static bool IsInlineFormattingContext(HtmlComputedStyle style) {
+        string display = style.GetValue("display").Trim();
+        return display.Equals("inline-block", StringComparison.OrdinalIgnoreCase)
+            || display.Equals("inline-flex", StringComparison.OrdinalIgnoreCase)
+            || display.Equals("inline-grid", StringComparison.OrdinalIgnoreCase)
+            || display.Equals("inline-table", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool HasNonDefaultLayoutValue(
