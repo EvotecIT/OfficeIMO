@@ -33,15 +33,15 @@ public static class HtmlEditableLayoutCapabilityContracts {
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Word,
             "bounded positioned and floating regions",
-            "page-relative DrawingML text-box anchors with bounded native offsets and size, wrap, and z-order",
+            "page-relative DrawingML text-box anchors with bounded native offsets and size, wrap, and z-order when forced page-break ownership is unambiguous",
             "solid fill plus policy-approved inline pictures with native crop and alpha",
-            "semantic-rich including ruby/MathML and language-scoped text, generated-content, visible multi-block, raw-comment-bearing, bookmark-target, paint-hidden, padded or margined, rounded, root/descendant border or outline, authored or inherited text-alignment/typography, mixed inline text/picture, nested-placement including positioned pictures, multi-child flex/grid, clipped or scrolling, region or descendant paint-effect, paged print, multi-page continuous, and external-stylesheet-owned regions stay in flow when native ownership would flatten, reorder, reveal, mispaint, break links, or lose page ownership; extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
+            "semantic-rich including ruby/MathML and language-scoped text, generated-content, visible multi-block, raw-comment-bearing, bookmark-target, paint-hidden, padded or margined, rounded, root/descendant border or outline, authored or inherited text-alignment/typography, mixed inline text/picture, nested-placement including positioned pictures, multi-child flex/grid, clipped or scrolling, region or descendant paint-effect, forced-page-break-owned, paged print, multi-page continuous, unrendered-picture, and external-stylesheet-owned regions stay in flow when native ownership would flatten, reorder, reveal, mispaint, break links, or lose page ownership; projection metadata is isolated from authored CSS, while extra background layers, CSS shadows, and policy-rejected pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Rtf,
             "bounded positioned and floating regions",
-            "first-page RTF paragraph frames with bounded signed native offsets, negative-capable controls, size, and wrap controls",
+            "first-page RTF paragraph frames with bounded signed native offsets, negative-capable controls, size, and wrap controls when forced page-break ownership is unambiguous",
             "solid frame background plus embedded PNG/JPEG pictures",
-            "semantic-rich including ruby/MathML and language-scoped text, generated-content, visible multi-block, raw-comment-bearing, bookmark-target, paint-hidden, padded or margined, rounded, root/descendant border or outline, authored or inherited text-alignment/typography, mixed inline text/picture, nested-placement including positioned pictures, multi-child flex/grid, clipped or scrolling, region or descendant paint-effect, paged print, and multi-page continuous regions stay in flow when native ownership would flatten, reorder, reveal, mispaint, break links, or lose page ownership; background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
+            "semantic-rich including ruby/MathML and language-scoped text, generated-content, visible multi-block, raw-comment-bearing, bookmark-target, paint-hidden, padded or margined, rounded, root/descendant border or outline, authored or inherited text-alignment/typography, mixed inline text/picture, nested-placement including positioned pictures, multi-child flex/grid, clipped or scrolling, region or descendant paint-effect, forced-page-break-owned, paged print, and multi-page continuous regions stay in flow when native ownership would flatten, reorder, reveal, mispaint, break links, or lose page ownership; projection metadata is isolated from authored CSS, while background image layers, picture crop/alpha, shadows, explicit stacking metadata, and unsupported pictures are diagnosed"),
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.Excel,
             "bounded positioned, floating, and single-content flex and grid regions",
@@ -51,7 +51,7 @@ public static class HtmlEditableLayoutCapabilityContracts {
         new HtmlEditableLayoutCapabilityContract(
             HtmlConversionTarget.PowerPoint,
             "bounded positioned, floating, and single-content flex and grid regions",
-            "editable slide text boxes and DrawingML pictures in section-local rendered geometry",
+            "editable slide text boxes and DrawingML pictures in section-local rendered geometry with failed provisional shape reservations reclaimed and retried",
             "solid fills, supported background/image layers, picture alpha, and one approximated native outer shadow",
             "semantic-rich including ruby/MathML and language-scoped text, generated-content, visible multi-block, raw-comment-bearing, bookmark-target, paint-hidden, padded or margined, rounded, authored or inherited text-alignment/typography, mixed inline text/picture, nested-placement, multi-child flex/grid, clipped or scrolling, root/descendant border or outline, and region or descendant paint-effect regions stay in flow; explicit section/article containers remain as semantic slide owners while their bounded content projects; collision bounds include only successfully imported native shapes, while collision simplification, every CSS shadow parameter approximation, omitted non-image background layers, additional shadow layers, and unsupported image/effect types are diagnosed")
     });

@@ -5,7 +5,7 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
-        string? editableImageKey = element.GetAttribute(HtmlEditableLayoutProjector.ImageAttribute);
+        string? editableImageKey = HtmlEditableLayoutProjector.GetImageSourceKey(element);
         string sourceDescription = string.IsNullOrWhiteSpace(editableImageKey)
             ? HtmlRenderStyleResolver.DescribeSource(element)
             : HtmlEditableLayoutProjector.DescribeImageSource(editableImageKey);

@@ -58,9 +58,11 @@ public static partial class WordHtmlConverterExtensions {
                     renderOptions: projectionOptions,
                     mediaContext: mediaContext,
                     regionKinds: regionKinds,
-                    maximumEditableSurfaceNumber: mediaContext == HtmlCssMediaContext.Print ? 0 : 1,
-                    maximumEditableContinuousSurfaceHeight: projectionOptions.PageHeight,
-                    limits: resolved.Limits);
+                     maximumEditableSurfaceNumber: mediaContext == HtmlCssMediaContext.Print ? 0 : 1,
+                     maximumEditableContinuousSurfaceHeight: projectionOptions.PageHeight,
+                    limits: resolved.Limits,
+                    preserveRegionsBeforeForcedPageBreaks: true,
+                    preserveUnrenderedSourceImages: true);
             } catch (HtmlDomLimitException exception) {
                 HtmlToWordConverter.ThrowLimitExceeded(
                     resolved,

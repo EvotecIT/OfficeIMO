@@ -114,6 +114,7 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+            HtmlEditableLayoutProjector.CopyMarkers(document, renderDocument);
             if (!sourceAlreadyValidated) {
                 HtmlRenderInputGuard.ValidateSource(
                     renderDocument.DocumentElement?.OuterHtml ?? string.Empty,

@@ -92,7 +92,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         HtmlRenderLayoutRegionKind? forcedKind = null) {
         if (!_options.EnableEditableLayoutRegions) return block;
-        string? sourceKey = element.GetAttribute(HtmlEditableLayoutProjector.RegionAttribute);
+        string? sourceKey = _suppressedEditableLayoutRegionMarkers.Contains(element)
+            ? null
+            : HtmlEditableLayoutProjector.GetRegionSourceKey(element);
         if (string.IsNullOrWhiteSpace(sourceKey)) return block;
         if (!style.PaintVisible) return block;
         if (!forcedKind.HasValue
@@ -143,13 +145,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         HtmlRenderBoxStyle parentStyle,
         int depth) {
-        string? sourceKey = element.GetAttribute(HtmlEditableLayoutProjector.RegionAttribute);
+        string? sourceKey = HtmlEditableLayoutProjector.GetRegionSourceKey(element);
         if (sourceKey == null) return LayoutElement(element, containingWidth, style, parentStyle, depth);
-        element.RemoveAttribute(HtmlEditableLayoutProjector.RegionAttribute);
+        _suppressedEditableLayoutRegionMarkers.Add(element);
         try {
             return LayoutElement(element, containingWidth, style, parentStyle, depth);
         } finally {
-            element.SetAttribute(HtmlEditableLayoutProjector.RegionAttribute, sourceKey);
+            _suppressedEditableLayoutRegionMarkers.Remove(element);
         }
     }
 

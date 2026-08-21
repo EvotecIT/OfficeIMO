@@ -38,6 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, InlineContainingRect> _inlineContainingRects = new Dictionary<IElement, InlineContainingRect>();
     private readonly Dictionary<IElement, InlineStaticPosition> _inlineStaticPositions = new Dictionary<IElement, InlineStaticPosition>();
     private readonly HashSet<IElement> _inlineStackingElements = new HashSet<IElement>();
+    private readonly HashSet<IElement> _suppressedEditableLayoutRegionMarkers = new HashSet<IElement>();
     private readonly Dictionary<IElement, HtmlRenderBoxStyle> _layoutStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
     private readonly Dictionary<IElement, bool> _containsInFlowFloatCache = new Dictionary<IElement, bool>();
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();

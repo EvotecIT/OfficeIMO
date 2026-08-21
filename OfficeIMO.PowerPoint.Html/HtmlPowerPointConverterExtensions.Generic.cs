@@ -90,9 +90,12 @@ public static partial class HtmlPowerPointConverterExtensions {
             int semanticShapeCount = slide.Shapes.Count;
             var negativeRegionShapes = new List<PptCore.PowerPointShape>();
             double maximumGeometry = budget.Limits.MaxAbsoluteGeometry;
+            IReadOnlyList<HtmlRenderLayoutRegion> orderedRegions = sectionGroup
+                .OrderBy(item => item.PaintOrder)
+                .ToList();
             var shapeReservations = new Dictionary<HtmlRenderLayoutRegion, HtmlImportBudgetReservation>();
             var shapeReservationFailures = new Dictionary<HtmlRenderLayoutRegion, string>();
-            foreach (HtmlRenderLayoutRegion region in sectionGroup.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderLayoutRegion region in orderedRegions) {
                 if (!budget.IsMetadataWithinLimit(region.SourceText, out _)) continue;
                 if (budget.TryReserveShape(out HtmlImportBudgetReservation reservation, out string detail)) {
                     shapeReservations[region] = reservation;
@@ -112,7 +115,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                     .Select(region => CreateBoundedCollisionBounds(region, maximumGeometry)))
                 .ToList();
 
-            foreach (HtmlRenderLayoutRegion region in sectionGroup.OrderBy(item => item.PaintOrder)) {
+            for (int regionIndex = 0; regionIndex < orderedRegions.Count; regionIndex++) {
+                HtmlRenderLayoutRegion region = orderedRegions[regionIndex];
                 if (!budget.IsMetadataWithinLimit(region.SourceText, out string metadataLimit)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "An editable HTML layout region was omitted because its text exceeded the shared metadata limit.",
@@ -166,7 +170,19 @@ public static partial class HtmlPowerPointConverterExtensions {
                                 + "; actualTop=" + top.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
                     }
                 }
-                if (!placementAvailable) continue;
+                if (!placementAvailable) {
+                    shapeReservation.Dispose();
+                    shapeReservations.Remove(region);
+                    RetryShapeReservationsAfterRollback(
+                        orderedRegions,
+                        regionIndex + 1,
+                        shapeReservations,
+                        shapeReservationFailures,
+                        budget,
+                        occupied,
+                        maximumGeometry);
+                    continue;
+                }
                 double topOffset = top - requestedTop;
                 var nativeRegionShapes = new List<PptCore.PowerPointShape>();
                 bool hasBackgroundPicture = options.ImportPictures
@@ -185,6 +201,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                             lossKind: OfficeConversionLossKind.Omission, source: region.Source, detail: fillLimit);
                     }
                 }
+
                 using HtmlImportBudgetReservation? backgroundFillReservationScope = backgroundFillReservation;
                 if (backgroundFillReservation != null) {
                     PptCore.PowerPointAutoShape backingFill = slide.AddRectanglePoints(
@@ -252,6 +269,33 @@ public static partial class HtmlPowerPointConverterExtensions {
             for (int shapeIndex = negativeRegionShapes.Count - 1; shapeIndex >= 0; shapeIndex--) {
                 slide.SendToBack(negativeRegionShapes[shapeIndex]);
             }
+        }
+    }
+
+    private static void RetryShapeReservationsAfterRollback(
+        IReadOnlyList<HtmlRenderLayoutRegion> orderedRegions,
+        int startIndex,
+        IDictionary<HtmlRenderLayoutRegion, HtmlImportBudgetReservation> reservations,
+        IDictionary<HtmlRenderLayoutRegion, string> failures,
+        HtmlImportBudget budget,
+        ICollection<EditableLayoutSlideBounds> occupied,
+        double maximumGeometry) {
+        for (int index = startIndex; index < orderedRegions.Count; index++) {
+            HtmlRenderLayoutRegion candidate = orderedRegions[index];
+            if (reservations.ContainsKey(candidate)
+                || !budget.IsMetadataWithinLimit(candidate.SourceText, out _)) {
+                continue;
+            }
+            if (!budget.TryReserveShape(out HtmlImportBudgetReservation reservation, out string detail)) {
+                failures[candidate] = detail;
+                continue;
+            }
+            reservations[candidate] = reservation;
+            failures.Remove(candidate);
+            if (candidate.RegionKind == HtmlRenderLayoutRegionKind.Positioned) {
+                occupied.Add(CreateBoundedCollisionBounds(candidate, maximumGeometry));
+            }
+            return;
         }
     }
 

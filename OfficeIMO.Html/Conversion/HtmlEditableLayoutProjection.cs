@@ -107,11 +107,14 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
         int? maximumEditableSurfaceNumber = null) => ProjectCore(
             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
-            maximumEditableContinuousSurfaceHeight: null,
-            preserveMixedInlineContent: false,
-            preserveNestedImagePlacement: false,
-            preserveMixedInlineEdgeSequences: false,
-            limits: null);
+             maximumEditableContinuousSurfaceHeight: null,
+             preserveMixedInlineContent: false,
+             preserveNestedImagePlacement: false,
+             preserveMixedInlineEdgeSequences: false,
+             preserveRegionsBeforeForcedPageBreaks: false,
+             preserveRegionsAfterForcedPageBreaks: false,
+             preserveUnrenderedSourceImages: false,
+             limits: null);
 
     internal static HtmlEditableLayoutProjection ProjectPreservingMixedInlineContent(
         HtmlConversionDocument document,
@@ -119,16 +122,22 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen,
         HtmlEditableLayoutRegionKinds regionKinds = HtmlEditableLayoutRegionKinds.All,
         int? maximumEditableSurfaceNumber = null,
-        double? maximumEditableContinuousSurfaceHeight = null,
-        HtmlConversionLimits? limits = null,
-        bool preserveNestedImagePlacement = true,
-        bool preserveMixedInlineEdgeSequences = true) => ProjectCore(
-            document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
-            maximumEditableContinuousSurfaceHeight,
-            preserveMixedInlineContent: true,
-            preserveNestedImagePlacement,
-            preserveMixedInlineEdgeSequences,
-            limits);
+         double? maximumEditableContinuousSurfaceHeight = null,
+         HtmlConversionLimits? limits = null,
+         bool preserveNestedImagePlacement = true,
+         bool preserveMixedInlineEdgeSequences = true,
+         bool preserveRegionsBeforeForcedPageBreaks = false,
+         bool preserveRegionsAfterForcedPageBreaks = false,
+         bool preserveUnrenderedSourceImages = false) => ProjectCore(
+             document, renderOptions, mediaContext, regionKinds, maximumEditableSurfaceNumber,
+             maximumEditableContinuousSurfaceHeight,
+             preserveMixedInlineContent: true,
+             preserveNestedImagePlacement,
+             preserveMixedInlineEdgeSequences,
+             preserveRegionsBeforeForcedPageBreaks,
+             preserveRegionsAfterForcedPageBreaks,
+             preserveUnrenderedSourceImages,
+             limits);
 
     private static HtmlEditableLayoutProjection ProjectCore(
         HtmlConversionDocument document,
@@ -137,10 +146,13 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlEditableLayoutRegionKinds regionKinds,
         int? maximumEditableSurfaceNumber,
         double? maximumEditableContinuousSurfaceHeight,
-        bool preserveMixedInlineContent,
-        bool preserveNestedImagePlacement,
-        bool preserveMixedInlineEdgeSequences,
-        HtmlConversionLimits? limits) {
+         bool preserveMixedInlineContent,
+         bool preserveNestedImagePlacement,
+         bool preserveMixedInlineEdgeSequences,
+         bool preserveRegionsBeforeForcedPageBreaks,
+         bool preserveRegionsAfterForcedPageBreaks,
+         bool preserveUnrenderedSourceImages,
+         HtmlConversionLimits? limits) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if ((regionKinds & ~HtmlEditableLayoutRegionKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(regionKinds));
         if (maximumEditableSurfaceNumber < 0) throw new ArgumentOutOfRangeException(nameof(maximumEditableSurfaceNumber));
@@ -148,9 +160,6 @@ public static partial class HtmlEditableLayoutProjector {
             throw new ArgumentOutOfRangeException(nameof(maximumEditableContinuousSurfaceHeight));
         }
         IHtmlDocument adapterDocument = document.CreateSourceDocumentForConversion();
-        foreach (IElement element in adapterDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
-            element.RemoveAttribute(RegionAttribute);
-        }
         IReadOnlyList<HtmlGenericSectionProjection> semanticSections =
             HtmlGenericDocumentProjector.CreateSections(adapterDocument);
         IReadOnlyList<IElement> semanticTables = HtmlGenericDocumentProjector.SelectRootTables(adapterDocument);
@@ -167,6 +176,12 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlComputedStyleSet computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
             adapterDocument, options, effectiveLimits);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = computedStyles.Elements;
+        IReadOnlyList<IElement> elementsInDocumentOrder = adapterDocument.QuerySelectorAll("*").ToList();
+        IReadOnlyDictionary<IElement, int> documentOrder = elementsInDocumentOrder
+            .Select((element, index) => new { Element = element, Index = index })
+            .ToDictionary(item => item.Element, item => item.Index);
+        IReadOnlyList<double> forcedPageBreakBoundaries = CreateForcedPageBreakBoundaries(
+            elementsInDocumentOrder, styles);
         int key = 0;
         var candidateElements = new Dictionary<string, IElement>(StringComparer.Ordinal);
         var semanticFlowRoots = new HashSet<IElement>();
@@ -179,15 +194,26 @@ public static partial class HtmlEditableLayoutProjector {
         var commentBearingCandidates = new List<IElement>();
         var paintHiddenCandidates = new List<IElement>();
         var generatedContentCandidates = new List<IElement>();
+        var forcedPageBreakCandidates = new List<(IElement Element, string Detail)>();
         var effectCandidates = new List<(IElement Element, string Detail)>();
         var mixedInlineImageCandidates = new List<IElement>();
-        foreach (IElement element in adapterDocument.QuerySelectorAll("*")) {
+        foreach (IElement element in elementsInDocumentOrder) {
             if (!styles.TryGetValue(element, out HtmlComputedStyle? style)
                 || !TryGetCandidateKind(element, style, out HtmlEditableLayoutRegionKinds candidateKind)
                 || (regionKinds & candidateKind) == 0) continue;
             if (HasSemanticFlowAncestor(element, semanticFlowRoots)) continue;
             if (!IsProjectionElementVisible(element, element, styles)) {
                 paintHiddenCandidates.Add(element);
+                semanticFlowRoots.Add(element);
+                continue;
+            }
+            if (TryGetForcedPageBreakOwnershipDetail(
+                    documentOrder[element],
+                    forcedPageBreakBoundaries,
+                    preserveRegionsBeforeForcedPageBreaks,
+                    preserveRegionsAfterForcedPageBreaks,
+                    out string forcedBreakDetail)) {
+                forcedPageBreakCandidates.Add((element, forcedBreakDetail));
                 semanticFlowRoots.Add(element);
                 continue;
             }
@@ -233,7 +259,7 @@ public static partial class HtmlEditableLayoutProjector {
                 continue;
             }
             string sourceKey = (++key).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            element.SetAttribute(RegionAttribute, sourceKey);
+            SetRegionSourceKey(element, sourceKey);
             candidateElements[sourceKey] = element;
             if (IsFlexOrGridDisplay(style)
                 && HasMultipleVisibleLayoutChildren(element, styles)) {
@@ -245,7 +271,7 @@ public static partial class HtmlEditableLayoutProjector {
         }
         int imageKey = 0;
         foreach (IElement image in adapterDocument.QuerySelectorAll("img")) {
-            image.SetAttribute(ImageAttribute, (++imageKey).ToString(
+            SetImageSourceKey(image, (++imageKey).ToString(
                 System.Globalization.CultureInfo.InvariantCulture));
         }
 
@@ -286,7 +312,13 @@ public static partial class HtmlEditableLayoutProjector {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
                 "An editable layout region stayed in semantic flow so generated pseudo-element content and paint would remain intact.",
                 HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
-                "generatedContent=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
+                 "generatedContent=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
+        }
+        foreach ((IElement element, string detail) in forcedPageBreakCandidates) {
+            diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                "An editable layout region stayed in semantic flow because its destination-native anchor cannot cross a forced page break safely.",
+                HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
+                detail + "; semanticFlow=true", OfficeConversionLossKind.Approximation);
         }
         foreach (IElement element in semanticRichCandidates) {
             diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
@@ -340,6 +372,14 @@ public static partial class HtmlEditableLayoutProjector {
             selected.SemanticSectionOriginY = selectedOccurrence.SectionOriginY;
             selected.SemanticTableOriginX = selectedOccurrence.TableOriginX;
             selected.SemanticTableOriginY = selectedOccurrence.TableOriginY;
+            if (preserveUnrenderedSourceImages
+                && ContainsUnrenderedSourceImage(selected, candidateElements[selected.SourceKey], styles)) {
+                diagnostics.Add("OfficeIMO.Html", HtmlEditableLayoutDiagnosticCodes.PlacementSimplified,
+                    "An editable layout region stayed in semantic flow because one of its source pictures lacked rendered occurrence metadata.",
+                    HtmlDiagnosticSeverity.Warning, selected.Source,
+                    "unrenderedRegionImage=true; semanticFlow=true", OfficeConversionLossKind.Approximation);
+                continue;
+            }
             bool selectedPageOwnershipUnavailable = continuousPageOwnershipUnavailable
                 || (options.Mode == HtmlRenderMode.Continuous
                     && maximumEditableContinuousSurfaceHeight.HasValue
@@ -418,9 +458,27 @@ public static partial class HtmlEditableLayoutProjector {
             .Where(region => IsSemanticSectionOwner(candidateElements[region.SourceKey], adapterDocument))
             .Select(region => region.SourceKey), StringComparer.Ordinal);
         IReadOnlyDictionary<string, IReadOnlyList<IHtmlImageElement>> orderedSourceImages = accepted.ToDictionary(
-            region => region.SourceKey,
+           region => region.SourceKey,
             region => CreateOrderedSourceImages(region, candidateElements[region.SourceKey], styles),
             StringComparer.Ordinal);
+        var originalRegionAttributeValues = candidateElements.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.GetAttribute(RegionAttribute),
+            StringComparer.Ordinal);
+        foreach (KeyValuePair<string, IElement> pair in candidateElements) {
+            pair.Value.SetAttribute(RegionAttribute, pair.Key);
+        }
+        IReadOnlyList<IHtmlImageElement> markedImages = adapterDocument.QuerySelectorAll("img")
+            .OfType<IHtmlImageElement>()
+            .Where(image => GetImageSourceKey(image) != null)
+            .ToList();
+        var originalImageAttributeValues = markedImages.ToDictionary(
+            image => GetImageSourceKey(image)!,
+            image => image.GetAttribute(ImageAttribute),
+            StringComparer.Ordinal);
+        foreach (IHtmlImageElement image in markedImages) {
+            image.SetAttribute(ImageAttribute, GetImageSourceKey(image)!);
+        }
         foreach (IHtmlStyleElement style in callerStyles) style.Remove();
         IHtmlDocument remainingDocument = document.CreatePolicyNormalizedDocumentForConversion(adapterDocument);
         IReadOnlyDictionary<string, IHtmlImageElement> normalizedImagesByMarker = remainingDocument
@@ -437,27 +495,30 @@ public static partial class HtmlEditableLayoutProjector {
                 .ToArray(),
             StringComparer.Ordinal);
         IReadOnlyDictionary<string, IHtmlImageElement> sourceImagesByRenderKey = sourceImages.Values
-            .SelectMany(images => images)
+           .SelectMany(images => images)
             .ToDictionary(image => DescribeImageSource(image.GetAttribute(ImageAttribute)), image => image,
                 StringComparer.Ordinal);
-        foreach (IHtmlImageElement image in orderedSourceImages.Values.SelectMany(images => images)) {
-            image.RemoveAttribute(ImageAttribute);
+        foreach (KeyValuePair<string, IHtmlImageElement> pair in normalizedImagesByMarker) {
+            RestoreAuthoredAttribute(pair.Value, ImageAttribute, pair.Key, originalImageAttributeValues);
+        }
+        foreach (IHtmlImageElement image in markedImages) {
+            RestoreAuthoredAttribute(image, ImageAttribute, GetImageSourceKey(image), originalImageAttributeValues);
+        }
+        foreach (KeyValuePair<string, IElement> pair in candidateElements) {
+            RestoreAuthoredAttribute(pair.Value, RegionAttribute, pair.Key, originalRegionAttributeValues);
         }
         foreach (IElement element in remainingDocument.QuerySelectorAll("[" + RegionAttribute + "]").ToArray()) {
             string? sourceKey = element.GetAttribute(RegionAttribute);
             if (sourceKey != null && acceptedKeys.Contains(sourceKey)) {
                 if (semanticSectionOwnerKeys.Contains(sourceKey)) {
                     foreach (INode child in element.ChildNodes.ToArray()) element.RemoveChild(child);
-                    element.RemoveAttribute(RegionAttribute);
+                    RestoreAuthoredAttribute(element, RegionAttribute, sourceKey, originalRegionAttributeValues);
                 } else {
                     element.Remove();
                 }
             } else {
-                element.RemoveAttribute(RegionAttribute);
+                RestoreAuthoredAttribute(element, RegionAttribute, sourceKey, originalRegionAttributeValues);
             }
-        }
-        foreach (IElement image in remainingDocument.QuerySelectorAll("[" + ImageAttribute + "]").ToArray()) {
-            image.RemoveAttribute(ImageAttribute);
         }
         IReadOnlyList<HtmlDiagnostic> projectionDiagnostics = rendered.Diagnostics
             .Where(renderDiagnostic => !document.Diagnostics.Any(sourceDiagnostic =>
@@ -568,7 +629,7 @@ public static partial class HtmlEditableLayoutProjector {
 
     private static bool HasAcceptedAncestor(IElement element, ISet<string> acceptedKeys) {
         for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
-            string? sourceKey = ancestor.GetAttribute(RegionAttribute);
+            string? sourceKey = GetRegionSourceKey(ancestor);
             if (sourceKey != null && acceptedKeys.Contains(sourceKey)) return true;
         }
         return false;
@@ -606,10 +667,10 @@ public static partial class HtmlEditableLayoutProjector {
         var sourceItems = regionElement.QuerySelectorAll("img")
             .OfType<IHtmlImageElement>()
             .Where(image => IsProjectionImageVisible(image, regionElement, styles))
-            .Select(image => new {
-                Image = image,
-                RenderKey = DescribeImageSource(image.GetAttribute(ImageAttribute))
-            })
+             .Select(image => new {
+                 Image = image,
+                 RenderKey = DescribeImageSource(GetImageSourceKey(image))
+             })
             .ToList();
         var sourceByRenderKey = sourceItems.ToDictionary(
             item => item.RenderKey, item => item.Image, StringComparer.Ordinal);
