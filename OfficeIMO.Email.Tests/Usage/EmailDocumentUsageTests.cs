@@ -54,6 +54,79 @@ public sealed class EmailDocumentUsageTests {
     }
 
     [Fact]
+    public async Task PathSaveConflictPolicyPreservesOrReplacesAnExistingDestination() {
+        string directory = CreateTempDirectory();
+        try {
+            string synchronousPath = Path.Combine(directory, "synchronous.eml");
+            string asynchronousPath = Path.Combine(directory, "asynchronous.eml");
+            byte[] existingContent = Encoding.UTF8.GetBytes("existing destination");
+            File.WriteAllBytes(synchronousPath, existingContent);
+            File.WriteAllBytes(asynchronousPath, existingContent);
+            var document = new EmailDocument { Subject = "Conflict policy" };
+
+            Assert.Throws<IOException>(() =>
+                document.SaveWithConflictPolicy(synchronousPath, EmailFileConflictPolicy.FailIfExists));
+            await Assert.ThrowsAsync<IOException>(() =>
+                document.SaveWithConflictPolicyAsync(asynchronousPath, EmailFileConflictPolicy.FailIfExists));
+
+            Assert.Equal(existingContent, File.ReadAllBytes(synchronousPath));
+            Assert.Equal(existingContent, File.ReadAllBytes(asynchronousPath));
+
+            document.SaveWithConflictPolicy(synchronousPath, EmailFileConflictPolicy.Replace);
+            await document.SaveWithConflictPolicyAsync(asynchronousPath, EmailFileConflictPolicy.Replace);
+
+            Assert.False(existingContent.SequenceEqual(File.ReadAllBytes(synchronousPath)));
+            Assert.False(existingContent.SequenceEqual(File.ReadAllBytes(asynchronousPath)));
+            Assert.Equal("Conflict policy", EmailDocument.Load(synchronousPath).Subject);
+            Assert.Equal("Conflict policy", EmailDocument.Load(asynchronousPath).Subject);
+        } finally {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public void PathSaveRejectsUnknownConflictPolicyBeforeOpeningTheDestination() {
+        string directory = CreateTempDirectory();
+        try {
+            string outputPath = Path.Combine(directory, "message.eml");
+            var document = new EmailDocument { Subject = "Invalid conflict policy" };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SaveWithConflictPolicy(outputPath, (EmailFileConflictPolicy)42));
+
+            Assert.False(File.Exists(outputPath));
+        } finally {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExistingDefaultLiteralSaveCallsRemainSourceCompatible() {
+        string directory = CreateTempDirectory();
+        try {
+            var document = new EmailDocument { Subject = "Source compatibility" };
+            var options = new EmailWriterOptions();
+            CancellationToken cancellationToken = default;
+
+            Assert.Throws<NotSupportedException>(() =>
+                document.Save(Path.Combine(directory, "sync-all-defaults.bin"), default, default));
+            Assert.Throws<NotSupportedException>(() =>
+                document.Save(Path.Combine(directory, "sync-default-format.bin"), default, options));
+            document.Save(Path.Combine(directory, "sync-default-options.bin"), EmailFileFormat.Eml, default);
+            await Assert.ThrowsAsync<NotSupportedException>(() =>
+                document.SaveAsync(Path.Combine(directory, "async-all-defaults.bin"),
+                    default, default, default));
+            await Assert.ThrowsAsync<NotSupportedException>(() =>
+                document.SaveAsync(Path.Combine(directory, "async-default-format.bin"),
+                    default, options, cancellationToken));
+            await document.SaveAsync(Path.Combine(directory, "async-default-options.bin"),
+                EmailFileFormat.Eml, default, cancellationToken);
+        } finally {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public void LoadFailsClearlyWhileTheAdvancedReaderRetainsDiagnostics() {
         byte[] invalid = Encoding.UTF8.GetBytes("This is not an email artifact.");
 

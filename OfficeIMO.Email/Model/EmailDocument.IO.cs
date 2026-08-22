@@ -53,9 +53,34 @@ public sealed partial class EmailDocument {
     public EmailWriteResult Save(string filePath, EmailWriterOptions? options = null) =>
         Save(filePath, InferOutputFormat(filePath), options);
 
+    /// <summary>
+    /// Saves the document as EML, MSG, OFT, or TNEF, inferred from the destination filename,
+    /// using a strict atomic destination conflict policy.
+    /// </summary>
+    public EmailWriteResult SaveWithConflictPolicy(string filePath, EmailFileConflictPolicy conflictPolicy,
+        EmailWriterOptions? options = null) =>
+        SaveWithConflictPolicy(filePath, InferOutputFormat(filePath), conflictPolicy, options);
+
     /// <summary>Saves the document in the explicitly selected artifact format.</summary>
     public EmailWriteResult Save(string filePath, EmailFileFormat format, EmailWriterOptions? options = null) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        return SaveToPath(filePath, format, OfficeFileCommit.ConflictPolicy.Replace, options,
+            requireAtomicCommit: false);
+    }
+
+    /// <summary>
+    /// Saves the document in the explicitly selected artifact format using a strict atomic destination conflict policy.
+    /// </summary>
+    public EmailWriteResult SaveWithConflictPolicy(string filePath, EmailFileFormat format,
+        EmailFileConflictPolicy conflictPolicy, EmailWriterOptions? options = null) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        OfficeFileCommit.ConflictPolicy commitPolicy = GetCommitConflictPolicy(conflictPolicy);
+        return SaveToPath(filePath, format, commitPolicy, options, requireAtomicCommit: true);
+    }
+
+    private EmailWriteResult SaveToPath(string filePath, EmailFileFormat format,
+        OfficeFileCommit.ConflictPolicy commitPolicy, EmailWriterOptions? options,
+        bool requireAtomicCommit) {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         string stagingPath = string.Empty;
         try {
@@ -65,7 +90,11 @@ public sealed partial class EmailDocument {
                 result = writer.Write(this, staging, format);
                 EnsureWriteSucceeded(result);
             }
-            OfficeFileCommit.CommitTemporaryFile(stagingPath, filePath);
+            if (requireAtomicCommit) {
+                OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, filePath, commitPolicy);
+            } else {
+                OfficeFileCommit.CommitTemporaryFile(stagingPath, filePath, commitPolicy);
+            }
             stagingPath = string.Empty;
             return result;
         } finally {
@@ -92,10 +121,40 @@ public sealed partial class EmailDocument {
         CancellationToken cancellationToken = default) =>
         SaveAsync(filePath, InferOutputFormat(filePath), options, cancellationToken);
 
+    /// <summary>
+    /// Asynchronously saves the document, inferring the format from the destination filename and using the requested
+    /// strict atomic destination conflict policy.
+    /// </summary>
+    public Task<EmailWriteResult> SaveWithConflictPolicyAsync(string filePath,
+        EmailFileConflictPolicy conflictPolicy, EmailWriterOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        SaveWithConflictPolicyAsync(filePath, InferOutputFormat(filePath), conflictPolicy, options,
+            cancellationToken);
+
     /// <summary>Asynchronously saves the document in the explicitly selected artifact format.</summary>
     public async Task<EmailWriteResult> SaveAsync(string filePath, EmailFileFormat format,
         EmailWriterOptions? options = null, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        return await SaveToPathAsync(filePath, format, OfficeFileCommit.ConflictPolicy.Replace, options,
+            requireAtomicCommit: false, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asynchronously saves the document in the explicitly selected artifact format using the requested destination
+    /// conflict policy.
+    /// </summary>
+    public async Task<EmailWriteResult> SaveWithConflictPolicyAsync(string filePath, EmailFileFormat format,
+        EmailFileConflictPolicy conflictPolicy, EmailWriterOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        OfficeFileCommit.ConflictPolicy commitPolicy = GetCommitConflictPolicy(conflictPolicy);
+        return await SaveToPathAsync(filePath, format, commitPolicy, options,
+            requireAtomicCommit: true, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<EmailWriteResult> SaveToPathAsync(string filePath, EmailFileFormat format,
+        OfficeFileCommit.ConflictPolicy commitPolicy, EmailWriterOptions? options,
+        bool requireAtomicCommit, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         string stagingPath = string.Empty;
@@ -108,7 +167,11 @@ public sealed partial class EmailDocument {
                 EnsureWriteSucceeded(result);
             }
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeFileCommit.CommitTemporaryFile(stagingPath, filePath);
+            if (requireAtomicCommit) {
+                OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, filePath, commitPolicy);
+            } else {
+                OfficeFileCommit.CommitTemporaryFile(stagingPath, filePath, commitPolicy);
+            }
             stagingPath = string.Empty;
             return result;
         } finally {
@@ -182,6 +245,19 @@ public sealed partial class EmailDocument {
             int read = source.Read(buffer, 0, buffer.Length);
             if (read == 0) return;
             destination.Write(buffer, 0, read);
+        }
+    }
+
+    private static OfficeFileCommit.ConflictPolicy GetCommitConflictPolicy(
+        EmailFileConflictPolicy conflictPolicy) {
+        switch (conflictPolicy) {
+            case EmailFileConflictPolicy.FailIfExists:
+                return OfficeFileCommit.ConflictPolicy.FailIfExists;
+            case EmailFileConflictPolicy.Replace:
+                return OfficeFileCommit.ConflictPolicy.Replace;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(conflictPolicy), conflictPolicy,
+                    "The email file conflict policy is not supported.");
         }
     }
 
