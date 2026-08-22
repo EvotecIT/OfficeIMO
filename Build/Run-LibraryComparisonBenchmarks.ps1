@@ -18,6 +18,7 @@ param(
         'wordreplace',
         'pdfgenerate',
         'pdfhtml',
+        'pdfhtmlpayload',
         'pdfread',
         'pdfreverse',
         'pdfcorpusread',
@@ -154,6 +155,20 @@ $definitions = [ordered]@{
             foreach ($scale in @('Easy', 'Medium', 'High')) {
                 foreach ($engine in @('OfficeIMO', 'PeachPDF')) {
                     "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    pdfhtmlpayload = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfHtmlPayloadBenchmarks*'
+        ComparisonId = "pdf-html-21k-payload-$Framework"
+        Suite = 'OfficeIMO.Pdf.Html21KiBPayload'
+        IdentityVariables = @('payload')
+        ExpectedCases = @(
+            foreach ($payload in @('PlainText', 'Table', 'Multilingual')) {
+                foreach ($engine in @('OfficeIMO', 'PeachPDF')) {
+                    "$engine|Payload=$payload"
                 }
             }
         )

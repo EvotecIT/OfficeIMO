@@ -14,7 +14,7 @@
     <PackageReference Include="itext" Version="9.7.0" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
-    <PackageReference Include="PeachPDF" Version="0.9.9" />
+    <PackageReference Include="PeachPDF" Version="0.9.12" />
     <PackageReference Include="QuestPDF" Version="2026.7.2" />
   </ItemGroup>
 

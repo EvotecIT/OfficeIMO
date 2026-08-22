@@ -915,6 +915,76 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFallbackSet_RegisterFontsSharesImmutableCandidateData() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var candidate = new PdfEmbeddedFontFallbackCandidate(
+            "Shared Fallback",
+            File.ReadAllBytes(fontPath));
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] { candidate },
+            new[] { PdfStandardFont.TimesRoman });
+        var options = new PdfOptions();
+
+        fallbackSet.RegisterFonts(options);
+
+        Assert.True(options.TryGetEmbeddedStandardFont(PdfStandardFont.TimesRoman, out PdfEmbeddedFont? embedded));
+        Assert.NotNull(embedded);
+        Assert.Same(candidate.DataSnapshot, embedded!.DataSnapshot);
+    }
+
+    [Fact]
+    public void PdfDocument_ReusesEmbeddedStandardFontAcrossPageOptionSnapshots() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        const string firstMarker = "First Łódź";
+        const string secondMarker = "Second Αθήνα";
+        if (PdfTextDiagnostics.AnalyzeEmbeddedFontText(firstMarker + secondMarker, fontData).Count > 0) {
+            return;
+        }
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = true })
+            .UseFontFamily(new PdfEmbeddedFontFamily("Shared Page Font", fontData))
+            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(firstMarker)))))
+            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(secondMarker)))))
+            .ToBytes();
+
+        string extracted = PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains(firstMarker, extracted, StringComparison.Ordinal);
+        Assert.Contains(secondMarker, extracted, StringComparison.Ordinal);
+        string raw = Encoding.ASCII.GetString(pdf);
+        Assert.Equal(1, raw.Split(new[] { " /FontFile2 " }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void PdfDocument_DoesNotShareEmbeddedStandardFontAcrossDifferentShapingContexts() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false,
+                CompressEmbeddedFonts = false
+            })
+            .UseFontFamily(new PdfEmbeddedFontFamily("Shaping Context Font", fontData))
+            .UseTextShaping(PdfTextShapingMode.UnicodeScalar)
+            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Explicit \uFB01 glyph")))))
+            .UseTextShaping(PdfTextShapingMode.LatinLigatures)
+            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Shaped fine text")))))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        Assert.Equal(2, raw.Split(new[] { " /FontFile3 " }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void PdfTrueTypeFontProgram_ShapeTextProducesStableUnicodeGlyphRunForMultilingualText() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

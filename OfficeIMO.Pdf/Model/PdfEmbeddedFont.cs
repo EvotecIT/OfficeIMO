@@ -7,7 +7,11 @@ public sealed class PdfEmbeddedFont {
     private readonly byte[] _data;
 
     /// <summary>Creates an embedded-font mapping for a standard PDF font slot.</summary>
-    public PdfEmbeddedFont(PdfStandardFont font, byte[] data, string? fontName = null) {
+    public PdfEmbeddedFont(PdfStandardFont font, byte[] data, string? fontName = null)
+        : this(font, data, fontName, cloneData: true) {
+    }
+
+    internal PdfEmbeddedFont(PdfStandardFont font, byte[] data, string? fontName, bool cloneData) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font mapping must target one of the supported standard PDF font slots.");
         Guard.NotNull(data, nameof(data));
         if (data.Length == 0) {
@@ -15,7 +19,7 @@ public sealed class PdfEmbeddedFont {
         }
 
         Font = font;
-        _data = (byte[])data.Clone();
+        _data = cloneData ? (byte[])data.Clone() : data;
         FontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;
     }
 

@@ -304,13 +304,40 @@ public sealed partial class PdfOptions {
     /// <param name="fontFamily">Reusable TrueType font family to embed into that semantic slot.</param>
     public PdfOptions RegisterFontFamily(PdfStandardFont baseFontFamily, PdfEmbeddedFontFamily fontFamily) {
         Guard.NotNull(fontFamily, nameof(fontFamily));
-        PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         PdfEmbeddedFontFamily snapshot = fontFamily.Clone();
+        return RegisterFontFamilyCore(
+            baseFontFamily,
+            snapshot.FamilyName,
+            snapshot.RegularSnapshot,
+            snapshot.BoldSnapshot,
+            snapshot.ItalicSnapshot,
+            snapshot.BoldItalicSnapshot);
+    }
 
-        EmbedStandardFont(normalizedFamily, snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Regular"));
-        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), snapshot.BoldSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Bold"));
-        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Italic"));
-        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), snapshot.BoldItalicSnapshot ?? snapshot.BoldSnapshot ?? snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "BoldItalic"));
+    internal PdfOptions RegisterFallbackFontFamily(
+        PdfStandardFont baseFontFamily,
+        string familyName,
+        byte[] regular) {
+        PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
+        EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"));
+        return this;
+    }
+
+    private PdfOptions RegisterFontFamilyCore(
+        PdfStandardFont baseFontFamily,
+        string familyName,
+        byte[] regular,
+        byte[]? bold,
+        byte[]? italic,
+        byte[]? boldItalic) {
+        PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
+        EmbedStandardFont(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
+        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, BuildFontFamilyFaceName(familyName, "Bold"));
+        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, BuildFontFamilyFaceName(familyName, "Italic"));
+        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"));
         return this;
     }
 
