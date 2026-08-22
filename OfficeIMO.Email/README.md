@@ -66,6 +66,16 @@ EmailDocument message = await EmailDocument.LoadAsync("message.msg", cancellatio
 await message.SaveAsync("message.eml", cancellationToken: cancellationToken);
 ```
 
+Path-based saves replace an existing destination by default. Use `FailIfExists` when exporting into a shared or
+user-managed directory where claiming a new filename must be atomic and an existing artifact must remain unchanged:
+
+```csharp
+await message.SaveWithConflictPolicyAsync(
+    "message.eml",
+    EmailFileConflictPolicy.FailIfExists,
+    cancellationToken: cancellationToken);
+```
+
 Use `EmailDocumentReader` when the host needs custom limits, raw-source preservation, or structured diagnostics:
 
 ```csharp
