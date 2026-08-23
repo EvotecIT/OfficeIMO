@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After native shapes", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains("0.8 0.702 0.6 rg", content);
             Assert.Contains("0.102 0.2 0.302 RG", content);
             Assert.Contains("2.5 w", content);
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After native DrawingML shapes", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains("0.6 0.8 1 rg", content);
             Assert.Contains("0 0.2 0.4 RG", content);
             Assert.Contains("1.5 w", content);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After remaining native DrawingML shapes", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains("1 0 0 rg", content);
             Assert.Contains("0 1 0 rg", content);
             Assert.Contains("0 0 1 rg", content);
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After additional native DrawingML shapes", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains("1 0 1 rg", content);
             Assert.Contains("1 0.6 0 rg", content);
             Assert.Contains("0.502 0.502 0.502 rg", content);
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains("0.929 0.49 0.192 rg", content);
             Assert.Contains("0.267 0.447 0.769 RG", content);
             Assert.Contains("2 w", content);
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After gradient shape", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains("/ShadingType 2", content);
             Assert.Contains("/C0 [0.267 0.447 0.769] /C1 [0.949 0.643 0.435]", content);
             Assert.Contains("/Type /ExtGState /ca 0.45 /CA 0.65", content);
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After native text box", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains(" re S", content);
         }
     }

@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = Encoding.ASCII.GetString(bytes);
+            string content = PdfOperatorSearchText.From(bytes);
 
             Assert.DoesNotContain("/FontFile2", content, StringComparison.Ordinal);
             Assert.DoesNotContain("/BaseFont /Calibri", content, StringComparison.Ordinal);
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = Encoding.ASCII.GetString(bytes);
+            string content = PdfOperatorSearchText.From(bytes);
 
             Assert.Contains("/Subtype /Type0", content, StringComparison.Ordinal);
             Assert.Contains("/Subtype /CIDFontType2", content, StringComparison.Ordinal);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
 
             Assert.Contains("/BaseFont /Calibri", content, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /Arial", content, StringComparison.Ordinal);
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
 
             Assert.Contains("/FontFile2", content, StringComparison.Ordinal);
             Assert.Contains("/BaseFont /" + SanitizeExpectedPdfFontName(availableFamily), content, StringComparison.Ordinal);
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
                 ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
             });
 
-            string content = Encoding.ASCII.GetString(result.ToBytes());
+            string content = PdfOperatorSearchText.From(result.ToBytes());
             Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeFontFamilySlotExhausted");
             Assert.All(
                 fontFamilies,
@@ -328,7 +328,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = Encoding.ASCII.GetString(bytes);
+            string content = PdfOperatorSearchText.From(bytes);
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -367,7 +367,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = Encoding.ASCII.GetString(bytes);
+            string content = PdfOperatorSearchText.From(bytes);
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
 

@@ -39,7 +39,7 @@ public partial class Word {
             Assert.Contains("Body value", text);
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0 0 0 RG", raw);
         Assert.Contains("0.5 w", raw);
     }
@@ -71,7 +71,7 @@ public partial class Word {
             Assert.Contains("Border B2", text);
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("1 0 0 RG", raw);
         Assert.Contains("1.5 w", raw);
     }
@@ -118,7 +118,7 @@ public partial class Word {
             Assert.Contains("Style border B2", text);
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0 0.502 0 RG", raw);
         Assert.Contains("1.5 w", raw);
     }
@@ -169,7 +169,7 @@ public partial class Word {
             Assert.Contains("Style nonuniform B2", text);
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("1 0 0 RG", raw);
         Assert.Contains("2 w", raw);
         Assert.Contains("0 0 1 RG", raw);

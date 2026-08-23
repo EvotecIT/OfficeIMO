@@ -112,22 +112,46 @@ internal static partial class PdfWriter {
         var formFieldIds = new List<int>();
 
         // Collect fonts used across pages
-        var fontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfStandardFont, int>>();
+        var fontObjectIds = new Dictionary<(PdfStandardFont Font, PdfEmbeddedFont? EmbeddedFont, bool IncludeToUnicode, int ShapingContextId), int>();
+        var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language)>();
         var namedFontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfNamedFontFace, int>>();
         var formHelveticaFontIds = new Dictionary<PdfOptions, int>();
         var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfOptions Options)>();
+        var pendingFontOptions = new Dictionary<int, List<PdfOptions>>();
         var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfOptions Options)>();
         bool requiresPdf16FileVersion = false;
-        int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
-            if (!fontObjectIds.TryGetValue(fontOptions, out Dictionary<PdfStandardFont, int>? optionFontObjectIds)) {
-                optionFontObjectIds = new Dictionary<PdfStandardFont, int>();
-                fontObjectIds[fontOptions] = optionFontObjectIds;
+
+        int GetShapingContextId(PdfOptions fontOptions) {
+            for (int index = 0; index < shapingContexts.Count; index++) {
+                var context = shapingContexts[index];
+                if (context.Mode == fontOptions.TextShapingModeSnapshot &&
+                    ReferenceEquals(context.Provider, fontOptions.TextShapingProviderSnapshot) &&
+                    string.Equals(context.Language, fontOptions.Language, StringComparison.Ordinal)) {
+                    return index + 1;
+                }
             }
 
-            if (!optionFontObjectIds.TryGetValue(font, out int id)) {
+            shapingContexts.Add((
+                fontOptions.TextShapingModeSnapshot,
+                fontOptions.TextShapingProviderSnapshot,
+                fontOptions.Language));
+            return shapingContexts.Count;
+        }
+
+        int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
+            fontOptions.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont);
+            var key = (
+                font,
+                embeddedFont,
+                IncludeToUnicode: embeddedFont == null && fontOptions.IncludeStandardFontToUnicodeMaps,
+                ShapingContextId: embeddedFont == null ? 0 : GetShapingContextId(fontOptions));
+            if (!fontObjectIds.TryGetValue(key, out int id)) {
                 id = ReserveObject(objects);
-                optionFontObjectIds[font] = id;
+                fontObjectIds[key] = id;
                 pendingFontObjects.Add((id, font, fontOptions));
+                pendingFontOptions[id] = new List<PdfOptions> { fontOptions };
+            } else if (!pendingFontOptions[id].Contains(fontOptions)) {
+                pendingFontOptions[id].Add(fontOptions);
             }
             return id;
         }
@@ -151,6 +175,19 @@ internal static partial class PdfWriter {
             foreach (var pendingFont in pendingFontObjects) {
                 if (pendingFont.Options.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfTrueTypeFontProgram? fontProgram) &&
                     fontProgram != null) {
+                    foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
+                        if (ReferenceEquals(otherOptions, pendingFont.Options) ||
+                            !otherOptions.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out _, out PdfTrueTypeFontProgram? otherProgram) ||
+                            otherProgram == null ||
+                            ReferenceEquals(otherProgram, fontProgram)) {
+                            continue;
+                        }
+
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
+                            fontProgram.RecordGlyphUsage(glyphId, unicodeText);
+                        }
+                    }
+
                     byte[] fontData = fontProgram.BuildSubsetFontFile();
                     string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
                     int fontFileId = opts.CompressEmbeddedFonts
@@ -165,6 +202,19 @@ internal static partial class PdfWriter {
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
+                    foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
+                        if (ReferenceEquals(otherOptions, pendingFont.Options) ||
+                            !otherOptions.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out _, out PdfOpenTypeCffFontProgram? otherProgram) ||
+                            otherProgram == null ||
+                            ReferenceEquals(otherProgram, cffFontProgram)) {
+                            continue;
+                        }
+
+                        foreach ((int glyphId, string unicodeText) in otherProgram.GetGlyphToUnicodeMappings()) {
+                            cffFontProgram.RecordGlyphUsage(glyphId, unicodeText);
+                        }
+                    }
+
                     requiresPdf16FileVersion = true;
                     PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
                     pendingFont.Options.AddFontDiagnostics(

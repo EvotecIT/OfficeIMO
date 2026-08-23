@@ -19,7 +19,9 @@ namespace OfficeIMO.Html.Pdf;
 /// </example>
 public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
-    private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions().EnableTaggedPdfCatalogMarkers();
+    private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions {
+        CompressContentStreams = true
+    }.EnableTaggedPdfCatalogMarkers();
 
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
@@ -44,7 +46,9 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     }
 
     /// <summary>OfficeIMO-managed font fallback groups used by generated PDF text.</summary>
-    public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
+    public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } =
+        PdfCore.PdfTextFallbackFeatures.Default |
+        PdfCore.PdfTextFallbackFeatures.MultilingualFonts;
 
     /// <summary>Dependency-free shaping mode used by generated PDF text.</summary>
     public PdfCore.PdfTextShapingMode TextShapingMode { get; set; } = PdfCore.PdfTextShapingMode.LatinLigatures;

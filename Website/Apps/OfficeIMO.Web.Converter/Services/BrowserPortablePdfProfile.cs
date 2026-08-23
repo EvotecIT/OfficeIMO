@@ -87,24 +87,9 @@ internal static class BrowserPortablePdfProfile {
 
         options.RegisterFontFamily(
             PdfStandardFont.Helvetica,
-            new PdfEmbeddedFontFamily(
-                DefaultFontFamily,
-                data.CarlitoRegular,
-                data.CarlitoBold,
-                data.CarlitoItalic,
-                data.CarlitoBoldItalic));
-        options.RegisterNamedFontFamily(
-            new PdfEmbeddedFontFamily(
-                DefaultFontFamily,
-                data.CarlitoRegular,
-                data.CarlitoBold,
-                data.CarlitoItalic,
-                data.CarlitoBoldItalic));
-        options.RegisterEmbeddedFontFallbacks(
-            new PdfEmbeddedFontFallbackSet([
-                new PdfEmbeddedFontFallbackCandidate(ArabicFallbackFontFamily, data.NotoSansArabic),
-                new PdfEmbeddedFontFallbackCandidate(SymbolFallbackFontFamily, data.NotoSansSymbols)
-            ]));
+            data.DefaultPdfFontFamily);
+        options.RegisterNamedFontFamily(data.DefaultPdfFontFamily);
+        options.RegisterEmbeddedFontFallbacks(data.PdfFontFallbacks);
         foreach (PdfFontFamilySubstitution substitution in data.Substitutions) {
             options.RegisterFontFamilySubstitution(
                 substitution.SourceFontFamily,
@@ -121,12 +106,7 @@ internal static class BrowserPortablePdfProfile {
             DefaultFontFamily = DefaultLayoutFontFamilies,
             Fonts = CreateLayoutFonts(data),
             PdfOptions = CreateOptions(profile),
-            FontFamily = new PdfEmbeddedFontFamily(
-                DefaultFontFamily,
-                data.CarlitoRegular,
-                data.CarlitoBold,
-                data.CarlitoItalic,
-                data.CarlitoBoldItalic),
+            FontFamily = data.DefaultPdfFontFamily,
             TextShapingMode = PdfTextShapingMode.LatinLigatures,
             TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
@@ -200,6 +180,16 @@ internal static class BrowserPortablePdfProfile {
             carlitoBoldItalic,
             notoSansArabic,
             notoSansSymbols,
+            new PdfEmbeddedFontFamily(
+                DefaultFontFamily,
+                carlitoRegular,
+                carlitoBold,
+                carlitoItalic,
+                carlitoBoldItalic),
+            new PdfEmbeddedFontFallbackSet([
+                new PdfEmbeddedFontFallbackCandidate(ArabicFallbackFontFamily, notoSansArabic),
+                new PdfEmbeddedFontFallbackCandidate(SymbolFallbackFontFamily, notoSansSymbols)
+            ]),
             substitutions,
             fingerprint);
     }
@@ -277,6 +267,8 @@ internal static class BrowserPortablePdfProfile {
         byte[] CarlitoBoldItalic,
         byte[] NotoSansArabic,
         byte[] NotoSansSymbols,
+        PdfEmbeddedFontFamily DefaultPdfFontFamily,
+        PdfEmbeddedFontFallbackSet PdfFontFallbacks,
         IReadOnlyList<PdfFontFamilySubstitution> Substitutions,
         string Fingerprint);
 

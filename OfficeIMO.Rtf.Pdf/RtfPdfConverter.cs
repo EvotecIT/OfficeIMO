@@ -11,6 +11,7 @@ internal static partial class RtfPdfConverter {
         RtfTableTraversalGuard.ValidateDocument(document);
         RtfPdfSaveOptions normalized = options ?? new RtfPdfSaveOptions();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
         IReadOnlyDictionary<int, PdfCore.PdfStandardFont> fontSlots = ConfigureDocumentFonts(
             document,

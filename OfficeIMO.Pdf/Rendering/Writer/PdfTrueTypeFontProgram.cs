@@ -29,6 +29,24 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _cmap = cmap;
     }
 
+    private PdfTrueTypeFontProgram(PdfTrueTypeFontProgram source) {
+        _data = source._data;
+        _tables = source._tables;
+        FontName = source.FontName;
+        UnitsPerEm = source.UnitsPerEm;
+        FontBBox = source.FontBBox;
+        Ascent = source.Ascent;
+        Descent = source.Descent;
+        CapHeight = source.CapHeight;
+        ItalicAngle = source.ItalicAngle;
+        Flags = source.Flags;
+        StemV = source.StemV;
+        _advanceWidths = source._advanceWidths;
+        _cmap = source._cmap;
+    }
+
+    internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
+
     public string FontName { get; }
     public int UnitsPerEm { get; }
     public int[] FontBBox { get; }
@@ -161,6 +179,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
         if (glyphId < 0) {
             return;
         }
+
+        unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
 
         lock (_usageLock) {
             _usedGlyphIds.Add(glyphId);

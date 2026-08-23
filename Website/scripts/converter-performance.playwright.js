@@ -36,39 +36,75 @@ async (page) => {
 
     await page.locator(`[data-load-sample="${routeId}"]`).click();
     await page.locator('.ocx-diagnostic').filter({ hasText: 'Sample ready' }).waitFor({ state: 'visible', timeout: 60000 });
-    let sampling = true;
-    let memorySamples = 0;
-    let peakBrowserHeapBytes = 0;
-    let peakBrowserUsedHeapBytes = 0;
-    const sampleHeap = async () => {
-      const memory = await readBrowserHeap();
-      if (!memory) throw new Error('Chromium performance.memory is unavailable; peak-memory evidence is required.');
-      memorySamples++;
-      peakBrowserHeapBytes = Math.max(peakBrowserHeapBytes, memory.total);
-      peakBrowserUsedHeapBytes = Math.max(peakBrowserUsedHeapBytes, memory.used);
-    };
-    await sampleHeap();
-    const sampler = (async () => {
-      while (sampling) {
-        await page.waitForTimeout(10);
-        await sampleHeap();
-      }
-    })();
-
-    await page.locator(`[data-convert-route="${routeId}"]`).click();
     const summary = page.locator(`[data-performance-result="true"][data-route="${routeId}"]`);
-    await summary.waitFor({ state: 'visible', timeout: 120000 });
-    sampling = false;
-    await sampler;
-    await sampleHeap();
+    const downloadLink = page.getByRole('link', { name: 'Download result', exact: true });
+    const measureConversion = async previousDownloadUrl => {
+      let sampling = true;
+      let memorySamples = 0;
+      let peakBrowserHeapBytes = 0;
+      let peakBrowserUsedHeapBytes = 0;
+      const sampleHeap = async () => {
+        const memory = await readBrowserHeap();
+        if (!memory) throw new Error('Chromium performance.memory is unavailable; peak-memory evidence is required.');
+        memorySamples++;
+        peakBrowserHeapBytes = Math.max(peakBrowserHeapBytes, memory.total);
+        peakBrowserUsedHeapBytes = Math.max(peakBrowserUsedHeapBytes, memory.used);
+      };
+      await sampleHeap();
+      const sampler = (async () => {
+        while (sampling) {
+          await page.waitForTimeout(10);
+          await sampleHeap();
+        }
+      })();
 
-    const metrics = await summary.evaluate(element => ({
-      conversionMilliseconds: Number(element.getAttribute('data-conversion-ms') || '0'),
-      peakRetainedBytes: Number(element.getAttribute('data-peak-retained-bytes') || '0'),
-      resultBytes: Number(element.getAttribute('data-result-bytes') || '0')
-    }));
-    maximumBrowserHeapBytes = Math.max(maximumBrowserHeapBytes, peakBrowserHeapBytes);
-    results.push({ routeId, memorySamples, peakBrowserHeapBytes, peakBrowserUsedHeapBytes, ...metrics });
+      await page.locator(`[data-convert-route="${routeId}"]`).click();
+      await page.waitForFunction(previousUrl => {
+        const link = Array.from(document.querySelectorAll('a'))
+          .find(element => element.textContent?.trim() === 'Download result');
+        return Boolean(link?.href?.startsWith('blob:') && link.href !== previousUrl);
+      }, previousDownloadUrl, { timeout: 120000 });
+      await summary.waitFor({ state: 'visible', timeout: 120000 });
+      sampling = false;
+      await sampler;
+      await sampleHeap();
+
+      const downloadUrl = await downloadLink.getAttribute('href');
+      const pdfMagic = await page.evaluate(async url => {
+        const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+        return String.fromCharCode(...bytes.slice(0, 4));
+      }, downloadUrl);
+      const metrics = await summary.evaluate(element => ({
+        conversionMilliseconds: Number(element.getAttribute('data-conversion-ms') || '0'),
+        peakRetainedBytes: Number(element.getAttribute('data-peak-retained-bytes') || '0'),
+        resultBytes: Number(element.getAttribute('data-result-bytes') || '0')
+      }));
+      return { downloadUrl, pdfMagic, memorySamples, peakBrowserHeapBytes, peakBrowserUsedHeapBytes, ...metrics };
+    };
+
+    const first = await measureConversion('');
+    const repeat = await measureConversion(first.downloadUrl);
+    maximumBrowserHeapBytes = Math.max(
+      maximumBrowserHeapBytes,
+      first.peakBrowserHeapBytes,
+      repeat.peakBrowserHeapBytes);
+    results.push({
+      routeId,
+      memorySamples: first.memorySamples,
+      peakBrowserHeapBytes: first.peakBrowserHeapBytes,
+      peakBrowserUsedHeapBytes: first.peakBrowserUsedHeapBytes,
+      conversionMilliseconds: first.conversionMilliseconds,
+      peakRetainedBytes: first.peakRetainedBytes,
+      resultBytes: first.resultBytes,
+      pdfMagic: first.pdfMagic,
+      repeatMemorySamples: repeat.memorySamples,
+      repeatPeakBrowserHeapBytes: repeat.peakBrowserHeapBytes,
+      repeatPeakBrowserUsedHeapBytes: repeat.peakBrowserUsedHeapBytes,
+      repeatConversionMilliseconds: repeat.conversionMilliseconds,
+      repeatPeakRetainedBytes: repeat.peakRetainedBytes,
+      repeatResultBytes: repeat.resultBytes,
+      repeatPdfMagic: repeat.pdfMagic
+    });
   }
 
   return JSON.stringify({ startupMilliseconds, maximumBrowserHeapBytes, routes: results, consoleErrors });

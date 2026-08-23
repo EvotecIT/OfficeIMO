@@ -2374,7 +2374,9 @@ public sealed class PdfConversionScenarioManifestTests {
         transform.ChildExtents.Cy = PowerPointUnits.FromPoints(20);
         slide.SlidePart.Slide.Save();
 
-        var options = new PowerPointPdfSaveOptions();
+        var options = new PowerPointPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         Assert.DoesNotContain(

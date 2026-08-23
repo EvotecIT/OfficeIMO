@@ -604,7 +604,9 @@ public class RtfPdfConverterTests {
         document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 16, space: 24, colorIndex: red);
         document.AddParagraph("Bordered document");
 
-        byte[] pdf = document.ToPdf();
+        byte[] pdf = document.ToPdf(new RtfPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        });
         string content = ExtractPdfContentStreams(pdf);
 
         Assert.Contains("1 0 0 RG", content, StringComparison.Ordinal);
@@ -628,7 +630,9 @@ public class RtfPdfConverterTests {
         second.PageSetup.PageBorders.Left.Set(RtfPageBorderStyle.Dotted, width: 8, space: 12, colorIndex: blue);
         second.AddParagraph("Second border section");
 
-        byte[] pdf = document.ToPdf();
+        byte[] pdf = document.ToPdf(new RtfPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        });
         string content = ExtractPdfContentStreams(pdf);
 
         Assert.Contains("1 0 0 RG", content, StringComparison.Ordinal);

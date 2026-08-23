@@ -203,7 +203,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
-                    PageSize = new PageSize(612, 792)
+                    PageSize = new PageSize(612, 792),
+                    PdfOptions = new PdfOptions { CompressContentStreams = false }
                 });
             }
 
@@ -331,7 +332,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     IncludeSheetHeadings = true,
                     HeaderRowCount = 2,
                     PageSize = new PageSize(792, 612),
-                    Margins = PageMargins.FromInches(0.35, 0.55, 0.35, 0.55)
+                    Margins = PageMargins.FromInches(0.35, 0.55, 0.35, 0.55),
+                    PdfOptions = new PdfOptions { CompressContentStreams = false }
                 });
             }
 

@@ -177,7 +177,7 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static bool TryReadSystemFontFace(string path, byte[] data, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) {
         candidate = null;
         try {
-            _ = PdfTrueTypeFontProgram.Parse(data);
+            _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata) && metadata != null) {
                 if (IsMetadataFamilyMatch(metadata, normalizedMetadataFamily)) {
                     FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);

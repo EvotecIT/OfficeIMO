@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(File.Exists(pdfPath));
 
-            string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
             Assert.True(mediaBox.Success, "MediaBox not found");
             double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);

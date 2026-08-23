@@ -84,8 +84,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
         Guard.NotNull(options, nameof(options));
         if (UsesNamedFontFamilies) {
             foreach (PdfEmbeddedFontFallbackCandidate candidate in _candidates) {
-                options.RegisterNamedFontFamily(
-                    new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
+                options.RegisterNamedFontFamily(candidate.FontFamilySnapshot);
             }
 
             return options;
@@ -104,9 +103,10 @@ public sealed class PdfEmbeddedFontFallbackSet {
 
         for (int index = 0; index < _candidates.Count; index++) {
             PdfEmbeddedFontFallbackCandidate candidate = _candidates[index];
-            options.RegisterFontFamily(
+            options.RegisterFallbackFontFamily(
                 NormalizeFontSlot(fontSlots[index]),
-                new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
+                candidate.FontName,
+                candidate.DataSnapshot);
         }
 
         return options;
@@ -123,9 +123,10 @@ public sealed class PdfEmbeddedFontFallbackSet {
             }
 
             PdfEmbeddedFontFallbackCandidate candidate = _candidates[candidateIndex];
-            options.RegisterFontFamily(
+            options.RegisterFallbackFontFamily(
                 NormalizeFontSlot(entry.Value),
-                new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
+                candidate.FontName,
+                candidate.DataSnapshot);
         }
 
         return options;

@@ -159,6 +159,23 @@ public sealed class BrowserConversionServiceTests {
     }
 
     [Fact]
+    public void HtmlPdfProfile_ReusesImmutablePdfFontFamiliesAcrossConversions() {
+        var first = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
+        var second = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Accessible);
+
+        PdfEmbeddedFontFamily defaultFamily = Assert.IsType<PdfEmbeddedFontFamily>(first.FontFamily);
+        Assert.Same(defaultFamily, second.FontFamily);
+        Assert.Same(defaultFamily, first.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.DefaultFontFamily]);
+        Assert.Same(defaultFamily, second.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.DefaultFontFamily]);
+        Assert.Same(
+            first.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.ArabicFallbackFontFamily],
+            second.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.ArabicFallbackFontFamily]);
+        Assert.Same(
+            first.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.SymbolFallbackFontFamily],
+            second.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.SymbolFallbackFontFamily]);
+    }
+
+    [Fact]
     public void MarkdownToHtml_ReturnsPreviewAndDownload() {
         var route = ConversionRouteCatalog.Find("markdown-html");
         var result = _service.ConvertText(route, "# Status\n\n**Ready**");

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Markdown.Pdf;
@@ -18,6 +19,13 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
+        fallbackFeatures = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(
+            fallbackFeatures,
+            EnumerateMarkdownFallbackText(document, options));
+        if (fallbackFeatures == PdfCore.PdfTextFallbackFeatures.None) {
+            return;
+        }
+
         bool preserveDocumentFontSlots = hasCallerPdfOptions || hasExplicitFontFamily;
         bool usesCodeFont = MarkdownDocumentUsesCodeFont(document);
         if (!usesCodeFont) {
@@ -46,6 +54,39 @@ public static partial class MarkdownPdfConverterExtensions {
                 CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: usesCodeFont),
                 options.ResourcePolicy.AllowSystemFontEmbedding,
                 preserveDocumentFontSlots);
+        }
+    }
+
+    private static IEnumerable<string?> EnumerateMarkdownFallbackText(MarkdownDoc document, MarkdownPdfSaveOptions options) {
+        yield return document.ToMarkdown();
+
+        foreach (SemanticFencedBlock semantic in document.DescendantsOfType<SemanticFencedBlock>()) {
+            if (!IsChartSemanticFence(semantic) ||
+                semantic.Content.IndexOf("\\u", StringComparison.Ordinal) < 0 ||
+                !TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out _)) {
+                continue;
+            }
+
+            yield return snapshot!.Title;
+            foreach (string category in snapshot.Data.Categories) {
+                yield return category;
+            }
+
+            foreach (OfficeChartSeries series in snapshot.Data.Series) {
+                yield return series.Name;
+            }
+
+            OfficeChartLayout layout = snapshot.Layout;
+            yield return layout.CategoryAxisTitle;
+            yield return layout.ValueAxisTitle;
+            yield return layout.HorizontalAxisDisplayUnitLabel;
+            yield return layout.VerticalAxisDisplayUnitLabel;
+            yield return layout.DataLabelSeparator;
+            yield return layout.DataLabelNumberFormat;
+            yield return layout.AxisNumberFormat;
+            yield return layout.HorizontalAxisNumberFormat;
+            yield return layout.VerticalAxisNumberFormat;
+            yield return layout.CategoryAxisNumberFormat;
         }
     }
 

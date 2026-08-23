@@ -234,7 +234,7 @@ public partial class Word {
         string text = pdf.GetPage(1).Text;
         Assert.Contains("Native header footer shape body", text);
 
-        string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.6 0.8 1 rg", content);
         Assert.Contains("1 0.902 0.6 rg", content);
         Assert.Contains("0 0.2 0.4 RG", content);
@@ -268,7 +268,7 @@ public partial class Word {
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterImageUnsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         int imageObjectCount = rawPdf.Split(new[] { "/Subtype /Image" }, StringSplitOptions.None).Length - 1;
         int imageDrawCount = ReadPdfPageContent(bytes).Split(new[] { "/Im" }, StringSplitOptions.None).Length - 1;
         Assert.True(imageObjectCount >= 1, "Expected native header and footer images to be emitted as image XObjects.");
@@ -307,7 +307,7 @@ public partial class Word {
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         int imageObjectCount = rawPdf.Split(new[] { "/Subtype /Image" }, StringSplitOptions.None).Length - 1;
         int imageDrawCount = ReadPdfPageContent(bytes).Split(new[] { "/Im" }, StringSplitOptions.None).Length - 1;
         Assert.True(imageObjectCount >= 1, "Expected native header and footer picture controls to be emitted as image XObjects.");

@@ -74,7 +74,7 @@ public partial class Excel {
         Assert.Contains("Actual", text);
         Assert.Contains("Target", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
 
@@ -120,7 +120,7 @@ public partial class Excel {
             });
         }
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.071 0.204 0.337 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.471 0.157 0.627 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.949 0.973 1 rg", rawPdf, StringComparison.Ordinal);
@@ -236,7 +236,7 @@ public partial class Excel {
         Assert.Contains("Compliant", text);
         Assert.Contains("Non-compliant", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.722 0.353 0.137 rg", rawPdf, StringComparison.Ordinal);
@@ -290,7 +290,7 @@ public partial class Excel {
         Assert.Contains("Services", text);
         Assert.Contains("Licenses", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 RG", rawPdf, StringComparison.Ordinal);
     }
@@ -626,7 +626,7 @@ public partial class Excel {
         Assert.Contains("Latency", text);
         Assert.Contains("Throughput", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.122 0.306 0.475 RG", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 RG", rawPdf, StringComparison.Ordinal);
     }
@@ -669,7 +669,7 @@ public partial class Excel {
         Assert.Contains("Current", text);
         Assert.Contains("Target", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
     }

@@ -26,6 +26,7 @@ public static class OfficeDocumentModelPdfExtensions {
         var report = new PdfConversionReport();
         AddSourceDiagnostics(source, report);
         PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfOptions();
+        pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(report, ConverterName);
         PdfDocument document = PdfDocument.Create(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);

@@ -1691,6 +1691,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions(options);
+        pdfOptions.PdfOptions.CompressContentStreams = false;
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string raw = Encoding.ASCII.GetString(pdf);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
@@ -2764,7 +2765,10 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>" + marker + "</p>").ToPdf(options);
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
-        Assert.Equal(PdfCore.PdfTextFallbackFeatures.Default, options.TextFallbacks);
+        Assert.Equal(
+            PdfCore.PdfTextFallbackFeatures.Default | PdfCore.PdfTextFallbackFeatures.MultilingualFonts,
+            options.TextFallbacks);
+        Assert.True(options.PdfOptions.CompressContentStreams);
         Assert.Equal(PdfCore.PdfTextShapingMode.LatinLigatures, options.TextShapingMode);
         Assert.Contains(marker, extracted, StringComparison.Ordinal);
         var fallbackProbe = new PdfCore.PdfOptions();
@@ -2807,8 +2811,10 @@ public sealed partial class HtmlRenderingTests {
             PdfCore.PdfTextFallbackFeatures.None,
             HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(winAnsi, PdfCore.PdfTextFallbackFeatures.Default));
         Assert.Equal(
-            PdfCore.PdfTextFallbackFeatures.Default,
-            HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(unicode, PdfCore.PdfTextFallbackFeatures.Default));
+            PdfCore.PdfTextFallbackFeatures.Default | PdfCore.PdfTextFallbackFeatures.MultilingualFonts,
+            HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(
+                unicode,
+                PdfCore.PdfTextFallbackFeatures.Default | PdfCore.PdfTextFallbackFeatures.MultilingualFonts));
         Assert.Equal(
             PdfCore.PdfTextFallbackFeatures.None,
             HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(unicode, PdfCore.PdfTextFallbackFeatures.None));

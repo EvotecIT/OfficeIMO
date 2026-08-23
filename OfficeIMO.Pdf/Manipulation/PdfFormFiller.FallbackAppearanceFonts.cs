@@ -203,8 +203,8 @@ internal static partial class PdfFormFiller {
         public static FallbackAppearanceFontProgram Parse(PdfEmbeddedFontFallbackCandidate candidate) {
             byte[] fontData = candidate.DataSnapshot;
             return IsOpenTypeCffFontData(fontData)
-                ? new FallbackAppearanceFontProgram(PdfOpenTypeCffFontProgram.Parse(fontData, candidate.FontName))
-                : new FallbackAppearanceFontProgram(PdfTrueTypeFontProgram.Parse(fontData, candidate.FontName));
+                ? new FallbackAppearanceFontProgram(PdfFontProgramCache.GetOpenTypeCff(fontData, candidate.FontName))
+                : new FallbackAppearanceFontProgram(PdfFontProgramCache.GetTrueType(fontData, candidate.FontName));
         }
 
         public string EncodeTextAsGlyphHex(string text) {

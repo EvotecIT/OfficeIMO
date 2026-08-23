@@ -20,7 +20,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         var tables = new List<SubsetTable>();
         foreach (var table in _tables.OrderBy(entry => entry.Key, StringComparer.Ordinal)) {
             string tag = table.Key;
-            if (string.Equals(tag, "DSIG", StringComparison.Ordinal)) {
+            if (!RetainSubsetTable(tag)) {
                 continue;
             }
 
@@ -47,6 +47,24 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
         return BuildTrueTypeFile(tables);
     }
+
+    private static bool RetainSubsetTable(string tag) => tag switch {
+        "OS/2" or
+        "cmap" or
+        "cvt " or
+        "fpgm" or
+        "gasp" or
+        "glyf" or
+        "head" or
+        "hhea" or
+        "hmtx" or
+        "loca" or
+        "maxp" or
+        "name" or
+        "post" or
+        "prep" => true,
+        _ => false
+    };
 
     private void AddCompositeGlyphDependencies(SortedSet<int> glyphs) {
         uint[] locaOffsets = ReadLocaOffsets();

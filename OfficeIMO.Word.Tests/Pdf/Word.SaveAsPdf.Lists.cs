@@ -39,6 +39,21 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_AutomaticFallbacksIncludeGeneratedUnicodeListMarkers() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddList(WordListStyle.Bulleted);
+        list.Numbering.Levels[0].LevelText = "Ź";
+        list.AddItem("ASCII list item");
+
+        byte[] bytes = document.ToPdf();
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+        Assert.Contains("Ź", text, StringComparison.Ordinal);
+        Assert.Contains("ASCII list item", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Charts_In_List_Paragraphs() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfListChart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfListChart.pdf");
@@ -63,7 +78,7 @@ public partial class Word {
             Assert.Contains("After list chart", text);
         }
 
-        string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.122 0.306 0.475 rg", content);
     }
 
@@ -86,7 +101,7 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Subtype /Image", content);
         Assert.Contains("36 0 0 36", content);
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);

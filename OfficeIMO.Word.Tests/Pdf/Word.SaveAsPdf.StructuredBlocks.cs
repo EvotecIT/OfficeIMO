@@ -437,7 +437,7 @@ public partial class Word {
         Assert.True(pdf.NumberOfPages >= 2);
         Assert.Contains("After VML gradient cover", pdf.GetPage(2).Text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/ShadingType 2", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/C0 [0.267 0.447 0.769] /C1 [0.929 0.49 0.192]", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/Type /ExtGState /ca 0.5 /CA 1", rawPdf, StringComparison.Ordinal);
@@ -464,7 +464,7 @@ public partial class Word {
         Assert.True(pdf.NumberOfPages >= 2);
         Assert.Contains("After VML gradient stops cover", pdf.GetPage(2).Text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/ShadingType 2", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/C0 [0.267 0.447 0.769] /C1 [0.929 0.49 0.192]", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/SH1 sh", rawPdf, StringComparison.Ordinal);
@@ -490,7 +490,7 @@ public partial class Word {
         Assert.True(pdf.NumberOfPages >= 2);
         Assert.Contains("After VML stroke-only cover", pdf.GetPage(2).Text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.DoesNotContain("0.267 0.447 0.769 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.929 0.49 0.192 RG", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/Type /ExtGState /ca 1 /CA 0.5", rawPdf, StringComparison.Ordinal);
@@ -775,7 +775,7 @@ public partial class Word {
         Assert.True(pdf.NumberOfPages >= 2);
         Assert.Contains("After VML shadow cover", pdf.GetPage(2).Text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Type /ExtGState /ca 0.25 /CA 0.25", rawPdf, StringComparison.Ordinal);
 
         string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
@@ -1237,7 +1237,7 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
     }
@@ -1289,7 +1289,7 @@ public partial class Word {
         Assert.Contains("Before inline chart", text);
         Assert.Contains("After inline chart", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
     }
@@ -1653,7 +1653,7 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After bar colors", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0 0.447 0.698 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.902 0.624 0 rg", rawPdf, StringComparison.Ordinal);
     }
@@ -1694,7 +1694,7 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart area colors", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("1 0.949 0.8 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.498 0.376 0 RG", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.851 0.918 0.969 rg", rawPdf, StringComparison.Ordinal);
@@ -1742,7 +1742,7 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After axis grid colors", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("1 0 0 RG", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 1 0 RG", rawPdf, StringComparison.Ordinal);
     }
@@ -1805,7 +1805,7 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart title color", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.8 0 0.4 rg", rawPdf, StringComparison.Ordinal);
     }
 
@@ -1983,7 +1983,7 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After scheme chart colors", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.125 0.22 0.392 rg", rawPdf, StringComparison.Ordinal);
     }
 
@@ -2016,7 +2016,7 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After pie colors", text);
 
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.184 0.702 0.267 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.969 0.404 0.027 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.525 0.557 0.588 rg", rawPdf, StringComparison.Ordinal);

@@ -47,7 +47,7 @@ public partial class Excel {
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(linkUri));
         Assert.Equal("OfficeIMO", link.Contents);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/Subtype /Link", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/URI (https://github.com/EvotecIT/OfficeIMO)", rawPdf, StringComparison.Ordinal);
     }
@@ -97,7 +97,7 @@ public partial class Excel {
         Assert.Equal(destination.Name, link.DestinationName);
         Assert.Contains("details", destination.Name, StringComparison.Ordinal);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/Subtype /Link", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/S /GoTo", rawPdf, StringComparison.Ordinal);
 

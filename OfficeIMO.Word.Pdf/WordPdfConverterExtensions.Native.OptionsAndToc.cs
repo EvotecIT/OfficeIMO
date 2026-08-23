@@ -11,9 +11,14 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, WordPdfSaveOptions? options, NativeFontMap nativeFontMap) {
+        private static PdfCore.PdfOptions CreateNativeOptions(
+            WordDocument document,
+            WordPdfSaveOptions? options,
+            NativeFontMap nativeFontMap,
+            IEnumerable<string?> generatedListMarkers) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+            pdfOptions.UseContentStreamCompressionByDefault();
             if (options != null) {
                 pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Word.Pdf");
             }
@@ -63,7 +68,7 @@ namespace OfficeIMO.Word.Pdf {
 
             bool preserveConfiguredFontSlots = appliedNativeDefaultFont || hasConfiguredPdfOptions;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowDocumentFontEmbedding, nativeFontMap);
-            ApplyNativeTextFallbacks(options, pdfOptions, registeredFontSlots, preserveConfiguredFontSlots, allowSystemFontEmbedding);
+            ApplyNativeTextFallbacks(document, options, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, generatedListMarkers);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
@@ -174,11 +179,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTextFallbacks(
+            WordDocument document,
             WordPdfSaveOptions? options,
             PdfCore.PdfOptions pdfOptions,
             HashSet<PdfCore.PdfStandardFont> reservedFontSlots,
-            bool preserveConfiguredFontSlots,
-            bool allowSystemFontEmbedding) {
+            bool allowSystemFontEmbedding,
+            IEnumerable<string?> generatedListMarkers) {
             if (options == null ||
                 !allowSystemFontEmbedding ||
                 options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
@@ -186,7 +192,19 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
-            if (preserveConfiguredFontSlots || pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
+            if (document.Charts.Count == 0 && document.SmartArts.Count == 0) {
+                fallbackFeatures = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(
+                    fallbackFeatures,
+                    EnumerateNativeDocumentFallbackText(document, generatedListMarkers));
+            }
+            if (fallbackFeatures == PdfCore.PdfTextFallbackFeatures.None) {
+                return;
+            }
+
+            bool preserveCallerFontSlots =
+                options.HasExplicitPdfFontConfiguration ||
+                !string.IsNullOrWhiteSpace(options.FontFamily);
+            if (preserveCallerFontSlots) {
                 fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
             }
 
@@ -195,9 +213,41 @@ namespace OfficeIMO.Word.Pdf {
                     fallbackFeatures,
                     reservedFontSlots,
                     allowSystemFontEmbedding,
-                    preserveConfiguredFontSlots);
+                    preserveCallerFontSlots);
                 foreach (PdfCore.PdfStandardFont slot in pdfOptions.EmbeddedFontFallbacks?.FontSlots ?? Array.Empty<PdfCore.PdfStandardFont>()) {
                     PdfCore.PdfOptions.AddRegisteredFontFamilySlot(reservedFontSlots, slot);
+                }
+            }
+        }
+
+        private static IEnumerable<string?> EnumerateNativeDocumentFallbackText(
+            WordDocument document,
+            IEnumerable<string?> generatedListMarkers) {
+            yield return document._document.InnerText;
+            yield return document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?.InnerText;
+            yield return document._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?.InnerText;
+
+            foreach (string? marker in generatedListMarkers) {
+                yield return marker;
+            }
+
+            foreach (WordSection section in document.Sections) {
+                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] {
+                             section.Header?.Default,
+                             section.Header?.First,
+                             section.Header?.Even,
+                             section.Footer?.Default,
+                             section.Footer?.First,
+                             section.Footer?.Even
+                         }) {
+                    NativeHeaderFooterText? text = GetNativeHeaderFooterText(headerFooter);
+                    yield return text?.Left;
+                    yield return text?.Center;
+                    yield return text?.Right;
+                }
+
+                foreach (WordWatermark watermark in section.Watermarks) {
+                    yield return watermark.Text;
                 }
             }
         }

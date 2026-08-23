@@ -219,9 +219,9 @@ internal static partial class PdfComplianceAnalyzer {
     private static bool TryParseEmbeddedFont(byte[] data, string? fontName, out string? invalidReason) {
         try {
             if (IsOpenTypeCffFontData(data)) {
-                PdfOpenTypeCffFontProgram.Parse(data, fontName);
+                PdfFontProgramCache.GetOpenTypeCff(data, fontName);
             } else {
-                PdfTrueTypeFontProgram.Parse(data, fontName);
+                PdfFontProgramCache.GetTrueType(data, fontName);
             }
 
             invalidReason = null;

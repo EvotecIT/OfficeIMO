@@ -113,7 +113,7 @@ public partial class Word {
         }
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var page = pdf.GetPage(1);
 

@@ -36,6 +36,10 @@
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml\OfficeIMO.Mhtml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Mhtml.Pdf\OfficeIMO.Mhtml.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote\OfficeIMO.OneNote.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote.Pdf\OfficeIMO.OneNote.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odp.Pdf\OfficeIMO.OpenDocument.Odp.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Ods.Pdf\OfficeIMO.OpenDocument.Ods.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odt.Pdf\OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
@@ -49,6 +53,8 @@
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Visio.Pdf\OfficeIMO.Visio.Pdf.csproj" />
   </ItemGroup>
 
   <ItemGroup>

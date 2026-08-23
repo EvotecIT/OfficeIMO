@@ -178,7 +178,7 @@ public partial class Word {
                 fontName => footerLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
         }
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia" : "/BaseFont /Times";
         Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(
@@ -425,7 +425,7 @@ public partial class Word {
                 "Expected the explicit footer family to preserve italic emphasis.");
         }
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia-Bold" : "/BaseFont /Times-Bold";
         Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(

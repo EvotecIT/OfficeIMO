@@ -26,7 +26,6 @@ public sealed partial class PdfOptions {
             MarginBottom = MarginBottom,
             DefaultFont = DefaultFont,
             DefaultFontSize = DefaultFontSize,
-            CompressContentStreams = CompressContentStreams,
             ObjectSerializationMode = ObjectSerializationMode,
             ObjectBufferMemoryLimitBytes = ObjectBufferMemoryLimitBytes,
             PageContentMemoryLimitBytes = PageContentMemoryLimitBytes,
@@ -159,6 +158,9 @@ public sealed partial class PdfOptions {
         clone._hasExplicitDefaultFont = _hasExplicitDefaultFont;
         clone._hasExplicitHeaderFont = _hasExplicitHeaderFont;
         clone._hasExplicitFooterFont = _hasExplicitFooterFont;
+        clone._compressContentStreams = _compressContentStreams;
+        clone._compressContentStreamsExplicitlyConfigured =
+            _compressContentStreamsExplicitlyConfigured;
         clone._fontConfigurationAssignmentVersion =
             _fontConfigurationAssignmentVersion;
         clone._defaultFontSizeAssignmentVersion =

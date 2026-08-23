@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// Describes one embedded font candidate used when planning generated PDF text fallback.
 /// </summary>
 public sealed class PdfEmbeddedFontFallbackCandidate {
-    private readonly byte[] _fontData;
+    private readonly PdfEmbeddedFontFamily _fontFamily;
 
     /// <summary>
     /// Creates a fallback candidate from TrueType or OpenType/CFF font bytes.
@@ -47,7 +47,7 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
         PlannerFamilyName = string.IsNullOrWhiteSpace(plannerFamilyName)
             ? fontName
             : plannerFamilyName!.Trim();
-        _fontData = trueTypeFont.ToArray();
+        _fontFamily = new PdfEmbeddedFontFamily(FontName, trueTypeFont);
         UnicodeRanges = unicodeRanges;
         Style = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
     }
@@ -62,5 +62,7 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
 
     internal string PlannerFamilyName { get; }
 
-    internal byte[] DataSnapshot => _fontData;
+    internal byte[] DataSnapshot => _fontFamily.RegularSnapshot;
+
+    internal PdfEmbeddedFontFamily FontFamilySnapshot => _fontFamily;
 }

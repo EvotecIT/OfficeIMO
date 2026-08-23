@@ -7,6 +7,7 @@ using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
+using System.Globalization;
 using System.Text;
 using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
@@ -141,6 +142,28 @@ public sealed class HtmlPdfTests {
         string passwordHex = BitConverter.ToString(Encoding.UTF8.GetBytes(password)).Replace("-", string.Empty);
         Assert.DoesNotContain(passwordHex, raw, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<" + string.Concat(Enumerable.Repeat("2A", password.Length)) + "> Tj", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_ArabicPresentationFormsPreserveLogicalExtraction() {
+        if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfCore.PdfEmbeddedFontFamily? family) ||
+            family == null) {
+            return;
+        }
+
+        const string arabic = "العربية";
+        var options = new HtmlPdfSaveOptions { FontFamily = family };
+        byte[] pdf = HtmlConversionDocument.Parse(
+            "<p style='font-family:Arial'>Evidence · " + arabic + " · terminal</p>").ToPdf(options);
+        using PdfPigDocument document = PdfPigDocument.Open(new MemoryStream(pdf));
+        string extracted = string.Concat(document.GetPages().Select(page => page.Text));
+        string logical = OfficeArabicTextShaper.ToLogicalText(extracted);
+        string canonical = string.Concat(logical.Where(character =>
+            !char.IsWhiteSpace(character) &&
+            CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.Format));
+
+        Assert.Contains(arabic, canonical, StringComparison.Ordinal);
+        Assert.DoesNotContain(canonical, character => character >= '\uFE70' && character <= '\uFEFF');
     }
 
     [Fact]

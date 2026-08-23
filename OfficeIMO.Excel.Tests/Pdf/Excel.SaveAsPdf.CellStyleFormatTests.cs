@@ -55,7 +55,7 @@ public partial class Excel {
         Assert.Contains("StyledCell", text);
         Assert.Contains("PlainCell", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier", "Consolas", "LiberationMono", "DejaVuSansMono");
         Assert.Contains("0.067 0.133 0.2 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.867 0.933 1 rg", rawPdf, StringComparison.Ordinal);
@@ -86,7 +86,7 @@ public partial class Excel {
         Assert.Contains("ArialCell", text);
         Assert.Contains("PlainCell", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Helvetica", "Arial", "Calibri", "LiberationSans", "Liberation Sans");
     }
 
@@ -115,7 +115,7 @@ public partial class Excel {
         Assert.Contains("FirstSerif", text);
         Assert.Contains("SecondSerif", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
     }
@@ -240,7 +240,7 @@ public partial class Excel {
         Assert.Contains("StyledSerif", text);
         Assert.Contains("DefaultSerif", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
     }
 
@@ -282,7 +282,7 @@ public partial class Excel {
         Assert.Contains("Score", text);
         Assert.Contains("100", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.502 0.502 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 1 0 rg", rawPdf, StringComparison.Ordinal);
@@ -331,7 +331,7 @@ public partial class Excel {
         Assert.Contains("Score", text);
         Assert.Contains("100", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         int barFillCount = rawPdf.Split(new[] { "0.357 0.608 0.835 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(2, barFillCount);
@@ -360,7 +360,7 @@ public partial class Excel {
             });
         }
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         MatchCollection barRects = Regex.Matches(rawPdf, @"0\.357 0\.608 0\.835 rg\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f");
 
         Assert.Equal(2, barRects.Count);
@@ -407,7 +407,7 @@ public partial class Excel {
         Assert.Contains("Score", text);
         Assert.Contains("100", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.753 0.314 0.302 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("1 0.753 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.388 0.608 0.278 rg", rawPdf, StringComparison.Ordinal);
@@ -457,7 +457,7 @@ public partial class Excel {
         double sameColumnLeftX = FindWordStartX(page, "LeftInColumn");
         Assert.True(rightAlignedX > sameColumnLeftX + 20D, $"Expected right-aligned cell text to move toward the authored worksheet column's right edge. Right x: {rightAlignedX:0.##}, left-reference x: {sameColumnLeftX:0.##}.");
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.267 0.333 0.4 RG", rawPdf, StringComparison.Ordinal);
         Assert.Contains("1.25 w", rawPdf, StringComparison.Ordinal);
     }
@@ -497,7 +497,7 @@ public partial class Excel {
             Assert.Contains("DashDot", text);
         }
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("[1.5 0.75] 0 d", rawPdf, StringComparison.Ordinal);
         Assert.Contains("[0.5 0.75] 0 d", rawPdf, StringComparison.Ordinal);
         Assert.Contains("[3.75 1.875 1.25 1.875] 0 d", rawPdf, StringComparison.Ordinal);
@@ -533,7 +533,7 @@ public partial class Excel {
             });
         }
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.071 0.204 0.337 RG", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.396 0.263 0.129 RG", rawPdf, StringComparison.Ordinal);
         Assert.True(rawPdf.Split(new[] { " S" }, StringSplitOptions.None).Length - 1 >= 10, "Expected Excel double and diagonal borders to emit multiple stroked lines.");

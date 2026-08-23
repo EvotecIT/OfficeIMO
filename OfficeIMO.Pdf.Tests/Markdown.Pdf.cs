@@ -467,6 +467,7 @@ _Figure 1. Embedded from a relative Markdown path._
                 BaseDirectory = directory,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
                 PdfOptions = new PdfCore.PdfOptions {
+                    CompressContentStreams = false,
                     PageWidth = 220,
                     PageHeight = 180,
                     MarginLeft = 20,
@@ -549,7 +550,8 @@ _Figure 1. Embedded from a relative Markdown path._
     [Fact]
     public void Markdown_SaveAsPdf_RendersTaskListsAsCheckboxes() {
         var options = new MarkdownPdfSaveOptions {
-            Style = MarkdownPdfStyle.GitHubLike()
+            Style = MarkdownPdfStyle.GitHubLike(),
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
         string markdown = """
 # Checklist
@@ -584,7 +586,8 @@ _Figure 1. Embedded from a relative Markdown path._
         theme.ChecklistCheckedFillColor = PdfCore.PdfColor.FromRgb(255, 255, 204);
         theme.ChecklistUncheckedFillColor = PdfCore.PdfColor.FromRgb(204, 238, 255);
         var options = new MarkdownPdfSaveOptions {
-            Style = theme
+            Style = theme,
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
         string markdown = """
 # Checklist Theme
@@ -671,7 +674,8 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
         theme.LinkColor = PdfCore.PdfColor.FromRgb(128, 0, 128);
         theme.UnderlineLinks = false;
         var options = new MarkdownPdfSaveOptions {
-            Style = theme
+            Style = theme,
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
         string markdown = """
 # Link Theme
@@ -740,7 +744,8 @@ Content.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            Style = MarkdownPdfStyle.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument(),
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
@@ -841,7 +846,8 @@ author: OfficeIMO
             .P("Validation notes.");
 
         var options = new MarkdownPdfSaveOptions {
-            Style = MarkdownPdfStyle.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument(),
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
 
         byte[] pdf = document.ToPdf(options);
@@ -875,7 +881,8 @@ Validation notes.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            Style = MarkdownPdfStyle.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument(),
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
@@ -902,7 +909,8 @@ Validation notes.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            Style = MarkdownPdfStyle.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument(),
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
@@ -1049,7 +1057,8 @@ Console.WriteLine("OfficeIMO");
         theme.CodeBlockTextColor = PdfCore.PdfColor.FromRgb(0, 128, 0);
 
         var options = new MarkdownPdfSaveOptions {
-            Style = theme
+            Style = theme,
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
@@ -1085,7 +1094,8 @@ Console.WriteLine("OfficeIMO");
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            Style = MarkdownPdfStyle.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument(),
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
@@ -1154,7 +1164,9 @@ pdfTheme: report
 | Quality | High |
 """;
 
-        var options = new MarkdownPdfSaveOptions();
+        var options = new MarkdownPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        };
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1175,7 +1187,9 @@ pdfTheme: report
 The report profile should feel intentionally designed without the Markdown source carrying visual markup.
 """;
 
-        var options = new MarkdownPdfSaveOptions();
+        var options = new MarkdownPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        };
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
@@ -1198,7 +1212,8 @@ The technical profile should remain quiet while still giving the page a delibera
 """;
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions {
-            Style = MarkdownPdfStyle.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument(),
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         });
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1238,7 +1253,8 @@ Markdown should stay semantic while the visual theme controls the page treatment
         decoration.PageBorder = new PdfCore.PdfPageBorder { Inset = 80 };
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions {
-            Style = theme
+            Style = theme,
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         });
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1264,7 +1280,8 @@ The report colors can remain while page decoration is disabled.
         theme.PageDecoration = null;
 
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions {
-            Style = theme
+            Style = theme,
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
         });
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1284,6 +1301,7 @@ Explicit low-level PDF options should win over theme page decoration.
         var options = new MarkdownPdfSaveOptions {
             Style = MarkdownPdfStyle.Report(),
             PdfOptions = new PdfCore.PdfOptions {
+                CompressContentStreams = false,
                 BackgroundColor = PdfCore.PdfColor.White,
                 PageBorder = new PdfCore.PdfPageBorder {
                     Color = PdfCore.PdfColor.Black,
