@@ -66,6 +66,8 @@ internal static partial class PdfWriter {
         int pageNumber,
         int totalPages,
         int documentPages) {
+        ValidateHeaderFooterGroupLayouts(options, variantPageNumber, pageNumber, totalPages, documentPages, isHeader: true);
+        ValidateHeaderFooterGroupLayouts(options, variantPageNumber, pageNumber, totalPages, documentPages, isHeader: false);
         AddHeaderFooterImages(
             page,
             options,
@@ -123,25 +125,22 @@ internal static partial class PdfWriter {
     }
 
     private static void AddHeaderFooterImage(LayoutResult.Page page, PdfOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
-        double contentLeft = options.MarginLeft;
-        double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
-        if (image.Width > contentWidth + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " image must fit inside the page content width.");
-        }
-
-        if (x < contentLeft - 0.001D || x + image.Width > contentLeft + contentWidth + 0.001D) {
-            throw new ArgumentException("Combined PDF " + (isHeader ? "header" : "footer") + " text and images must fit inside the page content width.");
-        }
-
+        string source = isHeader ? "Header" : "Footer";
         double y = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - image.Height
             : options.MarginBottom - options.FooterOffsetY;
-        if (y < -0.001D || y + image.Height > options.PageHeight + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " image must fit inside the page bounds.");
-        }
-
         ImageBlock block = image.ToImageBlock();
-        PageImage pageImage = CreatePageImage(block, block.Style ?? new PdfImageStyle(), x, y);
+        PdfImageStyle style = block.Style ?? new PdfImageStyle();
+        PageImage pageImage = CreatePageImage(block, style, x, y);
+        GetImageAnnotationBounds(style, pageImage, x, y, image.Width, image.Height, out double visibleX1, out double visibleY1, out double visibleX2, out double visibleY2);
+        ReportHeaderFooterBounds(
+            options,
+            source,
+            "image",
+            visibleX1,
+            visibleY1,
+            visibleX2 - visibleX1,
+            visibleY2 - visibleY1);
         pageImage.IsBackgroundDecoration = string.IsNullOrWhiteSpace(pageImage.AlternativeText);
         page.Images.Add(pageImage);
     }
@@ -194,10 +193,6 @@ internal static partial class PdfWriter {
     private static double AlignHeaderFooterGroup(PdfOptions options, double groupWidth, PdfAlign align) {
         double contentLeft = options.MarginLeft;
         double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
-        if (groupWidth > contentWidth + 0.001D) {
-            throw new ArgumentException("Combined PDF header/footer content must fit inside the page content width.");
-        }
-
         return GetHeaderFooterAlignedObjectX(contentLeft, contentWidth, groupWidth, align);
     }
 
@@ -282,29 +277,251 @@ internal static partial class PdfWriter {
         PdfDrawingStyle style = block.Style ?? new PdfDrawingStyle();
         PdfDocument.ValidateDrawingStyle(style, isHeader ? "Header shape" : "Footer shape");
 
-        double contentLeft = options.MarginLeft;
-        double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
-        if (block.Shape.Width > contentWidth + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " shape must fit inside the page content width.");
-        }
-
-        if (x < contentLeft - 0.001D || x + block.Shape.Width > contentLeft + contentWidth + 0.001D) {
-            throw new ArgumentException("Combined PDF " + (isHeader ? "header" : "footer") + " text, images, and shapes must fit inside the page content width.");
-        }
-
+        string source = isHeader ? "Header" : "Footer";
         double bottomY = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - block.Shape.Height
             : options.MarginBottom - options.FooterOffsetY;
-        if (bottomY < -0.001D || bottomY + block.Shape.Height > options.PageHeight + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " shape must fit inside the page bounds.");
+        if (TryGetHeaderFooterShapeBounds(block.Shape, x, bottomY, out double visibleX, out double visibleY, out double visibleWidth, out double visibleHeight)) {
+            ReportHeaderFooterBounds(options, source, "shape", visibleX, visibleY, visibleWidth, visibleHeight);
         }
 
         DrawHeaderFooterShapeGeometryAt(sb, page, block.Shape, x, bottomY);
     }
 
+    private static bool TryGetHeaderFooterShapeBounds(
+        OfficeShape shape,
+        double x,
+        double bottomY,
+        out double boundsX,
+        out double boundsY,
+        out double boundsWidth,
+        out double boundsHeight) {
+        boundsX = boundsY = boundsWidth = boundsHeight = 0D;
+        if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) {
+            return false;
+        }
+
+        ResolveHeaderFooterBaseGeometry(shape, out bool baseHasFill, out bool baseHasStroke);
+        bool hasBounds = false;
+        if (baseHasFill || baseHasStroke) {
+            GetHeaderFooterShapeLayerBounds(
+                shape,
+                x,
+                bottomY,
+                baseHasStroke ? shape.StrokeWidth : 0D,
+                out double baseX,
+                out double baseY,
+                out double baseWidth,
+                out double baseHeight);
+            if (shape.ClipPath == null || TryIntersectHeaderFooterShapeClipBounds(
+                    shape,
+                    x,
+                    bottomY,
+                    ref baseX,
+                    ref baseY,
+                    ref baseWidth,
+                    ref baseHeight)) {
+                IncludeShapeBounds(
+                    baseX,
+                    baseY,
+                    baseWidth,
+                    baseHeight,
+                    ref hasBounds,
+                    ref boundsX,
+                    ref boundsY,
+                    ref boundsWidth,
+                    ref boundsHeight);
+            }
+        }
+
+        OfficeShadow? shadow = shape.Shadow;
+        if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) {
+            return hasBounds;
+        }
+
+        double coreOpacity = shadow.Opacity * shadow.Color.A / 255D;
+        ResolveShadowGeometry(shape, out bool shadowHasFill, out bool shadowHasStroke);
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            coreOpacity,
+            shadow.BlurRadius,
+            shape.StrokeWidth,
+            shadowHasFill,
+            shadowHasStroke,
+            OfficeShadowLayerPlanner.CanExpand(shape));
+        double shadowX = x + shadow.OffsetX;
+        double shadowBottomY = bottomY - shadow.OffsetY;
+        for (int index = 0; index < layers.Count; index++) {
+            OfficeShadowLayer layer = layers[index];
+            OfficeShape layerShape = layer.Expansion > 0D
+                ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
+                : shape;
+            GetHeaderFooterShapeLayerBounds(
+                layerShape,
+                shadowX - layer.Expansion,
+                shadowBottomY - layer.Expansion,
+                layer.HasStroke ? layer.StrokeWidth : 0D,
+                out double layerX,
+                out double layerY,
+                out double layerWidth,
+                out double layerHeight);
+            IncludeShapeBounds(
+                layerX,
+                layerY,
+                layerWidth,
+                layerHeight,
+                ref hasBounds,
+                ref boundsX,
+                ref boundsY,
+                ref boundsWidth,
+                ref boundsHeight);
+        }
+
+        return hasBounds;
+    }
+
+    private static bool TryIntersectHeaderFooterShapeClipBounds(
+        OfficeShape shape,
+        double x,
+        double bottomY,
+        ref double boundsX,
+        ref double boundsY,
+        ref double boundsWidth,
+        ref double boundsHeight) {
+        OfficeClipPath clipPath = shape.ClipPath!;
+        double clipX;
+        double clipY;
+        double clipWidth;
+        double clipHeight;
+        if (!shape.Transform.HasValue) {
+            clipX = x;
+            clipY = bottomY + shape.Height - clipPath.Height;
+            clipWidth = clipPath.Width;
+            clipHeight = clipPath.Height;
+        } else {
+            (double left, double top, double right, double bottom) = shape.Transform.Value.TransformRectangleBounds(
+                0D,
+                0D,
+                clipPath.Width,
+                clipPath.Height);
+            clipX = x + left;
+            clipY = bottomY + shape.Height - bottom;
+            clipWidth = right - left;
+            clipHeight = bottom - top;
+        }
+
+        double intersectionX = System.Math.Max(boundsX, clipX);
+        double intersectionY = System.Math.Max(boundsY, clipY);
+        double intersectionRight = System.Math.Min(boundsX + boundsWidth, clipX + clipWidth);
+        double intersectionTop = System.Math.Min(boundsY + boundsHeight, clipY + clipHeight);
+        if (intersectionRight <= intersectionX || intersectionTop <= intersectionY) {
+            return false;
+        }
+
+        boundsX = intersectionX;
+        boundsY = intersectionY;
+        boundsWidth = intersectionRight - intersectionX;
+        boundsHeight = intersectionTop - intersectionY;
+        return true;
+    }
+
+    private static void ResolveHeaderFooterBaseGeometry(OfficeShape shape, out bool hasFill, out bool hasStroke) {
+        hasFill = shape.Kind != OfficeShapeKind.Line
+            && (shape.FillOpacity ?? 1D) > 0D
+            && ((shape.FillColor.HasValue && shape.FillColor.Value.A > 0) || shape.FillGradient != null || shape.FillRadialGradient != null);
+        hasStroke = shape.StrokeWidth > 0D
+            && (shape.StrokeOpacity ?? 1D) > 0D
+            && shape.StrokeColor.HasValue
+            && shape.StrokeColor.Value.A > 0;
+    }
+
+    private static void IncludeShapeBounds(
+        double x,
+        double y,
+        double width,
+        double height,
+        ref bool hasBounds,
+        ref double boundsX,
+        ref double boundsY,
+        ref double boundsWidth,
+        ref double boundsHeight) {
+        if (!hasBounds) {
+            boundsX = x;
+            boundsY = y;
+            boundsWidth = width;
+            boundsHeight = height;
+            hasBounds = true;
+            return;
+        }
+
+        double right = System.Math.Max(boundsX + boundsWidth, x + width);
+        double top = System.Math.Max(boundsY + boundsHeight, y + height);
+        boundsX = System.Math.Min(boundsX, x);
+        boundsY = System.Math.Min(boundsY, y);
+        boundsWidth = right - boundsX;
+        boundsHeight = top - boundsY;
+    }
+
+    private static void GetHeaderFooterShapeLayerBounds(
+        OfficeShape shape,
+        double x,
+        double bottomY,
+        double strokeWidth,
+        out double boundsX,
+        out double boundsY,
+        out double boundsWidth,
+        out double boundsHeight) {
+        double strokeExpansionFactor = UsesPdfMiterJoinEnvelope(shape) ? 10D : 1D;
+        if (!shape.Transform.HasValue) {
+            double strokeExpansion = strokeWidth * 0.5D * strokeExpansionFactor;
+            boundsX = x - strokeExpansion;
+            boundsY = bottomY - strokeExpansion;
+            boundsWidth = shape.Width + (strokeExpansion * 2D);
+            boundsHeight = shape.Height + (strokeExpansion * 2D);
+            return;
+        }
+
+        OfficeTransform transform = shape.Transform.Value;
+        (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(0D, 0D, shape.Width, shape.Height);
+        double halfStroke = strokeWidth * 0.5D * strokeExpansionFactor;
+        double strokeExpansionX = halfStroke * System.Math.Sqrt((transform.M11 * transform.M11) + (transform.M21 * transform.M21));
+        double strokeExpansionY = halfStroke * System.Math.Sqrt((transform.M12 * transform.M12) + (transform.M22 * transform.M22));
+        boundsX = x + left - strokeExpansionX;
+        boundsY = bottomY + shape.Height - bottom - strokeExpansionY;
+        boundsWidth = right - left + (strokeExpansionX * 2D);
+        boundsHeight = bottom - top + (strokeExpansionY * 2D);
+    }
+
+    private static bool UsesPdfMiterJoinEnvelope(OfficeShape shape) =>
+        (shape.Kind == OfficeShapeKind.Polygon || shape.Kind == OfficeShapeKind.Path)
+        && (!shape.StrokeLineJoin.HasValue || shape.StrokeLineJoin.Value == OfficeStrokeLineJoin.Miter);
+
+    private static void ReportHeaderFooterBounds(
+        PdfOptions options,
+        string source,
+        string contentKind,
+        double x,
+        double? y,
+        double width,
+        double? height) {
+        const double tolerance = 0.001D;
+        bool outsideVerticalBounds = y.HasValue && height.HasValue &&
+            (y.Value < -tolerance || y.Value + height.Value > options.PageHeight + tolerance);
+        if (x < -tolerance || x + width > options.PageWidth + tolerance || outsideVerticalBounds) {
+            options.AddLayoutDiagnostic(
+                "HeaderFooterPageBoundsClipped",
+                source,
+                source + " " + contentKind + " extends beyond the physical page bounds and may be clipped by the PDF page.",
+                PdfLayoutDiagnosticKind.ClippedContent,
+                x: x,
+                y: y,
+                width: width,
+                height: height);
+        }
+    }
+
     private static double GetHeaderFooterAlignedObjectX(double containerX, double containerWidth, double objectWidth, PdfAlign align) {
-        if (align == PdfAlign.Center) return containerX + Math.Max(0, (containerWidth - objectWidth) / 2);
-        if (align == PdfAlign.Right) return containerX + Math.Max(0, containerWidth - objectWidth);
+        if (align == PdfAlign.Center) return containerX + ((containerWidth - objectWidth) / 2);
+        if (align == PdfAlign.Right) return containerX + containerWidth - objectWidth;
         return containerX;
     }
 

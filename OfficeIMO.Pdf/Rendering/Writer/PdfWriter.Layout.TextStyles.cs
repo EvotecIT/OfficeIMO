@@ -201,20 +201,16 @@ internal static partial class PdfWriter {
         double leftIndent = style?.LeftIndent ?? 0;
         double rightIndent = style?.RightIndent ?? 0;
         double firstLineIndent = style?.FirstLineIndent ?? 0;
-        if (leftIndent < 0 || double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
-            throw new ArgumentException("Paragraph left indent must be a non-negative finite value.");
+        if (double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
+            throw new ArgumentException("Paragraph left indent must be a finite value.");
         }
 
-        if (rightIndent < 0 || double.IsNaN(rightIndent) || double.IsInfinity(rightIndent)) {
-            throw new ArgumentException("Paragraph right indent must be a non-negative finite value.");
+        if (double.IsNaN(rightIndent) || double.IsInfinity(rightIndent)) {
+            throw new ArgumentException("Paragraph right indent must be a finite value.");
         }
 
         if (double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent)) {
             throw new ArgumentException("Paragraph first line indent must be a finite value.");
-        }
-
-        if (leftIndent + firstLineIndent < 0) {
-            throw new ArgumentException("Paragraph first line indent must not move text outside the left content frame.");
         }
 
         double textWidth = width - leftIndent - rightIndent;

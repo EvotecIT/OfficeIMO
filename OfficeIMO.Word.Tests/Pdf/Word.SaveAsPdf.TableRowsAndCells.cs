@@ -1136,6 +1136,60 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Negative_And_Hanging_Table_Cell_Paragraph_Indents() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNegativeTableCellParagraphIndents.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNegativeTableCellParagraphIndents.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(3, 1);
+            table.Width = 600;
+            table.WidthType = WordTableWidthUnit.Dxa;
+            table.LayoutMode = WordTableLayoutMode.Fixed;
+            foreach (WordTableRow row in table.Rows) {
+                row.Cells[0].Width = 600;
+                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "P0";
+            WordParagraph negative = table.Rows[1].Cells[0].Paragraphs[0];
+            negative.Text = "N0";
+            negative.IndentationBeforePoints = -30D;
+            negative.IndentationAfterPoints = -30D;
+
+            WordParagraph hanging = table.Rows[2].Cells[0].Paragraphs[0];
+            hanging.Text = "H0 a b c d e f g h i j k l m";
+            hanging.IndentationHangingPoints = 36D;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 300),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var page = pdf.GetPage(1);
+        var words = page.GetWords().ToList();
+        var plain = Assert.Single(words, word => word.Text == "P0");
+        var negativeWord = Assert.Single(words, word => word.Text == "N0");
+        Assert.True(plain.BoundingBox.Left - negativeWord.BoundingBox.Left >= 29D,
+            $"Expected the negative table-cell paragraph indent to extend text left. Plain x: {plain.BoundingBox.Left:0.##}; negative x: {negativeWord.BoundingBox.Left:0.##}.");
+
+        var hangingLines = words
+            .GroupBy(word => Math.Round(word.BoundingBox.Bottom, 1))
+            .OrderByDescending(group => group.Key)
+            .ToList();
+        int firstHangingLine = hangingLines.FindIndex(group => group.Any(word => word.Text == "H0"));
+        Assert.InRange(firstHangingLine, 0, hangingLines.Count - 2);
+        double firstLineX = hangingLines[firstHangingLine].Min(word => word.BoundingBox.Left);
+        double continuationLineX = hangingLines[firstHangingLine + 1].Min(word => word.BoundingBox.Left);
+        Assert.True(continuationLineX > firstLineX + 30D,
+            $"Expected a table-cell hanging indent without a left indent to preserve the authored first-line extension. First line x: {firstLineX:0.##}; continuation x: {continuationLineX:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Cell_Paragraph_Tab_Leaders() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphTabs.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphTabs.pdf");

@@ -15,6 +15,64 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Wide_HeaderFooter_Zones_With_Diagnostics() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWideHeaderFooterZones.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWideHeaderFooterZones.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            header.AddParagraph("LeftHeaderOverflowMarker");
+            WordParagraph centeredHeader = header.AddParagraph("CenterHeaderOverflowMarker");
+            centeredHeader.ParagraphAlignment = WordParagraphAlignment.Center;
+            WordParagraph rightHeader = header.AddParagraph("RightHeaderOverflowMarker");
+            rightHeader.ParagraphAlignment = WordParagraphAlignment.Right;
+
+            WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            footer.AddParagraph("LeftFooterOverflowMarker");
+            WordParagraph centeredFooter = footer.AddParagraph("CenterFooterOverflowMarker");
+            centeredFooter.ParagraphAlignment = WordParagraphAlignment.Center;
+            WordParagraph rightFooter = footer.AddParagraph("RightFooterOverflowMarker");
+            rightFooter.ParagraphAlignment = WordParagraphAlignment.Right;
+
+            document.AddParagraph("Wide header footer body");
+            document.Save();
+
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(260, 300),
+                Margins = PdfCore.PageMargins.Uniform(72)
+            });
+            result.Save(pdfPath);
+
+            Assert.Contains(result.Warnings, warning =>
+                warning.Code == "HeaderFooterContentOverflow" &&
+                warning.Source == "Header" &&
+                warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+                warning.Converter == "OfficeIMO.Word.Pdf");
+            Assert.Contains(result.Warnings, warning =>
+                warning.Code == "HeaderFooterZoneOverlap" &&
+                warning.Source == "Footer" &&
+                warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+                warning.Converter == "OfficeIMO.Word.Pdf");
+            Assert.DoesNotContain(result.Warnings, warning =>
+                (warning.Code == "HeaderFooterContentOverflow" || warning.Code == "HeaderFooterZoneOverlap") &&
+                warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("LeftHeaderOverflowMarker", text, StringComparison.Ordinal);
+        Assert.Contains("CenterHeaderOverflowMarker", text, StringComparison.Ordinal);
+        Assert.Contains("RightHeaderOverflowMarker", text, StringComparison.Ordinal);
+        Assert.Contains("LeftFooterOverflowMarker", text, StringComparison.Ordinal);
+        Assert.Contains("CenterFooterOverflowMarker", text, StringComparison.Ordinal);
+        Assert.Contains("RightFooterOverflowMarker", text, StringComparison.Ordinal);
+        Assert.Contains("Wide header footer body", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Records_Warnings_For_Unsupported_HeaderFooter_Content() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.pdf");

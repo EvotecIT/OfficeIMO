@@ -87,7 +87,6 @@ public partial class Excel {
         Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetHeaderFooterFormatting");
         Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetRows");
         Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetChart" && warning.Message.Contains("Surface", StringComparison.Ordinal));
-        Assert.All(result.Warnings, warning => Assert.Equal("Warnings", warning.Source));
         Assert.True(saveResult.Succeeded);
         Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetHeaderFooterFormatting");
         Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetRows");

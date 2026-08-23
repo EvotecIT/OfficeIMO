@@ -1,6 +1,81 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static void GetPageTextVerticalBoundsOrBaseline(
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
+        PdfStandardFont baseFont,
+        double defaultFontSize,
+        PdfOptions options,
+        double firstBaseline,
+        out double bottom,
+        out double top) {
+        if (!TryGetPageTextVerticalBounds(runs, baseFont, defaultFontSize, options, firstBaseline, out bottom, out top)) {
+            bottom = firstBaseline;
+            top = firstBaseline;
+        }
+    }
+
+    private static bool TryGetPageTextVerticalBounds(
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
+        PdfStandardFont baseFont,
+        double defaultFontSize,
+        PdfOptions options,
+        double firstBaseline,
+        out double bottom,
+        out double top) {
+        var lines = BuildPageTextLineRuns(runs);
+        double[] baselines = BuildPageTextLineBaselines(lines, firstBaseline, defaultFontSize);
+        bottom = double.PositiveInfinity;
+        top = double.NegativeInfinity;
+
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            foreach (PdfTextRun run in lines[lineIndex]) {
+                if (string.IsNullOrEmpty(run.Text)) {
+                    continue;
+                }
+
+                PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
+                PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
+                    ? resolvedNamedFont
+                    : null;
+                double requestedFontSize = run.FontSize ?? defaultFontSize;
+                double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
+                double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
+                double runBaseline = baselines[lineIndex] + textRise;
+                double ascender = GetAscenderForOptions(runFont, namedFont, effectiveFontSize, options);
+                double descender = GetDescenderForOptions(runFont, namedFont, effectiveFontSize, options);
+                double runBottom = runBaseline - descender;
+                double runTop = runBaseline + ascender;
+                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options);
+                if (width > 0D && run.BackgroundColor.HasValue) {
+                    double paddingY = System.Math.Max(0.35D, effectiveFontSize * 0.04D);
+                    runBottom -= paddingY;
+                    runTop += paddingY;
+                }
+
+                if (width > 0D && (run.Underline || run.Strike)) {
+                    double halfDecorationWidth = System.Math.Max(0.45D, effectiveFontSize * 0.055D) / 2D;
+                    if (run.Underline) {
+                        double underlineY = runBaseline - System.Math.Max(0.8D, effectiveFontSize * 0.1D);
+                        runBottom = System.Math.Min(runBottom, underlineY - halfDecorationWidth);
+                        runTop = System.Math.Max(runTop, underlineY + halfDecorationWidth);
+                    }
+
+                    if (run.Strike) {
+                        double strikeY = runBaseline + (effectiveFontSize * 0.28D);
+                        runBottom = System.Math.Min(runBottom, strikeY - halfDecorationWidth);
+                        runTop = System.Math.Max(runTop, strikeY + halfDecorationWidth);
+                    }
+                }
+
+                bottom = System.Math.Min(bottom, runBottom);
+                top = System.Math.Max(top, runTop);
+            }
+        }
+
+        return !double.IsPositiveInfinity(bottom) && !double.IsNegativeInfinity(top);
+    }
+
     private static double[] BuildPageTextLineBaselines(
         System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTextRun>> lines,
         double firstBaseline,

@@ -256,6 +256,35 @@ internal static partial class PdfWriter {
         return widths;
     }
 
+    private static void ExpandTableCellTextClip(
+        double textOriginX,
+        double cellInnerWidth,
+        bool noWrap,
+        System.Collections.Generic.IReadOnlyList<double>? lineXOffsets,
+        System.Collections.Generic.IReadOnlyList<double>? lineWidths,
+        ref double clipX,
+        ref double clipWidth) {
+        if (lineXOffsets == null || lineWidths == null) {
+            return;
+        }
+
+        double clipRight = clipX + clipWidth;
+        int lineCount = System.Math.Min(lineXOffsets.Count, lineWidths.Count);
+        for (int index = 0; index < lineCount; index++) {
+            double lineX = textOriginX + lineXOffsets[index];
+            double relativeLineRight = lineXOffsets[index] + System.Math.Max(0D, lineWidths[index]);
+            if (noWrap) {
+                relativeLineRight = cellInnerWidth + (relativeLineRight - TableCellNoWrapWidth);
+            }
+
+            double lineRight = textOriginX + relativeLineRight;
+            clipX = System.Math.Min(clipX, lineX - TableCellClipBleed);
+            clipRight = System.Math.Max(clipRight, lineRight + TableCellClipBleed);
+        }
+
+        clipWidth = clipRight - clipX;
+    }
+
     private static PdfAlign MapTableCellAlignment(PdfColumnAlign align) => align switch {
         PdfColumnAlign.Center => PdfAlign.Center,
         PdfColumnAlign.Right => PdfAlign.Right,

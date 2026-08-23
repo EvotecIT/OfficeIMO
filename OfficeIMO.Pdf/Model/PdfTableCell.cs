@@ -277,12 +277,12 @@ internal sealed class PdfTableCellParagraph {
             throw new System.ArgumentOutOfRangeException(nameof(spacingAfter), "Table cell paragraph spacing must be a non-negative finite value.");
         }
 
-        if (leftIndent < 0 || double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
-            throw new System.ArgumentOutOfRangeException(nameof(leftIndent), "Table cell paragraph left indent must be a non-negative finite value.");
+        if (double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(leftIndent), "Table cell paragraph left indent must be a finite value.");
         }
 
-        if (rightIndent < 0 || double.IsNaN(rightIndent) || double.IsInfinity(rightIndent)) {
-            throw new System.ArgumentOutOfRangeException(nameof(rightIndent), "Table cell paragraph right indent must be a non-negative finite value.");
+        if (double.IsNaN(rightIndent) || double.IsInfinity(rightIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(rightIndent), "Table cell paragraph right indent must be a finite value.");
         }
 
         if (double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent)) {

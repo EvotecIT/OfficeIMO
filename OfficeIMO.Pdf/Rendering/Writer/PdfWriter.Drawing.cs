@@ -175,6 +175,7 @@ internal static partial class PdfWriter {
         if (source.Transform.HasValue) {
             shape = source.Clone();
             shape.StrokeWidth = strokeWidth;
+            shape.ClipPath = null;
             DrawTransformedShape(sb, shape, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, null, x, bottomY);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) {
             DrawLine(sb, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height);

@@ -213,17 +213,17 @@ public partial class PdfDocumentVisualQualityTests {
 
         var leftIndentException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
-                LeftIndent = -1
+                LeftIndent = double.NegativeInfinity
             });
 
-        Assert.Contains("Paragraph left indent must be a non-negative finite value.", leftIndentException.Message, StringComparison.Ordinal);
+        Assert.Contains("Paragraph left indent must be a finite value.", leftIndentException.Message, StringComparison.Ordinal);
 
         var rightIndentException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
                 RightIndent = double.NaN
             });
 
-        Assert.Contains("Paragraph right indent must be a non-negative finite value.", rightIndentException.Message, StringComparison.Ordinal);
+        Assert.Contains("Paragraph right indent must be a finite value.", rightIndentException.Message, StringComparison.Ordinal);
 
         var firstLineIndentException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
@@ -238,20 +238,6 @@ public partial class PdfDocumentVisualQualityTests {
             });
 
         Assert.Contains("Paragraph default tab stop width must be a positive finite value.", tabStopException.Message, StringComparison.Ordinal);
-
-        var hangingOutsideFrameException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 160,
-                    MarginLeft = 20,
-                    MarginRight = 20
-                })
-                .Paragraph(p => p.Text("Invalid hanging indent"), style: new PdfParagraphStyle {
-                    LeftIndent = 10,
-                    FirstLineIndent = -12
-                })
-                .ToBytes());
-
-        Assert.Contains("Paragraph first line indent must not move text outside the left content frame.", hangingOutsideFrameException.Message, StringComparison.Ordinal);
 
         var firstLineWidthException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfOptions {

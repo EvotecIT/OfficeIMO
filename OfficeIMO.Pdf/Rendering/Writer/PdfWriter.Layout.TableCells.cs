@@ -849,13 +849,14 @@ internal static partial class PdfWriter {
 
     private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph, double availableWidth) {
         const double minimumTextWidth = 0.001D;
+        const double maximumSafeIndentMagnitude = double.MaxValue / 8D;
         double safeWidth = double.IsNaN(availableWidth) || double.IsInfinity(availableWidth)
             ? minimumTextWidth
-            : System.Math.Max(minimumTextWidth, availableWidth);
-        double leftIndent = System.Math.Min(paragraph.LeftIndent, System.Math.Max(0D, safeWidth - minimumTextWidth));
-        double rightIndent = System.Math.Min(paragraph.RightIndent, System.Math.Max(0D, safeWidth - leftIndent - minimumTextWidth));
+            : System.Math.Min(maximumSafeIndentMagnitude, System.Math.Max(minimumTextWidth, availableWidth));
+        double leftIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.LeftIndent, safeWidth - minimumTextWidth));
+        double rightIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.RightIndent, safeWidth - leftIndent - minimumTextWidth));
         double textWidth = System.Math.Max(minimumTextWidth, safeWidth - leftIndent - rightIndent);
-        double firstLineIndent = System.Math.Max(-leftIndent, System.Math.Min(paragraph.FirstLineIndent, textWidth - minimumTextWidth));
+        double firstLineIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.FirstLineIndent, textWidth - minimumTextWidth));
         var style = new PdfParagraphStyle {
             LineHeight = paragraph.LineHeight,
             LeftIndent = leftIndent,
