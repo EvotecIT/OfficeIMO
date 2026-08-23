@@ -108,6 +108,36 @@ public sealed class BrowserPdfToolServiceTests {
     }
 
     [Fact]
+    public void ProtectAndUnlock_RoundTripJapaneseArchivalArtifact() {
+        const string japanese = "日本語の保存版を東京都で確認します。";
+        var conversions = new BrowserConversionService();
+        ConversionResult archival = conversions.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            $"<article lang='ja'><h1>日本語の保存版</h1><p>{japanese}</p></article>",
+            BrowserPdfProfileCatalog.Archival);
+
+        PdfToolResult protectedPdf = _service.Execute(Request(
+            "protect",
+            [Document(archival.Bytes, archival.FileName)],
+            userPassword: "reader-2026",
+            ownerPassword: "owner-2026"));
+        PdfToolResult unlocked = _service.Execute(Request(
+            "unlock",
+            [Document(protectedPdf.Artifact.Bytes, protectedPdf.Artifact.FileName)],
+            ownerPassword: "owner-2026"));
+
+        PdfDocumentPreflight protectedPreflight = PdfDocument.Preflight(protectedPdf.Artifact.Bytes, new PdfReadOptions {
+            Password = "reader-2026",
+            AesCryptographyProvider = OfficeManagedAesCryptographyProvider.Default
+        });
+        Assert.True(protectedPreflight.Probe.Security.HasEncryption);
+        Assert.Equal(6, protectedPreflight.Probe.Security.EncryptionRevision);
+        Assert.Equal(256, protectedPreflight.Probe.Security.EncryptionLengthBits);
+        Assert.False(PdfDocument.Preflight(unlocked.Artifact.Bytes).Probe.Security.HasEncryption);
+        Assert.Contains(japanese, PdfReadDocument.Open(unlocked.Artifact.Bytes).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Redact_RemovesAndVerifiesLiteralMarker() {
         const string marker = "PAY-SECRET-2026";
         PdfToolResult result = _service.Execute(Request(

@@ -181,7 +181,22 @@ internal static partial class PdfStandardSecurityWriter {
 
     private static byte[] ReplaceDirectStreamLength(byte[] prefix, int encryptedLength) {
         byte[] marker = PdfEncoding.Latin1GetBytes("/Length");
-        int markerIndex = IndexOf(prefix, marker, 0);
+        int markerIndex = -1;
+        int searchStart = 0;
+        while (searchStart < prefix.Length) {
+            int candidate = IndexOf(prefix, marker, searchStart);
+            if (candidate < 0) {
+                break;
+            }
+
+            int afterMarker = candidate + marker.Length;
+            if (afterMarker < prefix.Length && IsWhiteSpace(prefix[afterMarker])) {
+                markerIndex = candidate;
+            }
+
+            searchStart = afterMarker;
+        }
+
         if (markerIndex < 0) {
             throw new InvalidOperationException("AES-encrypted PDF streams require a direct /Length entry.");
         }
