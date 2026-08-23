@@ -29,16 +29,38 @@ internal static class CorpusCoordinator {
 
     private static List<CorpusFileRecord> Enumerate(CorpusRunOptions options) {
         var enumeration = new EnumerationOptions {
-            RecurseSubdirectories = true,
+            RecurseSubdirectories = false,
             IgnoreInaccessible = true,
-            AttributesToSkip = FileAttributes.ReparsePoint,
+            AttributesToSkip = 0,
             ReturnSpecialDirectories = false
         };
-        string[] paths = Directory.EnumerateFiles(options.InputDirectory, "*", enumeration)
-            .Take(options.MaxTraversalEntries + 1)
-            .ToArray();
-        if (paths.Length > options.MaxTraversalEntries) {
-            throw new InvalidOperationException($"Corpus traversal exceeded --max-traversal-entries ({options.MaxTraversalEntries}).");
+        var paths = new List<string>();
+        var directories = new Stack<string>();
+        directories.Push(options.InputDirectory);
+        int traversedEntries = 0;
+        while (directories.Count > 0) {
+            string directory = directories.Pop();
+            try {
+                foreach (string entry in Directory.EnumerateFileSystemEntries(directory, "*", enumeration)) {
+                    if (++traversedEntries > options.MaxTraversalEntries) {
+                        throw new InvalidOperationException($"Corpus traversal exceeded --max-traversal-entries ({options.MaxTraversalEntries}).");
+                    }
+
+                    FileAttributes attributes;
+                    try {
+                        attributes = File.GetAttributes(entry);
+                    } catch (UnauthorizedAccessException) {
+                        continue;
+                    } catch (IOException) {
+                        continue;
+                    }
+                    if ((attributes & FileAttributes.ReparsePoint) != 0) continue;
+                    if ((attributes & FileAttributes.Directory) != 0) directories.Push(entry);
+                    else paths.Add(entry);
+                }
+            } catch (UnauthorizedAccessException) {
+            } catch (IOException) {
+            }
         }
 
         return paths.Select(path => new {

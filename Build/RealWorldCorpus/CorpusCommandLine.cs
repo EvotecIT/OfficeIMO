@@ -3,6 +3,17 @@ using OfficeIMO.Reader;
 namespace OfficeIMO.RealWorldCorpus;
 
 internal static class CorpusCommandLine {
+    private static readonly HashSet<string> RunOptionNames = new(StringComparer.OrdinalIgnoreCase) {
+        "--input", "--json", "--markdown", "--corpus-id", "--source-uri", "--archive-sha256",
+        "--max-per-format", "--max-total", "--max-file-bytes", "--max-traversal-entries",
+        "--timeout-seconds", "--parallelism", "--include-source-names", "--formats"
+    };
+    private static readonly HashSet<string> WorkerOptionNames = new(StringComparer.OrdinalIgnoreCase) {
+        "--stage", "--input", "--max-file-bytes"
+    };
+    private static readonly HashSet<string> SwitchOptionNames = new(StringComparer.OrdinalIgnoreCase) {
+        "--include-source-names"
+    };
     private static readonly ReaderInputKind[] DefaultFormats = {
         ReaderInputKind.Word,
         ReaderInputKind.Excel,
@@ -13,7 +24,7 @@ internal static class CorpusCommandLine {
     };
 
     public static CorpusRunOptions ParseRun(string[] args) {
-        Dictionary<string, string?> values = Parse(args);
+        Dictionary<string, string?> values = Parse(args, RunOptionNames);
         var options = new CorpusRunOptions {
             InputDirectory = Required(values, "--input"),
             JsonReportPath = Required(values, "--json"),
@@ -43,6 +54,10 @@ internal static class CorpusCommandLine {
         if (string.Equals(options.JsonReportPath, options.MarkdownReportPath, StringComparison.OrdinalIgnoreCase)) {
             throw new ArgumentException("--json and --markdown must use different output paths.");
         }
+        if (IsWithinDirectory(options.JsonReportPath, options.InputDirectory) ||
+            IsWithinDirectory(options.MarkdownReportPath, options.InputDirectory)) {
+            throw new ArgumentException("Report paths must be outside --input so prior evidence cannot enter a later sample.");
+        }
         if (options.ArchiveSha256 != null &&
             (options.ArchiveSha256.Length != 64 || options.ArchiveSha256.Any(character => !Uri.IsHexDigit(character)))) {
             throw new ArgumentException("--archive-sha256 must contain exactly 64 hexadecimal characters.");
@@ -50,8 +65,16 @@ internal static class CorpusCommandLine {
         return options;
     }
 
+    private static bool IsWithinDirectory(string path, string directory) {
+        string relative = Path.GetRelativePath(directory, path);
+        return !Path.IsPathRooted(relative) &&
+            !string.Equals(relative, "..", StringComparison.Ordinal) &&
+            !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+            !relative.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal);
+    }
+
     public static CorpusWorkerOptions ParseWorker(string[] args) {
-        Dictionary<string, string?> values = Parse(args);
+        Dictionary<string, string?> values = Parse(args, WorkerOptionNames);
         string stage = Required(values, "--stage");
         if (stage is not (CorpusOutcomes.Classification or CorpusOutcomes.Probe)) {
             throw new ArgumentException("--stage must be 'classification' or 'probe'.");
@@ -63,21 +86,27 @@ internal static class CorpusCommandLine {
         };
     }
 
-    private static Dictionary<string, string?> Parse(string[] args) {
+    private static Dictionary<string, string?> Parse(string[] args, IReadOnlySet<string> allowedNames) {
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         for (int index = 0; index < args.Length; index++) {
             string name = args[index];
             if (!name.StartsWith("--", StringComparison.Ordinal)) {
                 throw new ArgumentException($"Unexpected argument '{name}'.");
             }
-            if (string.Equals(name, "--include-source-names", StringComparison.OrdinalIgnoreCase)) {
-                values[name] = null;
+            if (!allowedNames.Contains(name)) {
+                throw new ArgumentException($"Unknown option '{name}'.");
+            }
+            if (values.ContainsKey(name)) {
+                throw new ArgumentException($"Option '{name}' was specified more than once.");
+            }
+            if (SwitchOptionNames.Contains(name)) {
+                values.Add(name, null);
                 continue;
             }
             if (index + 1 >= args.Length || args[index + 1].StartsWith("--", StringComparison.Ordinal)) {
                 throw new ArgumentException($"{name} requires a value.");
             }
-            values[name] = args[++index];
+            values.Add(name, args[++index]);
         }
         return values;
     }

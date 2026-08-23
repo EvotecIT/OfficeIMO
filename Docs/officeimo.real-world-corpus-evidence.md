@@ -69,6 +69,8 @@ dotnet run --project Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj
   --max-total 600
 ```
 
+Keep both report paths outside the input directory so evidence from an earlier run cannot become part of a later inventory.
+
 The repository contract check uses only synthetic, project-owned inputs:
 
 ```powershell

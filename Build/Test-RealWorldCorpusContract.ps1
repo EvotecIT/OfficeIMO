@@ -7,6 +7,7 @@ $project = Join-Path $repositoryRoot 'Build/RealWorldCorpus/OfficeIMO.RealWorldC
 $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("officeimo-real-corpus-contract-" + [guid]::NewGuid().ToString('N'))
 $inputDirectory = Join-Path $scratch 'input'
 $policyInputDirectory = Join-Path $scratch 'policy-input'
+$traversalInputDirectory = Join-Path $scratch 'traversal-input'
 $firstJson = Join-Path $scratch 'first/report.json'
 $firstMarkdown = Join-Path $scratch 'first/report.md'
 $secondJson = Join-Path $scratch 'second/report.json'
@@ -15,6 +16,7 @@ $secondMarkdown = Join-Path $scratch 'second/report.md'
 try {
     [void] (New-Item -ItemType Directory -Path $inputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path $policyInputDirectory -Force)
+    [void] (New-Item -ItemType Directory -Path (Join-Path $traversalInputDirectory 'a/b/c') -Force)
     [System.IO.File]::WriteAllText((Join-Path $inputDirectory 'renamed-html.blob'), '<!doctype html><html><body><h1>Content detected</h1></body></html>')
     [System.IO.File]::WriteAllText((Join-Path $inputDirectory 'ordinary.html'), '<!doctype html><html><body><p>Second document</p></body></html>')
     [System.IO.File]::WriteAllText((Join-Path $inputDirectory 'third.html'), '<!doctype html><html><body><p>Third document</p></body></html>')
@@ -80,6 +82,26 @@ try {
         throw "HTML and RTF resource limits were not classified as policy rejections: $observed"
     }
 
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $inputDirectory --json (Join-Path $scratch 'unknown/report.json') --markdown (Join-Path $scratch 'unknown/report.md') `
+        --max-totalx 1 *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'An unknown corpus option was silently accepted.' }
+
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $inputDirectory --json (Join-Path $scratch 'duplicate/report.json') --markdown (Join-Path $scratch 'duplicate/report.md') `
+        --max-total 2 --max-total 3 *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'A duplicate corpus option was silently accepted.' }
+
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $inputDirectory --json (Join-Path $inputDirectory 'prior-report.json') --markdown (Join-Path $scratch 'inside-input/report.md') *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'A report path inside the corpus input was silently accepted.' }
+
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $traversalInputDirectory --json (Join-Path $scratch 'traversal/report.json') --markdown (Join-Path $scratch 'traversal/report.md') `
+        --max-traversal-entries 2 *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'Empty directories were not counted against the traversal limit.' }
+
+    $global:LASTEXITCODE = 0
     Write-Host 'Real-world corpus runner contract passed.'
 } finally {
     if (Test-Path -LiteralPath $scratch) {
