@@ -33,7 +33,8 @@ param(
     [ValidateSet('net8.0', 'net10.0')]
     [string] $PowerForgeFramework = 'net8.0',
     [switch] $AcceptNPOIOSMFLicense,
-    [switch] $Publish
+    [switch] $Publish,
+    [switch] $PlanOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,15 +44,6 @@ if ($Publish -and $RunMode -ne 'full') {
 }
 
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
-if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
-    Import-Module PSPublishModule -MinimumVersion 3.0.84 -Force
-} else {
-    $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$PowerForgeFramework\PSPublishModule.dll"
-    if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
-        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PSPublishModule for $PowerForgeFramework in Release configuration first."
-    }
-    Import-Module $powerForgeModule -Force
-}
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
@@ -177,8 +169,9 @@ $definitions = [ordered]@{
     pdfformats = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
         Filter = '*Pdf*FormatConversionBenchmarks*'
-        ComparisonId = "pdf-format-conversion-$Framework"
+        ComparisonId = "officeimo-pdf-format-route-health-$Framework"
         Suite = 'OfficeIMO.Pdf.FormatConversion'
+        CatalogEligible = $false
         IdentityVariables = @('format')
         ExpectedCases = @(
             foreach ($format in @(
@@ -405,11 +398,45 @@ The Word comparison suite includes NPOI 2.8.0. Review the NPOI binary EULA at ht
 '@
 }
 
+$executionPlan = @(
+    foreach ($name in $selected) {
+        $definition = $definitions[$name]
+        $catalogEligibleByPolicy = $name -notlike 'word*' -and
+            ($null -eq $definition.PSObject.Properties['CatalogEligible'] -or [bool] $definition.CatalogEligible)
+        $willCatalog = ($RunMode -eq 'quick' -or [bool] $Publish) -and $catalogEligibleByPolicy
+        [pscustomobject]@{
+            Workload = $name
+            ComparisonId = $definition.ComparisonId
+            CatalogEligible = $catalogEligibleByPolicy
+            WillCatalog = $willCatalog
+            Publish = [bool] $Publish -and $willCatalog
+        }
+    }
+)
+$executionPlanByWorkload = @{}
+foreach ($item in $executionPlan) {
+    $executionPlanByWorkload[$item.Workload] = $item
+}
+
+if ($PlanOnly) {
+    $executionPlan
+    return
+}
+
+if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
+    Import-Module PSPublishModule -MinimumVersion 3.0.84 -Force
+} else {
+    $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$PowerForgeFramework\PSPublishModule.dll"
+    if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
+        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PSPublishModule for $PowerForgeFramework in Release configuration first."
+    }
+    Import-Module $powerForgeModule -Force
+}
+
 $stamp = [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss')
 $staticRoot = Join-Path $repositoryRoot 'Website\static\data\benchmarks\library-comparisons'
 $catalogPath = Join-Path $staticRoot 'index.json'
-$catalogEligible = ($RunMode -eq 'quick' -or [bool] $Publish) -and
-    @($selected | Where-Object { $_ -notlike 'word*' }).Count -gt 0
+$catalogEligible = @($executionPlan | Where-Object WillCatalog).Count -gt 0
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 if ($catalogEligible) {
     New-Item -ItemType Directory -Force -Path $staticRoot | Out-Null
@@ -427,6 +454,7 @@ if ($catalogEligible -and $gitDirty) {
 $measurements = [System.Collections.Generic.List[object]]::new()
 foreach ($name in $selected) {
     $definition = $definitions[$name]
+    $workloadPlan = $executionPlanByWorkload[$name]
     $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
     $provenanceMetadata = [ordered]@{
@@ -526,7 +554,7 @@ foreach ($name in $selected) {
         EvidenceLocation = $evidenceLocation
         ArtifactsPath = $artifactsPath
         NormalizedResult = $normalizedPath
-        CatalogEligible = $catalogEligible -and $name -notlike 'word*'
+        CatalogEligible = $workloadPlan.WillCatalog
     })
 }
 
@@ -554,7 +582,7 @@ $outputs = foreach ($measurement in $measurements) {
         Workload = $measurement.Workload
         Platform = $platform
         RunMode = $RunMode
-        Publish = [bool] $Publish
+        Publish = $executionPlanByWorkload[$measurement.Workload].Publish
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
         NormalizedResult = if ($measurement.CatalogEligible) {

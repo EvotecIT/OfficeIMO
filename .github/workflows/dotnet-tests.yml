@@ -48,6 +48,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Validate benchmark evidence policy
+        shell: pwsh
+        run: ./Build/Test-LibraryComparisonRunnerContract.ps1
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:

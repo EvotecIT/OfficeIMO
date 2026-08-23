@@ -278,6 +278,51 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_PreflightsUnicodeDecodedFromJsonEscapes() {
+        const string renderedLabel = "Zażółć";
+        PdfCore.PdfEmbeddedFontFallbackSet? fallbackSet = new PdfCore.PdfOptions()
+            .UseTextFallbacks(PdfCore.PdfTextFallbackFeatures.Default)
+            .EmbeddedFontFallbacks;
+        if (fallbackSet == null || !fallbackSet.PlanText(renderedLabel).IsFullyCovered) {
+            return;
+        }
+
+        const string markdown = """
+```chart
+{
+  "type": "bar",
+  "title": "Przegl\u0105d",
+  "data": {
+    "labels": ["Za\u017B\u00F3\u0142\u0107"],
+    "datasets": [
+      { "label": "G\u0119\u015Bl\u0105", "data": [10] }
+    ]
+  }
+}
+```
+""";
+
+        MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.Parse(
+            markdown,
+            MarkdownPdfSemanticBlocks.CreateReaderOptions());
+        string serializedMarkdown = document.ToMarkdown();
+        Assert.DoesNotContain(renderedLabel, serializedMarkdown, StringComparison.Ordinal);
+        Assert.All(serializedMarkdown, character => Assert.InRange((int) character, 0, 0x7F));
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new MarkdownPdfSaveOptions());
+        byte[] bytes = result.ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
+
+        Assert.Contains(renderedLabel, text, StringComparison.Ordinal);
+        Assert.Contains("Przegląd", text, StringComparison.Ordinal);
+        Assert.Contains("Gęślą", text, StringComparison.Ordinal);
+        Assert.Contains("/FontFile", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-text-glyph");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "missing-embedded-font-fallback-glyph");
+    }
+
+    [Fact]
     public void MarkdownChartJson_RejectsExcessiveDepthAndValueCounts() {
         string deeplyNested = new string('[', MarkdownPdfJsonValue.MaximumNestingDepth + 2) +
             "0" +
