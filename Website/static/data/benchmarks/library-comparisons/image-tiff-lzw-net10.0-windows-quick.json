@@ -1,8 +1,8 @@
 {
-  "runId": "import-20260823173451",
+  "runId": "import-20260823175135",
   "suite": "OfficeIMO.Drawing.TiffLzw",
-  "startedUtc": "2026-08-23T17:34:35.5645809+00:00",
-  "finishedUtc": "2026-08-23T17:34:51.4260267+00:00",
+  "startedUtc": "2026-08-23T17:51:21.0426983+00:00",
+  "finishedUtc": "2026-08-23T17:51:35.548509+00:00",
   "samples": [
     {
       "runId": "import",
@@ -15,7 +15,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 8.855,
+      "durationMs": 9.809,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -68,10 +68,10 @@
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 8.855,
-        "Mean": 8.855,
+        "MeanMs": 9.809,
+        "Mean": 9.809,
         "Ratio": 1,
-        "Allocated": 2398760.96
+        "Allocated": 301557.76
       }
     },
     {
@@ -85,7 +85,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 4.845,
+      "durationMs": 4.866,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -134,13 +134,13 @@
         "UnrollFactor": "1",
         "WarmupCount": "1",
         "Error": "NA",
-        "Alloc Ratio": "0.05",
+        "Alloc Ratio": "0.39",
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 4.845,
-        "Mean": 4.845,
-        "Ratio": 0.55,
+        "MeanMs": 4.866,
+        "Mean": 4.866,
+        "Ratio": 0.5,
         "Allocated": 117626.88
       }
     },
@@ -155,7 +155,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 5.664,
+      "durationMs": 6.504,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -204,13 +204,13 @@
         "UnrollFactor": "1",
         "WarmupCount": "1",
         "Error": "NA",
-        "Alloc Ratio": "1.32",
+        "Alloc Ratio": "10.51",
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 5.664,
-        "Mean": 5.664,
-        "Ratio": 0.64,
+        "MeanMs": 6.504,
+        "Mean": 6.504,
+        "Ratio": 0.66,
         "Allocated": 3170467.84
       }
     },
@@ -225,7 +225,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 3.52,
+      "durationMs": 4.516,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -274,13 +274,13 @@
         "UnrollFactor": "1",
         "WarmupCount": "1",
         "Error": "NA",
-        "Alloc Ratio": "0.44",
+        "Alloc Ratio": "3.49",
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 3.52,
-        "Mean": 3.52,
-        "Ratio": 0.4,
+        "MeanMs": 4.516,
+        "Mean": 4.516,
+        "Ratio": 0.46,
         "Allocated": 1052682.24
       }
     }
@@ -338,16 +338,16 @@
         "UnrollFactor": "1",
         "WarmupCount": "1",
         "Error": "NA",
-        "Alloc Ratio": "0.44",
+        "Alloc Ratio": "3.49",
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 3.52,
-      "meanMs": 3.52,
-      "minMs": 3.52,
-      "maxMs": 3.52,
+      "medianMs": 4.516,
+      "meanMs": 4.516,
+      "minMs": 4.516,
+      "maxMs": 4.516,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -355,9 +355,9 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 3.52,
-        "Mean": 3.52,
-        "Ratio": 0.4,
+        "MeanMs": 4.516,
+        "Mean": 4.516,
+        "Ratio": 0.46,
         "Allocated": 1052682.24
       }
     },
@@ -413,16 +413,16 @@
         "UnrollFactor": "1",
         "WarmupCount": "1",
         "Error": "NA",
-        "Alloc Ratio": "0.05",
+        "Alloc Ratio": "0.39",
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 4.845,
-      "meanMs": 4.845,
-      "minMs": 4.845,
-      "maxMs": 4.845,
+      "medianMs": 4.866,
+      "meanMs": 4.866,
+      "minMs": 4.866,
+      "maxMs": 4.866,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -430,9 +430,9 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 4.845,
-        "Mean": 4.845,
-        "Ratio": 0.55,
+        "MeanMs": 4.866,
+        "Mean": 4.866,
+        "Ratio": 0.5,
         "Allocated": 117626.88
       }
     },
@@ -488,16 +488,16 @@
         "UnrollFactor": "1",
         "WarmupCount": "1",
         "Error": "NA",
-        "Alloc Ratio": "1.32",
+        "Alloc Ratio": "10.51",
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 5.664,
-      "meanMs": 5.664,
-      "minMs": 5.664,
-      "maxMs": 5.664,
+      "medianMs": 6.504,
+      "meanMs": 6.504,
+      "minMs": 6.504,
+      "maxMs": 6.504,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -505,9 +505,9 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 5.664,
-        "Mean": 5.664,
-        "Ratio": 0.64,
+        "MeanMs": 6.504,
+        "Mean": 6.504,
+        "Ratio": 0.66,
         "Allocated": 3170467.84
       }
     },
@@ -569,10 +569,10 @@
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 8.855,
-      "meanMs": 8.855,
-      "minMs": 8.855,
-      "maxMs": 8.855,
+      "medianMs": 9.809,
+      "meanMs": 9.809,
+      "minMs": 9.809,
+      "maxMs": 9.809,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -580,28 +580,28 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 8.855,
-        "Mean": 8.855,
+        "MeanMs": 9.809,
+        "Mean": 9.809,
         "Ratio": 1,
-        "Allocated": 2398760.96
+        "Allocated": 301557.76
       }
     }
   ],
   "comparison": [],
   "artifacts": {},
   "metadata": {
-    "importedUtc": "2026-08-23T17:34:51.6040305\u002B00:00",
-    "benchmark.workload.sourceCommit": "8edcab40a55ecab90971a642fbe67f850a997e6f",
-    "benchmark.workload.id": "image-tiff-lzw-net10.0",
-    "benchmark.workload.framework": "net10.0",
+    "importedUtc": "2026-08-23T17:51:35.6384214\u002B00:00",
     "benchmark.workload.affinityMask": "0xFFFF",
+    "benchmark.workload.sourceCommit": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
+    "benchmark.workload.framework": "net10.0",
+    "benchmark.workload.id": "image-tiff-lzw-net10.0",
     "runMode": "quick",
     "benchmark.provenance.runMode": "quick",
-    "gitSha": "8edcab40a55ecab90971a642fbe67f850a997e6f",
+    "gitSha": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
     "gitWorktreeClean": "true",
     "gitBranch": "feature/image-engine-completeness",
     "benchmark.provenance.source": "sidecar",
-    "benchmark.provenance.sidecar.sha256": "73691c62b98a075ab4ffd9ec7537b8769e63862766cb45bfadb3081b0c5a86b5"
+    "benchmark.provenance.sidecar.sha256": "a78b8dbd2c5e01e0e62eaef9f45b4d08b95e01bd2664eb6046c8d01da2d8cf8d"
   },
   "environment": {
     "osFamily": "",

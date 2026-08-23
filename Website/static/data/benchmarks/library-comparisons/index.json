@@ -104,10 +104,10 @@
       "comparisonId": "image-tiff-lzw-net10.0",
       "platform": "windows",
       "runMode": "quick",
-      "generatedUtc": "2026-08-23T17:34:51.4260267+00:00",
+      "generatedUtc": "2026-08-23T17:51:35.548509+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/image-tiff-lzw-net10.0-windows-quick.json",
-      "resultSha256": "0dd553f080a299297f8cba8deacaa048adee6ffe6904f45a9e49b874144c63eb",
+      "resultSha256": "1aed8b46ef3a81e69c837ac3af30c6d4c92f435c05468c6e9c7e906a1e698f9c",
       "artifactDestinationSha256": "984820a1e8bc66a8f266c52d7b7ce952185336e22b306f60dd3737069bfdf1dd",
       "artifactFileName": "image-tiff-lzw-net10.0-windows-quick.json",
       "artifactRelativePath": "image-tiff-lzw-net10.0-windows-quick.json",
@@ -128,12 +128,12 @@
       },
       "compatibility": {
         "suite": "OfficeIMO.Drawing.TiffLzw",
-        "benchmark.workload.shape.sha256": "dcf8547ac87cc47fafe5eb72bc38e1c0b9a4dafe7c36b05bf3ff8b1bc89502bc",
+        "benchmark.workload.shape.sha256": "8383a90a5dfc772ccded33322038b17a8e186eb825feffcd4e4761f5912b5934",
         "benchmark.workload.affinityMask": "0xFFFF",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "image-tiff-lzw-net10.0",
-        "benchmark.workload.sourceCommit": "8edcab40a55ecab90971a642fbe67f850a997e6f",
-        "gitSha": "8edcab40a55ecab90971a642fbe67f850a997e6f",
+        "benchmark.workload.sourceCommit": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
+        "gitSha": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
         "runMode": "quick"
       },
       "comparable": true,
@@ -1183,7 +1183,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-08-23T17:34:51.4260267+00:00"
+      "latestUtc": "2026-08-23T17:51:35.548509+00:00"
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",
