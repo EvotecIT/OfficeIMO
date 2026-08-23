@@ -31,6 +31,8 @@ function Get-ExpectedProductProofValidators {
         'PdfUa1' { return @('PdfUaValidator') }
         'FacturX' { return @('VeraPdf', 'Mustang') }
         'Zugferd' { return @('VeraPdf', 'Mustang') }
+        'PdfX1A2003' { return @('PdfXValidator') }
+        'PdfX4' { return @('PdfXValidator') }
         default { throw "No expected external validator contract is defined for product proof profile $Profile." }
     }
 }
@@ -97,7 +99,7 @@ function Assert-ProductProofContractProfile {
         }
     }
 
-    $isFormalProfile = $ExpectedProfile -in @('PdfA2B', 'PdfA3B', 'PdfUa1', 'FacturX', 'Zugferd')
+    $isFormalProfile = $ExpectedProfile -in @('PdfA2B', 'PdfA3B', 'PdfUa1', 'FacturX', 'Zugferd', 'PdfX1A2003', 'PdfX4')
     if ($isFormalProfile -and @($externalValidatorProofs | Where-Object { $_.status -eq 'Passed' }).Count -eq $expectedValidators.Count) {
         Assert-Condition -Condition ($Entry.isInternallyReady -eq $true) -Message "$ExpectedProfile product proof must be internally ready."
         Assert-Condition -Condition ($Entry.hasRequiredExternalValidation -eq $true) -Message "$ExpectedProfile product proof must include passing external validation."
@@ -133,11 +135,14 @@ Assert-Condition -Condition ($null -ne $proof.validatorConfiguration.pdfUaValida
 Assert-Condition -Condition ($null -ne $proof.validatorConfiguration.pdfUaValidatorArgsConfigured) -Message 'Missing pdfUaValidatorArgsConfigured in proof.json.'
 Assert-Condition -Condition ($null -ne $proof.validatorConfiguration.mustangExecutableConfigured) -Message 'Missing mustangExecutableConfigured in proof.json.'
 Assert-Condition -Condition ($null -ne $proof.validatorConfiguration.mustangArgsConfigured) -Message 'Missing mustangArgsConfigured in proof.json.'
+Assert-Condition -Condition ($null -ne $proof.validatorConfiguration.pdfXValidatorExecutableConfigured) -Message 'Missing pdfXValidatorExecutableConfigured in proof.json.'
+Assert-Condition -Condition ($null -ne $proof.validatorConfiguration.pdfXValidatorArgsConfigured) -Message 'Missing pdfXValidatorArgsConfigured in proof.json.'
 Assert-Condition -Condition ($proof.contract.unsupportedFormalProfilesFailClosed -eq $true) -Message 'Proof contract must keep unsupported formal profiles fail-closed.'
 Assert-Condition -Condition ($proof.contract.formalPdfA2BGenerationEnabled -eq $true) -Message 'Proof contract must enable validator-backed PDF/A-2b generation.'
 Assert-Condition -Condition ($proof.contract.formalPdfA3BGenerationEnabled -eq $true) -Message 'Proof contract must enable validator-backed PDF/A-3b generation.'
 Assert-Condition -Condition ($proof.contract.formalPdfUa1GenerationEnabled -eq $true) -Message 'Proof contract must enable validator-backed PDF/UA-1 generation.'
 Assert-Condition -Condition ($proof.contract.formalElectronicInvoiceGenerationEnabled -eq $true) -Message 'Proof contract must enable validator-backed Factur-X and ZUGFeRD generation.'
+Assert-Condition -Condition ($proof.contract.pdfXExactArtifactReadinessEnabled -eq $true) -Message 'Proof contract must emit exact PDF/X artifacts for qualified validation.'
 Assert-Condition -Condition ($proof.contract.allGeneratedPdfsAreGroundworkFixtures -eq $false) -Message 'Proof contract must distinguish formal PDF/A-2b from groundwork fixtures.'
 Assert-Condition -Condition ($proof.contract.externalValidationRequiredForClaims -eq $true) -Message 'Proof contract must require external validation for claims.'
 Assert-Condition -Condition ($proof.contract.externalValidationBoundToExactArtifact -eq $true) -Message 'Proof contract must bind external validation to the exact artifact.'
@@ -149,14 +154,16 @@ Assert-Condition -Condition ([string] $proof.productProofContract.externalEviden
 Assert-Condition -Condition ([string] $productProofContractFile.externalEvidenceMode -eq 'ExactArtifactValidationInjectedByProofExporter') -Message 'Unexpected externalEvidenceMode in officeimo-profile-proof-contract.json.'
 
 $pdfFixtures = @($proof.pdfFixtures)
-Assert-Condition -Condition ($pdfFixtures.Count -eq 5) -Message "Expected 5 PDF fixtures, got $($pdfFixtures.Count)."
+Assert-Condition -Condition ($pdfFixtures.Count -eq 7) -Message "Expected 7 PDF fixtures, got $($pdfFixtures.Count)."
 
 $expectedPdfNames = @(
     'officeimo-pdfa2b.pdf',
     'officeimo-pdfa3b.pdf',
     'officeimo-facturx.pdf',
     'officeimo-zugferd.pdf',
-    'officeimo-pdfua1.pdf'
+    'officeimo-pdfua1.pdf',
+    'officeimo-pdfx1a2003.pdf',
+    'officeimo-pdfx4.pdf'
 )
 
 foreach ($expectedName in $expectedPdfNames) {
@@ -173,9 +180,9 @@ foreach ($expectedName in $expectedPdfNames) {
 }
 
 $validatorDiagnostics = @($proof.validatorDiagnostics)
-Assert-Condition -Condition ($validatorDiagnostics.Count -ge 7) -Message "Expected at least 7 validator diagnostics, got $($validatorDiagnostics.Count)."
+Assert-Condition -Condition ($validatorDiagnostics.Count -ge 9) -Message "Expected at least 9 validator diagnostics, got $($validatorDiagnostics.Count)."
 
-$requiredValidatorKinds = @('VeraPdf', 'PdfUaValidator', 'Mustang')
+$requiredValidatorKinds = @('VeraPdf', 'PdfUaValidator', 'Mustang', 'PdfXValidator')
 foreach ($validatorKind in $requiredValidatorKinds) {
     $entry = @($validatorDiagnostics | Where-Object { $_.validatorKind -eq $validatorKind })
     Assert-Condition -Condition ($entry.Count -ge 1) -Message "Missing validator diagnostic entry for $validatorKind."
@@ -205,7 +212,7 @@ foreach ($entry in $validatorDiagnostics) {
 }
 
 $profileProofs = @($proof.profileProofs)
-Assert-Condition -Condition ($profileProofs.Count -eq 7) -Message "Expected 7 profile proof rows, got $($profileProofs.Count)."
+Assert-Condition -Condition ($profileProofs.Count -eq 9) -Message "Expected 9 profile proof rows, got $($profileProofs.Count)."
 
 $expectedProfiles = @(
     'pdfa-2b',
@@ -214,7 +221,9 @@ $expectedProfiles = @(
     'facturx-pdfa3',
     'facturx',
     'zugferd-pdfa3',
-    'zugferd'
+    'zugferd',
+    'pdfx-1a-2003',
+    'pdfx-4'
 )
 
 foreach ($expectedProfile in $expectedProfiles) {
@@ -238,10 +247,10 @@ foreach ($expectedProfile in $expectedProfiles) {
 
 $productProofProfiles = @($proof.productProofContract.profiles)
 $productProofFileProfiles = @($productProofContractFile.profiles)
-Assert-Condition -Condition ($productProofProfiles.Count -eq 5) -Message "Expected 5 product proof contract rows in proof.json, got $($productProofProfiles.Count)."
-Assert-Condition -Condition ($productProofFileProfiles.Count -eq 5) -Message "Expected 5 product proof contract rows in officeimo-profile-proof-contract.json, got $($productProofFileProfiles.Count)."
+Assert-Condition -Condition ($productProofProfiles.Count -eq 7) -Message "Expected 7 product proof contract rows in proof.json, got $($productProofProfiles.Count)."
+Assert-Condition -Condition ($productProofFileProfiles.Count -eq 7) -Message "Expected 7 product proof contract rows in officeimo-profile-proof-contract.json, got $($productProofFileProfiles.Count)."
 
-$expectedProductProfiles = @('PdfA2B', 'PdfA3B', 'PdfUa1', 'FacturX', 'Zugferd')
+$expectedProductProfiles = @('PdfA2B', 'PdfA3B', 'PdfUa1', 'FacturX', 'Zugferd', 'PdfX1A2003', 'PdfX4')
 foreach ($expectedProductProfile in $expectedProductProfiles) {
     $entry = @($productProofProfiles | Where-Object { $_.profile -eq $expectedProductProfile })
     $fileEntry = @($productProofFileProfiles | Where-Object { $_.profile -eq $expectedProductProfile })

@@ -100,6 +100,54 @@ jobs:
         shell: pwsh
         run: ./Build/Test-HtmlPackages.ps1
 
+  typography-package-consumers:
+    name: 'OfficeIMO typography providers / ${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Build, test, and package-smoke typography providers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $isTrusted = '${{ github.event_name }}' -eq 'push' -or
+            ('${{ github.actor }}' -ne 'dependabot[bot]' -and
+             '${{ github.event.pull_request.head.repo.full_name }}' -eq '${{ github.repository }}')
+          $hasLicense = -not [string]::IsNullOrWhiteSpace($env:SIXLABORS_LICENSE_KEY)
+          if ($isTrusted -and -not $hasLicense) {
+            throw 'Trusted OfficeIMO typography builds require the SIXLABORS_LICENSE_KEY repository secret.'
+          }
+
+          dotnet test OfficeIMO.Drawing.HarfBuzz.Tests/OfficeIMO.Drawing.HarfBuzz.Tests.csproj --configuration Release --verbosity $env:TEST_VERBOSITY
+          $sixLaborsConfiguration = if ($hasLicense) { 'Release' } else { 'Debug' }
+          dotnet test OfficeIMO.Drawing.SixLabors.Tests/OfficeIMO.Drawing.SixLabors.Tests.csproj --configuration $sixLaborsConfiguration --verbosity $env:TEST_VERBOSITY
+
+          $packageArguments = @()
+          if ($isTrusted) { $packageArguments += '-RequireSixLabors' }
+          ./Build/Test-TypographyPackages.ps1 @packageArguments
+
   email-package-consumers:
     name: 'OfficeIMO email platform packed consumers'
     runs-on: windows-latest

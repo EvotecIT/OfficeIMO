@@ -372,6 +372,7 @@ Build/Artefacts/
 Artefacts/
 
 *.received.*
+sixlabors.lic
 dotnet-install.sh
 packages-microsoft-prod.deb
 CLAUDE.md

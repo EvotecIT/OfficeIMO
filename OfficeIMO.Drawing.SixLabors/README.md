@@ -43,6 +43,10 @@ emoji face.
 
 This package depends on SixLabors.Fonts 3.1.0, which validates a Six Labors
 license at compile time. Supply `SixLaborsLicenseKey`, `SixLaborsLicenseFile`, or
-a discovered `sixlabors.lic` file as described by Six Labors, and confirm the
-license terms for your build and distribution scenario. See
+a discovered `sixlabors.lic` file as described by Six Labors. This source tree
+also maps the `SIXLABORS_LICENSE_KEY` environment variable to the MSBuild
+property for automated builds. Never commit the supplied license file or value.
+Open-source maintainers can apply through the
+[Six Labors licensing portal](https://licensing.sixlabors.com/); confirm the
+applicable terms for your own build and distribution scenario. See
 `THIRD-PARTY-NOTICES.md` in the package.

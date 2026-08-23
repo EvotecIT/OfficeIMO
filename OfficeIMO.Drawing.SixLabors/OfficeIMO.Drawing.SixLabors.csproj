@@ -22,6 +22,7 @@
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <SixLaborsLicenseKey Condition="'$(SixLaborsLicenseKey)' == '' and '$(SIXLABORS_LICENSE_KEY)' != ''">$(SIXLABORS_LICENSE_KEY)</SixLaborsLicenseKey>
   </PropertyGroup>
 
   <ItemGroup>

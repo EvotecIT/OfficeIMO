@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <EnableOfficeIMOTypographyPackageSmoke Condition="'$(EnableOfficeIMOTypographyPackageSmoke)' == ''">false</EnableOfficeIMOTypographyPackageSmoke>
+    <IncludeOfficeIMOSixLaborsPackage Condition="'$(IncludeOfficeIMOSixLaborsPackage)' == ''">false</IncludeOfficeIMOSixLaborsPackage>
+    <OfficeIMOTypographyPackageVersion Condition="'$(OfficeIMOTypographyPackageVersion)' == ''">3.2.5-typography-local</OfficeIMOTypographyPackageVersion>
+    <DefineConstants Condition="'$(IncludeOfficeIMOSixLaborsPackage)' == 'true'">$(DefineConstants);OFFICEIMO_SIXLABORS_SMOKE</DefineConstants>
+    <IsPackable>false</IsPackable>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableOfficeIMOTypographyPackageSmoke)' == 'true'">
+    <PackageReference Include="OfficeIMO.Core" Version="[$(OfficeIMOTypographyPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Drawing.HarfBuzz" Version="[$(OfficeIMOTypographyPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Drawing.SixLabors"
+                      Version="[$(OfficeIMOTypographyPackageVersion)]"
+                      Condition="'$(IncludeOfficeIMOSixLaborsPackage)' == 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\OfficeIMO.Drawing.SixLabors.Tests\TestAssets\NotoSansArabic-Regular.ttf"
+          Link="TestAssets\NotoSansArabic-Regular.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\OfficeIMO.Drawing.SixLabors.Tests\TestAssets\OpenSans-Regular.woff2"
+          Link="TestAssets\OpenSans-Regular.woff2"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
+          Condition="'$(EnableOfficeIMOTypographyPackageSmoke)' != 'true'">
+    <Error Text="Set EnableOfficeIMOTypographyPackageSmoke=true and restore from a feed containing the packed OfficeIMO typography packages." />
+  </Target>
+</Project>

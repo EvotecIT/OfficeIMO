@@ -85,6 +85,11 @@ internal sealed class PdfExternalValidator {
             Environment.GetEnvironmentVariable("OFFICEIMO_PDFX_VALIDATOR_PATH"));
         string? path = explicitPath ?? FindOnPath("pdfx-validator", "pdfx-validator.bat", "pdfx-validator.exe");
         string[] args = GetConfiguredArgs("OFFICEIMO_PDFX_VALIDATOR_ARGS", "{pdf}");
+        if (path != null && string.Equals(Path.GetExtension(path), ".ps1", StringComparison.OrdinalIgnoreCase)) {
+            args = new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-File", path }.Concat(args).ToArray();
+            path = FindOnPath("pwsh", "pwsh.exe", "powershell.exe");
+        }
+
         return new PdfExternalValidator("PDF/X validator", path, args, explicitPath == null && path != null, profile);
     }
 

@@ -118,6 +118,8 @@ try {
     $expectedDirectDependencies = @{
         'OfficeIMO.Provenance.C2pa' = @('OfficeIMO.Core')
         'OfficeIMO.Security' = @('OfficeIMO.Core')
+        'OfficeIMO.Drawing.HarfBuzz' = @('OfficeIMO.Core')
+        'OfficeIMO.Drawing.SixLabors' = @('OfficeIMO.Core')
         'OfficeIMO.Html' = @('OfficeIMO.Core')
         'OfficeIMO.Html.Pdf.Browser' = @('OfficeIMO.Core', 'OfficeIMO.Pdf')
         'OfficeIMO.Html.Rtf' = @('OfficeIMO.Core', 'OfficeIMO.Html', 'OfficeIMO.Rtf')
