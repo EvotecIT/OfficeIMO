@@ -4,7 +4,7 @@ public static partial class MarkdownReader {
     internal sealed class UnorderedListParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.UnorderedLists) return false;
-            if (!IsUnorderedListLine(lines[i], out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
+            if (!IsUnorderedListLine(lines[i], options.TaskLists, out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
             if (!TryGetUnorderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out char firstMarker)) return false;
             if (options.StrictListIndentation && firstMarkerIndent - state.ListMarkerIndentOffset > 3) return false;
             using var headingAttributeScope = SuppressHeadingGenericAttributesInListItems(state);
@@ -26,22 +26,29 @@ public static partial class MarkdownReader {
             }
 
             int j = i + 1;
-            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe
+            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                 ? null
                 : new List<MarkdownSourceLineSlice>();
-            var firstLines = ConsumeListContinuationLines(
-                lines,
-                ref j,
-                firstContinuationIndent,
-                firstContent,
-                options,
-                breakOnAnyOrderedListLine: options.ListExtras,
-                sourceLines: firstSourceLines,
-                absoluteLineOffset: state.SourceLineOffset,
-                initialLineIndex: i,
-                initialStartColumn: firstStartColumn,
-                state: state);
-            var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, firstSourceLines);
+            List<string> firstLines = null!;
+            ListItem first;
+            if (IsImmediateListLeadBoundary(lines, j, firstContinuationIndent, options, options.ListExtras, state)
+                && TryCreateSingleLineSemanticListItem(firstContent, isTask, done, options, state, out var singleFirst)) {
+                first = singleFirst;
+            } else {
+                firstLines = ConsumeListContinuationLines(
+                    lines,
+                    ref j,
+                    firstContinuationIndent,
+                    firstContent,
+                    options,
+                    breakOnAnyOrderedListLine: options.ListExtras,
+                    sourceLines: firstSourceLines,
+                    absoluteLineOffset: state.SourceLineOffset,
+                    initialLineIndex: i,
+                    initialStartColumn: firstStartColumn,
+                    state: state);
+                first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, firstSourceLines);
+            }
             first.Level = 0;
             if (!state.IsListBoundaryProbe) {
                 SetListItemMarkerSourceSpans(first, lines[i], i, isTask, options, state);
@@ -49,7 +56,7 @@ public static partial class MarkdownReader {
             if (continuationIndentsByLevel != null) {
                 TrackListItemContinuationIndent(continuationIndentsByLevel, first.Level, firstContinuationIndent);
             }
-            if (!state.IsListBoundaryProbe) {
+            if (!state.IsListBoundaryProbe && state.CaptureSyntaxTree) {
                 AddListItemLeadSyntaxNodes(first, firstLines, i, options, state, firstSourceLines);
             }
             ul.Items.Add(first);
@@ -67,7 +74,7 @@ public static partial class MarkdownReader {
 
                 if (itemStart >= lines.Length
                     || LooksLikeHr(lines[itemStart])
-                    || !IsUnorderedListLine(lines[itemStart], out var lvlAbs, out var isTask2, out var done2, out var content2)
+                    || !IsUnorderedListLine(lines[itemStart], options.TaskLists, out var lvlAbs, out var isTask2, out var done2, out var content2)
                     || lvlAbs < level0Abs
                     || !TryGetUnorderedListMarkerInfo(lines[itemStart], out int markerIndent, out _, out char marker)
                     || (options.StrictListIndentation && markerIndent - firstMarkerIndent > 3)
@@ -94,22 +101,29 @@ public static partial class MarkdownReader {
                     startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask2);
                 }
                 int next = itemStart + 1;
-                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe
+                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                     ? null
                     : new List<MarkdownSourceLineSlice>();
-                var itemLines = ConsumeListContinuationLines(
-                    lines,
-                    ref next,
-                    continuationIndent,
-                    content2,
-                    options,
-                    breakOnAnyOrderedListLine: options.ListExtras,
-                    sourceLines: itemSourceLines,
-                    absoluteLineOffset: state.SourceLineOffset,
-                    initialLineIndex: itemStart,
-                    initialStartColumn: startColumn,
-                    state: state);
-                var li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, itemSourceLines);
+                List<string> itemLines = null!;
+                ListItem li;
+                if (IsImmediateListLeadBoundary(lines, next, continuationIndent, options, options.ListExtras, state)
+                    && TryCreateSingleLineSemanticListItem(content2, isTask2, done2, options, state, out var singleItem)) {
+                    li = singleItem;
+                } else {
+                    itemLines = ConsumeListContinuationLines(
+                        lines,
+                        ref next,
+                        continuationIndent,
+                        content2,
+                        options,
+                        breakOnAnyOrderedListLine: options.ListExtras,
+                        sourceLines: itemSourceLines,
+                        absoluteLineOffset: state.SourceLineOffset,
+                        initialLineIndex: itemStart,
+                        initialStartColumn: startColumn,
+                        state: state);
+                    li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, itemSourceLines);
+                }
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])
                     : lvlAbs - level0Abs;
@@ -122,7 +136,7 @@ public static partial class MarkdownReader {
                 if (continuationIndentsByLevel != null) {
                     TrackListItemContinuationIndent(continuationIndentsByLevel, li.Level, continuationIndent);
                 }
-                if (!state.IsListBoundaryProbe) {
+                if (!state.IsListBoundaryProbe && state.CaptureSyntaxTree) {
                     AddListItemLeadSyntaxNodes(li, itemLines, itemStart, options, state, itemSourceLines);
                 }
                 ul.Items.Add(li);
@@ -130,7 +144,7 @@ public static partial class MarkdownReader {
 
                 ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, continuationIndent, options, state, li, allowNestedOrdered: true, allowNestedUnordered: true);
             }
-            if (state.IsListBoundaryProbe) {
+            if (state.IsListBoundaryProbe || !state.CaptureSyntaxTree) {
                 doc.AddWithoutObjectTreeBinding(ul);
             } else {
                 doc.Add(ul);

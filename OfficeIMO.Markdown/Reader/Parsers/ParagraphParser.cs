@@ -88,7 +88,9 @@ public static partial class MarkdownReader {
                     }
                 }
 
-                var (headingInlineText, headingSourceMap) = JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state);
+                var (headingInlineText, headingSourceMap) = state.CaptureSyntaxTree
+                    ? JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state)
+                    : (JoinParagraphLines(contentLines, options), null);
                 var heading = new HeadingBlock(level, ParseInlines(headingInlineText, options, state, headingSourceMap));
                 if (contentLines.Count > 0
                     && ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(contentLines, options, state)) {
@@ -169,7 +171,9 @@ public static partial class MarkdownReader {
             }
 
             ConsumeLeadingSoftBreakGenericAttributeContinuationLines(paragraphLines, options, state, i, out var paragraphLineStartColumns);
-            var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state, paragraphLineStartColumns);
+            var (text, sourceMap) = state.CaptureSyntaxTree
+                ? JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state, paragraphLineStartColumns)
+                : (JoinParagraphLines(paragraphLines, options), null);
             var inlineOptions = suppressInlineAutolinks ? CloneOptionsWithoutInlineAutolinks(options) : options;
             var paragraph = new ParagraphBlock(ParseInlines(text, inlineOptions, state, sourceMap));
             paragraph.SetAttributes(paragraphAttributes);

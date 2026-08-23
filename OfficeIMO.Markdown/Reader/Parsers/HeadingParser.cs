@@ -39,7 +39,9 @@ public static partial class MarkdownReader {
                     attributeEndColumn);
             }
 
-            var sourceMap = BuildInlineSourceMapForSingleLine(text, state.SourceLineOffset + i + 1, contentStart + 1, state);
+            var sourceMap = state.CaptureSyntaxTree
+                ? BuildInlineSourceMapForSingleLine(text, state.SourceLineOffset + i + 1, contentStart + 1, state)
+                : null;
             var heading = new HeadingBlock(level, ParseInlines(text, options, state, sourceMap));
             if (ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(text, options, state)) {
                 heading.SuppressAutomaticIdentifier();

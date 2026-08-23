@@ -18,37 +18,30 @@ public static partial class MarkdownReader {
     /// </summary>
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        return ParseWithSyntaxTree(markdown, options).Document;
+    }
+
+    /// <summary>
+    /// Parses Markdown into the typed semantic document without capturing source spans or a syntax tree.
+    /// Use <see cref="Parse(string, MarkdownReaderOptions?)"/> or
+    /// <see cref="ParseWithSyntaxTree(string, MarkdownReaderOptions?)"/> when source-aware writing,
+    /// source spans, or trivia are required.
+    /// </summary>
+    public static MarkdownDoc ParseSemantic(string markdown, MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
-        var syntaxNodes = new List<MarkdownSyntaxNode>();
-        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
         var document = ParseInternal(
             markdown,
             options,
             state,
             allowFrontMatter: true,
-            out var syntaxTree,
-            out var sourceMarkdown,
-            syntaxNodes,
+            out _,
+            out _,
+            syntaxNodes: null,
             lineOffset: 0,
-            transformDiagnostics: diagnostics);
-        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
-        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
-            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
-        }
-
-        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
-        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        _ = new MarkdownParseResult(
-            document,
-            originalSyntaxTree,
-            finalSyntaxTree,
-            sourceMarkdown,
-            options.PreserveTrivia ? markdown : null,
-            options.PreserveTrivia,
-            diagnostics,
-            SnapshotReferenceLinkDefinitions(state),
-            SnapshotAbbreviationDefinitions(state));
+            transformDiagnostics: null);
+        MarkdownObjectTreeBinder.BindDocument(document);
         return document;
     }
 
@@ -172,6 +165,7 @@ public static partial class MarkdownReader {
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
         bool applyDocumentTransforms = true) {
         var doc = MarkdownDoc.Create();
+        state.CaptureSyntaxTree = syntaxNodes != null;
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         normalizedSourceText = string.Empty;
         if (string.IsNullOrEmpty(markdown)) return doc;
@@ -180,15 +174,17 @@ public static partial class MarkdownReader {
         state.SourceLineOffset = lineOffset;
 
         try {
-            var text = PrepareMarkdownForParsing(markdown, options);
+            var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: state.CaptureSyntaxTree);
             normalizedSourceText = text;
-            if (lineOffset == 0 || state.SourceTextMap == null) {
+            if (state.CaptureSyntaxTree && (lineOffset == 0 || state.SourceTextMap == null)) {
                 state.SourceTextMap = new MarkdownSourceTextMap(text);
             }
-            var lines = text.Split('\n');
+            var lines = state.CaptureSyntaxTree
+                ? text.Split('\n')
+                : SplitMarkdownLines(text);
             int i = 0;
 
-            using (doc.DeferObjectTreeBinding()) {
+            using (doc.DeferObjectTreeBinding(completeBindingOnDispose: state.CaptureSyntaxTree)) {
                 // Front matter (YAML) only if it's the very first thing in the file
                 if (allowFrontMatter && options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
                     int start = i + 1;
@@ -265,7 +261,10 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static string PrepareMarkdownForParsing(string markdown, MarkdownReaderOptions options) {
+    private static string PrepareMarkdownForParsing(
+        string markdown,
+        MarkdownReaderOptions options,
+        bool normalizeLineEndings = true) {
         markdown ??= string.Empty;
         if (options.MaxNestingDepth < 1) {
             throw new ArgumentOutOfRangeException(
@@ -295,7 +294,76 @@ public static partial class MarkdownReader {
             markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
         }
 
-        return markdown.Replace("\r\n", "\n").Replace('\r', '\n');
+        return normalizeLineEndings
+            ? markdown.Replace("\r\n", "\n").Replace('\r', '\n')
+            : ExpandTabsForSemanticParsing(markdown);
+    }
+
+    private static string ExpandTabsForSemanticParsing(string markdown) {
+        int firstTab = markdown.IndexOf('\t');
+        if (firstTab < 0) {
+            return markdown;
+        }
+
+        var builder = new StringBuilder(markdown.Length + 16);
+        int column = 0;
+        for (int i = 0; i < markdown.Length; i++) {
+            char value = markdown[i];
+            if (value == '\t') {
+                int spaces = 4 - column % 4;
+                builder.Append(' ', spaces);
+                column += spaces;
+                continue;
+            }
+
+            builder.Append(value);
+            if (value is '\r' or '\n') {
+                column = 0;
+            } else {
+                column++;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static string[] SplitMarkdownLines(string markdown) {
+        int carriageReturn = markdown.IndexOf('\r');
+        if (carriageReturn < 0) {
+            return markdown.Split('\n');
+        }
+
+        int lineCount = 1;
+        for (int i = 0; i < markdown.Length; i++) {
+            if (markdown[i] == '\r') {
+                lineCount++;
+                if (i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+                    i++;
+                }
+            } else if (markdown[i] == '\n') {
+                lineCount++;
+            }
+        }
+
+        var lines = new string[lineCount];
+        int lineIndex = 0;
+        int lineStart = 0;
+        for (int i = 0; i < markdown.Length; i++) {
+            char value = markdown[i];
+            if (value != '\r' && value != '\n') {
+                continue;
+            }
+
+            lines[lineIndex++] = markdown.Substring(lineStart, i - lineStart);
+            if (value == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+                i++;
+            }
+
+            lineStart = i + 1;
+        }
+
+        lines[lineIndex] = markdown.Substring(lineStart);
+        return lines;
     }
 
     private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {

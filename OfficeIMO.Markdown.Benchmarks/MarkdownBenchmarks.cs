@@ -26,11 +26,14 @@ public class MarkdownParseBenchmarks {
             MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions());
     }
 
-    [Benchmark(Baseline = true, Description = "OfficeIMO")]
-    public MarkdownDoc OfficeIMO_Parse_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions);
+    [Benchmark(Baseline = true, Description = "OfficeIMO-Semantic")]
+    public MarkdownDoc OfficeIMO_ParseSemantic_CommonMark() => MarkdownReader.ParseSemantic(_markdown, _commonMarkOptions);
+
+    [Benchmark(Description = "OfficeIMO source-backed")]
+    public MarkdownDoc OfficeIMO_Parse_SourceBacked_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions);
 
     [Benchmark(Description = "Markdig")]
-    public Markdig.Syntax.MarkdownDocument Markdig_Parse_CommonMark() => Markdig.Markdown.Parse(_markdown);
+    public Markdig.Syntax.MarkdownDocument Markdig_ParseSemanticComparison_CommonMark() => Markdig.Markdown.Parse(_markdown);
 
     [Benchmark]
     public MarkdownDoc OfficeIMO_Parse_Default() => MarkdownReader.Parse(_markdown);

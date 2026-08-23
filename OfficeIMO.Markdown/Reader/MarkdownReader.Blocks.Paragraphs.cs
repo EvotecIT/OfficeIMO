@@ -95,6 +95,11 @@ public static partial class MarkdownReader {
             return paragraphs;
         }
 
+        if (lines.Count == 1 && !string.IsNullOrEmpty(lines[0])) {
+            paragraphs.Add(ParseInlines(JoinParagraphLines(lines, options), options, state));
+            return paragraphs;
+        }
+
         var cur = new List<string>();
         for (int i = 0; i < lines.Count; i++) {
             var ln = lines[i] ?? string.Empty;
@@ -120,12 +125,16 @@ public static partial class MarkdownReader {
             return paragraphs;
         }
 
+        if (lines.Count == 1 && !string.IsNullOrEmpty(lines[0].Text)) {
+            paragraphs.Add(ParseParagraphFromSourceLines(lines, options, state));
+            return paragraphs;
+        }
+
         var current = new List<MarkdownSourceLineSlice>();
         for (int i = 0; i < lines.Count; i++) {
             if (string.IsNullOrEmpty(lines[i].Text)) {
                 if (current.Count > 0) {
-                    var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(current, options, state);
-                    paragraphs.Add(ParseInlines(text, options, state, sourceMap));
+                    paragraphs.Add(ParseParagraphFromSourceLines(current, options, state));
                     current.Clear();
                 }
                 continue;
@@ -135,8 +144,7 @@ public static partial class MarkdownReader {
         }
 
         if (current.Count > 0) {
-            var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(current, options, state);
-            paragraphs.Add(ParseInlines(text, options, state, sourceMap));
+            paragraphs.Add(ParseParagraphFromSourceLines(current, options, state));
         }
 
         if (paragraphs.Count == 0) {
@@ -144,6 +152,18 @@ public static partial class MarkdownReader {
         }
 
         return paragraphs;
+    }
+
+    private static InlineSequence ParseParagraphFromSourceLines(
+        List<MarkdownSourceLineSlice> lines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state) {
+        if (state?.CaptureSyntaxTree == true) {
+            var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(lines, options, state);
+            return ParseInlines(text, options, state, sourceMap);
+        }
+
+        return ParseInlines(JoinParagraphSourceLines(lines, options), options, state);
     }
 
     private static List<ParagraphBlock> ParseParagraphBlocksFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
@@ -322,7 +342,7 @@ public static partial class MarkdownReader {
     }
 
     private static void AddListItemChildSyntaxNode(ListItem item, IMarkdownBlock block, int startLineIndex, int endExclusiveLineIndex, MarkdownReaderState? state) {
-        if (item == null || block == null) return;
+        if (item == null || block == null || state?.CaptureSyntaxTree != true) return;
         int absoluteStart = (state?.SourceLineOffset ?? 0) + startLineIndex;
         int absoluteEndExclusive = (state?.SourceLineOffset ?? 0) + endExclusiveLineIndex;
         item.SyntaxChildren.Add(BuildSyntaxNode(block, CreateLineSpan(state, absoluteStart + 1, Math.Max(absoluteStart + 1, absoluteEndExclusive))));
@@ -337,7 +357,7 @@ public static partial class MarkdownReader {
         int endExclusiveLineIndex,
         MarkdownReaderState? state) {
 
-        if (item == null || block == null || sourceLines == null) return;
+        if (item == null || block == null || sourceLines == null || state?.CaptureSyntaxTree != true) return;
 
         var slices = BuildListItemNestedSourceLines(sourceLines, continuationIndent, startLineIndex, endExclusiveLineIndex, state);
         if (slices.Count == 0) {
@@ -487,6 +507,17 @@ public static partial class MarkdownReader {
                 : new ListItem(new InlineSequence());
         }
 
+        if (state?.CaptureSyntaxTree == false
+            && sourceLines == null
+            && lines.Count == 1
+            && !string.IsNullOrEmpty(lines[0])
+            && !options.Abbreviations
+            && !options.GenericAttributes
+            && !StartsListItemLeadWithStandaloneBlock(lines, options)) {
+            var content = ParseInlines(JoinParagraphLines(lines, options), options, state);
+            return isTask ? ListItem.TaskInlines(content, done) : new ListItem(content);
+        }
+
         var leadingAbbreviationSyntax = RemoveLeadingListItemAbbreviationDefinitions(lines, options, state, lineOffset, sourceLines);
 
         ListItem AttachLeadingAbbreviationSyntax(ListItem item) {
@@ -572,7 +603,22 @@ public static partial class MarkdownReader {
             }
         }
 
-        var trailingBlocks = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState());
+        string[] trailingLineArray = trailingLines.ToArray();
+        var trailingBlocks = ParseBlocksFromLines(trailingLineArray, options, state ?? new MarkdownReaderState());
+        if (trailingBlocks.Count == 0
+            && TryParseReferenceLinkDefinition(
+                trailingLineArray,
+                0,
+                options,
+                out _,
+                out _,
+                out _,
+                out int consumedReferenceLines)
+            && consumedReferenceLines == trailingLines.Count) {
+            mixedItem.ForceLoose = true;
+            return AttachLeadingAbbreviationSyntax(mixedItem);
+        }
+
         if (mixedItem.TryAbsorbTrailingParagraphBlocks(trailingBlocks)) return AttachLeadingAbbreviationSyntax(mixedItem);
 
         for (int i = 0; i < trailingBlocks.Count; i++) {
@@ -582,8 +628,36 @@ public static partial class MarkdownReader {
         return AttachLeadingAbbreviationSyntax(mixedItem);
     }
 
+    private static bool TryCreateSingleLineSemanticListItem(
+        string line,
+        bool isTask,
+        bool done,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out ListItem item) {
+        item = null!;
+        if (state.CaptureSyntaxTree
+            || string.IsNullOrEmpty(line)
+            || options.Abbreviations
+            || options.GenericAttributes
+            || StartsListItemLeadWithStandaloneBlock(line, options)) {
+            return false;
+        }
+
+        string paragraph = GetParagraphLineJoinInfo(
+            line,
+            absoluteLine: 1,
+            startColumn: 1,
+            options,
+            sourceTextMap: null,
+            hasFollowingLine: false).Text;
+        var content = ParseInlines(paragraph, options, state);
+        item = isTask ? ListItem.TaskInlines(content, done) : new ListItem(content);
+        return true;
+    }
+
     private readonly struct ParsedListItemGenericAttributes {
-        public ParsedListItemGenericAttributes(MarkdownAttributeSet attributes, string sourceText, MarkdownSourceSpan sourceSpan, string consumedWhitespace) {
+        public ParsedListItemGenericAttributes(MarkdownAttributeSet attributes, string sourceText, MarkdownSourceSpan? sourceSpan, string consumedWhitespace) {
             Attributes = attributes;
             SourceText = sourceText ?? string.Empty;
             SourceSpan = sourceSpan;
@@ -592,7 +666,7 @@ public static partial class MarkdownReader {
 
         public MarkdownAttributeSet Attributes { get; }
         public string SourceText { get; }
-        public MarkdownSourceSpan SourceSpan { get; }
+        public MarkdownSourceSpan? SourceSpan { get; }
         public string ConsumedWhitespace { get; }
     }
 
@@ -873,8 +947,19 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        var firstLine = lines[firstNonBlank] ?? string.Empty;
-        var trimmed = firstLine.TrimStart();
+        return StartsListItemLeadWithStandaloneBlock(lines[firstNonBlank] ?? string.Empty, options);
+    }
+
+    private static bool StartsListItemLeadWithStandaloneBlock(string line, MarkdownReaderOptions options) {
+        if (string.IsNullOrEmpty(line) || options == null) {
+            return false;
+        }
+
+        if (options.IndentedCodeBlocks && CountLeadingIndentColumns(line) >= 4) {
+            return true;
+        }
+
+        var trimmed = line.TrimStart();
         if (trimmed.Length == 0) {
             return false;
         }
@@ -898,7 +983,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (options.UnorderedLists && IsUnorderedListLine(trimmed, out _, out _, out _)) {
+        if (options.UnorderedLists && IsUnorderedListLine(trimmed)) {
             return true;
         }
 
@@ -983,9 +1068,19 @@ public static partial class MarkdownReader {
     }
 
     private static string JoinParagraphLines(List<string> lines, MarkdownReaderOptions options) {
+        if (lines.Count == 1) {
+            return GetParagraphLineJoinInfo(
+                lines[0] ?? string.Empty,
+                absoluteLine: 1,
+                startColumn: 1,
+                options,
+                sourceTextMap: null,
+                hasFollowingLine: false).Text;
+        }
+
         var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines, options);
         var sb = new StringBuilder(GetJoinedParagraphCapacity(lines));
-        bool prevHard = false;
+        bool previousUsesLineBreakSeparator = false;
         for (int i = 0; i < lines.Count; i++) {
             var raw = lines[i] ?? string.Empty;
             var joinInfo = GetParagraphLineJoinInfo(
@@ -997,9 +1092,9 @@ public static partial class MarkdownReader {
                 hasFollowingLine: i + 1 < lines.Count,
                 preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
 
-            if (i > 0) sb.Append(prevHard ? "\n" : " ");
+            if (i > 0) sb.Append(previousUsesLineBreakSeparator ? "\n" : " ");
             sb.Append(joinInfo.Text);
-            prevHard = joinInfo.UsesLineBreakSeparator;
+            previousUsesLineBreakSeparator = joinInfo.UsesLineBreakSeparator;
         }
         return sb.ToString();
     }
@@ -1194,6 +1289,16 @@ public static partial class MarkdownReader {
     private static string JoinParagraphSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options) {
         if (lines == null || lines.Count == 0) {
             return string.Empty;
+        }
+
+        if (lines.Count == 1) {
+            return GetParagraphLineJoinInfo(
+                lines[0].Text,
+                lines[0].AbsoluteLine,
+                lines[0].StartColumn,
+                options,
+                sourceTextMap: null,
+                hasFollowingLine: false).Text;
         }
 
         var plainLines = new List<string>(lines.Count);

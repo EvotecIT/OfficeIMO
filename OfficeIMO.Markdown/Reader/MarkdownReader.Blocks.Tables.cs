@@ -148,11 +148,15 @@ public static partial class MarkdownReader {
             table.UseHeaderColumnCountForRendering = true;
             var alignmentLine = state.SourceLineOffset + start + 2;
             pipeSources.AddRange(FindTablePipeSources(lines[start + 1], alignmentLine, state, rowIndex: -2));
-            table.SetAlignmentRowSourceSpan(CreateLineSpan(state, alignmentLine, alignmentLine));
+            if (state.CaptureSyntaxTree) {
+                table.SetAlignmentRowSourceSpan(CreateLineSpan(state, alignmentLine, alignmentLine));
+            }
             var alignmentCells = SplitTableRowWithSourceInfo(lines[start + 1], alignmentLine, state);
-            table.SetAlignmentCellSources(alignmentCells
-                .Select(cell => new TableAlignmentCellSource(cell.Markdown, cell.SourceSpan))
-                .ToArray());
+            if (state.CaptureSyntaxTree) {
+                table.SetAlignmentCellSources(alignmentCells
+                    .Select(cell => new TableAlignmentCellSource(cell.Markdown, cell.SourceSpan))
+                    .ToArray());
+            }
             for (int i = 0; i < alignmentCells.Count; i++) table.Alignments.Add(ParseAlignmentCell(alignmentCells[i].Text));
             for (int i = start + 2; i <= end; i++) {
                 int absoluteLine = state.SourceLineOffset + i + 1;
@@ -170,7 +174,9 @@ public static partial class MarkdownReader {
             }
         }
 
-        table.SetPipeSources(pipeSources);
+        if (state.CaptureSyntaxTree) {
+            table.SetPipeSources(pipeSources);
+        }
 
         ApplyGenericAttributesToTable(table, headerCells, bodyRows, options, state);
 
@@ -258,7 +264,7 @@ public static partial class MarkdownReader {
         var text = UnescapeBackslashEscapesOutsideCodeSpans(markdown);
         var startColumn = cell.SourceSpan.StartColumn ?? 1;
         var effectiveLength = Math.Max(1, markdown?.Length ?? 0);
-        var sourceSpan = CreateSpan(
+        var sourceSpan = CreateRequiredSpan(
             state,
             cell.SourceSpan.StartLine,
             startColumn,
@@ -336,14 +342,14 @@ public static partial class MarkdownReader {
     private static TableCell BuildTableCell(TableCellSourceFragment cell, MarkdownReaderOptions options, MarkdownReaderState state) {
         if (string.IsNullOrEmpty(cell.Markdown)) {
             return new TableCell() {
-                SourceSpan = cell.SourceSpan
+                SourceSpan = state.CaptureSyntaxTree ? cell.SourceSpan : null
             };
         }
 
         var structuredCell = TryParseStructuredTableCellBlocks(cell, options, state);
         if (structuredCell.HasValue) {
             return new TableCell(structuredCell.Value.Blocks) {
-                SourceSpan = cell.SourceSpan,
+                SourceSpan = state.CaptureSyntaxTree ? cell.SourceSpan : null,
                 SyntaxChildren = structuredCell.Value.SyntaxChildren
             };
         }
@@ -351,7 +357,7 @@ public static partial class MarkdownReader {
         return new TableCell(new[] {
             new ParagraphBlock(ParseTableCellInlines(cell, options, state))
         }) {
-            SourceSpan = cell.SourceSpan
+            SourceSpan = state.CaptureSyntaxTree ? cell.SourceSpan : null
         };
     }
 
@@ -599,7 +605,7 @@ public static partial class MarkdownReader {
             if (ch == '|' && codeFenceLen == 0) {
                 pipes ??= new List<TablePipeSource>();
                 var pipeColumn = GetVisualColumnForRawIndex(line, index);
-                var span = CreateSpan(state, absoluteLine, pipeColumn, absoluteLine, pipeColumn);
+                var span = CreateRequiredSpan(state, absoluteLine, pipeColumn, absoluteLine, pipeColumn);
                 pipes.Add(new TablePipeSource(rowIndex, pipes.Count, span));
             }
 
@@ -645,7 +651,7 @@ public static partial class MarkdownReader {
         string text = UnescapeBackslashEscapesOutsideCodeSpans(markdown);
         int startColumn = hasContent ? trimmedStart + 1 : segmentStart + 1;
         int endColumn = hasContent ? trimmedEndExclusive : Math.Max(startColumn, segmentEndExclusive);
-        var span = CreateSpan(state, absoluteLine, startColumn, absoluteLine, endColumn);
+        var span = CreateRequiredSpan(state, absoluteLine, startColumn, absoluteLine, endColumn);
         return new TableCellSourceFragment(markdown, text, span);
     }
 

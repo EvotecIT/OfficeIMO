@@ -40,7 +40,7 @@ public static partial class MarkdownReader {
             } else {
                 firstStartColumn = GetListLeadContentStartColumn(lines[i], options, firstIsTask);
             }
-            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe
+            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                 ? null
                 : new List<MarkdownSourceLineSlice>();
             var firstLines = ConsumeListContinuationLines(
@@ -63,7 +63,7 @@ public static partial class MarkdownReader {
             if (continuationIndentsByLevel != null) {
                 TrackListItemContinuationIndent(continuationIndentsByLevel, first.Level, firstContinuationIndent);
             }
-            if (!state.IsListBoundaryProbe) {
+            if (!state.IsListBoundaryProbe && state.CaptureSyntaxTree) {
                 AddListItemLeadSyntaxNodes(first, firstLines, i, options, state, firstSourceLines);
             }
             ol.Items.Add(first);
@@ -103,7 +103,7 @@ public static partial class MarkdownReader {
                 } else {
                     startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask);
                 }
-                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe
+                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe || !state.CaptureSyntaxTree
                     ? null
                     : new List<MarkdownSourceLineSlice>();
                 var itemLines = ConsumeListContinuationLines(
@@ -131,7 +131,7 @@ public static partial class MarkdownReader {
                 if (continuationIndentsByLevel != null) {
                     TrackListItemContinuationIndent(continuationIndentsByLevel, li.Level, continuationIndent);
                 }
-                if (!state.IsListBoundaryProbe) {
+                if (!state.IsListBoundaryProbe && state.CaptureSyntaxTree) {
                     AddListItemLeadSyntaxNodes(li, itemLines, itemStart, options, state, itemSourceLines);
                 }
                 ol.Items.Add(li);
@@ -139,7 +139,7 @@ public static partial class MarkdownReader {
 
                 ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, continuationIndent, options, state, li, allowNestedOrdered: true, allowNestedUnordered: true);
             }
-            if (state.IsListBoundaryProbe) {
+            if (state.IsListBoundaryProbe || !state.CaptureSyntaxTree) {
                 doc.AddWithoutObjectTreeBinding(ol);
             } else {
                 doc.Add(ol);

@@ -5,14 +5,17 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     private readonly ParagraphBlock _leadParagraphBlock;
-    private readonly List<ParagraphBlock> _additionalParagraphBlocks = new List<ParagraphBlock>();
-    private readonly List<ParagraphBlock> _paragraphBlocks = new List<ParagraphBlock>();
-    private readonly List<IMarkdownBlock> _blockChildren = new List<IMarkdownBlock>();
+    private List<ParagraphBlock>? _additionalParagraphBlocks;
+    private List<ParagraphBlock>? _paragraphBlocks;
+    private List<IMarkdownBlock>? _blockChildren;
+    private List<InlineSequence>? _additionalParagraphs;
+    private List<IMarkdownBlock>? _nestedBlocks;
+    private List<MarkdownSyntaxNode>? _syntaxChildren;
 
     /// <summary>Inlines representing item content.</summary>
     public InlineSequence Content { get; }
     /// <summary>Additional paragraphs inside the list item (multi-paragraph list items).</summary>
-    public List<InlineSequence> AdditionalParagraphs { get; } = new List<InlineSequence>();
+    public List<InlineSequence> AdditionalParagraphs => _additionalParagraphs ??= new List<InlineSequence>();
     /// <summary>
     /// Paragraph blocks owned by this list item.
     /// This exposes list-item paragraph content as blocks for AST-style consumers.
@@ -20,16 +23,16 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public IReadOnlyList<ParagraphBlock> ParagraphBlocks {
         get {
             EnsureParagraphBlocks();
-            return _paragraphBlocks;
+            return _paragraphBlocks!;
         }
     }
     /// <summary>Nested block content inside the list item (e.g., nested ordered/unordered lists, code blocks).</summary>
-    public List<IMarkdownBlock> NestedBlocks { get; } = new List<IMarkdownBlock>();
+    public List<IMarkdownBlock> NestedBlocks => _nestedBlocks ??= new List<IMarkdownBlock>();
     /// <summary>Ordered AST-style view of all list-item child blocks, including lead paragraphs.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks {
         get {
             EnsureChildBlocks();
-            return _blockChildren;
+            return _blockChildren!;
         }
     }
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
@@ -51,7 +54,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
     public bool ForceLoose { get; set; }
-    internal List<MarkdownSyntaxNode> SyntaxChildren { get; } = new List<MarkdownSyntaxNode>();
+    internal List<MarkdownSyntaxNode> SyntaxChildren => _syntaxChildren ??= new List<MarkdownSyntaxNode>();
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     /// <summary>Creates a plain list item.</summary>
@@ -59,6 +62,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         Content = content ?? new InlineSequence();
         _leadParagraphBlock = new ParagraphBlock(Content);
     }
+
+    internal ParagraphBlock LeadParagraphBlock => _leadParagraphBlock;
+    internal bool HasAdditionalParagraphs => _additionalParagraphs?.Count > 0;
+    internal int NestedBlockCount => _nestedBlocks?.Count ?? 0;
+    internal IReadOnlyList<IMarkdownBlock> NestedBlocksOrEmpty => _nestedBlocks ?? (IReadOnlyList<IMarkdownBlock>)Array.Empty<IMarkdownBlock>();
 
     private ListItem(InlineSequence content, bool isTask, bool isChecked) {
         Content = content ?? new InlineSequence();
@@ -385,6 +393,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
 
     private void EnsureParagraphBlocks() {
+        _paragraphBlocks ??= new List<ParagraphBlock>();
         SyncAdditionalParagraphBlocks();
 
         _paragraphBlocks.Clear();
@@ -392,16 +401,17 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             _paragraphBlocks.Add(_leadParagraphBlock);
         }
 
-        for (int i = 0; i < _additionalParagraphBlocks.Count; i++) {
+        for (int i = 0; i < _additionalParagraphBlocks!.Count; i++) {
             _paragraphBlocks.Add(_additionalParagraphBlocks[i]);
         }
     }
 
     private void EnsureChildBlocks() {
+        _blockChildren ??= new List<IMarkdownBlock>();
         EnsureParagraphBlocks();
 
         _blockChildren.Clear();
-        for (int i = 0; i < _paragraphBlocks.Count; i++) {
+        for (int i = 0; i < _paragraphBlocks!.Count; i++) {
             _blockChildren.Add(_paragraphBlocks[i]);
         }
 
@@ -411,6 +421,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
 
     private void SyncAdditionalParagraphBlocks() {
+        _additionalParagraphBlocks ??= new List<ParagraphBlock>();
         while (_additionalParagraphBlocks.Count > AdditionalParagraphs.Count) {
             _additionalParagraphBlocks.RemoveAt(_additionalParagraphBlocks.Count - 1);
         }

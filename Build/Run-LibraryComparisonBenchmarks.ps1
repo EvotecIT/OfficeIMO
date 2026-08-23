@@ -136,7 +136,7 @@ $definitions = [ordered]@{
     }
     markdownparse = [pscustomobject]@{
         Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
-        Filter = '*MarkdownParseBenchmarks.*_Parse_CommonMark'
+        Filter = '*MarkdownParseBenchmarks.*_ParseSemantic*_CommonMark'
         ComparisonId = "markdown-commonmark-parse-$Framework"
         Suite = 'OfficeIMO.Markdown.CommonMarkParse'
         IdentityVariables = @('corpusname')
@@ -149,7 +149,7 @@ $definitions = [ordered]@{
                 'LongNestedList',
                 'LargeTable',
                 'NormalizationStress')) {
-                foreach ($engine in @('OfficeIMO', 'Markdig')) {
+                foreach ($engine in @('OfficeIMO-Semantic', 'Markdig')) {
                     "$engine|CorpusName=$corpus"
                 }
             }

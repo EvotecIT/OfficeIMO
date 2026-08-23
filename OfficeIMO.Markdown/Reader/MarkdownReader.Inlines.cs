@@ -5,7 +5,21 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
-        var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
+        InlineSequence sequence;
+        if (state?.CaptureSyntaxTree == false
+            && sourceMap == null
+            && options.InlineParserExtensions.Count == 0
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)) {
+            sequence = new InlineSequence { AutoSpacing = false };
+            if (!string.IsNullOrEmpty(text)) {
+                sequence.AddRaw(new MarkdownTextRun(text));
+            }
+        } else if (TryParseSimpleCommonMarkInlines(text, options, state, sourceMap, out var simpleSequence)) {
+            sequence = simpleSequence;
+        } else {
+            sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
+        }
+
         ApplyGenericAttributesToInlineElements(sequence, options);
         NormalizeInlineSequenceInPlace(sequence, options.InputNormalization);
         ApplyInlineTransformExtensions(sequence, text, options, state);
@@ -24,8 +38,18 @@ public static partial class MarkdownReader {
         int imageAltDepth = 0) {
         var root = new InlineSequence { AutoSpacing = false };
         if (string.IsNullOrEmpty(text)) return root;
+        bool captureSyntaxMetadata = state?.CaptureSyntaxTree != false;
         var inlineParserExtensions = BuildEffectiveInlineParserExtensions(options);
-        inlineHtmlWrapperMatches ??= BuildInlineHtmlWrapperMatchIndex(text);
+        if (sourceMap == null
+            && inlineParserExtensions.Count == 0
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)) {
+            root.AddRaw(new MarkdownTextRun(text));
+            return root;
+        }
+
+        inlineHtmlWrapperMatches ??= options.InlineHtml
+            ? BuildInlineHtmlWrapperMatchIndex(text)
+            : InlineHtmlWrapperMatchIndex.Empty;
         EmphasisClosingRunIndex? emphasisClosingRuns = text.IndexOf('*') >= 0 || text.IndexOf('_') >= 0
             ? EmphasisClosingRunIndex.Build(text, options.CjkFriendlyEmphasis)
             : null;
@@ -55,12 +79,14 @@ public static partial class MarkdownReader {
                     sourceMap?.GetSpan(contentStart, contentLength));
             }
 
-            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
-                node,
-                marker,
-                sourceMap?.GetSpan(start, fenceLength),
-                marker,
-                sourceMap?.GetSpan(closingStart, fenceLength));
+            if (captureSyntaxMetadata) {
+                MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                    node,
+                    marker,
+                    sourceMap?.GetSpan(start, fenceLength),
+                    marker,
+                    sourceMap?.GetSpan(closingStart, fenceLength));
+            }
             AddRawNode(node, start, closingStart + fenceLength - start);
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new MarkdownTextRun(literal), start, length);
@@ -221,14 +247,16 @@ public static partial class MarkdownReader {
                 link,
                 targetLength > 0 ? sourceMap?.GetSpan(targetStart, targetLength) : null,
                 titleStart.HasValue && titleLength.HasValue ? sourceMap?.GetSpan(titleStart.Value, titleLength.Value) : null);
-            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
-                link,
-                "[",
-                sourceMap?.GetSpan(start, 1),
-                ")",
-                sourceMap?.GetSpan(start + length - 1, 1),
-                "](",
-                sourceMap?.GetSpan(start + labelLength + 1, 2));
+            if (captureSyntaxMetadata) {
+                MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                    link,
+                    "[",
+                    sourceMap?.GetSpan(start, 1),
+                    ")",
+                    sourceMap?.GetSpan(start + length - 1, 1),
+                    "](",
+                    sourceMap?.GetSpan(start + labelLength + 1, 2));
+            }
         }
         void AddInlineImageNode(
             string alt,

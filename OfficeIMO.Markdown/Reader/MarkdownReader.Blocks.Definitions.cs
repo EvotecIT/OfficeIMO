@@ -9,7 +9,7 @@ public static partial class MarkdownReader {
         if (string.IsNullOrWhiteSpace(line)) return false;
         var trimmed = line.TrimStart();
         if (IsAtxHeading(trimmed, out _, out _)) return false; // headings take priority over definition lists
-        if (IsUnorderedListLine(trimmed, out _, out _, out _)) return false; // list items with ":" are not definition terms
+        if (IsUnorderedListLine(trimmed)) return false; // list items with ":" are not definition terms
         if (IsOrderedListLine(trimmed, out _, out _)) return false; // numbered list items with ":" are not definition terms
         if (StartsWithReferenceDefinitionLikeLabel(trimmed)) return false; // malformed or valid link ref definitions should not become <dl>
         return TryGetDefinitionSeparator(line, out _);

@@ -75,4 +75,31 @@ public static partial class MarkdownReader {
         }
         return false;
     }
+
+    private static bool ContainsPotentialInlineSyntax(
+        string text,
+        MarkdownReaderOptions options,
+        bool allowLinks,
+        bool allowImages) {
+        if (options.Abbreviations) {
+            return true;
+        }
+
+        for (int i = 0; i < text.Length; i++) {
+            char value = text[i];
+            if (value == '\\' || value == '&' || value == '\n' ||
+                IsPotentialInlineStart(value, options.InlineHtml, allowLinks, allowImages)) {
+                return true;
+            }
+
+            if ((options.AutolinkUrls && (value == 'h' || value == 'H')) ||
+                (options.AutolinkWwwUrls && (value == 'w' || value == 'W')) ||
+                (options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(value)) ||
+                (options.AutolinkEmails && IsEmailStartChar(value))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

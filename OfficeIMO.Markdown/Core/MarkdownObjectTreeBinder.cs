@@ -205,6 +205,10 @@ internal static class MarkdownObjectTreeBinder {
         MarkdownObject? nextSibling) {
         node.SetTreePosition(parent, indexInParent, previousSibling, nextSibling);
 
+        if (TryBindKnownChildren(node)) {
+            return;
+        }
+
         var children = GetChildObjects(node);
         for (int i = 0; i < children.Count; i++) {
             BindObject(
@@ -213,6 +217,106 @@ internal static class MarkdownObjectTreeBinder {
                 i,
                 i > 0 ? children[i - 1] : null,
                 i + 1 < children.Count ? children[i + 1] : null);
+        }
+    }
+
+    private static bool TryBindKnownChildren(MarkdownObject parent) {
+        switch (parent) {
+            case MarkdownDoc document when document.DocumentHeader == null:
+                BindChildren(parent, document.Blocks);
+                return true;
+
+            case HeadingBlock heading:
+                BindOnlyChild(parent, heading.Inlines);
+                return true;
+
+            case IMarkdownListBlock listBlock:
+                BindChildren(parent, listBlock.ListItems);
+                return true;
+
+            case ListItem listItem when !listItem.HasAdditionalParagraphs:
+                BindChildren(
+                    parent,
+                    listItem.Content.Nodes.Count > 0 || listItem.NestedBlockCount == 0
+                        ? listItem.LeadParagraphBlock
+                        : null,
+                    listItem.NestedBlocksOrEmpty);
+                return true;
+
+            case ListItem listItem:
+                BindChildren(parent, listItem.ChildBlocks);
+                return true;
+
+            case InlineSequence inlineSequence:
+                BindChildren(parent, inlineSequence.Nodes);
+                return true;
+
+            case IInlineSyntaxMarkdownBlock inlineBlock:
+                BindOnlyChild(parent, inlineBlock.SyntaxInlines);
+                return true;
+
+            case IInlineContainerMarkdownInline inlineContainer
+                when inlineContainer is not IChildMarkdownBlockContainer
+                && inlineContainer is not ISyntaxChildrenMarkdownBlock:
+                if (inlineContainer.NestedInlines is MarkdownObject nestedInlines) {
+                    BindOnlyChild(parent, nestedInlines);
+                }
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private static void BindOnlyChild(MarkdownObject parent, MarkdownObject child) {
+        BindObject(child, parent, indexInParent: 0, previousSibling: null, nextSibling: null);
+    }
+
+    private static void BindChildren<T>(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<T> children) {
+        MarkdownObject? previousSibling = null;
+        MarkdownObject? pendingChild = leadingChild;
+        int childIndex = leadingChild == null ? 0 : 1;
+
+        for (int i = 0; i < children.Count; i++) {
+            if (children[i] is not MarkdownObject child) {
+                continue;
+            }
+
+            if (pendingChild != null) {
+                BindObject(pendingChild, parent, childIndex - 1, previousSibling, child);
+                previousSibling = pendingChild;
+            }
+
+            pendingChild = child;
+            childIndex++;
+        }
+
+        if (pendingChild != null) {
+            BindObject(pendingChild, parent, childIndex - 1, previousSibling, nextSibling: null);
+        }
+    }
+
+    private static void BindChildren<T>(MarkdownObject parent, IReadOnlyList<T> children) {
+        MarkdownObject? previousSibling = null;
+        MarkdownObject? pendingChild = null;
+        int childIndex = 0;
+
+        for (int i = 0; i < children.Count; i++) {
+            if (children[i] is not MarkdownObject child) {
+                continue;
+            }
+
+            if (pendingChild != null) {
+                BindObject(pendingChild, parent, childIndex - 1, previousSibling, child);
+                previousSibling = pendingChild;
+            }
+
+            pendingChild = child;
+            childIndex++;
+        }
+
+        if (pendingChild != null) {
+            BindObject(pendingChild, parent, childIndex - 1, previousSibling, nextSibling: null);
         }
     }
 

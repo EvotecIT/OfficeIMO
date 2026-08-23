@@ -11,8 +11,8 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsParagraphInterruptingUnorderedListLine(string line) {
-        return IsUnorderedListLine(line, out _, out _, out string content)
-               && !string.IsNullOrWhiteSpace(content);
+        return TryGetUnorderedListMarkerInfo(line, out _, out int contentStartIndex)
+               && !IsWhiteSpaceFrom(line, contentStartIndex);
     }
 
     private static bool LastCollectedLinePreservesIndentedContinuation(List<string> collected, MarkdownReaderOptions? options = null) {
@@ -79,15 +79,18 @@ public static partial class MarkdownReader {
             }
 
             int lineIndentColumns = CountLeadingIndentColumns(line);
+            int relativeLineIndentColumns = state?.CaptureSyntaxTree == false
+                ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
+                : lineIndentColumns;
             bool underIndentedMarkerContinuation = options.StrictListIndentation
-                && lineIndentColumns > 3
+                && relativeLineIndentColumns > 3
                 && lineIndentColumns < continuationIndent;
             bool breakOnOrderedListLine = breakOnAnyOrderedListLine ||
                 IsMarkdigDefinitionLazyOrderedListBoundary(state, k, line, options);
 
             // Stop before the next list item (including nested items).
             if (!underIndentedMarkerContinuation &&
-                (IsUnorderedListLine(line, out _, out _, out _, out _) ||
+                (IsUnorderedListLine(line) ||
                 (breakOnOrderedListLine ? IsOrderedListLine(line, options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line, options)))) {
                 break;
             }
@@ -148,7 +151,7 @@ public static partial class MarkdownReader {
                 var next = lines[peek] ?? string.Empty;
                 bool nextBreakOnOrderedListLine = breakOnAnyOrderedListLine ||
                     IsMarkdigDefinitionLazyOrderedListBoundary(state, peek, next, options);
-                if (IsUnorderedListLine(next, out _, out _, out _, out _) ||
+                if (IsUnorderedListLine(next) ||
                     (nextBreakOnOrderedListLine ? IsOrderedListLine(next, options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next, options))) {
                     break;
                 }
@@ -192,6 +195,40 @@ public static partial class MarkdownReader {
 
         nextIndex = k;
         return collected;
+    }
+
+    private static bool IsImmediateListLeadBoundary(
+        string[] lines,
+        int nextIndex,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        bool breakOnAnyOrderedListLine,
+        MarkdownReaderState? state) {
+        if (lines == null || nextIndex >= lines.Length) {
+            return true;
+        }
+
+        string line = lines[nextIndex] ?? string.Empty;
+        int lineIndentColumns = CountLeadingIndentColumns(line);
+        int relativeLineIndentColumns = state?.CaptureSyntaxTree == false
+            ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
+            : lineIndentColumns;
+        bool underIndentedMarkerContinuation = options.StrictListIndentation
+            && relativeLineIndentColumns > 3
+            && lineIndentColumns < continuationIndent;
+        if (underIndentedMarkerContinuation) {
+            return false;
+        }
+
+        if (IsUnorderedListLine(line)) {
+            return true;
+        }
+
+        bool breakOnOrderedListLine = breakOnAnyOrderedListLine
+            || IsMarkdigDefinitionLazyOrderedListBoundary(state, nextIndex, line, options);
+        return breakOnOrderedListLine
+            ? IsOrderedListLine(line, options, out _, out _, out _, out _)
+            : IsParagraphInterruptingOrderedListLine(line, options);
     }
 
     private static bool IsMarkdigDefinitionLazyOrderedListBoundary(
@@ -245,7 +282,7 @@ public static partial class MarkdownReader {
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
         int sourceIndentColumns = CountLeadingIndentColumns(source);
-        if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) {
+        if (IsUnorderedListLine(trimmed)) {
             if (sourceIndentColumns <= 3) return false;
             normalized = trimmed;
             return true;
@@ -458,7 +495,7 @@ public static partial class MarkdownReader {
 
         if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.List)
             && ((options.OrderedLists && IsOrderedListLine(nextSlice, options, out _, out _))
-                || (options.UnorderedLists && IsUnorderedListLine(nextSlice, out _, out _, out _, out _)))) {
+                || (options.UnorderedLists && IsUnorderedListLine(nextSlice)))) {
             return true;
         }
 
@@ -635,7 +672,7 @@ public static partial class MarkdownReader {
         }
 
         if (options.UnorderedLists &&
-            IsUnorderedListLine(line, out int unorderedLevelAbs, out _, out _, out _) &&
+            IsUnorderedListLine(line, out int unorderedLevelAbs) &&
             unorderedLevelAbs >= itemLevelAbs + 1) {
             return true;
         }
