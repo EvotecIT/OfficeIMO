@@ -14,8 +14,14 @@ public static class PdfTextPreflight {
         string text,
         byte[] fontData,
         string source = "",
-        string? fontName = null) =>
-        PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontData, source, fontName);
+        string? fontName = null) {
+        Guard.NotNull(fontData, nameof(fontData));
+        return PdfTextDiagnostics.AnalyzeEmbeddedFontText(
+            text,
+            (byte[])fontData.Clone(),
+            source,
+            fontName);
+    }
 
     /// <summary>Finds right-to-left, complex-script shaping, mark-positioning, and line-breaking requirements.</summary>
     public static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedLayout(

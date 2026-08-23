@@ -44,6 +44,22 @@ public sealed class PdfFontProgramCacheTests {
     }
 
     [Fact]
+    public void PdfTextPreflightDoesNotReuseBlueprintAfterCallerMutatesBytes() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        Assert.Empty(PdfTextPreflight.AnalyzeEmbeddedFont("A", fontData, fontName: "Mutable preflight test"));
+
+        Array.Clear(fontData, 0, 4);
+
+        Assert.Throws<NotSupportedException>(() =>
+            PdfTextPreflight.AnalyzeEmbeddedFont("A", fontData, fontName: "Mutable preflight test"));
+    }
+
+    [Fact]
     public void TrueTypeSubsetDropsLayoutAndDeviceMetricTablesButRemainsParseable() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

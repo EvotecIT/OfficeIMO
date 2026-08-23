@@ -39,10 +39,15 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
-            if (!exportPlans.Any(plan => plan.Charts.Count > 0)) {
+            if (!exportPlans.Any(plan => plan.Charts.Count > 0) &&
+                (!options.UseWorksheetHeadersAndFooters ||
+                 !WorksheetHeaderFootersRequireConservativeTextFallbacks(exportPlans))) {
                 fallbackFeatures = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(
                     fallbackFeatures,
-                    EnumerateWorksheetFallbackText(exportPlans, options.EmptyCellText));
+                    EnumerateWorksheetFallbackText(
+                        exportPlans,
+                        options.EmptyCellText,
+                        options.UseWorksheetHeadersAndFooters));
             }
             if (fallbackFeatures == PdfCore.PdfTextFallbackFeatures.None) {
                 return;
@@ -61,7 +66,8 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static IEnumerable<string?> EnumerateWorksheetFallbackText(
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans,
-            string emptyCellText) {
+            string emptyCellText,
+            bool includeHeaderFooterText) {
             yield return emptyCellText;
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
                 yield return plan.SheetName;
@@ -81,12 +87,59 @@ namespace OfficeIMO.Excel.Pdf {
                     }
                 }
 
-                if (plan.HeaderFooter != null) {
+                if (includeHeaderFooterText && plan.HeaderFooter != null) {
                     foreach (string? text in EnumerateHeaderFooterTextZones(plan.HeaderFooter)) {
                         yield return text;
                     }
                 }
             }
+        }
+
+        private static bool WorksheetHeaderFootersRequireConservativeTextFallbacks(
+            IReadOnlyList<WorksheetPdfExportPlan> exportPlans) {
+            foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                if (plan.HeaderFooter == null) {
+                    continue;
+                }
+
+                foreach (string? text in EnumerateHeaderFooterTextZones(plan.HeaderFooter)) {
+                    if (HeaderFooterContainsDynamicTextField(text)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HeaderFooterContainsDynamicTextField(string? text) {
+            if (string.IsNullOrEmpty(text)) {
+                return false;
+            }
+
+            for (int index = 0; index < text!.Length - 1; index++) {
+                if (text[index] != '&') {
+                    continue;
+                }
+
+                char token = text[index + 1];
+                if (token == '&') {
+                    index++;
+                    continue;
+                }
+
+                if (token == '"' &&
+                    TryReadHeaderFooterQuotedToken(text, index + 1, out _, out int endIndex)) {
+                    index = endIndex;
+                    continue;
+                }
+
+                if (token is 'D' or 'T' or 'F' or 'Z') {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {

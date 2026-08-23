@@ -835,6 +835,54 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesGroupedChartUnicodeText() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new PowerPointChartData(
+            new[] { "Północ", "Południe" },
+            new[] { new PowerPointChartSeries("Sprzedaż", new[] { 12D, 18D }) });
+        PowerPointChart chart = slide.AddChartPoints(data, 40, 32, 240, 172);
+        chart.SetTitle("Zażółć wykres");
+        PowerPointAutoShape frame = slide.AddRectanglePoints(36, 28, 248, 180);
+        frame.FillTransparency = 100;
+        slide.GroupShapes(new PowerPointShape[] { chart, frame });
+
+        byte[] bytes = presentation.ToPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Zażółć wykres", text, StringComparison.Ordinal);
+        Assert.Contains("Sprzedaż", text, StringComparison.Ordinal);
+        Assert.Contains("Północ", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesGroupedSmartArtUnicodeText() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(640, 360);
+        PowerPointSlide slide = presentation.AddSlide();
+        PowerPointSmartArt smartArt = slide.AddSmartArt(
+            PowerPointSmartArtType.BasicProcess,
+            new[] { "Zażółć", "Źródło", "Weryfikacja" },
+            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+        PowerPointAutoShape frame = slide.AddRectanglePoints(36, 36, 568, 288);
+        frame.FillTransparency = 100;
+        slide.GroupShapes(new PowerPointShape[] { smartArt, frame });
+
+        byte[] bytes = presentation.ToPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Zażółć", text, StringComparison.Ordinal);
+        Assert.Contains("Źródło", text, StringComparison.Ordinal);
+        Assert.Contains("Weryfikacja", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_AppliesGroupTransformToChildShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

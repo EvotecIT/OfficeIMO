@@ -24,10 +24,10 @@ public class PdfHtmlPayloadBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _scenario = PdfHtmlPayloadScenario.Create(Payload);
-        if (Payload == PdfHtmlPayloadKind.Multilingual &&
-            !PdfEmbeddedFontFamily.TryFromSystem("Yu Gothic", out _multilingualFont)) {
-            throw new InvalidOperationException(
-                "The multilingual HTML comparison requires the same embeddable Yu Gothic fallback for both engines.");
+        if (Payload == PdfHtmlPayloadKind.Multilingual) {
+            _multilingualFont = new PdfEmbeddedFontFamily(
+                "Carlito",
+                PdfBenchmarkAssets.CarlitoRegular);
         }
     }
 
@@ -100,19 +100,19 @@ public class PdfHtmlPayloadBenchmarks {
             ?? throw new InvalidOperationException("The multilingual benchmark font was not initialized.");
         string expectedFont = NormalizeFontName(font.FamilyName);
         bool embedded = Encoding.Latin1.GetString(bytes).Contains("/FontFile", StringComparison.Ordinal);
-        bool usedForJapanese = false;
+        bool usedForGreek = false;
         using (var stream = new MemoryStream(bytes, writable: false)) {
             using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream);
-            usedForJapanese = document.GetPages()
+            usedForGreek = document.GetPages()
                 .SelectMany(page => page.Letters)
                 .Any(letter =>
-                    letter.Value.Contains('日') &&
+                    letter.Value.Contains('Ε') &&
                     NormalizeFontName(letter.FontName ?? string.Empty).Contains(expectedFont, StringComparison.Ordinal));
         }
 
-        if (!embedded || !usedForJapanese) {
+        if (!embedded || !usedForGreek) {
             throw new InvalidDataException(
-                $"{engine} did not embed and use the shared '{font.FamilyName}' font for Japanese fallback text.");
+                $"{engine} did not embed and use the shared '{font.FamilyName}' font for multilingual text.");
         }
     }
 

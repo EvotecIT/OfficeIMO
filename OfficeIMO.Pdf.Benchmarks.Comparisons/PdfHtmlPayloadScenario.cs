@@ -16,7 +16,7 @@ internal sealed record PdfHtmlPayloadScenario(
 
     internal static PdfHtmlPayloadScenario Create(PdfHtmlPayloadKind kind) {
         string fontFamily = kind == PdfHtmlPayloadKind.Multilingual
-            ? "'Arial','Yu Gothic',sans-serif"
+            ? "'Carlito',sans-serif"
             : "sans-serif";
         string prefix = kind == PdfHtmlPayloadKind.Table
             ? $"<!doctype html><html><head><meta charset='utf-8'><style>@page{{size:A4;margin:12mm}}body{{font:10pt {fontFamily}}}table{{width:100%;border-collapse:collapse}}td,th{{border:1px solid #789;padding:3px}}</style></head><body><h1>HTML-PDF-21K</h1><table><thead><tr><th>Id</th><th>Description</th><th>Amount</th></tr></thead><tbody>"
@@ -29,7 +29,7 @@ internal sealed record PdfHtmlPayloadScenario(
         string unit = kind switch {
             PdfHtmlPayloadKind.PlainText => "<p>ITEM-0001 · Deterministic conversion evidence for account records, pagination, searchable text, and output size.</p>",
             PdfHtmlPayloadKind.Table => "<tr><td>ROW-0001</td><td>Deterministic account conversion evidence</td><td>1234.50</td></tr>",
-            PdfHtmlPayloadKind.Multilingual => "<p>ITEM-0001 · Zażółć gęślą jaźń · Ελληνικά · Русский · العربية · עברית · 日本語 · HTML PDF evidence.</p>",
+            PdfHtmlPayloadKind.Multilingual => "<p>ITEM-0001 · Zażółć gęślą jaźń · Ελληνικά · Русский · Čeština · HTML PDF evidence.</p>",
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
 
@@ -82,9 +82,7 @@ internal sealed record PdfHtmlPayloadScenario(
                     "Zażółć gęślą jaźń",
                     "Ελληνικά",
                     "Русский",
-                    "العربية",
-                    "עברית",
-                    "日本語",
+                    "Čeština",
                     "HTML PDF evidence",
                     terminalMarker
                 },

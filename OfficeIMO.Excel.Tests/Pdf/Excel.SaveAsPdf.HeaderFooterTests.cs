@@ -85,6 +85,32 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_NonWinAnsi_Dynamic_File_Field() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "Zażółć-Źródło.xlsx");
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 0,
+            PageSize = new PdfCore.PageSize(720, 320),
+            Margins = PdfCore.PageMargins.Uniform(54)
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dashboard")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "DynamicHeaderFooterBody");
+            sheet.SetHeaderFooter(headerCenter: "Source &F");
+            document.Save();
+
+            bytes = document.ToPdf(options);
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Source " + Path.GetFileName(workbookPath), text);
+        Assert.Contains("DynamicHeaderFooterBody", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Simple_Worksheet_HeaderFooter_Formatting() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFormatting.xlsx");
 
@@ -468,19 +494,21 @@ public partial class Excel {
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Can_Disable_Worksheet_HeaderFooter_Text_Zones() {
-        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterDisabled.xlsx");
+        string workbookPath = Path.Combine(_directoryWithFiles, "Zażółć-HeaderFooterDisabled.xlsx");
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dashboard")) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Metric");
             sheet.Cell(2, 1, "BodyOnly");
-            sheet.SetHeaderFooter(headerCenter: "DoNotExportHeader", footerCenter: "DoNotExportFooter");
+            sheet.SetHeaderFooter(headerCenter: "DoNotExportHeader &F", footerCenter: "DoNotExportFooter");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
-                UseWorksheetHeadersAndFooters = false
+                UseWorksheetHeadersAndFooters = false,
+                UseWorksheetHeaderFooterImages = true,
+                UseWorksheetCellStyles = false
             });
         }
 
@@ -489,6 +517,8 @@ public partial class Excel {
         Assert.Contains("BodyOnly", text);
         Assert.DoesNotContain("DoNotExportHeader", text);
         Assert.DoesNotContain("DoNotExportFooter", text);
+        Assert.DoesNotContain(Path.GetFileName(workbookPath), text);
+        Assert.DoesNotContain("/FontFile", PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
     }
 
 }

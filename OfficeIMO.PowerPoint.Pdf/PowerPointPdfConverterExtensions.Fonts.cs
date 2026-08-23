@@ -74,10 +74,38 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
 
-            if (slide.Shapes.Any(shape =>
-                    shape is PptCore.PowerPointChart or PptCore.PowerPointSmartArt) ||
-                slide.GetInheritedShapesForExport().Any(shape =>
-                    shape is PptCore.PowerPointChart or PptCore.PowerPointSmartArt)) {
+            if (ContainsPresentationConservativeFallbackShape(
+                    slide.GetInheritedShapesForExport(), options, groupDepth: 0) ||
+                ContainsPresentationConservativeFallbackShape(
+                    slide.Shapes, options, groupDepth: 0)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsPresentationConservativeFallbackShape(
+        IReadOnlyList<PptCore.PowerPointShape> shapes,
+        PowerPointPdfSaveOptions options,
+        int groupDepth) {
+        foreach (PptCore.PowerPointShape shape in shapes) {
+            if (shape.Hidden) {
+                continue;
+            }
+
+            if ((options.IncludeCharts && shape is PptCore.PowerPointChart) ||
+                (options.IncludeSmartArt && shape is PptCore.PowerPointSmartArt)) {
+                return true;
+            }
+
+            if (shape is PptCore.PowerPointGroupShape groupShape &&
+                groupShape.OwnerSlide != null &&
+                (options.MaxGroupShapeDepth < 0 || groupDepth < options.MaxGroupShapeDepth) &&
+                ContainsPresentationConservativeFallbackShape(
+                    groupShape.OwnerSlide.GetGroupChildren(groupShape),
+                    options,
+                    groupDepth + 1)) {
                 return true;
             }
         }
