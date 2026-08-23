@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Security.Cryptography;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -244,6 +245,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(identified.Height, decoded.Height);
             Assert.True(decoded.Width > 100);
             Assert.True(decoded.Height > 100);
+            using (SHA256 sha256 = SHA256.Create()) {
+                Assert.Equal(
+                    "EA87164A1FF1B2CE978E3C007382CD90AAAC5269078CBA79306FD35972231E0D",
+                    BitConverter.ToString(sha256.ComputeHash(decoded.GetPixels())).Replace("-", string.Empty));
+            }
         }
 
         [Fact]

@@ -324,6 +324,11 @@ public static class OfficePngReader {
     }
 
     private static void ExpandScanline(byte[] current, int width, int y, int colorType, int bitDepth, byte[]? palette, byte[]? transparency, OfficeRasterImage image) {
+        if (colorType == 6 && bitDepth == 8) {
+            Buffer.BlockCopy(current, 0, image.PixelBuffer, checked(y * width * 4), checked(width * 4));
+            return;
+        }
+
         for (int x = 0; x < width; x++) {
             OfficeColor color;
             switch (colorType) {
@@ -433,31 +438,42 @@ public static class OfficePngReader {
         blue == ((transparency[4] << 8) | transparency[5]);
 
     private static void Unfilter(byte[] current, byte[] previous, int bytesPerPixel, int filter) {
-        for (int i = 0; i < current.Length; i++) {
-            int left = i >= bytesPerPixel ? current[i - bytesPerPixel] : 0;
-            int up = previous[i];
-            int upLeft = i >= bytesPerPixel ? previous[i - bytesPerPixel] : 0;
-            int value = current[i];
-            switch (filter) {
-                case 0:
-                    break;
-                case 1:
-                    value += left;
-                    break;
-                case 2:
-                    value += up;
-                    break;
-                case 3:
-                    value += (left + up) / 2;
-                    break;
-                case 4:
-                    value += Paeth(left, up, upLeft);
-                    break;
-                default:
-                    throw new InvalidDataException("Unsupported PNG filter.");
-            }
-
-            current[i] = (byte)(value & 0xFF);
+        switch (filter) {
+            case 0:
+                return;
+            case 1:
+                for (int index = bytesPerPixel; index < current.Length; index++) {
+                    current[index] = unchecked((byte)(current[index] + current[index - bytesPerPixel]));
+                }
+                return;
+            case 2:
+                for (int index = 0; index < current.Length; index++) {
+                    current[index] = unchecked((byte)(current[index] + previous[index]));
+                }
+                return;
+            case 3:
+                int prefixLength = Math.Min(bytesPerPixel, current.Length);
+                for (int index = 0; index < prefixLength; index++) {
+                    current[index] = unchecked((byte)(current[index] + (previous[index] / 2)));
+                }
+                for (int index = bytesPerPixel; index < current.Length; index++) {
+                    current[index] = unchecked((byte)(current[index] + ((current[index - bytesPerPixel] + previous[index]) / 2)));
+                }
+                return;
+            case 4:
+                int firstPixelBytes = Math.Min(bytesPerPixel, current.Length);
+                for (int index = 0; index < firstPixelBytes; index++) {
+                    current[index] = unchecked((byte)(current[index] + previous[index]));
+                }
+                for (int index = bytesPerPixel; index < current.Length; index++) {
+                    current[index] = unchecked((byte)(current[index] + Paeth(
+                        current[index - bytesPerPixel],
+                        previous[index],
+                        previous[index - bytesPerPixel])));
+                }
+                return;
+            default:
+                throw new InvalidDataException("Unsupported PNG filter.");
         }
     }
 

@@ -39,7 +39,7 @@ public static class OfficeWebpCodec {
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
         if (image.Height > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP height cannot exceed 16,384 pixels.");
 
-        byte[] pixels = image.GetPixels();
+        byte[] pixels = image.PixelBuffer;
         bool hasAlpha = HasTransparency(pixels);
         byte[] payload;
         using (var stream = new MemoryStream()) {
@@ -221,7 +221,7 @@ public static class OfficeWebpCodec {
             if (!reader.HasOnlyZeroPadding()) {
                 return false;
             }
-            image = OfficeRasterImage.FromRgba32(width, height, rgba);
+            image = OfficeRasterImage.FromOwnedRgba32(width, height, rgba);
             return true;
         } catch (FormatException) {
             return false;

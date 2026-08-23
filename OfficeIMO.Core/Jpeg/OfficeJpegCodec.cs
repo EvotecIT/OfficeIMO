@@ -14,7 +14,7 @@ public static class OfficeJpegCodec {
         if (!IsJpeg(encodedBytes)) return false;
         try {
             byte[] pixels = OfficeJpegReader.DecodeRgba32(encodedBytes!, out int width, out int height, options);
-            image = OfficeRasterImage.FromRgba32(width, height, pixels);
+            image = OfficeRasterImage.FromOwnedRgba32(width, height, pixels);
             return true;
         } catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is IndexOutOfRangeException || ex is OverflowException) {
             return false;
@@ -25,7 +25,7 @@ public static class OfficeJpegCodec {
     public static OfficeRasterImage Decode(byte[] encodedBytes, OfficeJpegDecodeOptions options = default) {
         if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
         byte[] pixels = OfficeJpegReader.DecodeRgba32(encodedBytes, out int width, out int height, options);
-        return OfficeRasterImage.FromRgba32(width, height, pixels);
+        return OfficeRasterImage.FromOwnedRgba32(width, height, pixels);
     }
 
     internal static bool TryDecodeColorComponents(
@@ -65,9 +65,19 @@ public static class OfficeJpegCodec {
     public static byte[] Encode(OfficeRasterImage image, OfficeJpegEncodeOptions? options = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         OfficeJpegEncodeOptions effectiveOptions = options ?? new OfficeJpegEncodeOptions();
-        byte[] rgba = image.GetPixels();
-        FlattenAlpha(rgba, effectiveOptions.Background);
+        byte[] rgba = image.PixelBuffer;
+        if (HasTransparency(rgba)) {
+            rgba = (byte[])rgba.Clone();
+            FlattenAlpha(rgba, effectiveOptions.Background);
+        }
         return OfficeJpegWriter.WriteRgba(image.Width, image.Height, rgba, checked(image.Width * 4), effectiveOptions);
+    }
+
+    private static bool HasTransparency(byte[] rgba) {
+        for (int index = 3; index < rgba.Length; index += 4) {
+            if (rgba[index] != byte.MaxValue) return true;
+        }
+        return false;
     }
 
     private static void FlattenAlpha(byte[] rgba, OfficeColor background) {

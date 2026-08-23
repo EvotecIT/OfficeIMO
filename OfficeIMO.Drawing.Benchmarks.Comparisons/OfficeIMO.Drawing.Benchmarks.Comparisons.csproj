@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.16.0" />
+    <PackageReference Include="SkiaSharp" Version="4.151.1" />
+    <PackageReference Include="StbImageSharp" Version="2.30.16" />
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.Drawing.Benchmarks\ImageBenchmarkCorpus.cs"
+             Link="Shared\ImageBenchmarkCorpus.cs" />
+    <None Include="..\Assets\Images\Others\Logo-evotec.png"
+          Link="Corpus\logo.png"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Examples\Images\Kulek.jpg"
+          Link="Corpus\photo.jpg"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Examples\Images\example.gif"
+          Link="Corpus\animation.gif"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Examples\Images\saturn.tif"
+          Link="Corpus\saturn.tif"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Examples\Images\snail.bmp"
+          Link="Corpus\snail.bmp"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

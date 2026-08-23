@@ -156,7 +156,7 @@ public static class OfficeGifReader {
                     }
                     ApplyDisposal(canvas, previousFrame, previousDisposalMethod, backgroundColor, restoreCanvas);
                     restoreCanvas = disposalMethod == 3
-                        ? OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.GetPixels())
+                        ? OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.PixelBuffer)
                         : null;
                     if (!TryReadImageFrame(
                         bytes,
@@ -172,7 +172,7 @@ public static class OfficeGifReader {
                     }
 
                     if (frameCount == frameIndex) {
-                        image = OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.GetPixels());
+                        image = OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.PixelBuffer);
                     }
                     previousFrame = frame;
                     previousDisposalMethod = disposalMethod;

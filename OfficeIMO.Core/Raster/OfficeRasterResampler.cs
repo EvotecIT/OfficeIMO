@@ -21,7 +21,7 @@ public static class OfficeRasterResampler {
         OfficeRasterGuards.EnsureOutputPixels(width, height, "Raster resize dimensions exceed the managed image limit.");
 
         if (source.Width == width && source.Height == height) {
-            return OfficeRasterImage.FromRgba32(width, height, source.GetPixels());
+            return OfficeRasterImage.FromRgba32(width, height, source.PixelBuffer);
         }
 
         var result = new OfficeRasterImage(width, height);

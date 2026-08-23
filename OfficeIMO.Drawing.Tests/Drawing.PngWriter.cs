@@ -36,6 +36,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficePngWriter_AdaptiveFilteringPreservesPixelsAndCompressesStructuredRows() {
+            var image = new OfficeRasterImage(128, 64);
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    image.SetPixel(
+                        x,
+                        y,
+                        OfficeColor.FromRgba((byte)x, (byte)(x + y), (byte)(y * 3), (byte)(128 + (x & 127))));
+                }
+            }
+
+            byte[] optimal = OfficePngWriter.Encode(image, OfficePngCompression.Optimal);
+            byte[] stored = OfficePngWriter.Encode(image, OfficePngCompression.Stored);
+
+            Assert.True(OfficePngReader.TryDecode(optimal, out OfficeRasterImage? decoded));
+            Assert.NotNull(decoded);
+            Assert.Equal(image.GetPixels(), decoded!.GetPixels());
+            Assert.True(optimal.Length < stored.Length / 4, $"Expected adaptive PNG ({optimal.Length}) to be materially smaller than stored PNG ({stored.Length}).");
+        }
+
+        [Fact]
         public void OfficePngWriter_RejectsIndexedColorWithoutPalette() {
             byte[] scanlines = { 0, 0 };
 

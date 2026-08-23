@@ -37,10 +37,22 @@ internal static class OfficeRasterGuards {
     }
 
     public static int EnsureInt32ArrayLength(long elements, ref long aggregateBytes, string message) {
+        return EnsureArrayLength(elements, sizeof(int), ref aggregateBytes, message);
+    }
+
+    public static int EnsureInt16ArrayLength(long elements, ref long aggregateBytes, string message) {
+        return EnsureArrayLength(elements, sizeof(short), ref aggregateBytes, message);
+    }
+
+    public static int EnsureByteArrayLength(long elements, ref long aggregateBytes, string message) {
+        return EnsureArrayLength(elements, sizeof(byte), ref aggregateBytes, message);
+    }
+
+    private static int EnsureArrayLength(long elements, int elementSize, ref long aggregateBytes, string message) {
         if (elements <= 0 || elements > int.MaxValue) throw new FormatException(message);
         long bytes;
         try {
-            bytes = checked(elements * sizeof(int));
+            bytes = checked(elements * elementSize);
             aggregateBytes = checked(aggregateBytes + bytes);
         } catch (OverflowException) {
             throw new FormatException(message);

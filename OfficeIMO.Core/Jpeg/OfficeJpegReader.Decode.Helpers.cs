@@ -166,12 +166,33 @@ internal static partial class OfficeJpegReader {
                 : usePdfColorTransformDefault || !hasRgbComponentIds;
 
         var yIndex2 = FindComponentIndex(frame.Components, 1);
-        if (yIndex2 < 0) yIndex2 = 0;
         var cbIndex = frame.ComponentCount > 1 ? FindComponentIndex(frame.Components, 2) : -1;
         var crIndex = frame.ComponentCount > 1 ? FindComponentIndex(frame.Components, 3) : -1;
         if (frame.ComponentCount == 3) {
-            if (cbIndex < 0) cbIndex = yIndex2 == 0 ? 1 : 0;
-            if (crIndex < 0) crIndex = yIndex2 == 2 ? 1 : 2;
+            bool hasConventionalYccIds = yIndex2 >= 0 && cbIndex >= 0 && crIndex >= 0;
+            if (!hasConventionalYccIds) {
+                yIndex2 = 0;
+                cbIndex = 1;
+                crIndex = 2;
+            }
+
+            if (!highQualityChroma) {
+                int firstIndex = transformToRgb ? yIndex2 : hasRgbComponentIds ? rIndex : 0;
+                int secondIndex = transformToRgb ? cbIndex : hasRgbComponentIds ? gIndex : 1;
+                int thirdIndex = transformToRgb ? crIndex : hasRgbComponentIds ? bIndex : 2;
+                ComposeThreeComponentNearest(
+                    components,
+                    frame.Width,
+                    frame.Height,
+                    states[firstIndex],
+                    states[secondIndex],
+                    states[thirdIndex],
+                    maxH,
+                    maxV,
+                    transformToRgb,
+                    outputRgba);
+                return components;
+            }
         }
 
         for (var y = 0; y < frame.Height; y++) {
@@ -214,6 +235,89 @@ internal static partial class OfficeJpegReader {
         }
 
         return components;
+    }
+
+    private static void ComposeThreeComponentNearest(
+        byte[] output,
+        int width,
+        int height,
+        BaselineComponentState first,
+        BaselineComponentState second,
+        BaselineComponentState third,
+        int maximumHorizontalSampling,
+        int maximumVerticalSampling,
+        bool transformYccToRgb,
+        bool outputRgba) {
+        int firstY = 0;
+        int secondY = 0;
+        int thirdY = 0;
+        int firstYAccumulator = 0;
+        int secondYAccumulator = 0;
+        int thirdYAccumulator = 0;
+        int target = 0;
+
+        for (int y = 0; y < height; y++) {
+            int firstRow = firstY * first.Stride;
+            int secondRow = secondY * second.Stride;
+            int thirdRow = thirdY * third.Stride;
+            int firstX = 0;
+            int secondX = 0;
+            int thirdX = 0;
+            int firstXAccumulator = 0;
+            int secondXAccumulator = 0;
+            int thirdXAccumulator = 0;
+
+            for (int x = 0; x < width; x++) {
+                byte firstValue = first.Buffer[firstRow + firstX];
+                byte secondValue = second.Buffer[secondRow + secondX];
+                byte thirdValue = third.Buffer[thirdRow + thirdX];
+                if (transformYccToRgb) {
+                    int red = firstValue + CrToR[thirdValue];
+                    int green = firstValue - CbToG[secondValue] - CrToG[thirdValue];
+                    int blue = firstValue + CbToB[secondValue];
+                    output[target++] = ClampToByte(red);
+                    output[target++] = ClampToByte(green);
+                    output[target++] = ClampToByte(blue);
+                } else {
+                    output[target++] = firstValue;
+                    output[target++] = secondValue;
+                    output[target++] = thirdValue;
+                }
+                if (outputRgba) output[target++] = byte.MaxValue;
+
+                firstXAccumulator += first.Component.H;
+                if (firstXAccumulator >= maximumHorizontalSampling) {
+                    firstX++;
+                    firstXAccumulator -= maximumHorizontalSampling;
+                }
+                secondXAccumulator += second.Component.H;
+                if (secondXAccumulator >= maximumHorizontalSampling) {
+                    secondX++;
+                    secondXAccumulator -= maximumHorizontalSampling;
+                }
+                thirdXAccumulator += third.Component.H;
+                if (thirdXAccumulator >= maximumHorizontalSampling) {
+                    thirdX++;
+                    thirdXAccumulator -= maximumHorizontalSampling;
+                }
+            }
+
+            firstYAccumulator += first.Component.V;
+            if (firstYAccumulator >= maximumVerticalSampling) {
+                firstY++;
+                firstYAccumulator -= maximumVerticalSampling;
+            }
+            secondYAccumulator += second.Component.V;
+            if (secondYAccumulator >= maximumVerticalSampling) {
+                secondY++;
+                secondYAccumulator -= maximumVerticalSampling;
+            }
+            thirdYAccumulator += third.Component.V;
+            if (thirdYAccumulator >= maximumVerticalSampling) {
+                thirdY++;
+                thirdYAccumulator -= maximumVerticalSampling;
+            }
+        }
     }
 
     private static void WriteGrayPixel(byte[] output, int pixel, byte gray, bool outputRgba) {
@@ -316,7 +420,8 @@ internal static partial class OfficeJpegReader {
         int[] quant,
         ref int prevDc,
         int[] coeffs,
-        int[] pixels) {
+        byte[] pixels,
+        int[] workspace) {
         Array.Clear(coeffs, 0, 64);
 
         var t = DecodeHuffman(ref reader, dcTable, useFast: true);
@@ -347,12 +452,11 @@ internal static partial class OfficeJpegReader {
             k++;
         }
 
-        InverseDct(coeffs, pixels);
+        InverseDct(coeffs, pixels, workspace);
     }
 
     private static int DecodeHuffman(ref JpegBitReader reader, HuffmanTable table, bool useFast) {
-        if (useFast && table.Fast is not null && reader.HasBits(HuffmanFastBits)) {
-            var peek = reader.PeekBits(HuffmanFastBits);
+        if (useFast && table.Fast is not null && reader.TryPeekBits(HuffmanFastBits, out int peek)) {
             var entry = table.Fast[peek];
             if (entry >= 0) {
                 var size = entry >> 8;
@@ -381,20 +485,17 @@ internal static partial class OfficeJpegReader {
         return value;
     }
 
-    private static void WriteBlock(int[] buffer, int stride, int blockX, int blockY, int[] pixels) {
+    private static void WriteBlock(byte[] buffer, int stride, int blockX, int blockY, byte[] pixels) {
         var baseX = blockX * 8;
         var baseY = blockY * 8;
         for (var y = 0; y < 8; y++) {
             var row = (baseY + y) * stride + baseX;
             var src = y * 8;
-            for (var x = 0; x < 8; x++) {
-                buffer[row + x] = pixels[src + x];
-            }
+            Buffer.BlockCopy(pixels, src, buffer, row, 8);
         }
     }
 
-    private static void InverseDct(int[] input, int[] output) {
-        int[] workspace = new int[64];
+    private static void InverseDct(int[] input, byte[] output, int[] workspace) {
 
         // Pass 1: process columns into the workspace (scaled by Pass1Bits).
         for (var ctr = 0; ctr < 8; ctr++) {
@@ -890,9 +991,10 @@ internal static partial class OfficeJpegReader {
 
     private sealed class BaselineComponentState {
         public Component Component;
-        public int[] Buffer;
+        public byte[] Buffer;
         public int[] BlockCoeffs;
-        public int[] BlockPixels;
+        public byte[] BlockPixels;
+        public int[] BlockWorkspace;
         public int Stride;
         public int BlocksPerRow;
         public int BlocksPerCol;
@@ -903,10 +1005,11 @@ internal static partial class OfficeJpegReader {
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
-            var bufferLength = OfficeRasterGuards.EnsureInt32ArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
-            Buffer = new int[bufferLength];
+            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
+            Buffer = new byte[bufferLength];
             BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
-            BlockPixels = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             PrevDc = 0;
         }
 
@@ -915,7 +1018,7 @@ internal static partial class OfficeJpegReader {
             int blocksPerRow,
             int blocksPerCol,
             int stride,
-            int[] buffer) {
+            byte[] buffer) {
             return new BaselineComponentState {
                 Component = component,
                 BlocksPerRow = blocksPerRow,
@@ -923,14 +1026,16 @@ internal static partial class OfficeJpegReader {
                 Stride = stride,
                 Buffer = buffer,
                 BlockCoeffs = Array.Empty<int>(),
-                BlockPixels = Array.Empty<int>()
+                BlockPixels = Array.Empty<byte>(),
+                BlockWorkspace = Array.Empty<int>()
             };
         }
 
         private BaselineComponentState() {
-            Buffer = Array.Empty<int>();
+            Buffer = Array.Empty<byte>();
             BlockCoeffs = Array.Empty<int>();
-            BlockPixels = Array.Empty<int>();
+            BlockPixels = Array.Empty<byte>();
+            BlockWorkspace = Array.Empty<int>();
         }
     }
 
@@ -960,7 +1065,12 @@ internal static partial class OfficeJpegReader {
                 }
                 var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * comp.H, JpegDimensionsLimitMessage);
                 var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * comp.V, JpegDimensionsLimitMessage);
-                components[i] = new ProgressiveComponentState(comp, blocksPerRow, blocksPerCol, ref aggregateBytes);
+                components[i] = new ProgressiveComponentState(
+                    comp,
+                    blocksPerRow,
+                    blocksPerCol,
+                    quantTables[comp.QuantId],
+                    ref aggregateBytes);
             }
 
             return new ProgressiveState {
@@ -1000,8 +1110,11 @@ internal static partial class OfficeJpegReader {
                 for (var by = 0; by < compState.BlocksPerCol; by++) {
                     for (var bx = 0; bx < compState.BlocksPerRow; bx++) {
                         var baseIndex = (by * compState.BlocksPerRow + bx) * 64;
-                        Array.Copy(compState.Coeffs, baseIndex, compState.BlockCoeffs, 0, 64);
-                        InverseDct(compState.BlockCoeffs, compState.BlockPixels);
+                        for (int coefficient = 0; coefficient < 64; coefficient++) {
+                            compState.BlockCoeffs[coefficient] =
+                                compState.Coeffs[baseIndex + coefficient] * compState.Quantization[coefficient];
+                        }
+                        InverseDct(compState.BlockCoeffs, compState.BlockPixels, compState.BlockWorkspace);
                         WriteBlock(compState.Buffer, compState.Stride, bx, by, compState.BlockPixels);
                     }
                 }
@@ -1032,24 +1145,33 @@ internal static partial class OfficeJpegReader {
         public Component Component;
         public int BlocksPerRow;
         public int BlocksPerCol;
-        public int[] Coeffs;
-        public int[] Buffer;
+        public short[] Coeffs;
+        public int[] Quantization;
+        public byte[] Buffer;
         public int[] BlockCoeffs;
-        public int[] BlockPixels;
+        public byte[] BlockPixels;
+        public int[] BlockWorkspace;
         public int Stride;
         public int PrevDc;
 
-        public ProgressiveComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes) {
+        public ProgressiveComponentState(
+            Component component,
+            int blocksPerRow,
+            int blocksPerCol,
+            int[] quantization,
+            ref long aggregateBytes) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
+            Quantization = quantization;
             Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
-            var coeffLength = OfficeRasterGuards.EnsureInt32ArrayLength((long)BlocksPerRow * BlocksPerCol * 64, ref aggregateBytes, JpegDimensionsLimitMessage);
-            var bufferLength = OfficeRasterGuards.EnsureInt32ArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
-            Coeffs = new int[coeffLength];
-            Buffer = new int[bufferLength];
+            var coeffLength = OfficeRasterGuards.EnsureInt16ArrayLength((long)BlocksPerRow * BlocksPerCol * 64, ref aggregateBytes, JpegDimensionsLimitMessage);
+            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
+            Coeffs = new short[coeffLength];
+            Buffer = new byte[bufferLength];
             BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
-            BlockPixels = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             PrevDc = 0;
         }
     }
@@ -1139,14 +1261,17 @@ internal static partial class OfficeJpegReader {
 
         public bool AllowTruncated => _allowTruncated;
 
-        public bool HasBits(int count) {
-            return _bitCount >= count;
-        }
-
-        public int PeekBits(int count) {
-            if (count == 0) return 0;
-            EnsureBits(count);
-            return (_bitBuffer >> (_bitCount - count)) & ((1 << count) - 1);
+        public bool TryPeekBits(int count, out int value) {
+            while (_bitCount < count) {
+                if (!TryReadByte(out int next)) {
+                    value = 0;
+                    return false;
+                }
+                _bitBuffer = (_bitBuffer << 8) | next;
+                _bitCount += 8;
+            }
+            value = (_bitBuffer >> (_bitCount - count)) & ((1 << count) - 1);
+            return true;
         }
 
         public void SkipBits(int count) {
@@ -1214,24 +1339,43 @@ internal static partial class OfficeJpegReader {
         }
 
         private int ReadByte() {
+            if (TryReadByte(out int value)) return value;
+            throw new FormatException("Unexpected JPEG end.");
+        }
+
+        private bool TryReadByte(out int value) {
             while (_pos < _data.Length) {
                 var b = _data[_pos++];
-                if (b != 0xFF) return b;
+                if (b != 0xFF) {
+                    value = b;
+                    return true;
+                }
                 while (_pos < _data.Length && _data[_pos] == 0xFF) _pos++;
                 if (_pos >= _data.Length) {
-                    if (_allowTruncated) return 0;
-                    throw new FormatException("Unexpected JPEG end.");
+                    if (_allowTruncated) {
+                        value = 0;
+                        return true;
+                    }
+                    value = 0;
+                    return false;
                 }
                 var marker = _data[_pos++];
-                if (marker == 0x00) return 0xFF;
+                if (marker == 0x00) {
+                    value = 0xFF;
+                    return true;
+                }
                 if (marker >= 0xD0 && marker <= 0xD7) {
                     RestartMarkerSeen = true;
                     continue;
                 }
                 throw new FormatException("Unexpected JPEG marker in scan.");
             }
-            if (_allowTruncated) return 0;
-            throw new FormatException("Unexpected JPEG end.");
+            if (_allowTruncated) {
+                value = 0;
+                return true;
+            }
+            value = 0;
+            return false;
         }
     }
 

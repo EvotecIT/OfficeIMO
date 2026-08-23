@@ -93,6 +93,7 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Dependency-free TIFF output with uncompressed, PackBits, or Deflate strips and deterministic lossless WebP encoding with common raster export options
 - [x] Shared SVG primitive writing and scalable drawing export
 - [x] Single and batch image-export builders with dimensions, source metadata, and diagnostics
+- [x] Reproducible, output-validated identification, decode, encode, resize, and placement-optimization benchmarks with opt-in library comparisons isolated from runtime packages
 
 _Dependency footprint:_ zero third-party runtime dependencies.
 

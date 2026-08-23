@@ -25,6 +25,7 @@ public enum OfficePngCompression {
 /// </summary>
 public static class OfficePngWriter {
     private static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    private static readonly uint[] CrcTable = CreateCrcTable();
 
     /// <summary>
     /// Encodes an RGBA image as PNG bytes.
@@ -34,7 +35,7 @@ public static class OfficePngWriter {
             throw new ArgumentNullException(nameof(image));
         }
 
-        return EncodeRgba(image.Width, image.Height, image.GetPixels(), compression);
+        return EncodeRgba(image.Width, image.Height, image.PixelBuffer, compression);
     }
 
     /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
@@ -43,7 +44,7 @@ public static class OfficePngWriter {
         if (options == null) throw new ArgumentNullException(nameof(options));
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
-        return EncodeRgba(image.Width, image.Height, image.GetPixels(), options);
+        return EncodeRgba(image.Width, image.Height, image.PixelBuffer, options);
     }
 
     /// <summary>
@@ -66,15 +67,7 @@ public static class OfficePngWriter {
             throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(rgba));
         }
 
-        byte[] scanlines = new byte[height * (1 + width * 4)];
-        int source = 0;
-        int target = 0;
-        for (int y = 0; y < height; y++) {
-            scanlines[target++] = 0;
-            Buffer.BlockCopy(rgba, source, scanlines, target, width * 4);
-            source += width * 4;
-            target += width * 4;
-        }
+        byte[] scanlines = CreateRgbaScanlines(width, height, rgba, compression == OfficePngCompression.Optimal);
 
         return EncodeScanlines(width, height, 8, 6, scanlines, compression);
     }
@@ -86,7 +79,7 @@ public static class OfficePngWriter {
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         ValidateRgba(width, height, rgba);
 
-        byte[] scanlines = CreateRgbaScanlines(width, height, rgba);
+        byte[] scanlines = CreateRgbaScanlines(width, height, rgba, options.Compression == OfficePngCompression.Optimal);
         byte[] compressed = options.Compression switch {
             OfficePngCompression.Optimal => DeflateZlib(scanlines),
             OfficePngCompression.Stored => DeflateZlibStored(scanlines),
@@ -178,17 +171,84 @@ public static class OfficePngWriter {
         }
     }
 
-    private static byte[] CreateRgbaScanlines(int width, int height, byte[] rgba) {
-        byte[] scanlines = new byte[height * (1 + width * 4)];
-        int source = 0;
-        int target = 0;
+    private static byte[] CreateRgbaScanlines(int width, int height, byte[] rgba, bool adaptiveFiltering) {
+        int stride = checked(width * 4);
+        byte[] scanlines = new byte[checked(height * (1 + stride))];
+        if (!adaptiveFiltering) {
+            int source = 0;
+            int target = 0;
+            for (int y = 0; y < height; y++) {
+                scanlines[target++] = 0;
+                Buffer.BlockCopy(rgba, source, scanlines, target, stride);
+                source += stride;
+                target += stride;
+            }
+            return scanlines;
+        }
+
+        byte[] candidate = new byte[stride];
         for (int y = 0; y < height; y++) {
-            scanlines[target++] = 0;
-            Buffer.BlockCopy(rgba, source, scanlines, target, width * 4);
-            source += width * 4;
-            target += width * 4;
+            int rowOffset = y * stride;
+            int previousRowOffset = rowOffset - stride;
+            int target = y * (stride + 1);
+            if (y == 0) {
+                scanlines[target] = 1;
+                FilterFirstRowSub(rgba, rowOffset, stride, scanlines, target + 1);
+                continue;
+            }
+
+            long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, scanlines, target + 1);
+            long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, candidate);
+            if (paethScore < upScore) {
+                scanlines[target] = 4;
+                Buffer.BlockCopy(candidate, 0, scanlines, target + 1, stride);
+            } else {
+                scanlines[target] = 2;
+            }
         }
         return scanlines;
+    }
+
+    private static void FilterFirstRowSub(byte[] rgba, int rowOffset, int stride, byte[] destination, int destinationOffset) {
+        for (int index = 0; index < 4 && index < stride; index++) {
+            destination[destinationOffset + index] = rgba[rowOffset + index];
+        }
+        for (int index = 4; index < stride; index++) {
+            destination[destinationOffset + index] = unchecked((byte)(rgba[rowOffset + index] - rgba[rowOffset + index - 4]));
+        }
+    }
+
+    private static long FilterUp(byte[] rgba, int rowOffset, int previousRowOffset, int stride, byte[] destination, int destinationOffset) {
+        long score = 0L;
+        for (int index = 0; index < stride; index++) {
+            byte filtered = unchecked((byte)(rgba[rowOffset + index] - rgba[previousRowOffset + index]));
+            destination[destinationOffset + index] = filtered;
+            score += Math.Abs((int)(sbyte)filtered);
+        }
+        return score;
+    }
+
+    private static long FilterPaeth(byte[] rgba, int rowOffset, int previousRowOffset, int stride, byte[] destination) {
+        long score = 0L;
+        for (int index = 0; index < stride; index++) {
+            int left = index >= 4 ? rgba[rowOffset + index - 4] : 0;
+            int above = rgba[previousRowOffset + index];
+            int upperLeft = index >= 4 ? rgba[previousRowOffset + index - 4] : 0;
+            byte filtered = unchecked((byte)(rgba[rowOffset + index] - PaethPredictor(left, above, upperLeft)));
+            destination[index] = filtered;
+            score += Math.Abs((int)(sbyte)filtered);
+        }
+        return score;
+    }
+
+    private static int PaethPredictor(int left, int above, int upperLeft) {
+        int prediction = left + above - upperLeft;
+        int distanceLeft = Math.Abs(prediction - left);
+        int distanceAbove = Math.Abs(prediction - above);
+        int distanceUpperLeft = Math.Abs(prediction - upperLeft);
+        return distanceLeft <= distanceAbove && distanceLeft <= distanceUpperLeft
+            ? left
+            : distanceAbove <= distanceUpperLeft ? above : upperLeft;
     }
 
     private static byte[] BuildPhysicalResolution(double dpiX, double dpiY) {
@@ -324,11 +384,18 @@ public static class OfficePngWriter {
 
     private static uint Adler32(byte[] data) {
         const uint mod = 65521;
+        const int maximumChunk = 5552;
         uint a = 1;
         uint b = 0;
-        for (int i = 0; i < data.Length; i++) {
-            a = (a + data[i]) % mod;
-            b = (b + a) % mod;
+        int offset = 0;
+        while (offset < data.Length) {
+            int end = Math.Min(offset + maximumChunk, data.Length);
+            while (offset < end) {
+                a += data[offset++];
+                b += a;
+            }
+            a %= mod;
+            b %= mod;
         }
 
         return (b << 16) | a;
@@ -362,12 +429,19 @@ public static class OfficePngWriter {
     }
 
     private static uint UpdateCrc(uint crc, byte value) {
-        crc ^= value;
-        for (int i = 0; i < 8; i++) {
-            crc = (crc & 1) != 0 ? 0xEDB88320 ^ (crc >> 1) : crc >> 1;
-        }
+        return CrcTable[(crc ^ value) & 0xFF] ^ (crc >> 8);
+    }
 
-        return crc;
+    private static uint[] CreateCrcTable() {
+        var table = new uint[256];
+        for (uint index = 0; index < table.Length; index++) {
+            uint value = index;
+            for (int bit = 0; bit < 8; bit++) {
+                value = (value & 1) != 0 ? 0xEDB88320 ^ (value >> 1) : value >> 1;
+            }
+            table[index] = value;
+        }
+        return table;
     }
 
     private static void WriteBigEndianInt32(byte[] bytes, int offset, int value) {
