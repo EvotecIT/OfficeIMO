@@ -718,10 +718,10 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "windows",
       "runMode": "quick",
-      "generatedUtc": "2026-08-23T14:25:39.5227033+00:00",
+      "generatedUtc": "2026-08-23T15:08:52.4492183+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-quick.json",
-      "resultSha256": "df6d69bb28fe7c10ba1de0dd71cbbd154a5c497c1b008eb33a944c635d32d6f2",
+      "resultSha256": "ce516006e3eba2635c0ad3155d21b5e3b985ca4341fc4fc8d772263963e21930",
       "artifactDestinationSha256": "f2c5c6d4baf7941615da7fef1be178cdff25440f114bb018c628d91e17d51009",
       "artifactFileName": "pdf-html-generation-net10.0-windows-quick.json",
       "artifactRelativePath": "pdf-html-generation-net10.0-windows-quick.json",
@@ -754,8 +754,8 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "53b484a30198da98cc2daf1dad5c65f03c7d502a",
-        "gitSha": "53b484a30198da98cc2daf1dad5c65f03c7d502a",
+        "benchmark.workload.sourceCommit": "0236e6bd0bbe42e539212cf5e99fd7843a8607d3",
+        "gitSha": "0236e6bd0bbe42e539212cf5e99fd7843a8607d3",
         "runMode": "quick"
       },
       "comparable": true,
@@ -1368,7 +1368,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-08-23T14:25:39.5227033+00:00"
+      "latestUtc": "2026-08-23T15:08:52.4492183+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
