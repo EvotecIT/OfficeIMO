@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing;
 /// The encoder intentionally uses a deterministic literal-only VP8L stream. It favors a small,
 /// auditable implementation over compression efficiency while producing standards-compatible WebP.
 /// </remarks>
-public static class OfficeWebpCodec {
+public static partial class OfficeWebpCodec {
     private const int LiteralHeaderBitCount = 1239;
 
     /// <summary>Returns whether the payload is a RIFF WebP container.</summary>
@@ -260,7 +260,7 @@ public static class OfficeWebpCodec {
         return offset == input.Length && payloadOffset != 0;
     }
 
-    private static void WriteLiteralTree(LsbBitWriter writer, int alphabetSize) {
+    private static void WriteLiteralTree(ILsbBitWriter writer, int alphabetSize) {
         writer.WriteBits(0, 1); // normal Huffman tree
         writer.WriteBits(8, 4); // store 12 code-length-code entries
 
@@ -280,7 +280,7 @@ public static class OfficeWebpCodec {
         }
     }
 
-    private static void WriteSingleSymbolTree(LsbBitWriter writer) {
+    private static void WriteSingleSymbolTree(ILsbBitWriter writer) {
         writer.WriteBits(1, 1); // small tree
         writer.WriteBits(0, 1); // one symbol
         writer.WriteBits(0, 1); // symbol uses one bit
@@ -379,7 +379,7 @@ public static class OfficeWebpCodec {
         return (int)value;
     }
 
-    private sealed class LsbBitWriter {
+    private sealed class LsbBitWriter : ILsbBitWriter {
         private readonly byte[] _output;
         private int _offset;
         private ulong _buffer;

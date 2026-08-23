@@ -232,7 +232,21 @@ byte[] tiff = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tif
 byte[] webp = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Webp, options);
 ```
 
-WebP output is deterministic, lossless VP8L. TIFF output is a single-page classic RGBA image with uncompressed, PackBits, or Deflate strips. JPEG uses the existing managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
+The same encoder can write directly to a caller-owned stream when materializing another complete output array would be wasteful. On .NET 8 and later, the codecs also accept `IBufferWriter<byte>` without adding a package dependency to `OfficeIMO.Core`:
+
+```csharp
+using System.Buffers;
+
+using (Stream output = File.Create("photo.webp")) {
+    OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Webp, output, options);
+}
+
+var writer = new ArrayBufferWriter<byte>();
+OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, writer, options);
+ReadOnlyMemory<byte> png = writer.WrittenMemory;
+```
+
+The stream overload leaves the destination open. WebP output is deterministic, lossless VP8L. TIFF output is a single-page classic RGBA image with uncompressed, PackBits, or Deflate strips. JPEG uses the existing managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
 
 ### Optimize encoded images for a placement
 
