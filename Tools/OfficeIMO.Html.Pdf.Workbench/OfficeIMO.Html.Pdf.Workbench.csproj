@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>Latest</LangVersion>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Html.Pdf.Browser\OfficeIMO.Html.Pdf.Browser.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(HtmlTinkerXProjectPath)' != '' ">
+    <ProjectReference Include="$(HtmlTinkerXProjectPath)" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(HtmlTinkerXProjectPath)' == '' ">
+    <PackageReference Include="HtmlTinkerX" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.7.1" />
+  </ItemGroup>
+
+</Project>
