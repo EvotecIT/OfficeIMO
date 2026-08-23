@@ -123,25 +123,22 @@ internal static partial class PdfWriter {
     }
 
     private static void AddHeaderFooterImage(LayoutResult.Page page, PdfOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
-        double contentLeft = options.MarginLeft;
-        double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
-        if (image.Width > contentWidth + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " image must fit inside the page content width.");
-        }
-
-        if (x < contentLeft - 0.001D || x + image.Width > contentLeft + contentWidth + 0.001D) {
-            throw new ArgumentException("Combined PDF " + (isHeader ? "header" : "footer") + " text and images must fit inside the page content width.");
-        }
-
+        string source = isHeader ? "Header" : "Footer";
         double y = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - image.Height
             : options.MarginBottom - options.FooterOffsetY;
-        if (y < -0.001D || y + image.Height > options.PageHeight + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " image must fit inside the page bounds.");
-        }
-
         ImageBlock block = image.ToImageBlock();
-        PageImage pageImage = CreatePageImage(block, block.Style ?? new PdfImageStyle(), x, y);
+        PdfImageStyle style = block.Style ?? new PdfImageStyle();
+        PageImage pageImage = CreatePageImage(block, style, x, y);
+        GetImageAnnotationBounds(style, pageImage, x, y, image.Width, image.Height, out double visibleX1, out double visibleY1, out double visibleX2, out double visibleY2);
+        ReportHeaderFooterBounds(
+            options,
+            source,
+            "image",
+            visibleX1,
+            visibleY1,
+            visibleX2 - visibleX1,
+            visibleY2 - visibleY1);
         pageImage.IsBackgroundDecoration = string.IsNullOrWhiteSpace(pageImage.AlternativeText);
         page.Images.Add(pageImage);
     }
@@ -194,10 +191,6 @@ internal static partial class PdfWriter {
     private static double AlignHeaderFooterGroup(PdfOptions options, double groupWidth, PdfAlign align) {
         double contentLeft = options.MarginLeft;
         double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
-        if (groupWidth > contentWidth + 0.001D) {
-            throw new ArgumentException("Combined PDF header/footer content must fit inside the page content width.");
-        }
-
         return GetHeaderFooterAlignedObjectX(contentLeft, contentWidth, groupWidth, align);
     }
 
@@ -282,29 +275,57 @@ internal static partial class PdfWriter {
         PdfDrawingStyle style = block.Style ?? new PdfDrawingStyle();
         PdfDocument.ValidateDrawingStyle(style, isHeader ? "Header shape" : "Footer shape");
 
-        double contentLeft = options.MarginLeft;
-        double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
-        if (block.Shape.Width > contentWidth + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " shape must fit inside the page content width.");
-        }
-
-        if (x < contentLeft - 0.001D || x + block.Shape.Width > contentLeft + contentWidth + 0.001D) {
-            throw new ArgumentException("Combined PDF " + (isHeader ? "header" : "footer") + " text, images, and shapes must fit inside the page content width.");
-        }
-
+        string source = isHeader ? "Header" : "Footer";
         double bottomY = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - block.Shape.Height
             : options.MarginBottom - options.FooterOffsetY;
-        if (bottomY < -0.001D || bottomY + block.Shape.Height > options.PageHeight + 0.001D) {
-            throw new ArgumentException("PDF " + (isHeader ? "header" : "footer") + " shape must fit inside the page bounds.");
-        }
+        ReportHeaderFooterBounds(options, source, "shape", x, bottomY, block.Shape.Width, block.Shape.Height);
 
         DrawHeaderFooterShapeGeometryAt(sb, page, block.Shape, x, bottomY);
     }
 
+    private static void ReportHeaderFooterBounds(
+        PdfOptions options,
+        string source,
+        string contentKind,
+        double x,
+        double? y,
+        double width,
+        double? height) {
+        const double tolerance = 0.001D;
+        double contentLeft = options.MarginLeft;
+        double contentRight = options.PageWidth - options.MarginRight;
+        if (x < contentLeft - tolerance || x + width > contentRight + tolerance) {
+            options.AddLayoutDiagnostic(
+                "HeaderFooterContentOverflow",
+                source,
+                source + " " + contentKind + " content exceeds the page content frame and was preserved as authored.",
+                PdfLayoutDiagnosticKind.Overflow,
+                PdfConversionWarningSeverity.Information,
+                x,
+                y,
+                width,
+                height);
+        }
+
+        bool outsideVerticalBounds = y.HasValue && height.HasValue &&
+            (y.Value < -tolerance || y.Value + height.Value > options.PageHeight + tolerance);
+        if (x < -tolerance || x + width > options.PageWidth + tolerance || outsideVerticalBounds) {
+            options.AddLayoutDiagnostic(
+                "HeaderFooterPageBoundsClipped",
+                source,
+                source + " " + contentKind + " extends beyond the physical page bounds and may be clipped by the PDF page.",
+                PdfLayoutDiagnosticKind.ClippedContent,
+                x: x,
+                y: y,
+                width: width,
+                height: height);
+        }
+    }
+
     private static double GetHeaderFooterAlignedObjectX(double containerX, double containerWidth, double objectWidth, PdfAlign align) {
-        if (align == PdfAlign.Center) return containerX + Math.Max(0, (containerWidth - objectWidth) / 2);
-        if (align == PdfAlign.Right) return containerX + Math.Max(0, containerWidth - objectWidth);
+        if (align == PdfAlign.Center) return containerX + ((containerWidth - objectWidth) / 2);
+        if (align == PdfAlign.Right) return containerX + containerWidth - objectWidth;
         return containerX;
     }
 

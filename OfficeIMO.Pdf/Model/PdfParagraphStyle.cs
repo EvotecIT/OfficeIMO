@@ -23,19 +23,19 @@ public class PdfParagraphStyle {
             _lineHeight = value;
         }
     }
-    /// <summary>Horizontal inset from the left edge of the paragraph frame, in points.</summary>
+    /// <summary>Horizontal offset from the left edge of the paragraph frame, in points. Negative values extend text into the left margin.</summary>
     public double LeftIndent {
         get => _leftIndent;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(LeftIndent), "Paragraph left indent must be a non-negative finite value.");
+            ValidateFiniteValue(value, nameof(LeftIndent), "Paragraph left indent must be a finite value.");
             _leftIndent = value;
         }
     }
-    /// <summary>Horizontal inset from the right edge of the paragraph frame, in points.</summary>
+    /// <summary>Horizontal offset from the right edge of the paragraph frame, in points. Negative values extend text into the right margin.</summary>
     public double RightIndent {
         get => _rightIndent;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(RightIndent), "Paragraph right indent must be a non-negative finite value.");
+            ValidateFiniteValue(value, nameof(RightIndent), "Paragraph right indent must be a finite value.");
             _rightIndent = value;
         }
     }

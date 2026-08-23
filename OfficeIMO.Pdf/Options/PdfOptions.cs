@@ -112,6 +112,7 @@ public sealed partial class PdfOptions {
     private System.Collections.Generic.HashSet<PdfStandardFont>? _embeddedFontProgramFailures;
     private System.Collections.Generic.HashSet<string>? _reportedEmbeddedFontProgramFailures;
     private System.Collections.Generic.HashSet<string>? _reportedTextShapingDiagnostics;
+    private System.Collections.Generic.HashSet<string>? _reportedLayoutDiagnostics;
     private System.Collections.Generic.HashSet<string>? _providerShapedTextRuns;
     private Func<string, IReadOnlyList<int>>? _textLineBreakCallback;
     private PdfTextHyphenationCallback? _textHyphenationCallback;

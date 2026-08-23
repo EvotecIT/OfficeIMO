@@ -21,6 +21,9 @@ internal static partial class PdfWriter {
         double shapesWidth = MeasureHeaderFooterShapesWidth(opts.GetFooterShapesForPage(variantPage), opts.FooterAlign);
         double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
         double x = AlignHeaderFooterGroup(opts, groupWidth, opts.FooterAlign);
+        if (textWidth > 0D) {
+            ReportHeaderFooterBounds(opts, "Footer", "text", x, y: null, width: textWidth, height: null);
+        }
         double y = opts.MarginBottom - opts.FooterOffsetY;
         PdfColor? footerColor = opts.FooterTextColor;
         var sb = new StringBuilder();
@@ -46,6 +49,9 @@ internal static partial class PdfWriter {
         double shapesWidth = MeasureHeaderFooterShapesWidth(opts.GetHeaderShapesForPage(variantPage), opts.HeaderAlign);
         double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
         double x = AlignHeaderFooterGroup(opts, groupWidth, opts.HeaderAlign);
+        if (textWidth > 0D) {
+            ReportHeaderFooterBounds(opts, "Header", "text", x, y: null, width: textWidth, height: null);
+        }
         double y = opts.PageHeight - opts.MarginTop + opts.HeaderOffsetY;
         PdfColor? headerColor = opts.HeaderTextColor;
 
@@ -205,17 +211,34 @@ internal static partial class PdfWriter {
             layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Right, occupiedX, occupiedWidth));
         }
 
-        ValidatePageTextZoneLayouts(layouts, contentLeft, contentLeft + contentWidth, isHeader);
+        ValidatePageTextZoneLayouts(opts, layouts, contentLeft, contentLeft + contentWidth, isHeader);
         return layouts;
     }
 
-    private static void ValidatePageTextZoneLayouts(System.Collections.Generic.List<PageTextZoneLayout> layouts, double contentLeft, double contentRight, bool isHeader) {
+    private static void ValidatePageTextZoneLayouts(PdfOptions options, System.Collections.Generic.List<PageTextZoneLayout> layouts, double contentLeft, double contentRight, bool isHeader) {
         const double tolerance = 0.01D;
         const double minimumGap = 2D;
-        string scope = isHeader ? "header" : "footer";
+        string source = isHeader ? "Header" : "Footer";
         foreach (var zone in layouts) {
             if (zone.OccupiedX < contentLeft - tolerance || zone.OccupiedX + zone.OccupiedWidth > contentRight + tolerance) {
-                throw new ArgumentException("PDF " + scope + " zone content must fit inside the page content width.");
+                options.AddLayoutDiagnostic(
+                    "HeaderFooterContentOverflow",
+                    source,
+                    source + " zone content exceeds the page content frame and was preserved as authored.",
+                    PdfLayoutDiagnosticKind.Overflow,
+                    PdfConversionWarningSeverity.Information,
+                    x: zone.OccupiedX,
+                    width: zone.OccupiedWidth);
+            }
+
+            if (zone.OccupiedX < -tolerance || zone.OccupiedX + zone.OccupiedWidth > options.PageWidth + tolerance) {
+                options.AddLayoutDiagnostic(
+                    "HeaderFooterPageBoundsClipped",
+                    source,
+                    source + " zone content extends beyond the physical page bounds and may be clipped by the PDF page.",
+                    PdfLayoutDiagnosticKind.ClippedContent,
+                    x: zone.OccupiedX,
+                    width: zone.OccupiedWidth);
             }
         }
 
@@ -224,7 +247,12 @@ internal static partial class PdfWriter {
             var previous = ordered[i - 1];
             var current = ordered[i];
             if (previous.OccupiedX + previous.OccupiedWidth + minimumGap > current.OccupiedX + tolerance) {
-                throw new ArgumentException("PDF " + scope + " zones must not overlap.");
+                options.AddLayoutDiagnostic(
+                    "HeaderFooterZoneOverlap",
+                    source,
+                    source + " zones overlap and were preserved as authored.",
+                    PdfLayoutDiagnosticKind.Overflow,
+                    PdfConversionWarningSeverity.Information);
             }
         }
     }

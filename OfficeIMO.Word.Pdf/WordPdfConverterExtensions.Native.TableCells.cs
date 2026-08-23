@@ -386,20 +386,14 @@ namespace OfficeIMO.Word.Pdf {
 
             if (paragraph.IndentationHangingPoints.HasValue) {
                 double hangingIndent = paragraph.IndentationHangingPoints.Value;
-                if (leftIndent < hangingIndent) {
-                    leftIndent = hangingIndent;
-                }
-
                 firstLineIndent = -hangingIndent;
-            } else if (firstLineIndent < 0D && leftIndent < -firstLineIndent) {
-                leftIndent = -firstLineIndent;
             }
 
             return (leftIndent, rightIndent, firstLineIndent);
         }
 
         private static double NormalizeNativeTableCellIndent(double value) =>
-            value < 0D || double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
+            double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
 
         private static double? ResolveNativeTableCellParagraphLineHeight(
             WordParagraph paragraph,

@@ -1964,6 +1964,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Preserves_Negative_Paragraph_Indents() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNegativeParagraphIndents.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNegativeParagraphIndents.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph normal = document.AddParagraph("NormalIndentMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau");
+                normal.LineSpacingAfterPoints = 0;
+                WordParagraph extended = document.AddParagraph("NegativeIndentMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau");
+                extended.IndentationBeforePoints = -18;
+                extended.IndentationAfterPoints = -30;
+                extended.LineSpacingAfterPoints = 0;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(300, 320),
+                    Margins = PageMargins.Uniform(30)
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var page = pdf.GetPage(1);
+            double normalX = FindWordStartX(page, "NormalIndentMarker");
+            double negativeX = FindWordStartX(page, "NegativeIndentMarker");
+
+            Assert.True(normalX - negativeX >= 17D, $"Expected the negative Word indent to extend text into the left margin. Normal x: {normalX:0.##}; negative x: {negativeX:0.##}.");
+            Assert.Contains("NegativeIndentMarker", page.Text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Hanging_Indent_Without_Left_Indent() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHangingIndentNoLeft.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHangingIndentNoLeft.pdf");
@@ -1973,12 +2003,28 @@ namespace OfficeIMO.Tests {
                 paragraph.IndentationHangingPoints = 36;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath);
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(260, 260),
+                    Margins = PageMargins.Uniform(36)
+                });
             }
 
             Assert.True(File.Exists(pdfPath));
             using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
-            Assert.Contains("HangingOnly", pdf.GetPage(1).Text);
+            var page = pdf.GetPage(1);
+            Assert.Contains("HangingOnly", page.Text);
+
+            var lineLefts = page
+                .GetWords()
+                .GroupBy(word => Math.Round(word.BoundingBox.Bottom, 1))
+                .OrderByDescending(group => group.Key)
+                .Take(2)
+                .Select(group => group.Min(word => word.BoundingBox.Left))
+                .ToList();
+
+            Assert.Equal(2, lineLefts.Count);
+            Assert.True(lineLefts[1] > lineLefts[0] + 30D, $"Expected a hanging indent without a left indent to preserve the authored first-line margin extension. First line x: {lineLefts[0]:0.##}; second line x: {lineLefts[1]:0.##}.");
         }
 
         [Fact]

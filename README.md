@@ -12,7 +12,7 @@ OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing,
 
 This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
-The current source line is `3.1.x`; the latest NuGet release is `3.0.3`. Applications should keep OfficeIMO packages on the same coordinated version. The 3.1 source API keeps CSV and Excel behavior package-owned, uses one document lifecycle vocabulary, and keeps converters explicit about fidelity and diagnostics.
+The current source line is `3.2.x`; the latest coordinated NuGet release is `3.2.6`. Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
 
 Upgrading an existing application? Most `OfficeIMO.Word` users can begin with the [short Word-first 3.1 path](MIGRATION.md#start-here-most-officeimoword-applications); the full [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
@@ -1099,37 +1099,37 @@ Fixed-layout PDF import is necessarily semantic rather than visually lossless. R
 
 ## Install
 
-Install only the native packages and adapters an application needs. The commands below use the current `3.0.3` NuGet release.
+Install only the native packages and adapters an application needs. The commands below use the current `3.2.6` NuGet release.
 
 ```powershell
-dotnet add package OfficeIMO.Word --version 3.0.3
-dotnet add package OfficeIMO.Word.Pdf --version 3.0.3
+dotnet add package OfficeIMO.Word --version 3.2.6
+dotnet add package OfficeIMO.Word.Pdf --version 3.2.6
 
-dotnet add package OfficeIMO.Excel --version 3.0.3
-dotnet add package OfficeIMO.Excel.Html --version 3.0.3
-dotnet add package OfficeIMO.Excel.Pdf --version 3.0.3
+dotnet add package OfficeIMO.Excel --version 3.2.6
+dotnet add package OfficeIMO.Excel.Html --version 3.2.6
+dotnet add package OfficeIMO.Excel.Pdf --version 3.2.6
 
-dotnet add package OfficeIMO.Epub --version 3.0.3
-dotnet add package OfficeIMO.Epub.Image --version 3.0.3
+dotnet add package OfficeIMO.Epub --version 3.2.6
+dotnet add package OfficeIMO.Epub.Image --version 3.2.6
 
-dotnet add package OfficeIMO.Adf --version 3.0.3
-dotnet add package OfficeIMO.Confluence --version 3.0.3
+dotnet add package OfficeIMO.Adf --version 3.2.6
+dotnet add package OfficeIMO.Confluence --version 3.2.6
 
-dotnet add package OfficeIMO.Reader.Pdf --version 3.0.3
+dotnet add package OfficeIMO.Reader.Pdf --version 3.2.6
 
 # Add every Reader adapter only when a broad ingestion host genuinely needs all formats.
-dotnet add package OfficeIMO.Reader.All --version 3.0.3
+dotnet add package OfficeIMO.Reader.All --version 3.2.6
 
-dotnet add package OfficeIMO.OneNote --version 3.0.3
-dotnet add package OfficeIMO.OneNote.Markdown --version 3.0.3
-dotnet add package OfficeIMO.OneNote.Html --version 3.0.3
-dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.3
-dotnet add package OfficeIMO.Reader.OneNote --version 3.0.3
+dotnet add package OfficeIMO.OneNote --version 3.2.6
+dotnet add package OfficeIMO.OneNote.Markdown --version 3.2.6
+dotnet add package OfficeIMO.OneNote.Html --version 3.2.6
+dotnet add package OfficeIMO.OneNote.Pdf --version 3.2.6
+dotnet add package OfficeIMO.Reader.OneNote --version 3.2.6
 ```
 
-Keep OfficeIMO package references in one application on the same published version. The repository source is already on the coordinated `3.1.x` line.
+Keep OfficeIMO package references in one application on the same published version. The repository source is on the coordinated `3.2.x` line.
 
-The unified `OfficeIMO.Tool` CLI documented in this repository is the `3.1.x` source-tree surface, not part of the published `3.0.3` package block above. In this checkout, run it directly with `dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- <command>`.
+Install the unified CLI with `dotnet tool install --global OfficeIMO.Tool --version 3.2.6`. Contributors can run the current checkout directly with `dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- <command>`.
 
 ## Common workflows
 

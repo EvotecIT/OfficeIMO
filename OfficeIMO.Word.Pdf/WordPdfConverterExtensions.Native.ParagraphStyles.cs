@@ -68,13 +68,7 @@ namespace OfficeIMO.Word.Pdf {
 
             if (paragraph.IndentationHangingPoints.HasValue) {
                 double hangingIndent = paragraph.IndentationHangingPoints.Value;
-                if (style.LeftIndent < hangingIndent) {
-                    style.LeftIndent = hangingIndent;
-                }
-
                 style.FirstLineIndent = -hangingIndent;
-            } else if (style.FirstLineIndent < 0D && style.LeftIndent < -style.FirstLineIndent) {
-                style.LeftIndent = -style.FirstLineIndent;
             }
 
             style.LineHeight = lineHeight;

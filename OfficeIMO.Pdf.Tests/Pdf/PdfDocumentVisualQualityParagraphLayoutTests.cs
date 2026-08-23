@@ -277,6 +277,40 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Paragraph_NegativeIndentsExtendTextIntoMargins() {
+        var options = new PdfOptions {
+            PageWidth = 300,
+            PageHeight = 280,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] defaultBytes = CreateParagraphIndentProbe(options, null);
+        byte[] extendedBytes = CreateParagraphIndentProbe(options, new PdfParagraphStyle {
+            LeftIndent = -18,
+            RightIndent = -30,
+            SpacingAfter = 0
+        });
+
+        using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
+        using var extendedPdf = PdfPigDocument.Open(new MemoryStream(extendedBytes));
+        var defaultPage = defaultPdf.GetPage(1);
+        var extendedPage = extendedPdf.GetPage(1);
+
+        double defaultX = FindWordStartX(defaultPage, "IndentedMarker");
+        double extendedX = FindWordStartX(extendedPage, "IndentedMarker");
+        int defaultLineCount = CountTextLines(defaultPage);
+        int extendedLineCount = CountTextLines(extendedPage);
+
+        Assert.True(defaultX - extendedX >= 17D, $"Expected a negative left indent to extend paragraph text into the left margin. Default x: {defaultX:0.##}, extended x: {extendedX:0.##}.");
+        Assert.True(extendedLineCount < defaultLineCount, $"Expected a negative right indent to widen the text frame and reduce wrapping. Default lines: {defaultLineCount}, extended lines: {extendedLineCount}.");
+    }
+
+    [Fact]
     public void Paragraph_UsesConfiguredFirstLineIndent() {
         var options = new PdfOptions {
             PageWidth = 300,

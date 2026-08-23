@@ -182,18 +182,19 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
-    /// Records generated text diagnostics encountered while writing PDF content.
+    /// Records generated text and layout diagnostics encountered while writing PDF content.
     /// </summary>
-    /// <param name="report">Mutable conversion report that receives text encoding, missing-glyph, shaping, and embedded-font diagnostics.</param>
+    /// <param name="report">Mutable conversion report that receives text encoding, missing-glyph, shaping, embedded-font, and layout diagnostics.</param>
     /// <param name="converter">Converter or adapter name to place on recorded warnings.</param>
     /// <returns>The current options instance for fluent configuration.</returns>
-    /// <remarks>Diagnostics are reported in addition to the existing fail-closed exceptions.</remarks>
+    /// <remarks>Invalid input can still fail closed; renderable fidelity risks are recorded without suppressing the output.</remarks>
     public PdfOptions ReportDiagnosticsTo(PdfConversionReport report, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(report, nameof(report));
         _diagnosticsReport = report;
         _diagnosticsConverter = string.IsNullOrWhiteSpace(converter) ? "OfficeIMO.Pdf" : converter;
         _reportedEmbeddedFontProgramFailures?.Clear();
         _reportedTextShapingDiagnostics?.Clear();
+        _reportedLayoutDiagnostics?.Clear();
         _providerShapedTextRuns?.Clear();
         return this;
     }

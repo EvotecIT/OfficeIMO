@@ -125,7 +125,7 @@ pdf.SaveAsWord(
 
 ## What it exports
 
-- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings.
+- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
@@ -143,7 +143,7 @@ pdf.SaveAsWord(
 
 ## Options and diagnostics
 
-Use `WordPdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Request `ToPdfDocumentResult()` or `TrySaveAsPdf()` when diagnostics matter; unsupported Word features should become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
+Use `WordPdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Request `ToPdfDocumentResult()` or `TrySaveAsPdf()` when diagnostics matter; unsupported Word features and preserved header/footer overflow become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
 
 ## Current limits
 

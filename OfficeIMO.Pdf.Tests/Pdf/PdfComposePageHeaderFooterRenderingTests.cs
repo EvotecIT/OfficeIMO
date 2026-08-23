@@ -430,38 +430,87 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void HeaderFooterZones_RejectTextThatWouldOverlap() {
-            var headerException = Assert.Throws<ArgumentException>(() =>
-                PdfDocument.Create(new PdfOptions {
-                        HeaderFont = PdfStandardFont.Helvetica,
-                        HeaderFontSize = 12
-                    })
-                    .Size(260, 260)
-                    .Margin(72)
-                    .Header(header => header.Zones(
-                        "Very long left header zone",
-                        "Very long center header zone",
-                        "Very long right header zone"))
-                    .Paragraph(p => p.Text("Header zone overlap body."))
-                    .ToBytes());
+        public void HeaderFooterZones_PreserveOverflowAndReportLayoutDiagnostics() {
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 12,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 12
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
-            Assert.Contains("PDF header zone content", headerException.Message, StringComparison.Ordinal);
+            byte[] bytes = PdfDocument.Create(options)
+                .Size(260, 260)
+                .Margin(72)
+                .Header(header => header.Zones(
+                    "LeftHeaderOverflowMarker",
+                    "CenterHeaderOverflowMarker",
+                    "RightHeaderOverflowMarker"))
+                .Footer(footer => footer.Zones(
+                    "LeftFooterOverflowMarker",
+                    "CenterFooterOverflowMarker",
+                    "RightFooterOverflowMarker"))
+                .Paragraph(p => p.Text("Header footer overflow body."))
+                .ToBytes();
 
-            var footerException = Assert.Throws<ArgumentException>(() =>
-                PdfDocument.Create(new PdfOptions {
-                        FooterFont = PdfStandardFont.Helvetica,
-                        FooterFontSize = 12
-                    })
-                    .Size(260, 260)
-                    .Margin(72)
-                    .Footer(footer => footer.Zones(
-                        "Very long left footer zone",
-                        "Very long center footer zone",
-                        "Very long right footer zone"))
-                    .Paragraph(p => p.Text("Footer zone overlap body."))
-                    .ToBytes());
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            string pageText = Normalize(pdf.GetPage(1).Text);
+            Assert.Contains("LeftHeaderOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("CenterHeaderOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("RightHeaderOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("LeftFooterOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("CenterFooterOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("RightFooterOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterContentOverflow" &&
+                warning.Source == "Header" &&
+                warning.Severity == PdfConversionWarningSeverity.Information &&
+                warning.LayoutDiagnostic?.Kind == PdfLayoutDiagnosticKind.Overflow);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterContentOverflow" &&
+                warning.Source == "Footer" &&
+                warning.Severity == PdfConversionWarningSeverity.Information &&
+                warning.LayoutDiagnostic?.Kind == PdfLayoutDiagnosticKind.Overflow);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterZoneOverlap" &&
+                warning.Source == "Header");
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterZoneOverlap" &&
+                warning.Source == "Footer");
+            Assert.False(report.HasLoss);
+        }
 
-            Assert.Contains("PDF footer zone content", footerException.Message, StringComparison.Ordinal);
+        [Fact]
+        public void HeaderFooterSingleText_PreservesOverflowWithInformationalDiagnostics() {
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 12,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 12
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Size(260, 260)
+                .Margin(72)
+                .Header(header => header.AlignCenter().Text("SingleHeaderOverflowMarker"))
+                .Footer(footer => footer.AlignRight().Text(text => text.Text("SingleFooterOverflowMarker")))
+                .Paragraph(p => p.Text("Single text overflow body."))
+                .ToBytes();
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            string pageText = Normalize(pdf.GetPage(1).Text);
+            Assert.Contains("SingleHeaderOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("SingleFooterOverflowMarker", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterContentOverflow" &&
+                warning.Source == "Header" &&
+                warning.Severity == PdfConversionWarningSeverity.Information);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterContentOverflow" &&
+                warning.Source == "Footer" &&
+                warning.Severity == PdfConversionWarningSeverity.Information);
+            Assert.False(report.HasLoss);
         }
 
         [Fact]
@@ -584,6 +633,96 @@ namespace OfficeIMO.Tests.Pdf {
             double textRight = headerLetters.Max(letter => letter.EndBaseLine.X);
             Assert.True(imageX >= textRight + 3.9D, "Aligned header text and images must not overlap.");
             Assert.InRange(Math.Abs((textLeft + imageX + 24D) / 2D - 150D), 0D, 0.1D);
+        }
+
+        [Fact]
+        public void HeaderFooterImagesAndShapes_PreserveMarginOverflowWithDiagnostics() {
+            byte[] png = CreateMinimalRgbPng();
+            OfficeShape footerShape = OfficeShape.Rectangle(160, 12);
+            footerShape.FillColor = OfficeColor.Blue;
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 80,
+                MarginRight = 80,
+                MarginTop = 50,
+                MarginBottom = 50,
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.Image(png, 150, 14, PdfAlign.Center))
+                .Footer(footer => footer.Shape(footerShape, PdfAlign.Right))
+                .Paragraph(paragraph => paragraph.Text("Header footer visual overflow body"))
+                .ToBytes();
+
+            string rawPdf = Encoding.ASCII.GetString(bytes);
+            Assert.Contains("150 0 0 14 55 174 cm", rawPdf, StringComparison.Ordinal);
+            Assert.Contains("20 32 160 12 re", rawPdf, StringComparison.Ordinal);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterContentOverflow" &&
+                warning.Source == "Header" &&
+                warning.Severity == PdfConversionWarningSeverity.Information &&
+                warning.LayoutDiagnostic?.Kind == PdfLayoutDiagnosticKind.Overflow);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterContentOverflow" &&
+                warning.Source == "Footer" &&
+                warning.Severity == PdfConversionWarningSeverity.Information &&
+                warning.LayoutDiagnostic?.Kind == PdfLayoutDiagnosticKind.Overflow);
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+            Assert.False(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterImageBeyondPhysicalPageReportsClipping() {
+            byte[] png = CreateMinimalRgbPng();
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 80,
+                MarginRight = 80,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.Image(png, 300, 14, PdfAlign.Center))
+                .Paragraph(paragraph => paragraph.Text("Physical page clipping diagnostic body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterPageBoundsClipped" &&
+                warning.Source == "Header" &&
+                warning.LayoutDiagnostic?.Kind == PdfLayoutDiagnosticKind.ClippedContent);
+            Assert.True(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterContainedImageUsesVisibleBoundsForClippingDiagnostics() {
+            byte[] portraitPng = PdfPngTestImages.CreateRgbPng(1, 4);
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 80,
+                MarginRight = 80,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.Image(portraitPng, 300, 20, PdfAlign.Center, OfficeImageFit.Contain))
+                .Paragraph(paragraph => paragraph.Text("Contained header image body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterContentOverflow");
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+            Assert.False(report.HasLoss);
         }
 
         [Fact]
