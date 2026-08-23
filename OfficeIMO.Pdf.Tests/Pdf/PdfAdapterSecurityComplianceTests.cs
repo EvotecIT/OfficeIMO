@@ -143,6 +143,28 @@ public class PdfAdapterSecurityComplianceTests {
         Assert.Contains("encryption", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(PdfCore.PdfStandardEncryptionAlgorithm.Aes128)]
+    [InlineData(PdfCore.PdfStandardEncryptionAlgorithm.Aes256)]
+    public void GeneratedPdfA2BArtifactCanBeProtectedAndUnlockedAfterCreation(PdfCore.PdfStandardEncryptionAlgorithm algorithm) {
+        byte[] archivalPdf = Convert("html", CreatePdfA2BOptions());
+        var encryption = new PdfCore.PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            Algorithm = algorithm,
+            AesCryptographyProvider = OfficeIMO.Security.OfficeManagedAesCryptographyProvider.Default
+        };
+
+        PdfCore.PdfSecurityMutationResult protectedPdf = PdfCore.PdfDocument.Open(archivalPdf).Security.Encrypt(encryption);
+        PdfCore.PdfSecurityMutationResult unlockedPdf = protectedPdf.ToDocument().Security.Decrypt("owner");
+
+        Assert.True(PdfCore.PdfInspector.Probe(protectedPdf.Pdf).HasEncryption);
+        Assert.False(PdfCore.PdfInspector.Probe(unlockedPdf.Pdf).HasEncryption);
+        Assert.Contains(
+            Marker("html"),
+            PdfCore.PdfReadDocument.Open(unlockedPdf.Pdf).ExtractText(),
+            StringComparison.Ordinal);
+    }
+
     private static PdfCore.PdfOptions CreatePdfA2BOptions() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
