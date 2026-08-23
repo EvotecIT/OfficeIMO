@@ -754,6 +754,134 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void HeaderFooterShapeShadowUsesVisibleBoundsForClippingDiagnostics() {
+            OfficeShape shape = OfficeShape.Rectangle(24, 12);
+            shape.FillColor = OfficeColor.Blue;
+            shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 45D, 0D);
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.Shape(shape, PdfAlign.Right))
+                .Paragraph(paragraph => paragraph.Text("Header shape shadow diagnostic body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            PdfConversionWarning warning = Assert.Single(report.Warnings, warning =>
+                warning.Code == "HeaderFooterPageBoundsClipped" &&
+                warning.Source == "Header");
+            Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
+            Assert.InRange(warning.LayoutDiagnostic?.X ?? 0D, 195.999D, 196.001D);
+            Assert.InRange(warning.LayoutDiagnostic?.Width ?? 0D, 68.999D, 69.001D);
+            Assert.True(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterShapeStrokeUsesVisibleBoundsForClippingDiagnostics() {
+            OfficeShape shape = OfficeShape.Rectangle(24, 12);
+            shape.FillColor = OfficeColor.Blue;
+            shape.StrokeColor = OfficeColor.Black;
+            shape.StrokeWidth = 4;
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 1,
+                MarginRight = 40,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.Shape(shape, PdfAlign.Left))
+                .Paragraph(paragraph => paragraph.Text("Header shape stroke diagnostic body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            PdfConversionWarning warning = Assert.Single(report.Warnings, warning =>
+                warning.Code == "HeaderFooterPageBoundsClipped" &&
+                warning.Source == "Header");
+            Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
+            Assert.InRange(warning.LayoutDiagnostic?.X ?? 0D, -1.001D, -0.999D);
+            Assert.InRange(warning.LayoutDiagnostic?.Width ?? 0D, 27.999D, 28.001D);
+            Assert.True(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterShapeMiterAndShadowUseVisibleBoundsForClippingDiagnostics() {
+            OfficeShape shape = OfficeShape.Polygon(
+                new OfficePoint(0, 0),
+                new OfficePoint(100, 1),
+                new OfficePoint(0, 2));
+            shape.StrokeColor = OfficeColor.Black;
+            shape.StrokeWidth = 4;
+            shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+            shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 30D, 0D);
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.Shape(shape, PdfAlign.Right))
+                .Paragraph(paragraph => paragraph.Text("Header miter shadow diagnostic body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            PdfConversionWarning warning = Assert.Single(report.Warnings, warning =>
+                warning.Code == "HeaderFooterPageBoundsClipped" &&
+                warning.Source == "Header");
+            Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
+            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth);
+            Assert.True(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterUnpaintedAndEmptyClippedShapesDoNotReportVisibleBounds() {
+            OfficeShape unpaintedLine = OfficeShape.Line(0, 0, 24, 12);
+            unpaintedLine.Transform = OfficeTransform.Translate(300D, 0D);
+            OfficeShape emptyClippedShape = OfficeShape.Rectangle(24, 12);
+            emptyClippedShape.FillColor = OfficeColor.Blue;
+            emptyClippedShape.ClipPath = OfficeClipPath.Empty();
+            emptyClippedShape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 300D, 0D);
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header
+                    .Shape(unpaintedLine, PdfAlign.Left)
+                    .Shape(emptyClippedShape, PdfAlign.Right))
+                .Paragraph(paragraph => paragraph.Text("Header invisible shape diagnostic body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            Assert.DoesNotContain(report.Warnings, warning =>
+                warning.Code == "HeaderFooterPageBoundsClipped" ||
+                warning.Code == "HeaderFooterContentOverflow" ||
+                warning.Code == "HeaderFooterZoneOverlap");
+            Assert.False(report.HasLoss);
+        }
+
+        [Fact]
         public void HeaderFooterImageBeyondPhysicalPageReportsClipping() {
             byte[] png = CreateMinimalRgbPng();
             var report = new PdfConversionReport();
@@ -800,6 +928,59 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.NotEmpty(bytes);
             Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterContentOverflow");
             Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+            Assert.False(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterZonedContainedImageUsesVisibleBoundsForClippingDiagnostics() {
+            byte[] portraitPng = PdfPngTestImages.CreateRgbPng(1, 4);
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 80,
+                MarginRight = 80,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header
+                    .Zones("H", null, null)
+                    .Image(portraitPng, 300, 20, PdfAlign.Left, OfficeImageFit.Contain))
+                .Paragraph(paragraph => paragraph.Text("Contained zoned header image body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+            Assert.False(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterVisualOnlyGroupsReportOverlap() {
+            byte[] png = CreateMinimalRgbPng();
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header
+                    .Image(png, 120, 14, PdfAlign.Left)
+                    .Image(png, 120, 14, PdfAlign.Center))
+                .Paragraph(paragraph => paragraph.Text("Visual-only header overlap body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            Assert.Contains(report.Warnings, warning =>
+                warning.Code == "HeaderFooterZoneOverlap" &&
+                warning.Source == "Header" &&
+                warning.Severity == PdfConversionWarningSeverity.Information);
             Assert.False(report.HasLoss);
         }
 

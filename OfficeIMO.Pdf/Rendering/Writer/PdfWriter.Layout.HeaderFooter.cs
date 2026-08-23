@@ -66,6 +66,8 @@ internal static partial class PdfWriter {
         int pageNumber,
         int totalPages,
         int documentPages) {
+        ValidateHeaderFooterGroupLayouts(options, variantPageNumber, pageNumber, totalPages, documentPages, isHeader: true);
+        ValidateHeaderFooterGroupLayouts(options, variantPageNumber, pageNumber, totalPages, documentPages, isHeader: false);
         AddHeaderFooterImages(
             page,
             options,
@@ -279,13 +281,14 @@ internal static partial class PdfWriter {
         double bottomY = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - block.Shape.Height
             : options.MarginBottom - options.FooterOffsetY;
-        GetHeaderFooterShapeBounds(block.Shape, x, bottomY, out double visibleX, out double visibleY, out double visibleWidth, out double visibleHeight);
-        ReportHeaderFooterBounds(options, source, "shape", visibleX, visibleY, visibleWidth, visibleHeight);
+        if (TryGetHeaderFooterShapeBounds(block.Shape, x, bottomY, out double visibleX, out double visibleY, out double visibleWidth, out double visibleHeight)) {
+            ReportHeaderFooterBounds(options, source, "shape", visibleX, visibleY, visibleWidth, visibleHeight);
+        }
 
         DrawHeaderFooterShapeGeometryAt(sb, page, block.Shape, x, bottomY);
     }
 
-    private static void GetHeaderFooterShapeBounds(
+    private static bool TryGetHeaderFooterShapeBounds(
         OfficeShape shape,
         double x,
         double bottomY,
@@ -293,20 +296,141 @@ internal static partial class PdfWriter {
         out double boundsY,
         out double boundsWidth,
         out double boundsHeight) {
-        if (!shape.Transform.HasValue) {
+        boundsX = boundsY = boundsWidth = boundsHeight = 0D;
+        if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) {
+            return false;
+        }
+
+        ResolveHeaderFooterBaseGeometry(shape, out bool baseHasFill, out bool baseHasStroke);
+        bool hasBounds = false;
+        if (baseHasFill || baseHasStroke) {
+            GetHeaderFooterShapeLayerBounds(
+                shape,
+                x,
+                bottomY,
+                baseHasStroke ? shape.StrokeWidth : 0D,
+                out boundsX,
+                out boundsY,
+                out boundsWidth,
+                out boundsHeight);
+            hasBounds = true;
+        }
+
+        OfficeShadow? shadow = shape.Shadow;
+        if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) {
+            return hasBounds;
+        }
+
+        double coreOpacity = shadow.Opacity * shadow.Color.A / 255D;
+        ResolveShadowGeometry(shape, out bool shadowHasFill, out bool shadowHasStroke);
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            coreOpacity,
+            shadow.BlurRadius,
+            shape.StrokeWidth,
+            shadowHasFill,
+            shadowHasStroke,
+            OfficeShadowLayerPlanner.CanExpand(shape));
+        double shadowX = x + shadow.OffsetX;
+        double shadowBottomY = bottomY - shadow.OffsetY;
+        for (int index = 0; index < layers.Count; index++) {
+            OfficeShadowLayer layer = layers[index];
+            OfficeShape layerShape = layer.Expansion > 0D
+                ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
+                : shape;
+            GetHeaderFooterShapeLayerBounds(
+                layerShape,
+                shadowX - layer.Expansion,
+                shadowBottomY - layer.Expansion,
+                layer.HasStroke ? layer.StrokeWidth : 0D,
+                out double layerX,
+                out double layerY,
+                out double layerWidth,
+                out double layerHeight);
+            IncludeShapeBounds(
+                layerX,
+                layerY,
+                layerWidth,
+                layerHeight,
+                ref hasBounds,
+                ref boundsX,
+                ref boundsY,
+                ref boundsWidth,
+                ref boundsHeight);
+        }
+
+        return hasBounds;
+    }
+
+    private static void ResolveHeaderFooterBaseGeometry(OfficeShape shape, out bool hasFill, out bool hasStroke) {
+        hasFill = shape.Kind != OfficeShapeKind.Line
+            && (shape.FillOpacity ?? 1D) > 0D
+            && ((shape.FillColor.HasValue && shape.FillColor.Value.A > 0) || shape.FillGradient != null || shape.FillRadialGradient != null);
+        hasStroke = shape.StrokeWidth > 0D
+            && (shape.StrokeOpacity ?? 1D) > 0D
+            && shape.StrokeColor.HasValue
+            && shape.StrokeColor.Value.A > 0;
+    }
+
+    private static void IncludeShapeBounds(
+        double x,
+        double y,
+        double width,
+        double height,
+        ref bool hasBounds,
+        ref double boundsX,
+        ref double boundsY,
+        ref double boundsWidth,
+        ref double boundsHeight) {
+        if (!hasBounds) {
             boundsX = x;
-            boundsY = bottomY;
-            boundsWidth = shape.Width;
-            boundsHeight = shape.Height;
+            boundsY = y;
+            boundsWidth = width;
+            boundsHeight = height;
+            hasBounds = true;
             return;
         }
 
-        (double left, double top, double right, double bottom) = shape.Transform.Value.TransformRectangleBounds(0D, 0D, shape.Width, shape.Height);
-        boundsX = x + left;
-        boundsY = bottomY + shape.Height - bottom;
-        boundsWidth = right - left;
-        boundsHeight = bottom - top;
+        double right = System.Math.Max(boundsX + boundsWidth, x + width);
+        double top = System.Math.Max(boundsY + boundsHeight, y + height);
+        boundsX = System.Math.Min(boundsX, x);
+        boundsY = System.Math.Min(boundsY, y);
+        boundsWidth = right - boundsX;
+        boundsHeight = top - boundsY;
     }
+
+    private static void GetHeaderFooterShapeLayerBounds(
+        OfficeShape shape,
+        double x,
+        double bottomY,
+        double strokeWidth,
+        out double boundsX,
+        out double boundsY,
+        out double boundsWidth,
+        out double boundsHeight) {
+        double strokeExpansionFactor = UsesPdfMiterJoinEnvelope(shape) ? 10D : 1D;
+        if (!shape.Transform.HasValue) {
+            double strokeExpansion = strokeWidth * 0.5D * strokeExpansionFactor;
+            boundsX = x - strokeExpansion;
+            boundsY = bottomY - strokeExpansion;
+            boundsWidth = shape.Width + (strokeExpansion * 2D);
+            boundsHeight = shape.Height + (strokeExpansion * 2D);
+            return;
+        }
+
+        OfficeTransform transform = shape.Transform.Value;
+        (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(0D, 0D, shape.Width, shape.Height);
+        double halfStroke = strokeWidth * 0.5D * strokeExpansionFactor;
+        double strokeExpansionX = halfStroke * System.Math.Sqrt((transform.M11 * transform.M11) + (transform.M21 * transform.M21));
+        double strokeExpansionY = halfStroke * System.Math.Sqrt((transform.M12 * transform.M12) + (transform.M22 * transform.M22));
+        boundsX = x + left - strokeExpansionX;
+        boundsY = bottomY + shape.Height - bottom - strokeExpansionY;
+        boundsWidth = right - left + (strokeExpansionX * 2D);
+        boundsHeight = bottom - top + (strokeExpansionY * 2D);
+    }
+
+    private static bool UsesPdfMiterJoinEnvelope(OfficeShape shape) =>
+        (shape.Kind == OfficeShapeKind.Polygon || shape.Kind == OfficeShapeKind.Path)
+        && (!shape.StrokeLineJoin.HasValue || shape.StrokeLineJoin.Value == OfficeStrokeLineJoin.Miter);
 
     private static void ReportHeaderFooterBounds(
         PdfOptions options,
@@ -317,21 +441,6 @@ internal static partial class PdfWriter {
         double width,
         double? height) {
         const double tolerance = 0.001D;
-        double contentLeft = options.MarginLeft;
-        double contentRight = options.PageWidth - options.MarginRight;
-        if (x < contentLeft - tolerance || x + width > contentRight + tolerance) {
-            options.AddLayoutDiagnostic(
-                "HeaderFooterContentOverflow",
-                source,
-                source + " " + contentKind + " content exceeds the page content frame and was preserved as authored.",
-                PdfLayoutDiagnosticKind.Overflow,
-                PdfConversionWarningSeverity.Information,
-                x,
-                y,
-                width,
-                height);
-        }
-
         bool outsideVerticalBounds = y.HasValue && height.HasValue &&
             (y.Value < -tolerance || y.Value + height.Value > options.PageHeight + tolerance);
         if (x < -tolerance || x + width > options.PageWidth + tolerance || outsideVerticalBounds) {

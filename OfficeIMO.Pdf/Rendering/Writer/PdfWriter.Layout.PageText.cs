@@ -149,6 +149,10 @@ internal static partial class PdfWriter {
         var sb = new StringBuilder();
         var zoneLayouts = BuildPageTextZoneLayouts(opts, zones, variantPage, page, pages, documentPages, font, fontSize, isHeader);
         foreach (var zone in zoneLayouts) {
+            if (string.IsNullOrEmpty(zone.Text)) {
+                continue;
+            }
+
             string? fontFamily = isHeader ? opts.HeaderFontFamily : opts.FooterFontFamily;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(zone.Text, font, fontSize, color, opts, fontFamily);
             PdfNamedFontFace? namedFont = TryResolvePageTextNamedFont(opts, fontFamily, font, out PdfNamedFontFace resolvedNamedFont)
@@ -193,7 +197,7 @@ internal static partial class PdfWriter {
             double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Left);
             double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Left);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
-            layouts.Add(new PageTextZoneLayout(text, contentLeft, textWidth, PdfAlign.Left, contentLeft, occupiedWidth, textBottom, textTop - textBottom));
+            layouts.Add(new PageTextZoneLayout(text, contentLeft, textWidth, PdfAlign.Left, textBottom, textTop - textBottom));
         }
 
         if (!string.IsNullOrEmpty(zones.Center)) {
@@ -205,7 +209,7 @@ internal static partial class PdfWriter {
             double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Center);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + ((contentWidth - occupiedWidth) / 2);
-            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Center, occupiedX, occupiedWidth, textBottom, textTop - textBottom));
+            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Center, textBottom, textTop - textBottom));
         }
 
         if (!string.IsNullOrEmpty(zones.Right)) {
@@ -217,48 +221,69 @@ internal static partial class PdfWriter {
             double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Right);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + contentWidth - occupiedWidth;
-            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Right, occupiedX, occupiedWidth, textBottom, textTop - textBottom));
+            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Right, textBottom, textTop - textBottom));
         }
 
-        ValidatePageTextZoneLayouts(opts, layouts, contentLeft, contentLeft + contentWidth, isHeader);
+        ValidatePageTextZoneLayouts(opts, layouts, isHeader);
         return layouts;
     }
 
-    private static void ValidatePageTextZoneLayouts(PdfOptions options, System.Collections.Generic.List<PageTextZoneLayout> layouts, double contentLeft, double contentRight, bool isHeader) {
-        const double tolerance = 0.01D;
-        const double minimumGap = 2D;
+    private static void ValidatePageTextZoneLayouts(PdfOptions options, System.Collections.Generic.List<PageTextZoneLayout> layouts, bool isHeader) {
         string source = isHeader ? "Header" : "Footer";
         foreach (var zone in layouts) {
-            if (zone.OccupiedX < contentLeft - tolerance || zone.OccupiedX + zone.OccupiedWidth > contentRight + tolerance) {
+            if (zone.TextWidth > 0D) {
+                ReportHeaderFooterBounds(options, source, "text", zone.X, zone.TextBottom, zone.TextWidth, zone.TextHeight);
+            }
+        }
+    }
+
+    private static void ValidateHeaderFooterGroupLayouts(
+        PdfOptions options,
+        int variantPage,
+        int page,
+        int pages,
+        int documentPages,
+        bool isHeader) {
+        const double tolerance = 0.01D;
+        const double minimumGap = 2D;
+        double contentLeft = options.MarginLeft;
+        double contentRight = options.PageWidth - options.MarginRight;
+        string source = isHeader ? "Header" : "Footer";
+        var layouts = new System.Collections.Generic.List<HeaderFooterGroupLayout>(3);
+
+        foreach (PdfAlign align in new[] { PdfAlign.Left, PdfAlign.Center, PdfAlign.Right }) {
+            if (!TryGetHeaderFooterGroupVisibleHorizontalBounds(
+                    options,
+                    variantPage,
+                    page,
+                    pages,
+                    documentPages,
+                    align,
+                    isHeader,
+                    out double visibleLeft,
+                    out double visibleRight)) {
+                continue;
+            }
+
+            var layout = new HeaderFooterGroupLayout(visibleLeft, visibleRight - visibleLeft);
+            layouts.Add(layout);
+            if (layout.X < contentLeft - tolerance || layout.X + layout.Width > contentRight + tolerance) {
                 options.AddLayoutDiagnostic(
                     "HeaderFooterContentOverflow",
                     source,
                     source + " zone content exceeds the page content frame and was preserved as authored.",
                     PdfLayoutDiagnosticKind.Overflow,
                     PdfConversionWarningSeverity.Information,
-                    x: zone.OccupiedX,
-                    width: zone.OccupiedWidth);
-            }
-
-            bool outsideVerticalBounds = zone.TextBottom < -tolerance || zone.TextBottom + zone.TextHeight > options.PageHeight + tolerance;
-            if (zone.OccupiedX < -tolerance || zone.OccupiedX + zone.OccupiedWidth > options.PageWidth + tolerance || outsideVerticalBounds) {
-                options.AddLayoutDiagnostic(
-                    "HeaderFooterPageBoundsClipped",
-                    source,
-                    source + " zone content extends beyond the physical page bounds and may be clipped by the PDF page.",
-                    PdfLayoutDiagnosticKind.ClippedContent,
-                    x: zone.OccupiedX,
-                    y: zone.TextBottom,
-                    width: zone.OccupiedWidth,
-                    height: zone.TextHeight);
+                    x: layout.X,
+                    width: layout.Width);
             }
         }
 
-        var ordered = layouts.OrderBy(zone => zone.OccupiedX).ToList();
+        var ordered = layouts.OrderBy(zone => zone.X).ToList();
         for (int i = 1; i < ordered.Count; i++) {
             var previous = ordered[i - 1];
             var current = ordered[i];
-            if (previous.OccupiedX + previous.OccupiedWidth + minimumGap > current.OccupiedX + tolerance) {
+            if (previous.X + previous.Width + minimumGap > current.X + tolerance) {
                 options.AddLayoutDiagnostic(
                     "HeaderFooterZoneOverlap",
                     source,
@@ -267,6 +292,82 @@ internal static partial class PdfWriter {
                     PdfConversionWarningSeverity.Information);
             }
         }
+    }
+
+    private static bool TryGetHeaderFooterGroupVisibleHorizontalBounds(
+        PdfOptions options,
+        int variantPage,
+        int page,
+        int pages,
+        int documentPages,
+        PdfAlign align,
+        bool isHeader,
+        out double visibleLeft,
+        out double visibleRight) {
+        double textWidth = MeasureHeaderFooterTextWidth(options, variantPage, page, pages, documentPages, align, isHeader);
+        System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images = isHeader
+            ? options.GetHeaderImagesForPage(variantPage)
+            : options.GetFooterImagesForPage(variantPage);
+        System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> shapes = isHeader
+            ? options.GetHeaderShapesForPage(variantPage)
+            : options.GetFooterShapesForPage(variantPage);
+        double imagesWidth = MeasureHeaderFooterImagesWidth(images, align);
+        double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, align);
+        double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
+        double groupX = AlignHeaderFooterGroup(options, groupWidth, align);
+        visibleLeft = double.PositiveInfinity;
+        visibleRight = double.NegativeInfinity;
+
+        if (textWidth > 0D) {
+            IncludeHorizontalBounds(groupX, groupX + textWidth, ref visibleLeft, ref visibleRight);
+        }
+
+        double imageConsumedWidth = 0D;
+        foreach (PdfHeaderFooterImage image in images) {
+            if (image.Align != align) {
+                continue;
+            }
+
+            double imageX = groupX +
+                (textWidth > 0D ? textWidth + HeaderFooterInlineGap : 0D) +
+                imageConsumedWidth;
+            double imageBottomY = isHeader
+                ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - image.Height
+                : options.MarginBottom - options.FooterOffsetY;
+            ImageBlock block = image.ToImageBlock();
+            PdfImageStyle style = block.Style ?? new PdfImageStyle();
+            PageImage pageImage = CreatePageImage(block, style, imageX, imageBottomY);
+            GetImageAnnotationBounds(style, pageImage, imageX, imageBottomY, image.Width, image.Height, out double imageLeft, out _, out double imageRight, out _);
+            IncludeHorizontalBounds(imageLeft, imageRight, ref visibleLeft, ref visibleRight);
+            imageConsumedWidth += image.Width + HeaderFooterInlineGap;
+        }
+
+        double shapeConsumedWidth = 0D;
+        foreach (PdfHeaderFooterShape headerFooterShape in shapes) {
+            if (headerFooterShape.Align != align) {
+                continue;
+            }
+
+            double shapeX = groupX +
+                (textWidth > 0D ? textWidth + HeaderFooterInlineGap : 0D) +
+                (imagesWidth > 0D ? imagesWidth + HeaderFooterInlineGap : 0D) +
+                shapeConsumedWidth;
+            ShapeBlock shapeBlock = headerFooterShape.ToShapeBlock();
+            double shapeBottomY = isHeader
+                ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - shapeBlock.Shape.Height
+                : options.MarginBottom - options.FooterOffsetY;
+            if (TryGetHeaderFooterShapeBounds(shapeBlock.Shape, shapeX, shapeBottomY, out double shapeLeft, out _, out double shapeWidth, out _)) {
+                IncludeHorizontalBounds(shapeLeft, shapeLeft + shapeWidth, ref visibleLeft, ref visibleRight);
+            }
+            shapeConsumedWidth += headerFooterShape.Width + HeaderFooterInlineGap;
+        }
+
+        return !double.IsPositiveInfinity(visibleLeft) && !double.IsNegativeInfinity(visibleRight);
+    }
+
+    private static void IncludeHorizontalBounds(double left, double right, ref double visibleLeft, ref double visibleRight) {
+        visibleLeft = System.Math.Min(visibleLeft, left);
+        visibleRight = System.Math.Max(visibleRight, right);
     }
 
     private static double MeasureHeaderFooterTextWidth(
@@ -325,10 +426,10 @@ internal static partial class PdfWriter {
         double X,
         double TextWidth,
         PdfAlign Align,
-        double OccupiedX,
-        double OccupiedWidth,
         double TextBottom,
         double TextHeight);
+
+    private readonly record struct HeaderFooterGroupLayout(double X, double Width);
 
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildPageTextRuns(string text, PdfStandardFont font, double fontSize, PdfColor? color, PdfOptions opts, string? fontFamily = null) {
         (bool bold, bool italic) = GetPageTextFontStyle(font);
