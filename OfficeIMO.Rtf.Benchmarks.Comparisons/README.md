@@ -41,7 +41,9 @@ BenchmarkDotNet artifacts and the validation JSON are machine-specific. Keep
 them under `.benchmark-artifacts` or another ignored output root and publish
 only environment-qualified results.
 
-The shared runner adds source provenance and normalized evidence:
+The shared runner adds source provenance and normalized evidence. It also runs
+the semantic/size preflight and stores `validated-size-evidence.json` under the
+same provenance capture:
 
 ```powershell
 .\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload rtfhtml -RunMode full -Framework net8.0

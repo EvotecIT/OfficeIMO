@@ -195,6 +195,7 @@ $definitions = [ordered]@{
         Filter = '*RtfToHtmlComparisonBenchmarks*'
         ComparisonId = "rtf-to-html-$Framework"
         Suite = 'OfficeIMO.Rtf.HtmlComparison'
+        ValidatedSizeEvidence = $true
         IdentityVariables = @('scale')
         ExpectedCases = @(
             foreach ($scale in @('Small', 'Medium', 'Large', 'Producer')) {
@@ -574,6 +575,9 @@ foreach ($name in $selected) {
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
     }
+    if ($definition.ValidatedSizeEvidence) {
+        $provenanceMetadata['benchmark.workload.sizeEvidencePath'] = 'validated-size-evidence.json'
+    }
     if ($null -ne $affinityLabel) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
     }
@@ -618,6 +622,46 @@ foreach ($name in $selected) {
     }
     if ($benchmarkExitCode -ne 0) {
         throw "$name benchmark run failed with exit code $benchmarkExitCode."
+    }
+
+    $sizeEvidencePath = $null
+    if ($definition.ValidatedSizeEvidence) {
+        $sizeEvidencePath = Join-Path $artifactsPath 'validated-size-evidence.json'
+        $sizeArguments = @(
+            'run',
+            '-c', 'Release',
+            '-f', $Framework,
+            '--project', (Join-Path $repositoryRoot $definition.Project),
+            '--',
+            'validate',
+            '--json', $sizeEvidencePath
+        )
+        Push-Location -LiteralPath $repositoryRoot
+        try {
+            & dotnet @sizeArguments
+            $sizeEvidenceExitCode = $LASTEXITCODE
+        } finally {
+            Pop-Location
+        }
+        if ($sizeEvidenceExitCode -ne 0) {
+            throw "$name validated size evidence failed with exit code $sizeEvidenceExitCode."
+        }
+
+        $sizeResults = Get-Content -LiteralPath $sizeEvidencePath -Raw | ConvertFrom-Json
+        $sizeEvidence = [ordered]@{
+            Workload = $name
+            ComparisonId = $definition.ComparisonId
+            SourceCommit = $gitSha
+            Framework = $Framework
+            Platform = $platform
+            CapturedAtUtc = [DateTimeOffset]::UtcNow.ToString('O')
+            Results = $sizeResults
+        }
+        $sizeEvidenceJson = $sizeEvidence | ConvertTo-Json -Depth 12
+        [System.IO.File]::WriteAllText(
+            $sizeEvidencePath,
+            $sizeEvidenceJson,
+            [System.Text.UTF8Encoding]::new($false))
     }
     $provenanceCapture |
         Complete-BenchmarkProvenanceCapture |
@@ -672,6 +716,7 @@ foreach ($name in $selected) {
         EvidenceLocation = $evidenceLocation
         ArtifactsPath = $artifactsPath
         NormalizedResult = $normalizedPath
+        SizeEvidence = $sizeEvidencePath
         CatalogEligible = $workloadPlan.WillCatalog
     })
 }
@@ -709,6 +754,7 @@ $outputs = foreach ($measurement in $measurements) {
         } else {
             $measurement.NormalizedResult
         }
+        SizeEvidence = $measurement.SizeEvidence
         EvidenceCatalog = if ($measurement.CatalogEligible) { $catalogPath } else { $null }
     }
 }

@@ -45,7 +45,9 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Markdown.Benchmarks -- --v
 
 The benchmark classes do not pin a runtime job. `-f net8.0` or `-f net10.0`
 selects the runtime, and `--job Dry` remains an execution check instead of
-silently adding a full second job.
+silently adding a full second job. The project is intentionally outside
+`OfficeIMO.sln`, so Markdig and ReverseMarkdown remain opt-in comparison
+dependencies rather than normal solution restore inputs.
 
 ## RTF comparisons
 
@@ -62,6 +64,9 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Rtf.Benchmarks.Comparisons
 
 The comparison project is outside `OfficeIMO.sln`; RtfPipe remains an opt-in
 benchmark dependency and does not enter normal restore, build, or packages.
+The shared runner captures the validated input/output-size sidecar with the
+same source commit, framework, platform, and environment provenance as timing
+and allocation evidence.
 
 ## PDF comparisons
 

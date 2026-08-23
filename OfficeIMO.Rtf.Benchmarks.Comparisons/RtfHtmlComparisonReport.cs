@@ -1,5 +1,7 @@
 namespace OfficeIMO.Rtf.Benchmarks.Comparisons;
 
+using System.Text.Json.Serialization;
+
 internal sealed record RtfHtmlComparisonReport(
     string Scale,
     int InputBytes,
@@ -9,8 +11,11 @@ internal sealed record RtfHtmlComparisonReport(
 internal sealed record RtfHtmlOutputEvidence(
     string Implementation,
     int OutputBytes,
-    string Text,
     int RecordCount,
     int TableCount,
     int CellCount,
-    int ImageCount);
+    int ImageCount,
+    int SemanticTokenCount,
+    string SemanticSha256,
+    IReadOnlyList<string> TableCells,
+    [property: JsonIgnore] string Text);
