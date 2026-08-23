@@ -1,6 +1,6 @@
 # OfficeIMO image benchmarks
 
-This project measures the first-party `OfficeIMO.Core` image engine without adding image-library dependencies to the product. The corpus covers PNG, JPEG, GIF, TIFF, and BMP metadata and decode paths, deterministic RGBA encoding to PNG/JPEG/TIFF/WebP, bilinear resize, and placement-aware optimization. Encode and transform workloads run at several image or target sizes so managed-allocation growth remains visible instead of being inferred from one small sample.
+This project measures the first-party `OfficeIMO.Core` image engine without adding image-library dependencies to the product. The file corpus covers PNG, JPEG, GIF, TIFF, and BMP metadata and decode paths. Deterministic generated scenarios add tiny images, screenshots, scans, alpha graphics, high-entropy pixels, a photo, and a 4096x3072 stress image. The suite covers RGBA encoding to PNG/JPEG/TIFF/WebP, caller-owned streaming output, bilinear resize, and placement-aware optimization so allocation growth is not inferred from one logo or one synthetic pattern.
 
 The validation pass reports encoded bytes separately from benchmark time. It includes PNG compression, JPEG quality/subsampling/progressive modes with MAE and PSNR, TIFF compression, literal-lossless WebP, and every supported static source-to-output conversion. Lossless rows require exact RGBA equality. JPEG rows compare against the alpha-flattened source. Animated input is rejected by the optimization matrix rather than silently reduced to one frame.
 
@@ -12,15 +12,25 @@ Every timed workload is validated in global setup. Run the complete validation p
 dotnet run --project OfficeIMO.Drawing.Benchmarks -c Release -f net10.0 -- --validate
 ```
 
+Collect isolated managed-allocation, peak working-set, and peak private-byte deltas for representative materialized-versus-streamed encodes with:
+
+```powershell
+dotnet run --project OfficeIMO.Drawing.Benchmarks -c Release -f net10.0 -- --memory-evidence
+```
+
+Pass one or more scenario names such as `Screenshot`, `HighEntropy`, or `VeryLarge` to narrow that run. Each row starts after the decoded/generated source image is resident. `Peak private` is a process-level managed-plus-native boundary, not a claim that the runtime can attribute every byte to a specific native codec.
+
 Start benchmark work with a short diagnostic run:
 
 ```powershell
 dotnet run --project OfficeIMO.Drawing.Benchmarks -c Release -f net10.0 -- --job Dry --filter '*ImageEncodeBenchmarks*'
 ```
 
+Use `*ImageStreamingEncodeBenchmarks*` to compare the existing materialized `byte[]` contract with a caller-owned non-buffering stream across the representative timed corpus. The stream lane validates the same encoded format, dimensions, and decoded pixels in setup; it intentionally measures output ownership without allocating another full result array. It uses baseline JPEG settings so progressive and optimized-Huffman work does not obscure that comparison; those JPEG modes remain covered by the encoding size/fidelity validator.
+
 Use a normal BenchmarkDotNet job only after the workload, output dimensions, format, and pixel-preservation contract have been validated. Benchmark artifacts belong in an ignored or temporary output directory and should not be committed.
 
-For a heterogeneous or multi-CCD processor, pin the run to a reviewed processor region. For example, use this mask when logical processors 0-15 form one representative region:
+For the 9950X3D2 benchmark host, pin the run to the reviewed `0xFFFF` processor region (decimal `65535`, logical processors 0-15):
 
 ```powershell
 dotnet run --project OfficeIMO.Drawing.Benchmarks -c Release -f net10.0 -- --job Short --filter '*ImageEncodeBenchmarks*' --affinity 65535

@@ -23,7 +23,7 @@ public enum OfficePngCompression {
 /// <summary>
 /// Dependency-free PNG encoder for RGBA raster images.
 /// </summary>
-public static class OfficePngWriter {
+public static partial class OfficePngWriter {
     private static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
     private static readonly uint[] CrcTable = CreateCrcTable();
 

@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free encoder for raster export formats.
 /// </summary>
-public static class OfficeRasterImageEncoder {
+public static partial class OfficeRasterImageEncoder {
     internal const double PngMinimumDpi = 0.0127D;
     internal const double JpegMinimumDpi = 0.5D;
     internal const double TiffMinimumDpi = 0.001D;

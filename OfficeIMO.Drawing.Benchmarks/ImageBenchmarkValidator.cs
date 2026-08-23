@@ -20,6 +20,18 @@ internal static class ImageBenchmarkValidator {
         OfficeRasterImage decodedBmp = ImageBenchmarkCorpus.Decode(bmp, "GeneratedBmp24");
         writer.WriteLine($"{"GeneratedBmp24",-14} {OfficeImageFormat.Bmp,-5} {decodedBmp.Width,4}x{decodedBmp.Height,-4} {bmp.Length,10:N0} bytes {ImageBenchmarkCorpus.PixelHash(decodedBmp)[..16]}");
 
+        writer.WriteLine();
+        writer.WriteLine("Representative generated scenarios:");
+        foreach (ImageBenchmarkScenario scenario in ImageBenchmarkScenarios.All) {
+            OfficeRasterImage image = scenario.CreateImage();
+            if (image.Width != scenario.Width || image.Height != scenario.Height) {
+                throw new InvalidOperationException(
+                    $"{scenario.Id} produced {image.Width}x{image.Height}; expected {scenario.Width}x{scenario.Height}.");
+            }
+            writer.WriteLine(
+                $"{scenario.Id,-14} {scenario.Width,4}x{scenario.Height,-4} {ImageBenchmarkScenarios.Fingerprint(image)}");
+        }
+
         var encode = new ImageEncodeBenchmarks();
         encode.Setup();
         writer.WriteLine($"Encode PNG     {encode.Png().Length,10:N0} bytes");
