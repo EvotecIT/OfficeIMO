@@ -5,7 +5,6 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeWebpCodec {
-    private const int Vp8lGeneralMaximumPixels = 16_000_000;
     private static readonly sbyte[] Vp8lDistanceMap = {
          0,1,  1,0,  1,1, -1,1,  0,2,  2,0,  1,2, -1,2,  2,1, -2,1,
          2,2, -2,2,  0,3,  3,0,  1,3, -1,3,  3,1, -3,1,  2,3, -2,3,
@@ -38,8 +37,7 @@ public static partial class OfficeWebpCodec {
             int height = checked((int)reader.ReadBits(14) + 1);
             reader.ReadBits(1);
             if (reader.ReadBits(3) != 0 ||
-                !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels) ||
-                pixels > Vp8lGeneralMaximumPixels) return false;
+                !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels)) return false;
 
             var allocationBudget = new Vp8lAllocationBudget();
             if (!allocationBudget.TryReserveBytes(encodedBytes.Length) ||
@@ -54,6 +52,7 @@ public static partial class OfficeWebpCodec {
             if (argb.Length != pixels || !reader.HasOnlyZeroPadding(cancellationToken)) return false;
 
             if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
             for (int pixel = 0; pixel < argb.Length; pixel++) {
                 if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -84,8 +83,7 @@ public static partial class OfficeWebpCodec {
         CancellationToken cancellationToken,
         out uint[] pixels) {
         pixels = Array.Empty<uint>();
-        if (depth > 4 || !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixelCount) ||
-            pixelCount > Vp8lGeneralMaximumPixels) return false;
+        if (depth > 4 || !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixelCount)) return false;
         int cacheBits = 0;
         if (reader.ReadBits(1) != 0) {
             cacheBits = (int)reader.ReadBits(4);
@@ -104,17 +102,14 @@ public static partial class OfficeWebpCodec {
             if (!TryDecodeVp8lImageData(reader, prefixWidth, prefixHeight, false, depth + 1,
                     allocationBudget, cancellationToken, out prefixImage))
                 return false;
-            int maximumGroup = 0;
-            for (int index = 0; index < prefixImage.Length; index++) {
-                int group = (int)((prefixImage[index] >> 8) & 0xFFFFU);
-                if (group > maximumGroup) maximumGroup = group;
-            }
+            int maximumGroup = FindMaximumVp8lGroup(prefixImage, cancellationToken);
             groupCount = checked(maximumGroup + 1);
             if (groupCount > 65536) return false;
         }
 
         if (!allocationBudget.TryReserveArray(groupCount, IntPtr.Size) ||
             !allocationBudget.TryReserveBytes((long)groupCount * 64L)) return false;
+        cancellationToken.ThrowIfCancellationRequested();
         var groups = new Vp8lHuffmanGroup[groupCount];
         for (int group = 0; group < groupCount; group++) {
             if ((group & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -133,7 +128,9 @@ public static partial class OfficeWebpCodec {
 
         if (!allocationBudget.TryReserveArray(pixelCount, sizeof(uint)) ||
             cacheSize != 0 && !allocationBudget.TryReserveArray(cacheSize, sizeof(uint))) return false;
+        cancellationToken.ThrowIfCancellationRequested();
         pixels = new uint[pixelCount];
+        cancellationToken.ThrowIfCancellationRequested();
         uint[] cache = cacheSize == 0 ? Array.Empty<uint>() : new uint[cacheSize];
         int position = 0;
         while (position < pixelCount) {
@@ -178,6 +175,18 @@ public static partial class OfficeWebpCodec {
             }
         }
         return true;
+    }
+
+    internal static int FindMaximumVp8lGroup(
+        uint[] prefixImage,
+        CancellationToken cancellationToken) {
+        int maximumGroup = 0;
+        for (int index = 0; index < prefixImage.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int group = (int)((prefixImage[index] >> 8) & 0xFFFFU);
+            if (group > maximumGroup) maximumGroup = group;
+        }
+        return maximumGroup;
     }
 
     private static int ReadVp8lPrefixValue(LsbBitReader reader, int prefix) {

@@ -113,6 +113,7 @@ public static partial class OfficeWebpCodec {
             output = Array.Empty<uint>();
             return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         output = new uint[outputLength];
         int pixelsPerPacked = 1 << transform.SizeBits;
         int bitsPerIndex = 8 >> transform.SizeBits;
@@ -175,6 +176,7 @@ public static partial class OfficeWebpCodec {
             output = Array.Empty<uint>();
             return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         output = new uint[residuals.Length];
         int blockWidth = transform.Value;
         if (blockWidth < 1) return false;

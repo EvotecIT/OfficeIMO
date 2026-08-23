@@ -135,7 +135,9 @@ internal static class OfficeImageMetadataInspector {
                         overwrite: true);
                 }
             }
-            else if (type == "iTXt" && ContainsAscii(data, offset + 8, length, "XML:com.adobe.xmp")) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
+            else if ((type == "tEXt" || type == "zTXt" || type == "iTXt") &&
+                     HasExactPngTextKeyword(
+                         data, offset + 8, length, "XML:com.adobe.xmp")) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
         }
@@ -195,6 +197,19 @@ internal static class OfficeImageMetadataInspector {
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: true);
             }
         }
+    }
+
+    private static bool HasExactPngTextKeyword(
+        byte[] data,
+        int payloadOffset,
+        int payloadLength,
+        string keyword) {
+        if (payloadLength <= keyword.Length || payloadOffset < 0 ||
+            payloadOffset > data.Length - payloadLength) return false;
+        for (int index = 0; index < keyword.Length; index++) {
+            if (data[payloadOffset + index] != (byte)keyword[index]) return false;
+        }
+        return data[payloadOffset + keyword.Length] == 0;
     }
 
     private static void InspectBmp(byte[] data, OfficeImageMetadataSnapshot snapshot) {
@@ -322,11 +337,6 @@ internal static class OfficeImageMetadataInspector {
     }
     private static string ReadAscii(byte[] data, int offset, int count) =>
         System.Text.Encoding.ASCII.GetString(data, offset, count);
-    private static bool ContainsAscii(byte[] data, int offset, int count, string value) {
-        int end = offset + count - value.Length;
-        for (int candidate = offset; candidate <= end; candidate++) if (Matches(data, candidate, value.Length, value)) return true;
-        return false;
-    }
     private static bool Matches(byte[] data, int offset, int count, string value) =>
         count >= value.Length && ReadAscii(data, offset, value.Length) == value;
     private static bool HasGifCommentExtension(byte[] data) {

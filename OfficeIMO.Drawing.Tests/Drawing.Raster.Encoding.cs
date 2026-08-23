@@ -396,6 +396,62 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void Vp8lDecodeUsesTheConfiguredPixelLimitBeyondSixteenMillionPixels() {
+        const int width = 4001;
+        const int height = 4000;
+        byte[] webp = CreateUniformVp8lFixture(width, height);
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            webp,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = (long)width * height },
+            out OfficeRasterImage? image,
+            out OfficeRasterDecodeInfo info));
+        Assert.Equal((width, height), (image!.Width, image.Height));
+        Assert.Equal(OfficeColor.FromRgba(11, 0, 22, 255), image.GetPixel(width - 1, height - 1));
+        Assert.Null(info.Diagnostic);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void PngUnfilterObservesCancellationWithinWideScanlines(int filter) {
+        var current = new byte[8192];
+        var previous = new byte[current.Length];
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficePngReader.Unfilter(current, previous, 4, filter, cancellation.Token));
+    }
+
+    [Fact]
+    public void PngWideRowCopyAndClearObserveCancellation() {
+        var source = new byte[128 * 1024];
+        var destination = new byte[source.Length];
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => OfficePngReader.CopyBytes(
+            source, 0, destination, 0, source.Length, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficePngReader.ClearBytes(destination, cancellation.Token));
+    }
+
+    [Fact]
+    public void Vp8lMetaGroupScanObservesCancellation() {
+        var prefixImage = new uint[8192];
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeWebpCodec.FindMaximumVp8lGroup(
+                prefixImage,
+                cancellation.Token));
+    }
+
+    [Fact]
     public void Vp8lAllocationBudgetRejectsAggregateBuffersBeyondTheManagedBoundary() {
         var budget = new OfficeWebpCodec.Vp8lAllocationBudget();
 
@@ -854,6 +910,36 @@ public sealed class DrawingRasterEncodingTests {
         WriteSingleSymbolTree(writer, 255);
         WriteSingleSymbolTree(writer, 0);
         if (!duplicateSimpleTree) writer.WriteBits(0, 1); // green symbol zero
+
+        byte[] bits = writer.Finish();
+        byte[] payload = new byte[bits.Length + 1];
+        payload[0] = 0x2F;
+        Buffer.BlockCopy(bits, 0, payload, 1, bits.Length);
+        int paddedPayloadLength = payload.Length + (payload.Length & 1);
+        byte[] result = new byte[20 + paddedPayloadLength];
+        System.Text.Encoding.ASCII.GetBytes("RIFF").CopyTo(result, 0);
+        WriteLittleEndian(result, 4, result.Length - 8);
+        System.Text.Encoding.ASCII.GetBytes("WEBP").CopyTo(result, 8);
+        System.Text.Encoding.ASCII.GetBytes("VP8L").CopyTo(result, 12);
+        WriteLittleEndian(result, 16, payload.Length);
+        Buffer.BlockCopy(payload, 0, result, 20, payload.Length);
+        return result;
+    }
+
+    private static byte[] CreateUniformVp8lFixture(int width, int height) {
+        var writer = new TestLsbBitWriter();
+        writer.WriteBits((uint)(width - 1), 14);
+        writer.WriteBits((uint)(height - 1), 14);
+        writer.WriteBits(0, 1);  // no alpha hint
+        writer.WriteBits(0, 3);  // version
+        writer.WriteBits(0, 1);  // no transforms
+        writer.WriteBits(0, 1);  // no color cache
+        writer.WriteBits(0, 1);  // one Huffman group
+        WriteSingleSymbolTree(writer, 0);
+        WriteSingleSymbolTree(writer, 11);
+        WriteSingleSymbolTree(writer, 22);
+        WriteSingleSymbolTree(writer, 255);
+        WriteSingleSymbolTree(writer, 0);
 
         byte[] bits = writer.Finish();
         byte[] payload = new byte[bits.Length + 1];

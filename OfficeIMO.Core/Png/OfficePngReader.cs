@@ -52,6 +52,7 @@ public static class OfficePngReader {
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRasterImage result = new OfficeRasterImage(payload.Width, payload.Height);
             if (payload.InterlaceMethod == 0) {
                 DecodeScanlines(payload, result, cancellationToken);
@@ -73,22 +74,24 @@ public static class OfficePngReader {
         PngPayload payload,
         OfficeRasterImage result,
         CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] previous = new byte[payload.Stride];
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] current = new byte[payload.Stride];
         int sourceOffset = 0;
         for (int y = 0; y < payload.Height; y++) {
             if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             int filter = payload.Scanlines[sourceOffset++];
-            Buffer.BlockCopy(payload.Scanlines, sourceOffset, current, 0, payload.Stride);
+            CopyBytes(payload.Scanlines, sourceOffset, current, 0, payload.Stride, cancellationToken);
             sourceOffset += payload.Stride;
-            Unfilter(current, previous, payload.BytesPerPixel, filter);
+            Unfilter(current, previous, payload.BytesPerPixel, filter, cancellationToken);
             ExpandScanline(current, payload.Width, y, payload.ColorType, payload.BitDepth,
                 payload.Palette, payload.Transparency, result, cancellationToken);
 
             byte[] temp = previous;
             previous = current;
             current = temp;
-            Array.Clear(current, 0, current.Length);
+            ClearBytes(current, cancellationToken);
         }
     }
 
@@ -109,15 +112,17 @@ public static class OfficePngReader {
             int stride = OfficeRasterGuards.EnsureByteCount(
                 (((long)passWidth * bitsPerPixel) + 7L) / 8L,
                 "PNG Adam7 scanline dimensions exceed size limits.");
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] previous = new byte[stride];
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] current = new byte[stride];
             for (int passY = 0; passY < passHeight; passY++) {
                 if ((passY & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (sourceOffset > payload.Scanlines.Length - stride - 1) return false;
                 int filter = payload.Scanlines[sourceOffset++];
-                Buffer.BlockCopy(payload.Scanlines, sourceOffset, current, 0, stride);
+                CopyBytes(payload.Scanlines, sourceOffset, current, 0, stride, cancellationToken);
                 sourceOffset += stride;
-                Unfilter(current, previous, payload.BytesPerPixel, filter);
+                Unfilter(current, previous, payload.BytesPerPixel, filter, cancellationToken);
                 ExpandScanline(current, passWidth, startY[pass] + passY * stepY[pass],
                     payload.ColorType, payload.BitDepth, payload.Palette, payload.Transparency,
                     result, cancellationToken, startX[pass], stepX[pass]);
@@ -125,7 +130,7 @@ public static class OfficePngReader {
                 byte[] temp = previous;
                 previous = current;
                 current = temp;
-                Array.Clear(current, 0, current.Length);
+                ClearBytes(current, cancellationToken);
             }
         }
         return sourceOffset == payload.Scanlines.Length;
@@ -256,17 +261,20 @@ public static class OfficePngReader {
         out int consumed) {
         consumed = sourceOffset;
         if ((long)sourceOffset + ((long)stride + 1L) * height > payload.Scanlines.Length) return false;
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] previous = new byte[stride];
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] current = new byte[stride];
         for (int y = 0; y < height; y++) {
             if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             int filter = payload.Scanlines[consumed++];
-            Buffer.BlockCopy(payload.Scanlines, consumed, current, 0, stride);
+            CopyBytes(payload.Scanlines, consumed, current, 0, stride, cancellationToken);
             consumed += stride;
-            Unfilter(current, previous, payload.BytesPerPixel, filter);
+            Unfilter(current, previous, payload.BytesPerPixel, filter, cancellationToken);
             if (payload.ColorType == 3) {
                 int paletteEntries = payload.Palette!.Length / 3;
                 for (int x = 0; x < width; x++) {
+                    if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     if (GetPackedSample(current, x, payload.BitDepth) >= paletteEntries) return false;
                 }
             }
@@ -274,7 +282,7 @@ public static class OfficePngReader {
             byte[] temp = previous;
             previous = current;
             current = temp;
-            Array.Clear(current, 0, current.Length);
+            ClearBytes(current, cancellationToken);
         }
         return true;
     }
@@ -459,7 +467,8 @@ public static class OfficePngReader {
         int destinationStartX = 0,
         int destinationStepX = 1) {
         if (colorType == 6 && bitDepth == 8 && destinationStartX == 0 && destinationStepX == 1) {
-            Buffer.BlockCopy(current, 0, image.PixelBuffer, checked(y * width * 4), checked(width * 4));
+            CopyBytes(current, 0, image.PixelBuffer, checked(y * width * 4), checked(width * 4),
+                cancellationToken);
             return;
         }
 
@@ -572,17 +581,25 @@ public static class OfficePngReader {
         green == ((transparency[2] << 8) | transparency[3]) &&
         blue == ((transparency[4] << 8) | transparency[5]);
 
-    private static void Unfilter(byte[] current, byte[] previous, int bytesPerPixel, int filter) {
+    internal static void Unfilter(
+        byte[] current,
+        byte[] previous,
+        int bytesPerPixel,
+        int filter,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (filter) {
             case 0:
                 return;
             case 1:
                 for (int index = bytesPerPixel; index < current.Length; index++) {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     current[index] = unchecked((byte)(current[index] + current[index - bytesPerPixel]));
                 }
                 return;
             case 2:
                 for (int index = 0; index < current.Length; index++) {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     current[index] = unchecked((byte)(current[index] + previous[index]));
                 }
                 return;
@@ -592,6 +609,7 @@ public static class OfficePngReader {
                     current[index] = unchecked((byte)(current[index] + (previous[index] / 2)));
                 }
                 for (int index = bytesPerPixel; index < current.Length; index++) {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     current[index] = unchecked((byte)(current[index] + ((current[index - bytesPerPixel] + previous[index]) / 2)));
                 }
                 return;
@@ -601,6 +619,7 @@ public static class OfficePngReader {
                     current[index] = unchecked((byte)(current[index] + previous[index]));
                 }
                 for (int index = bytesPerPixel; index < current.Length; index++) {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     current[index] = unchecked((byte)(current[index] + Paeth(
                         current[index - bytesPerPixel],
                         previous[index],
@@ -609,6 +628,33 @@ public static class OfficePngReader {
                 return;
             default:
                 throw new InvalidDataException("Unsupported PNG filter.");
+        }
+    }
+
+    internal static void CopyBytes(
+        byte[] source,
+        int sourceOffset,
+        byte[] destination,
+        int destinationOffset,
+        int count,
+        CancellationToken cancellationToken) {
+        const int copyChunkBytes = 64 * 1024;
+        int remaining = count;
+        while (remaining > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int copy = Math.Min(remaining, copyChunkBytes);
+            Buffer.BlockCopy(source, sourceOffset, destination, destinationOffset, copy);
+            sourceOffset += copy;
+            destinationOffset += copy;
+            remaining -= copy;
+        }
+    }
+
+    internal static void ClearBytes(byte[] bytes, CancellationToken cancellationToken) {
+        const int clearChunkBytes = 64 * 1024;
+        for (int offset = 0; offset < bytes.Length; offset += clearChunkBytes) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Array.Clear(bytes, offset, Math.Min(clearChunkBytes, bytes.Length - offset));
         }
     }
 

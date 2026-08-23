@@ -9,6 +9,78 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void PngMetadataInspectorMatchesOnlyTheExactInternationalTextXmpKeyword() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] ordinaryInternationalText = Encoding.ASCII.GetBytes("Comment")
+            .Concat(new byte[] { 0, 0, 0, 0 })
+            .Concat(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"))
+            .Concat(new byte[] { 0 })
+            .Concat(Encoding.UTF8.GetBytes("ordinary text"))
+            .ToArray();
+        byte[] withComment = InsertPngChunkBefore(
+            png,
+            "IDAT",
+            "iTXt",
+            ordinaryInternationalText);
+        OfficeImageMetadataSnapshot commentMetadata = OfficeImageMetadataInspector.Inspect(
+            withComment,
+            OfficeImageFormat.Png);
+
+        Assert.Equal(OfficeImageMetadataKinds.Comments,
+            commentMetadata.Kinds & (OfficeImageMetadataKinds.Comments | OfficeImageMetadataKinds.Xmp));
+    }
+
+    [Theory]
+    [InlineData("tEXt")]
+    [InlineData("zTXt")]
+    [InlineData("iTXt")]
+    public void PngMetadataInspectorRecognizesExactXmpKeywordAcrossTextCarriers(string chunkType) {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
+        byte[] xmp = Encoding.UTF8.GetBytes("<x:xmpmeta/>");
+        byte[] payload = CreatePngTextPayload(chunkType, "XML:com.adobe.xmp", xmp);
+        byte[] withXmp = InsertPngChunkBefore(png, "IDAT", chunkType, payload);
+
+        OfficeImageMetadataSnapshot metadata = OfficeImageMetadataInspector.Inspect(
+            withXmp,
+            OfficeImageFormat.Png);
+
+        Assert.Equal(OfficeImageMetadataKinds.Xmp,
+            metadata.Kinds & (OfficeImageMetadataKinds.Comments | OfficeImageMetadataKinds.Xmp));
+    }
+
+    [Fact]
+    public void PngXmpClassificationFeedsSelectiveCopyLossReporting() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
+        byte[] withXmp = InsertPngChunkBefore(
+            png,
+            "IDAT",
+            "tEXt",
+            CreatePngTextPayload("tEXt", "XML:com.adobe.xmp", Encoding.ASCII.GetBytes("<x:xmpmeta/>")));
+
+        OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+            withXmp,
+            new OfficeImageOptimizationRequest(1, 1) {
+                OutputFormat = OfficeImageFormat.Png,
+                KeepOriginalWhenNotSmaller = false,
+                MetadataPolicy = OfficeImageMetadataPolicy.SelectiveCopy,
+                MetadataSelection = OfficeImageMetadataKinds.Xmp
+            });
+
+        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Source);
+        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Requested);
+        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Lost);
+    }
+
+    private static byte[] CreatePngTextPayload(string chunkType, string keyword, byte[] text) {
+        byte[] prefix = Encoding.ASCII.GetBytes(keyword).Concat(new byte[] { 0 }).ToArray();
+        if (chunkType == "tEXt") return prefix.Concat(text).ToArray();
+        if (chunkType == "zTXt") {
+            return prefix.Concat(new byte[] { 0 }).Concat(OfficeZlibCodec.Compress(text)).ToArray();
+        }
+        return prefix.Concat(new byte[] { 0, 0, 0, 0 }).Concat(text).ToArray();
+    }
+
+    [Fact]
     public void PngContainerRequiresOnePositiveGammaChunkBeforePaletteAndImageData() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] gamma = { 0, 0, 0xB1, 0x8F };
