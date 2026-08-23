@@ -14,6 +14,8 @@ param(
         'imagepngdecode',
         'imagejpegdecode',
         'imagepngencode',
+        'imagetifflzw',
+        'imagewebplossless',
         'imageresize',
         'word',
         'wordcreate',
@@ -153,6 +155,22 @@ $definitions = [ordered]@{
         Suite = 'OfficeIMO.Drawing.PngEncode'
         IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET')
+    }
+    imagetifflzw = [pscustomobject]@{
+        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
+        Filter = '*ImageTiffLzwBenchmarks*'
+        ComparisonId = "image-tiff-lzw-$Framework"
+        Suite = 'OfficeIMO.Drawing.TiffLzw'
+        IdentityVariables = @()
+        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeOfficeIMO')
+    }
+    imagewebplossless = [pscustomobject]@{
+        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
+        Filter = '*ImageWebpLosslessBenchmarks*'
+        ComparisonId = "image-webp-lossless-$Framework"
+        Suite = 'OfficeIMO.Drawing.WebpLossless'
+        IdentityVariables = @()
+        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeOfficeIMO')
     }
     imageresize = [pscustomobject]@{
         Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'

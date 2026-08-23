@@ -8,6 +8,9 @@ public enum OfficeTiffCompression {
     /// <summary>Writes uncompressed RGBA strips.</summary>
     None = 1,
 
+    /// <summary>Uses the TIFF 6.0 LZW dictionary compression method.</summary>
+    Lzw = 5,
+
     /// <summary>Uses the TIFF PackBits run-length encoding.</summary>
     PackBits = 32773,
 
@@ -15,10 +18,21 @@ public enum OfficeTiffCompression {
     Deflate = 8
 }
 
+/// <summary>Reversible sample predictor applied before TIFF compression.</summary>
+public enum OfficeTiffPredictor {
+    /// <summary>Compresses original sample bytes.</summary>
+    None = 1,
+    /// <summary>Stores horizontal sample differences before LZW or Deflate compression.</summary>
+    Horizontal = 2
+}
+
 /// <summary>Settings for bounded classic TIFF encoding.</summary>
 public sealed class OfficeTiffEncodeOptions {
     /// <summary>Strip compression. PackBits is dependency-free and broadly supported.</summary>
     public OfficeTiffCompression Compression { get; set; } = OfficeTiffCompression.PackBits;
+
+    /// <summary>Predictor used with LZW or Deflate. Other compression modes always store original samples.</summary>
+    public OfficeTiffPredictor Predictor { get; set; } = OfficeTiffPredictor.Horizontal;
 
     /// <summary>Horizontal resolution in dots per inch.</summary>
     public double DpiX { get; set; } = 96D;
@@ -31,7 +45,7 @@ public sealed class OfficeTiffEncodeOptions {
 /// Dependency-free classic TIFF encoder for single-page RGBA images.
 /// </summary>
 public static partial class OfficeTiffCodec {
-    private const int EntryCount = 15;
+    private const int BaseEntryCount = 15;
     private const int MaximumIfdCount = 65535;
 
     /// <summary>Returns whether the payload starts with a TIFF byte-order marker and magic value.</summary>
@@ -47,15 +61,21 @@ public static partial class OfficeTiffCodec {
         ValidateOptions(effective);
 
         byte[] pixels = image.PixelBuffer;
-        byte[]? strip = effective.Compression == OfficeTiffCompression.Deflate
-            ? OfficeZlibCodec.Compress(pixels)
-            : effective.Compression == OfficeTiffCompression.None ? pixels : null;
+        byte[] compressionInput = PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective);
+        byte[]? strip = effective.Compression switch {
+            OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(compressionInput),
+            OfficeTiffCompression.Lzw => EncodeLzw(compressionInput),
+            OfficeTiffCompression.None => pixels,
+            _ => null
+        };
         int stripLength = effective.Compression == OfficeTiffCompression.PackBits
             ? EncodePackBits(pixels, output: null, outputOffset: 0)
             : strip!.Length;
 
         const int ifdOffset = 8;
-        int ifdLength = 2 + (EntryCount * 12) + 4;
+        bool writePredictor = UsesHorizontalPredictor(effective);
+        int entryCount = BaseEntryCount + (writePredictor ? 1 : 0);
+        int ifdLength = 2 + (entryCount * 12) + 4;
         int bitsPerSampleOffset = checked(ifdOffset + ifdLength);
         int xResolutionOffset = checked(bitsPerSampleOffset + 8);
         int yResolutionOffset = checked(xResolutionOffset + 8);
@@ -67,7 +87,7 @@ public static partial class OfficeTiffCodec {
         output[1] = (byte)'I';
         WriteUInt16(output, 2, 42);
         WriteUInt32(output, 4, ifdOffset);
-        WriteUInt16(output, ifdOffset, EntryCount);
+        WriteUInt16(output, ifdOffset, entryCount);
 
         int entry = ifdOffset + 2;
         WriteEntry(output, ref entry, 256, 4, 1, image.Width);
@@ -84,6 +104,7 @@ public static partial class OfficeTiffCodec {
         WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
         WriteShortEntry(output, ref entry, 284, 1);
         WriteShortEntry(output, ref entry, 296, 2);
+        if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)effective.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, 0);
 
@@ -153,27 +174,43 @@ public static partial class OfficeTiffCodec {
     }
 
     /// <summary>
-    /// Attempts to decode a classic baseline chunky grayscale, palette, RGB, RGBA, or CMYK TIFF using
-    /// uncompressed, PackBits, or Deflate strips. Tiled, planar, floating-point, JPEG-compressed, and
-    /// BigTIFF pixel payloads are intentionally left to an optional caller codec.
+    /// Attempts to decode a classic baseline grayscale, palette, RGB, RGBA, or device-CMYK TIFF using
+    /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
+    /// Floating-point, JPEG-compressed, and BigTIFF payloads remain optional caller-codec responsibilities.
     /// </summary>
-    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) {
+    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
+        TryDecodePage(encodedBytes, 0, options: null, out image);
+
+    /// <summary>Attempts to decode one zero-based page from a bounded classic TIFF container.</summary>
+    public static bool TryDecodePage(byte[]? encodedBytes, int pageIndex, out OfficeRasterImage? image) =>
+        TryDecodePage(encodedBytes, pageIndex, options: null, out image);
+
+    internal static bool TryDecodePage(
+        byte[]? encodedBytes,
+        int pageIndex,
+        OfficeRasterDecodeOptions? options,
+        out OfficeRasterImage? image) {
         image = null;
+        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
+        effective.Validate();
+        effective.CancellationToken.ThrowIfCancellationRequested();
         if (!IsTiff(encodedBytes) || encodedBytes == null ||
-            encodedBytes.Length > OfficeRasterGuards.MaximumEncodedBytes ||
+            encodedBytes.Length > effective.MaximumEncodedBytes ||
             !OfficeTiffStructureValidator.TryValidate(encodedBytes, 0, encodedBytes.Length)) {
             return false;
         }
+        if (!TryInspectPages(encodedBytes, effective, out OfficeRasterContainerInfo? inspected) ||
+            inspected == null || pageIndex >= inspected.Count) return false;
 
         try {
             bool littleEndian = encodedBytes[0] == (byte)'I';
             if (ReadUInt16(encodedBytes, 2, littleEndian) != 42) return false;
             int ifdOffset = ReadOffset(encodedBytes, 4, littleEndian);
             var visitedIfds = new System.Collections.Generic.HashSet<int>();
-            long decodedPagePixels = 0;
-            bool isFirstIfd = true;
-            OfficeRasterImage? firstImage = null;
+            int currentPageIndex = 0;
             while (ifdOffset != 0) {
+                effective.CancellationToken.ThrowIfCancellationRequested();
                 if (visitedIfds.Count >= MaximumIfdCount || !visitedIfds.Add(ifdOffset) ||
                     !HasBytes(encodedBytes, ifdOffset, 2)) {
                     return false;
@@ -201,11 +238,17 @@ public static partial class OfficeTiffCodec {
 
                 if (!TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
                     !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
-                    !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pagePixels) ||
-                    decodedPagePixels > OfficeRasterGuards.MaximumPixels - pagePixels) {
+                    !IsWithinPixelLimit(width, height, effective.MaximumDecodedPixels)) {
                     return false;
                 }
-                decodedPagePixels += pagePixels;
+
+                int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
+                int nextIfdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
+                if (currentPageIndex != pageIndex) {
+                    ifdOffset = nextIfdOffset;
+                    currentPageIndex++;
+                    continue;
+                }
 
                 if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
@@ -225,22 +268,20 @@ public static partial class OfficeTiffCodec {
                     return false;
                 }
                 if ((compression != (int)OfficeTiffCompression.None &&
+                     compression != (int)OfficeTiffCompression.Lzw &&
                      compression != (int)OfficeTiffCompression.PackBits &&
                      compression != (int)OfficeTiffCompression.Deflate &&
                      compression != 32946) ||
                     orientation < 1 || orientation > 8 ||
                     (samples != baseSamples && samples != baseSamples + 1) ||
                     rowsPerStrip < 1 ||
-                    planarConfiguration != 1 ||
+                    (planarConfiguration != 1 && planarConfiguration != 2) ||
                     (predictor != 1 && predictor != 2)) {
                     return false;
                 }
 
-                int expectedStripCount = checked((height + rowsPerStrip - 1) / rowsPerStrip);
                 if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
-                    Array.Exists(bitsPerSample, value => value != 8) ||
-                    !TryReadValues(encodedBytes, entries, 273, littleEndian, expectedStripCount, out int[] stripOffsets) ||
-                    !TryReadValues(encodedBytes, entries, 279, littleEndian, expectedStripCount, out int[] stripByteCounts)) {
+                    Array.Exists(bitsPerSample, value => value != 8)) {
                     return false;
                 }
 
@@ -259,46 +300,14 @@ public static partial class OfficeTiffCodec {
                     alphaKind = extraSamples[0];
                 }
 
-                int sourceLength = OfficeRasterGuards.EnsureByteCount(
-                    (long)width * height * samples,
-                    "TIFF decoded source pixels exceed the managed limit.");
-                byte[] source = new byte[sourceLength];
-                int destinationOffset = 0;
-                for (int strip = 0; strip < stripOffsets.Length && destinationOffset < source.Length; strip++) {
-                    int rowStart = checked(strip * rowsPerStrip);
-                    if (rowStart >= height) return false;
-                    int rows = Math.Min(rowsPerStrip, height - rowStart);
-                    int expected = checked(rows * width * samples);
-                    int offset = stripOffsets[strip];
-                    int count = stripByteCounts[strip];
-                    if (count < 0 || !HasBytes(encodedBytes, offset, count)) return false;
-                    bool decoded = TryDecodeStrip(
-                        encodedBytes,
-                        offset,
-                        count,
-                        compression,
-                        source,
-                        destinationOffset,
-                        expected);
-                    if (!decoded) return false;
-                    if (predictor == 2) {
-                        ReverseHorizontalPredictor(
-                            source,
-                            destinationOffset,
-                            rows,
-                            width,
-                            samples);
-                    }
-                    destinationOffset += expected;
-                }
-                if (destinationOffset != source.Length) return false;
+                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
+                        compression, planarConfiguration, predictor, effective, retainPixels: true, out byte[] source)) return false;
 
                 int orientedWidth = orientation >= 5 ? height : width;
                 int orientedHeight = orientation >= 5 ? width : height;
-                byte[]? rgba = isFirstIfd
-                    ? OfficeRasterGuards.AllocateRgba32(orientedWidth, orientedHeight, "TIFF decoded pixels exceed the managed limit.")
-                    : null;
+                byte[] rgba = OfficeRasterGuards.AllocateRgba32(orientedWidth, orientedHeight, "TIFF decoded pixels exceed the managed limit.");
                 for (int y = 0; y < height; y++) {
+                    if ((y & 31) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
                     for (int x = 0; x < width; x++) {
                         int sourcePixel = ((y * width) + x) * samples;
                         ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
@@ -316,24 +325,16 @@ public static partial class OfficeTiffCodec {
                             out byte red,
                             out byte green,
                             out byte blue);
-                        if (rgba != null) {
-                            rgba[targetPixel] = red;
-                            rgba[targetPixel + 1] = green;
-                            rgba[targetPixel + 2] = blue;
-                            rgba[targetPixel + 3] = alpha;
-                        }
+                        rgba[targetPixel] = red;
+                        rgba[targetPixel + 1] = green;
+                        rgba[targetPixel + 2] = blue;
+                        rgba[targetPixel + 3] = alpha;
                     }
                 }
-
-                if (isFirstIfd && rgba != null) {
-                    firstImage = OfficeRasterImage.FromOwnedRgba32(orientedWidth, orientedHeight, rgba);
-                }
-                int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
-                ifdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
-                isFirstIfd = false;
+                image = OfficeRasterImage.FromOwnedRgba32(orientedWidth, orientedHeight, rgba);
+                return true;
             }
-            image = firstImage;
-            return image != null;
+            return false;
         } catch (ArgumentException) {
             return false;
         } catch (FormatException) {
@@ -342,6 +343,9 @@ public static partial class OfficeTiffCodec {
             return false;
         }
     }
+
+    private static bool IsWithinPixelLimit(int width, int height, long maximumPixels) =>
+        width > 0 && height > 0 && width <= maximumPixels && height <= maximumPixels / width;
 
     private static void ResolveOrientedPixel(
         int x,
@@ -389,13 +393,39 @@ public static partial class OfficeTiffCodec {
 
     private static void ValidateOptions(OfficeTiffEncodeOptions options) {
         if (options.Compression != OfficeTiffCompression.None &&
+            options.Compression != OfficeTiffCompression.Lzw &&
             options.Compression != OfficeTiffCompression.PackBits &&
             options.Compression != OfficeTiffCompression.Deflate) {
             throw new ArgumentOutOfRangeException(nameof(options.Compression));
         }
+        if (options.Predictor != OfficeTiffPredictor.None && options.Predictor != OfficeTiffPredictor.Horizontal) {
+            throw new ArgumentOutOfRangeException(nameof(options.Predictor));
+        }
 
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
+    }
+
+    private static bool UsesHorizontalPredictor(OfficeTiffEncodeOptions options) =>
+        options.Predictor == OfficeTiffPredictor.Horizontal &&
+        (options.Compression == OfficeTiffCompression.Lzw || options.Compression == OfficeTiffCompression.Deflate);
+
+    private static byte[] PrepareTiffCompressionInput(
+        byte[] pixels,
+        int width,
+        int height,
+        OfficeTiffEncodeOptions options) {
+        if (!UsesHorizontalPredictor(options)) return pixels;
+        byte[] predicted = (byte[])pixels.Clone();
+        const int samples = 4;
+        int rowBytes = checked(width * samples);
+        for (int y = 0; y < height; y++) {
+            int row = y * rowBytes;
+            for (int offset = row + rowBytes - 1; offset >= row + samples; offset--) {
+                predicted[offset] = unchecked((byte)(predicted[offset] - predicted[offset - samples]));
+            }
+        }
+        return predicted;
     }
 
     private static void ValidateDpi(double dpi, string name) {

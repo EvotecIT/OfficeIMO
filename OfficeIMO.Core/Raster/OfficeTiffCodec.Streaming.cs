@@ -20,11 +20,15 @@ public static partial class OfficeTiffCodec {
         ValidateOptions(effective);
 
         byte[] pixels = image.PixelBuffer;
-        byte[]? compressed = effective.Compression == OfficeTiffCompression.Deflate
-            ? OfficeZlibCodec.Compress(pixels)
-            : null;
+        byte[] compressionInput = PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective);
+        byte[]? compressed = effective.Compression switch {
+            OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(compressionInput),
+            OfficeTiffCompression.Lzw => EncodeLzw(compressionInput),
+            _ => null
+        };
         int stripLength = effective.Compression switch {
             OfficeTiffCompression.None => pixels.Length,
+            OfficeTiffCompression.Lzw => compressed!.Length,
             OfficeTiffCompression.PackBits => EncodePackBits(pixels, output: null, outputOffset: 0),
             OfficeTiffCompression.Deflate => compressed!.Length,
             _ => throw new ArgumentOutOfRangeException(nameof(options))
@@ -42,6 +46,7 @@ public static partial class OfficeTiffCodec {
                     throw new InvalidOperationException("The TIFF PackBits length calculation is inconsistent.");
                 }
                 break;
+            case OfficeTiffCompression.Lzw:
             case OfficeTiffCompression.Deflate:
                 destination.Write(compressed!, 0, compressed!.Length);
                 break;
@@ -67,7 +72,9 @@ public static partial class OfficeTiffCodec {
         OfficeTiffEncodeOptions options,
         int stripLength) {
         const int ifdOffset = 8;
-        int ifdLength = 2 + (EntryCount * 12) + 4;
+        bool writePredictor = UsesHorizontalPredictor(options);
+        int entryCount = BaseEntryCount + (writePredictor ? 1 : 0);
+        int ifdLength = 2 + (entryCount * 12) + 4;
         int bitsPerSampleOffset = checked(ifdOffset + ifdLength);
         int xResolutionOffset = checked(bitsPerSampleOffset + 8);
         int yResolutionOffset = checked(xResolutionOffset + 8);
@@ -78,7 +85,7 @@ public static partial class OfficeTiffCodec {
         output[1] = (byte)'I';
         WriteUInt16(output, 2, 42);
         WriteUInt32(output, 4, ifdOffset);
-        WriteUInt16(output, ifdOffset, EntryCount);
+        WriteUInt16(output, ifdOffset, entryCount);
 
         int entry = ifdOffset + 2;
         WriteEntry(output, ref entry, 256, 4, 1, image.Width);
@@ -95,6 +102,7 @@ public static partial class OfficeTiffCodec {
         WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
         WriteShortEntry(output, ref entry, 284, 1);
         WriteShortEntry(output, ref entry, 296, 2);
+        if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)options.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, 0);
 

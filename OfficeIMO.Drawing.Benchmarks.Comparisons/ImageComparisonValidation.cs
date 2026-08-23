@@ -32,6 +32,30 @@ internal static class ImageComparisonValidation {
         AssertSimilarPixels("SkiaSharp resize", officeResize, ImageComparisonAdapters.ResizeSkiaRgba(photoSkia, 800, 632), 3D);
         AssertSimilarPixels("Magick.NET resize", officeResize, ImageComparisonAdapters.ResizeMagickRgba(photoMagick, 800, 632), 3D);
         writer.WriteLine("Resize: all engines produced 800x632 RGBA output within the declared mean absolute error tolerance.");
+
+        OfficeRasterImage codecSource = CreateOpaquePattern(192, 128);
+        byte[] codecRgba = codecSource.GetPixels();
+        using var codecMagick = ImageComparisonAdapters.CreateMagickImage(codecRgba, codecSource.Width, codecSource.Height);
+        byte[] officeTiff = ImageComparisonAdapters.EncodeOfficeImoTiffLzw(codecSource);
+        byte[] magickTiff = ImageComparisonAdapters.EncodeMagickTiffLzw(codecMagick);
+        ValidateLosslessInterchange("TIFF LZW", codecSource, officeTiff, magickTiff, OfficeImageFormat.Tiff);
+        writer.WriteLine($"TIFF LZW: OfficeIMO and Magick.NET encoded mutually decodable exact RGBA output; OfficeIMO {officeTiff.Length:N0}, Magick.NET {magickTiff.Length:N0} bytes.");
+
+        var firstPage = new OfficeRasterImage(16, 12, OfficeColor.Crimson);
+        var secondPage = new OfficeRasterImage(9, 7, OfficeColor.CornflowerBlue);
+        byte[] externalPages = ImageComparisonAdapters.EncodeMagickMultiPageTiffLzw(firstPage, secondPage);
+        var pageOptions = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+        if (!OfficeRasterImageDecoder.TryDecode(externalPages, pageOptions, out OfficeRasterImage? selectedPage, out OfficeRasterDecodeInfo pageInfo) ||
+            selectedPage == null || pageInfo.FrameCount != 2 || !pageInfo.PagesDiscarded) {
+            throw new InvalidOperationException("OfficeIMO did not select the second page from an external multi-page TIFF.");
+        }
+        AssertPixels("external multi-page TIFF selection", secondPage.GetPixels(), selectedPage.GetPixels());
+        writer.WriteLine("TIFF pages: OfficeIMO inspected and selected the second LZW page from a Magick.NET/libtiff multi-page container exactly.");
+
+        byte[] officeWebp = ImageComparisonAdapters.EncodeOfficeImoWebpLossless(codecSource);
+        byte[] magickWebp = ImageComparisonAdapters.EncodeMagickWebpLossless(codecMagick);
+        ValidateLosslessInterchange("lossless WebP", codecSource, officeWebp, magickWebp, OfficeImageFormat.Webp);
+        writer.WriteLine($"Lossless WebP: OfficeIMO and Magick.NET encoded mutually decodable exact RGBA output; OfficeIMO {officeWebp.Length:N0}, Magick.NET {magickWebp.Length:N0} bytes.");
     }
 
     internal static void ValidatePngDecode(byte[] encoded) {
@@ -83,6 +107,38 @@ internal static class ImageComparisonValidation {
             OfficeRasterImage decoded = ImageBenchmarkCorpus.Decode(encoded, "PNG comparison encode");
             AssertPixels("PNG encoder", expected, decoded.GetPixels());
         }
+    }
+
+    internal static void ValidateLosslessInterchange(
+        string operation,
+        OfficeRasterImage source,
+        byte[] officeEncoded,
+        byte[] externalEncoded,
+        OfficeImageFormat format) {
+        byte[] expected = source.GetPixels();
+        byte[][] encodedImages = { officeEncoded, externalEncoded };
+        for (int index = 0; index < encodedImages.Length; index++) {
+            byte[] encoded = encodedImages[index];
+            string producer = index == 0 ? "OfficeIMO" : "Magick.NET";
+            ImageBenchmarkCorpus.AssertIdentified(encoded, format, source.Width, source.Height, operation);
+            if (!OfficeRasterImageDecoder.TryDecode(encoded, out OfficeRasterImage? decoded) || decoded == null) {
+                throw new InvalidOperationException(operation + " OfficeIMO could not decode " + producer + " output.");
+            }
+            AssertPixels(operation + " OfficeIMO decode of " + producer, expected, decoded.GetPixels());
+            AssertPixels(operation + " Magick.NET decode of " + producer, expected, ImageComparisonAdapters.DecodeMagickRgba(encoded));
+        }
+    }
+
+    private static OfficeRasterImage CreateOpaquePattern(int width, int height) {
+        OfficeRasterImage source = ImageBenchmarkCorpus.CreatePattern(width, height);
+        var opaque = new OfficeRasterImage(width, height);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                OfficeColor pixel = source.GetPixel(x, y);
+                opaque.SetPixel(x, y, OfficeColor.FromRgba(pixel.R, pixel.G, pixel.B, 255));
+            }
+        }
+        return opaque;
     }
 
     private static void AssertPixels(string engine, byte[] expected, byte[] actual) {

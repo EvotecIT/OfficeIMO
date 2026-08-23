@@ -13,7 +13,8 @@ public static partial class OfficeRasterResampler {
         OfficeRasterImage source,
         int width,
         int height,
-        OfficeRasterResamplingMode mode) {
+        OfficeRasterResamplingMode mode,
+        OfficeRasterResamplingColorSpace colorSpace) {
         long horizontalFirstLength = (long)width * source.Height * 4L;
         long verticalFirstLength = (long)source.Width * height * 4L;
         long requiredIntermediate = Math.Min(horizontalFirstLength, verticalFirstLength);
@@ -33,11 +34,11 @@ public static partial class OfficeRasterResampler {
 #endif
         try {
             if (horizontalFirstLength <= verticalFirstLength) {
-                ResampleHorizontal(source.PixelBuffer, source.Width, source.Height, width, horizontal, intermediate);
-                ResampleVertical(intermediate, width, height, vertical, result.PixelBuffer);
+                ResampleHorizontal(source.PixelBuffer, source.Width, source.Height, width, horizontal, intermediate, colorSpace);
+                ResampleVertical(intermediate, width, height, vertical, result.PixelBuffer, colorSpace);
             } else {
-                ResampleVertical(source.PixelBuffer, source.Width, source.Height, height, vertical, intermediate);
-                ResampleHorizontal(intermediate, source.Width, width, height, horizontal, result.PixelBuffer);
+                ResampleVertical(source.PixelBuffer, source.Width, source.Height, height, vertical, intermediate, colorSpace);
+                ResampleHorizontal(intermediate, source.Width, width, height, horizontal, result.PixelBuffer, colorSpace);
             }
         } finally {
 #if NET8_0_OR_GREATER
@@ -204,11 +205,12 @@ public static partial class OfficeRasterResampler {
         int sourceHeight,
         int destinationWidth,
         AxisContributions contributions,
-        float[] output) {
+        float[] output,
+        OfficeRasterResamplingColorSpace colorSpace) {
         for (int y = 0; y < sourceHeight; y++) {
             for (int x = 0; x < destinationWidth; x++) {
                 int target = ((y * destinationWidth) + x) * 4;
-                AccumulateBytes(input, (y * sourceWidth) * 4, 4, contributions, x, output, target);
+                AccumulateBytes(input, (y * sourceWidth) * 4, 4, contributions, x, output, target, colorSpace);
             }
         }
     }
@@ -219,11 +221,12 @@ public static partial class OfficeRasterResampler {
         int sourceHeight,
         int destinationHeight,
         AxisContributions contributions,
-        float[] output) {
+        float[] output,
+        OfficeRasterResamplingColorSpace colorSpace) {
         for (int y = 0; y < destinationHeight; y++) {
             for (int x = 0; x < sourceWidth; x++) {
                 int target = ((y * sourceWidth) + x) * 4;
-                AccumulateBytes(input, x * 4, sourceWidth * 4, contributions, y, output, target);
+                AccumulateBytes(input, x * 4, sourceWidth * 4, contributions, y, output, target, colorSpace);
             }
         }
     }
@@ -234,11 +237,12 @@ public static partial class OfficeRasterResampler {
         int destinationWidth,
         int height,
         AxisContributions contributions,
-        byte[] output) {
+        byte[] output,
+        OfficeRasterResamplingColorSpace colorSpace) {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < destinationWidth; x++) {
                 int target = ((y * destinationWidth) + x) * 4;
-                AccumulateFloats(input, (y * sourceWidth) * 4, 4, contributions, x, output, target);
+                AccumulateFloats(input, (y * sourceWidth) * 4, 4, contributions, x, output, target, colorSpace);
             }
         }
     }
@@ -248,11 +252,12 @@ public static partial class OfficeRasterResampler {
         int width,
         int destinationHeight,
         AxisContributions contributions,
-        byte[] output) {
+        byte[] output,
+        OfficeRasterResamplingColorSpace colorSpace) {
         for (int y = 0; y < destinationHeight; y++) {
             for (int x = 0; x < width; x++) {
                 int target = ((y * width) + x) * 4;
-                AccumulateFloats(input, x * 4, width * 4, contributions, y, output, target);
+                AccumulateFloats(input, x * 4, width * 4, contributions, y, output, target, colorSpace);
             }
         }
     }
@@ -264,7 +269,8 @@ public static partial class OfficeRasterResampler {
         AxisContributions contributions,
         int destination,
         float[] output,
-        int target) {
+        int target,
+        OfficeRasterResamplingColorSpace colorSpace) {
         int start = contributions.Starts[destination];
         int count = contributions.Counts[destination];
         int weights = contributions.Offsets[destination];
@@ -277,9 +283,9 @@ public static partial class OfficeRasterResampler {
             double weight = contributions.Weights[weights + index];
             double sourceAlpha = input[source + 3];
             double premultiply = weight * sourceAlpha / 255D;
-            red += input[source] * premultiply;
-            green += input[source + 1] * premultiply;
-            blue += input[source + 2] * premultiply;
+            red += DecodeChannel(input[source], colorSpace) * premultiply;
+            green += DecodeChannel(input[source + 1], colorSpace) * premultiply;
+            blue += DecodeChannel(input[source + 2], colorSpace) * premultiply;
             alpha += sourceAlpha * weight;
         }
         output[target] = (float)red;
@@ -295,7 +301,8 @@ public static partial class OfficeRasterResampler {
         AxisContributions contributions,
         int destination,
         byte[] output,
-        int target) {
+        int target,
+        OfficeRasterResamplingColorSpace colorSpace) {
         int start = contributions.Starts[destination];
         int count = contributions.Counts[destination];
         int weights = contributions.Offsets[destination];
@@ -311,7 +318,7 @@ public static partial class OfficeRasterResampler {
             blue += input[source + 2] * weight;
             alpha += input[source + 3] * weight;
         }
-        WriteStraightRgba(output, target, red, green, blue, alpha);
+        WriteStraightRgba(output, target, red, green, blue, alpha, colorSpace);
     }
 
     private static void WriteStraightRgba(
@@ -320,14 +327,15 @@ public static partial class OfficeRasterResampler {
         double premultipliedRed,
         double premultipliedGreen,
         double premultipliedBlue,
-        double alpha) {
+        double alpha,
+        OfficeRasterResamplingColorSpace colorSpace) {
         if (alpha <= 1E-6D) {
             output[target] = output[target + 1] = output[target + 2] = output[target + 3] = 0;
             return;
         }
-        output[target] = ToByte(premultipliedRed * 255D / alpha);
-        output[target + 1] = ToByte(premultipliedGreen * 255D / alpha);
-        output[target + 2] = ToByte(premultipliedBlue * 255D / alpha);
+        output[target] = EncodeChannel(premultipliedRed * 255D / alpha, colorSpace);
+        output[target + 1] = EncodeChannel(premultipliedGreen * 255D / alpha, colorSpace);
+        output[target + 2] = EncodeChannel(premultipliedBlue * 255D / alpha, colorSpace);
         output[target + 3] = ToByte(alpha);
     }
 

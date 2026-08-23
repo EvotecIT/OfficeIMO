@@ -64,6 +64,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
 
     [Theory]
     [InlineData(OfficeTiffCompression.None)]
+    [InlineData(OfficeTiffCompression.Lzw)]
     [InlineData(OfficeTiffCompression.PackBits)]
     [InlineData(OfficeTiffCompression.Deflate)]
     public void TiffStreamEncodingMatchesMaterializedEncoding(

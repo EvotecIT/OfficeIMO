@@ -126,6 +126,27 @@ public static class OfficeImageOrientationNormalizer {
         return false;
     }
 
+    internal static byte[] NeutralizeExifOrientation(byte[] exif) {
+        if (exif == null) throw new ArgumentNullException(nameof(exif));
+        byte[] copy = (byte[])exif.Clone();
+        int offset = copy.Length >= 6 && copy[0] == (byte)'E' && copy[1] == (byte)'x' &&
+                     copy[2] == (byte)'i' && copy[3] == (byte)'f' && copy[4] == 0 && copy[5] == 0
+            ? 6
+            : 0;
+        TryWriteTiffOrientation(copy, offset, copy.Length - offset);
+        return copy;
+    }
+
+    internal static bool TryReadExifOrientationPayload(byte[] exif, out OfficeImageOrientation orientation) {
+        orientation = OfficeImageOrientation.Normal;
+        if (exif == null) return false;
+        int offset = exif.Length >= 6 && exif[0] == (byte)'E' && exif[1] == (byte)'x' &&
+                     exif[2] == (byte)'i' && exif[3] == (byte)'f' && exif[4] == 0 && exif[5] == 0
+            ? 6
+            : 0;
+        return TryReadTiffOrientation(new OfficeByteView(exif).Slice(offset), out orientation);
+    }
+
     private static bool TryWriteTiffOrientation(byte[] data, int tiffOffset, int tiffLength) {
         if (tiffOffset < 0 || tiffLength < 8 || tiffOffset > data.Length - tiffLength) return false;
         bool littleEndian = data[tiffOffset] == (byte)'I' && data[tiffOffset + 1] == (byte)'I';

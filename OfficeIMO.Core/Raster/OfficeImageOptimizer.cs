@@ -57,6 +57,9 @@ public sealed class OfficeImageOptimizationRequest {
     /// <summary>Sampling mode used when dimensions change.</summary>
     public OfficeRasterResamplingMode ResamplingMode { get; set; } = OfficeRasterResamplingMode.Bilinear;
 
+    /// <summary>Color space used while filtering resized pixels.</summary>
+    public OfficeRasterResamplingColorSpace ResamplingColorSpace { get; set; } = OfficeRasterResamplingColorSpace.EncodedSrgb;
+
     /// <summary>Optional PNG, JPEG, TIFF, or WebP output override. Null preserves JPEG and otherwise emits PNG.</summary>
     public OfficeImageFormat? OutputFormat { get; set; }
 
@@ -111,8 +114,17 @@ public sealed class OfficeImageOptimizationRequest {
     /// <summary>TIFF strip compression used when optimized output is TIFF.</summary>
     public OfficeTiffCompression TiffCompression { get; set; } = OfficeTiffCompression.PackBits;
 
+    /// <summary>TIFF predictor applied when the selected compression supports it.</summary>
+    public OfficeTiffPredictor TiffPredictor { get; set; } = OfficeTiffPredictor.Horizontal;
+
     /// <summary>Keeps original bytes when the candidate would be the same size or larger.</summary>
     public bool KeepOriginalWhenNotSmaller { get; set; } = true;
+
+    /// <summary>Metadata behavior used when new image bytes are encoded.</summary>
+    public OfficeImageMetadataPolicy MetadataPolicy { get; set; } = OfficeImageMetadataPolicy.Preserve;
+
+    /// <summary>Source categories copied when <see cref="MetadataPolicy"/> is selective.</summary>
+    public OfficeImageMetadataKinds MetadataSelection { get; set; } = OfficeImageMetadataKinds.All;
 
     private static void ValidateOutputDpi(double? value, string paramName) {
         if (value.HasValue && (value.Value <= 0D || double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
@@ -130,11 +142,13 @@ public sealed class OfficeImageOptimizationResult {
         OfficeImageOptimizationStatus status,
         OfficeImageInfo original,
         OfficeImageInfo final,
+        OfficeImageMetadataReport metadata,
         bool takeOwnership) {
         _bytes = takeOwnership ? bytes : (byte[])bytes.Clone();
         Status = status;
         Original = original;
         Final = final;
+        Metadata = metadata;
     }
 
     /// <summary>Resulting encoded bytes.</summary>
@@ -145,6 +159,8 @@ public sealed class OfficeImageOptimizationResult {
     public OfficeImageInfo Original { get; }
     /// <summary>Final encoded image metadata.</summary>
     public OfficeImageInfo Final { get; }
+    /// <summary>Metadata preservation and loss evidence for this result.</summary>
+    public OfficeImageMetadataReport Metadata { get; }
     /// <summary>Whether the result contains newly encoded bytes.</summary>
     public bool Changed => Status == OfficeImageOptimizationStatus.Optimized;
     /// <summary>Signed encoded-byte reduction.</summary>
@@ -164,38 +180,52 @@ public static class OfficeImageOptimizer {
     public static OfficeImageOptimizationResult Optimize(byte[] encodedBytes, OfficeImageOptimizationRequest request, string? fileName = null) {
         if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
         if (request == null) throw new ArgumentNullException(nameof(request));
+        ValidateRequest(request);
         if (!OfficeImageReader.TryIdentify(encodedBytes, fileName, out OfficeImageInfo original)) {
-            return Result(encodedBytes, OfficeImageOptimizationStatus.UnsupportedFormat, new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0), new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0));
+            return Result(encodedBytes, OfficeImageOptimizationStatus.UnsupportedFormat, new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0), new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0), EmptyMetadata(request.MetadataPolicy));
         }
 
+        OfficeImageMetadataSnapshot metadata = OfficeImageMetadataInspector.Inspect(encodedBytes, original.Format);
+        OfficeImageMetadataKinds requestedMetadata = ResolveRequestedMetadata(metadata.Kinds, request);
+
         if (!IsSupportedInputFormat(original.Format)) {
-            return Result(encodedBytes, OfficeImageOptimizationStatus.UnsupportedFormat, original, original);
+            return Result(encodedBytes, OfficeImageOptimizationStatus.UnsupportedFormat, original, original,
+                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
         }
 
         var decodeOptions = new OfficeRasterDecodeOptions {
             AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
         };
         if (!OfficeRasterImageDecoder.TryDecode(encodedBytes, decodeOptions, out OfficeRasterImage? decoded, out _) || decoded == null) {
-            return Result(encodedBytes, OfficeImageOptimizationStatus.DecodeFailed, original, original);
+            return Result(encodedBytes, OfficeImageOptimizationStatus.DecodeFailed, original, original,
+                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
         }
 
         ResolveDimensions(decoded.Width, decoded.Height, request, out int width, out int height);
         OfficeImageFormat outputFormat = ResolveOutputFormat(original.Format, request.OutputFormat);
-        if (width == decoded.Width && height == decoded.Height && outputFormat == original.Format &&
+        bool metadataRewriteRequired = (metadata.Kinds & ~requestedMetadata) != OfficeImageMetadataKinds.None;
+        if (width == decoded.Width && height == decoded.Height && outputFormat == original.Format && !metadataRewriteRequired &&
             !request.OutputDpiX.HasValue && !request.OutputDpiY.HasValue) {
-            return Result(encodedBytes, OfficeImageOptimizationStatus.AlreadySuitable, original, original);
+            return Result(encodedBytes, OfficeImageOptimizationStatus.AlreadySuitable, original, original,
+                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
         }
 
         OfficeRasterImage candidateImage = width == decoded.Width && height == decoded.Height
             ? decoded
-            : OfficeRasterResampler.Resize(decoded, width, height, request.ResamplingMode);
-        byte[] candidate = Encode(candidateImage, outputFormat, original, request);
+            : OfficeRasterResampler.Resize(decoded, width, height, request.ResamplingMode, request.ResamplingColorSpace);
+        ResolveMetadataForOutput(original.Format, outputFormat, metadata, requestedMetadata,
+            out OfficeJpegMetadata jpegMetadata, out OfficeImageMetadataKinds preservedMetadata,
+            out OfficeImageMetadataKinds normalizedMetadata);
+        byte[] candidate = Encode(candidateImage, outputFormat, original, request, jpegMetadata);
         OfficeImageInfo final = OfficeImageReader.Identify(candidate);
         if (request.KeepOriginalWhenNotSmaller && candidate.LongLength >= encodedBytes.LongLength) {
-            return Result(encodedBytes, OfficeImageOptimizationStatus.OriginalWasSmaller, original, original);
+            return Result(encodedBytes, OfficeImageOptimizationStatus.OriginalWasSmaller, original, original,
+                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
         }
 
-        return Result(candidate, OfficeImageOptimizationStatus.Optimized, original, final, encodedBytes.LongLength, takeOwnership: true);
+        return Result(candidate, OfficeImageOptimizationStatus.Optimized, original, final,
+            MetadataReport(request, metadata.Kinds, requestedMetadata, preservedMetadata, normalizedMetadata),
+            encodedBytes.LongLength, takeOwnership: true);
     }
 
     private static OfficeImageOptimizationResult Result(
@@ -203,9 +233,10 @@ public static class OfficeImageOptimizer {
         OfficeImageOptimizationStatus status,
         OfficeImageInfo original,
         OfficeImageInfo final,
+        OfficeImageMetadataReport metadata,
         long? originalLength = null,
         bool takeOwnership = false) =>
-        new OfficeImageOptimizationResult(bytes, status, original, final, takeOwnership) {
+        new OfficeImageOptimizationResult(bytes, status, original, final, metadata, takeOwnership) {
             OriginalEncodedLength = originalLength ?? bytes.LongLength
         };
 
@@ -245,7 +276,8 @@ public static class OfficeImageOptimizer {
         OfficeRasterImage image,
         OfficeImageFormat format,
         OfficeImageInfo original,
-        OfficeImageOptimizationRequest request) {
+        OfficeImageOptimizationRequest request,
+        OfficeJpegMetadata jpegMetadata) {
         OfficeImageExportFormat exportFormat = ToExportFormat(format);
         double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? original.DpiX);
         double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? original.DpiY);
@@ -260,10 +292,14 @@ public static class OfficeImageOptimizer {
                 Subsampling = request.JpegSubsampling,
                 Progressive = request.JpegProgressive,
                 OptimizeHuffman = request.JpegOptimizeHuffman,
-                Background = request.JpegBackground
+                Background = request.JpegBackground,
+                Metadata = jpegMetadata,
+                WriteJfifHeader = request.MetadataPolicy != OfficeImageMetadataPolicy.Strip ||
+                                  request.OutputDpiX.HasValue || request.OutputDpiY.HasValue
             },
             Tiff = new OfficeTiffEncodeOptions {
-                Compression = request.TiffCompression
+                Compression = request.TiffCompression,
+                Predictor = request.TiffPredictor
             }
         };
         return OfficeRasterImageEncoder.Encode(image, exportFormat, options);
@@ -276,4 +312,81 @@ public static class OfficeImageOptimizer {
         OfficeImageFormat.Webp => OfficeImageExportFormat.Webp,
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
+
+    private static void ValidateRequest(OfficeImageOptimizationRequest request) {
+        if (request.ResamplingMode < OfficeRasterResamplingMode.NearestNeighbor ||
+            request.ResamplingMode > OfficeRasterResamplingMode.Lanczos3) {
+            throw new ArgumentOutOfRangeException(nameof(request.ResamplingMode));
+        }
+        if (request.ResamplingColorSpace < OfficeRasterResamplingColorSpace.EncodedSrgb ||
+            request.ResamplingColorSpace > OfficeRasterResamplingColorSpace.LinearLight) {
+            throw new ArgumentOutOfRangeException(nameof(request.ResamplingColorSpace));
+        }
+        if (request.TiffPredictor < OfficeTiffPredictor.None ||
+            request.TiffPredictor > OfficeTiffPredictor.Horizontal) {
+            throw new ArgumentOutOfRangeException(nameof(request.TiffPredictor));
+        }
+        if (request.MetadataPolicy < OfficeImageMetadataPolicy.Preserve ||
+            request.MetadataPolicy > OfficeImageMetadataPolicy.SelectiveCopy) {
+            throw new ArgumentOutOfRangeException(nameof(request.MetadataPolicy));
+        }
+        if ((request.MetadataSelection & ~OfficeImageMetadataKinds.All) != 0) {
+            throw new ArgumentOutOfRangeException(nameof(request.MetadataSelection));
+        }
+    }
+
+    private static OfficeImageMetadataKinds ResolveRequestedMetadata(
+        OfficeImageMetadataKinds source,
+        OfficeImageOptimizationRequest request) => request.MetadataPolicy switch {
+            OfficeImageMetadataPolicy.Preserve => source,
+            OfficeImageMetadataPolicy.Strip => OfficeImageMetadataKinds.None,
+            OfficeImageMetadataPolicy.SelectiveCopy => source & request.MetadataSelection,
+            _ => throw new ArgumentOutOfRangeException(nameof(request.MetadataPolicy))
+        };
+
+    private static void ResolveMetadataForOutput(
+        OfficeImageFormat sourceFormat,
+        OfficeImageFormat outputFormat,
+        OfficeImageMetadataSnapshot source,
+        OfficeImageMetadataKinds requested,
+        out OfficeJpegMetadata jpeg,
+        out OfficeImageMetadataKinds preserved,
+        out OfficeImageMetadataKinds normalized) {
+        byte[]? exif = null;
+        byte[]? xmp = null;
+        byte[]? icc = null;
+        preserved = requested & OfficeImageMetadataKinds.Resolution;
+        normalized = OfficeImageMetadataKinds.None;
+        if (sourceFormat == OfficeImageFormat.Jpeg && outputFormat == OfficeImageFormat.Jpeg) {
+            if ((requested & OfficeImageMetadataKinds.Exif) != 0 && source.Exif != null) {
+                exif = OfficeImageOrientationNormalizer.NeutralizeExifOrientation(source.Exif);
+                preserved |= OfficeImageMetadataKinds.Exif;
+            }
+            if ((requested & OfficeImageMetadataKinds.Xmp) != 0 && source.Xmp != null) {
+                xmp = source.Xmp;
+                preserved |= OfficeImageMetadataKinds.Xmp;
+            }
+            if ((requested & OfficeImageMetadataKinds.Icc) != 0 && source.Icc != null) {
+                icc = source.Icc;
+                preserved |= OfficeImageMetadataKinds.Icc;
+            }
+            if ((requested & OfficeImageMetadataKinds.Orientation) != 0) {
+                preserved |= OfficeImageMetadataKinds.Orientation;
+                normalized |= OfficeImageMetadataKinds.Orientation;
+            }
+        }
+        jpeg = new OfficeJpegMetadata(exif, xmp, icc);
+    }
+
+    private static OfficeImageMetadataReport MetadataReport(
+        OfficeImageOptimizationRequest request,
+        OfficeImageMetadataKinds source,
+        OfficeImageMetadataKinds requested,
+        OfficeImageMetadataKinds preserved,
+        OfficeImageMetadataKinds normalized) =>
+        new OfficeImageMetadataReport(request.MetadataPolicy, source, requested, preserved & requested, normalized);
+
+    private static OfficeImageMetadataReport EmptyMetadata(OfficeImageMetadataPolicy policy) =>
+        new OfficeImageMetadataReport(policy, OfficeImageMetadataKinds.None, OfficeImageMetadataKinds.None,
+            OfficeImageMetadataKinds.None, OfficeImageMetadataKinds.None);
 }

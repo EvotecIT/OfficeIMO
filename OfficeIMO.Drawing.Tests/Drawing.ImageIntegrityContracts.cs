@@ -240,6 +240,23 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void RasterDecoderComposesExplicitlySelectedApngFrames() {
+        OfficeColor expected = OfficeColor.FromRgba(32, 96, 224, 128);
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, expected));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        var options = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(apng, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
+        Assert.NotNull(image);
+        Assert.Equal(expected, image!.GetPixel(0, 0));
+        Assert.Equal(2, info.FrameCount);
+        Assert.Equal(1, info.SelectedFrameIndex);
+        Assert.True(info.IsAnimated);
+        Assert.True(info.FramesOrPagesDiscarded);
+        Assert.Equal(OfficeRasterFrameBlend.Source, info.SelectedFrame!.Blend);
+    }
+
+    [Fact]
     public void CompleteContentValidationRejectsUndecodableJpegBmpTiffAndWebpBodies() {
         byte[] jpegWithoutTables = {
             0xFF, 0xD8,
@@ -732,6 +749,55 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void BoundedRasterDecodeSupportsSeekableAndForwardOnlyStreams() {
+        OfficeColor expected = OfficeColor.FromRgba(12, 34, 56, 178);
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(3, 2, expected));
+        using var seekable = new MemoryStream(png, writable: false);
+        seekable.Position = 0;
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(seekable, out OfficeRasterImage? seekableImage));
+        Assert.Equal(0L, seekable.Position);
+        Assert.Equal(expected, seekableImage!.GetPixel(2, 1));
+
+        using var forwardOnly = new ForwardOnlyReadStream(png);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(forwardOnly, out OfficeRasterImage? forwardImage));
+        Assert.Equal(expected, forwardImage!.GetPixel(2, 1));
+    }
+
+    [Fact]
+    public void RasterStreamLimitsAndCancellationFailBeforeDecodeWork() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(64, 64, OfficeColor.SteelBlue));
+        var bounded = new OfficeRasterDecodeOptions { MaximumEncodedBytes = png.Length - 1 };
+        using var oversized = new MemoryStream(png, writable: false);
+        Assert.False(OfficeRasterImageDecoder.TryDecode(oversized, bounded, out _, out OfficeRasterDecodeInfo boundedInfo));
+        Assert.False(boundedInfo.Succeeded);
+        Assert.Equal(0L, oversized.Position);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var cancelled = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
+        using var cancelledStream = new ForwardOnlyReadStream(png);
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageDecoder.TryDecode(cancelledStream, cancelled, out _, out _));
+        Assert.Equal(0, cancelledStream.ReadCount);
+    }
+
+    [Fact]
+    public void ContainerInspectorReportsApngTimingAndSelectionSemantics() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(apng, out OfficeRasterContainerInfo? container));
+        Assert.NotNull(container);
+        Assert.Equal(2, container!.Count);
+        Assert.True(container.IsAnimated);
+        Assert.False(container.IsMultiPage);
+        Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
+        Assert.True(container.Frames[0].IsDefaultImage);
+        Assert.False(container.Frames[1].IsDefaultImage);
+    }
+
+    [Fact]
     public void ContentValidationUsesTheCanonicalEncodedPayloadLimit() {
         Assert.True(OfficeRasterGuards.IsEncodedPayloadWithinLimits(OfficeRasterGuards.MaximumEncodedBytes));
         Assert.False(OfficeRasterGuards.IsEncodedPayloadWithinLimits(OfficeRasterGuards.MaximumEncodedBytes + 1));
@@ -974,6 +1040,33 @@ public partial class DrawingTests {
         public override void Flush() { }
         public override int Read(byte[] buffer, int offset, int count) { ReadCount++; return 0; }
         public override long Seek(long offset, SeekOrigin origin) => _position = offset;
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class ForwardOnlyReadStream : Stream {
+        private readonly byte[] _bytes;
+        private int _offset;
+
+        internal ForwardOnlyReadStream(byte[] bytes) => _bytes = bytes;
+
+        internal int ReadCount { get; private set; }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => _offset; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) {
+            ReadCount++;
+            int take = Math.Min(count, _bytes.Length - _offset);
+            if (take <= 0) return 0;
+            Buffer.BlockCopy(_bytes, _offset, buffer, offset, take);
+            _offset += take;
+            return take;
+        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }

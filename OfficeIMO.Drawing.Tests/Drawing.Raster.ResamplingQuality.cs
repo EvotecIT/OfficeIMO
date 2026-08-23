@@ -68,6 +68,44 @@ public sealed class DrawingRasterResamplingQualityTests {
         Assert.Equal(255, result.A);
     }
 
+    [Fact]
+    public void LinearLightAreaDownsamplingAvoidsEncodedSrgbDarkening() {
+        var source = new OfficeRasterImage(2, 1);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+
+        OfficeColor encoded = OfficeRasterResampler.Resize(
+            source, 1, 1, OfficeRasterResamplingMode.Area,
+            OfficeRasterResamplingColorSpace.EncodedSrgb).GetPixel(0, 0);
+        OfficeColor linear = OfficeRasterResampler.Resize(
+            source, 1, 1, OfficeRasterResamplingMode.Area,
+            OfficeRasterResamplingColorSpace.LinearLight).GetPixel(0, 0);
+
+        Assert.InRange(encoded.R, 127, 128);
+        Assert.InRange(linear.R, 187, 188);
+        Assert.Equal(linear.R, linear.G);
+        Assert.Equal(linear.R, linear.B);
+        Assert.Equal(255, linear.A);
+    }
+
+    [Fact]
+    public void LinearLightLanczosStillUsesPremultipliedAlpha() {
+        var source = new OfficeRasterImage(5, 1, OfficeColor.FromRgba(0, 0, 255, 0));
+        source.SetPixel(2, 0, OfficeColor.FromRgba(128, 64, 32, 180));
+
+        OfficeRasterImage result = OfficeRasterResampler.Resize(
+            source, 13, 1, OfficeRasterResamplingMode.Lanczos3,
+            OfficeRasterResamplingColorSpace.LinearLight);
+
+        for (int x = 0; x < result.Width; x++) {
+            OfficeColor pixel = result.GetPixel(x, 0);
+            if (pixel.A == 0) continue;
+            Assert.InRange(pixel.R, 127, 129);
+            Assert.InRange(pixel.G, 63, 65);
+            Assert.InRange(pixel.B, 31, 33);
+        }
+    }
+
     [Theory]
     [InlineData(2, 2)]
     [InlineData(13, 9)]

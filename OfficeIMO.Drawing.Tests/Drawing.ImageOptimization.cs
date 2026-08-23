@@ -170,6 +170,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerPreservesSelectedJpegMetadataAndNormalizesOrientation() {
+            byte[] xmp = System.Text.Encoding.UTF8.GetBytes(
+                "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"/></x:xmpmeta>");
+            byte[] icc = CreateMinimalOptimizationIccProfile();
+            var source = new OfficeRasterImage(2, 1, OfficeColor.CornflowerBlue);
+            byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+                Metadata = new OfficeJpegMetadata(CreateExifOrientation(6), xmp, icc),
+                DpiX = 144,
+                DpiY = 72
+            });
+            var request = new OfficeImageOptimizationRequest(1, 1) {
+                OutputFormat = OfficeImageFormat.Jpeg,
+                KeepOriginalWhenNotSmaller = false,
+                MetadataPolicy = OfficeImageMetadataPolicy.SelectiveCopy,
+                MetadataSelection = OfficeImageMetadataKinds.Exif | OfficeImageMetadataKinds.Xmp |
+                                    OfficeImageMetadataKinds.Icc | OfficeImageMetadataKinds.Orientation |
+                                    OfficeImageMetadataKinds.Resolution
+            };
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(jpeg, request);
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.False(result.Metadata.HasLoss);
+            Assert.Equal(request.MetadataSelection, result.Metadata.Preserved);
+            Assert.Equal(OfficeImageMetadataKinds.Orientation, result.Metadata.Normalized);
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(result.Bytes, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Normal, orientation);
+            Assert.True(OfficeImageReader.TryValidateContent(result.Bytes, "optimized.jpg", out _));
+            Assert.True(ContainsSequence(result.Bytes, CreateExifOrientation(1)));
+            Assert.True(ContainsSequence(result.Bytes, xmp));
+            Assert.True(ContainsSequence(result.Bytes, icc));
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerReportsStrippedAndUnsupportedMetadata() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(2, 2, OfficeColor.Red),
+                new OfficeJpegEncodeOptions { Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(3)) });
+            var strip = new OfficeImageOptimizationRequest(1, 1) {
+                OutputFormat = OfficeImageFormat.Jpeg,
+                KeepOriginalWhenNotSmaller = false,
+                MetadataPolicy = OfficeImageMetadataPolicy.Strip
+            };
+
+            OfficeImageOptimizationResult stripped = OfficeImageOptimizer.Optimize(jpeg, strip);
+
+            Assert.Equal(OfficeImageMetadataKinds.None, stripped.Metadata.Requested);
+            Assert.NotEqual(OfficeImageMetadataKinds.None, stripped.Metadata.Stripped);
+            Assert.False(stripped.Metadata.HasLoss);
+        }
+
+        [Fact]
         public void OfficeImageOrientationNormalizer_AppliesOrIgnoresExifWithoutPlatformCodecs() {
             var source = new OfficeRasterImage(2, 1);
             source.SetPixel(0, 0, OfficeColor.Red);
@@ -475,6 +527,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerRejectsMultiPageTiffWithoutExplicitPageLoss() {
+            byte[] tiff = OfficeTiffCodec.EncodePages(new[] {
+                new OfficeRasterImage(4, 3, OfficeColor.Red),
+                new OfficeRasterImage(2, 2, OfficeColor.Blue)
+            }, new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.Lzw });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                tiff,
+                new OfficeImageOptimizationRequest(2, 2) { KeepOriginalWhenNotSmaller = false });
+
+            Assert.Equal(OfficeImageOptimizationStatus.DecodeFailed, result.Status);
+            Assert.False(result.Changed);
+            Assert.Equal(tiff, result.Bytes);
+        }
+
+        [Fact]
         public void OfficeImageOptimizer_ResultKeepsEncodedBytesImmutable() {
             byte[] source = OfficePngWriter.Encode(new OfficeRasterImage(8, 8, OfficeColor.SteelBlue));
             OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
@@ -510,6 +578,29 @@ namespace OfficeIMO.Tests {
             (byte)orientation, (byte)(orientation >> 8), 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00
         };
+
+        private static byte[] CreateMinimalOptimizationIccProfile() {
+            var profile = new byte[132];
+            profile[0] = 0;
+            profile[1] = 0;
+            profile[2] = 0;
+            profile[3] = 132;
+            profile[36] = (byte)'a';
+            profile[37] = (byte)'c';
+            profile[38] = (byte)'s';
+            profile[39] = (byte)'p';
+            return profile;
+        }
+
+        private static bool ContainsSequence(byte[] container, byte[] value) {
+            if (value.Length == 0 || value.Length > container.Length) return false;
+            for (int offset = 0; offset <= container.Length - value.Length; offset++) {
+                int index = 0;
+                while (index < value.Length && container[offset + index] == value[index]) index++;
+                if (index == value.Length) return true;
+            }
+            return false;
+        }
 
         private static byte[] CreateExifWithoutOrientation() => new byte[] {
             (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,

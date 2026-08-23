@@ -33,11 +33,18 @@ public static partial class OfficeTiffCodec {
         byte[] output,
         int outputOffset,
         int expectedCount) {
+        if (input == null || output == null || inputOffset < 0 || inputCount < 0 ||
+            outputOffset < 0 || expectedCount < 0 ||
+            inputOffset > input.Length - inputCount || outputOffset > output.Length - expectedCount) {
+            return false;
+        }
         switch (compression) {
             case (int)OfficeTiffCompression.None:
                 return CopyExact(input, inputOffset, inputCount, output, outputOffset, expectedCount);
             case (int)OfficeTiffCompression.PackBits:
                 return TryDecodePackBits(input, inputOffset, inputCount, output, outputOffset, expectedCount);
+            case (int)OfficeTiffCompression.Lzw:
+                return TryDecodeLzw(input, inputOffset, inputCount, output, outputOffset, expectedCount);
             case (int)OfficeTiffCompression.Deflate:
                 return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset, expectedCount, allowRawDeflate: false);
             case 32946:

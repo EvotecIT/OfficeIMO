@@ -68,6 +68,7 @@ public sealed class OfficeRasterEncodingOptions {
             },
             Tiff = new OfficeTiffEncodeOptions {
                 Compression = tiff.Compression,
+                Predictor = tiff.Predictor,
                 DpiX = tiff.DpiX,
                 DpiY = tiff.DpiY
             }

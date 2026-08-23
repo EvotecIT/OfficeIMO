@@ -91,6 +91,7 @@ public sealed class DrawingRasterEncodingTests {
 
     [Theory]
     [InlineData(OfficeTiffCompression.None)]
+    [InlineData(OfficeTiffCompression.Lzw)]
     [InlineData(OfficeTiffCompression.PackBits)]
     [InlineData(OfficeTiffCompression.Deflate)]
     public void OfficeTiffCodec_EncodesIdentifiableRgbaTiff(OfficeTiffCompression compression) {
@@ -160,6 +161,7 @@ public sealed class DrawingRasterEncodingTests {
 
     [Theory]
     [InlineData(OfficeTiffCompression.None)]
+    [InlineData(OfficeTiffCompression.Lzw)]
     [InlineData(OfficeTiffCompression.PackBits)]
     [InlineData(OfficeTiffCompression.Deflate)]
     public void SharedRasterDecoderRepaintsEncodedTiff(OfficeTiffCompression compression) {
@@ -314,7 +316,8 @@ public sealed class DrawingRasterEncodingTests {
             out OfficeRasterDecodeInfo selectedInfo));
         Assert.NotNull(selectedPage);
         Assert.Equal(2, selectedInfo.FrameCount);
-        Assert.True(selectedInfo.AnimationDiscarded);
+        Assert.True(selectedInfo.PagesDiscarded);
+        Assert.False(selectedInfo.AnimationDiscarded);
 
         var rejectFrameLoss = new OfficeRasterDecodeOptions {
             AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
@@ -343,6 +346,64 @@ public sealed class DrawingRasterEncodingTests {
         Assert.False(OfficeImageReader.TryValidateContent(truncated, "truncated-chain.tiff", out _));
     }
 
+    [Fact]
+    public void OfficeWebpCodecDecodesOrdinaryLosslessVp8lWithTransformsAndBackReferences() {
+        byte[] mixed = Convert.FromBase64String(
+            "UklGRmIAAABXRUJQVlA4TFYAAAAvB8ABELmM6H/sIqL/ATNt2+wzmPAnuJIQC6a4P44ZBJhmDjnkkEMOd7hD3gKBJNXJVu3BRTCAVjOCQq8GDo+tJjJBWs0Ujb4aXNyc1cTP41vNDIv9MQ==");
+        byte[] flat = Convert.FromBase64String(
+            "UklGRh4AAABXRUJQVlA4TBEAAAAvH8ADEAdQkTIUp8iBiOh/AAA=");
+
+        Assert.True(OfficeWebpCodec.TryDecode(flat, out OfficeRasterImage? flatImage));
+        Assert.NotNull(flatImage);
+        Assert.Equal((32, 16), (flatImage!.Width, flatImage.Height));
+        Assert.Equal(OfficeColor.FromRgba(12, 34, 56, 200), flatImage.GetPixel(31, 15));
+
+        Assert.True(OfficeWebpCodec.TryDecode(mixed, out OfficeRasterImage? mixedImage));
+        Assert.NotNull(mixedImage);
+        Assert.Equal((8, 8), (mixedImage!.Width, mixedImage.Height));
+        Assert.Equal(OfficeColor.FromRgba(0, 0, 0, 96), mixedImage.GetPixel(0, 0));
+        Assert.Equal(OfficeColor.FromRgba(159, 71, 76, 255), mixedImage.GetPixel(4, 1));
+    }
+
+    [Fact]
+    public void OfficeWebpCodecUsesDeterministicPredictionAndLz77WhenTheyReduceThePayload() {
+        var source = new OfficeRasterImage(128, 64, OfficeColor.FromRgba(12, 34, 56, 200));
+
+        byte[] first = OfficeWebpCodec.Encode(source);
+        byte[] second = OfficeWebpCodec.Encode(source);
+
+        Assert.Equal(first, second);
+        Assert.True(first.Length < source.GetPixels().Length / 4);
+        Assert.True(OfficeWebpCodec.TryDecode(first, out OfficeRasterImage? decoded));
+        Assert.NotNull(decoded);
+        Assert.Equal(source.GetPixels(), decoded!.GetPixels());
+    }
+
+    [Theory]
+    [InlineData(OfficeTiffCompression.None)]
+    [InlineData(OfficeTiffCompression.Lzw)]
+    [InlineData(OfficeTiffCompression.PackBits)]
+    [InlineData(OfficeTiffCompression.Deflate)]
+    public void OfficeTiffCodecWritesAndSelectsMultiplePages(OfficeTiffCompression compression) {
+        var first = new OfficeRasterImage(2, 1, OfficeColor.Red);
+        var second = new OfficeRasterImage(1, 2, OfficeColor.Blue);
+        byte[] encoded = OfficeTiffCodec.EncodePages(
+            new[] { first, second },
+            new OfficeTiffEncodeOptions { Compression = compression });
+
+        Assert.True(OfficeTiffCodec.TryGetPageCount(encoded, out int pageCount));
+        Assert.Equal(2, pageCount);
+        Assert.True(OfficeTiffCodec.TryDecodePage(encoded, 1, out OfficeRasterImage? selected));
+        Assert.NotNull(selected);
+        Assert.Equal((1, 2), (selected!.Width, selected.Height));
+        Assert.Equal(OfficeColor.Blue, selected.GetPixel(0, 1));
+
+        var options = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+        Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, options, out selected, out OfficeRasterDecodeInfo info));
+        Assert.True(info.PagesDiscarded);
+        Assert.Equal(OfficeRasterFrameKind.Page, info.SelectedFrame!.Kind);
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png, OfficeImageFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg, OfficeImageFormat.Jpeg)]
@@ -369,9 +430,11 @@ public sealed class DrawingRasterEncodingTests {
 
         clone.Jpeg.Quality = 42;
         clone.Tiff.Compression = OfficeTiffCompression.None;
+        clone.Tiff.Predictor = OfficeTiffPredictor.None;
 
         Assert.Equal(85, source.Jpeg.Quality);
         Assert.Equal(OfficeTiffCompression.PackBits, source.Tiff.Compression);
+        Assert.Equal(OfficeTiffPredictor.Horizontal, source.Tiff.Predictor);
     }
 
     [Theory]

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -6,8 +7,8 @@ namespace OfficeIMO.Drawing;
 /// Dependency-free lossless WebP encoder for RGBA images.
 /// </summary>
 /// <remarks>
-/// The encoder intentionally uses a deterministic literal-only VP8L stream. It favors a small,
-/// auditable implementation over compression efficiency while producing standards-compatible WebP.
+/// The encoder deterministically selects between a literal VP8L stream and a bounded prediction,
+/// subtract-green, and LZ77 stream. Lossy VP8 and animation remain caller-codec responsibilities.
 /// </remarks>
 public static partial class OfficeWebpCodec {
     private const int LiteralHeaderBitCount = 1239;
@@ -40,7 +41,11 @@ public static partial class OfficeWebpCodec {
 
         byte[] pixels = image.PixelBuffer;
         bool hasAlpha = HasTransparency(pixels);
-        int payloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
+        int literalPayloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
+        byte[]? compressedPayload = TryEncodeCompressedVp8l(image.Width, image.Height, hasAlpha, pixels);
+        int payloadLength = compressedPayload != null && compressedPayload.Length < literalPayloadLength
+            ? compressedPayload.Length
+            : literalPayloadLength;
         byte[]? exif = includeResolutionMetadata
             ? CreateResolutionExif(image.Width, image.Height, dpiX, dpiY)
             : null;
@@ -80,7 +85,11 @@ public static partial class OfficeWebpCodec {
             Buffer.BlockCopy(exif, 0, output, exifChunkOffset + 8, exif.Length);
         }
 
-        WriteLiteralPayload(output, payloadOffset, payloadLength, image.Width, image.Height, hasAlpha, pixels);
+        if (compressedPayload != null && compressedPayload.Length == payloadLength) {
+            Buffer.BlockCopy(compressedPayload, 0, output, payloadOffset, payloadLength);
+        } else {
+            WriteLiteralPayload(output, payloadOffset, payloadLength, image.Width, image.Height, hasAlpha, pixels);
+        }
         return output;
     }
 
@@ -164,12 +173,26 @@ public static partial class OfficeWebpCodec {
     }
 
     /// <summary>
-    /// Attempts to decode the deterministic literal-only VP8L subset emitted by
-    /// <see cref="Encode(OfficeRasterImage)"/> and its resolution-aware overload.
-    /// General VP8/VP8L features remain the responsibility of an optional caller codec.
+    /// Attempts to decode bounded ordinary lossless VP8L, including prediction, color,
+    /// subtract-green, palette, LZ77, color-cache, and Huffman features.
+    /// Lossy VP8 and animation remain optional caller-codec responsibilities.
     /// </summary>
-    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) {
+    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
+        TryDecode(encodedBytes, CancellationToken.None, out image);
+
+    internal static bool TryDecode(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        out OfficeRasterImage? image) =>
+        TryDecodeLiteralSubset(encodedBytes, cancellationToken, out image) ||
+        TryDecodeVp8l(encodedBytes, cancellationToken, out image);
+
+    private static bool TryDecodeLiteralSubset(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        out OfficeRasterImage? image) {
         image = null;
+        cancellationToken.ThrowIfCancellationRequested();
         if (!IsWebp(encodedBytes) || encodedBytes == null ||
             encodedBytes.Length < 22 ||
             encodedBytes.Length > OfficeRasterGuards.MaximumEncodedBytes) {
@@ -210,6 +233,7 @@ public static partial class OfficeWebpCodec {
 
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
             for (int pixel = 0; pixel < pixels; pixel++) {
+                if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int offset = pixel * 4;
                 rgba[offset + 1] = (byte)ReverseByte((byte)reader.ReadBits(8));
                 rgba[offset] = (byte)ReverseByte((byte)reader.ReadBits(8));
