@@ -5,6 +5,14 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+$browserProjectPath = Join-Path $PSScriptRoot '../OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj'
+[xml] $browserProject = Get-Content -LiteralPath $browserProjectPath -Raw
+$htmlTinkerXVersionText = [string] $browserProject.Project.PropertyGroup.HtmlTinkerXVersion
+if ([string]::IsNullOrWhiteSpace($htmlTinkerXVersionText) -or
+    [version] $htmlTinkerXVersionText -lt [version] '3.0.1') {
+    throw 'OfficeIMO release is blocked: publish HtmlTinkerX 3.0.1 or newer with device emulation and fail-closed offline policy, then repin OfficeIMO.Html.Pdf.Browser.'
+}
+
 if ([string]::IsNullOrWhiteSpace($env:SIXLABORS_LICENSE_KEY)) {
     throw 'OfficeIMO release is blocked: configure the permanent SIXLABORS_LICENSE_KEY before building publishable typography packages.'
 }
@@ -54,6 +62,7 @@ foreach ($diagnostic in $pdfXDiagnostics) {
 }
 
 & "$PSScriptRoot/Test-LibraryComparisonRunnerContract.ps1"
+& "$PSScriptRoot/Test-HtmlPdfBrowserPackages.ps1"
 & "$PSScriptRoot/Test-TypographyPackages.ps1" -RequireSixLabors
 
 Write-Host 'OfficeIMO HTML/PDF release gate passed.'
