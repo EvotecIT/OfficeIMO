@@ -1,0 +1,1151 @@
+{
+  "schemaVersion": 1,
+  "format": "officeimo.html-pdf-artifact-evidence-summary",
+  "platform": "linux",
+  "artifactBundle": {
+    "artifactCount": 37,
+    "totalBytes": 28977691,
+    "manifestSha256": "54f86048126207a5bafe372542a0ded82c27169d7cf88275f9a3ae2838b022df",
+    "artifacts": [
+      {
+        "kind": "external-preview:Chromium",
+        "relativePath": "chromium-htmltinkerx-01-page-1-poppler.png",
+        "sizeBytes": 106035,
+        "sha256": "5c8f1889222689879b87426bba45c1434abb4795532713ed59f09976bde0357a"
+      },
+      {
+        "kind": "managed-preview:Chromium",
+        "relativePath": "chromium-htmltinkerx-01-page-1.png",
+        "sizeBytes": 62162,
+        "sha256": "11a0f68f5197196a026677139a73b87a61a94557a0bbaf68f73b187dd09772d3"
+      },
+      {
+        "kind": "pdf:Chromium",
+        "relativePath": "chromium-htmltinkerx-01.pdf",
+        "sizeBytes": 2075718,
+        "sha256": "65f45b5bb1951f31cbcd41023ad5207853e06ee735ed8ae36db87eecabf4a71e"
+      },
+      {
+        "kind": "external-preview:Chromium",
+        "relativePath": "chromium-htmltinkerx-02-page-1-poppler.png",
+        "sizeBytes": 106035,
+        "sha256": "5c8f1889222689879b87426bba45c1434abb4795532713ed59f09976bde0357a"
+      },
+      {
+        "kind": "managed-preview:Chromium",
+        "relativePath": "chromium-htmltinkerx-02-page-1.png",
+        "sizeBytes": 62162,
+        "sha256": "11a0f68f5197196a026677139a73b87a61a94557a0bbaf68f73b187dd09772d3"
+      },
+      {
+        "kind": "pdf:Chromium",
+        "relativePath": "chromium-htmltinkerx-02.pdf",
+        "sizeBytes": 2075718,
+        "sha256": "4c7a36cb7e469d639f47113680c4415e6705e87679552e986fa623342967753c"
+      },
+      {
+        "kind": "external-preview:Chromium",
+        "relativePath": "chromium-htmltinkerx-03-page-1-poppler.png",
+        "sizeBytes": 106035,
+        "sha256": "5c8f1889222689879b87426bba45c1434abb4795532713ed59f09976bde0357a"
+      },
+      {
+        "kind": "managed-preview:Chromium",
+        "relativePath": "chromium-htmltinkerx-03-page-1.png",
+        "sizeBytes": 62162,
+        "sha256": "11a0f68f5197196a026677139a73b87a61a94557a0bbaf68f73b187dd09772d3"
+      },
+      {
+        "kind": "pdf:Chromium",
+        "relativePath": "chromium-htmltinkerx-03.pdf",
+        "sizeBytes": 2075718,
+        "sha256": "e864c447514dc93e8cad099a103c26df80740abd1dd99df51c101cb4cb5addab"
+      },
+      {
+        "kind": "external-preview:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-01-page-1-poppler.png",
+        "sizeBytes": 91177,
+        "sha256": "06233ad0235ffdf074f8b692d680a3008b9a5528672578a0b23bfedc6f359efc"
+      },
+      {
+        "kind": "managed-preview:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-01-page-1.png",
+        "sizeBytes": 58644,
+        "sha256": "a9cd419c88eb08aeea42543041716746647da9d9a4b3d984f8155df40baf1ded"
+      },
+      {
+        "kind": "pdf:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-01.pdf",
+        "sizeBytes": 3240891,
+        "sha256": "cb60320aaba28d10d09ce84489fe7e868d9db25375eac8ce6e652967ff9bf5c6"
+      },
+      {
+        "kind": "external-preview:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-02-page-1-poppler.png",
+        "sizeBytes": 91177,
+        "sha256": "06233ad0235ffdf074f8b692d680a3008b9a5528672578a0b23bfedc6f359efc"
+      },
+      {
+        "kind": "managed-preview:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-02-page-1.png",
+        "sizeBytes": 58644,
+        "sha256": "a9cd419c88eb08aeea42543041716746647da9d9a4b3d984f8155df40baf1ded"
+      },
+      {
+        "kind": "pdf:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-02.pdf",
+        "sizeBytes": 3240891,
+        "sha256": "69aa93b5628e92503e859c8912c50365ff21b609d073473704a8b960483fb12c"
+      },
+      {
+        "kind": "external-preview:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-03-page-1-poppler.png",
+        "sizeBytes": 91177,
+        "sha256": "06233ad0235ffdf074f8b692d680a3008b9a5528672578a0b23bfedc6f359efc"
+      },
+      {
+        "kind": "managed-preview:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-03-page-1.png",
+        "sizeBytes": 58644,
+        "sha256": "a9cd419c88eb08aeea42543041716746647da9d9a4b3d984f8155df40baf1ded"
+      },
+      {
+        "kind": "pdf:ITextPdfHtml",
+        "relativePath": "itext-pdfhtml-03.pdf",
+        "sizeBytes": 3240891,
+        "sha256": "03c6c2661ec103a350de41701969af47d320d8903c348746a99838d988963fe1"
+      },
+      {
+        "kind": "external-preview:OfficeIMO",
+        "relativePath": "officeimo-01-page-1-poppler.png",
+        "sizeBytes": 107206,
+        "sha256": "2ae05f5782b5e6a501813cd01348885f163f22d4e09bbec04727460175e9aa53"
+      },
+      {
+        "kind": "managed-preview:OfficeIMO",
+        "relativePath": "officeimo-01-page-1.png",
+        "sizeBytes": 59503,
+        "sha256": "ffb5aaa377433e666e21ea943182764fb608695fcddf7a7d087816658ae5d0ef"
+      },
+      {
+        "kind": "pdf:OfficeIMO",
+        "relativePath": "officeimo-01.pdf",
+        "sizeBytes": 1940744,
+        "sha256": "c88c42e4c7137a74dd52766f0243f83fb12ce531fb24d5631d976ead005ecfa9"
+      },
+      {
+        "kind": "external-preview:OfficeIMO",
+        "relativePath": "officeimo-02-page-1-poppler.png",
+        "sizeBytes": 107206,
+        "sha256": "2ae05f5782b5e6a501813cd01348885f163f22d4e09bbec04727460175e9aa53"
+      },
+      {
+        "kind": "managed-preview:OfficeIMO",
+        "relativePath": "officeimo-02-page-1.png",
+        "sizeBytes": 59503,
+        "sha256": "ffb5aaa377433e666e21ea943182764fb608695fcddf7a7d087816658ae5d0ef"
+      },
+      {
+        "kind": "pdf:OfficeIMO",
+        "relativePath": "officeimo-02.pdf",
+        "sizeBytes": 1940744,
+        "sha256": "c88c42e4c7137a74dd52766f0243f83fb12ce531fb24d5631d976ead005ecfa9"
+      },
+      {
+        "kind": "external-preview:OfficeIMO",
+        "relativePath": "officeimo-03-page-1-poppler.png",
+        "sizeBytes": 107206,
+        "sha256": "2ae05f5782b5e6a501813cd01348885f163f22d4e09bbec04727460175e9aa53"
+      },
+      {
+        "kind": "managed-preview:OfficeIMO",
+        "relativePath": "officeimo-03-page-1.png",
+        "sizeBytes": 59503,
+        "sha256": "ffb5aaa377433e666e21ea943182764fb608695fcddf7a7d087816658ae5d0ef"
+      },
+      {
+        "kind": "pdf:OfficeIMO",
+        "relativePath": "officeimo-03.pdf",
+        "sizeBytes": 1940744,
+        "sha256": "c88c42e4c7137a74dd52766f0243f83fb12ce531fb24d5631d976ead005ecfa9"
+      },
+      {
+        "kind": "external-preview:PeachPDF",
+        "relativePath": "peachpdf-01-page-1-poppler.png",
+        "sizeBytes": 115132,
+        "sha256": "948f0c7a10e6a4302b339be62d255e794dd05aa93c671256af5f49818d40cd4b"
+      },
+      {
+        "kind": "managed-preview:PeachPDF",
+        "relativePath": "peachpdf-01-page-1.png",
+        "sizeBytes": 59985,
+        "sha256": "3a564e3d1f149faf3332de4aad8ec2a01eadfa3c7991b06244a86f7bb7639b3b"
+      },
+      {
+        "kind": "pdf:PeachPDF",
+        "relativePath": "peachpdf-01.pdf",
+        "sizeBytes": 1689099,
+        "sha256": "b253e3e56c38c2d13515b5a9c56341dd75a24011e8895cd2bb88ccedbf571a9f"
+      },
+      {
+        "kind": "external-preview:PeachPDF",
+        "relativePath": "peachpdf-02-page-1-poppler.png",
+        "sizeBytes": 115132,
+        "sha256": "948f0c7a10e6a4302b339be62d255e794dd05aa93c671256af5f49818d40cd4b"
+      },
+      {
+        "kind": "managed-preview:PeachPDF",
+        "relativePath": "peachpdf-02-page-1.png",
+        "sizeBytes": 59985,
+        "sha256": "3a564e3d1f149faf3332de4aad8ec2a01eadfa3c7991b06244a86f7bb7639b3b"
+      },
+      {
+        "kind": "pdf:PeachPDF",
+        "relativePath": "peachpdf-02.pdf",
+        "sizeBytes": 1689099,
+        "sha256": "b88b2656a9213f9113e00c404fe3b393ba9680e083c48588d0ea292fa8257fbd"
+      },
+      {
+        "kind": "external-preview:PeachPDF",
+        "relativePath": "peachpdf-03-page-1-poppler.png",
+        "sizeBytes": 115132,
+        "sha256": "948f0c7a10e6a4302b339be62d255e794dd05aa93c671256af5f49818d40cd4b"
+      },
+      {
+        "kind": "managed-preview:PeachPDF",
+        "relativePath": "peachpdf-03-page-1.png",
+        "sizeBytes": 59985,
+        "sha256": "3a564e3d1f149faf3332de4aad8ec2a01eadfa3c7991b06244a86f7bb7639b3b"
+      },
+      {
+        "kind": "pdf:PeachPDF",
+        "relativePath": "peachpdf-03.pdf",
+        "sizeBytes": 1689099,
+        "sha256": "f6da5a433765a34d6a0aeb1b30c9dc5635b544eba57b504ad6b866f4664b0647"
+      },
+      {
+        "kind": "input",
+        "relativePath": "scenario.html",
+        "sizeBytes": 158803,
+        "sha256": "71f8f321036d3a463dbfe11cb2fcd58e0a07267c8be3f4873d42c87261244481"
+      }
+    ]
+  },
+  "report": {
+    "schemaVersion": 2,
+    "generatedUtc": "2026-08-24T01:33:39.5054657+02:00",
+    "scale": "High",
+    "iterations": 3,
+    "environment": {
+      "osDescription": "Ubuntu 24.04.3 LTS",
+      "osArchitecture": "X64",
+      "processArchitecture": "X64",
+      "runtimeVersion": "10.0.11",
+      "frameworkDescription": ".NET 10.0.11",
+      "externalRasterizer": "pdftoppm version 24.02.0"
+    },
+    "provenance": {
+      "officeIMO": {
+        "kind": "source",
+        "version": "3.2.5+c6159aa06214600270b752a8c96534c3d4b5149a",
+        "commit": "c6159aa06214600270b752a8c96534c3d4b5149a",
+        "worktreeClean": true
+      },
+      "htmlTinkerX": {
+        "kind": "source",
+        "version": "3.0.0+7c001a1466f1948f3134a89c6fd89da5b7f97d9a",
+        "commit": "7c001a1466f1948f3134a89c6fd89da5b7f97d9a",
+        "worktreeClean": true
+      }
+    },
+    "input": {
+      "relativePath": "scenario.html",
+      "sizeBytes": 158803,
+      "sha256": "71f8f321036d3a463dbfe11cb2fcd58e0a07267c8be3f4873d42c87261244481",
+      "expectedPageCount": 100,
+      "expectedReportMarkerCount": 100
+    },
+    "engines": [
+      {
+        "engine": "OfficeIMO",
+        "owner": "OfficeIMO.Html.Pdf",
+        "assemblyVersion": "3.2.5+c6159aa06214600270b752a8c96534c3d4b5149a",
+        "executionKind": "Fresh managed worker process",
+        "cancellation": {
+          "apiSupportsCancellation": true,
+          "status": "Passed",
+          "detail": "A pre-cancelled OfficeIMO HTML-to-PDF request was rejected through ToPdfAsync."
+        },
+        "determinism": {
+          "exactBytesIdentical": true,
+          "semanticOutputIdentical": true,
+          "managedVisualPreviewIdentical": true,
+          "externalVisualPreviewIdentical": true,
+          "uniqueByteHashCount": 1,
+          "uniqueSemanticHashCount": 1,
+          "uniqueManagedVisualHashCount": 1,
+          "uniqueExternalVisualHashCount": 1
+        },
+        "memoryScope": "Fresh worker process tree sampled from process start through renderer shutdown; the evidence coordinator is excluded.",
+        "memoryComparable": true,
+        "outputs": [
+          {
+            "iteration": 1,
+            "relativePath": "officeimo-01.pdf",
+            "durationMilliseconds": 2516.6288,
+            "sizeBytes": 1940744,
+            "sha256": "c88c42e4c7137a74dd52766f0243f83fb12ce531fb24d5631d976ead005ecfa9",
+            "semanticSha256": "f7753820059c54d169d165266e27426a7d792205b27e126d191772d28c3a53f3",
+            "managedAllocatedBytes": 986452040,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 249798656,
+              "sampleCount": 206,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 1,
+              "structureElementCount": 12701,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "P": 5500,
+                "Sect": 100,
+                "Span": 400,
+                "TD": 4800,
+                "TH": 400,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "officeimo-01-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 59503,
+              "sha256": "ffb5aaa377433e666e21ea943182764fb608695fcddf7a7d087816658ae5d0ef",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F2."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "officeimo-01-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 107206,
+              "sha256": "2ae05f5782b5e6a501813cd01348885f163f22d4e09bbec04727460175e9aa53",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 2,
+            "relativePath": "officeimo-02.pdf",
+            "durationMilliseconds": 3357.7116,
+            "sizeBytes": 1940744,
+            "sha256": "c88c42e4c7137a74dd52766f0243f83fb12ce531fb24d5631d976ead005ecfa9",
+            "semanticSha256": "f7753820059c54d169d165266e27426a7d792205b27e126d191772d28c3a53f3",
+            "managedAllocatedBytes": 965844040,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 247001088,
+              "sampleCount": 273,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 1,
+              "structureElementCount": 12701,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "P": 5500,
+                "Sect": 100,
+                "Span": 400,
+                "TD": 4800,
+                "TH": 400,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "officeimo-02-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 59503,
+              "sha256": "ffb5aaa377433e666e21ea943182764fb608695fcddf7a7d087816658ae5d0ef",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F2."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "officeimo-02-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 107206,
+              "sha256": "2ae05f5782b5e6a501813cd01348885f163f22d4e09bbec04727460175e9aa53",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 3,
+            "relativePath": "officeimo-03.pdf",
+            "durationMilliseconds": 3449.3096,
+            "sizeBytes": 1940744,
+            "sha256": "c88c42e4c7137a74dd52766f0243f83fb12ce531fb24d5631d976ead005ecfa9",
+            "semanticSha256": "f7753820059c54d169d165266e27426a7d792205b27e126d191772d28c3a53f3",
+            "managedAllocatedBytes": 978950920,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 243163136,
+              "sampleCount": 287,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 1,
+              "structureElementCount": 12701,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "P": 5500,
+                "Sect": 100,
+                "Span": 400,
+                "TD": 4800,
+                "TH": 400,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "officeimo-03-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 59503,
+              "sha256": "ffb5aaa377433e666e21ea943182764fb608695fcddf7a7d087816658ae5d0ef",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F2."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "officeimo-03-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 107206,
+              "sha256": "2ae05f5782b5e6a501813cd01348885f163f22d4e09bbec04727460175e9aa53",
+              "diagnostics": []
+            }
+          }
+        ]
+      },
+      {
+        "engine": "PeachPDF",
+        "owner": "PeachPDF",
+        "assemblyVersion": "0.0.0.0",
+        "executionKind": "Fresh managed worker process",
+        "cancellation": {
+          "apiSupportsCancellation": false,
+          "status": "Unsupported",
+          "detail": "The compared public conversion entry point does not accept a CancellationToken."
+        },
+        "determinism": {
+          "exactBytesIdentical": false,
+          "semanticOutputIdentical": true,
+          "managedVisualPreviewIdentical": true,
+          "externalVisualPreviewIdentical": true,
+          "uniqueByteHashCount": 3,
+          "uniqueSemanticHashCount": 1,
+          "uniqueManagedVisualHashCount": 1,
+          "uniqueExternalVisualHashCount": 1
+        },
+        "memoryScope": "Fresh worker process tree sampled from process start through renderer shutdown; the evidence coordinator is excluded.",
+        "memoryComparable": true,
+        "outputs": [
+          {
+            "iteration": 1,
+            "relativePath": "peachpdf-01.pdf",
+            "durationMilliseconds": 4304.0464,
+            "sizeBytes": 1689099,
+            "sha256": "b253e3e56c38c2d13515b5a9c56341dd75a24011e8895cd2bb88ccedbf571a9f",
+            "semanticSha256": "6c7ceaaadf725c618e8a0606624e5c01ff7c56406822fd4a87e231186168155d",
+            "managedAllocatedBytes": 4161317960,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 268013568,
+              "sampleCount": 359,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": -9143018927873353335,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 0,
+              "structureElementCount": 12901,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "P": 300,
+                "Sect": 100,
+                "Span": 5600,
+                "TBody": 100,
+                "TD": 4800,
+                "TH": 400,
+                "THead": 100,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "peachpdf-01-page-1.png",
+              "pageNumber": 1,
+              "width": 993,
+              "height": 1404,
+              "sizeBytes": 59985,
+              "sha256": "3a564e3d1f149faf3332de4aad8ec2a01eadfa3c7991b06244a86f7bb7639b3b",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F0.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "peachpdf-01-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 993,
+              "height": 1404,
+              "sizeBytes": 115132,
+              "sha256": "948f0c7a10e6a4302b339be62d255e794dd05aa93c671256af5f49818d40cd4b",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 2,
+            "relativePath": "peachpdf-02.pdf",
+            "durationMilliseconds": 3876.5616,
+            "sizeBytes": 1689099,
+            "sha256": "b88b2656a9213f9113e00c404fe3b393ba9680e083c48588d0ea292fa8257fbd",
+            "semanticSha256": "6c7ceaaadf725c618e8a0606624e5c01ff7c56406822fd4a87e231186168155d",
+            "managedAllocatedBytes": 4168116824,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 268156928,
+              "sampleCount": 321,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": -9143018927873353335,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 0,
+              "structureElementCount": 12901,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "P": 300,
+                "Sect": 100,
+                "Span": 5600,
+                "TBody": 100,
+                "TD": 4800,
+                "TH": 400,
+                "THead": 100,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "peachpdf-02-page-1.png",
+              "pageNumber": 1,
+              "width": 993,
+              "height": 1404,
+              "sizeBytes": 59985,
+              "sha256": "3a564e3d1f149faf3332de4aad8ec2a01eadfa3c7991b06244a86f7bb7639b3b",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F0.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "peachpdf-02-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 993,
+              "height": 1404,
+              "sizeBytes": 115132,
+              "sha256": "948f0c7a10e6a4302b339be62d255e794dd05aa93c671256af5f49818d40cd4b",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 3,
+            "relativePath": "peachpdf-03.pdf",
+            "durationMilliseconds": 3843.756,
+            "sizeBytes": 1689099,
+            "sha256": "f6da5a433765a34d6a0aeb1b30c9dc5635b544eba57b504ad6b866f4664b0647",
+            "semanticSha256": "6c7ceaaadf725c618e8a0606624e5c01ff7c56406822fd4a87e231186168155d",
+            "managedAllocatedBytes": 4167234480,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 267649024,
+              "sampleCount": 324,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": -9143018927873353335,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 0,
+              "structureElementCount": 12901,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "P": 300,
+                "Sect": 100,
+                "Span": 5600,
+                "TBody": 100,
+                "TD": 4800,
+                "TH": 400,
+                "THead": 100,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "peachpdf-03-page-1.png",
+              "pageNumber": 1,
+              "width": 993,
+              "height": 1404,
+              "sizeBytes": 59985,
+              "sha256": "3a564e3d1f149faf3332de4aad8ec2a01eadfa3c7991b06244a86f7bb7639b3b",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F0.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "peachpdf-03-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 993,
+              "height": 1404,
+              "sizeBytes": 115132,
+              "sha256": "948f0c7a10e6a4302b339be62d255e794dd05aa93c671256af5f49818d40cd4b",
+              "diagnostics": []
+            }
+          }
+        ]
+      },
+      {
+        "engine": "ITextPdfHtml",
+        "owner": "iText pdfHTML",
+        "assemblyVersion": "6.3.3",
+        "executionKind": "Fresh managed worker process",
+        "cancellation": {
+          "apiSupportsCancellation": false,
+          "status": "Unsupported",
+          "detail": "The compared public conversion entry point does not accept a CancellationToken."
+        },
+        "determinism": {
+          "exactBytesIdentical": false,
+          "semanticOutputIdentical": true,
+          "managedVisualPreviewIdentical": true,
+          "externalVisualPreviewIdentical": true,
+          "uniqueByteHashCount": 3,
+          "uniqueSemanticHashCount": 1,
+          "uniqueManagedVisualHashCount": 1,
+          "uniqueExternalVisualHashCount": 1
+        },
+        "memoryScope": "Fresh worker process tree sampled from process start through renderer shutdown; the evidence coordinator is excluded.",
+        "memoryComparable": true,
+        "outputs": [
+          {
+            "iteration": 1,
+            "relativePath": "itext-pdfhtml-01.pdf",
+            "durationMilliseconds": 3733.2931,
+            "sizeBytes": 3240891,
+            "sha256": "cb60320aaba28d10d09ce84489fe7e868d9db25375eac8ce6e652967ff9bf5c6",
+            "semanticSha256": "3be5ff48dc5334d3096a0519c6f550a077a1169156b139122ef11f402c3a3340",
+            "managedAllocatedBytes": 1129555072,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 227233792,
+              "sampleCount": 315,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 0,
+              "structureElementCount": 18201,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Div": 100,
+                "Document": 1,
+                "H1": 100,
+                "P": 5600,
+                "Span": 5600,
+                "TBody": 100,
+                "TD": 4800,
+                "TH": 400,
+                "THead": 100,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "itext-pdfhtml-01-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 58644,
+              "sha256": "a9cd419c88eb08aeea42543041716746647da9d9a4b3d984f8155df40baf1ded",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F2."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "itext-pdfhtml-01-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 91177,
+              "sha256": "06233ad0235ffdf074f8b692d680a3008b9a5528672578a0b23bfedc6f359efc",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 2,
+            "relativePath": "itext-pdfhtml-02.pdf",
+            "durationMilliseconds": 3405.813,
+            "sizeBytes": 3240891,
+            "sha256": "69aa93b5628e92503e859c8912c50365ff21b609d073473704a8b960483fb12c",
+            "semanticSha256": "3be5ff48dc5334d3096a0519c6f550a077a1169156b139122ef11f402c3a3340",
+            "managedAllocatedBytes": 1126215624,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 227328000,
+              "sampleCount": 285,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 0,
+              "structureElementCount": 18201,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Div": 100,
+                "Document": 1,
+                "H1": 100,
+                "P": 5600,
+                "Span": 5600,
+                "TBody": 100,
+                "TD": 4800,
+                "TH": 400,
+                "THead": 100,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "itext-pdfhtml-02-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 58644,
+              "sha256": "a9cd419c88eb08aeea42543041716746647da9d9a4b3d984f8155df40baf1ded",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F2."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "itext-pdfhtml-02-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 91177,
+              "sha256": "06233ad0235ffdf074f8b692d680a3008b9a5528672578a0b23bfedc6f359efc",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 3,
+            "relativePath": "itext-pdfhtml-03.pdf",
+            "durationMilliseconds": 3027.7167,
+            "sizeBytes": 3240891,
+            "sha256": "03c6c2661ec103a350de41701969af47d320d8903c348746a99838d988963fe1",
+            "semanticSha256": "3be5ff48dc5334d3096a0519c6f550a077a1169156b139122ef11f402c3a3340",
+            "managedAllocatedBytes": 1117999656,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 226947072,
+              "sampleCount": 255,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 1,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 0,
+              "structureElementCount": 18201,
+              "markedContentReferenceCount": 5600,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Div": 100,
+                "Document": 1,
+                "H1": 100,
+                "P": 5600,
+                "Span": 5600,
+                "TBody": 100,
+                "TD": 4800,
+                "TH": 400,
+                "THead": 100,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "itext-pdfhtml-03-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 58644,
+              "sha256": "a9cd419c88eb08aeea42543041716746647da9d9a4b3d984f8155df40baf1ded",
+              "diagnostics": [
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F1.",
+                "render.resource.font-substitution: Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available. Subject: F2."
+              ]
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "itext-pdfhtml-03-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 91177,
+              "sha256": "06233ad0235ffdf074f8b692d680a3008b9a5528672578a0b23bfedc6f359efc",
+              "diagnostics": []
+            }
+          }
+        ]
+      },
+      {
+        "engine": "Chromium",
+        "owner": "HtmlTinkerX",
+        "assemblyVersion": "3.0.0+7c001a1466f1948f3134a89c6fd89da5b7f97d9a",
+        "executionKind": "Fresh worker process; Chromium through HtmlTinkerX",
+        "cancellation": {
+          "apiSupportsCancellation": true,
+          "status": "Passed",
+          "detail": "A pre-cancelled Chromium PDF request was rejected through HtmlTinkerX."
+        },
+        "determinism": {
+          "exactBytesIdentical": false,
+          "semanticOutputIdentical": true,
+          "managedVisualPreviewIdentical": true,
+          "externalVisualPreviewIdentical": true,
+          "uniqueByteHashCount": 3,
+          "uniqueSemanticHashCount": 1,
+          "uniqueManagedVisualHashCount": 1,
+          "uniqueExternalVisualHashCount": 1
+        },
+        "memoryScope": "Fresh worker process tree sampled from process start through renderer shutdown; the evidence coordinator is excluded.",
+        "memoryComparable": true,
+        "outputs": [
+          {
+            "iteration": 1,
+            "relativePath": "chromium-htmltinkerx-01.pdf",
+            "durationMilliseconds": 1759.9778,
+            "sizeBytes": 2075718,
+            "sha256": "65f45b5bb1951f31cbcd41023ad5207853e06ee735ed8ae36db87eecabf4a71e",
+            "semanticSha256": "2fdc475663efe8c0fb6254581ef6b8133b1e820919996bf2dd5bcd997e18b634",
+            "managedAllocatedBytes": 29156400,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 847745024,
+              "sampleCount": 137,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 8,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 1,
+              "structureElementCount": 12701,
+              "markedContentReferenceCount": 6100,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "NonStruct": 5700,
+                "P": 300,
+                "TD": 4800,
+                "TH": 400,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "chromium-htmltinkerx-01-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 62162,
+              "sha256": "11a0f68f5197196a026677139a73b87a61a94557a0bbaf68f73b187dd09772d3",
+              "diagnostics": []
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "chromium-htmltinkerx-01-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 106035,
+              "sha256": "5c8f1889222689879b87426bba45c1434abb4795532713ed59f09976bde0357a",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 2,
+            "relativePath": "chromium-htmltinkerx-02.pdf",
+            "durationMilliseconds": 1372.3227,
+            "sizeBytes": 2075718,
+            "sha256": "4c7a36cb7e469d639f47113680c4415e6705e87679552e986fa623342967753c",
+            "semanticSha256": "2fdc475663efe8c0fb6254581ef6b8133b1e820919996bf2dd5bcd997e18b634",
+            "managedAllocatedBytes": 29108264,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 849747968,
+              "sampleCount": 108,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 8,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 1,
+              "structureElementCount": 12701,
+              "markedContentReferenceCount": 6100,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "NonStruct": 5700,
+                "P": 300,
+                "TD": 4800,
+                "TH": 400,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "chromium-htmltinkerx-02-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 62162,
+              "sha256": "11a0f68f5197196a026677139a73b87a61a94557a0bbaf68f73b187dd09772d3",
+              "diagnostics": []
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "chromium-htmltinkerx-02-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 106035,
+              "sha256": "5c8f1889222689879b87426bba45c1434abb4795532713ed59f09976bde0357a",
+              "diagnostics": []
+            }
+          },
+          {
+            "iteration": 3,
+            "relativePath": "chromium-htmltinkerx-03.pdf",
+            "durationMilliseconds": 1477.9877,
+            "sizeBytes": 2075718,
+            "sha256": "e864c447514dc93e8cad099a103c26df80740abd1dd99df51c101cb4cb5addab",
+            "semanticSha256": "2fdc475663efe8c0fb6254581ef6b8133b1e820919996bf2dd5bcd997e18b634",
+            "managedAllocatedBytes": 28038408,
+            "processTreeMemory": {
+              "peakWorkingSetBytes": 846786560,
+              "sampleCount": 116,
+              "minimumObservedProcessCount": 1,
+              "maximumObservedProcessCount": 8,
+              "sampler": "/proc parent map + Process.WorkingSet64"
+            },
+            "contract": {
+              "pageCount": 100,
+              "textLength": 68304,
+              "reportMarkerCount": 100,
+              "characterChecksum": 6108373238794631625,
+              "tagged": true,
+              "marked": true,
+              "catalogLanguage": "en-US",
+              "languageElementCount": 1,
+              "structureElementCount": 12701,
+              "markedContentReferenceCount": 6100,
+              "parentTreeEntryCount": 100,
+              "hasDocumentStructureElement": true,
+              "figuresHaveAlternateText": true,
+              "structureTypeCounts": {
+                "Document": 1,
+                "H1": 100,
+                "NonStruct": 5700,
+                "P": 300,
+                "TD": 4800,
+                "TH": 400,
+                "TR": 1300,
+                "Table": 100
+              }
+            },
+            "managedVisual": {
+              "renderer": "OfficeIMO.Pdf managed page renderer",
+              "relativePath": "chromium-htmltinkerx-03-page-1.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 62162,
+              "sha256": "11a0f68f5197196a026677139a73b87a61a94557a0bbaf68f73b187dd09772d3",
+              "diagnostics": []
+            },
+            "externalVisual": {
+              "renderer": "pdftoppm version 24.02.0",
+              "relativePath": "chromium-htmltinkerx-03-page-1-poppler.png",
+              "pageNumber": 1,
+              "width": 992,
+              "height": 1404,
+              "sizeBytes": 106035,
+              "sha256": "5c8f1889222689879b87426bba45c1434abb4795532713ed59f09976bde0357a",
+              "diagnostics": []
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
