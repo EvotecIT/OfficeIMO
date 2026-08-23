@@ -84,8 +84,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
         Guard.NotNull(options, nameof(options));
         if (UsesNamedFontFamilies) {
             foreach (PdfEmbeddedFontFallbackCandidate candidate in _candidates) {
-                options.RegisterNamedFontFamily(
-                    new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
+                options.RegisterNamedFontFamily(candidate.FontFamilySnapshot);
             }
 
             return options;

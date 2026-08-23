@@ -2135,6 +2135,28 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void ReusableFontFamilies_PreserveProgramSnapshotsAcrossOptions() {
+        byte[] fontData = CreateMinimalOpenTypeCffFont();
+        var family = new PdfEmbeddedFontFamily("Reusable Family", fontData);
+        var fallbackSet = new PdfEmbeddedFontFallbackSet([
+            new PdfEmbeddedFontFallbackCandidate("Reusable Fallback", fontData)
+        ]);
+
+        var first = new PdfOptions()
+            .RegisterFontFamily(PdfStandardFont.Helvetica, family)
+            .RegisterEmbeddedFontFallbacks(fallbackSet);
+        var second = new PdfOptions()
+            .RegisterFontFamily(PdfStandardFont.Helvetica, family)
+            .RegisterEmbeddedFontFallbacks(fallbackSet);
+
+        Assert.Same(family.RegularSnapshot, first.EmbeddedFonts[PdfStandardFont.Helvetica].DataSnapshot);
+        Assert.Same(family.RegularSnapshot, second.EmbeddedFonts[PdfStandardFont.Helvetica].DataSnapshot);
+        Assert.Same(
+            first.NamedFontFamilies["Reusable Fallback"].RegularSnapshot,
+            second.NamedFontFamilies["Reusable Fallback"].RegularSnapshot);
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFallbackSet_NamedFamiliesCoexistWithAllCompatibilitySlots() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

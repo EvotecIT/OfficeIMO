@@ -334,10 +334,10 @@ public sealed partial class PdfOptions {
         byte[]? italic,
         byte[]? boldItalic) {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
-        EmbedStandardFont(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
-        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, BuildFontFamilyFaceName(familyName, "Bold"));
-        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, BuildFontFamilyFaceName(familyName, "Italic"));
-        EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"));
+        EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, BuildFontFamilyFaceName(familyName, "Bold"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, BuildFontFamilyFaceName(familyName, "Italic"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"));
         return this;
     }
 
