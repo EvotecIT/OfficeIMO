@@ -117,6 +117,8 @@ public sealed class MarkdownReaderState {
     internal int SourceLineOffset { get; set; }
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }
+    /// <summary>Enables a lightweight semantic pass used only to locate an exact nested-list boundary.</summary>
+    internal bool IsListBoundaryProbe { get; set; }
     internal bool SuppressBlockGenericAttributes { get; set; }
     internal bool SuppressHeadingGenericAttributes { get; set; }
     internal bool IsMarkdigDefinitionListBody { get; set; }

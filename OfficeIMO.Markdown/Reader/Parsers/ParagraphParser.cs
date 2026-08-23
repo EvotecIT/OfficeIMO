@@ -731,8 +731,8 @@ public static partial class MarkdownReader {
     private static bool IsQuoteStarter(string line) {
         if (string.IsNullOrEmpty(line)) return false;
         if (CountLeadingIndentColumns(line) > 3) return false;
-        var t = line.TrimStart();
-        return t.StartsWith(">");
+        var quoteMarkerIndex = GetFirstNonWhitespaceIndex(line);
+        return quoteMarkerIndex < line.Length && line[quoteMarkerIndex] == '>';
     }
 
     private static string ExpandReferenceLinks(string text, MarkdownReaderState state) {

@@ -551,14 +551,12 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        var trimmed = line.Substring(leading).TrimEnd();
-        if (trimmed.Length < 1 || trimmed[0] != '[') {
+        if (leading >= line.Length || line[leading] != '[' ||
+            (leading + 1 < line.Length && line[leading + 1] == '^')) {
             return false;
         }
 
-        if (trimmed.Length > 1 && trimmed[1] == '^') {
-            return false;
-        }
+        var trimmed = line.Substring(leading).TrimEnd();
 
         int rb = FindReferenceLabelEnd(trimmed, 0);
         if (rb > 1 && rb + 1 < trimmed.Length && trimmed[rb + 1] == ':') {

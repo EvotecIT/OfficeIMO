@@ -13,6 +13,22 @@ public partial class MarkdownDoc {
         _objectTreeBindingPending = false;
     }
 
+    /// <summary>Adds a parser-owned probe block whose temporary object tree is never exposed.</summary>
+    internal void AddWithoutObjectTreeBinding(IMarkdownBlock block) {
+        if (block == null) {
+            throw new ArgumentNullException(nameof(block));
+        }
+
+        if (block is IFrontMatterMarkdownBlock frontMatter) {
+            _frontMatter = frontMatter;
+        } else {
+            _blocks.Add(block);
+            _lastBlock = block;
+        }
+
+        _parseResult = null;
+    }
+
     internal void EnsureObjectTreeBound() {
         if (_objectTreeBindingPending) {
             MarkdownObjectTreeBinder.BindDocument(this);

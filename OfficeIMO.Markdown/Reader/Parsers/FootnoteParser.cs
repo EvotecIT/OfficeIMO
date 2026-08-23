@@ -9,8 +9,9 @@ public static partial class MarkdownReader {
             int leading0 = 0; while (leading0 < line.Length && line[leading0] == ' ') leading0++;
             if (leading0 >= 4) return false;
             if (leading0 < line.Length && line[leading0] == '\t') return false;
-            var t = line.TrimStart();
-            if (!(t.Length > 4 && t[0] == '[' && t.Length > 2 && t[1] == '^')) return false;
+            if (leading0 + 1 >= line.Length || line[leading0] != '[' || line[leading0 + 1] != '^') return false;
+            var t = leading0 == 0 ? line : line.Substring(leading0);
+            if (t.Length <= 4) return false;
             int rb = t.IndexOf(']'); if (rb < 0) return false;
             if (rb + 1 >= t.Length || t[rb + 1] != ':') return false;
             string label = t.Substring(2, rb - 2);

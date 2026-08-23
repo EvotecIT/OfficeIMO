@@ -26,7 +26,9 @@ public static partial class MarkdownReader {
             }
 
             int j = i + 1;
-            var firstSourceLines = new List<MarkdownSourceLineSlice>();
+            List<MarkdownSourceLineSlice>? firstSourceLines = state.IsListBoundaryProbe
+                ? null
+                : new List<MarkdownSourceLineSlice>();
             var firstLines = ConsumeListContinuationLines(
                 lines,
                 ref j,
@@ -41,11 +43,15 @@ public static partial class MarkdownReader {
                 state: state);
             var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, firstSourceLines);
             first.Level = 0;
-            SetListItemMarkerSourceSpans(first, lines[i], i, isTask, options, state);
+            if (!state.IsListBoundaryProbe) {
+                SetListItemMarkerSourceSpans(first, lines[i], i, isTask, options, state);
+            }
             if (continuationIndentsByLevel != null) {
                 TrackListItemContinuationIndent(continuationIndentsByLevel, first.Level, firstContinuationIndent);
             }
-            AddListItemLeadSyntaxNodes(first, firstLines, i, options, state, firstSourceLines);
+            if (!state.IsListBoundaryProbe) {
+                AddListItemLeadSyntaxNodes(first, firstLines, i, options, state, firstSourceLines);
+            }
             ul.Items.Add(first);
 
             // Allow both same-type and mixed nested lists under the current item.
@@ -88,7 +94,9 @@ public static partial class MarkdownReader {
                     startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask2);
                 }
                 int next = itemStart + 1;
-                var itemSourceLines = new List<MarkdownSourceLineSlice>();
+                List<MarkdownSourceLineSlice>? itemSourceLines = state.IsListBoundaryProbe
+                    ? null
+                    : new List<MarkdownSourceLineSlice>();
                 var itemLines = ConsumeListContinuationLines(
                     lines,
                     ref next,
@@ -105,20 +113,30 @@ public static partial class MarkdownReader {
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])
                     : lvlAbs - level0Abs;
-                SetListItemMarkerSourceSpans(li, lines[itemStart], itemStart, isTask2, options, state);
+                if (!state.IsListBoundaryProbe) {
+                    SetListItemMarkerSourceSpans(li, lines[itemStart], itemStart, isTask2, options, state);
+                }
                 if (separatedByBlankLine) {
                     li.ForceLoose = true;
                 }
                 if (continuationIndentsByLevel != null) {
                     TrackListItemContinuationIndent(continuationIndentsByLevel, li.Level, continuationIndent);
                 }
-                AddListItemLeadSyntaxNodes(li, itemLines, itemStart, options, state, itemSourceLines);
+                if (!state.IsListBoundaryProbe) {
+                    AddListItemLeadSyntaxNodes(li, itemLines, itemStart, options, state, itemSourceLines);
+                }
                 ul.Items.Add(li);
                 j = next;
 
                 ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, continuationIndent, options, state, li, allowNestedOrdered: true, allowNestedUnordered: true);
             }
-            doc.Add(ul); i = j; return true;
+            if (state.IsListBoundaryProbe) {
+                doc.AddWithoutObjectTreeBinding(ul);
+            } else {
+                doc.Add(ul);
+            }
+            i = j;
+            return true;
         }
     }
 }

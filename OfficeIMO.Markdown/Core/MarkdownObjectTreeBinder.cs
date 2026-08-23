@@ -24,7 +24,7 @@ internal static class MarkdownObjectTreeBinder {
     }
 
     internal static IReadOnlyList<MarkdownObject> GetChildObjects(MarkdownObject parent) {
-        if (parent == null) {
+        if (parent == null || !CanContainChildObjects(parent)) {
             return Array.Empty<MarkdownObject>();
         }
 
@@ -37,6 +37,26 @@ internal static class MarkdownObjectTreeBinder {
 
         return children;
     }
+
+    private static bool CanContainChildObjects(MarkdownObject parent) =>
+        parent is MarkdownDoc ||
+        parent is HeadingBlock ||
+        parent is CalloutBlock ||
+        parent is DetailsBlock ||
+        parent is IMarkdownListBlock ||
+        parent is ListItem ||
+        parent is TableBlock ||
+        parent is TableRow ||
+        parent is TableCell ||
+        parent is DefinitionListBlock ||
+        parent is DefinitionListGroup ||
+        parent is DefinitionListTerm ||
+        parent is DefinitionListEntry ||
+        parent is DefinitionListDefinition ||
+        parent is InlineSequence ||
+        parent is IInlineSyntaxMarkdownBlock ||
+        parent is IInlineContainerMarkdownInline ||
+        parent is IChildMarkdownBlockContainer;
 
     internal static IEnumerable<MarkdownObject> EnumerateChildObjects(MarkdownObject parent) {
         switch (parent) {

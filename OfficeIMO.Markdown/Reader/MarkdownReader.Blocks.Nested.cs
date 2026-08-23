@@ -112,9 +112,9 @@ public static partial class MarkdownReader {
 
                 if (IsCodeFenceOpen(slice, out _, out _, out _)) break;
                 if (IsCustomContainerOpeningLine(slice, options)) break;
-                if (sliceTrim.StartsWith(">")) break;
+                if (sliceTrim.StartsWith(">", StringComparison.Ordinal)) break;
 
-                if (options.HtmlBlocks && sliceTrim.StartsWith("<")) {
+                if (options.HtmlBlocks && sliceTrim.StartsWith("<", StringComparison.Ordinal)) {
                     // Avoid breaking on angle-bracket autolinks like "<https://...>".
                     if (!TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) break;
                 }
@@ -237,7 +237,7 @@ public static partial class MarkdownReader {
 
         var trimmed = source.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
@@ -257,7 +257,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (options.HtmlBlocks && trimmed.StartsWith("<") && !TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
+        if (options.HtmlBlocks && trimmed.StartsWith("<", StringComparison.Ordinal) && !TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
             return false;
         }
 
@@ -539,9 +539,10 @@ public static partial class MarkdownReader {
 
         string line = lines[index] ?? string.Empty;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        if (!StartsWithMarkerAfterIndent(line, continuationIndent, maximumAdditionalColumns: 3, marker: '>')) return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
         if (CountLeadingIndentColumns(slice) > 3) return false;
-        if (!slice.TrimStart().StartsWith(">")) return false;
+        if (!slice.TrimStart().StartsWith(">", StringComparison.Ordinal)) return false;
 
         int j = index;
         var collected = new List<string>();
@@ -561,7 +562,7 @@ public static partial class MarkdownReader {
                 break;
             }
 
-            if (CountLeadingIndentColumns(part) <= 3 && part.TrimStart().StartsWith(">")) {
+            if (CountLeadingIndentColumns(part) <= 3 && part.TrimStart().StartsWith(">", StringComparison.Ordinal)) {
                 int markerStartColumn = continuationIndent + CountLeadingIndentColumns(part) + 1;
                 string quoteContent = StripSingleQuoteMarker(part);
                 if (TryNormalizeQuotedListContinuationLine(lastQuoteContent, quoteContent, options, out var normalizedQuotedLine)) {
@@ -645,7 +646,7 @@ public static partial class MarkdownReader {
     private static string StripSingleQuoteMarker(string line) {
         if (string.IsNullOrEmpty(line)) return string.Empty;
         var trimmed = line.TrimStart();
-        if (!trimmed.StartsWith(">")) return trimmed;
+        if (!trimmed.StartsWith(">", StringComparison.Ordinal)) return trimmed;
         return trimmed.Length >= 2 && trimmed[1] == ' ' ? trimmed.Substring(2) : trimmed.Substring(1);
     }
 
@@ -857,7 +858,7 @@ public static partial class MarkdownReader {
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
         string sliceTrim = slice.TrimStart();
-        if (!sliceTrim.StartsWith("<")) return false;
+        if (!sliceTrim.StartsWith("<", StringComparison.Ordinal)) return false;
         if (TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) return false;
 
         // Collect contiguous indented lines and let HtmlBlockParser decide the extent.

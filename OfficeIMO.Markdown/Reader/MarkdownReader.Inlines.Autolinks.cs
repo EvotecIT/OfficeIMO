@@ -105,7 +105,7 @@ public static partial class MarkdownReader {
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         var rem = text.Substring(start);
-        if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
+        if (!(rem.StartsWith("http://", StringComparison.Ordinal) || rem.StartsWith("https://", StringComparison.Ordinal))) return false;
         int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;

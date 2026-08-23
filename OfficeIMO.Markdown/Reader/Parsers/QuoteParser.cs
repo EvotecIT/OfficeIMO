@@ -6,8 +6,9 @@ public static partial class MarkdownReader {
             var t = lines[i];
             // Exclude callouts (handled earlier): they start with "> [!"
             if (CountLeadingIndentColumns(t) > 3) return false;
-            var trimmed = t.TrimStart();
-            if (!trimmed.StartsWith(">")) return false;
+            var quoteMarkerIndex = GetFirstNonWhitespaceIndex(t);
+            if (quoteMarkerIndex >= t.Length || t[quoteMarkerIndex] != '>') return false;
+            var trimmed = quoteMarkerIndex == 0 ? t : t.Substring(quoteMarkerIndex);
             if (options.Callouts &&
                 IsCalloutHeader(trimmed, options, out _, out _)) return false;
 
@@ -20,7 +21,7 @@ public static partial class MarkdownReader {
             while (j < lines.Length) {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();
-                if (ltrim.StartsWith(">")) {
+                if (ltrim.StartsWith(">", StringComparison.Ordinal)) {
                     if (CountLeadingIndentColumns(ln) > 3) break;
 
                     if (sawQuotedLine
@@ -165,7 +166,7 @@ public static partial class MarkdownReader {
         var t = line.TrimStart();
 
         // Block starters we do not want to lazily continue after.
-        if (t.StartsWith(">")) return false;
+        if (t.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(t, out _, out _)) return false;
         if (LooksLikeHr(t)) return false;
         if (IsCodeFenceOpen(t, out _, out _, out _)) return false;
@@ -227,7 +228,7 @@ public static partial class MarkdownReader {
 
         var trimmed = source.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
@@ -273,7 +274,7 @@ public static partial class MarkdownReader {
         int currentIndent = CountLeadingIndentColumns(currentLine!);
         var trimmed = currentLine!.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
@@ -315,7 +316,7 @@ public static partial class MarkdownReader {
 
         var trimmed = currentLine!.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;

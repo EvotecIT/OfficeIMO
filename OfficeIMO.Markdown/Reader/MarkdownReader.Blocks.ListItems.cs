@@ -19,7 +19,7 @@ public static partial class MarkdownReader {
         if (lines == null || item == null) return;
 
         while (index < lines.Length) {
-            if (IsStructurallyBlankListItem(item) && string.IsNullOrWhiteSpace(lines[index])) {
+            if (!state.IsListBoundaryProbe && IsStructurallyBlankListItem(item) && string.IsNullOrWhiteSpace(lines[index])) {
                 return;
             }
 
@@ -206,11 +206,23 @@ public static partial class MarkdownReader {
         var tempDoc = MarkdownDoc.Create();
         var effectiveState = state ?? new MarkdownReaderState();
         int previousMarkerIndentOffset = effectiveState.ListMarkerIndentOffset;
+        bool inheritedBoundaryProbe = effectiveState.IsListBoundaryProbe;
         effectiveState.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
+        effectiveState.IsListBoundaryProbe = true;
+        IMarkdownListBlock? parsedList = null;
         try {
             if (parser.TryParse(lines, ref idx, options, tempDoc, effectiveState) &&
                 tempDoc.Blocks.Count == 1 &&
-                tempDoc.Blocks[0] is IMarkdownListBlock parsedList) {
+                tempDoc.Blocks[0] is IMarkdownListBlock parsed) {
+                parsedList = parsed;
+            }
+        } finally {
+            effectiveState.ListMarkerIndentOffset = previousMarkerIndentOffset;
+            effectiveState.IsListBoundaryProbe = inheritedBoundaryProbe;
+        }
+
+        if (parsedList != null) {
+            if (!inheritedBoundaryProbe) {
                 var slices = BuildListItemNestedSourceLines(lines, continuationIndent, startIndex, idx, effectiveState);
                 var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(slices, options, effectiveState);
                 if (blocks.Count == 1 &&
@@ -222,18 +234,62 @@ public static partial class MarkdownReader {
                     return true;
                 }
 
-                list = parsedList;
-                endIndex = idx;
-                syntaxNode = null;
-                return true;
+                if (TryParseNestedListFallback(
+                    lines,
+                    startIndex,
+                    options,
+                    effectiveState,
+                    parser,
+                    out var fallbackList,
+                    out var fallbackEndIndex)) {
+                    list = fallbackList;
+                    syntaxNode = null;
+                    endIndex = fallbackEndIndex;
+                    return true;
+                }
             }
-        } finally {
-            effectiveState.ListMarkerIndentOffset = previousMarkerIndentOffset;
+
+            list = parsedList;
+            endIndex = idx;
+            syntaxNode = null;
+            return true;
         }
 
         list = null!;
         endIndex = startIndex;
         syntaxNode = null;
+        return false;
+    }
+
+    private static bool TryParseNestedListFallback(
+        string[] lines,
+        int startIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        IMarkdownBlockParser parser,
+        out IMarkdownListBlock list,
+        out int endIndex) {
+        var fallbackDocument = MarkdownDoc.Create();
+        var fallbackIndex = startIndex;
+        var previousMarkerIndentOffset = state.ListMarkerIndentOffset;
+        var previousBoundaryProbe = state.IsListBoundaryProbe;
+        state.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
+        state.IsListBoundaryProbe = false;
+        try {
+            if (parser.TryParse(lines, ref fallbackIndex, options, fallbackDocument, state) &&
+                fallbackDocument.Blocks.Count == 1 &&
+                fallbackDocument.Blocks[0] is IMarkdownListBlock fallbackList) {
+                list = fallbackList;
+                endIndex = fallbackIndex;
+                return true;
+            }
+        } finally {
+            state.ListMarkerIndentOffset = previousMarkerIndentOffset;
+            state.IsListBoundaryProbe = previousBoundaryProbe;
+        }
+
+        list = null!;
+        endIndex = startIndex;
         return false;
     }
 
@@ -405,11 +461,11 @@ public static partial class MarkdownReader {
 
         if (options.FencedCode && IsCodeFenceOpen(slice, out _, out _, out _)) return true;
         if (options.IndentedCodeBlocks && nextIndentColumns >= continuationIndent + 4 && !string.IsNullOrWhiteSpace(slice)) return true;
-        if (sliceTrim.StartsWith(">")) return true;
+        if (sliceTrim.StartsWith(">", StringComparison.Ordinal)) return true;
 
         if (options.Tables && LooksLikeTableRow(sliceTrim)) return true;
 
-        if (options.HtmlBlocks && sliceTrim.StartsWith("<") && !TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) {
+        if (options.HtmlBlocks && sliceTrim.StartsWith("<", StringComparison.Ordinal) && !TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) {
             return true;
         }
 
@@ -494,9 +550,9 @@ public static partial class MarkdownReader {
         kind = string.Empty; title = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
         var t = line.TrimStart();
-        if (!t.StartsWith(">")) return false;
+        if (!t.StartsWith(">", StringComparison.Ordinal)) return false;
         t = t.Substring(1).TrimStart();
-        if (!t.StartsWith("[!")) return false;
+        if (!t.StartsWith("[!", StringComparison.Ordinal)) return false;
         int close = t.IndexOf(']');
         if (close < 0 || close < 3) return false;
         string marker = t.Substring(2, close - 2);
