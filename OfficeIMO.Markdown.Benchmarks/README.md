@@ -21,7 +21,7 @@ dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks
 For a quick harness smoke without publication-grade timing, use BenchmarkDotNet's dry job:
 
 ```powershell
-dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlToMarkdownBenchmarks* --job Dry --warmupCount 1 --iterationCount 1
+dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --filter *HtmlToMarkdownBenchmarks* --job Dry --noOverwrite
 ```
 
 ## Corpus
@@ -45,6 +45,19 @@ Run the same preflight without collecting timings:
 
 ```powershell
 dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --validate-equivalence
+```
+
+The benchmark classes do not hard-code a runtime job. The selected target
+framework controls the runtime, while `--job Dry` and `--job Short` select the
+requested execution policy without also running an implicit full job.
+
+Run the equivalent comparison lanes through the repository's shared evidence
+runner when provenance and normalized JSON/CSV/Markdown output are needed:
+
+```powershell
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownparse -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownhtml -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload htmltomarkdown -RunMode full -Framework net8.0
 ```
 
 ## Interpretation

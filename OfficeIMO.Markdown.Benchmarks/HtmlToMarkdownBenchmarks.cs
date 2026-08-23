@@ -1,12 +1,10 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 
 namespace OfficeIMO.Markdown.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class HtmlToMarkdownBenchmarks {
     private HtmlToMarkdownOptions _officeOptions = null!;
     private ReverseMarkdown.Converter _reverseDefault = null!;
@@ -28,15 +26,14 @@ public class HtmlToMarkdownBenchmarks {
             ReverseMarkdown_Default_Profile());
     }
 
-    [Benchmark(Baseline = true)]
+    [Benchmark(Baseline = true, Description = "OfficeIMO")]
     public string OfficeIMO_Default_Profile() => HtmlConversionDocument.Parse(_html).ToMarkdown(_officeOptions);
 
-    [Benchmark]
+    [Benchmark(Description = "ReverseMarkdown")]
     public string ReverseMarkdown_Default_Profile() => _reverseDefault.Convert(_html);
 }
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class HtmlToMarkdownOfficeProfileBenchmarks {
     private HtmlConversionDocument _document = null!;
     private HtmlToMarkdownOptions _officeOptions = null!;

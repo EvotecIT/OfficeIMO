@@ -2,11 +2,66 @@
 
 This folder stores small, committed benchmark summaries and artifacts. Raw BenchmarkDotNet output, traces, and other machine-specific bulk evidence stay local.
 
+## Current non-Excel, non-PDF, non-image posture
+
+| Owner | Time and allocations | Peak memory and output size | Equivalent comparison | Current evidence gap |
+| --- | --- | --- | --- | --- |
+| CSV | BenchmarkDotNet read/write suites | Output is validated; size is not a shared comparison metric | CsvHelper, Sep, Sylvan, Dataplat.Dbatools.Csv, and LumenWorks | Extend size evidence for file-producing lanes |
+| Word | Validated BenchmarkDotNet create, read, report, and replace suites | DOCX payloads are validated; size is not exported by the shared runner | DocX, NPOI, and Open XML SDK | Add environment-qualified output-size evidence without publishing license-restricted numbers |
+| PowerPoint | Isolated workflow runner records elapsed time and allocations | Peak working set and output bytes are recorded | ShapeCrawler for create/save and open/edit/save | Refresh Windows evidence and add a non-Windows baseline before setting budgets |
+| Reader | BenchmarkDotNet extraction, detection, transport, and chunking suites | External processes record peak working set; creation size is not applicable | Optional direct-process runners for equivalent extraction | Add representative application corpora and release baselines |
+| Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | Managed allocations are recorded; text output bytes are not yet a shared metric | Markdig and ReverseMarkdown after semantic equivalence checks | Optimize the measured allocation gaps, then add output-size sidecars where size affects storage or transport |
+| HTML | BenchmarkDotNet stage, pagination, Drawing, and PDF projection suites | Managed allocations are recorded; several output methods return byte counts | No general renderer is equivalent across the complete OfficeIMO contract | Add bounded peak-memory evidence for large non-PDF rendering workflows |
+| RTF | BenchmarkDotNet plus regression budgets for parse, rewrite, and adapters | Budget runner records peak working set and output bytes | RtfPipe for validated RTF-to-HTML | Add Linux/macOS evidence and tune only after repeatable full runs |
+| OpenDocument | BenchmarkDotNet open, sparse-write, and formula suites | Sparse write returns output length but no durable size report exists | No current managed .NET authoring library covers the same ODT/ODS/ODP contract | Add create/open/edit scorecards with output size and peak memory |
+| OneNote | BenchmarkDotNet native read, write, and Markdown projection | Write returns bytes but size and peak memory are not recorded as evidence | No like-for-like offline semantic `.one` competitor | Add validated artifact-size and isolated peak-memory evidence |
+| Email | Allocation/time regression tests plus bounded real-store evidence | Retained memory and source-read ceilings are covered | MimeKit is the credible MIME comparison target | Keep comparison work isolated from the runtime package and validate identical MIME semantics |
+| ZIP, Security, Provenance, AsciiDoc, LaTeX, EPUB, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
+
+This table describes measurement coverage, not a library ranking. A returned
+byte count is not yet durable size evidence unless the runner records it with
+the source commit and environment. Open work belongs in
+[`Docs/ROADMAP.md`](../ROADMAP.md), rather than a second benchmark backlog.
+
 ## Reader baselines
 
 - `officeimo.reader.foundation-2026-07-10.md`: first Reader-wide extraction, detection, transport, and parser/chunker baseline after the P0 foundation work.
 
 Reader benchmark code lives in `OfficeIMO.Reader.Benchmarks`.
+
+## Markdown comparisons
+
+`OfficeIMO.Markdown.Benchmarks` compares equivalent CommonMark parsing and HTML
+rendering with Markdig, and equivalent HTML-to-Markdown conversion with
+ReverseMarkdown. Setup rejects a corpus when the compared outputs do not have
+the same normalized semantic HTML.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Markdown.Benchmarks -- --validate-equivalence
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownparse -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownhtml -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload htmltomarkdown -RunMode full -Framework net8.0
+```
+
+The benchmark classes do not pin a runtime job. `-f net8.0` or `-f net10.0`
+selects the runtime, and `--job Dry` remains an execution check instead of
+silently adding a full second job.
+
+## RTF comparisons
+
+`OfficeIMO.Rtf.Benchmarks.Comparisons` measures complete RTF-to-HTML parsing
+and rendering through OfficeIMO and RtfPipe. It uses a shared-feature corpus at
+12, 250, and 2,000 records plus a producer fixture. Validation checks required
+text, complete record counts, tables, and cells before timing and records UTF-8
+input/output sizes separately.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Rtf.Benchmarks.Comparisons -- validate --json .benchmark-artifacts\rtf\validation.json
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload rtfhtml -RunMode full -Framework net8.0
+```
+
+The comparison project is outside `OfficeIMO.sln`; RtfPipe remains an opt-in
+benchmark dependency and does not enter normal restore, build, or packages.
 
 ## PDF comparisons
 

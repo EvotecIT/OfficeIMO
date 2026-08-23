@@ -11,6 +11,10 @@ param(
         'xlsx',
         'xlsxwrite',
         'xlsb',
+        'markdownparse',
+        'markdownhtml',
+        'htmltomarkdown',
+        'rtfhtml',
         'imagepngdecode',
         'imagejpegdecode',
         'imagepngencode',
@@ -129,6 +133,76 @@ $definitions = [ordered]@{
         Suite = 'OfficeIMO.Excel.Xlsb.MarkPflug65K'
         IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
+    }
+    markdownparse = [pscustomobject]@{
+        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
+        Filter = '*MarkdownParseBenchmarks.*_Parse_CommonMark'
+        ComparisonId = "markdown-commonmark-parse-$Framework"
+        Suite = 'OfficeIMO.Markdown.CommonMarkParse'
+        IdentityVariables = @('corpusname')
+        ExpectedCases = @(
+            foreach ($corpus in @(
+                'PortableReadme',
+                'Transcript',
+                'TechnicalDoc',
+                'RichAst',
+                'LongNestedList',
+                'LargeTable',
+                'NormalizationStress')) {
+                foreach ($engine in @('OfficeIMO', 'Markdig')) {
+                    "$engine|CorpusName=$corpus"
+                }
+            }
+        )
+    }
+    markdownhtml = [pscustomobject]@{
+        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
+        Filter = '*MarkdownHtmlBenchmarks.*_ToHtml_CommonMark'
+        ComparisonId = "markdown-commonmark-html-$Framework"
+        Suite = 'OfficeIMO.Markdown.CommonMarkHtml'
+        IdentityVariables = @('corpusname')
+        ExpectedCases = @(
+            foreach ($corpus in @(
+                'PortableReadme',
+                'Transcript',
+                'TechnicalDoc',
+                'RichAst',
+                'LongNestedList',
+                'LargeTable',
+                'NormalizationStress')) {
+                foreach ($engine in @('OfficeIMO', 'Markdig')) {
+                    "$engine|CorpusName=$corpus"
+                }
+            }
+        )
+    }
+    htmltomarkdown = [pscustomobject]@{
+        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
+        Filter = '*HtmlToMarkdownBenchmarks*'
+        ComparisonId = "html-to-markdown-$Framework"
+        Suite = 'OfficeIMO.Markdown.HtmlToMarkdown'
+        IdentityVariables = @('corpusname')
+        ExpectedCases = @(
+            foreach ($corpus in @('Article', 'LargeArticle', 'Table')) {
+                foreach ($engine in @('OfficeIMO', 'ReverseMarkdown')) {
+                    "$engine|CorpusName=$corpus"
+                }
+            }
+        )
+    }
+    rtfhtml = [pscustomobject]@{
+        Project = 'OfficeIMO.Rtf.Benchmarks.Comparisons\OfficeIMO.Rtf.Benchmarks.Comparisons.csproj'
+        Filter = '*RtfToHtmlComparisonBenchmarks*'
+        ComparisonId = "rtf-to-html-$Framework"
+        Suite = 'OfficeIMO.Rtf.HtmlComparison'
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Medium', 'Large', 'Producer')) {
+                foreach ($engine in @('OfficeIMO', 'RtfPipe')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
     }
     imagepngdecode = [pscustomobject]@{
         Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
