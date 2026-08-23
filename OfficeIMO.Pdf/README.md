@@ -547,6 +547,32 @@ recovery. The document must still decrypt with the supplied password; an
 unknown or incorrect password remains an error. Full rewrites of signed PDFs
 remain blocked because they would invalidate existing signatures.
 
+### Password protection on browser or restricted hosts
+
+Desktop and server applications use platform AES automatically. A host without synchronous platform AES can pass the
+managed provider included in `OfficeIMO.Core` explicitly; the same provider handles writing and opening the protected PDF.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Security;
+
+IOfficeAesCryptographyProvider aes = OfficeManagedAesCryptographyProvider.Default;
+var encryption = new PdfStandardEncryptionOptions("reader-password") {
+    OwnerPassword = "owner-password",
+    Algorithm = PdfStandardEncryptionAlgorithm.Aes256,
+    AesCryptographyProvider = aes
+};
+
+PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+    .Paragraph(p => p.Text("Protected in the current host."))
+    .Save("protected.pdf");
+
+PdfDocument opened = PdfDocument.Open("protected.pdf", new PdfReadOptions {
+    Password = "owner-password",
+    AesCryptographyProvider = aes
+});
+```
+
 ### Certificate-based PDF signatures
 
 PDF signature discovery, byte-range inspection, mutation blocking, and caller-defined external signing do not require

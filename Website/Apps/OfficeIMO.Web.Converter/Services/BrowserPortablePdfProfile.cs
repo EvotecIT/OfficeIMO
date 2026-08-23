@@ -52,15 +52,17 @@ internal static class BrowserPortablePdfProfile {
     ];
 
     internal const string DefaultFontFamily = "Carlito";
+    internal const string JapaneseFallbackFontFamily = "OfficeIMO Japanese Common";
     internal const string ArabicFallbackFontFamily = "Noto Sans Arabic";
     internal const string SymbolFallbackFontFamily = "Noto Sans Symbols 2";
-    internal const string DefaultLayoutFontFamilies = "Carlito, 'Noto Sans Arabic', 'Noto Sans Symbols 2'";
-    internal const string ExpectedFontPackFingerprint = "58d48fe49e16ffa209a594a905260e81c7bcd5fb10aaced1e76601d2f18cea68";
+    internal const string DefaultLayoutFontFamilies = "Carlito, 'OfficeIMO Japanese Common', 'Noto Sans Arabic', 'Noto Sans Symbols 2'";
+    internal const string ExpectedFontPackFingerprint = "7cf393d8573f2cfeb6628defe7f5a08f95182bad204a5ab8182d74bad5a61cdf";
 
     private static readonly Lazy<FontPackData> Data = new(LoadFontPack, isThreadSafe: true);
 
     internal static string FontPackId => Data.Value.Id;
     internal static string FontPackFingerprint => Data.Value.Fingerprint;
+    internal static IReadOnlyList<string> FontCoverage => Data.Value.Coverage;
     internal static IReadOnlyList<PdfFontFamilySubstitution> FontFamilySubstitutions =>
         Data.Value.Substitutions;
 
@@ -78,7 +80,11 @@ internal static class BrowserPortablePdfProfile {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             TextShapingMode = PdfTextShapingMode.LatinLigatures
         }.SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance);
-        if (profile.Kind == BrowserPdfProfileKind.Accessible) {
+        if (profile.Kind == BrowserPdfProfileKind.Archival) {
+            options
+                .UsePdfA(PdfComplianceProfile.PdfA2B, "und")
+                .RequireCompliance(PdfComplianceProfile.PdfA2B);
+        } else if (profile.Kind == BrowserPdfProfileKind.Accessible) {
             // The browser profile does not know the source language yet. Keep
             // the catalog explicitly undefined so source adapters can replace
             // it instead of mis-tagging every accessible document as English.
@@ -133,7 +139,9 @@ internal static class BrowserPortablePdfProfile {
             fonts.AddAlias(alias, SymbolFallbackFontFamily);
         }
         return fonts
+            .Add(JapaneseFallbackFontFamily, data.NotoSansJapaneseCommon)
             .Add(ArabicFallbackFontFamily, data.NotoSansArabic)
+            .AddFallbackFamily(JapaneseFallbackFontFamily)
             .AddFallbackFamily(ArabicFallbackFontFamily)
             .AddFallbackFamily(SymbolFallbackFontFamily);
     }
@@ -148,6 +156,7 @@ internal static class BrowserPortablePdfProfile {
         byte[] carlitoBold = ReadResource("Carlito-Bold.ttf");
         byte[] carlitoItalic = ReadResource("Carlito-Italic.ttf");
         byte[] carlitoBoldItalic = ReadResource("Carlito-BoldItalic.ttf");
+        byte[] notoSansJapaneseCommon = ReadResource("NotoSansJP-OfficeIMO-Common.ttf");
         byte[] notoSansArabic = ReadResource("NotoSansArabic-Regular.ttf");
         byte[] notoSansSymbols = ReadResource("NotoSansSymbols2-Regular.ttf");
 
@@ -160,11 +169,13 @@ internal static class BrowserPortablePdfProfile {
             ["Carlito-BoldItalic.ttf"] = carlitoBoldItalic,
             ["Carlito-Italic.ttf"] = carlitoItalic,
             ["Carlito-Regular.ttf"] = carlitoRegular,
+            ["NotoSansJP-OfficeIMO-Common.ttf"] = notoSansJapaneseCommon,
             ["NotoSansArabic-Regular.ttf"] = notoSansArabic,
             ["NotoSansSymbols2-Regular.ttf"] = notoSansSymbols,
             ["font-pack.json"] = normalizedManifestBytes
         };
 
+        IReadOnlyList<string> coverage = ValidateCoverage(manifest.Coverage);
         IReadOnlyList<PdfFontFamilySubstitution> substitutions = ValidateManifest(manifest);
         string fingerprint = ComputeFingerprint(assets);
         if (!string.Equals(fingerprint, ExpectedFontPackFingerprint, StringComparison.Ordinal)) {
@@ -174,10 +185,12 @@ internal static class BrowserPortablePdfProfile {
 
         return new FontPackData(
             manifest.Id,
+            coverage,
             carlitoRegular,
             carlitoBold,
             carlitoItalic,
             carlitoBoldItalic,
+            notoSansJapaneseCommon,
             notoSansArabic,
             notoSansSymbols,
             new PdfEmbeddedFontFamily(
@@ -187,11 +200,30 @@ internal static class BrowserPortablePdfProfile {
                 carlitoItalic,
                 carlitoBoldItalic),
             new PdfEmbeddedFontFallbackSet([
+                new PdfEmbeddedFontFallbackCandidate(JapaneseFallbackFontFamily, notoSansJapaneseCommon),
                 new PdfEmbeddedFontFallbackCandidate(ArabicFallbackFontFamily, notoSansArabic),
                 new PdfEmbeddedFontFallbackCandidate(SymbolFallbackFontFamily, notoSansSymbols)
             ]),
             substitutions,
             fingerprint);
+    }
+
+    private static IReadOnlyList<string> ValidateCoverage(IReadOnlyList<string> declaredCoverage) {
+        if (declaredCoverage == null || declaredCoverage.Count == 0) {
+            throw new InvalidOperationException("The embedded browser PDF font pack declares no coverage.");
+        }
+
+        string[] coverage = declaredCoverage
+            .Select(static value => value?.Trim())
+            .Where(static value => !string.IsNullOrWhiteSpace(value))
+            .Cast<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (coverage.Length != declaredCoverage.Count) {
+            throw new InvalidOperationException(
+                "The embedded browser PDF font pack contains empty or duplicate coverage declarations.");
+        }
+        return Array.AsReadOnly(coverage);
     }
 
     private static IReadOnlyList<PdfFontFamilySubstitution> ValidateManifest(FontPackManifest manifest) {
@@ -261,10 +293,12 @@ internal static class BrowserPortablePdfProfile {
 
     private sealed record FontPackData(
         string Id,
+        IReadOnlyList<string> Coverage,
         byte[] CarlitoRegular,
         byte[] CarlitoBold,
         byte[] CarlitoItalic,
         byte[] CarlitoBoldItalic,
+        byte[] NotoSansJapaneseCommon,
         byte[] NotoSansArabic,
         byte[] NotoSansSymbols,
         PdfEmbeddedFontFamily DefaultPdfFontFamily,
@@ -274,6 +308,7 @@ internal static class BrowserPortablePdfProfile {
 
     private sealed record FontPackManifest(
         string Id,
+        IReadOnlyList<string> Coverage,
         IReadOnlyList<FontPackFont> Fonts,
         IReadOnlyList<FontPackSubstitution> Substitutions);
 

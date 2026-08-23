@@ -21,6 +21,12 @@ public static class BrowserPdfProfileCatalog {
         "Accessible",
         "Tagged output plus PDF/UA-1 identification groundwork; the report does not claim validator conformance.");
 
+    public static BrowserPdfProfile Archival { get; } = new(
+        BrowserPdfProfileKind.Archival,
+        "archival",
+        "Archival PDF/A-2B",
+        "Enforced PDF/A-2B generation with embedded fonts and an sRGB output intent; formal claims still require validation of the exact artifact.");
+
     public static BrowserPdfProfile Diagnostic { get; } = new(
         BrowserPdfProfileKind.Diagnostic,
         "diagnostic",
@@ -30,6 +36,7 @@ public static class BrowserPdfProfileCatalog {
     public static IReadOnlyList<BrowserPdfProfile> All { get; } = [
         Faithful,
         Portable,
+        Archival,
         Accessible,
         Diagnostic
     ];

@@ -104,8 +104,9 @@ public sealed class BrowserConversionServiceTests {
         ];
 
         Assert.Equal(BrowserPortablePdfProfile.DefaultLayoutFontFamilies, options.DefaultFontFamily);
-        Assert.Equal(6 + compatibleAliases.Length * 4 + symbolAliases.Length, options.Fonts.Faces.Count);
+        Assert.Equal(7 + compatibleAliases.Length * 4 + symbolAliases.Length, options.Fonts.Faces.Count);
         Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily));
+        Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.JapaneseFallbackFontFamily);
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
         Assert.Equal(
@@ -142,16 +143,18 @@ public sealed class BrowserConversionServiceTests {
             Assert.True(symbolWidth > 0D);
         }
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = options.Fonts.PlanFallbackRuns(
-            "Latin العربية ⌚",
+            "Latin 日本語 العربية ⌚",
             options.DefaultFontFamily,
             OfficeFontStyle.Regular);
+        Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.JapaneseFallbackFontFamily);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
         foreach (string alias in compatibleAliases) {
             IReadOnlyList<OfficeFontFallbackRun> aliasFallbackRuns = options.Fonts.PlanFallbackRuns(
-                "Latin العربية ⌚",
+                "Latin 日本語 العربية ⌚",
                 alias,
                 OfficeFontStyle.Regular);
+            Assert.Contains(aliasFallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.JapaneseFallbackFontFamily);
             Assert.Contains(aliasFallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
             Assert.Contains(aliasFallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
         }
@@ -168,11 +171,53 @@ public sealed class BrowserConversionServiceTests {
         Assert.Same(defaultFamily, first.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.DefaultFontFamily]);
         Assert.Same(defaultFamily, second.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.DefaultFontFamily]);
         Assert.Same(
+            first.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.JapaneseFallbackFontFamily],
+            second.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.JapaneseFallbackFontFamily]);
+        Assert.Same(
             first.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.ArabicFallbackFontFamily],
             second.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.ArabicFallbackFontFamily]);
         Assert.Same(
             first.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.SymbolFallbackFontFamily],
             second.PdfOptions.NamedFontFamilies[BrowserPortablePdfProfile.SymbolFallbackFontFamily]);
+    }
+
+    [Fact]
+    public void HtmlToPdf_CommonJapaneseTextUsesBoundedEmbeddedFallback() {
+        const string japanese = "日本語の文書です。東京都で品質を確認します。";
+
+        ConversionResult result = _service.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            $"<html lang='ja'><head><title>日本語</title></head><body><h1>日本語</h1><p>{japanese}</p></body></html>",
+            BrowserPdfProfileCatalog.Faithful);
+
+        PdfReadDocument readback = PdfReadDocument.Open(result.Bytes);
+        Assert.Equal("ja", readback.CatalogLanguage);
+        Assert.Contains(japanese, readback.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("OfficeIMOJapaneseCommon", Encoding.ASCII.GetString(result.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_ArchivalProfileCreatesInternallyReadyPdfA2BArtifact() {
+        ConversionResult result = _service.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            "<html lang='ja'><head><title>日本語の保存版</title></head><body><h1>日本語の保存版</h1><p>東京都で品質を確認します。</p></body></html>",
+            BrowserPdfProfileCatalog.Archival);
+
+        PdfComplianceProofReport proof = PdfDocument.Open(result.Bytes)
+            .AssessComplianceProof(PdfComplianceProfile.PdfA2B);
+
+        Assert.Equal(BrowserPdfProfileKind.Archival, result.Profile?.Kind);
+        Assert.True(proof.HasArtifactEvidence);
+        Assert.True(proof.IsInternallyReady, string.Join(Environment.NewLine, proof.BlockingRequirements.Select(static item => item.Diagnostic)));
+        Assert.True(proof.ReadyForExternalValidation);
+        Assert.Equal("MissingExternalValidation", proof.ProofStatus);
+        Assert.Contains(PdfExternalValidatorKind.VeraPdf, proof.MissingExternalValidators);
+
+        string? proofOutput = Environment.GetEnvironmentVariable("OFFICEIMO_BROWSER_PDF_COMPLIANCE_OUTPUT");
+        if (!string.IsNullOrWhiteSpace(proofOutput)) {
+            Directory.CreateDirectory(proofOutput);
+            File.WriteAllBytes(Path.Combine(proofOutput, "officeimo-browser-pdfa-2b.pdf"), result.Bytes);
+        }
     }
 
     [Fact]
@@ -316,10 +361,13 @@ public sealed class BrowserConversionServiceTests {
         BrowserConversionArtifact report = Assert.IsType<BrowserConversionArtifact>(result.CompanionReport);
         using JsonDocument manifest = JsonDocument.Parse(report.Bytes);
         JsonElement root = manifest.RootElement;
-        Assert.Equal("officeimo-browser-compact-2026.07", root.GetProperty("fontPack").GetProperty("id").GetString());
+        Assert.Equal("officeimo-browser-compact-2026.08", root.GetProperty("fontPack").GetProperty("id").GetString());
         Assert.Equal(
-            "58d48fe49e16ffa209a594a905260e81c7bcd5fb10aaced1e76601d2f18cea68",
+            "7cf393d8573f2cfeb6628defe7f5a08f95182bad204a5ab8182d74bad5a61cdf",
             root.GetProperty("fontPack").GetProperty("fingerprint").GetString());
+        Assert.Contains(
+            root.GetProperty("fontPack").GetProperty("coverage").EnumerateArray(),
+            coverage => coverage.GetString()?.Contains("common Japanese text", StringComparison.Ordinal) == true);
         JsonElement substitutions = root.GetProperty("fontPack").GetProperty("substitutions");
         Assert.Contains(
             substitutions.EnumerateArray(),

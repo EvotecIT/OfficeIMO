@@ -83,9 +83,11 @@ internal static class PdfSecurityEditor {
         ValidateSourceSecurity(kind, sourceSecurity);
         byte[] rewrittenPdf = PdfDocumentObjectGraphRewriter.Rewrite(sourcePdf, sourceReadOptions, outputEncryption);
         PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
-            PdfReadOptions.WithPassword(
-                sourceReadOptions,
-                outputEncryption?.OwnerPassword ?? outputEncryption?.UserPassword),
+            PdfReadOptions.WithAesCryptographyProvider(
+                PdfReadOptions.WithPassword(
+                    sourceReadOptions,
+                    outputEncryption?.OwnerPassword ?? outputEncryption?.UserPassword),
+                outputEncryption?.AesCryptographyProvider ?? sourceReadOptions?.AesCryptographyProvider),
             rewrittenPdf.LongLength);
 
         var preservationOptions = new PdfRewritePreservationOptions {

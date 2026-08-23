@@ -12,7 +12,10 @@ internal static partial class PdfSyntax {
     }
 
     internal static void ThrowIfUnsafeForRewrite(byte[] pdf, PdfReadOptions? options) {
-        ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null || CanOpenEncryptedPdfWithEmptyPassword(pdf), options);
+        ThrowIfUnsafeForRewrite(
+            pdf,
+            allowEncryption: options?.Password is not null || CanOpenEncryptedPdfWithEmptyPassword(pdf, options),
+            options);
     }
 
     internal static void ThrowIfUnsafeForRewrite(byte[] pdf, bool allowEncryption) {
@@ -85,13 +88,13 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static bool CanOpenEncryptedPdfWithEmptyPassword(byte[] pdf) {
+    private static bool CanOpenEncryptedPdfWithEmptyPassword(byte[] pdf, PdfReadOptions? options) {
         if (!HasEncryptionMarkers(pdf)) {
             return false;
         }
 
         try {
-            PdfReadDocument.Open(pdf, new PdfReadOptions { Password = string.Empty });
+            PdfReadDocument.Open(pdf, PdfReadOptions.WithPassword(options, string.Empty));
             return true;
         } catch (PdfEncryptionException) {
             return false;

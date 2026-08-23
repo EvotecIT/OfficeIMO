@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Security;
 using OfficeIMO.Web.Converter.Models;
 
 namespace OfficeIMO.Web.Converter.Services;
@@ -15,6 +16,7 @@ internal static class BrowserPdfPolicy {
 
     internal static PdfReadOptions CreateReadOptions(string? password = null) => new() {
         Password = password,
+        AesCryptographyProvider = OfficeManagedAesCryptographyProvider.Default,
         Limits = new PdfReadLimits {
             MaxInputBytes = MaxInputBytes,
             MaxIndirectObjects = 50_000,
