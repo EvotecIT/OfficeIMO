@@ -1,8 +1,16 @@
 # OfficeIMO image benchmarks
 
-This project measures the first-party `OfficeIMO.Core` image engine without adding image-library dependencies to the product. The file corpus covers PNG, JPEG, GIF, TIFF, and BMP metadata and decode paths. Deterministic generated scenarios add tiny images, screenshots, scans, alpha graphics, high-entropy pixels, a photo, and a 4096x3072 stress image. The suite covers RGBA encoding to PNG/JPEG/TIFF/WebP, caller-owned streaming output, bilinear resize, and placement-aware optimization so allocation growth is not inferred from one logo or one synthetic pattern.
+This project measures the first-party `OfficeIMO.Core` image engine without adding image-library dependencies to the product. The file corpus covers PNG, JPEG, GIF, TIFF, and BMP metadata and decode paths. Deterministic generated scenarios add tiny images, screenshots, text, line art, scans, alpha graphics, high-entropy pixels, a photo, and a 4096x3072 stress image. The suite covers RGBA encoding to PNG/JPEG/TIFF/WebP, caller-owned streaming output, bilinear, area, and Lanczos3 resize, and placement-aware optimization so allocation growth is not inferred from one logo or one synthetic pattern.
 
 The validation pass reports encoded bytes separately from benchmark time. It includes PNG compression, JPEG quality/subsampling/progressive modes with MAE and PSNR, TIFF compression, literal-lossless WebP, and every supported static source-to-output conversion. Lossless rows require exact RGBA equality. JPEG rows compare against the alpha-flattened source. Animated input is rejected by the optimization matrix rather than silently reduced to one frame.
+
+The resampling evidence uses exact pixel-area integration as the antialiasing reference for four-times downsampling. It reports premultiplied-RGB MAE, PSNR, alpha MAE, and a deterministic fingerprint for photo, text, line-art, and transparency fixtures. Premultiplied metrics avoid treating invisible RGB under zero alpha as visible error. These numbers describe visual tradeoffs; they are not interchangeable with elapsed time.
+
+Write the same validated outputs for human visual inspection with an explicit artifact directory:
+
+```powershell
+dotnet run --project OfficeIMO.Drawing.Benchmarks -c Release -f net10.0 -- --resampling-previews Ignore/ImageResamplingPreviews
+```
 
 The repository's `snail.bmp` has four trailing bytes beyond its declared BMP file size, so it remains a metadata fixture; decode measurements use a generated canonical 24-bit BMP instead of weakening the decoder's strict container contract.
 
@@ -27,6 +35,8 @@ dotnet run --project OfficeIMO.Drawing.Benchmarks -c Release -f net10.0 -- --job
 ```
 
 Use `*ImageStreamingEncodeBenchmarks*` to compare the existing materialized `byte[]` contract with a caller-owned non-buffering stream across the representative timed corpus. The stream lane validates the same encoded format, dimensions, and decoded pixels in setup; it intentionally measures output ownership without allocating another full result array. It uses baseline JPEG settings so progressive and optimized-Huffman work does not obscure that comparison; those JPEG modes remain covered by the encoding size/fidelity validator.
+
+Use `*ImageResamplingBenchmarks*` to compare bilinear, pixel-area, and Lanczos3 downsampling on the validated photo, text, line-art, and transparency fixtures. The modes perform different quality work, so interpret their time and allocation beside the resampling fidelity matrix rather than as a parity race.
 
 Use a normal BenchmarkDotNet job only after the workload, output dimensions, format, and pixel-preservation contract have been validated. Benchmark artifacts belong in an ignored or temporary output directory and should not be committed.
 

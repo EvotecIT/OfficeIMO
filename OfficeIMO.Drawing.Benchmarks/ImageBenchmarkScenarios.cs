@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace OfficeIMO.Drawing.Benchmarks;
 
 internal sealed record ImageBenchmarkScenario(
@@ -12,6 +14,10 @@ internal static class ImageBenchmarkScenarios {
         new("Tiny", 16, 16, () => ImageBenchmarkCorpus.CreatePattern(16, 16));
     internal static readonly ImageBenchmarkScenario Screenshot =
         new("Screenshot", 1366, 768, () => CreateScreenshot(1366, 768));
+    internal static readonly ImageBenchmarkScenario Text =
+        new("Text", 1200, 800, () => CreateText(1200, 800));
+    internal static readonly ImageBenchmarkScenario LineArt =
+        new("LineArt", 1200, 800, () => CreateLineArt(1200, 800));
     internal static readonly ImageBenchmarkScenario Scan =
         new("Scan", 1200, 1600, () => CreateScan(1200, 1600));
     internal static readonly ImageBenchmarkScenario AlphaGraphic =
@@ -24,32 +30,23 @@ internal static class ImageBenchmarkScenarios {
         new("VeryLarge", 4096, 3072, () => CreateHighEntropy(4096, 3072));
 
     internal static IReadOnlyList<ImageBenchmarkScenario> All { get; } =
-        [Tiny, Screenshot, Scan, AlphaGraphic, HighEntropy, Photo, VeryLarge];
+        [Tiny, Screenshot, Text, LineArt, Scan, AlphaGraphic, HighEntropy, Photo, VeryLarge];
 
     internal static IReadOnlyList<string> TimedIds { get; } =
         [Tiny.Id, Screenshot.Id, AlphaGraphic.Id, HighEntropy.Id, Photo.Id];
+
+    internal static IReadOnlyList<string> ResamplingIds { get; } =
+        [Photo.Id, Text.Id, LineArt.Id, AlphaGraphic.Id];
 
     internal static ImageBenchmarkScenario Get(string id) =>
         All.Single(scenario => string.Equals(scenario.Id, id, StringComparison.Ordinal));
 
     internal static string Fingerprint(OfficeRasterImage image) {
-        ulong hash = 14695981039346656037UL;
-        for (int sampleY = 0; sampleY < 16; sampleY++) {
-            int y = Math.Min(image.Height - 1, sampleY * image.Height / 16);
-            for (int sampleX = 0; sampleX < 16; sampleX++) {
-                int x = Math.Min(image.Width - 1, sampleX * image.Width / 16);
-                OfficeColor color = image.GetPixel(x, y);
-                hash = Mix(hash, color.R);
-                hash = Mix(hash, color.G);
-                hash = Mix(hash, color.B);
-                hash = Mix(hash, color.A);
-            }
-        }
-        return hash.ToString("X16");
+        byte[] pixels = image.GetPixels();
+        using SHA256 sha256 = SHA256.Create();
+        byte[] hash = sha256.ComputeHash(pixels);
+        return BitConverter.ToString(hash, 0, 8).Replace("-", string.Empty);
     }
-
-    private static ulong Mix(ulong hash, byte value) =>
-        unchecked((hash ^ value) * 1099511628211UL);
 
     private static OfficeRasterImage CreateScreenshot(int width, int height) {
         var image = new OfficeRasterImage(width, height, OfficeColor.FromRgb(246, 248, 250));
@@ -92,6 +89,41 @@ internal static class ImageBenchmarkScenarios {
                 }
                 byte channel = (byte)Math.Max(0, Math.Min(255, value));
                 image.SetPixel(x, y, OfficeColor.FromRgb(channel, channel, channel));
+            }
+        }
+        return image;
+    }
+
+    private static OfficeRasterImage CreateText(int width, int height) {
+        var image = new OfficeRasterImage(width, height, OfficeColor.FromRgb(250, 249, 246));
+        for (int y = 0; y < height; y++) {
+            int lineY = (y - 55) % 35;
+            int line = Math.Max(0, (y - 55) / 35);
+            for (int x = 0; x < width; x++) {
+                if (y < 43 || lineY < 0 || lineY >= 15 || x < 71 || x >= width - 70) continue;
+                int glyph = (x - 71) / 17;
+                if (glyph >= 48 + (line % 5) * 6) continue;
+                int glyphX = (x - 71) % 17;
+                bool ink = (glyphX >= 2 && glyphX <= 4) || lineY < 3 || lineY >= 12 ||
+                    ((glyph * 3 + lineY * 5) % 13) == glyphX;
+                if (ink && glyphX < 14) image.SetPixel(x, y, OfficeColor.FromRgb(28, 34, 42));
+            }
+        }
+        return image;
+    }
+
+    private static OfficeRasterImage CreateLineArt(int width, int height) {
+        var image = new OfficeRasterImage(width, height, OfficeColor.White);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                bool grid = x % 96 < 2 || y % 80 < 2;
+                bool rising = Math.Abs(((x * 3 + y * 5) % 211) - 105) < 2;
+                bool falling = Math.Abs(((x * 7 - y * 4 + 4096) % 257) - 128) < 2;
+                if (grid || rising || falling) {
+                    image.SetPixel(x, y, OfficeColor.FromRgb(18, 28, 44));
+                } else if ((x / 160 + y / 120) % 7 == 0 && x % 160 > 24 && y % 120 > 24) {
+                    image.SetPixel(x, y, OfficeColor.FromRgb(40, 116, 184));
+                }
             }
         }
         return image;

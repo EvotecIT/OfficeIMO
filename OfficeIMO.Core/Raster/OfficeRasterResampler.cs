@@ -7,21 +7,34 @@ public enum OfficeRasterResamplingMode {
     /// <summary>Chooses the closest source pixel and preserves hard pixel edges.</summary>
     NearestNeighbor,
     /// <summary>Interpolates four source pixels in premultiplied-alpha space.</summary>
-    Bilinear
+    Bilinear,
+    /// <summary>Area-averages downsampled axes and linearly interpolates enlarged axes in premultiplied-alpha space.</summary>
+    Area,
+    /// <summary>Uses a radius-three Lanczos filter with antialiasing and premultiplied-alpha sampling.</summary>
+    Lanczos3
 }
 
 /// <summary>Dependency-free RGBA image resampling shared by document renderers.</summary>
-public static class OfficeRasterResampler {
+public static partial class OfficeRasterResampler {
     /// <summary>Resizes an RGBA image to exact pixel dimensions.</summary>
     public static OfficeRasterImage Resize(OfficeRasterImage source, int width, int height, OfficeRasterResamplingMode mode = OfficeRasterResamplingMode.Bilinear) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        if (mode != OfficeRasterResamplingMode.NearestNeighbor && mode != OfficeRasterResamplingMode.Bilinear) throw new ArgumentOutOfRangeException(nameof(mode));
+        if (mode != OfficeRasterResamplingMode.NearestNeighbor &&
+            mode != OfficeRasterResamplingMode.Bilinear &&
+            mode != OfficeRasterResamplingMode.Area &&
+            mode != OfficeRasterResamplingMode.Lanczos3) {
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        }
         OfficeRasterGuards.EnsureOutputPixels(width, height, "Raster resize dimensions exceed the managed image limit.");
 
         if (source.Width == width && source.Height == height) {
             return OfficeRasterImage.FromRgba32(width, height, source.PixelBuffer);
+        }
+
+        if (mode == OfficeRasterResamplingMode.Area || mode == OfficeRasterResamplingMode.Lanczos3) {
+            return ResizeSeparable(source, width, height, mode);
         }
 
         var result = new OfficeRasterImage(width, height);

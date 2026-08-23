@@ -6,6 +6,11 @@ if (args.Length == 1 && args[0].Equals("--validate", StringComparison.OrdinalIgn
     return;
 }
 
+if (args.Length == 2 && args[0].Equals("--resampling-previews", StringComparison.OrdinalIgnoreCase)) {
+    ImageResamplingEvidence.WritePreviews(args[1], Console.Out);
+    return;
+}
+
 if (args.Length >= 1 && args[0].Equals("--memory-evidence", StringComparison.OrdinalIgnoreCase)) {
     ImagePeakMemoryEvidence.Validate(Console.Out, args.Skip(1).ToArray());
     return;
