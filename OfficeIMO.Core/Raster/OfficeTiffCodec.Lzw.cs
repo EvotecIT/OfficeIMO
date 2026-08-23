@@ -116,7 +116,7 @@ public static partial class OfficeTiffCodec {
             previousCode = code;
             previousFirst = first;
         }
-        return ended && target == outputEnd;
+        return ended && target == outputEnd && reader.HasOnlyZeroBitPaddingAtEnd;
     }
 
     private sealed class TiffLzwBitWriter : IDisposable {
@@ -202,5 +202,7 @@ public static partial class OfficeTiffCodec {
             _bits &= _bitCount == 0 ? 0U : (1U << _bitCount) - 1U;
             return true;
         }
+
+        internal bool HasOnlyZeroBitPaddingAtEnd => _offset == _end && _bitCount < 8 && _bits == 0U;
     }
 }

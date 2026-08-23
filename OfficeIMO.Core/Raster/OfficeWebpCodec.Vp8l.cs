@@ -41,14 +41,19 @@ public static partial class OfficeWebpCodec {
                 !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels) ||
                 pixels > Vp8lGeneralMaximumPixels) return false;
 
-            if (!TryReadVp8lTransforms(reader, width, height, cancellationToken, out int encodedWidth,
+            var allocationBudget = new Vp8lAllocationBudget();
+            if (!allocationBudget.TryReserveBytes(encodedBytes.Length) ||
+                !TryReadVp8lTransforms(reader, width, height, allocationBudget, cancellationToken, out int encodedWidth,
                     out List<Vp8lTransform> transforms)) return false;
-            if (!TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0, cancellationToken, out uint[] packed))
+            if (!TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0,
+                    allocationBudget, cancellationToken, out uint[] packed))
                 return false;
-            if (!TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms, cancellationToken, out uint[] argb))
+            if (!TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
+                    allocationBudget, cancellationToken, out uint[] argb))
                 return false;
             if (argb.Length != pixels || !reader.HasOnlyZeroPadding()) return false;
 
+            if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
             for (int pixel = 0; pixel < argb.Length; pixel++) {
                 if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -62,7 +67,8 @@ public static partial class OfficeWebpCodec {
             image = OfficeRasterImage.FromOwnedRgba32(width, height, rgba);
             return true;
         } catch (Exception exception) when (
-            exception is ArgumentException || exception is FormatException || exception is OverflowException) {
+            exception is ArgumentException || exception is FormatException || exception is OverflowException ||
+            exception is OutOfMemoryException) {
             image = null;
             return false;
         }
@@ -74,6 +80,7 @@ public static partial class OfficeWebpCodec {
         int height,
         bool allowMetaCodes,
         int depth,
+        Vp8lAllocationBudget allocationBudget,
         CancellationToken cancellationToken,
         out uint[] pixels) {
         pixels = Array.Empty<uint>();
@@ -94,7 +101,8 @@ public static partial class OfficeWebpCodec {
             prefixBits = (int)reader.ReadBits(3) + 2;
             prefixWidth = DivideRoundUp(width, 1 << prefixBits);
             int prefixHeight = DivideRoundUp(height, 1 << prefixBits);
-            if (!TryDecodeVp8lImageData(reader, prefixWidth, prefixHeight, false, depth + 1, cancellationToken, out prefixImage))
+            if (!TryDecodeVp8lImageData(reader, prefixWidth, prefixHeight, false, depth + 1,
+                    allocationBudget, cancellationToken, out prefixImage))
                 return false;
             int maximumGroup = 0;
             for (int index = 0; index < prefixImage.Length; index++) {
@@ -105,22 +113,26 @@ public static partial class OfficeWebpCodec {
             if (groupCount > 65536 || groupCount > pixelCount) return false;
         }
 
+        if (!allocationBudget.TryReserveArray(groupCount, IntPtr.Size) ||
+            !allocationBudget.TryReserveBytes((long)groupCount * 64L)) return false;
         var groups = new Vp8lHuffmanGroup[groupCount];
         for (int group = 0; group < groupCount; group++) {
             if ((group & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (!TryReadHuffmanTree(reader, 280 + cacheSize, out Vp8lHuffmanTree green))
+            if (!TryReadHuffmanTree(reader, 280 + cacheSize, allocationBudget, out Vp8lHuffmanTree green))
                 return false;
-            if (!TryReadHuffmanTree(reader, 256, out Vp8lHuffmanTree red))
+            if (!TryReadHuffmanTree(reader, 256, allocationBudget, out Vp8lHuffmanTree red))
                 return false;
-            if (!TryReadHuffmanTree(reader, 256, out Vp8lHuffmanTree blue))
+            if (!TryReadHuffmanTree(reader, 256, allocationBudget, out Vp8lHuffmanTree blue))
                 return false;
-            if (!TryReadHuffmanTree(reader, 256, out Vp8lHuffmanTree alpha))
+            if (!TryReadHuffmanTree(reader, 256, allocationBudget, out Vp8lHuffmanTree alpha))
                 return false;
-            if (!TryReadHuffmanTree(reader, 40, out Vp8lHuffmanTree distance))
+            if (!TryReadHuffmanTree(reader, 40, allocationBudget, out Vp8lHuffmanTree distance))
                 return false;
             groups[group] = new Vp8lHuffmanGroup(green, red, blue, alpha, distance);
         }
 
+        if (!allocationBudget.TryReserveArray(pixelCount, sizeof(uint)) ||
+            cacheSize != 0 && !allocationBudget.TryReserveArray(cacheSize, sizeof(uint))) return false;
         pixels = new uint[pixelCount];
         uint[] cache = cacheSize == 0 ? Array.Empty<uint>() : new uint[cacheSize];
         int position = 0;
@@ -190,6 +202,21 @@ public static partial class OfficeWebpCodec {
     }
 
     private static int DivideRoundUp(int value, int divisor) => checked((value + divisor - 1) / divisor);
+
+    internal sealed class Vp8lAllocationBudget {
+        private long _reservedBytes;
+
+        internal bool TryReserveArray(long elements, int elementSize) {
+            if (elements < 0 || elementSize < 1) return false;
+            return TryReserveBytes(checked(elements * elementSize + 24L));
+        }
+
+        internal bool TryReserveBytes(long bytes) {
+            if (bytes < 0 || _reservedBytes > OfficeRasterGuards.MaximumDecodedBytes - bytes) return false;
+            _reservedBytes += bytes;
+            return true;
+        }
+    }
 
     private sealed class Vp8lHuffmanGroup {
         internal Vp8lHuffmanGroup(Vp8lHuffmanTree green, Vp8lHuffmanTree red,

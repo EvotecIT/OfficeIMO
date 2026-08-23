@@ -35,6 +35,9 @@ internal static class OfficeImageMetadataInspector {
             case OfficeImageFormat.Tiff:
                 InspectTiff(data, snapshot);
                 break;
+            case OfficeImageFormat.Bmp:
+                InspectBmp(data, snapshot);
+                break;
             case OfficeImageFormat.Gif:
                 if (HasGifCommentExtension(data)) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
                 break;
@@ -146,6 +149,20 @@ internal static class OfficeImageMetadataInspector {
             else if (tag == 34675) snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
             else if (tag == 270) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             else if (tag == 282 || tag == 283 || tag == 296) snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
+        }
+    }
+
+    private static void InspectBmp(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+        const int dibHeaderOffset = 14;
+        const int minimumInfoHeaderSize = 40;
+        const int horizontalPixelsPerMeterOffset = 38;
+        const int verticalPixelsPerMeterOffset = 42;
+        if (data.Length < verticalPixelsPerMeterOffset + 4 ||
+            ReadLittleEndian(data, dibHeaderOffset) < minimumInfoHeaderSize) return;
+
+        if (ReadLittleEndian(data, horizontalPixelsPerMeterOffset) > 0 ||
+            ReadLittleEndian(data, verticalPixelsPerMeterOffset) > 0) {
+            snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
         }
     }
 

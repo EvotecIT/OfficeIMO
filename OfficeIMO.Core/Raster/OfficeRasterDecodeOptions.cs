@@ -129,7 +129,7 @@ public sealed class OfficeRasterDecodeInfo {
     public bool PagesDiscarded => FramesOrPagesDiscarded && Container?.IsMultiPage == true;
 
     /// <summary>True when a static result intentionally represents only one frame of an animated source.</summary>
-    public bool AnimationDiscarded => Succeeded && IsAnimated && FrameCount > 1;
+    public bool AnimationDiscarded => Succeeded && IsAnimated;
 
     /// <summary>Stable human-readable reason when decoding did not complete or discarded animation.</summary>
     public string? Diagnostic { get; }

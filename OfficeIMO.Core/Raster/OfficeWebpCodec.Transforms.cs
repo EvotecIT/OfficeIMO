@@ -9,9 +9,15 @@ public static partial class OfficeWebpCodec {
         LsbBitReader reader,
         int width,
         int height,
+        Vp8lAllocationBudget allocationBudget,
         CancellationToken cancellationToken,
         out int encodedWidth,
         out List<Vp8lTransform> transforms) {
+        if (!allocationBudget.TryReserveBytes(256L)) {
+            transforms = new List<Vp8lTransform>();
+            encodedWidth = width;
+            return false;
+        }
         transforms = new List<Vp8lTransform>(4);
         encodedWidth = width;
         int seen = 0;
@@ -26,7 +32,8 @@ public static partial class OfficeWebpCodec {
             }
             if (type == 3) {
                 int tableSize = (int)reader.ReadBits(8) + 1;
-                if (!TryDecodeVp8lImageData(reader, tableSize, 1, false, 1, cancellationToken, out uint[] palette)) return false;
+                if (!TryDecodeVp8lImageData(reader, tableSize, 1, false, 1,
+                        allocationBudget, cancellationToken, out uint[] palette)) return false;
                 uint previous = 0;
                 for (int index = 0; index < palette.Length; index++) {
                     previous = AddArgb(previous, palette[index]);
@@ -42,7 +49,8 @@ public static partial class OfficeWebpCodec {
             int sizeBits = (int)reader.ReadBits(3) + 2;
             int transformWidth = DivideRoundUp(encodedWidth, 1 << sizeBits);
             int transformHeight = DivideRoundUp(height, 1 << sizeBits);
-            if (!TryDecodeVp8lImageData(reader, transformWidth, transformHeight, false, 1, cancellationToken, out uint[] data)) return false;
+            if (!TryDecodeVp8lImageData(reader, transformWidth, transformHeight, false, 1,
+                    allocationBudget, cancellationToken, out uint[] data)) return false;
             transforms.Add(new Vp8lTransform(type, encodedWidth, encodedWidth, sizeBits, data, transformWidth));
         }
         return true;
@@ -54,6 +62,7 @@ public static partial class OfficeWebpCodec {
         int height,
         int finalWidth,
         List<Vp8lTransform> transforms,
+        Vp8lAllocationBudget allocationBudget,
         CancellationToken cancellationToken,
         out uint[] result) {
         result = encoded;
@@ -63,7 +72,8 @@ public static partial class OfficeWebpCodec {
             if (transform.OutputWidth != width) return false;
             switch (transform.Type) {
                 case 0:
-                    if (!TryApplyPredictorTransform(result, width, height, transform, cancellationToken, out result)) return false;
+                    if (!TryApplyPredictorTransform(result, width, height, transform,
+                            allocationBudget, cancellationToken, out result)) return false;
                     break;
                 case 1:
                     if (!TryApplyColorTransform(result, width, height, transform, cancellationToken)) return false;
@@ -79,7 +89,8 @@ public static partial class OfficeWebpCodec {
                     }
                     break;
                 case 3:
-                    if (!TryApplyPaletteTransform(result, width, height, transform, cancellationToken, out result)) return false;
+                    if (!TryApplyPaletteTransform(result, width, height, transform,
+                            allocationBudget, cancellationToken, out result)) return false;
                     width = transform.InputWidth;
                     break;
                 default:
@@ -94,9 +105,15 @@ public static partial class OfficeWebpCodec {
         int packedWidth,
         int height,
         Vp8lTransform transform,
+        Vp8lAllocationBudget allocationBudget,
         CancellationToken cancellationToken,
         out uint[] output) {
-        output = new uint[checked(transform.InputWidth * height)];
+        int outputLength = checked(transform.InputWidth * height);
+        if (!allocationBudget.TryReserveArray(outputLength, sizeof(uint))) {
+            output = Array.Empty<uint>();
+            return false;
+        }
+        output = new uint[outputLength];
         int pixelsPerPacked = 1 << transform.SizeBits;
         int bitsPerIndex = 8 >> transform.SizeBits;
         int mask = (1 << bitsPerIndex) - 1;
@@ -147,8 +164,13 @@ public static partial class OfficeWebpCodec {
         int width,
         int height,
         Vp8lTransform transform,
+        Vp8lAllocationBudget allocationBudget,
         CancellationToken cancellationToken,
         out uint[] output) {
+        if (!allocationBudget.TryReserveArray(residuals.Length, sizeof(uint))) {
+            output = Array.Empty<uint>();
+            return false;
+        }
         output = new uint[residuals.Length];
         int blockWidth = transform.Value;
         if (blockWidth < 1) return false;

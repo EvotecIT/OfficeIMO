@@ -41,8 +41,14 @@ namespace OfficeIMO.Core.Internal {
                 throw new NotSupportedException("Preset-dictionary zlib streams are not supported.");
             }
             cancellationToken.ThrowIfCancellationRequested();
+            int validationOutputLimit = expectedOutputBytes ?? maximumOutputBytes;
             if (!OfficeDeflateStreamValidator.TryValidateExact(
-                    bytes, 2, bytes.Length - 6, cancellationToken)) {
+                    bytes, 2, bytes.Length - 6, validationOutputLimit,
+                    out bool outputLimitExceeded, cancellationToken)) {
+                if (outputLimitExceeded) {
+                    throw new OfficeDecompressionSizeLimitException(
+                        $"The decompressed zlib stream exceeds {validationOutputLimit} bytes.");
+                }
                 throw new InvalidDataException("The zlib stream contains an invalid or trailing Deflate payload.");
             }
 

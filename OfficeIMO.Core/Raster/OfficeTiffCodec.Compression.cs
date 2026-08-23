@@ -94,7 +94,7 @@ public static partial class OfficeTiffCodec {
         }
 
         if (!OfficeDeflateStreamValidator.TryValidateExact(
-                compressed, 0, compressed.Length, cancellationToken)) {
+                compressed, 0, compressed.Length, expectedCount, cancellationToken)) {
             return false;
         }
 

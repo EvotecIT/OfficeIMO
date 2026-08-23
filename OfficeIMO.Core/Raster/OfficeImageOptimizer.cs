@@ -384,10 +384,11 @@ public static class OfficeImageOptimizer {
                 icc = source.Icc;
                 preserved |= OfficeImageMetadataKinds.Icc;
             }
-            if ((requested & OfficeImageMetadataKinds.Orientation) != 0) {
-                preserved |= OfficeImageMetadataKinds.Orientation;
-                normalized |= OfficeImageMetadataKinds.Orientation;
-            }
+        }
+        if ((sourceFormat == OfficeImageFormat.Jpeg || sourceFormat == OfficeImageFormat.Tiff) &&
+            (requested & OfficeImageMetadataKinds.Orientation) != 0) {
+            preserved |= OfficeImageMetadataKinds.Orientation;
+            normalized |= OfficeImageMetadataKinds.Orientation;
         }
         jpeg = new OfficeJpegMetadata(exif, xmp, icc);
     }

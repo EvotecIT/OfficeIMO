@@ -162,7 +162,7 @@ $definitions = [ordered]@{
         ComparisonId = "image-tiff-lzw-$Framework"
         Suite = 'OfficeIMO.Drawing.TiffLzw'
         IdentityVariables = @()
-        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeOfficeIMO')
+        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal')
     }
     imagewebplossless = [pscustomobject]@{
         Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
@@ -170,7 +170,7 @@ $definitions = [ordered]@{
         ComparisonId = "image-webp-lossless-$Framework"
         Suite = 'OfficeIMO.Drawing.WebpLossless'
         IdentityVariables = @()
-        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeOfficeIMO')
+        ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal')
     }
     imageresize = [pscustomobject]@{
         Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'

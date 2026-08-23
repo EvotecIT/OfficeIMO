@@ -98,9 +98,9 @@ public static class OfficeGifReader {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte marker = bytes[offset++];
                 if (marker == 0x3B) {
-                    return validateAllFrames
+                    return offset == bytes.Length && (validateAllFrames
                         ? frameCount > 0 && !hasPendingGraphicControl && offset == bytes.Length
-                        : image != null;
+                        : image != null);
                 }
 
                 if (marker == 0x21) {
@@ -214,7 +214,7 @@ public static class OfficeGifReader {
                 hasPendingGraphicControl = false;
             }
 
-            return !validateAllFrames && image != null;
+            return false;
         } catch (OperationCanceledException) {
             image = null;
             frameCount = 0;

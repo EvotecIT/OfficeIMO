@@ -7,9 +7,13 @@ public static partial class OfficeWebpCodec {
         17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
     };
 
-    private static bool TryReadHuffmanTree(LsbBitReader reader, int alphabetSize, out Vp8lHuffmanTree tree) {
+    private static bool TryReadHuffmanTree(
+        LsbBitReader reader,
+        int alphabetSize,
+        Vp8lAllocationBudget allocationBudget,
+        out Vp8lHuffmanTree tree) {
         tree = Vp8lHuffmanTree.Invalid;
-        if (alphabetSize < 1) return false;
+        if (alphabetSize < 1 || !allocationBudget.TryReserveArray(alphabetSize, sizeof(byte))) return false;
         var lengths = new byte[alphabetSize];
         if (reader.ReadBits(1) != 0) {
             int symbolCount = (int)reader.ReadBits(1) + 1;
@@ -22,15 +26,16 @@ public static partial class OfficeWebpCodec {
                 if (second >= alphabetSize) return false;
                 if (second != first) lengths[second] = 1;
             }
-            return Vp8lHuffmanTree.TryCreate(lengths, out tree);
+            return Vp8lHuffmanTree.TryCreate(lengths, allocationBudget, out tree);
         }
 
         int codeLengthCount = 4 + (int)reader.ReadBits(4);
+        if (!allocationBudget.TryReserveArray(19, sizeof(byte))) return false;
         var codeLengthLengths = new byte[19];
         for (int index = 0; index < codeLengthCount; index++) {
             codeLengthLengths[Vp8lCodeLengthOrder[index]] = (byte)reader.ReadBits(3);
         }
-        if (!Vp8lHuffmanTree.TryCreate(codeLengthLengths, out Vp8lHuffmanTree codeLengthTree)) return false;
+        if (!Vp8lHuffmanTree.TryCreate(codeLengthLengths, allocationBudget, out Vp8lHuffmanTree codeLengthTree)) return false;
 
         int maxSymbol = alphabetSize;
         if (reader.ReadBits(1) != 0) {
@@ -67,7 +72,7 @@ public static partial class OfficeWebpCodec {
             if (repeat > alphabetSize - position) return false;
             for (int index = 0; index < repeat; index++) lengths[position++] = (byte)value;
         }
-        return Vp8lHuffmanTree.TryCreate(lengths, out tree);
+        return Vp8lHuffmanTree.TryCreate(lengths, allocationBudget, out tree);
     }
 
     private sealed class Vp8lHuffmanTree {
@@ -82,10 +87,14 @@ public static partial class OfficeWebpCodec {
             _singleSymbol = singleSymbol;
         }
 
-        internal static bool TryCreate(byte[] lengths, out Vp8lHuffmanTree tree) {
+        internal static bool TryCreate(
+            byte[] lengths,
+            Vp8lAllocationBudget allocationBudget,
+            out Vp8lHuffmanTree tree) {
             tree = Invalid;
             int used = 0;
             int single = -1;
+            if (!allocationBudget.TryReserveArray(16, sizeof(int))) return false;
             var counts = new int[16];
             for (int symbol = 0; symbol < lengths.Length; symbol++) {
                 int length = lengths[symbol];
@@ -98,6 +107,7 @@ public static partial class OfficeWebpCodec {
             if (used == 0) return false;
             if (used == 1) {
                 if (lengths[single] != 1) return false;
+                if (!allocationBudget.TryReserveBytes(32L)) return false;
                 tree = new Vp8lHuffmanTree(Array.Empty<int>(), Array.Empty<byte>(), single);
                 return true;
             }
@@ -109,6 +119,9 @@ public static partial class OfficeWebpCodec {
             }
             if (remaining != 0) return false;
 
+            if (!allocationBudget.TryReserveArray(used, sizeof(int)) ||
+                !allocationBudget.TryReserveArray(used, sizeof(byte)) ||
+                !allocationBudget.TryReserveBytes(32L)) return false;
             var symbols = new int[used];
             var orderedLengths = new byte[used];
             int position = 0;

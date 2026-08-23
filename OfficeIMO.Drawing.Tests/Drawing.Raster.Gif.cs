@@ -41,6 +41,14 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficeRasterContainerInspector.TryInspect(timed, out OfficeRasterContainerInfo? container));
             Assert.True(container!.IsAnimated);
             Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
+            Assert.True(OfficeRasterImageDecoder.TryDecode(
+                timed,
+                new OfficeRasterDecodeOptions { AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame },
+                out _,
+                out OfficeRasterDecodeInfo info));
+            Assert.True(info.AnimationDiscarded);
+            Assert.False(info.FramesOrPagesDiscarded);
+            Assert.NotNull(info.Diagnostic);
             Assert.False(OfficeRasterImageDecoder.TryDecode(
                 timed,
                 new OfficeRasterDecodeOptions { AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated },
@@ -171,6 +179,16 @@ namespace OfficeIMO.Tests {
 
             Assert.Null(image);
             Assert.Equal(2, frameCount);
+        }
+
+        [Fact]
+        public void GifInspectionAndDecodeRequireTheTerminalTrailer() {
+            byte[] valid = CreateSinglePixelGif();
+            byte[] truncated = valid.Take(valid.Length - 1).ToArray();
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(truncated, out _));
+            Assert.False(OfficeGifReader.TryDecodeFrame(truncated, 0, out _, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(truncated, out _));
         }
 
         [Fact]

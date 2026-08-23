@@ -90,10 +90,15 @@ public static class OfficeRasterContainerInspector {
         int transparentIndex = -1;
         OfficeRasterFrameDisposal disposal = OfficeRasterFrameDisposal.None;
         var frames = new List<OfficeRasterFrameInfo>();
+        bool sawTrailer = false;
         while (cursor < bytes.Length) {
             options.CancellationToken.ThrowIfCancellationRequested();
             byte introducer = bytes[cursor++];
-            if (introducer == 0x3B) break;
+            if (introducer == 0x3B) {
+                if (cursor != bytes.Length) return false;
+                sawTrailer = true;
+                break;
+            }
             if (introducer == 0x21) {
                 if (cursor >= bytes.Length) return false;
                 byte label = bytes[cursor++];
@@ -168,7 +173,7 @@ public static class OfficeRasterContainerInspector {
             disposal = OfficeRasterFrameDisposal.None;
             transparentIndex = -1;
         }
-        if (frames.Count == 0) return false;
+        if (!sawTrailer || frames.Count == 0) return false;
         if (frames.Count == 1 && frames[0].Duration == TimeSpan.Zero && !hasLoopExtension) {
             OfficeRasterFrameInfo frame = frames[0];
             frames[0] = new OfficeRasterFrameInfo(

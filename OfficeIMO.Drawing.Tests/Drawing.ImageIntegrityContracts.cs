@@ -858,14 +858,48 @@ public partial class DrawingTests {
         var options = new OfficeRasterDecodeOptions {
             AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame
         };
-        Assert.True(OfficeRasterImageDecoder.TryDecode(apng, options, out OfficeRasterImage? image, out _));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(apng, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
         Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
+        Assert.True(info.IsAnimated);
+        Assert.True(info.AnimationDiscarded);
+        Assert.False(info.FramesOrPagesDiscarded);
+        Assert.NotNull(info.Diagnostic);
 
         var reject = new OfficeRasterDecodeOptions {
             AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
         };
         Assert.False(OfficeRasterImageDecoder.TryDecode(apng, reject, out _, out _));
     }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void SelectedApngDecodeDoesNotCopyUnselectedFramePayloads() {
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        int frameDataOffset = FindPngChunk(apng, "fdAT");
+        int frameDataLength = ReadBigEndianInt32(apng, frameDataOffset);
+        var largeFrameData = new byte[8 * 1024 * 1024 + 4];
+        Buffer.BlockCopy(apng, frameDataOffset + 8, largeFrameData, 0, 4);
+        byte[] replacement = CreatePngChunk("fdAT", largeFrameData);
+        byte[] expanded = new byte[apng.Length - frameDataLength - 12 + replacement.Length];
+        Buffer.BlockCopy(apng, 0, expanded, 0, frameDataOffset);
+        Buffer.BlockCopy(replacement, 0, expanded, frameDataOffset, replacement.Length);
+        Buffer.BlockCopy(apng, frameDataOffset + frameDataLength + 12, expanded,
+            frameDataOffset + replacement.Length,
+            apng.Length - frameDataOffset - frameDataLength - 12);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            expanded,
+            new OfficeRasterDecodeOptions { FrameIndex = 0 },
+            out OfficeRasterImage? selected,
+            out _));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(OfficeColor.Lime, selected!.GetPixel(0, 0));
+        Assert.True(allocated < 4L * 1024L * 1024L, $"Selected-frame decode allocated {allocated:N0} bytes.");
+    }
+#endif
 
     [Fact]
     public void ContentValidationUsesTheCanonicalEncodedPayloadLimit() {

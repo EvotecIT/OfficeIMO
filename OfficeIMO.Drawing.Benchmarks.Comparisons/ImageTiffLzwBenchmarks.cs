@@ -33,5 +33,5 @@ public class ImageTiffLzwBenchmarks {
     public byte[] OfficeIMODecodeExternal() => ImageComparisonAdapters.DecodeOfficeImoRgba(_magickEncoded);
 
     [Benchmark]
-    public byte[] MagickNETDecodeOfficeIMO() => ImageComparisonAdapters.DecodeMagickRgba(_officeEncoded);
+    public byte[] MagickNETDecodeExternal() => ImageComparisonAdapters.DecodeMagickRgba(_magickEncoded);
 }

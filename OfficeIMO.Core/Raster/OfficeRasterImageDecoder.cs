@@ -111,8 +111,8 @@ public static class OfficeRasterImageDecoder {
         if (format == OfficeImageFormat.Gif) {
             bool decoded = OfficeGifReader.TryDecodeFrame(
                 bytes, effective.FrameIndex, effective.CancellationToken, out image, out int decodedFrameCount);
-            string? diagnostic = decoded && frameCount > 1
-                ? "The selected GIF frame was decoded; remaining animation frames were not retained in the static raster result."
+            string? diagnostic = decoded && container.IsAnimated
+                ? "The selected GIF frame was decoded; GIF playback semantics were not retained in the static raster result."
                 : decoded ? null : "The requested GIF frame could not be decoded.";
             bool withinLimit = decoded && decodedFrameCount == frameCount && IsDecodedImageWithinLimit(image, effective.MaximumDecodedPixels);
             if (!withinLimit) image = null;
@@ -127,9 +127,9 @@ public static class OfficeRasterImageDecoder {
                     effective.MaximumDecodedPixels, effective.CancellationToken, out image);
                 if (!decoded) image = null;
                 info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded,
-                    decoded && frameCount > 1
-                        ? "The selected APNG frame was composed; remaining animation frames were not retained in the static raster result."
-                        : decoded ? null : "The selected APNG frame could not be decoded within the configured limits.", container);
+                    decoded
+                        ? "The selected APNG frame was composed; APNG playback semantics were not retained in the static raster result."
+                        : "The selected APNG frame could not be decoded within the configured limits.", container);
                 return decoded;
             }
         }

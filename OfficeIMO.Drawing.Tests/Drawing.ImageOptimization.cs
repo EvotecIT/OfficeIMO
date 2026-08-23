@@ -204,6 +204,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerReportsNormalizedTiffOrientationAsPreserved() {
+            var source = new OfficeRasterImage(2, 1);
+            source.SetPixel(0, 0, OfficeColor.Red);
+            source.SetPixel(1, 0, OfficeColor.Blue);
+            byte[] tiff = OfficeTiffCodec.Encode(source, new OfficeTiffEncodeOptions {
+                DpiX = 300D,
+                DpiY = 150D
+            });
+            int orientationEntry = FindClassicTiffEntry(tiff, 274);
+            WriteLittleEndian(tiff, orientationEntry + 8, 6);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                tiff,
+                new OfficeImageOptimizationRequest(1, 2) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal((1, 2), (result.Final.Width, result.Final.Height));
+            Assert.Equal(OfficeImageMetadataKinds.Orientation,
+                result.Metadata.Normalized & OfficeImageMetadataKinds.Orientation);
+            Assert.Equal(OfficeImageMetadataKinds.Orientation,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Orientation);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Orientation);
+        }
+
+        [Fact]
         public void OfficeImageOptimizerReportsStrippedAndUnsupportedMetadata() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(2, 2, OfficeColor.Red),
@@ -585,6 +615,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal(encodedInfo.DpiY, result.Final.DpiY);
         }
 
+        [Fact]
+        public void OfficeImageOptimizerPreservesBmpPhysicalResolutionAndReportsIt() {
+            byte[] bmp = CreateBmp24WithResolution(5669, 4724);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                bmp,
+                new OfficeImageOptimizationRequest(1, 1) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Source & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Resolution);
+            Assert.InRange(result.Final.DpiX, 143.98D, 144.02D);
+            Assert.InRange(result.Final.DpiY, 119.98D, 120.02D);
+        }
+
         [Theory]
         [InlineData(OfficeImageFormat.Jpeg, 65535D)]
         [InlineData(OfficeImageFormat.Tiff, 1000000D)]
@@ -750,6 +803,53 @@ namespace OfficeIMO.Tests {
                 }
             }
             return image;
+        }
+
+        private static byte[] CreateBmp24WithResolution(int horizontalPixelsPerMeter, int verticalPixelsPerMeter) {
+            const int width = 2;
+            const int height = 1;
+            const int pixelOffset = 54;
+            const int rowStride = 8;
+            var bmp = new byte[pixelOffset + rowStride];
+            bmp[0] = (byte)'B';
+            bmp[1] = (byte)'M';
+            WriteLittleEndian(bmp, 2, bmp.Length);
+            WriteLittleEndian(bmp, 10, pixelOffset);
+            WriteLittleEndian(bmp, 14, 40);
+            WriteLittleEndian(bmp, 18, width);
+            WriteLittleEndian(bmp, 22, height);
+            bmp[26] = 1;
+            bmp[28] = 24;
+            WriteLittleEndian(bmp, 34, rowStride);
+            WriteLittleEndian(bmp, 38, horizontalPixelsPerMeter);
+            WriteLittleEndian(bmp, 42, verticalPixelsPerMeter);
+            bmp[pixelOffset + 2] = 255;
+            bmp[pixelOffset + 3] = 255;
+            return bmp;
+        }
+
+        private static int FindClassicTiffEntry(byte[] bytes, int expectedTag) {
+            int ifdOffset = ReadLittleEndian(bytes, 4);
+            int entryCount = bytes[ifdOffset] | bytes[ifdOffset + 1] << 8;
+            for (int index = 0; index < entryCount; index++) {
+                int entryOffset = ifdOffset + 2 + index * 12;
+                int tag = bytes[entryOffset] | bytes[entryOffset + 1] << 8;
+                if (tag == expectedTag) return entryOffset;
+            }
+            throw new InvalidOperationException("TIFF entry was not found.");
+        }
+
+        private static int ReadLittleEndian(byte[] bytes, int offset) =>
+            bytes[offset] |
+            bytes[offset + 1] << 8 |
+            bytes[offset + 2] << 16 |
+            bytes[offset + 3] << 24;
+
+        private static void WriteLittleEndian(byte[] bytes, int offset, int value) {
+            bytes[offset] = (byte)value;
+            bytes[offset + 1] = (byte)(value >> 8);
+            bytes[offset + 2] = (byte)(value >> 16);
+            bytes[offset + 3] = (byte)(value >> 24);
         }
 
         private static byte[] CreateExifOrientation(ushort orientation) => new byte[] {

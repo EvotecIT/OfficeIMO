@@ -267,6 +267,26 @@ public sealed class DrawingRasterEncodingTests {
         Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
     }
 
+    [Theory]
+    [InlineData((byte)0)]
+    [InlineData((byte)0x7F)]
+    public void OfficeTiffDecoderRejectsBytesAfterLzwEndCode(byte trailingByte) {
+        byte[] tiff = OfficeTiffCodec.Encode(
+            CreateSampleImage(),
+            new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.Lzw });
+        int stripOffsetEntry = FindClassicTiffEntry(tiff, 273);
+        int stripByteCountEntry = FindClassicTiffEntry(tiff, 279);
+        int stripOffset = ReadLittleEndian(tiff, stripOffsetEntry + 8);
+        int stripByteCount = ReadLittleEndian(tiff, stripByteCountEntry + 8);
+        Assert.Equal(tiff.Length, stripOffset + stripByteCount);
+
+        Array.Resize(ref tiff, tiff.Length + 1);
+        tiff[tiff.Length - 1] = trailingByte;
+        WriteLittleEndian(tiff, stripByteCountEntry + 8, stripByteCount + 1);
+
+        Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
+    }
+
     [Fact]
     public void OfficeTiffDecoderRejectsUnexpectedArrayCardinalityBeforeReadingValues() {
         byte[] tiff = OfficeTiffCodec.Encode(CreateSampleImage());
@@ -363,6 +383,15 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal((8, 8), (mixedImage!.Width, mixedImage.Height));
         Assert.Equal(OfficeColor.FromRgba(0, 0, 0, 96), mixedImage.GetPixel(0, 0));
         Assert.Equal(OfficeColor.FromRgba(159, 71, 76, 255), mixedImage.GetPixel(4, 1));
+    }
+
+    [Fact]
+    public void Vp8lAllocationBudgetRejectsAggregateBuffersBeyondTheManagedBoundary() {
+        var budget = new OfficeWebpCodec.Vp8lAllocationBudget();
+
+        Assert.True(budget.TryReserveBytes(OfficeRasterGuards.MaximumDecodedBytes - 128L));
+        Assert.True(budget.TryReserveArray(16, sizeof(uint)));
+        Assert.False(budget.TryReserveArray(16, sizeof(uint)));
     }
 
     [Theory]
