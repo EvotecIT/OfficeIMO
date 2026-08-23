@@ -69,12 +69,17 @@ internal sealed record HtmlPdfOutputEvidence(
     string Sha256,
     string SemanticSha256,
     long ManagedAllocatedBytes,
-    long HostWorkingSetBeforeBytes,
-    long HostWorkingSetAfterBytes,
-    long HostPeakWorkingSetBytes,
+    HtmlPdfProcessTreeMemoryEvidence ProcessTreeMemory,
     HtmlPdfContractEvidence Contract,
     HtmlPdfVisualEvidence ManagedVisual,
     HtmlPdfVisualEvidence? ExternalVisual);
+
+internal sealed record HtmlPdfProcessTreeMemoryEvidence(
+    long PeakWorkingSetBytes,
+    int SampleCount,
+    int MinimumObservedProcessCount,
+    int MaximumObservedProcessCount,
+    string Sampler);
 
 internal sealed record HtmlPdfVisualEvidence(
     string Renderer,

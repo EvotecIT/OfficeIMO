@@ -13,6 +13,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 internal static class HtmlPdfEvidenceRunner {
     private const int MinimumIterations = 2;
     private const int MaximumIterations = 10;
+    private static readonly TimeSpan WorkerTimeout = TimeSpan.FromMinutes(5);
 
     internal static async Task<int> RunAsync(string[] args) {
         ValidateArguments(args);
@@ -46,7 +47,7 @@ internal static class HtmlPdfEvidenceRunner {
         }
 
         var report = new HtmlPdfEvidenceReport(
-            SchemaVersion: 1,
+            SchemaVersion: 2,
             GeneratedUtc: DateTimeOffset.UtcNow,
             Scale: scale.ToString(),
             Iterations: iterations,
@@ -77,11 +78,13 @@ internal static class HtmlPdfEvidenceRunner {
         bool cancellationPassed = engineReports
             .Where(engine => engine.Cancellation.ApiSupportsCancellation)
             .All(engine => string.Equals(engine.Cancellation.Status, "Passed", StringComparison.Ordinal));
+        bool processTreeMemoryPassed = engineReports.All(engine => engine.MemoryComparable);
         Console.WriteLine("HTML_PDF_EVIDENCE_REPORT=" + reportPath);
         Console.WriteLine("HTML_PDF_EVIDENCE_ENGINES=" + engineReports.Count);
         Console.WriteLine("HTML_PDF_EVIDENCE_OUTPUTS=" + engineReports.Sum(engine => engine.Outputs.Count));
         Console.WriteLine("HTML_PDF_EVIDENCE_CANCELLATION=" + (cancellationPassed ? "Passed" : "Failed"));
-        return cancellationPassed ? 0 : 1;
+        Console.WriteLine("HTML_PDF_EVIDENCE_PROCESS_TREE_MEMORY=" + (processTreeMemoryPassed ? "Passed" : "Failed"));
+        return cancellationPassed && processTreeMemoryPassed ? 0 : 1;
     }
 
     private static async Task<HtmlPdfEngineEvidence> RunEngineAsync(
@@ -92,27 +95,13 @@ internal static class HtmlPdfEvidenceRunner {
         string outputDirectory,
         ExternalPdfRasterizer? rasterizer) {
         var outputs = new List<HtmlPdfOutputEvidence>(iterations);
-        if (engine == HtmlPdfComparisonEngine.Chromium) {
-            await using HtmlBrowserSession session = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
-            for (int iteration = 1; iteration <= iterations; iteration++) {
-                outputs.Add(await RenderOnceAsync(
-                    engine,
-                    iteration,
-                    outputDirectory,
-                    scenario,
-                    rasterizer,
-                    token => HtmlPdfComparisonRenderers.RenderChromiumAsync(session, html, token)).ConfigureAwait(false));
-            }
-        } else {
-            for (int iteration = 1; iteration <= iterations; iteration++) {
-                outputs.Add(await RenderOnceAsync(
-                    engine,
-                    iteration,
-                    outputDirectory,
-                    scenario,
-                    rasterizer,
-                    _ => Task.FromResult(HtmlPdfComparisonRenderers.RenderManaged(engine, html))).ConfigureAwait(false));
-            }
+        for (int iteration = 1; iteration <= iterations; iteration++) {
+            outputs.Add(await RenderOnceAsync(
+                engine,
+                iteration,
+                outputDirectory,
+                scenario,
+                rasterizer).ConfigureAwait(false));
         }
 
         HtmlPdfCancellationEvidence cancellation = engine == HtmlPdfComparisonEngine.Chromium
@@ -131,7 +120,9 @@ internal static class HtmlPdfEvidenceRunner {
             Engine: engine.ToString(),
             Owner: Owner(engine),
             AssemblyVersion: AssemblyVersion(engine),
-            ExecutionKind: engine == HtmlPdfComparisonEngine.Chromium ? "Chromium through HtmlTinkerX" : "Managed in-process",
+            ExecutionKind: engine == HtmlPdfComparisonEngine.Chromium
+                ? "Fresh worker process; Chromium through HtmlTinkerX"
+                : "Fresh managed worker process",
             Cancellation: cancellation,
             Determinism: new HtmlPdfDeterminismEvidence(
                 ExactBytesIdentical: outputs.Select(output => output.Sha256).Distinct(StringComparer.Ordinal).Count() == 1,
@@ -146,10 +137,10 @@ internal static class HtmlPdfEvidenceRunner {
                 UniqueExternalVisualHashCount: externalVisualHashes.Length == outputs.Count
                     ? externalVisualHashes.Distinct(StringComparer.Ordinal).Count()
                     : null),
-            MemoryScope: engine == HtmlPdfComparisonEngine.Chromium
-                ? "Benchmark host process only; Chromium child-process memory is excluded."
-                : "Benchmark host process containing the in-process renderer.",
-            MemoryComparable: false,
+            MemoryScope: "Fresh worker process tree sampled from process start through renderer shutdown; the evidence coordinator is excluded.",
+            MemoryComparable: outputs.All(output =>
+                output.ProcessTreeMemory.SampleCount > 0 &&
+                output.ProcessTreeMemory.MinimumObservedProcessCount > 0),
             Outputs: outputs);
     }
 
@@ -158,27 +149,59 @@ internal static class HtmlPdfEvidenceRunner {
         int iteration,
         string outputDirectory,
         PdfBenchmarkScenario scenario,
-        ExternalPdfRasterizer? rasterizer,
-        Func<CancellationToken, Task<byte[]>> render) {
-        long allocatedBefore = GC.GetTotalAllocatedBytes(precise: false);
-        var stopwatch = Stopwatch.StartNew();
-        byte[] bytes;
-        var memory = new HostProcessMemorySampler();
-        await using (memory.ConfigureAwait(false)) {
-            bytes = await render(CancellationToken.None).ConfigureAwait(false);
+        ExternalPdfRasterizer? rasterizer) {
+        string fileName = EngineFileName(engine) + "-" + iteration.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + ".pdf";
+        string outputPath = Path.Combine(outputDirectory, fileName);
+        string workerResultPath = Path.Combine(
+            outputDirectory,
+            "." + Path.GetFileNameWithoutExtension(fileName) + "-worker.json");
+        ProcessStartInfo startInfo = HtmlPdfEvidenceWorker.CreateStartInfo(
+            engine,
+            Path.Combine(outputDirectory, "scenario.html"),
+            outputPath,
+            workerResultPath,
+            FindRepositoryRoot());
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException($"Could not start the isolated {engine} evidence worker.");
+        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
+        Task<string> standardError = process.StandardError.ReadToEndAsync();
+        await using var memory = new ProcessTreeMemorySampler(process);
+        try {
+            using var timeout = new CancellationTokenSource(WorkerTimeout);
+            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+        } catch (OperationCanceledException) {
+            try {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync().ConfigureAwait(false);
+            } catch (InvalidOperationException) {
+                // The process exited while the timeout path was taking ownership.
+            }
+            throw new TimeoutException(
+                $"The isolated {engine} evidence worker exceeded the {WorkerTimeout.TotalMinutes:0}-minute limit.");
         }
-        stopwatch.Stop();
-        long allocatedAfter = GC.GetTotalAllocatedBytes(precise: false);
+        await memory.StopAsync().ConfigureAwait(false);
+        string workerOutput = await standardOutput.ConfigureAwait(false);
+        string workerError = await standardError.ConfigureAwait(false);
+        if (process.ExitCode != 0) {
+            throw new InvalidOperationException(
+                $"The isolated {engine} evidence worker exited with code {process.ExitCode}. " +
+                FormatWorkerDiagnostics(workerOutput, workerError));
+        }
+        if (!File.Exists(outputPath) || !File.Exists(workerResultPath)) {
+            throw new InvalidDataException(
+                $"The isolated {engine} evidence worker did not produce its PDF and result metadata. " +
+                FormatWorkerDiagnostics(workerOutput, workerError));
+        }
+
+        byte[] bytes = await File.ReadAllBytesAsync(outputPath).ConfigureAwait(false);
+        HtmlPdfWorkerResult workerResult = await HtmlPdfEvidenceWorker.ReadResultAsync(workerResultPath).ConfigureAwait(false);
+        File.Delete(workerResultPath);
 
         PdfReadObservation observation = PdfBenchmarkValidation.ValidateGenerated(bytes, scenario, engine.ToString());
         PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine.ToString(), scenario);
         PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
         PdfTaggedContentInfo tagged = info.TaggedContent
             ?? throw new InvalidDataException($"{engine} did not expose tagged-content evidence.");
-
-        string fileName = EngineFileName(engine) + "-" + iteration.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + ".pdf";
-        string outputPath = Path.Combine(outputDirectory, fileName);
-        await File.WriteAllBytesAsync(outputPath, bytes).ConfigureAwait(false);
 
         PdfPageRenderResult visual = OfficeIMO.Pdf.PdfDocument.Open(bytes).Read.RenderPages(
             "1",
@@ -223,14 +246,12 @@ internal static class HtmlPdfEvidenceRunner {
         return new HtmlPdfOutputEvidence(
             Iteration: iteration,
             RelativePath: fileName,
-            DurationMilliseconds: stopwatch.Elapsed.TotalMilliseconds,
+            DurationMilliseconds: workerResult.DurationMilliseconds,
             SizeBytes: bytes.LongLength,
             Sha256: Sha256(bytes),
             SemanticSha256: Sha256(Encoding.UTF8.GetBytes(semantic)),
-            ManagedAllocatedBytes: Math.Max(0L, allocatedAfter - allocatedBefore),
-            HostWorkingSetBeforeBytes: memory.BeforeBytes,
-            HostWorkingSetAfterBytes: memory.AfterBytes,
-            HostPeakWorkingSetBytes: memory.PeakBytes,
+            ManagedAllocatedBytes: workerResult.ManagedAllocatedBytes,
+            ProcessTreeMemory: memory.CreateEvidence(),
             Contract: new HtmlPdfContractEvidence(
                 observation.PageCount,
                 observation.TextLength,
@@ -256,6 +277,15 @@ internal static class HtmlPdfEvidenceRunner {
                 Sha256: Sha256(visualBytes),
                 Diagnostics: visual.Diagnostics),
             ExternalVisual: externalVisual);
+    }
+
+    private static string FormatWorkerDiagnostics(string standardOutput, string standardError) {
+        string combined = string.Join(
+            " | ",
+            new[] { standardError.Trim(), standardOutput.Trim() }.Where(value => value.Length > 0));
+        if (combined.Length == 0) return "No worker diagnostics were written.";
+        const int maximumLength = 2000;
+        return combined.Length <= maximumLength ? combined : combined[..maximumLength] + "...";
     }
 
     private static async Task<HtmlPdfCancellationEvidence> ProbeChromiumCancellationAsync(string html) {
@@ -431,6 +461,6 @@ internal static class HtmlPdfEvidenceRunner {
 
     private static void WriteHelp() {
         Console.WriteLine("html-evidence --output <directory> [--scale Easy|Medium|High] [--iterations 2-10] [--require-external-rasterizer] [--require-clean-source]");
-        Console.WriteLine("Generates equivalent four-engine PDFs and machine-readable correctness, tagging, size, repeatability, cancellation, and diagnostic host-memory evidence.");
+        Console.WriteLine("Generates equivalent four-engine PDFs and machine-readable correctness, tagging, size, repeatability, cancellation, and isolated process-tree memory evidence.");
     }
 }
