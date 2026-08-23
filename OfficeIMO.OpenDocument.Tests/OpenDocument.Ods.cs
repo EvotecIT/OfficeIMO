@@ -8,6 +8,30 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public class OpenDocumentOdsTests {
     [Fact]
+    public void SequentialDenseEdits_Allow_Backfill_And_ContinueAppending() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        for (var row = 0; row < 50; row++) {
+            for (var column = 0; column < 8; column++) {
+                sheet.Cell(row, column).SetString($"R{row}C{column}");
+            }
+        }
+
+        sheet.Cell(25, 3).SetString("Backfilled");
+        sheet.Cell(50, 0).SetString("Appended");
+
+        Assert.Equal(new OdsUsedRange(0, 0, 50, 7), sheet.UsedRange);
+        Assert.Equal("R49C7", sheet.GetValue(49, 7).DisplayText);
+        Assert.Equal("Backfilled", sheet.GetValue(25, 3).DisplayText);
+        Assert.Equal("Appended", sheet.GetValue(50, 0).DisplayText);
+
+        OdsSheet reopened = OdsDocument.Load(new MemoryStream(document.ToBytes())).Sheets.Single();
+        Assert.Equal("R49C7", reopened.GetValue(49, 7).DisplayText);
+        Assert.Equal("Backfilled", reopened.GetValue(25, 3).DisplayText);
+        Assert.Equal("Appended", reopened.GetValue(50, 0).DisplayText);
+    }
+
+    [Fact]
     public void CellAnnotationsPreserveTextAuthorDateAndIdentity() {
         OdsDocument document = OdsDocument.Create();
         OdsCell cell = document.AddSheet("Data").Cell(3, 2);
