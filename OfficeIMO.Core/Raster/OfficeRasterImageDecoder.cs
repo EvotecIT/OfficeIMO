@@ -147,12 +147,15 @@ public static class OfficeRasterImageDecoder {
         }
 
         effective.CancellationToken.ThrowIfCancellationRequested();
-        bool success =
-            OfficePngReader.TryDecode(bytes, out image) ||
-            OfficeJpegCodec.TryDecode(bytes, out image) ||
-            OfficeTiffCodec.TryDecode(bytes, out image) ||
-            OfficeBmpReader.TryDecode(bytes, out image) ||
-            OfficeWebpCodec.TryDecode(bytes, effective.CancellationToken, out image);
+        bool success = format switch {
+            OfficeImageFormat.Png => OfficePngReader.TryDecode(
+                bytes, effective.CancellationToken, out image),
+            OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(bytes, out image),
+            OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(bytes, out image),
+            OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
+                bytes, effective.CancellationToken, out image),
+            _ => false
+        };
         success = success && IsDecodedImageWithinLimit(image, effective.MaximumDecodedPixels);
         if (!success) image = null;
         info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, success,

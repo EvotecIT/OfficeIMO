@@ -57,8 +57,9 @@ public static partial class OfficeTiffCodec {
                     ? checked(rowStart * width * samples)
                     : 0;
                 if (!TryDecodeStrip(encodedBytes, offsets[segment], byteCounts[segment], compression,
-                        decoded, decodedOffset, expected)) return false;
-                if (predictor == 2) ReverseHorizontalPredictor(decoded, decodedOffset, rows, width, segmentSamples);
+                        decoded, decodedOffset, expected, options.CancellationToken)) return false;
+                if (predictor == 2) ReverseHorizontalPredictor(decoded, decodedOffset, rows, width,
+                    segmentSamples, options.CancellationToken);
                 if (retainPixels && planarConfiguration == 2) {
                     CopyPlanarRows(decoded, source, plane, samples, width, rowStart, rows, options);
                 }
@@ -90,8 +91,9 @@ public static partial class OfficeTiffCodec {
             int tileY = checked((tile / tilesAcross) * tileHeight);
             var decoded = new byte[tileByteLength];
             if (!TryDecodeStrip(encodedBytes, tileOffsets[segment], tileByteCounts[segment], compression,
-                    decoded, 0, tileByteLength)) return false;
-            if (predictor == 2) ReverseHorizontalPredictor(decoded, 0, tileHeight, tileWidth, tileSamples);
+                    decoded, 0, tileByteLength, options.CancellationToken)) return false;
+            if (predictor == 2) ReverseHorizontalPredictor(decoded, 0, tileHeight, tileWidth,
+                tileSamples, options.CancellationToken);
             if (retainPixels) {
                 CopyTile(decoded, source, plane, planarConfiguration, samples, width, height,
                     tileX, tileY, tileWidth, tileHeight, options);

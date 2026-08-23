@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -29,9 +30,16 @@ public static class OfficePngReader {
     /// Attempts to decode a PNG image into an RGBA raster buffer.
     /// </summary>
     public static bool TryDecode(byte[] bytes, out OfficeRasterImage? image) {
+        return TryDecode(bytes, CancellationToken.None, out image);
+    }
+
+    internal static bool TryDecode(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        out OfficeRasterImage? image) {
         image = null;
         try {
-            if (!TryReadPayload(bytes, out PngPayload payload)) {
+            if (!TryReadPayload(bytes, cancellationToken, out PngPayload payload)) {
                 return false;
             }
             if (payload.InterlaceMethod != 0) return false;
@@ -41,11 +49,13 @@ public static class OfficePngReader {
             OfficeRasterImage result = new OfficeRasterImage(payload.Width, payload.Height);
             int sourceOffset = 0;
             for (int y = 0; y < payload.Height; y++) {
+                if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int filter = payload.Scanlines[sourceOffset++];
                 Buffer.BlockCopy(payload.Scanlines, sourceOffset, current, 0, payload.Stride);
                 sourceOffset += payload.Stride;
                 Unfilter(current, previous, payload.BytesPerPixel, filter);
-                ExpandScanline(current, payload.Width, y, payload.ColorType, payload.BitDepth, payload.Palette, payload.Transparency, result);
+                ExpandScanline(current, payload.Width, y, payload.ColorType, payload.BitDepth,
+                    payload.Palette, payload.Transparency, result, cancellationToken);
 
                 byte[] temp = previous;
                 previous = current;
@@ -55,6 +65,8 @@ public static class OfficePngReader {
 
             image = result;
             return true;
+        } catch (OperationCanceledException) {
+            throw;
         } catch {
             image = null;
             return false;
@@ -64,7 +76,7 @@ public static class OfficePngReader {
     /// <summary>Validates that a PNG has a complete, bounded scanline payload without allocating an RGBA raster.</summary>
     internal static bool TryValidateDecodedPayload(byte[] bytes) {
         try {
-            if (!TryReadPayload(bytes, out PngPayload payload)) return false;
+            if (!TryReadPayload(bytes, CancellationToken.None, out PngPayload payload)) return false;
             if (!ValidatePayloadScanlines(payload)) return false;
             return OfficePngAnimationValidator.TryValidateAdditionalFrames(bytes);
         } catch {
@@ -182,9 +194,13 @@ public static class OfficePngReader {
         return OfficeRasterGuards.EnsureByteCount(expected, "PNG decompressed Adam7 data exceeds size limits.");
     }
 
-    private static bool TryReadPayload(byte[]? bytes, out PngPayload payload) {
+    private static bool TryReadPayload(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        out PngPayload payload) {
         payload = null!;
         if (bytes == null || !OfficePngContainerValidator.TryValidate(bytes, out _, out _)) return false;
+        cancellationToken.ThrowIfCancellationRequested();
 
         int width = 0;
         int height = 0;
@@ -198,6 +214,7 @@ public static class OfficePngReader {
         using MemoryStream idat = new MemoryStream();
         int offset = Signature.Length;
         while (offset + 12 <= bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int length = ReadBigEndianInt32(bytes, offset);
             string type = Encoding.ASCII.GetString(bytes, offset + 4, 4);
             int dataOffset = offset + 8;
@@ -238,7 +255,8 @@ public static class OfficePngReader {
             : GetExpectedAdam7ScanlineBytes(width, height, bitsPerPixel);
         byte[] compressed = idat.ToArray();
         if (compressed.Length < 6) return false;
-        byte[] scanlines = OfficeZlibCodec.Decompress(compressed, expectedScanlineBytes, expectedScanlineBytes);
+        byte[] scanlines = OfficeZlibCodec.Decompress(
+            compressed, expectedScanlineBytes, expectedScanlineBytes, cancellationToken);
         payload = new PngPayload(
             width,
             height,
@@ -323,13 +341,23 @@ public static class OfficePngReader {
         }
     }
 
-    private static void ExpandScanline(byte[] current, int width, int y, int colorType, int bitDepth, byte[]? palette, byte[]? transparency, OfficeRasterImage image) {
+    private static void ExpandScanline(
+        byte[] current,
+        int width,
+        int y,
+        int colorType,
+        int bitDepth,
+        byte[]? palette,
+        byte[]? transparency,
+        OfficeRasterImage image,
+        CancellationToken cancellationToken) {
         if (colorType == 6 && bitDepth == 8) {
             Buffer.BlockCopy(current, 0, image.PixelBuffer, checked(y * width * 4), checked(width * 4));
             return;
         }
 
         for (int x = 0; x < width; x++) {
+            if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             OfficeColor color;
             switch (colorType) {
                 case 0:

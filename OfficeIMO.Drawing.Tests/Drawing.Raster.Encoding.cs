@@ -365,6 +365,19 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal(OfficeColor.FromRgba(159, 71, 76, 255), mixedImage.GetPixel(4, 1));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeWebpCodecDecodesShortenedAndDuplicateSymbolHuffmanTrees(
+        bool duplicateSimpleTree) {
+        byte[] webp = CreateVp8lHuffmanEdgeFixture(duplicateSimpleTree);
+
+        Assert.True(OfficeWebpCodec.TryDecode(webp, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.Equal((1, 1), (image!.Width, image.Height));
+        Assert.Equal(OfficeColor.FromRgba(11, 0, 22, 255), image.GetPixel(0, 0));
+    }
+
     [Fact]
     public void OfficeWebpCodecUsesDeterministicPredictionAndLz77WhenTheyReduceThePayload() {
         var source = new OfficeRasterImage(128, 64, OfficeColor.FromRgba(12, 34, 56, 200));
@@ -498,6 +511,94 @@ public sealed class DrawingRasterEncodingTests {
             } else {
                 bytes[index] = (byte)(bytes[index] & ~mask);
             }
+        }
+    }
+
+    private static byte[] CreateVp8lHuffmanEdgeFixture(bool duplicateSimpleTree) {
+        var writer = new TestLsbBitWriter();
+        writer.WriteBits(0, 14); // width - 1
+        writer.WriteBits(0, 14); // height - 1
+        writer.WriteBits(0, 1);  // no alpha hint
+        writer.WriteBits(0, 3);  // version
+        writer.WriteBits(0, 1);  // no transforms
+        writer.WriteBits(0, 1);  // no color cache
+        writer.WriteBits(0, 1);  // one Huffman group
+        if (duplicateSimpleTree) {
+            WriteDuplicateSimpleTree(writer, 0);
+        } else {
+            WriteShortenedRleTree(writer);
+        }
+        WriteSingleSymbolTree(writer, 11);
+        WriteSingleSymbolTree(writer, 22);
+        WriteSingleSymbolTree(writer, 255);
+        WriteSingleSymbolTree(writer, 0);
+        if (!duplicateSimpleTree) writer.WriteBits(0, 1); // green symbol zero
+
+        byte[] bits = writer.Finish();
+        byte[] payload = new byte[bits.Length + 1];
+        payload[0] = 0x2F;
+        Buffer.BlockCopy(bits, 0, payload, 1, bits.Length);
+        int paddedPayloadLength = payload.Length + (payload.Length & 1);
+        byte[] result = new byte[20 + paddedPayloadLength];
+        System.Text.Encoding.ASCII.GetBytes("RIFF").CopyTo(result, 0);
+        WriteLittleEndian(result, 4, result.Length - 8);
+        System.Text.Encoding.ASCII.GetBytes("WEBP").CopyTo(result, 8);
+        System.Text.Encoding.ASCII.GetBytes("VP8L").CopyTo(result, 12);
+        WriteLittleEndian(result, 16, payload.Length);
+        Buffer.BlockCopy(payload, 0, result, 20, payload.Length);
+        return result;
+    }
+
+    private static void WriteShortenedRleTree(TestLsbBitWriter writer) {
+        writer.WriteBits(0, 1); // normal tree
+        writer.WriteBits(0, 4); // four code-length code lengths
+        writer.WriteBits(1, 3); // symbol 17
+        writer.WriteBits(0, 3); // symbol 18
+        writer.WriteBits(0, 3); // symbol 0
+        writer.WriteBits(1, 3); // symbol 1
+        writer.WriteBits(1, 1); // shortened alphabet
+        writer.WriteBits(0, 3); // two bits encode max_symbol
+        writer.WriteBits(1, 2); // read three encoded code-length symbols
+        writer.WriteBits(0, 1); // length 1
+        writer.WriteBits(0, 1); // length 1
+        writer.WriteBits(1, 1); // repeat zero (symbol 17)
+        writer.WriteBits(0, 3); // repeat three zeros
+    }
+
+    private static void WriteDuplicateSimpleTree(TestLsbBitWriter writer, int symbol) {
+        writer.WriteBits(1, 1); // simple tree
+        writer.WriteBits(1, 1); // two encoded symbols
+        writer.WriteBits(0, 1); // first symbol uses one bit
+        writer.WriteBits((uint)symbol, 1);
+        writer.WriteBits((uint)symbol, 8);
+    }
+
+    private static void WriteSingleSymbolTree(TestLsbBitWriter writer, int symbol) {
+        writer.WriteBits(1, 1);
+        writer.WriteBits(0, 1);
+        writer.WriteBits(symbol > 1 ? 1U : 0U, 1);
+        writer.WriteBits((uint)symbol, symbol > 1 ? 8 : 1);
+    }
+
+    private sealed class TestLsbBitWriter {
+        private readonly System.Collections.Generic.List<byte> _bytes = new();
+        private ulong _buffer;
+        private int _bitCount;
+
+        internal void WriteBits(uint value, int count) {
+            ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
+            _buffer |= ((ulong)value & mask) << _bitCount;
+            _bitCount += count;
+            while (_bitCount >= 8) {
+                _bytes.Add((byte)_buffer);
+                _buffer >>= 8;
+                _bitCount -= 8;
+            }
+        }
+
+        internal byte[] Finish() {
+            if (_bitCount > 0) _bytes.Add((byte)_buffer);
+            return _bytes.ToArray();
         }
     }
 }

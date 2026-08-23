@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 #endif
 using OfficeIMO.Core.Internal;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -516,12 +517,14 @@ public static partial class OfficeTiffCodec {
         int inputCount,
         byte[] output,
         int outputOffset,
-        int expectedCount) {
+        int expectedCount,
+        CancellationToken cancellationToken) {
         int inputEnd = checked(inputOffset + inputCount);
         int outputEnd = checked(outputOffset + expectedCount);
         int source = inputOffset;
         int target = outputOffset;
         while (source < inputEnd && target < outputEnd) {
+            if (((source - inputOffset) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             int header = unchecked((sbyte)input[source++]);
             if (header >= 0) {
                 int literalCount = header + 1;
@@ -630,9 +633,11 @@ public static partial class OfficeTiffCodec {
         int offset,
         int rows,
         int width,
-        int samples) {
+        int samples,
+        CancellationToken cancellationToken) {
         int rowBytes = checked(width * samples);
         for (int row = 0; row < rows; row++) {
+            if ((row & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             int rowOffset = checked(offset + row * rowBytes);
             int rowEnd = checked(rowOffset + rowBytes);
             for (int index = rowOffset + samples; index < rowEnd; index++) {

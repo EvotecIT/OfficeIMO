@@ -31,8 +31,9 @@ internal static class OfficeApngDecoder {
             for (int index = 0; index <= frameIndex; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeRasterFrameInfo frame = container.Frames[index];
-                byte[] standalone = CreateFramePng(ihdr, palette, transparency, frame.Width, frame.Height, framePayloads[index]);
-                if (!OfficePngReader.TryDecode(standalone, out OfficeRasterImage? decoded) || decoded == null ||
+                byte[] standalone = CreateFramePng(ihdr, palette, transparency, frame.Width, frame.Height,
+                    framePayloads[index], cancellationToken);
+                if (!OfficePngReader.TryDecode(standalone, cancellationToken, out OfficeRasterImage? decoded) || decoded == null ||
                     decoded.Width != frame.Width || decoded.Height != frame.Height) {
                     return false;
                 }
@@ -121,18 +122,19 @@ internal static class OfficeApngDecoder {
         byte[]? transparency,
         int width,
         int height,
-        byte[] compressed) {
+        byte[] compressed,
+        CancellationToken cancellationToken) {
         byte[] ihdr = (byte[])sourceIhdr.Clone();
         WriteInt32BigEndian(ihdr, 0, width);
         WriteInt32BigEndian(ihdr, 4, height);
         using var output = new MemoryStream(Signature.Length + compressed.Length + 128 +
             (palette?.Length ?? 0) + (transparency?.Length ?? 0));
         output.Write(Signature, 0, Signature.Length);
-        WriteChunk(output, "IHDR", ihdr);
-        if (palette != null) WriteChunk(output, "PLTE", palette);
-        if (transparency != null) WriteChunk(output, "tRNS", transparency);
-        WriteChunk(output, "IDAT", compressed);
-        WriteChunk(output, "IEND", Array.Empty<byte>());
+        WriteChunk(output, "IHDR", ihdr, cancellationToken);
+        if (palette != null) WriteChunk(output, "PLTE", palette, cancellationToken);
+        if (transparency != null) WriteChunk(output, "tRNS", transparency, cancellationToken);
+        WriteChunk(output, "IDAT", compressed, cancellationToken);
+        WriteChunk(output, "IEND", Array.Empty<byte>(), cancellationToken);
         return output.ToArray();
     }
 
@@ -170,23 +172,34 @@ internal static class OfficeApngDecoder {
         }
     }
 
-    private static void WriteChunk(Stream output, string type, byte[] data) {
+    private static void WriteChunk(
+        Stream output,
+        string type,
+        byte[] data,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] typeBytes = Encoding.ASCII.GetBytes(type);
         byte[] header = new byte[8];
         WriteInt32BigEndian(header, 0, data.Length);
         Buffer.BlockCopy(typeBytes, 0, header, 4, 4);
         output.Write(header, 0, header.Length);
         output.Write(data, 0, data.Length);
-        uint crc = ComputeCrc(typeBytes, data);
+        uint crc = ComputeCrc(typeBytes, data, cancellationToken);
         byte[] checksum = new byte[4];
         WriteUInt32BigEndian(checksum, 0, crc);
         output.Write(checksum, 0, checksum.Length);
     }
 
-    private static uint ComputeCrc(byte[] type, byte[] data) {
+    private static uint ComputeCrc(
+        byte[] type,
+        byte[] data,
+        CancellationToken cancellationToken) {
         uint crc = 0xFFFFFFFFU;
         for (int index = 0; index < type.Length; index++) crc = UpdateCrc(crc, type[index]);
-        for (int index = 0; index < data.Length; index++) crc = UpdateCrc(crc, data[index]);
+        for (int index = 0; index < data.Length; index++) {
+            if ((index & 16383) == 0) cancellationToken.ThrowIfCancellationRequested();
+            crc = UpdateCrc(crc, data[index]);
+        }
         return crc ^ 0xFFFFFFFFU;
     }
 

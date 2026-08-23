@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Validates RFC 1951 block structure and requires one exact Deflate payload.</summary>
@@ -28,12 +29,17 @@ namespace OfficeIMO.Core.Internal {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
 
-        internal static bool TryValidateExact(byte[] bytes, int offset, int count) {
+        internal static bool TryValidateExact(
+            byte[] bytes,
+            int offset,
+            int count,
+            CancellationToken cancellationToken = default) {
             if (bytes == null || offset < 0 || count < 0 || offset > bytes.Length - count) return false;
             var reader = new DeflateBitReader(bytes, offset, count);
             long outputCount = 0;
             bool final;
             do {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!reader.TryReadBits(1, out int finalValue) ||
                     !reader.TryReadBits(2, out int blockType)) {
                     return false;
@@ -45,13 +51,16 @@ namespace OfficeIMO.Core.Internal {
                         break;
                     case 1:
                         if (!TryCreateFixedTables(out HuffmanTable literalLength, out HuffmanTable distance) ||
-                            !TryValidateCompressedBlock(reader, literalLength, distance, ref outputCount)) {
+                            !TryValidateCompressedBlock(reader, literalLength, distance, ref outputCount,
+                                cancellationToken)) {
                             return false;
                         }
                         break;
                     case 2:
-                        if (!TryReadDynamicTables(reader, out HuffmanTable dynamicLiteralLength, out HuffmanTable dynamicDistance) ||
-                            !TryValidateCompressedBlock(reader, dynamicLiteralLength, dynamicDistance, ref outputCount)) {
+                        if (!TryReadDynamicTables(reader, out HuffmanTable dynamicLiteralLength,
+                                out HuffmanTable dynamicDistance, cancellationToken) ||
+                            !TryValidateCompressedBlock(reader, dynamicLiteralLength, dynamicDistance,
+                                ref outputCount, cancellationToken)) {
                             return false;
                         }
                         break;
@@ -92,7 +101,8 @@ namespace OfficeIMO.Core.Internal {
         private static bool TryReadDynamicTables(
             DeflateBitReader reader,
             out HuffmanTable literalLength,
-            out HuffmanTable distance) {
+            out HuffmanTable distance,
+            CancellationToken cancellationToken) {
             literalLength = default;
             distance = default;
             if (!reader.TryReadBits(5, out int literalCountValue) ||
@@ -115,6 +125,7 @@ namespace OfficeIMO.Core.Internal {
             var lengths = new int[literalCount + distanceCount];
             int output = 0;
             while (output < lengths.Length) {
+                if ((output & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (!codeLengthTable.TryDecode(reader, out int symbol)) return false;
                 if (symbol <= 15) {
                     lengths[output++] = symbol;
@@ -155,8 +166,11 @@ namespace OfficeIMO.Core.Internal {
             DeflateBitReader reader,
             HuffmanTable literalLength,
             HuffmanTable distance,
-            ref long outputCount) {
+            ref long outputCount,
+            CancellationToken cancellationToken) {
+            int decodedSymbols = 0;
             while (literalLength.TryDecode(reader, out int symbol)) {
+                if ((decodedSymbols++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (symbol < 256) {
                     outputCount++;
                     if (outputCount < 0) return false;

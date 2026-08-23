@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 #endif
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -57,7 +58,8 @@ public static partial class OfficeTiffCodec {
         int inputCount,
         byte[] output,
         int outputOffset,
-        int expectedCount) {
+        int expectedCount,
+        CancellationToken cancellationToken) {
         if (expectedCount <= 0 || outputOffset < 0 || outputOffset > output.Length - expectedCount) return false;
         var reader = new TiffLzwBitReader(input, inputOffset, inputCount);
         var prefixes = new short[4096];
@@ -70,8 +72,10 @@ public static partial class OfficeTiffCodec {
         int target = outputOffset;
         int outputEnd = checked(outputOffset + expectedCount);
         bool ended = false;
+        int decodedCodes = 0;
 
         while (reader.TryRead(codeSize, out int code)) {
+            if ((decodedCodes++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (code == LzwClearCode) {
                 codeSize = 9;
                 nextCode = LzwFirstCode;

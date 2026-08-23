@@ -190,7 +190,8 @@ public static class OfficeImageOptimizer {
 
         if (!IsSupportedInputFormat(original.Format)) {
             return Result(encodedBytes, OfficeImageOptimizationStatus.UnsupportedFormat, original, original,
-                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
+                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds,
+                    OfficeImageMetadataKinds.None, policyApplied: false));
         }
 
         var decodeOptions = new OfficeRasterDecodeOptions {
@@ -198,7 +199,8 @@ public static class OfficeImageOptimizer {
         };
         if (!OfficeRasterImageDecoder.TryDecode(encodedBytes, decodeOptions, out OfficeRasterImage? decoded, out _) || decoded == null) {
             return Result(encodedBytes, OfficeImageOptimizationStatus.DecodeFailed, original, original,
-                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
+                MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds,
+                    OfficeImageMetadataKinds.None, policyApplied: false));
         }
 
         ResolveDimensions(decoded.Width, decoded.Height, request, out int width, out int height);
@@ -218,7 +220,8 @@ public static class OfficeImageOptimizer {
             out OfficeImageMetadataKinds normalizedMetadata);
         byte[] candidate = Encode(candidateImage, outputFormat, original, request, jpegMetadata);
         OfficeImageInfo final = OfficeImageReader.Identify(candidate);
-        if (request.KeepOriginalWhenNotSmaller && candidate.LongLength >= encodedBytes.LongLength) {
+        if (request.KeepOriginalWhenNotSmaller && !metadataRewriteRequired &&
+            candidate.LongLength >= encodedBytes.LongLength) {
             return Result(encodedBytes, OfficeImageOptimizationStatus.OriginalWasSmaller, original, original,
                 MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
         }
@@ -383,10 +386,12 @@ public static class OfficeImageOptimizer {
         OfficeImageMetadataKinds source,
         OfficeImageMetadataKinds requested,
         OfficeImageMetadataKinds preserved,
-        OfficeImageMetadataKinds normalized) =>
-        new OfficeImageMetadataReport(request.MetadataPolicy, source, requested, preserved & requested, normalized);
+        OfficeImageMetadataKinds normalized,
+        bool policyApplied = true) =>
+        new OfficeImageMetadataReport(request.MetadataPolicy, source, requested, preserved & requested,
+            normalized, policyApplied);
 
     private static OfficeImageMetadataReport EmptyMetadata(OfficeImageMetadataPolicy policy) =>
         new OfficeImageMetadataReport(policy, OfficeImageMetadataKinds.None, OfficeImageMetadataKinds.None,
-            OfficeImageMetadataKinds.None, OfficeImageMetadataKinds.None);
+            OfficeImageMetadataKinds.None, OfficeImageMetadataKinds.None, policyApplied: false);
 }

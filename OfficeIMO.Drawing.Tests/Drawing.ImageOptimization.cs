@@ -216,9 +216,43 @@ namespace OfficeIMO.Tests {
 
             OfficeImageOptimizationResult stripped = OfficeImageOptimizer.Optimize(jpeg, strip);
 
+            Assert.True(stripped.Metadata.PolicyApplied);
             Assert.Equal(OfficeImageMetadataKinds.None, stripped.Metadata.Requested);
             Assert.NotEqual(OfficeImageMetadataKinds.None, stripped.Metadata.Stripped);
             Assert.False(stripped.Metadata.HasLoss);
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerDoesNotRestoreMetadataWhenARequiredStripRewriteIsLarger() {
+            var source = new OfficeRasterImage(32, 32);
+            for (int y = 0; y < source.Height; y++) {
+                for (int x = 0; x < source.Width; x++) {
+                    source.SetPixel(x, y, OfficeColor.FromRgba(
+                        (byte)(x * 17 + y * 11),
+                        (byte)(x * 7 + y * 19),
+                        (byte)(x * 23 + y * 3),
+                        255));
+                }
+            }
+            byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+                Quality = 20,
+                Subsampling = OfficeJpegSubsampling.Y420,
+                Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(3))
+            });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(source.Width, source.Height) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Strip
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageFormat.Png, result.Final.Format);
+            Assert.True(result.FinalEncodedLength > result.OriginalEncodedLength);
+            Assert.True(result.Metadata.PolicyApplied);
+            Assert.NotEqual(OfficeImageMetadataKinds.None, result.Metadata.Stripped);
+            Assert.False(ContainsSequence(result.Bytes, CreateExifOrientation(3)));
         }
 
         [Fact]
@@ -535,11 +569,16 @@ namespace OfficeIMO.Tests {
 
             OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
                 tiff,
-                new OfficeImageOptimizationRequest(2, 2) { KeepOriginalWhenNotSmaller = false });
+                new OfficeImageOptimizationRequest(2, 2) {
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Strip
+                });
 
             Assert.Equal(OfficeImageOptimizationStatus.DecodeFailed, result.Status);
             Assert.False(result.Changed);
             Assert.Equal(tiff, result.Bytes);
+            Assert.False(result.Metadata.PolicyApplied);
+            Assert.Equal(OfficeImageMetadataKinds.None, result.Metadata.Stripped);
         }
 
         [Fact]

@@ -40,12 +40,14 @@ public sealed class OfficeImageMetadataReport {
         OfficeImageMetadataKinds source,
         OfficeImageMetadataKinds requested,
         OfficeImageMetadataKinds preserved,
-        OfficeImageMetadataKinds normalized) {
+        OfficeImageMetadataKinds normalized,
+        bool policyApplied) {
         Policy = policy;
         Source = source;
         Requested = requested;
         Preserved = preserved;
         Normalized = normalized;
+        PolicyApplied = policyApplied;
     }
 
     /// <summary>Requested metadata policy.</summary>
@@ -58,10 +60,14 @@ public sealed class OfficeImageMetadataReport {
     public OfficeImageMetadataKinds Preserved { get; }
     /// <summary>Categories whose semantics were retained after a required value rewrite.</summary>
     public OfficeImageMetadataKinds Normalized { get; }
+    /// <summary>Whether the requested policy was applied to the returned encoded bytes.</summary>
+    public bool PolicyApplied { get; }
     /// <summary>Selected categories that could not be retained.</summary>
     public OfficeImageMetadataKinds Lost => Requested & ~Preserved;
     /// <summary>Source categories deliberately removed by policy.</summary>
-    public OfficeImageMetadataKinds Stripped => Source & ~Requested;
+    public OfficeImageMetadataKinds Stripped => PolicyApplied
+        ? Source & ~Requested
+        : OfficeImageMetadataKinds.None;
     /// <summary>Whether the rewrite lost any selected metadata category.</summary>
     public bool HasLoss => Lost != OfficeImageMetadataKinds.None;
 }

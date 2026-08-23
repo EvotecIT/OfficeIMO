@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -33,6 +34,29 @@ public sealed class DrawingRasterCodecRobustnessTests {
                 Buffer.BlockCopy(bytes, 0, truncated, 0, length);
                 Assert.False(OfficeRasterImageDecoder.TryDecode(truncated, out _));
             }
+        }
+    }
+
+    [Fact]
+    public void BoundedPngAndTiffDecodeObserveCancellationInsideCodecWork() {
+        var source = new OfficeRasterImage(4096, 1025, OfficeColor.FromRgba(24, 80, 160, 224));
+        byte[][] encoded = {
+            OfficePngWriter.Encode(source),
+            OfficeTiffCodec.Encode(source, new OfficeTiffEncodeOptions {
+                Compression = OfficeTiffCompression.Lzw,
+                Predictor = OfficeTiffPredictor.Horizontal
+            })
+        };
+
+        foreach (byte[] bytes in encoded) {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.CancelAfter(TimeSpan.FromMilliseconds(1));
+            var options = new OfficeRasterDecodeOptions {
+                CancellationToken = cancellation.Token
+            };
+
+            Assert.Throws<OperationCanceledException>(() =>
+                OfficeRasterImageDecoder.TryDecode(bytes, options, out _, out _));
         }
     }
 
