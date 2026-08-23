@@ -15,7 +15,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | RTF | Full validated RTF-to-HTML evidence shows OfficeIMO faster and lower-allocation in every corpus | Output is smaller on the three equivalent generated corpora; the higher-fidelity producer output remains 3.14x larger | RtfPipe for validated RTF-to-HTML | Reduce fidelity-preserving producer HTML overhead further and add Linux/macOS evidence |
 | OpenDocument | BenchmarkDotNet open, sparse-write, formula, and validated ODS create/read comparisons | Evidence runner records peak working set and package input/output bytes; the ODS comparison exports validated size sidecars | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
 | OneNote | BenchmarkDotNet native read, write, and Markdown projection | Write returns bytes but size and peak memory are not recorded as evidence | No like-for-like offline semantic `.one` competitor | Add validated artifact-size and isolated peak-memory evidence |
-| Email | Full validated EML read/write evidence is within 2x of MimeKit for time and allocation | Validated EML output is 1.07-1.08x MimeKit; retained-memory and source-read ceilings are covered | MimeKit 4.17.0 for equivalent complete MIME workflows | Diagnose and remediate the separate PST 2,000-item scale-test failure; add isolated peak-memory evidence |
+| Email | Full validated EML read/write evidence is within 2x of MimeKit; the 2,000-item PST scale contract fell from 68.19s to 4.03s | Validated EML output is 1.07-1.08x MimeKit; the 4.08 MB PST retained 0.70 MB managed memory | MimeKit 4.17.0 for equivalent complete MIME workflows | Add isolated peak-memory and non-Windows evidence; add a PST competitor only if the same managed creation contract is available |
 | ZIP, Security, Provenance, AsciiDoc, LaTeX, EPUB, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
 
 This table describes measurement coverage, not a library ranking. A returned
@@ -99,7 +99,9 @@ The full Windows run is recorded in
 [`officeimo.email-mime-2026-08-24.md`](officeimo.email-mime-2026-08-24.md).
 All read and write lanes are within 2x for both mean time and managed allocation;
 validated OfficeIMO output is 1.07-1.08x the MimeKit byte size. The comparison
-project stays outside `OfficeIMO.sln`, so MimeKit remains benchmark-only.
+project stays outside `OfficeIMO.sln`, so MimeKit remains benchmark-only. The
+same evidence note records the separate 16.9x PST scale-test improvement from
+removing disk-journal setup for single-block data trees.
 
 ## OpenDocument comparisons
 

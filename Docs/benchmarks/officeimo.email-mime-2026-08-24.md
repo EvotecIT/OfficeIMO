@@ -45,3 +45,18 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparis
 The comparison project remains outside `OfficeIMO.sln`; MimeKit is an opt-in
 benchmark dependency and does not enter OfficeIMO runtime restore or packages.
 Raw BenchmarkDotNet output remains local.
+
+## PST scale regression
+
+The existing `TwoThousandMessagePstUsesBoundedRetainedManagedMemory` contract
+also exposed a separate writer regression during this pass. An isolated .NET 10
+run took 68.19 seconds before the fix, exceeding its 45-second ceiling. Small
+properties and single-block heaps were needlessly routed through disk-backed
+data-tree journals. Commit `2e334d57e15de88c524554c14c94a02272bf64c2`
+writes payloads at or below the 8,176-byte PST block limit directly and retains
+the journaled path for larger data trees.
+
+The committed-head rerun completed in 4.03 seconds, a 16.9x reduction. It wrote
+2,000 items to a 4,080,640-byte PST, retained 733,072 managed bytes, reopened the
+artifact, and enumerated all 2,000 items. Boundary coverage separately round
+trips 8,176-byte direct and 8,177-byte journaled data trees.
