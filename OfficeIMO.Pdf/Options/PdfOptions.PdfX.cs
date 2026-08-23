@@ -9,6 +9,7 @@ public sealed partial class PdfOptions {
     private PdfColor _pdfXTransparencyBackground = PdfColor.White;
     private OfficeIccRenderingIntent _pdfXRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric;
     private PdfBlackPreservationMode _blackPreservationMode = PdfBlackPreservationMode.NeutralAxis;
+    private PdfPrintProductionPageBoxes? _printProductionPageBoxes;
 
     /// <summary>Optional PDF/X identification metadata written to XMP.</summary>
     public PdfXIdentification? PdfXIdentification {
@@ -75,6 +76,14 @@ public sealed partial class PdfOptions {
         }
     }
 
+    /// <summary>Optional TrimBox and BleedBox policy for generated print-production pages.</summary>
+    public PdfPrintProductionPageBoxes? PrintProductionPageBoxes {
+        get => _printProductionPageBoxes;
+        set => _printProductionPageBoxes = value;
+    }
+
+    internal PdfPrintProductionPageBoxes? PrintProductionPageBoxesSnapshot => _printProductionPageBoxes;
+
     /// <summary>Sets PDF/X identification metadata.</summary>
     public PdfOptions SetPdfXIdentification(PdfXIdentification? identification) {
         PdfXIdentification = identification;
@@ -126,6 +135,7 @@ public sealed partial class PdfOptions {
         PdfXTransparencyBackground = PdfColor.White;
         PdfXRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric;
         BlackPreservationMode = PdfBlackPreservationMode.NeutralAxis;
+        PrintProductionPageBoxes = PdfPrintProductionPageBoxes.FullBleed;
         return this;
     }
 }

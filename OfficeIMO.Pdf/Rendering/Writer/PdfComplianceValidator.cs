@@ -74,12 +74,8 @@ internal static class PdfComplianceValidator {
         PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessDocument(
             options.ComplianceProfile,
             options,
-            evidence.StandardFonts,
-            evidence.FontUsages,
-            documentTitle,
-            evidence.Images,
-            evidence.Drawings,
-            evidence.Forms);
+            evidence,
+            documentTitle);
         PdfComplianceRequirement[] gaps = readiness.Requirements
             .Where(requirement =>
                 !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&

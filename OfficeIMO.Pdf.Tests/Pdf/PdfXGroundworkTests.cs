@@ -35,6 +35,7 @@ public class PdfXGroundworkTests {
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfComplianceReadinessReport readback = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+        PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
         PdfOptions clone = options.Clone();
 
         Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
@@ -45,11 +46,13 @@ public class PdfXGroundworkTests {
         Assert.Equal(PdfOutputIntentPolicy.PdfXPrintCondition, clone.OutputIntent.Policy);
         Assert.Equal(4, clone.OutputIntent.ColorComponents);
         Assert.Equal(PdfTrappingStatus.False, clone.TrappingStatus);
+        Assert.NotNull(clone.PrintProductionPageBoxes);
         Assert.StartsWith("%PDF-1.6", raw, StringComparison.Ordinal);
         Assert.Contains("xmlns:pdfxid=\"http://www.npes.org/pdfx/ns/id/\"", raw, StringComparison.Ordinal);
         Assert.Contains("<pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion>", raw, StringComparison.Ordinal);
         Assert.Contains("/S /GTS_PDFX", raw, StringComparison.Ordinal);
         Assert.Contains("/Trapped /False", raw, StringComparison.Ordinal);
+        Assert.Contains("/TrimBox [0 0 612 792] /BleedBox [0 0 612 792]", raw, StringComparison.Ordinal);
         Assert.Contains("0 0 0 0.5 k", raw, StringComparison.Ordinal);
         Assert.DoesNotContain(" rg\n", raw, StringComparison.Ordinal);
         Assert.Contains("/ColorSpace /DeviceCMYK", raw, StringComparison.Ordinal);
@@ -58,10 +61,101 @@ public class PdfXGroundworkTests {
         Assert.Equal("GTS_PDFX", Assert.Single(info.OutputIntents).Subtype);
         Assert.Equal(PdfComplianceRequirementStatus.Satisfied, readback.FindRequirement("readback-pdfx-color-inspection-complete")!.Status);
         Assert.Equal(PdfComplianceRequirementStatus.Satisfied, readback.FindRequirement("readback-pdfx-no-device-rgb")!.Status);
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, readback.FindRequirement("readback-pdfx-fonts-embedded")!.Status);
         Assert.True(evidence.IsComplete);
         Assert.False(evidence.HasDeviceRgbUsage);
         Assert.True(evidence.DeviceCmykOperatorCount > 0);
         Assert.Equal(1, evidence.DeviceCmykImageCount);
+        Assert.Equal(1, structure.ValidProductionPageBoxCount);
+    }
+
+    [Fact]
+    public void PdfXExactArtifactIsInternallyReadyOnlyWithProductionBoxesAndEmbeddedFonts() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) return;
+        var options = new PdfOptions()
+            .ConfigurePdfXGroundwork(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51")
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "PDF/X audit font");
+
+        PdfComplianceArtifact artifact = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Self-contained print artifact."))
+            .CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
+        PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(artifact.ToBytes())
+            .InspectPrintProductionStructure();
+
+        Assert.True(structure.IsComplete);
+        Assert.Equal(1, structure.FontResourceCount);
+        Assert.Equal(0, structure.UnembeddedFontResourceCount);
+        Assert.Equal(PdfComplianceRequirementStatus.Satisfied, artifact.Readiness.FindRequirement("readback-pdfx-page-boxes")!.Status);
+        Assert.Equal(PdfComplianceRequirementStatus.Satisfied, artifact.Readiness.FindRequirement("readback-pdfx-fonts-embedded")!.Status);
+        Assert.All(
+            artifact.Readiness.Requirements.Where(requirement => requirement.Id != "pdfx-validation"),
+            requirement => Assert.Equal(PdfComplianceRequirementStatus.Satisfied, requirement.Status));
+        Assert.False(artifact.AssessProof().CanClaimConformance);
+    }
+
+    [Fact]
+    public void PdfXStructureInspectorAcceptsEmbeddedOpenTypeCffFontPrograms() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        if (fontPath == null) return;
+        var options = new PdfOptions()
+            .ConfigurePdfXGroundwork(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51")
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "PDF/X CFF audit font");
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Embedded CFF print artifact."))
+            .ToBytes();
+        PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf)
+            .InspectPrintProductionStructure();
+
+        Assert.Equal(1, structure.FontResourceCount);
+        Assert.Equal(0, structure.UnembeddedFontResourceCount);
+        Assert.Equal(0, structure.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void PdfXGeneratedAndExactPoliciesRejectLinks() {
+        var options = new PdfOptions()
+            .ConfigurePdfXGroundwork(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51");
+        PdfDocument document = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Link("External", "https://example.com"));
+
+        PdfComplianceReadinessReport generated = document.AssessCompliance(PdfComplianceProfile.PdfX4);
+        PdfComplianceArtifact artifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
+
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, generated.FindRequirement("pdfx-no-annotations")!.Status);
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, generated.FindRequirement("pdfx-no-external-references")!.Status);
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, artifact.Readiness.FindRequirement("readback-pdfx-no-annotations")!.Status);
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, artifact.Readiness.FindRequirement("readback-pdfx-no-external-references")!.Status);
+    }
+
+    [Fact]
+    public void PrintProductionPageBoxesRequireBleedToContainTrim() {
+        Assert.Throws<ArgumentException>(() => new PdfPrintProductionPageBoxes(
+            PageMargins.Uniform(3D),
+            PageMargins.Uniform(6D)));
+
+        var options = new PdfOptions {
+            PageWidth = 100D,
+            PageHeight = 100D,
+            Margins = PageMargins.Uniform(0D),
+            PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(
+                new PageMargins(60D, 0D, 40D, 0D),
+                PageMargins.Uniform(0D))
+        };
+
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Invalid trim geometry."))
+            .ToBytes());
     }
 
     [Fact]

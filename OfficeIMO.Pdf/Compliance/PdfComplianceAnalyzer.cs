@@ -19,14 +19,15 @@ internal static partial class PdfComplianceAnalyzer {
     /// Analyzes the supplied options against a requested formal compliance profile, including generated standard-font usage evidence when available.
     /// </summary>
     public static PdfComplianceReadinessReport Assess(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
-        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages: null, documentTitle: null, hasDocumentMetadataEvidence: false, generatedImages: null, generatedDrawings: null, generatedForms: null);
+        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages: null, documentTitle: null, hasDocumentMetadataEvidence: false, generatedImages: null, generatedDrawings: null, generatedForms: null, generatedEvidence: null);
     }
 
-    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
-        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages, documentTitle, hasDocumentMetadataEvidence: true, generatedImages: generatedImages, generatedDrawings: generatedDrawings, generatedForms: generatedForms);
+    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfOptions options, PdfGeneratedDocumentComplianceEvidence evidence, string? documentTitle) {
+        Guard.NotNull(evidence, nameof(evidence));
+        return AssessCore(profile, options, evidence.StandardFonts, evidence.FontUsages, documentTitle, hasDocumentMetadataEvidence: true, generatedImages: evidence.Images, generatedDrawings: evidence.Drawings, generatedForms: evidence.Forms, generatedEvidence: evidence);
     }
 
-    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
+    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(options, nameof(options));
 
@@ -77,7 +78,7 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         if (IsPdfX(profile)) {
-            AddPdfXRequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot);
+            AddPdfXRequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot, generatedEvidence);
         }
 
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());

@@ -956,7 +956,8 @@ internal static partial class PdfWriter {
                     properties: page.Layers
                         .Distinct()
                         .Select(definition => ("/" + definition.ResourceName, optionalContentGroupIds[definition]))
-                        .ToList()));
+                        .ToList(),
+                    printProductionPageBoxes: pageOpts.PrintProductionPageBoxesSnapshot));
             pageIds.Add(pageId);
         }
 

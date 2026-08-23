@@ -16,6 +16,18 @@ internal static class PdfComplianceTestFonts {
         return null;
     }
 
+    internal static string? FindBundledTrueTypeFont() {
+        const string relativePath = "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf";
+        foreach (string root in EnumerateSearchRoots()) {
+            string candidate = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
     internal static string? FindLocalTrueTypeFont() {
         string windowsFont = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts", "arial.ttf");
         if (File.Exists(windowsFont)) {

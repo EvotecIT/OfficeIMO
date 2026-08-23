@@ -6,7 +6,8 @@ internal static partial class PdfComplianceAnalyzer {
         PdfComplianceProfile profile,
         PdfOptions options,
         PdfStandardFont[]? generatedStandardFonts,
-        PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
+        PdfGeneratedFontComplianceEvidence[]? generatedFontUsages,
+        PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         PdfXIdentification? identification = options.PdfXIdentification;
         string expectedVersion = profile == PdfComplianceProfile.PdfX1A2003
             ? "PDF/X-1a:2003"
@@ -75,16 +76,52 @@ internal static partial class PdfComplianceAnalyzer {
                 ? "Appearance streams and every remaining color-bearing resource still require CMYK conversion plus proof that no RGB or transparency remains before PDF/X-1a generation can be enabled."
                 : "Appearance-stream color management, vector transparency policy, and exact readback proof are required before PDF/X-4 generation can be enabled."));
 
-        requirements.Add(new PdfComplianceRequirement(
-            "pdfx-production-content-policy",
-            "PDF/X self-contained production content",
-            PdfComplianceRequirementStatus.Unsupported,
-            "Generated annotations, forms, optional content, external references, embedded files, page boxes, and prohibited actions still require an owner-level fail-closed production policy."));
+        AddGeneratedProductionContentRequirements(requirements, options, generatedEvidence);
 
         requirements.Add(new PdfComplianceRequirement(
             "pdfx-validation",
             "Qualified PDF/X preflight evidence",
             PdfComplianceRequirementStatus.Unsupported,
             "Run a qualified PDF/X preflight validator against the exact saved artifact before claiming conformance."));
+    }
+
+    private static void AddGeneratedProductionContentRequirements(
+        List<PdfComplianceRequirement> requirements,
+        PdfOptions options,
+        PdfGeneratedDocumentComplianceEvidence? evidence) {
+        Add(requirements, "pdfx-no-embedded-files", "PDF/X embedded-file policy",
+            options.EmbeddedFileSnapshots.Count == 0 && options.PortfolioSnapshot == null,
+            "No embedded files or portfolio catalog are configured.",
+            "Remove embedded files and portfolio configuration from PDF/X output.");
+        Add(requirements, "pdfx-no-catalog-actions", "PDF/X catalog action policy",
+            options.OpenActionSnapshot == null && string.IsNullOrWhiteSpace(options.CatalogUriBaseSnapshot),
+            "No catalog open action or URI base is configured.",
+            "Remove catalog open actions and URI bases from PDF/X output.");
+
+        if (evidence == null) {
+            requirements.Add(new PdfComplianceRequirement(
+                "pdfx-generated-production-content",
+                "Generated PDF/X production content",
+                PdfComplianceRequirementStatus.Unsupported,
+                "Lay out the generated document to verify page boxes, annotations, forms, layers, and external references."));
+            return;
+        }
+
+        Add(requirements, "pdfx-page-boxes", "PDF/X TrimBox and BleedBox policy",
+            evidence.PageCount > 0 && evidence.PagesWithPrintProductionBoxes == evidence.PageCount,
+            "Every generated page has an explicit TrimBox and containing BleedBox policy.",
+            "Configure PdfOptions.PrintProductionPageBoxes for every generated page.");
+        Add(requirements, "pdfx-no-annotations", "PDF/X annotation policy",
+            evidence.AnnotationCount == 0,
+            "No page annotations or form widgets will be generated.",
+            "Remove links, notes, unflattened visual annotations, and form widgets from PDF/X output.");
+        Add(requirements, "pdfx-no-optional-content", "PDF/X optional-content policy",
+            evidence.OptionalContentLayerCount == 0,
+            "No optional-content layers will be generated.",
+            "Remove optional-content layers from PDF/X output.");
+        Add(requirements, "pdfx-no-external-references", "PDF/X external-reference policy",
+            evidence.ExternalReferenceCount == 0 && string.IsNullOrWhiteSpace(options.CatalogUriBaseSnapshot),
+            "No external URI references will be generated.",
+            "Remove external URI links and the catalog URI base from PDF/X output.");
     }
 }

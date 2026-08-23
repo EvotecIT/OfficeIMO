@@ -15,7 +15,8 @@ internal static class PdfPageDictionaryBuilder {
         IReadOnlyList<int> annotationIds,
         int? structParents = null,
         bool useStructureTabOrder = false,
-        IReadOnlyList<(string Name, int Id)>? properties = null) {
+        IReadOnlyList<(string Name, int Id)>? properties = null,
+        PdfPrintProductionPageBoxes? printProductionPageBoxes = null) {
         ValidatePositiveFinite(pageWidth, nameof(pageWidth));
         ValidatePositiveFinite(pageHeight, nameof(pageHeight));
 
@@ -26,7 +27,15 @@ internal static class PdfPageDictionaryBuilder {
             .Append(FormatWholeNumber(pageWidth))
             .Append(' ')
             .Append(FormatWholeNumber(pageHeight))
-            .Append("] /Resources <<");
+            .Append(']');
+
+        if (printProductionPageBoxes != null) {
+            PdfResolvedPrintProductionPageBoxes boxes = printProductionPageBoxes.Resolve(pageWidth, pageHeight);
+            AppendBox(sb, "TrimBox", boxes.TrimLeft, boxes.TrimBottom, boxes.TrimRight, boxes.TrimTop);
+            AppendBox(sb, "BleedBox", boxes.BleedLeft, boxes.BleedBottom, boxes.BleedRight, boxes.BleedTop);
+        }
+
+        sb.Append(" /Resources <<");
 
         AppendResourcePart(sb, "Font", fontResources);
         AppendResourcePart(sb, "XObject", xObjects);
@@ -109,6 +118,17 @@ internal static class PdfPageDictionaryBuilder {
 
     private static string FormatWholeNumber(double value) =>
         value.ToString("0", CultureInfo.InvariantCulture);
+
+    private static void AppendBox(StringBuilder sb, string name, double left, double bottom, double right, double top) {
+        sb.Append(" /").Append(name).Append(" [")
+            .Append(FormatNumber(left)).Append(' ')
+            .Append(FormatNumber(bottom)).Append(' ')
+            .Append(FormatNumber(right)).Append(' ')
+            .Append(FormatNumber(top)).Append(']');
+    }
+
+    private static string FormatNumber(double value) =>
+        value.ToString("0.###", CultureInfo.InvariantCulture);
 
     private static void ValidatePositiveFinite(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) {

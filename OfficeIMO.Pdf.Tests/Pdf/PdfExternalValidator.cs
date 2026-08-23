@@ -31,7 +31,7 @@ internal sealed class PdfExternalValidator {
 
     internal string GetNotConfiguredText() =>
         Name + " was not configured, so external validation was not run." + Environment.NewLine +
-        "Set OFFICEIMO_VERAPDF, OFFICEIMO_VERAPDF_PATH, OFFICEIMO_PDFUA_VALIDATOR, OFFICEIMO_PDFUA_VALIDATOR_PATH, OFFICEIMO_MUSTANG, or OFFICEIMO_MUSTANG_PATH as appropriate, or add the tool to PATH." + Environment.NewLine;
+        "Set OFFICEIMO_VERAPDF, OFFICEIMO_VERAPDF_PATH, OFFICEIMO_PDFUA_VALIDATOR, OFFICEIMO_PDFUA_VALIDATOR_PATH, OFFICEIMO_MUSTANG, OFFICEIMO_MUSTANG_PATH, OFFICEIMO_PDFX_VALIDATOR, or OFFICEIMO_PDFX_VALIDATOR_PATH as appropriate, or add the tool to PATH." + Environment.NewLine;
 
     internal static PdfExternalValidator VeraPdf(string flavor = "3b") {
         if (string.IsNullOrWhiteSpace(flavor)) {
@@ -75,10 +75,23 @@ internal sealed class PdfExternalValidator {
         return new PdfExternalValidator("Mustang", path, args, explicitPath == null && path != null);
     }
 
+    internal static PdfExternalValidator PdfX(string profile) {
+        if (string.IsNullOrWhiteSpace(profile)) {
+            throw new ArgumentException("PDF/X validation profile cannot be empty.", nameof(profile));
+        }
+
+        string? explicitPath = FirstNonEmpty(
+            Environment.GetEnvironmentVariable("OFFICEIMO_PDFX_VALIDATOR"),
+            Environment.GetEnvironmentVariable("OFFICEIMO_PDFX_VALIDATOR_PATH"));
+        string? path = explicitPath ?? FindOnPath("pdfx-validator", "pdfx-validator.bat", "pdfx-validator.exe");
+        string[] args = GetConfiguredArgs("OFFICEIMO_PDFX_VALIDATOR_ARGS", "{pdf}");
+        return new PdfExternalValidator("PDF/X validator", path, args, explicitPath == null && path != null, profile);
+    }
+
     internal static void SkipUnlessRequired(PdfExternalValidator validator) {
         if (IsRequired()) {
             throw new InvalidOperationException(
-                validator.Name + " compliance validation was required, but the validator was not found. Set OFFICEIMO_VERAPDF, OFFICEIMO_VERAPDF_PATH, OFFICEIMO_PDFUA_VALIDATOR, OFFICEIMO_PDFUA_VALIDATOR_PATH, OFFICEIMO_MUSTANG, or OFFICEIMO_MUSTANG_PATH as appropriate, or add the tool to PATH.");
+                validator.Name + " compliance validation was required, but the validator was not found. " + validator.GetNotConfiguredText().Trim());
         }
     }
 

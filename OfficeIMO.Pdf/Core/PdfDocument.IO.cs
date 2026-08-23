@@ -20,7 +20,7 @@ public sealed partial class PdfDocument {
         }
 
         PdfGeneratedDocumentComplianceEvidence evidence = PdfWriter.CollectGeneratedComplianceEvidence(this, _blocks, _options);
-        return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence.StandardFonts, evidence.FontUsages, _title, evidence.Images, evidence.Drawings, evidence.Forms);
+        return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence, _title);
     }
 
     /// <summary>
@@ -56,15 +56,6 @@ public sealed partial class PdfDocument {
             _author,
             _subject,
             _keywords);
-        PdfComplianceReadinessReport generatedReadiness = PdfComplianceAnalyzer.AssessDocument(
-            profile,
-            _options,
-            evidence.StandardFonts,
-            evidence.FontUsages,
-            _title,
-            evidence.Images,
-            evidence.Drawings,
-            evidence.Forms);
         PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
         PdfReadOptions? readOptions = encryption == null
             ? null
@@ -72,7 +63,11 @@ public sealed partial class PdfDocument {
                 Password = encryption.UserPassword,
                 AesCryptographyProvider = encryption.AesCryptographyProvider
             };
-        return new PdfComplianceArtifact(bytes, generatedReadiness, readOptions);
+        bool isPdfX = profile == PdfComplianceProfile.PdfX1A2003 || profile == PdfComplianceProfile.PdfX4;
+        PdfComplianceReadinessReport artifactReadiness = isPdfX
+            ? PdfComplianceAnalyzer.AssessReadback(profile, bytes, readOptions)
+            : PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence, _title);
+        return new PdfComplianceArtifact(bytes, artifactReadiness, readOptions);
     }
 
     /// <summary>

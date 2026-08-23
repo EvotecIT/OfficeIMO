@@ -356,6 +356,25 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void PageDictionaryBuilder_EmitsResolvedPrintProductionBoxes() {
+            string page = PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
+                2,
+                612,
+                792,
+                10,
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<int>(),
+                printProductionPageBoxes: new PdfPrintProductionPageBoxes(
+                    PageMargins.Uniform(9D),
+                    PageMargins.Uniform(3D)));
+
+            Assert.Contains("/TrimBox [9 9 603 783] /BleedBox [3 3 609 789]", page, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void StructTreeRootDictionaryBuilder_EmitsParentTreeNextKey() {
             var parentTreeEntries = new[] {
                 PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentPage(0, new[] { 6 }),

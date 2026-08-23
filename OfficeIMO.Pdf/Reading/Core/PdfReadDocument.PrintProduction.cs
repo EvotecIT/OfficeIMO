@@ -10,4 +10,10 @@ public sealed partial class PdfReadDocument {
         DemandContentExtraction("print-production content");
         return PdfPrintProductionColorInspector.Inspect(this);
     }
+
+    /// <summary>Inspects exact-artifact print boundary boxes and font embedding.</summary>
+    public PdfPrintProductionStructureEvidence InspectPrintProductionStructure() {
+        DemandContentExtraction("print-production structure");
+        return PdfPrintProductionStructureInspector.Inspect(this);
+    }
 }

@@ -8,6 +8,8 @@ param(
     [string] $PdfUaValidatorArgs = "",
     [string] $MustangPath = "",
     [string] $MustangArgs = "",
+    [string] $PdfXValidatorPath = "",
+    [string] $PdfXValidatorArgs = "",
     [switch] $NoRestore,
     [switch] $RequireValidators
 )
@@ -30,6 +32,10 @@ function Get-ValidatorKindFromFileName {
 
     if ($FileName -like 'pdfua-*') {
         return 'PdfUaValidator'
+    }
+
+    if ($FileName -like 'pdfx-*') {
+        return 'PdfXValidator'
     }
 
     return 'Custom'
@@ -59,6 +65,14 @@ function Get-ValidatorProfileFromFileName {
 
     if ($FileName -like '*pdfua*') {
         return 'PDF/UA-1'
+    }
+
+    if ($FileName -like '*pdfx1a2003*') {
+        return 'PDF/X-1a:2003'
+    }
+
+    if ($FileName -like '*pdfx4*') {
+        return 'PDF/X-4'
     }
 
     return ''
@@ -119,6 +133,11 @@ function Test-ValidatorDiagnosticFailureEvidence {
                 $Text -match '(?i)\bnot\s+(a\s+)?valid\b' -or
                 $Text -match '(?i)\bnon-?compliant\b'
         }
+        'PdfXValidator' {
+            return $Text -match '(?i)\b(not\s+compliant|non-?compliant|invalid)\b' -or
+                $Text -match '(?i)\b(preflight|validation)\s+(failed|error)\b' -or
+                $Text -match '(?i)\bviolations?\b'
+        }
         default {
             return $false
         }
@@ -146,6 +165,10 @@ function Get-ExpectedValidatorStatus {
     }
 
     if ($ValidatorKind -eq 'Mustang' -and $ValidatorConfiguration.mustangExecutableConfigured) {
+        return 'Passed'
+    }
+
+    if ($ValidatorKind -eq 'PdfXValidator' -and $ValidatorConfiguration.pdfXValidatorExecutableConfigured) {
         return 'Passed'
     }
 
@@ -202,6 +225,8 @@ function Get-ArtifactFileFromDiagnosticFileName {
         'verapdf-zugferd.txt' { return 'officeimo-zugferd.pdf' }
         'mustang-zugferd.txt' { return 'officeimo-zugferd.pdf' }
         'pdfua-pdfua1.txt' { return 'officeimo-pdfua1.pdf' }
+        'pdfx-pdfx1a2003.txt' { return 'officeimo-pdfx1a2003.pdf' }
+        'pdfx-pdfx4.txt' { return 'officeimo-pdfx4.pdf' }
         default { return $null }
     }
 }
@@ -307,6 +332,28 @@ function Get-ProofProfileRows {
             canBecomeClaimable = $true
             formalClaimStatus = 'ValidatorBackedFormalGeneration'
             nextAction = 'Keep the exact ZUGFeRD invoice validation green.'
+        },
+        [ordered] @{
+            profileId = 'pdfx-1a-2003'
+            displayName = 'PDF/X-1a:2003'
+            fixtureFile = 'officeimo-pdfx1a2003.pdf'
+            validatorKind = 'PdfXValidator'
+            validatorDiagnosticFileName = 'pdfx-pdfx1a2003.txt'
+            readinessRequirementId = 'pdfx-validation'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'QualifiedPreflightRequired'
+            nextAction = 'Keep qualified exact-artifact PDF/X-1a:2003 preflight green.'
+        },
+        [ordered] @{
+            profileId = 'pdfx-4'
+            displayName = 'PDF/X-4'
+            fixtureFile = 'officeimo-pdfx4.pdf'
+            validatorKind = 'PdfXValidator'
+            validatorDiagnosticFileName = 'pdfx-pdfx4.txt'
+            readinessRequirementId = 'pdfx-validation'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'QualifiedPreflightRequired'
+            nextAction = 'Keep qualified exact-artifact PDF/X-4 preflight green.'
         }
     )
 
@@ -379,6 +426,16 @@ function Get-ProductProofDiagnosticFileName {
                 return 'mustang-zugferd.txt'
             }
         }
+        'PdfX1A2003' {
+            if ($ValidatorKind -eq 'PdfXValidator') {
+                return 'pdfx-pdfx1a2003.txt'
+            }
+        }
+        'PdfX4' {
+            if ($ValidatorKind -eq 'PdfXValidator') {
+                return 'pdfx-pdfx4.txt'
+            }
+        }
     }
 
     return $null
@@ -403,6 +460,8 @@ function Update-ProductProofContractWithDiagnostics {
             'PdfUa1' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-pdfua1.pdf' }) | Select-Object -First 1 }
             'FacturX' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-facturx.pdf' }) | Select-Object -First 1 }
             'Zugferd' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-zugferd.pdf' }) | Select-Object -First 1 }
+            'PdfX1A2003' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-pdfx1a2003.pdf' }) | Select-Object -First 1 }
+            'PdfX4' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-pdfx4.pdf' }) | Select-Object -First 1 }
             default { $null }
         }
         if ($profileFixture) {
@@ -496,6 +555,7 @@ function Update-ProductProofContractWithDiagnostics {
                 'VeraPdf' { [void] $satisfiedRequirementIds.Add('verapdf-validation') }
                 'PdfUaValidator' { [void] $satisfiedRequirementIds.Add('pdfua-validation') }
                 'Mustang' { [void] $satisfiedRequirementIds.Add('mustang-validation') }
+                'PdfXValidator' { [void] $satisfiedRequirementIds.Add('pdfx-validation') }
             }
         }
 
@@ -532,7 +592,9 @@ $generatedProofPdfFileNames = @(
     'officeimo-pdfa3b.pdf',
     'officeimo-facturx.pdf',
     'officeimo-zugferd.pdf',
-    'officeimo-pdfua1.pdf'
+    'officeimo-pdfua1.pdf',
+    'officeimo-pdfx1a2003.pdf',
+    'officeimo-pdfx4.pdf'
 )
 
 $generatedProofDiagnosticFileNames = @(
@@ -542,7 +604,9 @@ $generatedProofDiagnosticFileNames = @(
     'mustang-facturx.txt',
     'verapdf-zugferd.txt',
     'mustang-zugferd.txt',
-    'pdfua-pdfua1.txt'
+    'pdfua-pdfua1.txt',
+    'pdfx-pdfx1a2003.txt',
+    'pdfx-pdfx4.txt'
 )
 
 $legacyGeneratedProofFileNames = @(
@@ -582,6 +646,9 @@ $previousPdfUaValidatorArgs = $env:OFFICEIMO_PDFUA_VALIDATOR_ARGS
 $previousMustangExecutable = $env:OFFICEIMO_MUSTANG
 $previousMustangPath = $env:OFFICEIMO_MUSTANG_PATH
 $previousMustangArgs = $env:OFFICEIMO_MUSTANG_ARGS
+$previousPdfXValidatorExecutable = $env:OFFICEIMO_PDFX_VALIDATOR
+$previousPdfXValidatorPath = $env:OFFICEIMO_PDFX_VALIDATOR_PATH
+$previousPdfXValidatorArgs = $env:OFFICEIMO_PDFX_VALIDATOR_ARGS
 $validatorConfiguration = $null
 $resolvedVeraPdfPath = if (-not [string]::IsNullOrWhiteSpace($VeraPdfPath) -and (Test-Path -LiteralPath $VeraPdfPath)) {
     (Resolve-Path -LiteralPath $VeraPdfPath).Path
@@ -597,6 +664,11 @@ $resolvedMustangPath = if (-not [string]::IsNullOrWhiteSpace($MustangPath) -and 
     (Resolve-Path -LiteralPath $MustangPath).Path
 } else {
     $MustangPath
+}
+$resolvedPdfXValidatorPath = if (-not [string]::IsNullOrWhiteSpace($PdfXValidatorPath) -and (Test-Path -LiteralPath $PdfXValidatorPath)) {
+    (Resolve-Path -LiteralPath $PdfXValidatorPath).Path
+} else {
+    $PdfXValidatorPath
 }
 
 $testExitCode = 0
@@ -635,6 +707,15 @@ try {
         $env:OFFICEIMO_MUSTANG_ARGS = $MustangArgs
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($resolvedPdfXValidatorPath)) {
+        $env:OFFICEIMO_PDFX_VALIDATOR = $resolvedPdfXValidatorPath
+        $env:OFFICEIMO_PDFX_VALIDATOR_PATH = $resolvedPdfXValidatorPath
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($PdfXValidatorArgs)) {
+        $env:OFFICEIMO_PDFX_VALIDATOR_ARGS = $PdfXValidatorArgs
+    }
+
     $validatorConfiguration = [ordered] @{
         veraPdfExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_PATH) -or (Test-AnyCommandAvailable -CommandNames @('verapdf', 'verapdf.bat', 'verapdf.exe'))
         veraPdfArgsConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_ARGS)
@@ -642,6 +723,8 @@ try {
         pdfUaValidatorArgsConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFUA_VALIDATOR_ARGS)
         mustangExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG_PATH) -or (Test-AnyCommandAvailable -CommandNames @('mustangproject', 'mustangproject.bat', 'mustangproject.exe', 'mustang', 'mustang.bat', 'mustang.exe'))
         mustangArgsConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG_ARGS)
+        pdfXValidatorExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFX_VALIDATOR) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFX_VALIDATOR_PATH) -or (Test-AnyCommandAvailable -CommandNames @('pdfx-validator', 'pdfx-validator.bat', 'pdfx-validator.exe'))
+        pdfXValidatorArgsConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFX_VALIDATOR_ARGS)
     }
 
     $testArgs = @(
@@ -677,6 +760,9 @@ try {
     $env:OFFICEIMO_MUSTANG = $previousMustangExecutable
     $env:OFFICEIMO_MUSTANG_PATH = $previousMustangPath
     $env:OFFICEIMO_MUSTANG_ARGS = $previousMustangArgs
+    $env:OFFICEIMO_PDFX_VALIDATOR = $previousPdfXValidatorExecutable
+    $env:OFFICEIMO_PDFX_VALIDATOR_PATH = $previousPdfXValidatorPath
+    $env:OFFICEIMO_PDFX_VALIDATOR_ARGS = $previousPdfXValidatorArgs
 }
 
 $commit = (& git -C $repoRoot rev-parse --short HEAD).Trim()
@@ -777,6 +863,8 @@ $lines.Add("| PDF/UA validator executable configured | $($validatorConfiguration
 $lines.Add("| PDF/UA validator args configured | $($validatorConfiguration.pdfUaValidatorArgsConfigured) |")
 $lines.Add("| Mustang executable configured | $($validatorConfiguration.mustangExecutableConfigured) |")
 $lines.Add("| Mustang args configured | $($validatorConfiguration.mustangArgsConfigured) |")
+$lines.Add("| PDF/X validator executable configured | $($validatorConfiguration.pdfXValidatorExecutableConfigured) |")
+$lines.Add("| PDF/X validator args configured | $($validatorConfiguration.pdfXValidatorArgsConfigured) |")
 $lines.Add('')
 $lines.Add('## PDF Fixtures')
 $lines.Add('')
@@ -919,6 +1007,7 @@ $proof = [ordered] @{
         formalPdfA3BGenerationEnabled = $true
         formalPdfUa1GenerationEnabled = $true
         formalElectronicInvoiceGenerationEnabled = $true
+        pdfXExactArtifactReadinessEnabled = $true
         allGeneratedPdfsAreGroundworkFixtures = $false
         externalValidationRequiredForClaims = $true
         externalValidationBoundToExactArtifact = $true

@@ -12,7 +12,8 @@ internal static partial class PdfComplianceAnalyzer {
             profile,
             info,
             document.ExtractAttachments(),
-            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document) : null);
+            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document) : null,
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document) : null);
     }
 
     /// <summary>Analyzes an existing PDF file for profile-specific readback evidence.</summary>
@@ -35,7 +36,7 @@ internal static partial class PdfComplianceAnalyzer {
 
     /// <summary>Analyzes already-inspected PDF metadata for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info) {
-        return AssessReadback(profile, info, extractedAttachments: null, printColorEvidence: null);
+        return AssessReadback(profile, info, extractedAttachments: null, printColorEvidence: null, printStructureEvidence: null);
     }
 
     internal static PdfComplianceReadinessReport AssessReadback(
@@ -47,14 +48,16 @@ internal static partial class PdfComplianceAnalyzer {
             profile,
             info,
             document.ExtractAttachments(),
-            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document) : null);
+            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document) : null,
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document) : null);
     }
 
     private static PdfComplianceReadinessReport AssessReadback(
         PdfComplianceProfile profile,
         PdfDocumentInfo info,
         IReadOnlyList<PdfExtractedAttachment>? extractedAttachments,
-        PdfPrintProductionColorEvidence? printColorEvidence) {
+        PdfPrintProductionColorEvidence? printColorEvidence,
+        PdfPrintProductionStructureEvidence? printStructureEvidence) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(info, nameof(info));
 
@@ -102,7 +105,7 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         if (IsPdfX(profile)) {
-            AddPdfXReadbackRequirements(requirements, profile, info, printColorEvidence);
+            AddPdfXReadbackRequirements(requirements, profile, info, printColorEvidence, printStructureEvidence);
         }
 
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
@@ -177,7 +180,8 @@ internal static partial class PdfComplianceAnalyzer {
         List<PdfComplianceRequirement> requirements,
         PdfComplianceProfile profile,
         PdfDocumentInfo info,
-        PdfPrintProductionColorEvidence? colorEvidence) {
+        PdfPrintProductionColorEvidence? colorEvidence,
+        PdfPrintProductionStructureEvidence? structureEvidence) {
         PdfXmpMetadataInfo? xmp = info.XmpMetadata;
         string expectedVersion = profile == PdfComplianceProfile.PdfX1A2003
             ? "PDF/X-1a:2003"
@@ -229,6 +233,54 @@ internal static partial class PdfComplianceAnalyzer {
             !info.HasEmbeddedFiles,
             "The saved PDF does not contain embedded files.",
             "Remove embedded files before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-annotations", "Readback PDF/X annotation policy",
+            !info.HasAnnotations && info.AnnotationCount == 0,
+            "The saved PDF does not contain page annotations.",
+            "Remove or flatten all page annotations before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-optional-content", "Readback PDF/X optional-content policy",
+            !info.HasOptionalContent && info.OptionalContentGroupCount == 0,
+            "The saved PDF does not contain optional-content layers.",
+            "Remove optional-content groups and marked optional content before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-active-content", "Readback PDF/X active-content policy",
+            !info.HasActiveContent && !info.HasCatalogActions && !info.HasOpenActions,
+            "The saved PDF does not contain active content or catalog actions.",
+            "Remove JavaScript, launch, remote-navigation, open, page, annotation, and catalog actions before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-external-references", "Readback PDF/X external-reference policy",
+            !info.HasCatalogUri && info.LinkUriCount == 0 && info.LinkRemoteFileCount == 0,
+            "The saved PDF does not contain URI bases, URI links, or remote-file links.",
+            "Remove catalog URI bases, URI links, and remote-file references before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-signatures", "Readback PDF/X signature policy",
+            !info.HasSignatures,
+            "The saved PDF does not contain signature fields or signed revisions.",
+            "Validate the unsigned production artifact before applying any separately governed signature workflow.");
+
+        if (structureEvidence == null) {
+            requirements.Add(new PdfComplianceRequirement(
+                "readback-pdfx-production-structure",
+                "Readback PDF/X page-box and font proof",
+                PdfComplianceRequirementStatus.Unsupported,
+                "Analyze exact PDF bytes, a path, or a stream to inspect page boundary boxes and font programs."));
+        } else {
+            Add(requirements, "readback-pdfx-page-boxes", "Readback PDF/X production page boxes",
+                structureEvidence.PageCount > 0 &&
+                structureEvidence.ValidProductionPageBoxCount == structureEvidence.PageCount &&
+                structureEvidence.InvalidProductionPageBoxCount == 0,
+                "Every saved page has a MediaBox, TrimBox, and containing BleedBox with no conflicting ArtBox.",
+                structureEvidence.InvalidProductionPageBoxCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " page(s) have missing, conflicting, or improperly nested production boxes.");
+            Add(requirements, "readback-pdfx-font-inspection-complete", "Readback PDF/X font inspection completeness",
+                structureEvidence.UninspectableFontResourceCount == 0,
+                "Every discovered font resource was inspected for a self-contained font program.",
+                structureEvidence.UninspectableFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " font resource(s) could not be inspected completely.");
+            Add(requirements, "readback-pdfx-fonts-embedded", "Readback PDF/X embedded-font policy",
+                structureEvidence.UnembeddedFontResourceCount == 0,
+                "Every discovered font resource contains an embedded font program or self-contained Type3 character procedures.",
+                structureEvidence.UnembeddedFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " font resource(s) do not contain an embedded program.");
+        }
 
         if (colorEvidence == null) {
             requirements.Add(new PdfComplianceRequirement(

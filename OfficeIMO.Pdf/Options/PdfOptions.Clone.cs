@@ -50,6 +50,7 @@ public sealed partial class PdfOptions {
             PdfXTransparencyBackground = _pdfXTransparencyBackground,
             PdfXRenderingIntent = _pdfXRenderingIntent,
             BlackPreservationMode = _blackPreservationMode,
+            PrintProductionPageBoxes = _printProductionPageBoxes,
             TaggedStructureMode = TaggedStructureMode,
             Language = Language,
             CatalogPageMode = CatalogPageMode,
