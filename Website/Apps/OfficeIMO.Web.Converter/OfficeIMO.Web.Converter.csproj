@@ -34,8 +34,15 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\Fonts\*.ttf" />
     <EmbeddedResource Include="Assets\Fonts\font-pack.json" />
-    <None Update="Assets\Fonts\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Assets\Fonts\*.txt"
+          TargetPath="wwwroot\licenses\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
     <None Update="Assets\Fonts\font-pack.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\..\OfficeIMO.Core\THIRD-PARTY-NOTICES.md"
+             Link="wwwroot\licenses\OfficeIMO.Core-THIRD-PARTY-NOTICES.md"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -30,6 +30,7 @@ public sealed record ConversionDiagnostic(string Title, string Message, string T
 public enum BrowserPdfProfileKind {
     Faithful,
     Portable,
+    Archival,
     Accessible,
     Diagnostic
 }

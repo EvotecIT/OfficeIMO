@@ -1,3 +1,5 @@
+using OfficeIMO.Security;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -15,6 +17,11 @@ public sealed class PdfReadOptions {
 
     /// <summary>Password used to open encrypted PDFs. The same value is tried as user and owner password for Standard security handler files.</summary>
     public string? Password { get; init; }
+
+    /// <summary>
+    /// Optional synchronous AES provider used to open Standard-security PDFs when platform AES-CBC is unavailable.
+    /// </summary>
+    public IOfficeAesCryptographyProvider? AesCryptographyProvider { get; init; }
 
     /// <summary>
     /// Controls whether authenticated user-password permission restrictions are enforced.
@@ -46,6 +53,7 @@ public sealed class PdfReadOptions {
             ParsingMode = effective.ParsingMode,
             Limits = effective.Limits.WithMinimumInputBytes(minimumInputBytes),
             Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -78,6 +86,7 @@ public sealed class PdfReadOptions {
                 maximumRawStreamBytes,
                 preserveExistingRawStreamLimit),
             Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -92,6 +101,7 @@ public sealed class PdfReadOptions {
             ParsingMode = effective.ParsingMode,
             Limits = effective.Limits,
             Password = password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -99,6 +109,24 @@ public sealed class PdfReadOptions {
             IncludeArtifactText = effective.IncludeArtifactText
         };
     }
+
+    internal static PdfReadOptions WithAesCryptographyProvider(
+        PdfReadOptions? options,
+        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        PdfReadOptions effective = Resolve(options);
+        return new PdfReadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits,
+            Password = effective.Password,
+            AesCryptographyProvider = aesCryptographyProvider,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
     internal static PdfReadOptions WithArtifactText(PdfReadOptions? options) {
         PdfReadOptions effective = Resolve(options);
         if (effective.IncludeArtifactText) return effective;
@@ -106,6 +134,7 @@ public sealed class PdfReadOptions {
             ParsingMode = effective.ParsingMode,
             Limits = effective.Limits,
             Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,

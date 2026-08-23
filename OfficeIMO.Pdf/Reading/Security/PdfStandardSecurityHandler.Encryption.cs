@@ -63,19 +63,13 @@ internal sealed partial class PdfStandardSecurityHandler {
         throw new PdfUnsupportedEncryptionException("Unsupported PDF crypt filter method.");
     }
 
-    private static byte[] EncryptAesCbc(byte[] key, byte[] data) {
+    private byte[] EncryptAesCbc(byte[] key, byte[] data) {
         var iv = new byte[16];
         using (RandomNumberGenerator random = RandomNumberGenerator.Create()) {
             random.GetBytes(iv);
         }
 
-        using Aes aes = Aes.Create();
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        aes.Key = key;
-        aes.IV = iv;
-        using ICryptoTransform encryptor = aes.CreateEncryptor();
-        byte[] ciphertext = encryptor.TransformFinalBlock(data, 0, data.Length);
+        byte[] ciphertext = PdfAesCryptography.EncryptPkcs7(key, iv, data, _aesCryptographyProvider);
         var result = new byte[iv.Length + ciphertext.Length];
         Buffer.BlockCopy(iv, 0, result, 0, iv.Length);
         Buffer.BlockCopy(ciphertext, 0, result, iv.Length, ciphertext.Length);

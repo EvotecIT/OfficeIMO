@@ -293,7 +293,10 @@ public sealed partial class PdfDocument {
             PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
             return encryption is null
                 ? PdfReadOptions.Default
-                : new PdfReadOptions { Password = encryption.UserPassword };
+                : new PdfReadOptions {
+                    Password = encryption.UserPassword,
+                    AesCryptographyProvider = encryption.AesCryptographyProvider
+                };
         }
     }
 

@@ -1,6 +1,12 @@
 {
-  "id": "officeimo-browser-compact-2026.07",
-  "description": "Portable browser PDF font pack for ordinary Office documents, Arabic glyph fallback, and common symbols.",
+  "id": "officeimo-browser-compact-2026.08",
+  "description": "Portable browser PDF font pack for ordinary Office documents, common Japanese text, Arabic glyph fallback, and common symbols.",
+  "coverage": [
+    "Latin",
+    "common Japanese text (bounded Joyo kanji, kana, punctuation, and full-width forms)",
+    "Arabic glyphs",
+    "common symbols"
+  ],
   "fonts": [
     {
       "family": "Carlito",
@@ -13,6 +19,27 @@
         { "name": "Carlito-Bold.ttf", "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db" },
         { "name": "Carlito-Italic.ttf", "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c" },
         { "name": "Carlito-BoldItalic.ttf", "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517" }
+      ]
+    },
+    {
+      "family": "OfficeIMO Japanese Common",
+      "purpose": "Bounded Japanese fallback covering the 2,136 Joyo kanji revised in 2010 plus Japanese punctuation, kana, compatibility units, and full-width forms.",
+      "license": "SIL Open Font License 1.1",
+      "sourceRepository": "https://github.com/google/fonts",
+      "sourceCommit": "ec626514f79f831f1ab848a82114a0ce7e2d6372",
+      "sourceFile": "ofl/notosansjp/NotoSansJP[wght].ttf",
+      "sourceFileSha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+      "derivation": {
+        "fontToolsVersion": "4.63.0",
+        "weight": 400,
+        "coverageSource": "https://x0213.org/joyo-kanji-code/joyo-kanji-code-u.csv",
+        "coverageSourceSha256": "6525e09f259f619f08f01f59d57aa5909f7993892590838f98d1290b7f9f3ed4",
+        "joyoKanjiCount": 2136,
+        "unicodeRanges": ["U+0020-007E", "U+00A0-00FF", "U+3000-30FF", "U+31F0-31FF", "U+3300-33FF", "U+FF01-FF9F"],
+        "renamedFamily": "OfficeIMO Japanese Common"
+      },
+      "files": [
+        { "name": "NotoSansJP-OfficeIMO-Common.ttf", "sha256": "4777e0ac6a42d1bab96f53bd9f87d5d003bf9852cea1a8358463696d9ed42337" }
       ]
     },
     {

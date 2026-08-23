@@ -14,6 +14,8 @@ on:
       - 'OfficeIMO.Tool/Commands/Html/**'
       - 'OfficeIMO.Tool.Tests/**'
       - 'OfficeIMO.Html.Tests/Html.Rendering.cs'
+      - 'Website/Apps/OfficeIMO.Web.Converter/**'
+      - 'Website/Apps/OfficeIMO.Web.Converter.Tests/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
@@ -36,6 +38,8 @@ on:
       - 'OfficeIMO.Tool/Commands/Html/**'
       - 'OfficeIMO.Tool.Tests/**'
       - 'OfficeIMO.Html.Tests/Html.Rendering.cs'
+      - 'Website/Apps/OfficeIMO.Web.Converter/**'
+      - 'Website/Apps/OfficeIMO.Web.Converter.Tests/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
@@ -112,6 +116,9 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install .NET WebAssembly workload
+        run: dotnet workload install wasm-tools --skip-manifest-update
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -241,6 +248,27 @@ jobs:
               --filter 'FullyQualifiedName~PdfExternalEngineProofTests' \
               --verbosity minimal
 
+      - name: Validate browser PDF/A-2B profile externally
+        shell: bash
+        env:
+          VERAPDF_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.verapdf_path || '' }}
+        run: |
+          set -euo pipefail
+          output_dir="$(pwd)/${PROOF_PATH}/browser"
+          mkdir -p "$output_dir"
+          OFFICEIMO_BROWSER_PDF_COMPLIANCE_OUTPUT="$output_dir" \
+            dotnet test Website/Apps/OfficeIMO.Web.Converter.Tests/OfficeIMO.Web.Converter.Tests.csproj \
+              --configuration "${BUILD_CONFIGURATION}" \
+              --framework net10.0 \
+              --filter 'FullyQualifiedName~HtmlToPdf_ArchivalProfileCreatesInternallyReadyPdfA2BArtifact' \
+              --verbosity minimal
+
+          validator="${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}"
+          test -n "$validator"
+          test -x "$validator"
+          "$validator" -f 2b "$output_dir/officeimo-browser-pdfa-2b.pdf" \
+            > "$output_dir/verapdf-officeimo-browser-pdfa-2b.txt"
+
       - name: Validate syntax rendering and signatures externally
         shell: bash
         run: |
@@ -341,3 +369,5 @@ jobs:
             ${{ env.PROOF_PATH }}/engine/*.pdf
             ${{ env.PROOF_PATH }}/engine/*.png
             ${{ env.PROOF_PATH }}/engine/*.txt
+            ${{ env.PROOF_PATH }}/browser/*.pdf
+            ${{ env.PROOF_PATH }}/browser/*.txt

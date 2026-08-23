@@ -15,6 +15,9 @@ $appAssemblyPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'Offi
 $runtimeWasmPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'dotnet.native*.wasm' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -notmatch '\.(br|gz)$' } |
     Select-Object -First 1 -ExpandProperty FullName
+$licenseRoot = Join-Path $converterRoot 'licenses'
+$managedAesNoticePath = Join-Path $licenseRoot 'OfficeIMO.Core-THIRD-PARTY-NOTICES.md'
+$japaneseFontLicensePath = Join-Path $licenseRoot 'OFL-NotoCJK.txt'
 $convertPagePath = Join-Path $SiteRoot 'convert/index.html'
 $conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
 $playgroundPagePath = Join-Path $SiteRoot 'playground/index.html'
@@ -24,6 +27,8 @@ foreach ($path in @(
         $modulePath,
         $appAssemblyPath,
         $runtimeWasmPath,
+        $managedAesNoticePath,
+        $japaneseFontLicensePath,
         $convertPagePath,
         $conversionGuidesPath,
         $playgroundPagePath

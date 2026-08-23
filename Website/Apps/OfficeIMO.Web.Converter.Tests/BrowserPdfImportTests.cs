@@ -219,7 +219,7 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1684, raster!.Width);
         Assert.Equal(1190, raster.Height);
         Assert.Equal(
-            "86c8cc7de11d99412b02da94067779a58c19fca2e38e54456dc0bdd1c5d39abb",
+            "04244ff1d3428f5767a18ee6ed2aa5de395e53adb41ddb0bacef7e9ff61d8657",
             Convert.ToHexString(SHA256.HashData(renderedPage)).ToLowerInvariant());
     }
 
@@ -297,7 +297,7 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1000, raster!.Width);
         Assert.Equal(1200, raster.Height);
         Assert.Equal(
-            "b545034ba0c75db86e6fbff8333115e1ca6cd42fbe86e70fb1ac1da0324f00df",
+            "6d71b8b098c1562607f05a7500d0db1032b04950efa56b10d70397bcda63cb40",
             Convert.ToHexString(SHA256.HashData(renderedPage)).ToLowerInvariant());
     }
 

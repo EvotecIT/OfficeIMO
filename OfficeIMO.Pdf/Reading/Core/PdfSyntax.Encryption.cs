@@ -19,7 +19,12 @@ internal static partial class PdfSyntax {
 
         byte[] fileId = ReadFirstFileId(map, trailerRaw);
         bool supplied = options != null && options.Password != null;
-        decryptor = PdfStandardSecurityHandler.Create(encryptionDictionary, fileId, options?.Password, supplied);
+        decryptor = PdfStandardSecurityHandler.Create(
+            encryptionDictionary,
+            fileId,
+            options?.Password,
+            supplied,
+            options?.AesCryptographyProvider);
         return true;
     }
 

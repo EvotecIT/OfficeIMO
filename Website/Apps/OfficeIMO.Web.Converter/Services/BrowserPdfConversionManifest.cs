@@ -69,7 +69,7 @@ internal static class BrowserPdfConversionManifest {
                 id = BrowserPortablePdfProfile.FontPackId,
                 fingerprint = BrowserPortablePdfProfile.FontPackFingerprint,
                 defaultFamily = BrowserPortablePdfProfile.DefaultFontFamily,
-                coverage = new[] { "Latin", "Arabic glyphs", "common symbols" },
+                coverage = BrowserPortablePdfProfile.FontCoverage,
                 substitutions = BrowserPortablePdfProfile.FontFamilySubstitutions.Select(
                     static substitution => new {
                         source = substitution.SourceFontFamily,

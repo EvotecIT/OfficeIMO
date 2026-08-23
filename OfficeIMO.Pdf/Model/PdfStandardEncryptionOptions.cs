@@ -1,3 +1,5 @@
+using OfficeIMO.Security;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -43,6 +45,12 @@ public sealed class PdfStandardEncryptionOptions {
     /// <summary>Whether document metadata streams are encrypted. Defaults to true.</summary>
     public bool EncryptMetadata { get; set; } = true;
 
+    /// <summary>
+    /// Optional synchronous AES provider used when the host does not expose platform AES-CBC, such as browser WebAssembly.
+    /// Native platform cryptography remains the default when this property is null.
+    /// </summary>
+    public IOfficeAesCryptographyProvider? AesCryptographyProvider { get; set; }
+
     /// <summary>Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.</summary>
     public int Permissions {
         get => _permissions;
@@ -61,7 +69,8 @@ public sealed class PdfStandardEncryptionOptions {
             OwnerPassword = OwnerPassword,
             Permissions = Permissions,
             Algorithm = Algorithm,
-            EncryptMetadata = EncryptMetadata
+            EncryptMetadata = EncryptMetadata,
+            AesCryptographyProvider = AesCryptographyProvider
         };
     }
 

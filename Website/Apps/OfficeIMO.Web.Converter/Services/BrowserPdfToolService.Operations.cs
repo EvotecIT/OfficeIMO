@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Pdf;
+using OfficeIMO.Security;
 using OfficeIMO.Web.Converter.Models;
 
 namespace OfficeIMO.Web.Converter.Services;
@@ -175,7 +176,8 @@ internal sealed partial class BrowserPdfToolService {
         SelectedDocument file = request.Files[0];
         var encryption = new PdfStandardEncryptionOptions(request.UserPassword) {
             OwnerPassword = request.OwnerPassword,
-            Algorithm = PdfStandardEncryptionAlgorithm.Aes256
+            Algorithm = PdfStandardEncryptionAlgorithm.Aes256,
+            AesCryptographyProvider = OfficeManagedAesCryptographyProvider.Default
         };
         PdfSecurityMutationResult result = Open(file).Security.Encrypt(encryption);
         return new PdfToolExecution(

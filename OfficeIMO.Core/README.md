@@ -28,6 +28,18 @@ var loadOptions = new DocumentLoadOptions {
 
 Word, Excel, and PowerPoint expose format-specific options derived from these shared contracts.
 
+### Portable AES for restricted hosts
+
+Browser WebAssembly and other hosts without synchronous platform AES can explicitly supply the dependency-free managed
+AES-CBC provider to a format API that accepts `IOfficeAesCryptographyProvider`. Desktop and server applications should
+normally keep using their native platform AES implementation.
+
+```csharp
+using OfficeIMO.Security;
+
+IOfficeAesCryptographyProvider aes = OfficeManagedAesCryptographyProvider.Default;
+```
+
 ### Colors and vector intent
 
 ```csharp
@@ -441,7 +453,7 @@ if (font != null) {
 ## Boundaries
 
 - This package owns shared lifecycle contracts, persistence mechanics, drawing intent, ink/math models and renderers, raster buffers, SVG and raster encoding primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
-- Security contracts live here so format packages can expose strongly typed opt-in APIs without depending on a cryptographic implementation. No CMS, XML DSig, certificate-chain, or private-key operation is implemented here.
+- Security contracts live here so format packages can expose strongly typed opt-in APIs without depending on the optional cryptographic package. Core includes only the portable AES-CBC compatibility provider; CMS, XML DSig, certificate-chain, and private-key operations remain in `OfficeIMO.Security`.
 - Word, Excel, PowerPoint, Visio, and PDF packages own source-document semantics: package parsing, layout policy, coordinate systems, style/theme resolution, and user-facing export APIs.
 - Document packages should not add private ink or math ASTs, pixel engines, image encoders/decoders, SVG primitive writers, text wrapping engines, or duplicate image-transform loops when the behavior can reasonably live here.
 - PDF keeps PDF-stream and page-writer behavior in `OfficeIMO.Pdf`; when it needs generic image-like drawing, vector descriptors, colors, chart snapshots, PNG helpers, or raster visual QA, it should use `OfficeIMO.Core` and the `OfficeIMO.Drawing` namespace.

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Pdf;
+using OfficeIMO.Security;
 using OfficeIMO.Web.Converter.Models;
 using OfficeIMO.Web.Converter.Services;
 using Xunit;
@@ -140,6 +141,7 @@ public sealed class BrowserPdfToolServiceTests {
     public void BrowserReadPolicy_UsesWebAssemblyScaleBudgets() {
         PdfReadOptions options = BrowserPdfPolicy.CreateReadOptions();
 
+        Assert.Same(OfficeManagedAesCryptographyProvider.Default, options.AesCryptographyProvider);
         Assert.Equal(BrowserPdfPolicy.MaxInputBytes, options.Limits.MaxInputBytes);
         Assert.Equal(BrowserPdfPolicy.MaxPages, options.Limits.MaxPages);
         Assert.True(options.Limits.MaxDecodedStreamBytes <= 32 * 1024 * 1024);

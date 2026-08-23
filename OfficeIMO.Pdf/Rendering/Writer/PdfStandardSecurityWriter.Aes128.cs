@@ -14,7 +14,13 @@ internal static partial class PdfStandardSecurityWriter {
         var objects = new PdfObjectStore(objectMemoryLimitBytes);
         try {
             for (int i = 0; i < sourceObjects.Count; i++) {
-                objects.Add(EncryptAesIndirectObject(sourceObjects[i], i + 1, fileKey, options.EncryptMetadata, deriveObjectKey: true));
+                objects.Add(EncryptAesIndirectObject(
+                    sourceObjects[i],
+                    i + 1,
+                    fileKey,
+                    options.EncryptMetadata,
+                    deriveObjectKey: true,
+                    options.AesCryptographyProvider));
             }
 
             objects.Add(PdfObjectBytes.WrapIndirectObject(
@@ -51,7 +57,13 @@ internal static partial class PdfStandardSecurityWriter {
         return Take(current, KeyLengthBytes);
     }
 
-    private static byte[] EncryptAesIndirectObject(byte[] objectBytes, int objectNumber, byte[] fileKey, bool encryptMetadata, bool deriveObjectKey) {
+    private static byte[] EncryptAesIndirectObject(
+        byte[] objectBytes,
+        int objectNumber,
+        byte[] fileKey,
+        bool encryptMetadata,
+        bool deriveObjectKey,
+        OfficeIMO.Security.IOfficeAesCryptographyProvider? provider) {
         int bodyStart = IndexOf(objectBytes, PdfEncoding.Latin1GetBytes("obj\n"), 0);
         int bodyEnd = LastIndexOf(objectBytes, PdfEncoding.Latin1GetBytes("endobj\n"));
         if (bodyStart < 0 || bodyEnd <= bodyStart) {
@@ -60,51 +72,62 @@ internal static partial class PdfStandardSecurityWriter {
 
         bodyStart += 4;
         byte[] body = Slice(objectBytes, bodyStart, bodyEnd);
-        return PdfObjectBytes.WrapIndirectObject(objectNumber, EncryptAesObjectBody(body, objectNumber, fileKey, encryptMetadata, deriveObjectKey));
+        return PdfObjectBytes.WrapIndirectObject(
+            objectNumber,
+            EncryptAesObjectBody(body, objectNumber, fileKey, encryptMetadata, deriveObjectKey, provider));
     }
 
-    private static byte[] EncryptAesObjectBody(byte[] body, int objectNumber, byte[] fileKey, bool encryptMetadata, bool deriveObjectKey) {
+    private static byte[] EncryptAesObjectBody(
+        byte[] body,
+        int objectNumber,
+        byte[] fileKey,
+        bool encryptMetadata,
+        bool deriveObjectKey,
+        OfficeIMO.Security.IOfficeAesCryptographyProvider? provider) {
         byte[] streamMarker = PdfEncoding.Latin1GetBytes("\nstream\n");
         byte[] endStreamMarker = PdfEncoding.Latin1GetBytes("\nendstream");
         int streamMarkerIndex = IndexOf(body, streamMarker, 0);
         byte[] objectKey = deriveObjectKey ? ComputeAes128ObjectKey(fileKey, objectNumber, generation: 0) : fileKey;
         if (streamMarkerIndex < 0) {
-            return EncryptAesPdfStrings(body, objectKey);
+            return EncryptAesPdfStrings(body, objectKey, provider);
         }
 
         int streamDataStart = streamMarkerIndex + streamMarker.Length;
         int streamDataEnd = LastIndexOf(body, endStreamMarker);
         if (streamDataEnd < streamDataStart) {
-            return EncryptAesPdfStrings(body, objectKey);
+            return EncryptAesPdfStrings(body, objectKey, provider);
         }
 
         byte[] prefix = Slice(body, 0, streamDataStart);
         byte[] streamData = Slice(body, streamDataStart, streamDataEnd);
         byte[] suffix = Slice(body, streamDataEnd, body.Length);
         if (!encryptMetadata && IndexOf(prefix, PdfEncoding.Latin1GetBytes("/Type /Metadata"), 0) >= 0) {
-            return PdfObjectBytes.Concat(EncryptAesPdfStrings(prefix, objectKey), streamData, suffix);
+            return PdfObjectBytes.Concat(EncryptAesPdfStrings(prefix, objectKey, provider), streamData, suffix);
         }
 
-        byte[] encryptedStream = EncryptAesCbc(objectKey, streamData);
+        byte[] encryptedStream = EncryptAesCbc(objectKey, streamData, provider);
         prefix = ReplaceDirectStreamLength(prefix, encryptedStream.Length);
-        byte[] encryptedPrefix = EncryptAesPdfStrings(prefix, objectKey);
+        byte[] encryptedPrefix = EncryptAesPdfStrings(prefix, objectKey, provider);
         return PdfObjectBytes.Concat(encryptedPrefix, encryptedStream, suffix);
     }
 
-    private static byte[] EncryptAesPdfStrings(byte[] input, byte[] objectKey) {
+    private static byte[] EncryptAesPdfStrings(
+        byte[] input,
+        byte[] objectKey,
+        OfficeIMO.Security.IOfficeAesCryptographyProvider? provider) {
         using var output = new MemoryStream(input.Length + 32);
         int index = 0;
         while (index < input.Length) {
             byte current = input[index];
             if (current == (byte)'(' && TryReadLiteralString(input, index, out int literalEnd, out byte[] literalBytes)) {
-                WriteAesEncryptedHexString(output, literalBytes, objectKey);
+                WriteAesEncryptedHexString(output, literalBytes, objectKey, provider);
                 index = literalEnd + 1;
                 continue;
             }
 
             if (current == (byte)'<' && index + 1 < input.Length && input[index + 1] != (byte)'<' &&
                 TryReadHexString(input, index, out int hexEnd, out byte[] hexBytes)) {
-                WriteAesEncryptedHexString(output, hexBytes, objectKey);
+                WriteAesEncryptedHexString(output, hexBytes, objectKey, provider);
                 index = hexEnd + 1;
                 continue;
             }
@@ -116,25 +139,26 @@ internal static partial class PdfStandardSecurityWriter {
         return output.ToArray();
     }
 
-    private static void WriteAesEncryptedHexString(Stream output, byte[] value, byte[] objectKey) {
-        byte[] encrypted = EncryptAesCbc(objectKey, value);
+    private static void WriteAesEncryptedHexString(
+        Stream output,
+        byte[] value,
+        byte[] objectKey,
+        OfficeIMO.Security.IOfficeAesCryptographyProvider? provider) {
+        byte[] encrypted = EncryptAesCbc(objectKey, value, provider);
         byte[] hex = PdfEncoding.Latin1GetBytes(PdfSyntaxEscaper.HexString(encrypted));
         output.Write(hex, 0, hex.Length);
     }
 
-    private static byte[] EncryptAesCbc(byte[] key, byte[] data) {
+    private static byte[] EncryptAesCbc(
+        byte[] key,
+        byte[] data,
+        OfficeIMO.Security.IOfficeAesCryptographyProvider? provider) {
         var iv = new byte[16];
         using (RandomNumberGenerator rng = RandomNumberGenerator.Create()) {
             rng.GetBytes(iv);
         }
 
-        using Aes aes = Aes.Create();
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        aes.Key = key;
-        aes.IV = iv;
-        using ICryptoTransform encryptor = aes.CreateEncryptor();
-        byte[] ciphertext = encryptor.TransformFinalBlock(data, 0, data.Length);
+        byte[] ciphertext = PdfAesCryptography.EncryptPkcs7(key, iv, data, provider);
         return PdfObjectBytes.Concat(iv, ciphertext);
     }
 
