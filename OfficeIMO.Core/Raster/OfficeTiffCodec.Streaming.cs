@@ -29,7 +29,8 @@ public static partial class OfficeTiffCodec {
         int stripLength = effective.Compression switch {
             OfficeTiffCompression.None => pixels.Length,
             OfficeTiffCompression.Lzw => compressed!.Length,
-            OfficeTiffCompression.PackBits => EncodePackBits(pixels, output: null, outputOffset: 0),
+            OfficeTiffCompression.PackBits =>
+                EncodePackBitsRows(pixels, image.Width * 4, image.Height, output: null, outputOffset: 0),
             OfficeTiffCompression.Deflate => compressed!.Length,
             _ => throw new ArgumentOutOfRangeException(nameof(options))
         };
@@ -41,7 +42,7 @@ public static partial class OfficeTiffCodec {
                 destination.Write(pixels, 0, pixels.Length);
                 break;
             case OfficeTiffCompression.PackBits:
-                int written = WritePackBits(pixels, destination);
+                int written = WritePackBitsRows(pixels, image.Width * 4, image.Height, destination);
                 if (written != stripLength) {
                     throw new InvalidOperationException("The TIFF PackBits length calculation is inconsistent.");
                 }
@@ -119,11 +120,24 @@ public static partial class OfficeTiffCodec {
         return output;
     }
 
-    private static int WritePackBits(byte[] input, Stream destination) {
-        int index = 0;
+    private static int WritePackBitsRows(byte[] input, int rowBytes, int rowCount, Stream destination) {
+        if (rowBytes <= 0 || rowCount <= 0 || (long)rowBytes * rowCount != input.Length) {
+            throw new ArgumentException("TIFF PackBits row dimensions do not match the input buffer.");
+        }
         int written = 0;
-        while (index < input.Length) {
-            int runLength = CountRun(input, index);
+        for (int row = 0; row < rowCount; row++) {
+            written = checked(written + WritePackBits(
+                input, row * rowBytes, rowBytes, destination));
+        }
+        return written;
+    }
+
+    private static int WritePackBits(byte[] input, int inputOffset, int inputCount, Stream destination) {
+        int index = inputOffset;
+        int inputEnd = checked(inputOffset + inputCount);
+        int written = 0;
+        while (index < inputEnd) {
+            int runLength = CountRun(input, index, inputEnd);
             if (runLength >= 3) {
                 destination.WriteByte(unchecked((byte)(257 - runLength)));
                 destination.WriteByte(input[index]);
@@ -134,8 +148,8 @@ public static partial class OfficeTiffCodec {
 
             int literalStart = index;
             int literalLength = 0;
-            while (index < input.Length && literalLength < 128) {
-                runLength = CountRun(input, index);
+            while (index < inputEnd && literalLength < 128) {
+                runLength = CountRun(input, index, inputEnd);
                 if (runLength >= 3) break;
                 int take = Math.Min(runLength, 128 - literalLength);
                 index += take;

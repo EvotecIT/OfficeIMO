@@ -142,21 +142,25 @@ public static partial class OfficeWebpCodec {
         for (int y = 0; y < height; y++) {
             if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
-                uint color = pixels[y * width + x];
                 uint data = transform.Data[(y >> transform.SizeBits) * blockWidth + (x >> transform.SizeBits)];
-                int green = (int)(color >> 8) & 255;
-                int red = (int)(color >> 16) & 255;
-                int blue = (int)color & 255;
-                int greenToRed = unchecked((sbyte)data);
-                int greenToBlue = unchecked((sbyte)(data >> 8));
-                int redToBlue = unchecked((sbyte)(data >> 16));
-                int restoredRed = (red + ColorTransformDelta(greenToRed, green)) & 255;
-                int restoredBlue = (blue + ColorTransformDelta(greenToBlue, green) +
-                    ColorTransformDelta(redToBlue, restoredRed)) & 255;
-                pixels[y * width + x] = (color & 0xFF00FF00U) | (uint)(restoredRed << 16 | restoredBlue);
+                pixels[y * width + x] = ApplyVp8lInverseColorTransform(pixels[y * width + x], data);
             }
         }
         return true;
+    }
+
+    internal static uint ApplyVp8lInverseColorTransform(uint color, uint transformData) {
+        int green = (int)(color >> 8) & 255;
+        int red = (int)(color >> 16) & 255;
+        int blue = (int)color & 255;
+        // VP8L stores red-to-blue in R, green-to-blue in G, and green-to-red in B.
+        int greenToRed = unchecked((sbyte)transformData);
+        int greenToBlue = unchecked((sbyte)(transformData >> 8));
+        int redToBlue = unchecked((sbyte)(transformData >> 16));
+        int restoredRed = (red + ColorTransformDelta(greenToRed, green)) & 255;
+        int restoredBlue = (blue + ColorTransformDelta(greenToBlue, green) +
+            ColorTransformDelta(redToBlue, restoredRed)) & 255;
+        return (color & 0xFF00FF00U) | (uint)(restoredRed << 16 | restoredBlue);
     }
 
     private static bool TryApplyPredictorTransform(

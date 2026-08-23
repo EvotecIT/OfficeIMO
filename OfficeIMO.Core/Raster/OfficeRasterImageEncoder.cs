@@ -59,7 +59,10 @@ public static partial class OfficeRasterImageEncoder {
         if (double.IsNaN(dpi) || double.IsInfinity(dpi) || dpi <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(dpi), "Raster DPI must be finite and greater than zero.");
         }
-        return Math.Min(GetMaximumDpi(format), Math.Max(GetMinimumDpi(format), dpi));
+        double normalized = Math.Min(GetMaximumDpi(format), Math.Max(GetMinimumDpi(format), dpi));
+        return format == OfficeImageExportFormat.Jpeg
+            ? Math.Round(normalized, MidpointRounding.AwayFromZero)
+            : normalized;
     }
 
     /// <summary>Encodes an RGBA image using the requested raster format.</summary>

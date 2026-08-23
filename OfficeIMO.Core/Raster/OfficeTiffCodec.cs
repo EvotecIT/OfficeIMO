@@ -76,7 +76,7 @@ public static partial class OfficeTiffCodec {
             _ => null
         };
         int stripLength = effective.Compression == OfficeTiffCompression.PackBits
-            ? EncodePackBits(pixels, output: null, outputOffset: 0)
+            ? EncodePackBitsRows(pixels, image.Width * 4, image.Height, output: null, outputOffset: 0)
             : strip!.Length;
 
         const int ifdOffset = 8;
@@ -126,7 +126,7 @@ public static partial class OfficeTiffCodec {
             WriteRational(output, yResolutionOffset, effective.DpiY);
         }
         if (effective.Compression == OfficeTiffCompression.PackBits) {
-            int written = EncodePackBits(pixels, output, stripOffset);
+            int written = EncodePackBitsRows(pixels, image.Width * 4, image.Height, output, stripOffset);
             if (written != stripLength) {
                 throw new InvalidOperationException("The TIFF PackBits length calculation is inconsistent.");
             }
@@ -309,7 +309,8 @@ public static partial class OfficeTiffCodec {
                 }
 
                 if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
-                        compression, planarConfiguration, predictor, effective, retainPixels: true, out byte[] source)) return false;
+                        compression, planarConfiguration, predictor, effective, validationBudget: null,
+                        retainPixels: true, out byte[] source)) return false;
 
                 int orientedWidth = orientation >= 5 ? height : width;
                 int orientedHeight = orientation >= 5 ? width : height;
@@ -471,11 +472,33 @@ public static partial class OfficeTiffCodec {
         }
     }
 
-    private static int EncodePackBits(byte[] input, byte[]? output, int outputOffset) {
-        int index = 0;
+    private static int EncodePackBitsRows(
+        byte[] input,
+        int rowBytes,
+        int rowCount,
+        byte[]? output,
+        int outputOffset) {
+        if (rowBytes <= 0 || rowCount <= 0 || (long)rowBytes * rowCount != input.Length) {
+            throw new ArgumentException("TIFF PackBits row dimensions do not match the input buffer.");
+        }
         int target = outputOffset;
-        while (index < input.Length) {
-            int runLength = CountRun(input, index);
+        for (int row = 0; row < rowCount; row++) {
+            target += EncodePackBits(input, row * rowBytes, rowBytes, output, target);
+        }
+        return checked(target - outputOffset);
+    }
+
+    private static int EncodePackBits(
+        byte[] input,
+        int inputOffset,
+        int inputCount,
+        byte[]? output,
+        int outputOffset) {
+        int index = inputOffset;
+        int inputEnd = checked(inputOffset + inputCount);
+        int target = outputOffset;
+        while (index < inputEnd) {
+            int runLength = CountRun(input, index, inputEnd);
             if (runLength >= 3) {
                 if (output != null) {
                     output[target] = unchecked((byte)(257 - runLength));
@@ -488,8 +511,8 @@ public static partial class OfficeTiffCodec {
 
             int literalStart = index;
             int literalLength = 0;
-            while (index < input.Length && literalLength < 128) {
-                runLength = CountRun(input, index);
+            while (index < inputEnd && literalLength < 128) {
+                runLength = CountRun(input, index, inputEnd);
                 if (runLength >= 3) break;
                 int take = Math.Min(runLength, 128 - literalLength);
                 index += take;
@@ -506,9 +529,9 @@ public static partial class OfficeTiffCodec {
         return checked(target - outputOffset);
     }
 
-    private static int CountRun(byte[] input, int index) {
+    private static int CountRun(byte[] input, int index, int inputEnd) {
         int length = 1;
-        while (length < 128 && index + length < input.Length && input[index + length] == input[index]) {
+        while (length < 128 && index + length < inputEnd && input[index + length] == input[index]) {
             length++;
         }
 
@@ -544,7 +567,19 @@ public static partial class OfficeTiffCodec {
             }
         }
         if (target != outputEnd) return false;
+        return TryValidatePackBitsPadding(input, source, inputEnd - source, cancellationToken);
+    }
+
+    internal static bool TryValidatePackBitsPadding(
+        byte[] input,
+        int inputOffset,
+        int inputCount,
+        CancellationToken cancellationToken) {
+        int inputEnd = checked(inputOffset + inputCount);
+        int source = inputOffset;
+        int trailingBytes = 0;
         while (source < inputEnd) {
+            if ((trailingBytes++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (unchecked((sbyte)input[source++]) != -128) return false;
         }
         return true;

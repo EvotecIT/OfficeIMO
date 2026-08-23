@@ -386,6 +386,16 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void Vp8lInverseColorTransformReadsMultipliersFromSpecifiedChannels() {
+        const uint transformedColor = 0xFF402010U;
+        const uint transformData = 0xFF030201U;
+
+        uint restored = OfficeWebpCodec.ApplyVp8lInverseColorTransform(transformedColor, transformData);
+
+        Assert.Equal(0xFF412018U, restored);
+    }
+
+    [Fact]
     public void Vp8lAllocationBudgetRejectsAggregateBuffersBeyondTheManagedBoundary() {
         var budget = new OfficeWebpCodec.Vp8lAllocationBudget();
 
@@ -472,6 +482,112 @@ public sealed class DrawingRasterEncodingTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, options, out selected, out OfficeRasterDecodeInfo info));
         Assert.True(info.PagesDiscarded);
         Assert.Equal(OfficeRasterFrameKind.Page, info.SelectedFrame!.Kind);
+    }
+
+    [Fact]
+    public void OfficeTiffPackBitsPacketsRestartAtEveryRowAcrossEncodingSurfaces() {
+        var image = new OfficeRasterImage(1, 2, OfficeColor.FromRgba(1, 2, 3, 4));
+        var options = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits };
+        byte[] expectedStrip = { 3, 1, 2, 3, 4, 3, 1, 2, 3, 4 };
+
+        byte[] single = OfficeTiffCodec.Encode(image, options);
+        byte[] multiPage = OfficeTiffCodec.EncodePages(new[] { image }, options);
+        using var stream = new System.IO.MemoryStream();
+        OfficeTiffCodec.EncodeTo(image, stream, options);
+
+        Assert.Equal(expectedStrip, ReadTiffStrip(single));
+        Assert.Equal(expectedStrip, ReadTiffStrip(multiPage));
+        Assert.Equal(expectedStrip, ReadTiffStrip(stream.ToArray()));
+    }
+
+    [Fact]
+    public void CompleteTiffValidationBoundsAggregatePagePixels() {
+        byte[] encoded = OfficeTiffCodec.EncodePages(new[] {
+            new OfficeRasterImage(2, 1, OfficeColor.Red),
+            new OfficeRasterImage(2, 1, OfficeColor.Blue)
+        });
+
+        Assert.True(OfficeTiffCodec.TryValidateAllPages(
+            encoded,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 4 }));
+        Assert.False(OfficeTiffCodec.TryValidateAllPages(
+            encoded,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 3 }));
+    }
+
+    [Fact]
+    public void CompleteTiffValidationChargesEveryVisitToAliasedPackBitsData() {
+        byte[] encoded = OfficeTiffCodec.EncodePages(
+            new[] {
+                new OfficeRasterImage(1, 1, OfficeColor.Red),
+                new OfficeRasterImage(1, 1, OfficeColor.Red)
+            },
+            new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits });
+        int firstIfd = ReadLittleEndian(encoded, 4);
+        int secondIfd = ReadLittleEndian(
+            encoded,
+            firstIfd + 2 + ReadUInt16LittleEndian(encoded, firstIfd) * 12);
+        int originalStripOffset = ReadTiffLongTag(encoded, firstIfd, 273);
+        int originalStripLength = ReadTiffLongTag(encoded, firstIfd, 279);
+        const int paddingLength = 8192;
+        int aliasedStripOffset = encoded.Length;
+        Array.Resize(ref encoded, encoded.Length + originalStripLength + paddingLength);
+        Buffer.BlockCopy(encoded, originalStripOffset, encoded, aliasedStripOffset, originalStripLength);
+        for (int index = aliasedStripOffset + originalStripLength; index < encoded.Length; index++) {
+            encoded[index] = 0x80;
+        }
+        int aliasedStripLength = originalStripLength + paddingLength;
+        SetTiffLongTag(encoded, firstIfd, 273, aliasedStripOffset);
+        SetTiffLongTag(encoded, firstIfd, 279, aliasedStripLength);
+        SetTiffLongTag(encoded, secondIfd, 273, aliasedStripOffset);
+        SetTiffLongTag(encoded, secondIfd, 279, aliasedStripLength);
+        long oneVisitWork = aliasedStripLength + 4L;
+        var options = new OfficeRasterDecodeOptions { MaximumDecodedPixels = 2 };
+
+        Assert.True(OfficeTiffCodec.TryValidateAllPages(encoded, options, oneVisitWork * 2));
+        Assert.False(OfficeTiffCodec.TryValidateAllPages(encoded, options, oneVisitWork * 2 - 1));
+        Assert.True(OfficeTiffCodec.TryDecodePage(encoded, 1, out OfficeRasterImage? selected));
+        Assert.Equal(OfficeColor.Red, selected!.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void CompleteTiffValidationChargesCompressedAndDecodedTileBytes() {
+        byte[] encoded = OfficeTiffCodec.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.Blue),
+            new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.None });
+        int ifd = ReadLittleEndian(encoded, 4);
+        int stripOffset = ReadTiffLongTag(encoded, ifd, 273);
+        SetTiffTag(encoded, ifd, 273, 322);
+        SetTiffLongTag(encoded, ifd, 322, 1);
+        SetTiffTag(encoded, ifd, 274, 323);
+        SetTiffShortTag(encoded, ifd, 323, 1);
+        SetTiffTag(encoded, ifd, 278, 324);
+        SetTiffLongTag(encoded, ifd, 324, stripOffset);
+        SetTiffTag(encoded, ifd, 279, 325);
+
+        Assert.True(OfficeTiffCodec.TryValidateAllPages(
+            encoded,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 1 },
+            maximumValidationWorkBytes: 8));
+        Assert.False(OfficeTiffCodec.TryValidateAllPages(
+            encoded,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 1 },
+            maximumValidationWorkBytes: 7));
+    }
+
+    [Fact]
+    public void PackBitsPaddingValidationObservesCancellation() {
+        byte[] padding = Enumerable.Repeat((byte)0x80, 8192).ToArray();
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => {
+            OfficeTiffCodec.TryValidatePackBitsPadding(
+                padding,
+                0,
+                padding.Length,
+                cancellation.Token);
+        });
     }
 
     [Theory]
@@ -617,6 +733,29 @@ public sealed class DrawingRasterEncodingTests {
         throw new InvalidOperationException("TIFF entry was not found.");
     }
 
+    private static int ReadTiffLongTag(byte[] bytes, int ifdOffset, int expectedTag) {
+        int entryCount = ReadUInt16LittleEndian(bytes, ifdOffset);
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            if (ReadUInt16LittleEndian(bytes, entryOffset) == expectedTag) {
+                return ReadLittleEndian(bytes, entryOffset + 8);
+            }
+        }
+        throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
+    private static void SetTiffTag(byte[] bytes, int ifdOffset, int expectedTag, int replacementTag) {
+        int entryCount = ReadUInt16LittleEndian(bytes, ifdOffset);
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            if (ReadUInt16LittleEndian(bytes, entryOffset) != expectedTag) continue;
+            bytes[entryOffset] = (byte)replacementTag;
+            bytes[entryOffset + 1] = (byte)(replacementTag >> 8);
+            return;
+        }
+        throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
     private static OfficeRasterImage CreateImageFromVp8lResiduals(int width, int height, uint[] residuals) {
         var image = new OfficeRasterImage(width, height);
         var pixels = new uint[residuals.Length];
@@ -655,6 +794,14 @@ public sealed class DrawingRasterEncodingTests {
             if (tag == expectedTag) return entryOffset;
         }
         throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
+    private static byte[] ReadTiffStrip(byte[] bytes) {
+        int stripOffset = ReadLittleEndian(bytes, FindClassicTiffEntry(bytes, 273) + 8);
+        int stripLength = ReadLittleEndian(bytes, FindClassicTiffEntry(bytes, 279) + 8);
+        var strip = new byte[stripLength];
+        Buffer.BlockCopy(bytes, stripOffset, strip, 0, stripLength);
+        return strip;
     }
 
     private static void WriteLittleEndian(byte[] bytes, int offset, int value) {

@@ -75,9 +75,11 @@ public static partial class OfficeTiffCodec {
             case OfficeTiffCompression.Lzw:
                 return EncodeTiffLzw(pixels, image.Width, image.Height, options);
             case OfficeTiffCompression.PackBits:
-                int length = EncodePackBits(pixels, null, 0);
+                int length = EncodePackBitsRows(pixels, image.Width * 4, image.Height, null, 0);
                 var packed = new byte[length];
-                if (EncodePackBits(pixels, packed, 0) != length) throw new InvalidOperationException("TIFF PackBits length changed while encoding.");
+                if (EncodePackBitsRows(pixels, image.Width * 4, image.Height, packed, 0) != length) {
+                    throw new InvalidOperationException("TIFF PackBits length changed while encoding.");
+                }
                 return packed;
             case OfficeTiffCompression.Deflate:
                 return OfficeZlibCodec.Compress(

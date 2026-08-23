@@ -8,17 +8,33 @@ public static partial class OfficeTiffCodec {
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options,
         out OfficeRasterContainerInfo? container) =>
-        TryInspectPages(encodedBytes, options, validatePayloads: false, out container);
+        TryInspectPages(encodedBytes, options, validatePayloads: false,
+            OfficeRasterGuards.MaximumDecodedBytes, out container);
 
     internal static bool TryValidateAllPages(byte[] encodedBytes) {
         var options = new OfficeRasterDecodeOptions();
-        return TryInspectPages(encodedBytes, options, validatePayloads: true, out _);
+        return TryInspectPages(encodedBytes, options, validatePayloads: true,
+            OfficeRasterGuards.MaximumDecodedBytes, out _);
     }
+
+    internal static bool TryValidateAllPages(
+        byte[] encodedBytes,
+        OfficeRasterDecodeOptions options) =>
+        TryInspectPages(encodedBytes, options, validatePayloads: true,
+            OfficeRasterGuards.MaximumDecodedBytes, out _);
+
+    internal static bool TryValidateAllPages(
+        byte[] encodedBytes,
+        OfficeRasterDecodeOptions options,
+        long maximumValidationWorkBytes) =>
+        TryInspectPages(encodedBytes, options, validatePayloads: true,
+            maximumValidationWorkBytes, out _);
 
     private static bool TryInspectPages(
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options,
         bool validatePayloads,
+        long maximumValidationWorkBytes,
         out OfficeRasterContainerInfo? container) {
         container = null;
         if (!IsTiff(encodedBytes) || encodedBytes.Length > options.MaximumEncodedBytes ||
@@ -31,6 +47,10 @@ public static partial class OfficeTiffCodec {
             int ifdOffset = ReadOffset(encodedBytes, 4, littleEndian);
             var visitedIfds = new HashSet<int>();
             var frames = new List<OfficeRasterFrameInfo>();
+            long validatedPixels = 0L;
+            var validationBudget = validatePayloads
+                ? new TiffValidationBudget(maximumValidationWorkBytes)
+                : null;
             while (ifdOffset != 0) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 if (frames.Count >= MaximumIfdCount || !visitedIfds.Add(ifdOffset) ||
@@ -42,9 +62,9 @@ public static partial class OfficeTiffCodec {
                     !TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
                     !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
                     width < 1 || height < 1 ||
-                    validatePayloads &&
-                    (!OfficeRasterImageDecoder.IsWithinPixelLimit(width, height, options.MaximumDecodedPixels) ||
-                     !TryValidateStripPage(encodedBytes, entries, littleEndian, width, height, options))) return false;
+                    validatePayloads && !TryReserveAndValidatePage(
+                        encodedBytes, entries, littleEndian, width, height, options,
+                        validationBudget!, ref validatedPixels)) return false;
 
                 frames.Add(new OfficeRasterFrameInfo(
                     frames.Count,
@@ -99,13 +119,30 @@ public static partial class OfficeTiffCodec {
         return entries;
     }
 
+    private static bool TryReserveAndValidatePage(
+        byte[] encodedBytes,
+        IReadOnlyDictionary<int, TiffEntry> entries,
+        bool littleEndian,
+        int width,
+        int height,
+        OfficeRasterDecodeOptions options,
+        TiffValidationBudget validationBudget,
+        ref long validatedPixels) {
+        long pagePixels = (long)width * height;
+        if (pagePixels <= 0L || pagePixels > options.MaximumDecodedPixels - validatedPixels) return false;
+        validatedPixels += pagePixels;
+        return TryValidateStripPage(encodedBytes, entries, littleEndian, width, height,
+            options, validationBudget);
+    }
+
     private static bool TryValidateStripPage(
         byte[] encodedBytes,
         IReadOnlyDictionary<int, TiffEntry> entries,
         bool littleEndian,
         int width,
         int height,
-        OfficeRasterDecodeOptions options) {
+        OfficeRasterDecodeOptions options,
+        TiffValidationBudget validationBudget) {
         if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
@@ -140,7 +177,28 @@ public static partial class OfficeTiffCodec {
         }
 
         return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
-            compression, planarConfiguration, predictor, options, retainPixels: false, out _);
+            compression, planarConfiguration, predictor, options, validationBudget,
+            retainPixels: false, out _);
+    }
+
+    private sealed class TiffValidationBudget {
+        private readonly long _maximumWorkBytes;
+        private long _reservedWorkBytes;
+
+        internal TiffValidationBudget(long maximumWorkBytes) {
+            if (maximumWorkBytes < 1L || maximumWorkBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+                throw new ArgumentOutOfRangeException(nameof(maximumWorkBytes));
+            }
+            _maximumWorkBytes = maximumWorkBytes;
+        }
+
+        internal bool TryReserve(int compressedBytes, int decodedBytes) {
+            if (compressedBytes < 0 || decodedBytes < 0) return false;
+            long workBytes = (long)compressedBytes + decodedBytes;
+            if (workBytes > _maximumWorkBytes - _reservedWorkBytes) return false;
+            _reservedWorkBytes += workBytes;
+            return true;
+        }
     }
 
 }

@@ -221,8 +221,25 @@ public static class OfficeImageOptimizer {
             out OfficeImageMetadataKinds normalizedMetadata);
         bool orientationSwapsAxes = OfficeImageOrientationNormalizer.TryRead(encodedBytes, out OfficeImageOrientation orientation) &&
             orientation >= OfficeImageOrientation.Transpose;
-        byte[] candidate = Encode(candidateImage, outputFormat, original, metadata, request, jpegMetadata,
-            requestedMetadata, orientationSwapsAxes);
+        double physicalDpiX = metadata.PhysicalDpiX ?? original.DpiX;
+        double physicalDpiY = metadata.PhysicalDpiY ?? original.DpiY;
+        double sourceDpiX = orientationSwapsAxes ? physicalDpiY : physicalDpiX;
+        double sourceDpiY = orientationSwapsAxes ? physicalDpiX : physicalDpiY;
+        OfficeImageExportFormat exportFormat = ToExportFormat(outputFormat);
+        double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? sourceDpiX);
+        double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? sourceDpiY);
+        if (explicitResolutionRewrite && outputFormat == OfficeImageFormat.Jpeg &&
+            metadata.ExifContainsResolution && jpegMetadata.Exif is byte[] copiedExif) {
+            if (OfficeExifMetadataEditor.TryRewritePhysicalResolution(copiedExif, dpiX, dpiY, out byte[] rewrittenExif)) {
+                jpegMetadata = new OfficeJpegMetadata(rewrittenExif, jpegMetadata.Xmp, jpegMetadata.Icc);
+                normalizedMetadata |= OfficeImageMetadataKinds.Resolution;
+            } else {
+                jpegMetadata = new OfficeJpegMetadata(null, jpegMetadata.Xmp, jpegMetadata.Icc);
+                preservedMetadata &= ~OfficeImageMetadataKinds.Exif;
+            }
+        }
+        byte[] candidate = Encode(candidateImage, outputFormat, request, jpegMetadata,
+            requestedMetadata, dpiX, dpiY);
         OfficeImageInfo final = OfficeImageReader.Identify(candidate);
         if (request.KeepOriginalWhenNotSmaller && !rewriteRequired &&
             candidate.LongLength >= encodedBytes.LongLength) {
@@ -282,19 +299,12 @@ public static class OfficeImageOptimizer {
     private static byte[] Encode(
         OfficeRasterImage image,
         OfficeImageFormat format,
-        OfficeImageInfo original,
-        OfficeImageMetadataSnapshot metadata,
         OfficeImageOptimizationRequest request,
         OfficeJpegMetadata jpegMetadata,
         OfficeImageMetadataKinds requestedMetadata,
-        bool orientationSwapsAxes) {
+        double dpiX,
+        double dpiY) {
         OfficeImageExportFormat exportFormat = ToExportFormat(format);
-        double physicalDpiX = metadata.PhysicalDpiX ?? original.DpiX;
-        double physicalDpiY = metadata.PhysicalDpiY ?? original.DpiY;
-        double sourceDpiX = orientationSwapsAxes ? physicalDpiY : physicalDpiX;
-        double sourceDpiY = orientationSwapsAxes ? physicalDpiX : physicalDpiY;
-        double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? sourceDpiX);
-        double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? sourceDpiY);
         bool writeResolution = (requestedMetadata & OfficeImageMetadataKinds.Resolution) != 0 ||
                                request.OutputDpiX.HasValue || request.OutputDpiY.HasValue;
         var options = new OfficeRasterEncodingOptions {

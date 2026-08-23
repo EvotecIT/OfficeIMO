@@ -322,6 +322,115 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExplicitJpegResolutionRewritesCopiedExifDensity() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifWithResolution(72, 96)),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    OutputDpiX = 300D,
+                    OutputDpiY = 150D,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+            Assert.NotNull(output.Exif);
+            byte[] exifOnly = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.White),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: output.Exif),
+                    WriteJfifHeader = false
+                });
+            OfficeImageMetadataSnapshot copiedExif = OfficeImageMetadataInspector.Inspect(
+                exifOnly,
+                OfficeImageFormat.Jpeg);
+
+            Assert.InRange(copiedExif.PhysicalDpiX!.Value, 299.99D, 300.01D);
+            Assert.InRange(copiedExif.PhysicalDpiY!.Value, 149.99D, 150.01D);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Normalized & OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
+        public void ExplicitJpegResolutionDropsExifWithAliasedDensityStorage() {
+            byte[] exif = CreateExifWithResolution(72, 96);
+            WriteLittleEndianUInt32(exif, 30, 50);
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: exif),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    OutputDpiX = 300D,
+                    OutputDpiY = 150D,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+            Assert.Null(output.Exif);
+            Assert.InRange(result.Final.DpiX, 299.99D, 300.01D);
+            Assert.InRange(result.Final.DpiY, 149.99D, 150.01D);
+            Assert.Equal(OfficeImageMetadataKinds.Exif,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Exif);
+        }
+
+        [Fact]
+        public void ExplicitFractionalJpegResolutionUsesOneRepresentableDensity() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifWithResolution(72, 96)),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    OutputDpiX = 300.25D,
+                    OutputDpiY = 150.25D,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+            Assert.NotNull(output.Exif);
+            byte[] exifOnly = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.White),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: output.Exif),
+                    WriteJfifHeader = false
+                });
+            OfficeImageMetadataSnapshot copiedExif = OfficeImageMetadataInspector.Inspect(
+                exifOnly,
+                OfficeImageFormat.Jpeg);
+
+            Assert.Equal(300D, result.Final.DpiX);
+            Assert.Equal(150D, result.Final.DpiY);
+            Assert.Equal(300D, copiedExif.PhysicalDpiX);
+            Assert.Equal(150D, copiedExif.PhysicalDpiY);
+        }
+
+        [Fact]
         public void SelectiveResolutionStrippingDoesNotCopyResolutionBearingExif() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),

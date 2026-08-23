@@ -15,6 +15,7 @@ public static partial class OfficeTiffCodec {
         int planarConfiguration,
         int predictor,
         OfficeRasterDecodeOptions options,
+        TiffValidationBudget? validationBudget,
         bool retainPixels,
         out byte[] source) {
         source = Array.Empty<byte>();
@@ -49,6 +50,8 @@ public static partial class OfficeTiffCodec {
                 int rows = Math.Min(rowsPerStrip, height - rowStart);
                 int segmentSamples = planarConfiguration == 2 ? 1 : samples;
                 int expected = checked(rows * width * segmentSamples);
+                if (validationBudget != null &&
+                    !validationBudget.TryReserve(byteCounts[segment], expected)) return false;
                 byte[] decoded = retainPixels && planarConfiguration == 1
                     ? source
                     : new byte[expected];
@@ -83,6 +86,8 @@ public static partial class OfficeTiffCodec {
         for (int segment = 0; segment < tileSegmentCount; segment++) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (!HasSegment(encodedBytes, tileOffsets[segment], tileByteCounts[segment])) return false;
+            if (validationBudget != null &&
+                !validationBudget.TryReserve(tileByteCounts[segment], tileByteLength)) return false;
             int plane = planarConfiguration == 2 ? segment / segmentsPerTilePlane : 0;
             int tile = planarConfiguration == 2 ? segment % segmentsPerTilePlane : segment;
             int tileX = checked((tile % tilesAcross) * tileWidth);
