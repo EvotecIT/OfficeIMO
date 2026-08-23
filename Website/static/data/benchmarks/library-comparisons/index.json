@@ -950,6 +950,45 @@
       "compatibilityIssues": []
     },
     {
+      "comparisonId": "rtf-to-html-net8.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-08-23T17:04:34.7973563+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/rtf-to-html-net8.0-windows-quick.json",
+      "resultSha256": "56ebd2f18d89e49997d8c0a5d9e5b3d0b11cc806939788de65d2cd91bc62e1ad",
+      "artifactDestinationSha256": "144b65f074bb76e88b04b8b639de84e5dc79239ce9db1b1a08df63d68b506657",
+      "artifactFileName": "rtf-to-html-net8.0-windows-quick.json",
+      "artifactRelativePath": "rtf-to-html-net8.0-windows-quick.json",
+      "suite": "OfficeIMO.Rtf.HtmlComparison",
+      "environment": {
+        "osFamily": "",
+        "osDescription": "",
+        "osArchitecture": "",
+        "processArchitecture": "",
+        "processorName": "",
+        "physicalProcessorCount": null,
+        "physicalCoreCount": null,
+        "logicalCoreCount": null,
+        "runtimeVersion": "",
+        "dotNetSdkVersion": "",
+        "runner": "",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Rtf.HtmlComparison",
+        "benchmark.workload.shape.sha256": "036e5219360c3415de2199a94fc27e9334fc80869fc2809296f1c2d49de0ec25",
+        "benchmark.workload.framework": "net8.0",
+        "benchmark.workload.id": "rtf-to-html-net8.0",
+        "benchmark.workload.sizeEvidencePath": "validated-size-evidence.json",
+        "benchmark.workload.sourceCommit": "3c9addee17e98005acbf4dc37bc52a25a8197180",
+        "gitSha": "3c9addee17e98005acbf4dc37bc52a25a8197180",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
       "platform": "macos",
       "runMode": "quick",
@@ -1438,6 +1477,32 @@
     {
       "comparisonId": "pdf-text-extraction-net10.0",
       "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T17:04:34.7973563+00:00"
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
       "platform": "macos",
       "available": false,
       "runModes": [],
