@@ -1,6 +1,6 @@
 # OfficeIMO image library comparisons
 
-This opt-in project compares equivalent image work without adding third-party dependencies to the OfficeIMO product or normal solution. The initial lanes cover full PNG and photographic JPEG decode, lossless PNG encode from one identical RGBA buffer, and 2048x1619-to-800x632 linear/bilinear resize from identical RGBA pixels.
+This opt-in project compares equivalent image work without adding third-party dependencies to the OfficeIMO product or normal solution. The initial lanes cover PNG and photographic JPEG decode into a managed RGBA byte array, lossless PNG encode from one identical RGBA buffer, and 2048x1619-to-800x632 linear/bilinear resize from identical RGBA pixels.
 
 Metadata identification remains in the first-party benchmark project, not the comparison table. OfficeIMO performs bounded container-structure validation during identification, while the candidate libraries' lightweight information APIs do not all validate the same structure; timing those unlike contracts as peers would be misleading.
 
@@ -21,4 +21,4 @@ On heterogeneous or multi-CCD processors, collect comparative evidence through t
 
 The runner records the mask in benchmark provenance. Affinity reduces scheduler noise; it does not make small differences meaningful, so conclusions should still favor effect sizes that clearly exceed run-to-run variation.
 
-BenchmarkDotNet's allocation column reports managed allocations only. SkiaSharp and Magick.NET perform material work in native code, so their managed allocation numbers are not total-memory comparisons; use process/native-memory profiling before drawing memory-efficiency conclusions across engines.
+Every timed decode returns the same managed RGBA output shape. BenchmarkDotNet's allocation column still reports managed allocations only. SkiaSharp and Magick.NET perform material work in native code, so their managed allocation numbers are not total-memory comparisons; use process/native-memory profiling before drawing memory-efficiency conclusions across engines.

@@ -5,27 +5,28 @@ using StbImageSharp;
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
 internal static class ImageComparisonAdapters {
-    internal static int DecodeOfficeImo(byte[] encoded) {
+    internal static byte[] DecodeOfficeImoRgba(byte[] encoded) {
         OfficeRasterImage image = ImageBenchmarkCorpus.Decode(encoded, "OfficeIMO decode");
-        return checked(image.Width * image.Height);
+        return image.GetPixels();
     }
 
-    internal static int DecodeSkia(byte[] encoded) {
-        using SKBitmap bitmap = DecodeSkiaBitmap(encoded);
-        return checked(bitmap.Width * bitmap.Height);
+    internal static byte[] DecodeSkiaRgba(byte[] encoded) {
+        using SKBitmap decoded = DecodeSkiaBitmap(encoded);
+        var rgba = new byte[checked(decoded.Width * decoded.Height * 4)];
+        System.Runtime.InteropServices.Marshal.Copy(decoded.GetPixels(), rgba, 0, rgba.Length);
+        return rgba;
     }
 
-    internal static int DecodeMagick(byte[] encoded) {
+    internal static byte[] DecodeMagickRgba(byte[] encoded) {
         using var image = new MagickImage(encoded);
         using IPixelCollection<byte> pixels = image.GetPixels();
-        byte[] rgba = pixels.ToByteArray(PixelMapping.RGBA)
+        return pixels.ToByteArray(PixelMapping.RGBA)
             ?? throw new InvalidOperationException("Magick.NET did not expose decoded RGBA pixels.");
-        return checked(rgba.Length / 4);
     }
 
-    internal static int DecodeStb(byte[] encoded) {
+    internal static byte[] DecodeStbRgba(byte[] encoded) {
         ImageResult image = ImageResult.FromMemory(encoded, ColorComponents.RedGreenBlueAlpha);
-        return checked(image.Width * image.Height);
+        return image.Data;
     }
 
     internal static byte[] EncodeOfficeImo(OfficeRasterImage image) =>
@@ -88,13 +89,6 @@ internal static class ImageComparisonAdapters {
         return resized.ToByteArray(MagickFormat.Rgba);
     }
 
-    internal static byte[] DecodeSkiaRgba(byte[] encoded) {
-        using SKBitmap decoded = DecodeSkiaBitmap(encoded);
-        var rgba = new byte[checked(decoded.Width * decoded.Height * 4)];
-        System.Runtime.InteropServices.Marshal.Copy(decoded.GetPixels(), rgba, 0, rgba.Length);
-        return rgba;
-    }
-
     private static SKBitmap DecodeSkiaBitmap(byte[] encoded) {
         using SKData data = SKData.CreateCopy(encoded);
         using SKCodec codec = SKCodec.Create(data)
@@ -107,10 +101,4 @@ internal static class ImageComparisonAdapters {
         throw new InvalidOperationException("SkiaSharp did not decode a complete RGBA image: " + result + ".");
     }
 
-    internal static byte[] DecodeMagickRgba(byte[] encoded) {
-        using var image = new MagickImage(encoded);
-        using IPixelCollection<byte> pixels = image.GetPixels();
-        return pixels.ToByteArray(PixelMapping.RGBA)
-            ?? throw new InvalidOperationException("Magick.NET did not expose decoded RGBA pixels.");
-    }
 }

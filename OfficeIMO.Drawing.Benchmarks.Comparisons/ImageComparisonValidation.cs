@@ -44,11 +44,11 @@ internal static class ImageComparisonValidation {
     }
 
     internal static void ValidateDimensions(byte[] encoded, int width, int height) {
-        int expected = checked(width * height);
-        if (ImageComparisonAdapters.DecodeOfficeImo(encoded) != expected ||
-            ImageComparisonAdapters.DecodeSkia(encoded) != expected ||
-            ImageComparisonAdapters.DecodeMagick(encoded) != expected ||
-            ImageComparisonAdapters.DecodeStb(encoded) != expected) {
+        int expected = checked(width * height * 4);
+        if (ImageComparisonAdapters.DecodeOfficeImoRgba(encoded).Length != expected ||
+            ImageComparisonAdapters.DecodeSkiaRgba(encoded).Length != expected ||
+            ImageComparisonAdapters.DecodeMagickRgba(encoded).Length != expected ||
+            ImageComparisonAdapters.DecodeStbRgba(encoded).Length != expected) {
             throw new InvalidOperationException("A JPEG decoder did not produce the expected dimensions.");
         }
     }

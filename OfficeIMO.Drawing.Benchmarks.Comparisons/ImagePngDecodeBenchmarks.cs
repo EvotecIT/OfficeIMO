@@ -2,7 +2,7 @@ using BenchmarkDotNet.Attributes;
 
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
-/// <summary>Decodes one identical PNG completely in every engine.</summary>
+/// <summary>Decodes one identical PNG into a managed RGBA buffer in every engine.</summary>
 [MemoryDiagnoser]
 public class ImagePngDecodeBenchmarks {
     private byte[] _encoded = null!;
@@ -14,14 +14,14 @@ public class ImagePngDecodeBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
-    public int OfficeIMO() => ImageComparisonAdapters.DecodeOfficeImo(_encoded);
+    public byte[] OfficeIMO() => ImageComparisonAdapters.DecodeOfficeImoRgba(_encoded);
 
     [Benchmark]
-    public int SkiaSharp() => ImageComparisonAdapters.DecodeSkia(_encoded);
+    public byte[] SkiaSharp() => ImageComparisonAdapters.DecodeSkiaRgba(_encoded);
 
     [Benchmark]
-    public int MagickNET() => ImageComparisonAdapters.DecodeMagick(_encoded);
+    public byte[] MagickNET() => ImageComparisonAdapters.DecodeMagickRgba(_encoded);
 
     [Benchmark]
-    public int StbImageSharp() => ImageComparisonAdapters.DecodeStb(_encoded);
+    public byte[] StbImageSharp() => ImageComparisonAdapters.DecodeStbRgba(_encoded);
 }
