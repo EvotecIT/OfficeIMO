@@ -140,6 +140,45 @@
       "compatibilityIssues": []
     },
     {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-08-23T17:35:40.5215609+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/image-webp-lossless-net10.0-windows-quick.json",
+      "resultSha256": "af5ea7f2e0329586435a63de725829bc8396c3c4d07329371cca8d16bd7cf1f6",
+      "artifactDestinationSha256": "e0cd6d448d8c2c4fd3b4d94fc4fe9cae7a32935bd7c45bcd19e3ce67ed07fb14",
+      "artifactFileName": "image-webp-lossless-net10.0-windows-quick.json",
+      "artifactRelativePath": "image-webp-lossless-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.Drawing.WebpLossless",
+      "environment": {
+        "osFamily": "",
+        "osDescription": "",
+        "osArchitecture": "",
+        "processArchitecture": "",
+        "processorName": "",
+        "physicalProcessorCount": null,
+        "physicalCoreCount": null,
+        "logicalCoreCount": null,
+        "runtimeVersion": "",
+        "dotNetSdkVersion": "",
+        "runner": "",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Drawing.WebpLossless",
+        "benchmark.workload.shape.sha256": "a4a2df69370627642a10e21813bb39250d25e51ba30dd6bef367e6979eeaa7dd",
+        "benchmark.workload.affinityMask": "0xFFFF",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "image-webp-lossless-net10.0",
+        "benchmark.workload.sourceCommit": "20d88959145be1f0c53e008d330769667d5d1323",
+        "gitSha": "20d88959145be1f0c53e008d330769667d5d1323",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "linux",
       "runMode": "full",
@@ -1156,6 +1195,32 @@
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T17:35:40.5215609+00:00"
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
       "runMode": "quick",
       "platform": "macos",
       "available": false,
