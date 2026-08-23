@@ -101,6 +101,44 @@
       "compatibilityIssues": []
     },
     {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-08-23T20:46:35.3302154+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/markdown-commonmark-parse-net10.0-windows-quick.json",
+      "resultSha256": "14b34124a973004dc3a521d65e089722b1f2b48826cd78ebab7fa4ec59e0d3cb",
+      "artifactDestinationSha256": "c206c9e3e24203bf7661442b7e2fd42d82f24f8ac6bd6d4815af8ee1bbf90f09",
+      "artifactFileName": "markdown-commonmark-parse-net10.0-windows-quick.json",
+      "artifactRelativePath": "markdown-commonmark-parse-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.Markdown.CommonMarkParse",
+      "environment": {
+        "osFamily": "",
+        "osDescription": "",
+        "osArchitecture": "",
+        "processArchitecture": "",
+        "processorName": "",
+        "physicalProcessorCount": null,
+        "physicalCoreCount": null,
+        "logicalCoreCount": null,
+        "runtimeVersion": "",
+        "dotNetSdkVersion": "",
+        "runner": "",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Markdown.CommonMarkParse",
+        "benchmark.workload.shape.sha256": "9fd624cd9e8b3c5bd43a6d145d37b043ddbc18cac3b8e9cf6f281ac554526179",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markdown-commonmark-parse-net10.0",
+        "benchmark.workload.sourceCommit": "b15ea4ac5f59c2b911e95e89f9ee2ec69d61da26",
+        "gitSha": "b15ea4ac5f59c2b911e95e89f9ee2ec69d61da26",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "linux",
       "runMode": "full",
@@ -1135,6 +1173,32 @@
         "quick"
       ],
       "latestUtc": "2026-07-31T10:57:12.894909+00:00"
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T20:46:35.3302154+00:00"
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
