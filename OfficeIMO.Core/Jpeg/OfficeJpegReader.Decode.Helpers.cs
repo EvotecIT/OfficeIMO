@@ -1262,8 +1262,18 @@ internal static partial class OfficeJpegReader {
         public bool AllowTruncated => _allowTruncated;
 
         public bool TryPeekBits(int count, out int value) {
+            int originalPosition = _pos;
+            int originalBitBuffer = _bitBuffer;
+            int originalBitCount = _bitCount;
+            bool originalRestartMarkerSeen = RestartMarkerSeen;
             while (_bitCount < count) {
                 if (!TryReadByte(out int next)) {
+                    RestorePeekState(originalPosition, originalBitBuffer, originalBitCount, originalRestartMarkerSeen);
+                    value = 0;
+                    return false;
+                }
+                if (RestartMarkerSeen != originalRestartMarkerSeen) {
+                    RestorePeekState(originalPosition, originalBitBuffer, originalBitCount, originalRestartMarkerSeen);
                     value = 0;
                     return false;
                 }
@@ -1272,6 +1282,13 @@ internal static partial class OfficeJpegReader {
             }
             value = (_bitBuffer >> (_bitCount - count)) & ((1 << count) - 1);
             return true;
+        }
+
+        private void RestorePeekState(int position, int bitBuffer, int bitCount, bool restartMarkerSeen) {
+            _pos = position;
+            _bitBuffer = bitBuffer;
+            _bitCount = bitCount;
+            RestartMarkerSeen = restartMarkerSeen;
         }
 
         public void SkipBits(int count) {

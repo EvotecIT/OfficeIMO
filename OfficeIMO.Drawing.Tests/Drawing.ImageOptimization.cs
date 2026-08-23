@@ -253,6 +253,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeJpegCodec_DecodesBaselineRestartIntervalsWithoutFastPeekCrossingMarkers() {
+            byte[] jpeg = Convert.FromBase64String(
+                "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/" +
+                "2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAQACADAREAAhEBAxEB/" +
+                "8QAFAABAAAAAAAAAAAAAAAAAAAACP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAVAQEBAAAAAAAAAAAAAAAAAAAHCf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/" +
+                "3QAEAAH/2gAMAwEAAhEDEQA/ADoDFU3/0DoDFU3/0ToDFU3/0joDFU3/0zoDFU3/1DoDFU3/1ToDFU3/1joDFU3/2Q==");
+
+            OfficeRasterImage decoded = OfficeJpegCodec.Decode(jpeg);
+
+            Assert.Equal(32, decoded.Width);
+            Assert.Equal(16, decoded.Height);
+            AssertColorNear(decoded.GetPixel(0, 0), OfficeColor.Red, 8);
+            AssertColorNear(decoded.GetPixel(31, 15), OfficeColor.Red, 8);
+        }
+
+        [Fact]
         public void OfficeJpegCodec_FlattensTransparencyAgainstConfiguredBackground() {
             var source = new OfficeRasterImage(8, 8, OfficeColor.FromRgba(255, 0, 0, 128));
 
