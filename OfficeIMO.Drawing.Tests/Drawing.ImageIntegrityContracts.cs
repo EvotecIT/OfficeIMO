@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -74,16 +75,32 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void ExportResultAcceptsStructurallyValidAdam7PngWithoutManagedRasterDecode() {
+    public void ManagedPngReaderDecodesStructurallyValidAdam7Png() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         png[28] = 1;
         WritePngChunkCrc(png, 8, 13);
 
         Assert.True(OfficePngReader.TryGetFrameCount(png, out int frameCount));
         Assert.Equal(1, frameCount);
-        Assert.False(OfficePngReader.TryDecode(png, out _));
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? image));
+        Assert.Equal(OfficeColor.White, image!.GetPixel(0, 0));
         var result = new OfficeImageExportResult(OfficeImageExportFormat.Png, 1, 1, png);
         Assert.Equal(png, result.Bytes);
+    }
+
+    [Fact]
+    public void ManagedPngReaderMapsEveryAdam7PassToTheLogicalCanvas() {
+        var source = new OfficeRasterImage(9, 9);
+        for (int y = 0; y < source.Height; y++) {
+            for (int x = 0; x < source.Width; x++) {
+                source.SetPixel(x, y, OfficeColor.FromRgba(
+                    (byte)(x * 23), (byte)(y * 23), (byte)(x * 11 + y), (byte)(255 - x - y)));
+            }
+        }
+        byte[] png = CreateAdam7RgbaPng(source);
+
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? decoded));
+        Assert.Equal(source.GetPixels(), decoded!.GetPixels());
     }
 
     [Fact]
@@ -845,6 +862,35 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void SelectedApngFrameDecodesAdam7Payload() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        png[28] = 1;
+        WritePngChunkCrc(png, 8, 13);
+        byte[] apng = CreateTwoFrameApng(png);
+        var options = new OfficeRasterDecodeOptions {
+            AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame,
+            FrameIndex = 1
+        };
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            apng, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
+        Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
+        Assert.True(info.IsAnimated);
+        Assert.True(info.AnimationDiscarded);
+    }
+
+    [Fact]
+    public void AnimatedWebpFramesDoNotClaimAStaticDefaultImage() {
+        byte[] animated = Convert.FromBase64String(
+            "UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=");
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(
+            animated, out OfficeRasterContainerInfo? container));
+        Assert.True(container!.IsAnimated);
+        Assert.All(container.Frames, frame => Assert.False(frame.IsDefaultImage));
+    }
+
+    [Fact]
     public void ContainerInspectorPreservesSingleFrameApngAfterFallbackImageData() {
         byte[] fallback = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
         byte[] animatedFrame = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
@@ -981,6 +1027,40 @@ public partial class DrawingTests {
         Buffer.BlockCopy(png, idatOffset, result, idatOffset + prefix.Length, idatEnd - idatOffset);
         Buffer.BlockCopy(suffix, 0, result, idatEnd + prefix.Length, suffix.Length);
         Buffer.BlockCopy(png, idatEnd, result, idatEnd + prefix.Length + suffix.Length, png.Length - idatEnd);
+        return result;
+    }
+
+    private static byte[] CreateAdam7RgbaPng(OfficeRasterImage image) {
+        int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
+        int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
+        int[] stepX = { 8, 8, 4, 4, 2, 2, 1 };
+        int[] stepY = { 8, 8, 8, 4, 4, 2, 2 };
+        var scanlines = new List<byte>();
+        for (int pass = 0; pass < 7; pass++) {
+            for (int y = startY[pass]; y < image.Height; y += stepY[pass]) {
+                if (startX[pass] >= image.Width) continue;
+                scanlines.Add(0);
+                for (int x = startX[pass]; x < image.Width; x += stepX[pass]) {
+                    OfficeColor color = image.GetPixel(x, y);
+                    scanlines.Add(color.R);
+                    scanlines.Add(color.G);
+                    scanlines.Add(color.B);
+                    scanlines.Add(color.A);
+                }
+            }
+        }
+
+        byte[] png = OfficePngWriter.Encode(image);
+        png[28] = 1;
+        WritePngChunkCrc(png, 8, 13);
+        int idatOffset = FindPngChunk(png, "IDAT");
+        int idatLength = ReadBigEndianInt32(png, idatOffset);
+        int idatEnd = idatOffset + idatLength + 12;
+        byte[] replacement = CreatePngChunk("IDAT", OfficeZlibCodec.Compress(scanlines.ToArray()));
+        byte[] result = new byte[png.Length - idatLength - 12 + replacement.Length];
+        Buffer.BlockCopy(png, 0, result, 0, idatOffset);
+        Buffer.BlockCopy(replacement, 0, result, idatOffset, replacement.Length);
+        Buffer.BlockCopy(png, idatEnd, result, idatOffset + replacement.Length, png.Length - idatEnd);
         return result;
     }
 

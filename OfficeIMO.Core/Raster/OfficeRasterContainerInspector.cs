@@ -313,7 +313,7 @@ public static class OfficeRasterContainerInspector {
                     TimeSpan.FromMilliseconds(durationMs),
                     (flags & 1) == 0 ? OfficeRasterFrameDisposal.None : OfficeRasterFrameDisposal.Background,
                     (flags & 2) == 0 ? OfficeRasterFrameBlend.Over : OfficeRasterFrameBlend.Source,
-                    frames.Count == 0));
+                    isDefaultImage: false));
             }
             cursor = checked(data + length + (length & 1));
         }

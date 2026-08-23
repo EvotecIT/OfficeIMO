@@ -10,6 +10,10 @@ internal sealed class OfficeImageMetadataSnapshot {
     internal byte[]? Icc { get; set; }
     internal bool HasExtendedJpegXmp { get; set; }
     internal bool ExifContainsResolution { get; set; }
+    internal bool HasPhysicalResolution { get; set; }
+    internal bool HasUnitlessResolution { get; set; }
+    internal double? PhysicalDpiX { get; set; }
+    internal double? PhysicalDpiY { get; set; }
 }
 
 internal static class OfficeImageMetadataInspector {
@@ -61,7 +65,16 @@ internal static class OfficeImageMetadataInspector {
             if (length < 2 || offset > data.Length - length) break;
             int payload = offset + 2;
             int count = length - 2;
-            if (marker == 0xE0 && Matches(data, payload, count, "JFIF\0")) snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
+            if (marker == 0xE0 && Matches(data, payload, count, "JFIF\0")) {
+                bool physical = count >= 12 && data[payload + 7] >= 1 && data[payload + 7] <= 2;
+                MarkResolution(snapshot, physical);
+                if (physical) {
+                    int densityX = data[payload + 8] << 8 | data[payload + 9];
+                    int densityY = data[payload + 10] << 8 | data[payload + 11];
+                    double scale = data[payload + 7] == 2 ? 2.54D : 1D;
+                    SetPhysicalResolution(snapshot, densityX * scale, densityY * scale, overwrite: true);
+                }
+            }
             if (marker == 0xE1 && StartsWith(data, payload, count, ExifPrefix)) {
                 snapshot.Exif = Slice(data, payload, count);
                 InspectExifPayload(snapshot.Exif, snapshot);
@@ -111,7 +124,17 @@ internal static class OfficeImageMetadataInspector {
                 InspectExifPayload(snapshot.Exif, snapshot);
             }
             else if (type == "iCCP") snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
-            else if (type == "pHYs") snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
+            else if (type == "pHYs") {
+                bool physical = length == 9 && data[offset + 16] == 1;
+                MarkResolution(snapshot, physical);
+                if (physical) {
+                    const double pixelsPerMeterPerDpi = 39.37007874015748D;
+                    SetPhysicalResolution(snapshot,
+                        ReadUInt32Unsigned(data, offset + 8, little: false) / pixelsPerMeterPerDpi,
+                        ReadUInt32Unsigned(data, offset + 12, little: false) / pixelsPerMeterPerDpi,
+                        overwrite: true);
+                }
+            }
             else if (type == "iTXt" && ContainsAscii(data, offset + 8, length, "XML:com.adobe.xmp")) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
@@ -140,6 +163,10 @@ internal static class OfficeImageMetadataInspector {
         int ifd = ReadUInt32(data, 4, little);
         if (ifd < 0 || ifd > data.Length - 2) return;
         int count = ReadUInt16(data, ifd, little);
+        bool hasResolution = false;
+        int resolutionUnit = 2;
+        double? resolutionX = null;
+        double? resolutionY = null;
         for (int index = 0; index < count; index++) {
             int entry = ifd + 2 + index * 12;
             if (entry > data.Length - 12) return;
@@ -148,7 +175,25 @@ internal static class OfficeImageMetadataInspector {
             else if (tag == 700) snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             else if (tag == 34675) snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
             else if (tag == 270) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
-            else if (tag == 282 || tag == 283 || tag == 296) snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
+            else if (tag == 282 || tag == 283) {
+                hasResolution = true;
+                if (TryReadRational(data, entry, little, tiffBaseOffset: 0, out double resolution)) {
+                    if (tag == 282) resolutionX = resolution;
+                    else resolutionY = resolution;
+                }
+            }
+            else if (tag == 296) {
+                hasResolution = true;
+                if (!TryReadInlineShort(data, entry, little, out resolutionUnit)) resolutionUnit = 1;
+            }
+        }
+        if (hasResolution) {
+            bool physical = resolutionUnit == 2 || resolutionUnit == 3;
+            MarkResolution(snapshot, physical);
+            if (physical && resolutionX.HasValue && resolutionY.HasValue) {
+                double scale = resolutionUnit == 3 ? 2.54D : 1D;
+                SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: true);
+            }
         }
     }
 
@@ -160,9 +205,17 @@ internal static class OfficeImageMetadataInspector {
         if (data.Length < verticalPixelsPerMeterOffset + 4 ||
             ReadLittleEndian(data, dibHeaderOffset) < minimumInfoHeaderSize) return;
 
-        if (ReadLittleEndian(data, horizontalPixelsPerMeterOffset) > 0 ||
-            ReadLittleEndian(data, verticalPixelsPerMeterOffset) > 0) {
-            snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
+        int horizontalPixelsPerMeter = ReadLittleEndian(data, horizontalPixelsPerMeterOffset);
+        int verticalPixelsPerMeter = ReadLittleEndian(data, verticalPixelsPerMeterOffset);
+        if (horizontalPixelsPerMeter > 0 || verticalPixelsPerMeter > 0) {
+            MarkResolution(snapshot, isPhysical: true);
+            if (horizontalPixelsPerMeter > 0 && verticalPixelsPerMeter > 0) {
+                const double pixelsPerMeterPerDpi = 39.37007874015748D;
+                SetPhysicalResolution(snapshot,
+                    horizontalPixelsPerMeter / pixelsPerMeterPerDpi,
+                    verticalPixelsPerMeter / pixelsPerMeterPerDpi,
+                    overwrite: true);
+            }
         }
     }
 
@@ -181,15 +234,80 @@ internal static class OfficeImageMetadataInspector {
         if (ifd < 0 || ifd > exif.Length - tiffOffset - 2) return;
         int absoluteIfd = tiffOffset + ifd;
         int count = ReadUInt16(exif, absoluteIfd, little);
+        bool hasResolution = false;
+        int resolutionUnit = 2;
+        double? resolutionX = null;
+        double? resolutionY = null;
         for (int index = 0; index < count; index++) {
             int entry = absoluteIfd + 2 + index * 12;
             if (entry > exif.Length - 12) return;
             int tag = ReadUInt16(exif, entry, little);
-            if (tag == 282 || tag == 283 || tag == 296) {
-                snapshot.ExifContainsResolution = true;
-                snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
+            if (tag == 282 || tag == 283) {
+                hasResolution = true;
+                if (TryReadRational(exif, entry, little, tiffOffset, out double resolution)) {
+                    if (tag == 282) resolutionX = resolution;
+                    else resolutionY = resolution;
+                }
+            } else if (tag == 296) {
+                hasResolution = true;
+                if (!TryReadInlineShort(exif, entry, little, out resolutionUnit)) resolutionUnit = 1;
             }
         }
+        if (hasResolution) {
+            snapshot.ExifContainsResolution = true;
+            bool physical = resolutionUnit == 2 || resolutionUnit == 3;
+            MarkResolution(snapshot, physical);
+            if (physical && resolutionX.HasValue && resolutionY.HasValue) {
+                double scale = resolutionUnit == 3 ? 2.54D : 1D;
+                SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: false);
+            }
+        }
+    }
+
+    private static void MarkResolution(OfficeImageMetadataSnapshot snapshot, bool isPhysical) {
+        snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
+        if (isPhysical) snapshot.HasPhysicalResolution = true;
+        else snapshot.HasUnitlessResolution = true;
+    }
+
+    private static void SetPhysicalResolution(
+        OfficeImageMetadataSnapshot snapshot,
+        double dpiX,
+        double dpiY,
+        bool overwrite) {
+        if (double.IsNaN(dpiX) || double.IsInfinity(dpiX) ||
+            double.IsNaN(dpiY) || double.IsInfinity(dpiY) || dpiX <= 0D || dpiY <= 0D) return;
+        if (overwrite || !snapshot.PhysicalDpiX.HasValue) snapshot.PhysicalDpiX = dpiX;
+        if (overwrite || !snapshot.PhysicalDpiY.HasValue) snapshot.PhysicalDpiY = dpiY;
+    }
+
+    private static bool TryReadRational(
+        byte[] data,
+        int entry,
+        bool little,
+        int tiffBaseOffset,
+        out double value) {
+        value = 0D;
+        if (entry < 0 || entry > data.Length - 12 ||
+            ReadUInt16(data, entry + 2, little) != 5 ||
+            ReadUInt32Unsigned(data, entry + 4, little) != 1U) return false;
+        uint relativeOffset = ReadUInt32Unsigned(data, entry + 8, little);
+        long absoluteOffset = (long)tiffBaseOffset + relativeOffset;
+        if (absoluteOffset < 0 || absoluteOffset > data.Length - 8) return false;
+        uint numerator = ReadUInt32Unsigned(data, (int)absoluteOffset, little);
+        uint denominator = ReadUInt32Unsigned(data, (int)absoluteOffset + 4, little);
+        if (denominator == 0U) return false;
+        value = numerator / (double)denominator;
+        return !double.IsNaN(value) && !double.IsInfinity(value) && value > 0D;
+    }
+
+    private static bool TryReadInlineShort(byte[] data, int entry, bool little, out int value) {
+        value = 0;
+        if (entry < 0 || entry > data.Length - 12 ||
+            ReadUInt16(data, entry + 2, little) != 3 ||
+            ReadUInt32(data, entry + 4, little) != 1) return false;
+        value = ReadUInt16(data, entry + 8, little);
+        return true;
     }
 
     private static bool StartsWith(byte[] data, int offset, int count, byte[] prefix) {
@@ -255,4 +373,7 @@ internal static class OfficeImageMetadataInspector {
     private static int ReadUInt32(byte[] data, int offset, bool little) => little
         ? ReadLittleEndian(data, offset)
         : ReadBigEndian(data, offset);
+    private static uint ReadUInt32Unsigned(byte[] data, int offset, bool little) => little
+        ? (uint)(data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24)
+        : (uint)(data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]);
 }

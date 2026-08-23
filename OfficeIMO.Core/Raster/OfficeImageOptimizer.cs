@@ -206,8 +206,9 @@ public static class OfficeImageOptimizer {
         ResolveDimensions(decoded.Width, decoded.Height, request, out int width, out int height);
         OfficeImageFormat outputFormat = ResolveOutputFormat(original.Format, request.OutputFormat);
         bool metadataRewriteRequired = (metadata.Kinds & ~requestedMetadata) != OfficeImageMetadataKinds.None;
-        if (width == decoded.Width && height == decoded.Height && outputFormat == original.Format && !metadataRewriteRequired &&
-            !request.OutputDpiX.HasValue && !request.OutputDpiY.HasValue) {
+        bool explicitResolutionRewrite = request.OutputDpiX.HasValue || request.OutputDpiY.HasValue;
+        bool rewriteRequired = metadataRewriteRequired || explicitResolutionRewrite;
+        if (width == decoded.Width && height == decoded.Height && outputFormat == original.Format && !rewriteRequired) {
             return Result(encodedBytes, OfficeImageOptimizationStatus.AlreadySuitable, original, original,
                 MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
         }
@@ -220,10 +221,10 @@ public static class OfficeImageOptimizer {
             out OfficeImageMetadataKinds normalizedMetadata);
         bool orientationSwapsAxes = OfficeImageOrientationNormalizer.TryRead(encodedBytes, out OfficeImageOrientation orientation) &&
             orientation >= OfficeImageOrientation.Transpose;
-        byte[] candidate = Encode(candidateImage, outputFormat, original, request, jpegMetadata,
+        byte[] candidate = Encode(candidateImage, outputFormat, original, metadata, request, jpegMetadata,
             requestedMetadata, orientationSwapsAxes);
         OfficeImageInfo final = OfficeImageReader.Identify(candidate);
-        if (request.KeepOriginalWhenNotSmaller && !metadataRewriteRequired &&
+        if (request.KeepOriginalWhenNotSmaller && !rewriteRequired &&
             candidate.LongLength >= encodedBytes.LongLength) {
             return Result(encodedBytes, OfficeImageOptimizationStatus.OriginalWasSmaller, original, original,
                 MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None));
@@ -282,13 +283,16 @@ public static class OfficeImageOptimizer {
         OfficeRasterImage image,
         OfficeImageFormat format,
         OfficeImageInfo original,
+        OfficeImageMetadataSnapshot metadata,
         OfficeImageOptimizationRequest request,
         OfficeJpegMetadata jpegMetadata,
         OfficeImageMetadataKinds requestedMetadata,
         bool orientationSwapsAxes) {
         OfficeImageExportFormat exportFormat = ToExportFormat(format);
-        double sourceDpiX = orientationSwapsAxes ? original.DpiY : original.DpiX;
-        double sourceDpiY = orientationSwapsAxes ? original.DpiX : original.DpiY;
+        double physicalDpiX = metadata.PhysicalDpiX ?? original.DpiX;
+        double physicalDpiY = metadata.PhysicalDpiY ?? original.DpiY;
+        double sourceDpiX = orientationSwapsAxes ? physicalDpiY : physicalDpiX;
+        double sourceDpiY = orientationSwapsAxes ? physicalDpiX : physicalDpiY;
         double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? sourceDpiX);
         double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? sourceDpiY);
         bool writeResolution = (requestedMetadata & OfficeImageMetadataKinds.Resolution) != 0 ||
@@ -367,7 +371,9 @@ public static class OfficeImageOptimizer {
         byte[]? exif = null;
         byte[]? xmp = null;
         byte[]? icc = null;
-        preserved = requested & OfficeImageMetadataKinds.Resolution;
+        preserved = source.PhysicalDpiX.HasValue && source.PhysicalDpiY.HasValue && !source.HasUnitlessResolution
+            ? requested & OfficeImageMetadataKinds.Resolution
+            : OfficeImageMetadataKinds.None;
         normalized = OfficeImageMetadataKinds.None;
         if (sourceFormat == OfficeImageFormat.Jpeg && outputFormat == OfficeImageFormat.Jpeg) {
             bool canCopyExif = !source.ExifContainsResolution ||

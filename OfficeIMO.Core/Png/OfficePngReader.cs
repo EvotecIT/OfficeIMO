@@ -7,7 +7,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Dependency-free PNG decoder for common non-interlaced PNG images.
+/// Dependency-free PNG decoder for supported PNG images.
 /// </summary>
 public static class OfficePngReader {
     private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
@@ -51,25 +51,12 @@ public static class OfficePngReader {
             if (!TryReadPayload(bytes, cancellationToken, out PngPayload payload)) {
                 return false;
             }
-            if (payload.InterlaceMethod != 0) return false;
 
-            byte[] previous = new byte[payload.Stride];
-            byte[] current = new byte[payload.Stride];
             OfficeRasterImage result = new OfficeRasterImage(payload.Width, payload.Height);
-            int sourceOffset = 0;
-            for (int y = 0; y < payload.Height; y++) {
-                if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
-                int filter = payload.Scanlines[sourceOffset++];
-                Buffer.BlockCopy(payload.Scanlines, sourceOffset, current, 0, payload.Stride);
-                sourceOffset += payload.Stride;
-                Unfilter(current, previous, payload.BytesPerPixel, filter);
-                ExpandScanline(current, payload.Width, y, payload.ColorType, payload.BitDepth,
-                    payload.Palette, payload.Transparency, result, cancellationToken);
-
-                byte[] temp = previous;
-                previous = current;
-                current = temp;
-                Array.Clear(current, 0, current.Length);
+            if (payload.InterlaceMethod == 0) {
+                DecodeScanlines(payload, result, cancellationToken);
+            } else if (!DecodeAdam7Scanlines(payload, result, cancellationToken)) {
+                return false;
             }
 
             image = result;
@@ -80,6 +67,68 @@ public static class OfficePngReader {
             image = null;
             return false;
         }
+    }
+
+    private static void DecodeScanlines(
+        PngPayload payload,
+        OfficeRasterImage result,
+        CancellationToken cancellationToken) {
+        byte[] previous = new byte[payload.Stride];
+        byte[] current = new byte[payload.Stride];
+        int sourceOffset = 0;
+        for (int y = 0; y < payload.Height; y++) {
+            if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int filter = payload.Scanlines[sourceOffset++];
+            Buffer.BlockCopy(payload.Scanlines, sourceOffset, current, 0, payload.Stride);
+            sourceOffset += payload.Stride;
+            Unfilter(current, previous, payload.BytesPerPixel, filter);
+            ExpandScanline(current, payload.Width, y, payload.ColorType, payload.BitDepth,
+                payload.Palette, payload.Transparency, result, cancellationToken);
+
+            byte[] temp = previous;
+            previous = current;
+            current = temp;
+            Array.Clear(current, 0, current.Length);
+        }
+    }
+
+    private static bool DecodeAdam7Scanlines(
+        PngPayload payload,
+        OfficeRasterImage result,
+        CancellationToken cancellationToken) {
+        int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
+        int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
+        int[] stepX = { 8, 8, 4, 4, 2, 2, 1 };
+        int[] stepY = { 8, 8, 8, 4, 4, 2, 2 };
+        int sourceOffset = 0;
+        int bitsPerPixel = GetBitsPerPixel(payload.ColorType, payload.BitDepth);
+        for (int pass = 0; pass < 7; pass++) {
+            int passWidth = GetAdam7PassLength(payload.Width, startX[pass], stepX[pass]);
+            int passHeight = GetAdam7PassLength(payload.Height, startY[pass], stepY[pass]);
+            if (passWidth == 0 || passHeight == 0) continue;
+            int stride = OfficeRasterGuards.EnsureByteCount(
+                (((long)passWidth * bitsPerPixel) + 7L) / 8L,
+                "PNG Adam7 scanline dimensions exceed size limits.");
+            byte[] previous = new byte[stride];
+            byte[] current = new byte[stride];
+            for (int passY = 0; passY < passHeight; passY++) {
+                if ((passY & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (sourceOffset > payload.Scanlines.Length - stride - 1) return false;
+                int filter = payload.Scanlines[sourceOffset++];
+                Buffer.BlockCopy(payload.Scanlines, sourceOffset, current, 0, stride);
+                sourceOffset += stride;
+                Unfilter(current, previous, payload.BytesPerPixel, filter);
+                ExpandScanline(current, passWidth, startY[pass] + passY * stepY[pass],
+                    payload.ColorType, payload.BitDepth, payload.Palette, payload.Transparency,
+                    result, cancellationToken, startX[pass], stepX[pass]);
+
+                byte[] temp = previous;
+                previous = current;
+                current = temp;
+                Array.Clear(current, 0, current.Length);
+            }
+        }
+        return sourceOffset == payload.Scanlines.Length;
     }
 
     /// <summary>Validates that a PNG has a complete, bounded scanline payload without allocating an RGBA raster.</summary>
@@ -381,8 +430,10 @@ public static class OfficePngReader {
         byte[]? palette,
         byte[]? transparency,
         OfficeRasterImage image,
-        CancellationToken cancellationToken) {
-        if (colorType == 6 && bitDepth == 8) {
+        CancellationToken cancellationToken,
+        int destinationStartX = 0,
+        int destinationStepX = 1) {
+        if (colorType == 6 && bitDepth == 8 && destinationStartX == 0 && destinationStepX == 1) {
             Buffer.BlockCopy(current, 0, image.PixelBuffer, checked(y * width * 4), checked(width * 4));
             return;
         }
@@ -410,7 +461,7 @@ public static class OfficePngReader {
                     throw new InvalidDataException("Unsupported PNG color type.");
             }
 
-            image.SetPixel(x, y, color);
+            image.SetPixel(destinationStartX + x * destinationStepX, y, color);
         }
     }
 

@@ -346,6 +346,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerPreservesExifOnlyPhysicalResolutionAcrossFormats() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifWithResolution(300, 150)),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.InRange(result.Final.DpiX, 299.9D, 300.1D);
+            Assert.InRange(result.Final.DpiY, 149.9D, 150.1D);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerReportsIncompletePhysicalExifResolutionAsLost() {
+            byte[] exif = CreateExifWithResolution(300, 150);
+            WriteLittleEndianUInt32(exif, 30, uint.MaxValue);
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: exif),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.InRange(result.Final.DpiX, 95.9D, 96.1D);
+            Assert.InRange(result.Final.DpiY, 95.9D, 96.1D);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
         public void OfficeImageOptimizerReportsExtendedJpegXmpAsLossWhenReencoding() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
@@ -638,6 +692,74 @@ namespace OfficeIMO.Tests {
             Assert.InRange(result.Final.DpiY, 119.98D, 120.02D);
         }
 
+        [Fact]
+        public void OfficeImageOptimizerReportsUnitlessPngResolutionAsLost() {
+            byte[] png = OfficePngWriter.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficePngEncodeOptions { DpiX = 144D, DpiY = 72D });
+            int physicalResolution = FindPngChunk(png, "pHYs");
+            png[physicalResolution + 16] = 0;
+            WritePngChunkCrc(png, physicalResolution, 9);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                png,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Source & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerReportsUnitlessTiffResolutionAsLost() {
+            byte[] tiff = OfficeTiffCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeTiffEncodeOptions { DpiX = 300D, DpiY = 150D });
+            int resolutionUnit = FindClassicTiffEntry(tiff, 296);
+            WriteLittleEndian(tiff, resolutionUnit + 8, 1);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                tiff,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Tiff,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Source & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
+        public void ExplicitOutputResolutionForcesRewriteWhenOriginalIsSmaller() {
+            byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.SteelBlue));
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                png,
+                new OfficeImageOptimizationRequest(1, 1) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    OutputDpiX = 300D,
+                    OutputDpiY = 150D,
+                    KeepOriginalWhenNotSmaller = true
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.NotEqual(png, result.Bytes);
+            Assert.InRange(result.Final.DpiX, 299.98D, 300.02D);
+            Assert.InRange(result.Final.DpiY, 149.98D, 150.02D);
+        }
+
         [Theory]
         [InlineData(OfficeImageFormat.Jpeg, 65535D)]
         [InlineData(OfficeImageFormat.Tiff, 1000000D)]
@@ -839,6 +961,35 @@ namespace OfficeIMO.Tests {
             throw new InvalidOperationException("TIFF entry was not found.");
         }
 
+        private static int FindPngChunk(byte[] bytes, string expectedType) {
+            int offset = 8;
+            while (offset <= bytes.Length - 12) {
+                int length = bytes[offset] << 24 |
+                             bytes[offset + 1] << 16 |
+                             bytes[offset + 2] << 8 |
+                             bytes[offset + 3];
+                if (System.Text.Encoding.ASCII.GetString(bytes, offset + 4, 4) == expectedType) return offset;
+                offset += length + 12;
+            }
+            throw new InvalidOperationException("PNG chunk was not found.");
+        }
+
+        private static void WritePngChunkCrc(byte[] bytes, int chunkOffset, int length) {
+            uint crc = 0xFFFFFFFFU;
+            for (int index = chunkOffset + 4; index < chunkOffset + 8 + length; index++) {
+                crc ^= bytes[index];
+                for (int bit = 0; bit < 8; bit++) {
+                    crc = (crc & 1U) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
+                }
+            }
+            crc ^= 0xFFFFFFFFU;
+            int offset = chunkOffset + 8 + length;
+            bytes[offset] = (byte)(crc >> 24);
+            bytes[offset + 1] = (byte)(crc >> 16);
+            bytes[offset + 2] = (byte)(crc >> 8);
+            bytes[offset + 3] = (byte)crc;
+        }
+
         private static int ReadLittleEndian(byte[] bytes, int offset) =>
             bytes[offset] |
             bytes[offset + 1] << 8 |
@@ -889,16 +1040,28 @@ namespace OfficeIMO.Tests {
             0x00, 0x00, 0x00, 0x00
         };
 
-        private static byte[] CreateExifWithResolution() => new byte[] {
+        private static byte[] CreateExifWithResolution(int dpiX = 72, int dpiY = 72) {
+            byte[] exif = new byte[] {
             (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
             0x03, 0x00,
             0x1A, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00,
             0x1B, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0x00,
             0x28, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
-            0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-            0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
-        };
+            0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
+            };
+            WriteLittleEndianUInt32(exif, 50, checked((uint)dpiX));
+            WriteLittleEndianUInt32(exif, 58, checked((uint)dpiY));
+            return exif;
+        }
+
+        private static void WriteLittleEndianUInt32(byte[] data, int offset, uint value) {
+            data[offset] = (byte)value;
+            data[offset + 1] = (byte)(value >> 8);
+            data[offset + 2] = (byte)(value >> 16);
+            data[offset + 3] = (byte)(value >> 24);
+        }
 
         private static byte[] InsertExifSegmentAfterStartOfImage(byte[] jpeg, byte[] tiffData) {
             int payloadLength = 6 + tiffData.Length;

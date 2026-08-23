@@ -408,6 +408,16 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void OfficeWebpCodecDecodesSparseMetaHuffmanGroupIdentifiers() {
+        byte[] webp = CreateVp8lSparseHuffmanGroupFixture();
+
+        Assert.True(OfficeWebpCodec.TryDecode(webp, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.Equal((1, 1), (image!.Width, image.Height));
+        Assert.Equal(OfficeColor.FromRgba(11, 0, 22, 255), image.GetPixel(0, 0));
+    }
+
+    [Fact]
     public void OfficeWebpCodecUsesDeterministicPredictionAndLz77WhenTheyReduceThePayload() {
         var source = new OfficeRasterImage(128, 64, OfficeColor.FromRgba(12, 34, 56, 200));
 
@@ -697,6 +707,47 @@ public sealed class DrawingRasterEncodingTests {
         WriteSingleSymbolTree(writer, 255);
         WriteSingleSymbolTree(writer, 0);
         if (!duplicateSimpleTree) writer.WriteBits(0, 1); // green symbol zero
+
+        byte[] bits = writer.Finish();
+        byte[] payload = new byte[bits.Length + 1];
+        payload[0] = 0x2F;
+        Buffer.BlockCopy(bits, 0, payload, 1, bits.Length);
+        int paddedPayloadLength = payload.Length + (payload.Length & 1);
+        byte[] result = new byte[20 + paddedPayloadLength];
+        System.Text.Encoding.ASCII.GetBytes("RIFF").CopyTo(result, 0);
+        WriteLittleEndian(result, 4, result.Length - 8);
+        System.Text.Encoding.ASCII.GetBytes("WEBP").CopyTo(result, 8);
+        System.Text.Encoding.ASCII.GetBytes("VP8L").CopyTo(result, 12);
+        WriteLittleEndian(result, 16, payload.Length);
+        Buffer.BlockCopy(payload, 0, result, 20, payload.Length);
+        return result;
+    }
+
+    private static byte[] CreateVp8lSparseHuffmanGroupFixture() {
+        var writer = new TestLsbBitWriter();
+        writer.WriteBits(0, 14); // width - 1
+        writer.WriteBits(0, 14); // height - 1
+        writer.WriteBits(0, 1);  // no alpha hint
+        writer.WriteBits(0, 3);  // version
+        writer.WriteBits(0, 1);  // no transforms
+        writer.WriteBits(0, 1);  // no color cache
+        writer.WriteBits(1, 1);  // meta Huffman codes
+        writer.WriteBits(0, 3);  // prefix bits = 2
+
+        writer.WriteBits(0, 1);  // prefix image has no color cache
+        WriteSingleSymbolTree(writer, 1);   // group identifier 1 in green
+        WriteSingleSymbolTree(writer, 0);
+        WriteSingleSymbolTree(writer, 0);
+        WriteSingleSymbolTree(writer, 255);
+        WriteSingleSymbolTree(writer, 0);
+
+        for (int group = 0; group < 2; group++) {
+            WriteSingleSymbolTree(writer, 0);
+            WriteSingleSymbolTree(writer, 11);
+            WriteSingleSymbolTree(writer, 22);
+            WriteSingleSymbolTree(writer, 255);
+            WriteSingleSymbolTree(writer, 0);
+        }
 
         byte[] bits = writer.Finish();
         byte[] payload = new byte[bits.Length + 1];

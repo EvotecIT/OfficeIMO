@@ -110,7 +110,7 @@ public static partial class OfficeWebpCodec {
                 if (group > maximumGroup) maximumGroup = group;
             }
             groupCount = checked(maximumGroup + 1);
-            if (groupCount > 65536 || groupCount > pixelCount) return false;
+            if (groupCount > 65536) return false;
         }
 
         if (!allocationBudget.TryReserveArray(groupCount, IntPtr.Size) ||
