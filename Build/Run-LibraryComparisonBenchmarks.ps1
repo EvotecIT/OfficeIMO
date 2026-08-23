@@ -634,6 +634,7 @@ if ($catalogEligible) {
             -ResultPath $measurement.EvidenceLocation.ResultPath `
             -ResultArtifactPath $measurement.EvidenceLocation.Path `
             -RunMode $RunMode `
+            -Platform $platform `
             -ExpectedPlatform windows, linux, macos `
             -Publish:$Publish | Out-Null
     }
