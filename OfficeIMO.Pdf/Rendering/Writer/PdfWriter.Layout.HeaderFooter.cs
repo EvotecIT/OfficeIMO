@@ -279,9 +279,33 @@ internal static partial class PdfWriter {
         double bottomY = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - block.Shape.Height
             : options.MarginBottom - options.FooterOffsetY;
-        ReportHeaderFooterBounds(options, source, "shape", x, bottomY, block.Shape.Width, block.Shape.Height);
+        GetHeaderFooterShapeBounds(block.Shape, x, bottomY, out double visibleX, out double visibleY, out double visibleWidth, out double visibleHeight);
+        ReportHeaderFooterBounds(options, source, "shape", visibleX, visibleY, visibleWidth, visibleHeight);
 
         DrawHeaderFooterShapeGeometryAt(sb, page, block.Shape, x, bottomY);
+    }
+
+    private static void GetHeaderFooterShapeBounds(
+        OfficeShape shape,
+        double x,
+        double bottomY,
+        out double boundsX,
+        out double boundsY,
+        out double boundsWidth,
+        out double boundsHeight) {
+        if (!shape.Transform.HasValue) {
+            boundsX = x;
+            boundsY = bottomY;
+            boundsWidth = shape.Width;
+            boundsHeight = shape.Height;
+            return;
+        }
+
+        (double left, double top, double right, double bottom) = shape.Transform.Value.TransformRectangleBounds(0D, 0D, shape.Width, shape.Height);
+        boundsX = x + left;
+        boundsY = bottomY + shape.Height - bottom;
+        boundsWidth = right - left;
+        boundsHeight = bottom - top;
     }
 
     private static void ReportHeaderFooterBounds(

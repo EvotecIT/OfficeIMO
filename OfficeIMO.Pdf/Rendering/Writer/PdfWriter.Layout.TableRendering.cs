@@ -258,6 +258,8 @@ internal static partial class PdfWriter {
 
     private static void ExpandTableCellTextClip(
         double textOriginX,
+        double cellInnerWidth,
+        bool noWrap,
         System.Collections.Generic.IReadOnlyList<double>? lineXOffsets,
         System.Collections.Generic.IReadOnlyList<double>? lineWidths,
         ref double clipX,
@@ -270,7 +272,12 @@ internal static partial class PdfWriter {
         int lineCount = System.Math.Min(lineXOffsets.Count, lineWidths.Count);
         for (int index = 0; index < lineCount; index++) {
             double lineX = textOriginX + lineXOffsets[index];
-            double lineRight = lineX + System.Math.Max(0D, lineWidths[index]);
+            double relativeLineRight = lineXOffsets[index] + System.Math.Max(0D, lineWidths[index]);
+            if (noWrap) {
+                relativeLineRight = cellInnerWidth + (relativeLineRight - TableCellNoWrapWidth);
+            }
+
+            double lineRight = textOriginX + relativeLineRight;
             clipX = System.Math.Min(clipX, lineX - TableCellClipBleed);
             clipRight = System.Math.Max(clipRight, lineRight + TableCellClipBleed);
         }

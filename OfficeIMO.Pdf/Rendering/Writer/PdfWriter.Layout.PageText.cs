@@ -21,10 +21,10 @@ internal static partial class PdfWriter {
         double shapesWidth = MeasureHeaderFooterShapesWidth(opts.GetFooterShapesForPage(variantPage), opts.FooterAlign);
         double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
         double x = AlignHeaderFooterGroup(opts, groupWidth, opts.FooterAlign);
-        if (textWidth > 0D) {
-            ReportHeaderFooterBounds(opts, "Footer", "text", x, y: null, width: textWidth, height: null);
-        }
         double y = opts.MarginBottom - opts.FooterOffsetY;
+        if (textWidth > 0D && TryGetPageTextVerticalBounds(runs, footerFont, opts.FooterFontSize, opts, y, out double textBottom, out double textTop)) {
+            ReportHeaderFooterBounds(opts, "Footer", "text", x, textBottom, textWidth, textTop - textBottom);
+        }
         PdfColor? footerColor = opts.FooterTextColor;
         var sb = new StringBuilder();
         AppendPageTextRuns(sb, runs, footerFont, footerFontResource, fontResources, namedFontResources, opts.FooterFontSize, footerColor, x, y, opts, textWidth, opts.FooterAlign);
@@ -49,10 +49,10 @@ internal static partial class PdfWriter {
         double shapesWidth = MeasureHeaderFooterShapesWidth(opts.GetHeaderShapesForPage(variantPage), opts.HeaderAlign);
         double groupWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
         double x = AlignHeaderFooterGroup(opts, groupWidth, opts.HeaderAlign);
-        if (textWidth > 0D) {
-            ReportHeaderFooterBounds(opts, "Header", "text", x, y: null, width: textWidth, height: null);
-        }
         double y = opts.PageHeight - opts.MarginTop + opts.HeaderOffsetY;
+        if (textWidth > 0D && TryGetPageTextVerticalBounds(runs, headerFont, opts.HeaderFontSize, opts, y, out double textBottom, out double textTop)) {
+            ReportHeaderFooterBounds(opts, "Header", "text", x, textBottom, textWidth, textTop - textBottom);
+        }
         PdfColor? headerColor = opts.HeaderTextColor;
 
         var sb = new StringBuilder();
@@ -173,6 +173,9 @@ internal static partial class PdfWriter {
         bool isHeader) {
         double contentLeft = opts.MarginLeft;
         double contentWidth = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+        double textBaseline = isHeader
+            ? opts.PageHeight - opts.MarginTop + opts.HeaderOffsetY
+            : opts.MarginBottom - opts.FooterOffsetY;
         var layouts = new System.Collections.Generic.List<PageTextZoneLayout>();
         System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images = isHeader
             ? opts.GetHeaderImagesForPage(variantPage)
@@ -184,31 +187,37 @@ internal static partial class PdfWriter {
 
         if (!string.IsNullOrEmpty(zones.Left)) {
             string text = FormatPageText(zones.Left!, page, pages, documentPages, opts.PageNumberStyle);
-            double textWidth = MeasurePageTextRuns(BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily), font, fontSize, opts);
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily);
+            double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
+            GetPageTextVerticalBoundsOrBaseline(runs, font, fontSize, opts, textBaseline, out double textBottom, out double textTop);
             double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Left);
             double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Left);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
-            layouts.Add(new PageTextZoneLayout(text, contentLeft, textWidth, PdfAlign.Left, contentLeft, occupiedWidth));
+            layouts.Add(new PageTextZoneLayout(text, contentLeft, textWidth, PdfAlign.Left, contentLeft, occupiedWidth, textBottom, textTop - textBottom));
         }
 
         if (!string.IsNullOrEmpty(zones.Center)) {
             string text = FormatPageText(zones.Center!, page, pages, documentPages, opts.PageNumberStyle);
-            double textWidth = MeasurePageTextRuns(BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily), font, fontSize, opts);
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily);
+            double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
+            GetPageTextVerticalBoundsOrBaseline(runs, font, fontSize, opts, textBaseline, out double textBottom, out double textTop);
             double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Center);
             double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Center);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + ((contentWidth - occupiedWidth) / 2);
-            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Center, occupiedX, occupiedWidth));
+            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Center, occupiedX, occupiedWidth, textBottom, textTop - textBottom));
         }
 
         if (!string.IsNullOrEmpty(zones.Right)) {
             string text = FormatPageText(zones.Right!, page, pages, documentPages, opts.PageNumberStyle);
-            double textWidth = MeasurePageTextRuns(BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily), font, fontSize, opts);
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily);
+            double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
+            GetPageTextVerticalBoundsOrBaseline(runs, font, fontSize, opts, textBaseline, out double textBottom, out double textTop);
             double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Right);
             double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Right);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + contentWidth - occupiedWidth;
-            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Right, occupiedX, occupiedWidth));
+            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Right, occupiedX, occupiedWidth, textBottom, textTop - textBottom));
         }
 
         ValidatePageTextZoneLayouts(opts, layouts, contentLeft, contentLeft + contentWidth, isHeader);
@@ -231,14 +240,17 @@ internal static partial class PdfWriter {
                     width: zone.OccupiedWidth);
             }
 
-            if (zone.OccupiedX < -tolerance || zone.OccupiedX + zone.OccupiedWidth > options.PageWidth + tolerance) {
+            bool outsideVerticalBounds = zone.TextBottom < -tolerance || zone.TextBottom + zone.TextHeight > options.PageHeight + tolerance;
+            if (zone.OccupiedX < -tolerance || zone.OccupiedX + zone.OccupiedWidth > options.PageWidth + tolerance || outsideVerticalBounds) {
                 options.AddLayoutDiagnostic(
                     "HeaderFooterPageBoundsClipped",
                     source,
                     source + " zone content extends beyond the physical page bounds and may be clipped by the PDF page.",
                     PdfLayoutDiagnosticKind.ClippedContent,
                     x: zone.OccupiedX,
-                    width: zone.OccupiedWidth);
+                    y: zone.TextBottom,
+                    width: zone.OccupiedWidth,
+                    height: zone.TextHeight);
             }
         }
 
@@ -314,7 +326,9 @@ internal static partial class PdfWriter {
         double TextWidth,
         PdfAlign Align,
         double OccupiedX,
-        double OccupiedWidth);
+        double OccupiedWidth,
+        double TextBottom,
+        double TextHeight);
 
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildPageTextRuns(string text, PdfStandardFont font, double fontSize, PdfColor? color, PdfOptions opts, string? fontFamily = null) {
         (bool bold, bool italic) = GetPageTextFontStyle(font);

@@ -513,6 +513,54 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.False(report.HasLoss);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void HeaderFooterTextBeyondPhysicalPageReportsVerticalClipping(bool useZones) {
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 40,
+                MarginBottom = 40,
+                HeaderOffsetY = 40,
+                FooterOffsetY = 40,
+                HeaderFontSize = 12,
+                FooterFontSize = 12
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            PdfDocument document = PdfDocument.Create(options);
+            if (useZones) {
+                document
+                    .Header(header => header.Zones("HeaderVerticalClip", null, null))
+                    .Footer(footer => footer.Zones("FooterVerticalClip", null, null));
+            } else {
+                document
+                    .Header(header => header.Text("HeaderVerticalClip"))
+                    .Footer(footer => footer.Text("FooterVerticalClip"));
+            }
+
+            byte[] bytes = document
+                .Paragraph(paragraph => paragraph.Text("Vertical clipping diagnostic body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            PdfConversionWarning[] clippingWarnings = report.Warnings
+                .Where(warning => warning.Code == "HeaderFooterPageBoundsClipped")
+                .ToArray();
+            Assert.Contains(clippingWarnings, warning =>
+                warning.Source == "Header" &&
+                (warning.LayoutDiagnostic?.Y ?? 0D) + (warning.LayoutDiagnostic?.Height ?? 0D) > options.PageHeight &&
+                warning.LayoutDiagnostic?.Height > 0D);
+            Assert.Contains(clippingWarnings, warning =>
+                warning.Source == "Footer" &&
+                warning.LayoutDiagnostic?.Y < 0D &&
+                warning.LayoutDiagnostic.Height > 0D);
+            Assert.True(report.HasLoss);
+        }
+
         [Fact]
         public void HeaderFooterZones_CanConfigureFirstAndEvenPageVariants() {
             var doc = PdfDocument.Create(new PdfOptions {
@@ -673,6 +721,36 @@ namespace OfficeIMO.Tests.Pdf {
                 warning.LayoutDiagnostic?.Kind == PdfLayoutDiagnosticKind.Overflow);
             Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
             Assert.False(report.HasLoss);
+        }
+
+        [Fact]
+        public void HeaderFooterTransformedShapeUsesVisibleBoundsForClippingDiagnostics() {
+            OfficeShape shape = OfficeShape.Rectangle(24, 12);
+            shape.FillColor = OfficeColor.Blue;
+            shape.Transform = OfficeTransform.Scale(1.5D, 1D).Then(OfficeTransform.Translate(220D, 0D));
+            var report = new PdfConversionReport();
+            var options = new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 220,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 50,
+                MarginBottom = 50
+            }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.Shape(shape, PdfAlign.Left))
+                .Paragraph(paragraph => paragraph.Text("Transformed header shape diagnostic body"))
+                .ToBytes();
+
+            Assert.NotEmpty(bytes);
+            PdfConversionWarning warning = Assert.Single(report.Warnings, warning =>
+                warning.Code == "HeaderFooterPageBoundsClipped" &&
+                warning.Source == "Header");
+            Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
+            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth);
+            Assert.InRange(warning.LayoutDiagnostic?.Width ?? 0D, 35.999D, 36.001D);
+            Assert.True(report.HasLoss);
         }
 
         [Fact]
