@@ -346,7 +346,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(logical.Headings, heading => heading.Text == "Native normal heading");
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfOperatorSearchText.From(bytes);
             Assert.DoesNotContain("/Helvetica-Bold", rawPdf, StringComparison.Ordinal);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
@@ -454,7 +454,8 @@ namespace OfficeIMO.Tests {
             PdfOptions pdfOptions = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new object[] {
                 document,
                 saveOptions,
-                nativeFontMap
+                nativeFontMap,
+                Array.Empty<string?>()
             }));
 
             object[] args = { "serif", PdfStandardFont.Helvetica };

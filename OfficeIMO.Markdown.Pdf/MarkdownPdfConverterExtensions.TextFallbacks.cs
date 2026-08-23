@@ -18,6 +18,13 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
+        fallbackFeatures = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(
+            fallbackFeatures,
+            new[] { document.ToMarkdown() });
+        if (fallbackFeatures == PdfCore.PdfTextFallbackFeatures.None) {
+            return;
+        }
+
         bool preserveDocumentFontSlots = hasCallerPdfOptions || hasExplicitFontFamily;
         bool usesCodeFont = MarkdownDocumentUsesCodeFont(document);
         if (!usesCodeFont) {

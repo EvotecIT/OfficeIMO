@@ -289,6 +289,64 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void VisualPdfPropagatesPasswordEncryptionToTheSharedPdfWriter() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        OneNoteImage image = Assert.Single(section.Pages[0].DirectContent.OfType<OneNoteImage>());
+        image.Payload = OneNoteBinaryPayload.FromBytes(
+            OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
+        var options = new OneNoteVisualPdfOptions {
+            RasterScale = 0.5D,
+            PdfOptions = new PdfOptions().SetEncryption("open", "owner")
+        };
+
+        byte[] bytes = section.ToVisualPdfDocumentResult(options).Value.ToBytes();
+
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Open(bytes));
+        Assert.Throws<PdfInvalidPasswordException>(() =>
+            PdfReadDocument.Open(bytes, new PdfReadOptions { Password = "wrong" }));
+        Assert.Single(PdfReadDocument.Open(
+            bytes,
+            new PdfReadOptions { Password = "open" }).Pages);
+    }
+
+    [Fact]
+    public void VisualPdfKeepsCompressionDefaultWithCallerOptionsAndRespectsOptOut() {
+        OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
+        OneNoteImage image = Assert.Single(section.Pages[0].DirectContent.OfType<OneNoteImage>());
+        image.Payload = OneNoteBinaryPayload.FromBytes(
+            OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.CornflowerBlue)));
+
+        byte[] compressed = section.ToVisualPdf(new OneNoteVisualPdfOptions {
+            RasterScale = 0.5D,
+            PdfOptions = new PdfOptions { Language = "en-US" }
+        });
+        byte[] uncompressed = section.ToVisualPdf(new OneNoteVisualPdfOptions {
+            RasterScale = 0.5D,
+            PdfOptions = new PdfOptions { CompressContentStreams = false }
+        });
+
+        Assert.Contains("/Filter /FlateDecode", GetFirstPageContentStreamDictionary(compressed), StringComparison.Ordinal);
+        Assert.DoesNotContain("/Filter /FlateDecode", GetFirstPageContentStreamDictionary(uncompressed), StringComparison.Ordinal);
+    }
+
+    private static string GetFirstPageContentStreamDictionary(byte[] pdf) {
+        string raw = Encoding.Latin1.GetString(pdf);
+        System.Text.RegularExpressions.Match contents = System.Text.RegularExpressions.Regex.Match(
+            raw,
+            @"/Contents\s+(\d+)\s+0\s+R",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        Assert.True(contents.Success, "The generated page did not reference a content stream.");
+        string objectNumber = contents.Groups[1].Value;
+        System.Text.RegularExpressions.Match stream = System.Text.RegularExpressions.Regex.Match(
+            raw,
+            @"(?:^|\n)" + objectNumber + @"\s+0\s+obj\s*(?<dictionary><<.*?>>)\s*stream",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant |
+            System.Text.RegularExpressions.RegexOptions.Singleline);
+        Assert.True(stream.Success, "The generated page content object did not contain a stream dictionary.");
+        return stream.Groups["dictionary"].Value;
+    }
+
+    [Fact]
     public void VisualPdfMaximumRasterPixelsRemainsAHardLimitForVeryLargeCanvases() {
         var section = new OneNoteSection { Name = "Large canvas" };
         section.Pages.Add(new OneNotePage {

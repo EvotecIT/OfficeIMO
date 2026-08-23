@@ -818,7 +818,8 @@ public partial class PdfDocumentVisualQualityTests {
             Assert.InRange(letter.StartBaseLine.X, 0D, 180D);
             Assert.InRange(letter.StartBaseLine.Y, 0D, 120D);
         });
-        Assert.Contains("/Group << /S /Transparency /I true /K false >>", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Form", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Group << /S /Transparency", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
     }
 

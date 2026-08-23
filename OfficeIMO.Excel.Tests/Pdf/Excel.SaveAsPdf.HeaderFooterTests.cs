@@ -113,7 +113,7 @@ public partial class Excel {
         Assert.Contains("Styled Footer", text);
         Assert.Contains("HeaderFooterFormattingBody", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 0 1 rg", rawPdf, StringComparison.Ordinal);
         Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
@@ -152,7 +152,7 @@ public partial class Excel {
         Assert.Contains("Alias Footer", text);
         Assert.Contains("HeaderFooterFontAliasBody", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier-Oblique", "CourierNew-Italic", "Consolas-Italic", "LiberationMono-Italic", "DejaVuSansMono-Italic");
         Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
@@ -193,7 +193,7 @@ public partial class Excel {
         Assert.Contains("Named Footer", text);
         Assert.Contains("NamedHeaderFooterBody", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/BaseFont /StudioSerif-Bold", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /StudioSerif-Italic", rawPdf, StringComparison.Ordinal);
         Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetFontSubstitution");
@@ -226,7 +226,7 @@ public partial class Excel {
         Assert.Contains("\"Times New Roman\" Literal Header", text);
         Assert.Contains("EscapedHeaderFooterBody", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.DoesNotContain("TimesNewRoman", rawPdf, StringComparison.Ordinal);
         Assert.DoesNotContain("/Times-Roman", rawPdf, StringComparison.Ordinal);
     }
@@ -263,7 +263,7 @@ public partial class Excel {
         Assert.Contains("Plain Center", text);
         Assert.Contains("MixedFormattingBody", text);
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.DoesNotContain("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains(result.Warnings, warning => warning.Source == "MixedFormatting" && warning.Code == "WorksheetHeaderFooterFormatting");
     }

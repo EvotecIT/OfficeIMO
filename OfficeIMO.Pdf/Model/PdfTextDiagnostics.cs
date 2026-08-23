@@ -16,6 +16,47 @@ internal static class PdfTextDiagnostics {
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfOpenTypeCffFontProgram, OpenTypeFontInfoBox> CffLayoutInfoCache = new();
 
     /// <summary>
+    /// Removes automatic embedded-font fallback groups when every generated text
+    /// value can use the dependency-free WinAnsi path. Explicitly configured and
+    /// source-owned fonts remain independent of this preflight decision.
+    /// </summary>
+    internal static PdfTextFallbackFeatures ResolveRequiredFallbackFeatures(
+        PdfTextFallbackFeatures requested,
+        IEnumerable<string?> textValues) {
+        Guard.NotNull(textValues, nameof(textValues));
+        if (requested == PdfTextFallbackFeatures.None) {
+            return requested;
+        }
+
+        foreach (string? text in textValues) {
+            if (RequiresEmbeddedUnicodeFont(text)) {
+                return requested;
+            }
+        }
+
+        return PdfTextFallbackFeatures.None;
+    }
+
+    internal static bool RequiresEmbeddedUnicodeFont(string? text) {
+        if (string.IsNullOrEmpty(text)) {
+            return false;
+        }
+
+        for (int index = 0; index < text!.Length; index++) {
+            char ch = text[index];
+            if (ch == '\n' || ch == '\r' || ch == '\t') {
+                continue;
+            }
+
+            if (!PdfWinAnsiEncoding.CanEncodeCharacter(ch)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Finds text that cannot be written through the current generated standard-font WinAnsi path.
     /// </summary>
     /// <param name="text">Text to inspect.</param>
@@ -38,7 +79,7 @@ internal static class PdfTextDiagnostics {
                 continue;
             }
 
-            if (!PdfWinAnsiEncoding.CanEncode(ch.ToString(), out _)) {
+            if (!PdfWinAnsiEncoding.CanEncodeCharacter(ch)) {
                 diagnostics.Add(CreateDiagnostic(text, index, source, location, runIndex));
                 if (char.IsHighSurrogate(ch) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
                     index += 2;
@@ -366,11 +407,11 @@ internal static class PdfTextDiagnostics {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(trueTypeFont, nameof(trueTypeFont));
         if (IsOpenTypeCffFontData(trueTypeFont)) {
-            PdfOpenTypeCffFontProgram cffFont = PdfOpenTypeCffFontProgram.Parse(trueTypeFont, fontName);
+            PdfOpenTypeCffFontProgram cffFont = PdfFontProgramCache.GetOpenTypeCff(trueTypeFont, fontName);
             return AnalyzeEmbeddedFontTextCore(text, cffFont, source, string.IsNullOrWhiteSpace(fontName) ? cffFont.FontName : fontName!);
         }
 
-        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(trueTypeFont, fontName);
+        PdfTrueTypeFontProgram font = PdfFontProgramCache.GetTrueType(trueTypeFont, fontName);
         return AnalyzeEmbeddedFontTextCore(text, font, source, string.IsNullOrWhiteSpace(fontName) ? font.FontName : fontName!);
     }
 
@@ -402,10 +443,10 @@ internal static class PdfTextDiagnostics {
         PdfOpenTypeCffFontProgram? cffFont = null;
         string resolvedFontName;
         if (IsOpenTypeCffFontData(trueTypeFont)) {
-            cffFont = PdfOpenTypeCffFontProgram.Parse(trueTypeFont, fontName);
+            cffFont = PdfFontProgramCache.GetOpenTypeCff(trueTypeFont, fontName);
             resolvedFontName = string.IsNullOrWhiteSpace(fontName) ? cffFont.FontName : fontName!;
         } else {
-            font = PdfTrueTypeFontProgram.Parse(trueTypeFont, fontName);
+            font = PdfFontProgramCache.GetTrueType(trueTypeFont, fontName);
             resolvedFontName = string.IsNullOrWhiteSpace(fontName) ? font.FontName : fontName!;
         }
 
@@ -935,11 +976,11 @@ internal static class PdfTextDiagnostics {
         EmbeddedFontFallbackProgram program = IsOpenTypeCffFontData(fontData)
             ? new EmbeddedFontFallbackProgram(
                 candidate.FontName,
-                PdfOpenTypeCffFontProgram.Parse(fontData, candidate.FontName),
+                PdfFontProgramCache.GetOpenTypeCff(fontData, candidate.FontName),
                 candidate.UnicodeRanges)
             : new EmbeddedFontFallbackProgram(
                 candidate.FontName,
-                PdfTrueTypeFontProgram.Parse(fontData, candidate.FontName),
+                PdfFontProgramCache.GetTrueType(fontData, candidate.FontName),
                 candidate.UnicodeRanges);
         return new EmbeddedFontFallbackProgramBox(program);
     }

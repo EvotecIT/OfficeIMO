@@ -293,7 +293,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static bool RequiresUnicodeFont(string text) =>
-        PdfCore.PdfTextDiagnostics.AnalyzeWinAnsiText(text).Count != 0;
+        PdfCore.PdfTextDiagnostics.RequiresEmbeddedUnicodeFont(text);
 
     private static bool RegisterNamedFamily(
         PdfCore.PdfDocument pdf,

@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static PdfCore.PdfOptions CreatePdfOptions(ExcelPdfSaveOptions options, out bool preserveConfiguredFontSlots) {
             PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+            pdfOptions.UseContentStreamCompressionByDefault();
             pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
 
             pdfOptions.CreateOutlineFromHeadings = true;
@@ -30,13 +31,23 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfOptions pdfOptions,
             ExcelPdfSaveOptions options,
             bool preserveConfiguredFontSlots,
-            IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
+            IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
+            IReadOnlyList<WorksheetPdfExportPlan> exportPlans) {
             if (!options.ResourcePolicy.AllowSystemFontEmbedding ||
                 options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
                 return;
             }
 
             PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
+            if (!exportPlans.Any(plan => plan.Charts.Count > 0)) {
+                fallbackFeatures = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(
+                    fallbackFeatures,
+                    EnumerateWorksheetFallbackText(exportPlans, options.EmptyCellText));
+            }
+            if (fallbackFeatures == PdfCore.PdfTextFallbackFeatures.None) {
+                return;
+            }
+
             if (preserveConfiguredFontSlots || pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
                 fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
             }
@@ -46,6 +57,36 @@ namespace OfficeIMO.Excel.Pdf {
                 reservedFontSlots,
                 options.ResourcePolicy.AllowSystemFontEmbedding,
                 preserveConfiguredFontSlots);
+        }
+
+        private static IEnumerable<string?> EnumerateWorksheetFallbackText(
+            IReadOnlyList<WorksheetPdfExportPlan> exportPlans,
+            string emptyCellText) {
+            yield return emptyCellText;
+            foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                yield return plan.SheetName;
+                object?[,] values = plan.ExportData.Values;
+                ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                for (int row = 0; row < values.GetLength(0); row++) {
+                    for (int column = 0; column < values.GetLength(1); column++) {
+                        if (values[row, column] is string text) {
+                            yield return text;
+                        }
+
+                        if (styles != null &&
+                            row < styles.GetLength(0) &&
+                            column < styles.GetLength(1)) {
+                            yield return styles[row, column]?.NumberFormatCode;
+                        }
+                    }
+                }
+
+                if (plan.HeaderFooter != null) {
+                    foreach (string? text in EnumerateHeaderFooterTextZones(plan.HeaderFooter)) {
+                        yield return text;
+                    }
+                }
+            }
         }
 
         private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {

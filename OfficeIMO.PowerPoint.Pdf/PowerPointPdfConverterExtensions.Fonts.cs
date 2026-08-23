@@ -9,6 +9,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.PdfOptions CreatePdfOptions(PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+        pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
@@ -29,7 +30,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterPresentationFonts(pdfOptions, presentation, options, preserveConfiguredFontSlots);
-        ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots);
+        ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots, presentation);
         return pdfOptions;
     }
 
@@ -37,13 +38,23 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfOptions pdfOptions,
         PowerPointPdfSaveOptions options,
         bool preserveConfiguredFontSlots,
-        IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
+        IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
+        PptCore.PowerPointPresentation presentation) {
         if (!options.ResourcePolicy.AllowSystemFontEmbedding ||
             options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
             return;
         }
 
         PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
+        if (!PresentationRequiresConservativeTextFallbacks(presentation, options)) {
+            fallbackFeatures = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(
+                fallbackFeatures,
+                EnumeratePresentationFallbackText(presentation, options));
+        }
+        if (fallbackFeatures == PdfCore.PdfTextFallbackFeatures.None) {
+            return;
+        }
+
         if (preserveConfiguredFontSlots || pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
             fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
         }
@@ -53,6 +64,53 @@ public static partial class PowerPointPdfConverterExtensions {
             reservedFontSlots,
             options.ResourcePolicy.AllowSystemFontEmbedding,
             preserveConfiguredFontSlots);
+    }
+
+    private static bool PresentationRequiresConservativeTextFallbacks(
+        PptCore.PowerPointPresentation presentation,
+        PowerPointPdfSaveOptions options) {
+        foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
+            if (!options.IncludeHiddenSlides && slide.Hidden) {
+                continue;
+            }
+
+            if (slide.Shapes.Any(shape =>
+                    shape is PptCore.PowerPointChart or PptCore.PowerPointSmartArt) ||
+                slide.GetInheritedShapesForExport().Any(shape =>
+                    shape is PptCore.PowerPointChart or PptCore.PowerPointSmartArt)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<string?> EnumeratePresentationFallbackText(
+        PptCore.PowerPointPresentation presentation,
+        PowerPointPdfSaveOptions options) {
+        foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
+            if (!options.IncludeHiddenSlides && slide.Hidden) {
+                continue;
+            }
+
+            foreach (PptCore.PowerPointShape shape in slide.GetInheritedShapesForExport()) {
+                yield return shape.Element.InnerText;
+                foreach (A.CharacterBullet bullet in shape.Element.Descendants<A.CharacterBullet>()) {
+                    yield return bullet.Char?.Value;
+                }
+            }
+
+            foreach (PptCore.PowerPointShape shape in slide.Shapes) {
+                yield return shape.Element.InnerText;
+                foreach (A.CharacterBullet bullet in shape.Element.Descendants<A.CharacterBullet>()) {
+                    yield return bullet.Char?.Value;
+                }
+            }
+
+            if (options.IncludeSpeakerNotes && slide.Notes.TryGetText(out string notes)) {
+                yield return notes;
+            }
+        }
     }
 
     private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {

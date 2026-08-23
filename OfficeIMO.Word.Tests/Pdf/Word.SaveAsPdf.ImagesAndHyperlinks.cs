@@ -28,7 +28,7 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/URI (https://evotec.xyz", pdfContent);
     }
@@ -60,7 +60,7 @@ public partial class Word {
             });
         }
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[0 0 (?<width>\d+(?:\.\d+)?) (?<height>\d+(?:\.\d+)?)\]");
         Assert.True(mediaBox.Success, "Expected generated PDF to expose a simple MediaBox.");
 
@@ -100,7 +100,7 @@ public partial class Word {
         }
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyImageUnsupported");
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Subtype /Image", pdfContent);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -163,7 +163,7 @@ public partial class Word {
             warning.Code == "NativeBodyContentControlUnsupported" &&
             warning.Source == "body paragraph");
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("36 0 0 36", pdfContent);
     }
@@ -197,7 +197,7 @@ public partial class Word {
             warning.Source == "body table");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
-        string pdfContent = Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("36 0 0 36", pdfContent);
 

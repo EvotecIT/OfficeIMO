@@ -183,7 +183,7 @@ public partial class Word {
         Assert.Contains("ConditionalHdr", text);
         Assert.Contains("BodyValue", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.067 0.133 0.2 rg", raw);
     }
 
@@ -228,7 +228,7 @@ public partial class Word {
         Assert.Contains("BodyValue", text);
         Assert.Contains("TotalFooter", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.2 0.4 0.6 rg", raw);
     }
 
@@ -281,7 +281,7 @@ public partial class Word {
         Assert.Contains("RichHeader", text);
         Assert.Contains("RichFooterValue", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.True(
             raw.Contains("Helvetica-Oblique", StringComparison.Ordinal) ||
             raw.Contains("-Italic", StringComparison.Ordinal) ||
@@ -340,7 +340,7 @@ public partial class Word {
         Assert.Contains("BorderHeader", text);
         Assert.Contains("BorderFooterValue", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.067 0.133 0.2 RG", raw);
         Assert.Contains("0.267 0.333 0.4 RG", raw);
     }
@@ -408,7 +408,7 @@ public partial class Word {
         Assert.Contains("BorderCell00", text);
         Assert.Contains("BorderCell33", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.067 0.133 0.2 RG", raw);
         Assert.Contains("0.267 0.333 0.4 RG", raw);
         Assert.Contains("0.667 0 0 RG", raw);
@@ -460,7 +460,7 @@ public partial class Word {
         Assert.Contains("FirstColumnTop", text);
         Assert.Contains("LastColumnBottom", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.8 0.933 1 rg", raw);
         Assert.Contains("1 0.8 0.6 rg", raw);
     }
@@ -509,7 +509,7 @@ public partial class Word {
         Assert.Contains("MiddleTextBottom", text);
         Assert.Contains("LastTextBottom", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.067 0.133 0.2 rg", raw);
         Assert.Contains("0.267 0.333 0.4 rg", raw);
     }
@@ -559,7 +559,7 @@ public partial class Word {
         Assert.Contains("BandText00", text);
         Assert.Contains("BandText31", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.667 0 0 rg", raw);
         Assert.Contains("0 0.267 0.533 rg", raw);
     }
@@ -602,7 +602,7 @@ public partial class Word {
         Assert.Contains("BandLabel0", text);
         Assert.Contains("BandValue3", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.6 0.8 1 rg", raw);
     }
 
@@ -648,7 +648,7 @@ public partial class Word {
         Assert.Contains("BandCell00", text);
         Assert.Contains("BandCell13", text);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.8 0.6 1 rg", raw);
     }
 

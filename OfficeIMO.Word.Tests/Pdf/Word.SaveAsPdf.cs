@@ -347,7 +347,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
         Assert.True(mediaBox.Success, "MediaBox not found");
         double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
@@ -375,7 +375,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
         Assert.True(mediaBox.Success, "MediaBox not found");
         double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
@@ -403,7 +403,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Match mediaBox = Regex.Match(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
         Assert.True(mediaBox.Success, "MediaBox not found");
         double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
@@ -470,7 +470,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/URI (https://evotec.xyz", pdfContent);
     }
 
@@ -495,7 +495,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         MatchCollection boxes = Regex.Matches(pdfContent, @"/MediaBox\s*\[\s*0\s+0\s+(?<w>[0-9\.]+)\s+(?<h>[0-9\.]+)\s*\]");
         Assert.Equal(2, boxes.Count);
 
@@ -605,7 +605,7 @@ public partial class Word {
         if (contents is PdfCore.PdfReference reference) {
             if (objects.TryGetValue(reference.ObjectNumber, out PdfCore.PdfIndirectObject indirect) &&
                 indirect.Value is PdfCore.PdfStream stream) {
-                streams.Add(Encoding.GetEncoding("ISO-8859-1").GetString(stream.Data));
+                streams.Add(PdfOperatorSearchText.Decode(stream, objects));
             }
 
             return;
@@ -649,7 +649,7 @@ public partial class Word {
             letter.FontName != null &&
             letter.FontName.Contains(expectedFontNamePart, StringComparison.OrdinalIgnoreCase));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/BaseFont /" + expectedFontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -659,13 +659,13 @@ public partial class Word {
             letter.FontName != null &&
             expectedFontNameParts.Any(expected => letter.FontName.Contains(expected, StringComparison.OrdinalIgnoreCase)));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains(expectedFontNameParts, expected =>
             pdfContent.Contains("/BaseFont /" + expected, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void AssertPdfDoesNotUseFont(string pdfPath, string fontNamePart) {
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.DoesNotContain("/BaseFont /" + fontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 }

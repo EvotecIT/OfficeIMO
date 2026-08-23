@@ -6,11 +6,25 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderCanvasEffect(PdfCanvasEffectItem item) {
+            if (item.Opacity >= 1D) {
+                OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
+                RenderOpaqueEffectGroupInline(transform, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
+                return;
+            }
+
             RenderEffectGroup(item.Transform, item.Opacity, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
         }
 
         private void RenderEffectGroup(OfficeTransform topLeftPageTransform, double opacity, Action renderContent) {
             OfficeTransform transform = ConvertTopLeftCanvasTransform(topLeftPageTransform, currentOpts.PageHeight);
+            if (opacity >= 1D &&
+                (currentOpts.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers ||
+                 _suppressCanvasAccessibilityWrappers ||
+                 _suppressCanvasActualTextChildren)) {
+                RenderOpaqueEffectGroupInline(transform, renderContent);
+                return;
+            }
+
             bool artifactContent = _suppressCanvasActualTextChildren;
             int annotationStart = currentPage!.Annotations.Count;
             int textAnnotationStart = currentPage.TextAnnotations.Count;
@@ -43,6 +57,41 @@ internal static partial class PdfWriter {
                 GraphicsStateName = opacityState
             });
             sb.Append(token);
+            TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);
+            TransformCanvasRectangles(currentPage.TextAnnotations, textAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.FreeTextAnnotations, freeTextAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.HighlightAnnotations, highlightAnnotationStart, transform);
+            TransformCanvasPageImageBounds(currentPage.Images, imageStart, transform);
+            TransformCanvasRectangles(currentPage.FormFields, formFieldStart, transform);
+            pageDirty = true;
+        }
+
+        private void RenderOpaqueEffectGroupInline(OfficeTransform transform, Action renderContent) {
+            bool artifactContent = _suppressCanvasActualTextChildren;
+            int annotationStart = currentPage!.Annotations.Count;
+            int textAnnotationStart = currentPage.TextAnnotations.Count;
+            int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
+            int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
+            int imageStart = currentPage.Images.Count;
+            int formFieldStart = currentPage.FormFields.Count;
+            if (artifactContent) {
+                sb.Append("/Artifact BMC\n");
+            }
+            var content = new ContentStreamBuilder(sb).SaveState();
+            if (!transform.Equals(OfficeTransform.Identity)) {
+                content.TransformMatrix(transform);
+            }
+            _canvasClipDepth++;
+            try {
+                renderContent();
+            } finally {
+                _canvasClipDepth--;
+                new ContentStreamBuilder(sb).RestoreState();
+                if (artifactContent) {
+                    sb.Append("EMC\n");
+                }
+            }
+
             TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);
             TransformCanvasRectangles(currentPage.TextAnnotations, textAnnotationStart, transform);
             TransformCanvasRectangles(currentPage.FreeTextAnnotations, freeTextAnnotationStart, transform);

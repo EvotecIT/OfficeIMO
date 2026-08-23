@@ -741,7 +741,8 @@ public class PdfDocumentCanvasTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("/Group << /S /Transparency /I true /K false >>", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Form", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Group << /S /Transparency", content, StringComparison.Ordinal);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var letters = pdf.GetPage(1).Letters;
@@ -1848,6 +1849,56 @@ public class PdfDocumentCanvasTests {
             canvas.Effect(OfficeTransform.Identity, double.NaN, _ => { })));
         Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, null!)));
+    }
+
+    [Fact]
+    public void CanvasEffect_IdentityOpaqueInlinesContentWithoutRedundantFormXObject() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Effect(
+                OfficeTransform.Identity,
+                1D,
+                nested => nested.Text("IDENTITY-EFFECT-TEXT", 20D, 20D, 160D, 20D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("IDENTITY-EFFECT-TEXT", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Form", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Group << /S /Transparency", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasEffect_OpaqueTransformInlinesContentAndTransformsLinks() {
+        const string uri = "https://evotec.xyz/opaque-effect";
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Effect(
+                OfficeTransform.Translate(12D, 7D),
+                1D,
+                nested => nested.Text(new[] { PdfTextRun.Link("OPAQUE-EFFECT-TEXT", uri) }, 20D, 20D, 160D, 20D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
+        Assert.Contains("OPAQUE-EFFECT-TEXT", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1 12 -7 cm", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Form", raw, StringComparison.Ordinal);
+        Assert.InRange(link.X1, 31.9D, 32.1D);
+    }
+
+    [Fact]
+    public void DrawingEffect_OpaqueTranslationInlinesContentWithoutRedundantFormXObject() {
+        OfficeDrawing source = new OfficeDrawing(100D, 30D)
+            .AddText("OPAQUE-DRAWING-EFFECT", 0D, 0D, 100D, 30D);
+        OfficeDrawing drawing = new OfficeDrawing(120D, 40D)
+            .AddEffectDrawing(source, OfficeTransform.Translate(10D, 5D));
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Drawing(drawing)
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("OPAQUE-DRAWING-EFFECT", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Form", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Group << /S /Transparency", raw, StringComparison.Ordinal);
     }
 
     [Fact]

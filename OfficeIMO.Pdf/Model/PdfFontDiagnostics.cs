@@ -20,7 +20,7 @@ public static class PdfFontDiagnostics {
     /// <returns>Font diagnostics in source order. An empty result means the font parsed through a current generated font path.</returns>
     public static IReadOnlyList<PdfFontEmbeddingDiagnostic> AnalyzeEmbeddedFont(byte[] fontData, string source = "", string? fontName = null) {
         Guard.NotNull(fontData, nameof(fontData));
-        return AnalyzeEmbeddedFontFailure(fontData, source, fontName, exception: null);
+        return AnalyzeEmbeddedFontFailure((byte[])fontData.Clone(), source, fontName, exception: null);
     }
 
     internal static IReadOnlyList<PdfFontEmbeddingDiagnostic> AnalyzeEmbeddedFontFailure(byte[] fontData, string source, string? fontName, Exception? exception) {
@@ -34,7 +34,7 @@ public static class PdfFontDiagnostics {
         uint scalerType = ReadUInt32(fontData, 0);
         if (scalerType == OpenTypeCffScalerType) {
             try {
-                _ = PdfOpenTypeCffFontProgram.Parse(fontData, resolvedFontName);
+                _ = PdfFontProgramCache.GetOpenTypeCff(fontData, resolvedFontName);
                 return Array.Empty<PdfFontEmbeddingDiagnostic>();
             } catch (Exception parseException) when (IsFontProgramException(parseException)) {
                 Exception effectiveException = exception ?? parseException;
@@ -52,7 +52,7 @@ public static class PdfFontDiagnostics {
         }
 
         try {
-            _ = PdfTrueTypeFontProgram.Parse(fontData, resolvedFontName);
+            _ = PdfFontProgramCache.GetTrueType(fontData, resolvedFontName);
             return Array.Empty<PdfFontEmbeddingDiagnostic>();
         } catch (Exception parseException) when (IsFontProgramException(parseException)) {
             Exception effectiveException = exception ?? parseException;

@@ -23,6 +23,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+        pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Markdown.Pdf");
 
         ApplyMarkdownTextFallbackOptions(pdfOptions, options, document);

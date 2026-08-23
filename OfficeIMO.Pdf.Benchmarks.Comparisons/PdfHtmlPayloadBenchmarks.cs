@@ -1,4 +1,8 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
@@ -10,6 +14,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 [RankColumn]
 public class PdfHtmlPayloadBenchmarks {
     private PdfHtmlPayloadScenario _scenario = null!;
+    private PdfEmbeddedFontFamily? _multilingualFont;
     private byte[]? _officeImoResult;
     private byte[]? _peachPdfResult;
 
@@ -17,15 +22,22 @@ public class PdfHtmlPayloadBenchmarks {
     public PdfHtmlPayloadKind Payload { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _scenario = PdfHtmlPayloadScenario.Create(Payload);
+    public void Setup() {
+        _scenario = PdfHtmlPayloadScenario.Create(Payload);
+        if (Payload == PdfHtmlPayloadKind.Multilingual &&
+            !PdfEmbeddedFontFamily.TryFromSystem("Yu Gothic", out _multilingualFont)) {
+            throw new InvalidOperationException(
+                "The multilingual HTML comparison requires the same embeddable Yu Gothic fallback for both engines.");
+        }
+    }
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() =>
-        _officeImoResult = OfficeImoPdfGenerator.GenerateHtml(_scenario.Html);
+        _officeImoResult = OfficeImoPdfGenerator.GenerateHtml(_scenario.Html, _multilingualFont);
 
     [Benchmark]
     public byte[] PeachPDF() =>
-        _peachPdfResult = PeachPdfGenerator.Generate(_scenario.Html);
+        _peachPdfResult = PeachPdfGenerator.Generate(_scenario.Html, _multilingualFont);
 
     [GlobalCleanup(Target = nameof(OfficeIMO))]
     public void ValidateOfficeIMO() => Validate(nameof(OfficeIMO), _officeImoResult);
@@ -44,16 +56,78 @@ public class PdfHtmlPayloadBenchmarks {
                 $"{engine} produced an implausible {observation.PageCount} pages for the paginated 21 KiB {_scenario.Kind} workload.");
         }
 
-        string normalized = observation.NormalizedText;
+        string normalized = _scenario.Kind == PdfHtmlPayloadKind.Multilingual
+            ? NormalizeMultilingualText(observation.NormalizedText)
+            : observation.NormalizedText;
         foreach (string required in _scenario.RequiredText) {
-            string fragment = PdfBenchmarkValidation.Normalize(required);
-            if (!normalized.Contains(fragment, StringComparison.Ordinal)) {
+            string fragment = _scenario.Kind == PdfHtmlPayloadKind.Multilingual
+                ? NormalizeMultilingualText(required)
+                : PdfBenchmarkValidation.Normalize(required);
+            bool preserved = normalized.Contains(fragment, StringComparison.Ordinal);
+            if (!preserved && OfficeTextElements.ContainsRightToLeft(required)) {
+                string visualOrder = string.Concat(OfficeTextElements.Enumerate(fragment).Reverse());
+                preserved = normalized.Contains(visualOrder, StringComparison.Ordinal);
+            }
+
+            if (!preserved) {
                 throw new InvalidDataException($"{engine} did not preserve required text '{required}' for {_scenario.Kind}.");
             }
+        }
+
+        ValidateTaggedStructure(engine, bytes);
+        if (_scenario.Kind == PdfHtmlPayloadKind.Multilingual) {
+            ValidateSharedMultilingualFont(engine, bytes);
         }
 
         Console.WriteLine(
             $"HTML_PDF_EVIDENCE engine={engine} payload={_scenario.Kind} htmlBytes={PdfHtmlPayloadScenario.TargetUtf8Bytes} " +
             $"pdfBytes={bytes.Length} pages={observation.PageCount} textLength={observation.TextLength}");
+    }
+
+    private static void ValidateTaggedStructure(string engine, byte[] bytes) {
+        PdfDocumentInfo info = PdfDocument.Open(bytes).Inspect();
+        PdfTaggedContentInfo? tagged = info.TaggedContent;
+        if (!info.HasTaggedContent ||
+            tagged == null ||
+            tagged.StructureElements.Count == 0 ||
+            tagged.MarkedContentReferenceCount == 0) {
+            throw new InvalidDataException($"{engine} did not preserve a non-empty tagged structure tree.");
+        }
+    }
+
+    private void ValidateSharedMultilingualFont(string engine, byte[] bytes) {
+        PdfEmbeddedFontFamily font = _multilingualFont
+            ?? throw new InvalidOperationException("The multilingual benchmark font was not initialized.");
+        string expectedFont = NormalizeFontName(font.FamilyName);
+        bool embedded = Encoding.Latin1.GetString(bytes).Contains("/FontFile", StringComparison.Ordinal);
+        bool usedForJapanese = false;
+        using (var stream = new MemoryStream(bytes, writable: false)) {
+            using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream);
+            usedForJapanese = document.GetPages()
+                .SelectMany(page => page.Letters)
+                .Any(letter =>
+                    letter.Value.Contains('日') &&
+                    NormalizeFontName(letter.FontName ?? string.Empty).Contains(expectedFont, StringComparison.Ordinal));
+        }
+
+        if (!embedded || !usedForJapanese) {
+            throw new InvalidDataException(
+                $"{engine} did not embed and use the shared '{font.FamilyName}' font for Japanese fallback text.");
+        }
+    }
+
+    private static string NormalizeFontName(string value) =>
+        new(value.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+
+    private static string NormalizeMultilingualText(string value) {
+        string logical = OfficeArabicTextShaper.ToLogicalText(PdfBenchmarkValidation.Normalize(value));
+        var normalized = new StringBuilder(logical.Length);
+        foreach (char character in logical) {
+            if (!char.IsWhiteSpace(character) &&
+                CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.Format) {
+                normalized.Append(character);
+            }
+        }
+        return normalized.ToString();
     }
 }

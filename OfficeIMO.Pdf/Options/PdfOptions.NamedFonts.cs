@@ -134,7 +134,7 @@ public sealed partial class PdfOptions {
         }
 
         try {
-            fontProgram = PdfTrueTypeFontProgram.Parse(data, fontName);
+            fontProgram = PdfFontProgramCache.GetTrueType(data, fontName);
         } catch (Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
             AddNamedFontFailure(face, data, fontName, exception);
             (_namedFontProgramFailures ??= new HashSet<PdfNamedFontFace>()).Add(face);
@@ -160,7 +160,7 @@ public sealed partial class PdfOptions {
         }
 
         try {
-            fontProgram = PdfTrueTypeFontProgram.Parse(data, fontName);
+            fontProgram = PdfFontProgramCache.GetTrueType(data, fontName);
         } catch (Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
             AddNamedFontFailure(face, data, fontName, exception);
             throw;
@@ -187,7 +187,7 @@ public sealed partial class PdfOptions {
         }
 
         try {
-            fontProgram = PdfOpenTypeCffFontProgram.Parse(data, fontName);
+            fontProgram = PdfFontProgramCache.GetOpenTypeCff(data, fontName);
         } catch (Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
             AddNamedFontFailure(face, data, fontName, exception);
             (_namedFontProgramFailures ??= new HashSet<PdfNamedFontFace>()).Add(face);
@@ -214,7 +214,7 @@ public sealed partial class PdfOptions {
         }
 
         try {
-            fontProgram = PdfOpenTypeCffFontProgram.Parse(data, fontName);
+            fontProgram = PdfFontProgramCache.GetOpenTypeCff(data, fontName);
         } catch (Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
             AddNamedFontFailure(face, data, fontName, exception);
             throw;

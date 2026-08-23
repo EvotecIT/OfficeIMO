@@ -2,6 +2,9 @@ namespace OfficeIMO.OneNote.Pdf;
 
 /// <summary>Controls visual-preserving PDF generated from the native OneNote page canvas.</summary>
 public sealed class OneNoteVisualPdfOptions {
+    /// <summary>PDF generation settings, including encryption and compliance requirements.</summary>
+    public OfficeIMO.Pdf.PdfOptions PdfOptions { get; set; } = new OfficeIMO.Pdf.PdfOptions();
+
     /// <summary>Page rendering options shared with image and HTML export.</summary>
     public OneNotePageRenderingOptions PageRendering { get; set; } = new OneNotePageRenderingOptions();
 
@@ -24,6 +27,7 @@ public sealed class OneNoteVisualPdfOptions {
     public string? Keywords { get; set; }
 
     internal OneNoteVisualPdfOptions Clone() => new OneNoteVisualPdfOptions {
+        PdfOptions = PdfOptions?.Clone() ?? throw new InvalidOperationException("PDF options cannot be null."),
         PageRendering = PageRendering?.Clone() ?? new OneNotePageRenderingOptions(),
         RasterScale = RasterScale,
         MaximumRasterPixels = MaximumRasterPixels,
@@ -34,6 +38,7 @@ public sealed class OneNoteVisualPdfOptions {
     };
 
     internal void Validate() {
+        if (PdfOptions == null) throw new InvalidOperationException("PDF options cannot be null.");
         if (PageRendering == null) throw new InvalidOperationException("Page rendering options cannot be null.");
         if (double.IsNaN(RasterScale) || double.IsInfinity(RasterScale) || RasterScale <= 0D) throw new ArgumentOutOfRangeException(nameof(RasterScale));
         if (MaximumRasterPixels < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels));

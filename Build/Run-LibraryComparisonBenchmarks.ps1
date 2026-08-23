@@ -19,6 +19,7 @@ param(
         'pdfgenerate',
         'pdfhtml',
         'pdfhtmlpayload',
+        'pdfformats',
         'pdfread',
         'pdfreverse',
         'pdfcorpusread',
@@ -170,6 +171,32 @@ $definitions = [ordered]@{
                 foreach ($engine in @('OfficeIMO', 'PeachPDF')) {
                     "$engine|Payload=$payload"
                 }
+            }
+        )
+    }
+    pdfformats = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*Pdf*FormatConversionBenchmarks*'
+        ComparisonId = "pdf-format-conversion-$Framework"
+        Suite = 'OfficeIMO.Pdf.FormatConversion'
+        IdentityVariables = @('format')
+        ExpectedCases = @(
+            foreach ($format in @(
+                'Docx',
+                'Xlsx',
+                'Pptx',
+                'Html',
+                'Markdown',
+                'Rtf',
+                'AsciiDoc',
+                'Latex',
+                'Mhtml',
+                'OneNote',
+                'Odt',
+                'Ods',
+                'Odp',
+                'Visio')) {
+                "ConvertToPdf|Format=$format"
             }
         )
     }

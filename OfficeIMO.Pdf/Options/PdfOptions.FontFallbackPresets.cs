@@ -58,7 +58,8 @@ public sealed partial class PdfOptions {
         var reservedSlots = new HashSet<PdfStandardFont>(requestedSlots);
         reservedSlots.UnionWith(configuredSlots);
 
-        if ((features & PdfTextFallbackFeatures.DocumentFont) != 0) {
+        bool documentFontRequested = (features & PdfTextFallbackFeatures.DocumentFont) != 0;
+        if (documentFontRequested) {
             PdfStandardFont documentSlot = PdfStandardFontMapper.GetFontFamily(DefaultFont);
             if (!reservedSlots.Contains(documentSlot)) {
                 TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
@@ -67,6 +68,12 @@ public sealed partial class PdfOptions {
 
         PdfTextFallbackFeatures runFallbacks = features &
             (PdfTextFallbackFeatures.MultilingualFonts | PdfTextFallbackFeatures.SymbolAndEmojiFonts);
+        PdfStandardFont effectiveDocumentSlot = PdfStandardFontMapper.GetFontFamily(DefaultFont);
+        if (documentFontRequested &&
+            (configuredSlots.Contains(effectiveDocumentSlot) ||
+             !HasEmbeddedStandardFontFamily(effectiveDocumentSlot))) {
+            runFallbacks |= PdfTextFallbackFeatures.DocumentFont;
+        }
         if (runFallbacks == PdfTextFallbackFeatures.SymbolAndEmojiFonts) {
             TryRegisterEmbeddedFontFallbacksFromSystem(
                 DefaultDocumentSymbolAndEmojiFontFamilyFallback,
@@ -89,27 +96,46 @@ public sealed partial class PdfOptions {
         IEnumerable<PdfStandardFont> reservedFontSlots) {
         if (_embeddedFontFallbacks != null) return true;
 
+        bool document = (features & PdfTextFallbackFeatures.DocumentFont) != 0;
         bool multilingual = (features & PdfTextFallbackFeatures.MultilingualFonts) != 0;
         bool symbols = (features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0;
         var reservedSlots = new HashSet<PdfStandardFont>();
         foreach (PdfStandardFont slot in reservedFontSlots) AddRegisteredFontFamilySlot(reservedSlots, slot);
         var candidates = new List<PdfEmbeddedFontFallbackCandidate>();
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int groupCount = (document ? 1 : 0) + (multilingual ? 1 : 0) + (symbols ? 1 : 0);
+        int perGroup = groupCount == 1 ? 2 : 1;
+        if (document) AddInstalledRunFallbackCandidates(
+            DefaultDocumentFontFamilyFallback,
+            perGroup,
+            candidates,
+            registeredFamilies);
         if (multilingual) AddInstalledRunFallbackCandidates(
             DefaultDocumentMultilingualFontFamilyFallback,
-            multilingual && symbols ? 1 : 2,
+            perGroup,
             candidates,
             registeredFamilies);
         if (symbols) AddInstalledRunFallbackCandidates(
             DefaultDocumentSymbolAndEmojiFontFamilyFallback,
-            multilingual && symbols ? 1 : 2,
+            perGroup,
             candidates,
             registeredFamilies);
         if (candidates.Count < 2) {
-            string remaining = multilingual
-                ? DefaultDocumentMultilingualFontFamilyFallback
-                : DefaultDocumentSymbolAndEmojiFontFamilyFallback;
-            AddInstalledRunFallbackCandidates(remaining, 2 - candidates.Count, candidates, registeredFamilies);
+            foreach (string remaining in new[] {
+                         document ? DefaultDocumentFontFamilyFallback : string.Empty,
+                         multilingual ? DefaultDocumentMultilingualFontFamilyFallback : string.Empty,
+                         symbols ? DefaultDocumentSymbolAndEmojiFontFamilyFallback : string.Empty
+                     }) {
+                if (candidates.Count == 2 || string.IsNullOrEmpty(remaining)) {
+                    break;
+                }
+
+                AddInstalledRunFallbackCandidates(
+                    remaining,
+                    2 - candidates.Count,
+                    candidates,
+                    registeredFamilies);
+            }
         }
 
         PdfStandardFont[] slots = GetAvailableEmbeddedFallbackFontSlots(candidates.Count, reservedSlots).ToArray();

@@ -120,8 +120,8 @@ internal static partial class PdfFormFiller {
 
         public static EmbeddedTextAppearanceFontProgram Parse(byte[] fontData, string fontName) =>
             IsOpenTypeCffFontData(fontData)
-                ? new EmbeddedTextAppearanceFontProgram(PdfOpenTypeCffFontProgram.Parse(fontData, fontName))
-                : new EmbeddedTextAppearanceFontProgram(PdfTrueTypeFontProgram.Parse(fontData, fontName));
+                ? new EmbeddedTextAppearanceFontProgram(PdfFontProgramCache.GetOpenTypeCff(fontData, fontName))
+                : new EmbeddedTextAppearanceFontProgram(PdfFontProgramCache.GetTrueType(fontData, fontName));
 
         public string EncodeTextAsGlyphHex(string text) {
             if (_trueTypeFont != null) {

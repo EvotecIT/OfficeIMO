@@ -230,7 +230,7 @@ public class PowerPointSaveAsPdfTests {
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("Premium Slide", text, StringComparison.Ordinal);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 108 120 48 re", raw, StringComparison.Ordinal);
         AssertRawPdfContainsAnyBaseFont(raw, "Times-Roman", "Georgia");
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
@@ -473,7 +473,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
         Assert.Contains("0.098 0.463 0.824 rg", raw, StringComparison.Ordinal);
         Assert.Contains("0.086 0.639 0.29 rg", raw, StringComparison.Ordinal);
@@ -492,7 +492,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0 110 36 30 re W", raw, StringComparison.Ordinal);
         Assert.Contains("-12 110 48 30 re", raw, StringComparison.Ordinal);
     }
@@ -525,7 +525,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
         Assert.Contains("0 0 240 160 re", raw, StringComparison.Ordinal);
     }
@@ -541,7 +541,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/SH1 sh", raw, StringComparison.Ordinal);
         Assert.Contains("/Shading", raw, StringComparison.Ordinal);
     }
@@ -569,7 +569,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/SH1 sh", raw, StringComparison.Ordinal);
         Assert.Contains("/Shading", raw, StringComparison.Ordinal);
     }
@@ -588,7 +588,7 @@ public class PowerPointSaveAsPdfTests {
             byte[] bytes = presentation.ToPdf(options);
 
             Assert.Empty(options.Warnings);
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
             Assert.Contains("240 0 0 160 0 0 cm", raw, StringComparison.Ordinal);
         } finally {
@@ -614,7 +614,7 @@ public class PowerPointSaveAsPdfTests {
 
             byte[] bytes = presentation.ToPdf();
 
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             Assert.Contains("480 0 0 160 -240 0 cm", raw, StringComparison.Ordinal);
             Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
         } finally {
@@ -639,7 +639,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
     }
 
@@ -659,7 +659,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.071 0.204 0.337 rg", raw, StringComparison.Ordinal);
     }
 
@@ -679,7 +679,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.396 0.263 0.129 rg", raw, StringComparison.Ordinal);
     }
 
@@ -701,7 +701,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.196 0.133 0.067 rg", raw, StringComparison.Ordinal);
     }
 
@@ -722,7 +722,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.196 0.133 0.067 rg", raw, StringComparison.Ordinal);
     }
 
@@ -743,7 +743,7 @@ public class PowerPointSaveAsPdfTests {
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Equal(1, pdf.NumberOfPages);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 116 50 20 re", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("120 116 50 20 re", raw, StringComparison.Ordinal);
     }
@@ -771,7 +771,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("16 130 50 10 re", raw, StringComparison.Ordinal);
         Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
     }
@@ -827,7 +827,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 120 30 20 re", raw, StringComparison.Ordinal);
         Assert.Contains("60 120 30 20 re", raw, StringComparison.Ordinal);
         Assert.Contains("1 0 0 rg", raw, StringComparison.Ordinal);
@@ -857,7 +857,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 100 60 40 re", raw, StringComparison.Ordinal);
         Assert.Contains("100 100 60 40 re", raw, StringComparison.Ordinal);
     }
@@ -921,7 +921,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
     }
 
@@ -944,7 +944,7 @@ public class PowerPointSaveAsPdfTests {
         Assert.Empty(options.Warnings);
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Contains("Rounded Label", pdf.GetPage(1).Text, StringComparison.Ordinal);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains(" c", raw, StringComparison.Ordinal);
         Assert.Contains("0.992 0.902 0.541 rg", raw, StringComparison.Ordinal);
     }
@@ -973,7 +973,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.DoesNotContain("16 130 50 10 re", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("0 0.667 0 rg", raw, StringComparison.Ordinal);
     }
@@ -1021,7 +1021,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf(options);
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("-60 0 0 30 100 80 cm", raw, StringComparison.Ordinal);
     }
 
@@ -1044,7 +1044,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("80 0 0 40 40 60 cm", raw, StringComparison.Ordinal);
     }
 
@@ -1065,7 +1065,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("80 0 0 80 40 40 cm", raw, StringComparison.Ordinal);
     }
 
@@ -1094,7 +1094,7 @@ public class PowerPointSaveAsPdfTests {
         Assert.NotNull(warning.LayoutDiagnostic);
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointPicture", warning.LayoutDiagnostic.Source);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("80 0 0 80 40 40 cm", raw, StringComparison.Ordinal);
     }
 
@@ -1145,7 +1145,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
         Assert.Contains("/Figure << /Alt <4C6F676F20616C74> >> BDC", raw, StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfInspector.Inspect(bytes).LinkAnnotations);
@@ -1167,7 +1167,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("120 0 0 30 -20 80 cm", raw, StringComparison.Ordinal);
         Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
     }
@@ -1189,7 +1189,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         int imageTransform = raw.IndexOf("0 80 -30 0 75 55 cm", StringComparison.Ordinal);
         int localClip = raw.IndexOf("0.25 0 0.75 1 re", StringComparison.Ordinal);
 
@@ -1259,7 +1259,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("/ca 0.5", raw, StringComparison.Ordinal);
         Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
     }
@@ -1277,7 +1277,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("50 92 116 42 re", raw, StringComparison.Ordinal);
     }
 
@@ -1341,7 +1341,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("30 76 150 70 re", raw, StringComparison.Ordinal);
         Assert.Contains("120 146 m", raw, StringComparison.Ordinal);
         Assert.Contains("120 76 l", raw, StringComparison.Ordinal);
@@ -1507,7 +1507,7 @@ public class PowerPointSaveAsPdfTests {
             IncludeTables = true
         });
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(raw, "Times");
         Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
 
@@ -1537,7 +1537,7 @@ public class PowerPointSaveAsPdfTests {
             IncludeTables = true
         });
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(raw, "Times");
         Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
 
@@ -1567,7 +1567,7 @@ public class PowerPointSaveAsPdfTests {
                     OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
         });
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(raw, "Times");
         AssertRawPdfContainsAnyBaseFont(raw, "Georgia");
 
@@ -1588,7 +1588,7 @@ public class PowerPointSaveAsPdfTests {
             FontFamily = "serif"
         });
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(raw, "Times");
     }
 
@@ -1606,7 +1606,7 @@ public class PowerPointSaveAsPdfTests {
             }
         });
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         AssertRawPdfContainsAnyBaseFont(raw, "Helvetica");
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1666,7 +1666,7 @@ public class PowerPointSaveAsPdfTests {
                 new A.Text("Large"))));
 
         byte[] bytes = presentation.ToPdf();
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -1709,7 +1709,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         int transform = raw.IndexOf("0 1 -1 0 216 6 cm", StringComparison.Ordinal);
         int tableRect = raw.IndexOf("30 76 150 70 re", StringComparison.Ordinal);
 
@@ -1737,7 +1737,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("40 36 240 172 re", raw, StringComparison.Ordinal);
         Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
 
@@ -1922,7 +1922,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 120 m", raw, StringComparison.Ordinal);
         Assert.Contains("120 120 l", raw, StringComparison.Ordinal);
         Assert.Contains("140 130 m", raw, StringComparison.Ordinal);
@@ -1942,7 +1942,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 120 m", raw, StringComparison.Ordinal);
         Assert.Contains("120 120 l", raw, StringComparison.Ordinal);
         Assert.Contains("140 130 m", raw, StringComparison.Ordinal);
@@ -1960,7 +1960,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdf();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("100 120 m", raw, StringComparison.Ordinal);
         Assert.Contains("20 80 l", raw, StringComparison.Ordinal);
     }
@@ -2075,7 +2075,7 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.ToPdf(options);
 
         Assert.Empty(options.Warnings);
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("0.071 0.204 0.337 rg", raw, StringComparison.Ordinal);
         Assert.Contains("0.471 0.157 0.627 rg", raw, StringComparison.Ordinal);
         Assert.Contains("0.949 0.973 1 rg", raw, StringComparison.Ordinal);

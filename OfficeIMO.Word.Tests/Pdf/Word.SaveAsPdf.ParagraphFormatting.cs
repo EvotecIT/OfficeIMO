@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After native baseline formatting", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Contains("7 Ts", content);
             Assert.Contains("-3.6 Ts", content);
             Assert.Contains("0 Ts", content);
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Native justified paragraph", allText);
             }
 
-            string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             Assert.Matches(new Regex(@"(?:0\.[1-9]\d*|[1-9]\d*(?:\.\d+)?) Tw"), content);
         }
 
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Native shaded panel paragraph", text);
             }
 
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             Assert.Contains("0.902 0.949 1 rg", raw);
             Assert.Contains("0.2 0.4 0.6 RG", raw);
             Assert.Contains("1 w", raw);
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("After styled panel", text);
             }
 
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             Assert.Contains("0.886 0.941 0.851 rg", raw);
             Assert.Contains("0.22 0.341 0.137 RG", raw);
             Assert.Contains("1 w", raw);
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            string raw = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+            string raw = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
             var fills = ExtractFilledRectangles(raw, "0.941 0.902 0.549 rg")
                 .Where(fill => fill.Width > 200D)
                 .OrderByDescending(fill => fill.Y)
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -474,7 +474,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -510,7 +510,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -546,7 +546,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string text = string.Concat(pdf.GetPages().Select(page => page.Text));
 
@@ -1044,7 +1044,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("StyledRunFormatMarker", pdf.GetPage(1).Text);
             }
 
-            string raw = Encoding.ASCII.GetString(bytes);
+            string raw = PdfOperatorSearchText.From(bytes);
             Assert.Contains("0.753 0 0 rg", raw);
             Assert.Matches(new Regex(@"/F\d+ 14 Tf"), raw);
         }
@@ -1406,7 +1406,8 @@ namespace OfficeIMO.Tests {
             PdfOptions effective = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
                 document,
                 saveOptions,
-                nativeFontMap
+                nativeFontMap,
+                Array.Empty<string?>()
             }));
 
             Assert.Equal(PdfStandardFont.TimesRoman, effective.DefaultFont);
@@ -1450,7 +1451,8 @@ namespace OfficeIMO.Tests {
             PdfOptions effective = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
                 document,
                 saveOptions,
-                nativeFontMap
+                nativeFontMap,
+                Array.Empty<string?>()
             }));
 
             Assert.Equal(18D, effective.DefaultFontSize);
@@ -1557,7 +1559,8 @@ namespace OfficeIMO.Tests {
             _ = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
                 document,
                 saveOptions,
-                nativeFontMap
+                nativeFontMap,
+                Array.Empty<string?>()
             }));
             MethodInfo getDefaults = converterType.GetMethod(
                 "GetNativeDocumentDefaults",
@@ -1646,7 +1649,8 @@ namespace OfficeIMO.Tests {
             _ = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
                 document,
                 saveOptions,
-                nativeFontMap
+                nativeFontMap,
+                Array.Empty<string?>()
             }));
             MethodInfo resolveSingleLine = converterType.GetMethod(
                 "ResolveNativeWordSingleLineHeight",

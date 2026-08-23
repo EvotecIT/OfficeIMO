@@ -48,6 +48,25 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         CffTableLength = cffTableLength;
     }
 
+    private PdfOpenTypeCffFontProgram(PdfOpenTypeCffFontProgram source) {
+        _data = source._data;
+        _tables = source._tables;
+        FontName = source.FontName;
+        UnitsPerEm = source.UnitsPerEm;
+        FontBBox = source.FontBBox;
+        Ascent = source.Ascent;
+        Descent = source.Descent;
+        CapHeight = source.CapHeight;
+        ItalicAngle = source.ItalicAngle;
+        Flags = source.Flags;
+        StemV = source.StemV;
+        _advanceWidths = source._advanceWidths;
+        _cmap = source._cmap;
+        CffTableLength = source.CffTableLength;
+    }
+
+    internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);
+
     public string FontName { get; }
     public int UnitsPerEm { get; }
     public int[] FontBBox { get; }
@@ -278,6 +297,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         RecordGlyphUsage(glyphId, char.ConvertFromUtf32(unicodeScalar));
 
     internal void RecordGlyphUsage(int glyphId, string unicodeText) {
+        unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
         lock (_usageLock) {
             _usedGlyphIds.Add(glyphId);
             if (!string.IsNullOrEmpty(unicodeText) &&
