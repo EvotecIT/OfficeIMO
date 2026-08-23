@@ -21,6 +21,7 @@ $mixedRouteHealth = @($mixed | Where-Object Workload -eq 'pdfformats')
 $mixedComparison = @($mixed | Where-Object Workload -eq 'pdfhtmlpayload')
 $odsCreate = @($mixed | Where-Object Workload -eq 'odscreate')
 $odsRead = @($mixed | Where-Object Workload -eq 'odsread')
+$epubRead = @($mixed | Where-Object Workload -eq 'epubread')
 if ($mixedRouteHealth.Count -ne 1 -or
     $mixedRouteHealth[0].CatalogEligible -or
     $mixedRouteHealth[0].WillCatalog -or
@@ -38,5 +39,10 @@ if ($odsCreate.Count -ne 1 -or $odsRead.Count -ne 1 -or
     -not $odsRead[0].CatalogEligible -or -not $odsRead[0].WillCatalog) {
     throw 'The ODS create/read comparisons are missing from the catalog-eligible mixed benchmark plan.'
 }
+if ($epubRead.Count -ne 1 -or
+    -not $epubRead[0].CatalogEligible -or -not $epubRead[0].WillCatalog -or
+    -not $epubRead[0].Publish) {
+    throw 'The EPUB open/read comparison is missing from the catalog-eligible mixed benchmark plan.'
+}
 
-Write-Host 'Library comparison runner policy verified for standalone and mixed PDF route-health selection.'
+Write-Host 'Library comparison runner policy verified for standalone route-health and mixed comparison selection.'

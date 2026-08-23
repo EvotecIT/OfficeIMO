@@ -17,6 +17,7 @@ param(
         'rtfhtml',
         'odscreate',
         'odsread',
+        'epubread',
         'imagepngdecode',
         'imagejpegdecode',
         'imagepngencode',
@@ -231,6 +232,21 @@ $definitions = [ordered]@{
         ExpectedCases = @(
             foreach ($scale in @('Small', 'Normal')) {
                 foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    epubread = [pscustomobject]@{
+        Project = 'OfficeIMO.Epub.Benchmarks.Comparisons\OfficeIMO.Epub.Benchmarks.Comparisons.csproj'
+        Filter = '*EpubReadComparisonBenchmarks*'
+        ComparisonId = "epub-open-read-$Framework"
+        Suite = 'OfficeIMO.Epub.OpenRead'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'VersOne.Epub+HAP')) {
                     "$engine|Scale=$scale"
                 }
             }

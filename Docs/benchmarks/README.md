@@ -88,6 +88,27 @@ The comparison project is outside `OfficeIMO.sln`; OpenStandardLibrary remains
 an opt-in benchmark dependency. It is not used as an ODT or ODP comparator
 because it does not expose equivalent document models for those formats.
 
+## EPUB open/read comparison
+
+`OfficeIMO.Epub.Benchmarks.Comparisons` compares complete stream-based EPUB 3
+loads through OfficeIMO and the VersOne.Epub plus HtmlAgilityPack plain-text
+extraction workflow documented by VersOne. Both lanes receive the same package,
+load metadata and content, extract normalized visible chapter text, and
+enumerate every chapter in spine order. The preflight requires identical title,
+creator, language, ordered chapter paths, raw-XHTML and visible-text lengths and
+hashes, and path hashes before measurements are accepted.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Epub.Benchmarks.Comparisons -- validate --json .benchmark-artifacts\epub\validation.json
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload epubread -RunMode full -Framework net8.0
+```
+
+The comparison project is outside `OfficeIMO.sln`; VersOne.Epub and
+HtmlAgilityPack remain opt-in benchmark dependencies. The validated sidecar
+records shared input size. There is no creation-size comparison because
+OfficeIMO.Epub currently exposes a read/extraction API rather than an EPUB
+package writer.
+
 ## PDF comparisons
 
 The opt-in `OfficeIMO.Pdf.Benchmarks.Comparisons` project measures validated
