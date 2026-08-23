@@ -98,6 +98,18 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>
+    /// Determines whether a scalar is a shaping or directional control that does not require a
+    /// standalone glyph during font fallback coverage checks.
+    /// </summary>
+    public static bool IsIgnorableFontCoverageScalar(int scalar) =>
+        scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
+        || scalar >= 0x200E && scalar <= 0x200F
+        || scalar >= 0x202A && scalar <= 0x202E
+        || scalar >= 0x2066 && scalar <= 0x2069
+        || scalar >= 0xFE00 && scalar <= 0xFE0F
+        || scalar >= 0xE0100 && scalar <= 0xE01EF;
+
     /// <summary>Resolves base direction from the first strong Unicode character.</summary>
     public static OfficeTextDirection ResolveBaseDirection(string? value) {
         if (string.IsNullOrEmpty(value)) {

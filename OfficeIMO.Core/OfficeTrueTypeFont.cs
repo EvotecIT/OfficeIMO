@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -13,7 +15,7 @@ namespace OfficeIMO.Drawing;
 /// It supports the simple glyf/cmap/hmtx path needed by OfficeIMO renderers and falls back
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
-public sealed partial class OfficeTrueTypeFont {
+public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
     private const int MaxCmapSubtables = 64;
@@ -41,9 +43,11 @@ public sealed partial class OfficeTrueTypeFont {
     private readonly ushort _numHMetrics;
     private readonly short _indexToLocFormat;
     private readonly int? _collectionIndex;
+    private readonly string _fingerprint;
 
     private OfficeTrueTypeFont(byte[] data, Dictionary<string, int> tables, int? collectionIndex) {
         _data = data;
+        _fingerprint = ComputeFingerprint(data, collectionIndex);
         _collectionIndex = collectionIndex;
         _cmap = tables["cmap"];
         _glyf = tables["glyf"];
@@ -62,6 +66,28 @@ public sealed partial class OfficeTrueTypeFont {
         _lineGap = ReadInt16(_data, _hhea + 8);
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
+    }
+
+    /// <inheritdoc />
+    public string Fingerprint => _fingerprint;
+
+    private static string ComputeFingerprint(byte[] data, int? collectionIndex) {
+        using HashAlgorithm hash = SHA256.Create();
+        byte[] digest = hash.ComputeHash(data);
+        return "sha256:" + ToLowerHex(digest) + ":face="
+            + (collectionIndex.HasValue
+                ? collectionIndex.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : "auto");
+    }
+
+    private static string ToLowerHex(byte[] bytes) {
+        const string alphabet = "0123456789abcdef";
+        var result = new char[bytes.Length * 2];
+        for (int index = 0; index < bytes.Length; index++) {
+            result[index * 2] = alphabet[bytes[index] >> 4];
+            result[index * 2 + 1] = alphabet[bytes[index] & 0x0F];
+        }
+        return new string(result);
     }
 
     public static OfficeTrueTypeFont? TryLoadDefault() {
@@ -243,6 +269,18 @@ public sealed partial class OfficeTrueTypeFont {
     /// Reads flattened fill contours for the supplied text at a top-left baseline box.
     /// </summary>
     public List<List<OfficePoint>> GetTextContours(string text, double x, double y, double fontSize) {
+        return GetTextContoursBounded(text, x, y, fontSize, int.MaxValue, CancellationToken.None);
+    }
+
+    /// <inheritdoc />
+    public List<List<OfficePoint>> GetTextContoursBounded(
+        string text,
+        double x,
+        double y,
+        double fontSize,
+        int maximumPointCount,
+        CancellationToken cancellationToken) {
+        if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
         var contours = new List<List<OfficePoint>>();
         if (string.IsNullOrEmpty(text)) {
             return contours;
@@ -252,16 +290,36 @@ public sealed partial class OfficeTrueTypeFont {
         var cursor = x;
         var baseline = y + _ascender * scale;
         ushort? previous = null;
+        int pointCount = 0;
         for (int index = 0; index < text.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
             int scalar = ReadScalar(text, ref index);
             var glyph = MapGlyph(scalar);
             if (previous.HasValue) cursor += Kerning(previous.Value, glyph) * scale;
-            contours.AddRange(ReadGlyphContours(glyph, new FontTransform(scale, 0, 0, -scale, cursor, baseline), 0));
+            List<List<OfficePoint>> glyphContours = ReadGlyphContours(
+                glyph,
+                new FontTransform(scale, 0, 0, -scale, cursor, baseline),
+                0);
+            AddBoundedContours(contours, glyphContours, ref pointCount, maximumPointCount);
             cursor += AdvanceWidth(glyph) * scale;
             previous = glyph;
         }
 
         return contours;
+    }
+
+    private static void AddBoundedContours(
+        ICollection<List<OfficePoint>> target,
+        IEnumerable<List<OfficePoint>> source,
+        ref int pointCount,
+        int maximumPointCount) {
+        foreach (List<OfficePoint> contour in source) {
+            if (contour.Count > maximumPointCount - pointCount) {
+                throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
+            }
+            pointCount += contour.Count;
+            target.Add(contour);
+        }
     }
 
     /// <summary>Best-effort display name read from the font name table.</summary>
@@ -273,19 +331,11 @@ public sealed partial class OfficeTrueTypeFont {
     internal bool HasGlyphs(string value) {
         for (int index = 0; index < value.Length;) {
             int scalar = ReadScalar(value, ref index);
-            if (!IsWhitespaceScalar(scalar) && !IsIgnorableCoverageScalar(scalar) && MapGlyph(scalar) == 0) return false;
+            if (!IsWhitespaceScalar(scalar) && !OfficeTextElements.IsIgnorableFontCoverageScalar(scalar) && MapGlyph(scalar) == 0) return false;
         }
 
         return true;
     }
-
-    private static bool IsIgnorableCoverageScalar(int scalar) =>
-        scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
-        || scalar >= 0x200E && scalar <= 0x200F
-        || scalar >= 0x202A && scalar <= 0x202E
-        || scalar >= 0x2066 && scalar <= 0x2069
-        || scalar >= 0xFE00 && scalar <= 0xFE0F
-        || scalar >= 0xE0100 && scalar <= 0xE01EF;
 
     private bool MatchesName(string? faceName) {
         if (string.IsNullOrWhiteSpace(faceName)) return true;

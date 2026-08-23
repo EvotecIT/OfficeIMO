@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Optional managed WOFF2, CFF/CFF2, variable-font, and complex-text engine for OfficeIMO.Drawing.</Description>
+    <AssemblyName>OfficeIMO.Drawing.SixLabors</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Drawing.SixLabors</AssemblyTitle>
+    <VersionPrefix>3.2.5</VersionPrefix>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Drawing.SixLabors</PackageId>
+    <PackageTags>documents;drawing;font;woff2;cff;cff2;variable-fonts;opentype;shaping;officeimo;net8.0;net10.0</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPublishable>True</IsPublishable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <PackageReference Include="SixLabors.Fonts" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>README.md</PackagePath>
+    </None>
+    <None Include="THIRD-PARTY-NOTICES.md">
+      <Pack>True</Pack>
+      <PackagePath>THIRD-PARTY-NOTICES.md</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>

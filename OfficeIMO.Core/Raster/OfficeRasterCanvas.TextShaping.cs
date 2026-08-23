@@ -6,13 +6,14 @@ namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
     private const int MaxShapedTextCacheEntries = 4096;
-    private Dictionary<ShapedTextKey, OfficeTrueTypeFont.ShapedTextRun?>? _shapedTextCache;
+    private const int MaximumTextOutlinePointsPerRun = 1_000_000;
+    private Dictionary<ShapedTextKey, OfficeTextShapingResult?>? _shapedTextCache;
     private Dictionary<ShapedTextKey, OfficeManagedTextFallback>? _managedTextCache;
 
     private bool TryGetShapedTextRun(
         string text,
-        OfficeTrueTypeFont font,
-        out OfficeTrueTypeFont.ShapedTextRun shapedRun) {
+        IOfficeFontProgram font,
+        out OfficeTextShapingResult shapedRun) {
         if (_textShapingProvider == null) {
             shapedRun = null!;
             return false;
@@ -20,9 +21,9 @@ public sealed partial class OfficeRasterCanvas {
 
         _cancellationToken.ThrowIfCancellationRequested();
         var key = new ShapedTextKey(text, font);
-        Dictionary<ShapedTextKey, OfficeTrueTypeFont.ShapedTextRun?> cache =
-            _shapedTextCache ??= new Dictionary<ShapedTextKey, OfficeTrueTypeFont.ShapedTextRun?>();
-        if (cache.TryGetValue(key, out OfficeTrueTypeFont.ShapedTextRun? cached)) {
+        Dictionary<ShapedTextKey, OfficeTextShapingResult?> cache =
+            _shapedTextCache ??= new Dictionary<ShapedTextKey, OfficeTextShapingResult?>();
+        if (cache.TryGetValue(key, out OfficeTextShapingResult? cached)) {
             shapedRun = cached!;
             return cached != null;
         }
@@ -31,25 +32,25 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextShapingResult? result = _textShapingProvider.ShapeText(new OfficeTextShapingRequest(
             logicalText,
             font.DisplayName ?? string.Empty,
-            font.FontDataForShaping,
-            isOpenTypeCff: false,
+            font.GetFontDataForShaping(),
+            font.IsOpenTypeCff,
             font.UnitsPerEm,
             OfficeTextElements.ResolveBaseDirection(logicalText),
             _textShapingLanguage,
             _cancellationToken,
             font.CollectionIndex,
             cloneFontData: false));
-        OfficeTrueTypeFont.ShapedTextRun? resolved =
-            result == null ? null : font.CreateShapedTextRun(logicalText, result);
+        OfficeTextShapingResult? resolved = result;
         if (cache.Count >= MaxShapedTextCacheEntries) cache.Clear();
         cache[key] = resolved;
         shapedRun = resolved!;
         return resolved != null;
     }
 
-    private double MeasureResolvedText(string text, OfficeTrueTypeFont font, double fontSize) {
-        if (TryGetShapedTextRun(text, font, out OfficeTrueTypeFont.ShapedTextRun run)) {
-            return run.Measure(fontSize);
+    private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize) {
+        if (font.ProvidesComplexTextLayout) return font.Measure(text, fontSize);
+        if (TryGetShapedTextRun(text, font, out OfficeTextShapingResult run)) {
+            return font.MeasureShapedText(OfficeArabicTextShaper.ToLogicalText(text), run, fontSize);
         }
         OfficeManagedTextFallback fallback = GetManagedTextFallback(text, font);
         return font.Measure(fallback.Text, fontSize);
@@ -57,15 +58,74 @@ public sealed partial class OfficeRasterCanvas {
 
     private List<List<OfficePoint>> GetResolvedTextContours(
         string text,
-        OfficeTrueTypeFont font,
+        IOfficeFontProgram font,
         double x,
         double y,
-        double fontSize) =>
-        TryGetShapedTextRun(text, font, out OfficeTrueTypeFont.ShapedTextRun run)
-            ? run.GetContours(x, y, fontSize)
-            : font.GetTextContours(GetManagedTextFallback(text, font).Text, x, y, fontSize);
+        double fontSize) {
+        if (font.ProvidesComplexTextLayout) {
+            return GetBoundedTextContours(font, text, x, y, fontSize);
+        }
+        if (TryGetShapedTextRun(text, font, out OfficeTextShapingResult run)) {
+            string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
+            if (font is IOfficeBoundedFontProgram bounded) {
+                return bounded.GetShapedTextContoursBounded(
+                    logicalText,
+                    run,
+                    x,
+                    y,
+                    fontSize,
+                    MaximumTextOutlinePointsPerRun,
+                    _cancellationToken);
+            }
+            _cancellationToken.ThrowIfCancellationRequested();
+            List<List<OfficePoint>> contours = font.GetShapedTextContours(logicalText, run, x, y, fontSize);
+            _cancellationToken.ThrowIfCancellationRequested();
+            EnsureBoundedContourPoints(contours, MaximumTextOutlinePointsPerRun);
+            return contours;
+        }
+        return GetBoundedTextContours(
+            font,
+            GetManagedTextFallback(text, font).Text,
+            x,
+            y,
+            fontSize);
+    }
 
-    private OfficeManagedTextFallback GetManagedTextFallback(string text, OfficeTrueTypeFont font) {
+    private List<List<OfficePoint>> GetBoundedTextContours(
+        IOfficeFontProgram font,
+        string text,
+        double x,
+        double y,
+        double fontSize) {
+        if (font is IOfficeBoundedFontProgram bounded) {
+            return bounded.GetTextContoursBounded(
+                text,
+                x,
+                y,
+                fontSize,
+                MaximumTextOutlinePointsPerRun,
+                _cancellationToken);
+        }
+        _cancellationToken.ThrowIfCancellationRequested();
+        List<List<OfficePoint>> contours = font.GetTextContours(text, x, y, fontSize);
+        _cancellationToken.ThrowIfCancellationRequested();
+        EnsureBoundedContourPoints(contours, MaximumTextOutlinePointsPerRun);
+        return contours;
+    }
+
+    private static void EnsureBoundedContourPoints(
+        IEnumerable<List<OfficePoint>> contours,
+        int maximumPointCount) {
+        int pointCount = 0;
+        foreach (List<OfficePoint> contour in contours) {
+            if (contour.Count > maximumPointCount - pointCount) {
+                throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
+            }
+            pointCount += contour.Count;
+        }
+    }
+
+    private OfficeManagedTextFallback GetManagedTextFallback(string text, IOfficeFontProgram font) {
         _cancellationToken.ThrowIfCancellationRequested();
         var key = new ShapedTextKey(text, font);
         Dictionary<ShapedTextKey, OfficeManagedTextFallback> cache =
@@ -118,13 +178,13 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private readonly struct ShapedTextKey : IEquatable<ShapedTextKey> {
-        internal ShapedTextKey(string text, OfficeTrueTypeFont font) {
+        internal ShapedTextKey(string text, IOfficeFontProgram font) {
             Text = text;
             Font = font;
         }
 
         private string Text { get; }
-        private OfficeTrueTypeFont Font { get; }
+        private IOfficeFontProgram Font { get; }
 
         public bool Equals(ShapedTextKey other) =>
             ReferenceEquals(Font, other.Font) &&

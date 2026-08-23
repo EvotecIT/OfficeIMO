@@ -19,6 +19,6 @@ forms, kerning, or font substitutions that need a complete OpenType shaping
 engine. The core packages retain their bounded managed fallback when this
 adapter is not installed.
 
-The package uses HarfBuzzSharp `14.2.1.1` and matching Windows, Linux, macOS,
+The package uses HarfBuzzSharp `14.2.1.2` and matching Windows, Linux, macOS,
 and WebAssembly native assets. HarfBuzzSharp is MIT licensed; applications
 should include the upstream notices required by their own distribution policy.

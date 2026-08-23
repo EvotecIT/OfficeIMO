@@ -53,7 +53,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(run.Text, run.Style.Font.FamilyName, run.Style.Font.Style);
-            string shapedText = OfficeArabicTextShaper.Shape(fallbacks.Count == 1 ? fallbacks[0].Text : run.Text);
+            string shapedText = ResolveFontProgramPaintText(
+                fallbacks.Count == 1 ? fallbacks[0].Text : run.Text,
+                fallbacks.Count == 1 ? fallbacks[0].FamilyName : run.Style.Font.FamilyName,
+                run.Style.Font.Style);
             if (fallbacks.Count == 1
                 && string.Equals(fallbacks[0].Text, run.Text, StringComparison.Ordinal)
                 && string.Equals(fallbacks[0].FamilyName, run.Style.Font.FamilyName, StringComparison.Ordinal)
@@ -66,7 +69,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderBoxStyle style = run.Style.Clone();
                 style.Font = style.Font.WithFamilyName(fallback.FamilyName);
                 var resolvedRun = new HtmlInlineRun(
-                    OfficeArabicTextShaper.Shape(fallback.Text),
+                    ResolveFontProgramPaintText(fallback.Text, fallback.FamilyName, style.Font.Style),
                     style,
                     run.LinkUri,
                     run.Source,
@@ -86,6 +89,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return resolvedRuns;
+    }
+
+    private string ResolveFontProgramPaintText(
+        string logicalText,
+        string familyName,
+        OfficeFontStyle style) {
+        if (_fonts.TryResolveFaceForText(logicalText, familyName, style, out OfficeFontFace? face)
+            && face != null
+            && face.Program.ProvidesComplexTextLayout) {
+            return logicalText;
+        }
+        return OfficeArabicTextShaper.Shape(logicalText);
     }
 
     private static void AssignSemanticFragmentOrders(IEnumerable<HtmlInlineRun> runs) {
@@ -370,7 +385,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (_shapedTextMeasurementCache.TryGet(text, style.Font, out measured)) return true;
 
-        OfficeTrueTypeFont? font = _fonts.ResolveForText(
+        IOfficeFontProgram? font = _fonts.ResolveForText(
             text,
             style.Font.FamilyName,
             style.Font.Style,
@@ -385,8 +400,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             logicalText,
             font.DisplayName ?? style.Font.FamilyName,
-            font.FontDataForShaping,
-            isOpenTypeCff: false,
+            font.GetFontDataForShaping(),
+            font.IsOpenTypeCff,
             font.UnitsPerEm,
             OfficeTextElements.ResolveBaseDirection(logicalText),
             _options.TextShapingLanguage,
@@ -398,7 +413,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return false;
         }
 
-        measured = font.CreateShapedTextRun(logicalText, result).Measure(style.Font.Size);
+        measured = font.MeasureShapedText(logicalText, result, style.Font.Size);
         _shapedTextMeasurementCache.Store(text, style.Font, measured);
         return true;
     }

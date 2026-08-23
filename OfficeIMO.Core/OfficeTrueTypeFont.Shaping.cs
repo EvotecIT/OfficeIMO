@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -20,12 +21,62 @@ public sealed partial class OfficeTrueTypeFont {
 
     internal int UnitsPerEm => _unitsPerEm;
 
+    int IOfficeFontProgram.UnitsPerEm => UnitsPerEm;
+
     internal bool TryGetGlyphMetrics(int scalar, out int glyphId, out int advanceWidth) {
         ushort mapped = MapGlyph(scalar);
         glyphId = mapped;
         advanceWidth = mapped == 0 ? 0 : AdvanceWidth(mapped);
         return mapped != 0;
     }
+
+    byte[] IOfficeFontProgram.GetFontDataForShaping() => FontDataForShaping;
+
+    bool IOfficeFontProgram.HasGlyphs(string text) => HasGlyphs(text);
+
+    IReadOnlyList<double> IOfficeFontProgram.MeasureTextElements(
+        IReadOnlyList<string> elements,
+        double fontSize) => MeasureTextElements(elements, fontSize);
+
+    double IOfficeFontProgram.LineSpacingRatio => LineSpacingRatio;
+
+    bool IOfficeFontProgram.TryGetGlyphMetrics(
+        int scalar,
+        out int glyphId,
+        out int advanceWidth) => TryGetGlyphMetrics(scalar, out glyphId, out advanceWidth);
+
+    /// <inheritdoc />
+    public bool IsOpenTypeCff => false;
+
+    /// <inheritdoc />
+    public bool ProvidesComplexTextLayout => false;
+
+    double IOfficeFontProgram.MeasureShapedText(
+        string text,
+        OfficeTextShapingResult result,
+        double fontSize) => CreateShapedTextRun(text, result).Measure(fontSize);
+
+    List<List<OfficePoint>> IOfficeFontProgram.GetShapedTextContours(
+        string text,
+        OfficeTextShapingResult result,
+        double x,
+        double y,
+        double fontSize) => CreateShapedTextRun(text, result).GetContours(x, y, fontSize);
+
+    List<List<OfficePoint>> IOfficeBoundedFontProgram.GetShapedTextContoursBounded(
+        string text,
+        OfficeTextShapingResult result,
+        double x,
+        double y,
+        double fontSize,
+        int maximumPointCount,
+        CancellationToken cancellationToken) =>
+        CreateShapedTextRun(text, result).GetContours(
+            x,
+            y,
+            fontSize,
+            maximumPointCount,
+            cancellationToken);
 
     internal ShapedTextRun CreateShapedTextRun(string text, OfficeTextShapingResult result) {
         if (text == null) throw new ArgumentNullException(nameof(text));
@@ -85,23 +136,32 @@ public sealed partial class OfficeTrueTypeFont {
 
         internal double Measure(double fontSize) => Math.Abs(_advanceWidth * _font.ScaleFor(fontSize));
 
-        internal List<List<OfficePoint>> GetContours(double x, double y, double fontSize) {
+        internal List<List<OfficePoint>> GetContours(
+            double x,
+            double y,
+            double fontSize,
+            int maximumPointCount = int.MaxValue,
+            CancellationToken cancellationToken = default) {
+            if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
             var contours = new List<List<OfficePoint>>();
             double scale = _font.ScaleFor(fontSize);
             bool negativeDirection = _advanceWidth < 0L;
             double cursor = negativeDirection ? x - (_advanceWidth * scale) : x;
             double baseline = y + (_font._ascender * scale);
+            int pointCount = 0;
             for (int index = 0; index < _glyphs.Length; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PositionedGlyph glyph = _glyphs[index];
                 if (negativeDirection) {
                     cursor += glyph.AdvanceWidth * scale;
                 }
                 double glyphX = cursor + (glyph.OffsetX * scale);
                 double glyphBaseline = baseline - (glyph.OffsetY * scale);
-                contours.AddRange(_font.ReadGlyphContours(
+                List<List<OfficePoint>> glyphContours = _font.ReadGlyphContours(
                     glyph.GlyphId,
                     new FontTransform(scale, 0D, 0D, -scale, glyphX, glyphBaseline),
-                    0));
+                    0);
+                AddBoundedContours(contours, glyphContours, ref pointCount, maximumPointCount);
                 if (!negativeDirection) {
                     cursor += glyph.AdvanceWidth * scale;
                 }

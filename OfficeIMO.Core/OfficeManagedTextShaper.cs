@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 internal static class OfficeManagedTextShaper {
     internal static OfficeManagedTextFallback Resolve(
         string text,
-        OfficeTrueTypeFont font,
+        IOfficeFontProgram font,
         System.Threading.CancellationToken cancellationToken = default) {
         if (string.IsNullOrEmpty(text) || !RequiresComplexLayout(text)) {
             return new OfficeManagedTextFallback(text ?? string.Empty, used: false, incomplete: false);

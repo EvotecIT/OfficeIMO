@@ -115,7 +115,7 @@ public class DrawingArchitectureTests {
         };
 
         foreach (string projectPath in Directory.GetFiles(RepositoryRoot, "OfficeIMO.*.csproj", SearchOption.AllDirectories)) {
-            if (IsNonProductionProject(projectPath)) {
+            if (IsNonProductionProject(projectPath) || IsIsolatedExternalDrawingAdapter(projectPath)) {
                 continue;
             }
 
@@ -127,6 +127,16 @@ public class DrawingArchitectureTests {
                     reference => string.Equals(reference, package, StringComparison.OrdinalIgnoreCase));
             }
         }
+    }
+
+    [Fact]
+    public void SixLaborsFontAdapterKeepsItsDependencyOutsideTheCoreRenderingOwners() {
+        XDocument project = LoadProject("OfficeIMO.Drawing.SixLabors", "OfficeIMO.Drawing.SixLabors.csproj");
+
+        Assert.Equal(new[] { "SixLabors.Fonts" }, GetReferencedItems(project, "PackageReference"));
+        Assert.Contains(
+            GetReferencedItems(project, "ProjectReference"),
+            reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Core/OfficeIMO.Core.csproj", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -239,7 +249,9 @@ public class DrawingArchitectureTests {
 
         foreach (string projectFolder in projectFolders) {
             foreach (string filePath in Directory.GetFiles(Path.Combine(RepositoryRoot, projectFolder), "*.cs", SearchOption.AllDirectories)) {
-                if (!filePath.Replace('\\', '/').Contains("/obj/", StringComparison.OrdinalIgnoreCase)) {
+                string normalized = filePath.Replace('\\', '/');
+                if (!normalized.Contains("/obj/", StringComparison.OrdinalIgnoreCase) &&
+                    !normalized.EndsWith("/Properties/AssemblyInfo.cs", StringComparison.OrdinalIgnoreCase)) {
                     yield return filePath;
                 }
             }
@@ -257,6 +269,12 @@ public class DrawingArchitectureTests {
 
     private static bool IsOfficeDrawingProject(string projectPath) =>
         string.Equals(Path.GetFileNameWithoutExtension(projectPath), "OfficeIMO.Core", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsIsolatedExternalDrawingAdapter(string projectPath) =>
+        string.Equals(
+            Path.GetFileNameWithoutExtension(projectPath),
+            "OfficeIMO.Drawing.SixLabors",
+            StringComparison.OrdinalIgnoreCase);
 
     private static bool ProjectSourceUsesOfficeDrawing(string projectFolder) {
         foreach (string filePath in Directory.GetFiles(projectFolder, "*.cs", SearchOption.AllDirectories)) {

@@ -14,7 +14,7 @@ public static class OfficeFontContainerDecoder {
     private const int SfntHeaderLength = 12;
     private const int SfntTableRecordLength = 16;
     private const int MaximumTableCount = 512;
-    private const int DefaultMaximumDecodedBytes = 128 * 1024 * 1024;
+    internal const int DefaultMaximumDecodedBytes = 128 * 1024 * 1024;
     private const uint HeadTableTag = 0x68656164;
     private const uint OpenTypeChecksumMagic = 0xB1B0AFBA;
 

@@ -8,14 +8,18 @@
 dotnet add package OfficeIMO.Html.Pdf.Browser
 ```
 
-HtmlTinkerX owns browser lifecycle, navigation, readiness, credentials, network policy, and PDF capture. This package opens the resulting bytes through `OfficeIMO.Pdf`, so extraction, inspection, preflight, and mutation use the same APIs as any other PDF source.
+HtmlTinkerX owns browser lifecycle, navigation, waits, credentials, cookies, origin-scoped headers and storage, viewport/device emulation, network policy, capture limits, cancellation, and diagnostics. This package opens the resulting bytes through `OfficeIMO.Pdf`, so extraction, inspection, preflight, and mutation use the same APIs as any other PDF source.
 
 ```csharp
 using HtmlTinkerX;
 using OfficeIMO.Html.Pdf.Browser;
 using OfficeIMO.Pdf;
 
-await using var renderer = new HtmlBrowserPdfRenderer();
+await using var renderer = new HtmlBrowserPdfRenderer(
+    new HtmlBrowserPdfRendererOptions(
+        viewportWidth: 1440,
+        viewportHeight: 900,
+        deviceScaleFactor: 1));
 var request = new HtmlBrowserPdfRequest(
     HtmlBrowserPdfSource.FromUrl("https://example.com"),
     pdfOptions: new HtmlBrowserPdfOptions(tagged: false));

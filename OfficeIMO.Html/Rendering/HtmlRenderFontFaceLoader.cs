@@ -13,7 +13,9 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlRenderOptions options,
         HtmlConversionLimits limits,
         HtmlDiagnosticReport diagnostics) {
-        var fonts = new OfficeFontFaceCollection();
+        var fonts = new OfficeFontFaceCollection {
+            FontProgramProvider = options.Fonts?.FontProgramProvider
+        };
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
         var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -185,7 +187,7 @@ internal static class HtmlRenderFontFaceLoader {
                     : HtmlRenderDiagnosticCodes.FontFormatUnsupported,
                 decodedLimitExceeded
                     ? "Decoded font data exceeded the configured operation-wide resource budget."
-                    : "A font face is not a supported direct OpenType or WOFF 1 TrueType glyf-outline font.",
+                    : "A font face is not supported by the built-in TrueType decoder or the configured font-program provider.",
                 source,
                 decodedLimitExceeded
                     ? "limit=" + maximumDecodedBytes
