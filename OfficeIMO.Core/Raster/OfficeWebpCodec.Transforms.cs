@@ -179,7 +179,7 @@ public static partial class OfficeWebpCodec {
         return true;
     }
 
-    private static uint PredictVp8l(int mode, uint left, uint top, uint topLeft, uint topRight) {
+    internal static uint PredictVp8l(int mode, uint left, uint top, uint topLeft, uint topRight) {
         switch (mode) {
             case 0: return 0xFF000000U;
             case 1: return left;
@@ -234,7 +234,7 @@ public static partial class OfficeWebpCodec {
             int a = (int)(first >> shift) & 255;
             int b = (int)(second >> shift) & 255;
             int c = (int)(subtract >> shift) & 255;
-            int value = half == 0 ? a + b - c : a + (a - c) / 2;
+            int value = half == 0 ? a + b - c : a + ((a - c) >> 1);
             value = Math.Max(0, Math.Min(255, value));
             result |= (uint)value << shift;
         }

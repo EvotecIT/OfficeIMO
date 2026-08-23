@@ -29,9 +29,10 @@ internal static class OfficeBoundedStreamReader {
         var chunk = new byte[16 * 1024];
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(chunk, 0, chunk.Length);
+            int remaining = maximumBytes - checked((int)buffer.Length);
+            int read = stream.Read(chunk, 0, Math.Min(chunk.Length, remaining + 1));
             if (read <= 0) break;
-            if (buffer.Length > maximumBytes - read) return false;
+            if (read > remaining) return false;
             buffer.Write(chunk, 0, read);
         }
         if (buffer.Length == 0L) return false;

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -13,9 +14,13 @@ public static class OfficeBmpReader {
     /// <summary>
     /// Attempts to decode an uncompressed BMP image into an RGBA raster buffer.
     /// </summary>
-    public static bool TryDecode(byte[]? bytes, out OfficeRasterImage? image) {
+    public static bool TryDecode(byte[]? bytes, out OfficeRasterImage? image) =>
+        TryDecode(bytes, CancellationToken.None, out image);
+
+    internal static bool TryDecode(byte[]? bytes, CancellationToken cancellationToken, out OfficeRasterImage? image) {
         image = null;
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             if (bytes == null || bytes.Length < BitmapFileHeaderSize + BitmapInfoHeaderSize) {
                 return false;
             }
@@ -69,8 +74,10 @@ public static class OfficeBmpReader {
 
             OfficeRasterImage result = new OfficeRasterImage(width, height);
             int bytesPerPixel = bitsPerPixel / 8;
-            bool hasAlphaChannel = bitsPerPixel == 32 && HasNonZeroAlpha(bytes, pixelOffset, width, height, rowStride);
+            bool hasAlphaChannel = bitsPerPixel == 32 && HasNonZeroAlpha(
+                bytes, pixelOffset, width, height, rowStride, cancellationToken);
             for (int y = 0; y < height; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int sourceY = topDown ? y : height - 1 - y;
                 int rowOffset = pixelOffset + (sourceY * rowStride);
                 for (int x = 0; x < width; x++) {
@@ -85,6 +92,9 @@ public static class OfficeBmpReader {
 
             image = result;
             return true;
+        } catch (OperationCanceledException) {
+            image = null;
+            throw;
         } catch {
             image = null;
             return false;
@@ -100,8 +110,15 @@ public static class OfficeBmpReader {
     private static uint ReadUInt32LittleEndian(byte[] bytes, int offset) =>
         (uint)(bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24));
 
-    private static bool HasNonZeroAlpha(byte[] bytes, int pixelOffset, int width, int height, int rowStride) {
+    private static bool HasNonZeroAlpha(
+        byte[] bytes,
+        int pixelOffset,
+        int width,
+        int height,
+        int rowStride,
+        CancellationToken cancellationToken) {
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int rowOffset = pixelOffset + (y * rowStride);
             for (int x = 0; x < width; x++) {
                 if (bytes[rowOffset + (x * 4) + 3] != 0) {

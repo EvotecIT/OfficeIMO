@@ -794,6 +794,42 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void BoundedForwardOnlyReadsConsumeAtMostOneByteBeyondTheLimit() {
+        using var stream = new ForwardOnlyReadStream(new byte[128]);
+
+        Assert.False(OfficeBoundedStreamReader.TryRead(
+            stream, maximumBytes: 7, CancellationToken.None, out _));
+
+        Assert.Equal(8L, stream.Position);
+    }
+
+    [Fact]
+    public void ManagedJpegBmpAndGifCodecsPropagateCancellation() {
+        OfficeRasterImage source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
+        byte[] jpeg = OfficeJpegCodec.Encode(source);
+        byte[] bmp = new byte[58];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 2, bmp.Length);
+        WriteInt32LittleEndian(bmp, 10, 54);
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 1);
+        WriteInt32LittleEndian(bmp, 22, 1);
+        WriteUInt16LittleEndian(bmp, 26, 1);
+        WriteUInt16LittleEndian(bmp, 28, 24);
+        byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeJpegCodec.TryDecode(jpeg, cancellation.Token, out _));
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeBmpReader.TryDecode(bmp, cancellation.Token, out _));
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeGifReader.TryDecodeFrame(gif, 0, cancellation.Token, out _, out _));
+    }
+
+    [Fact]
     public void ContainerInspectorReportsApngTimingAndSelectionSemantics() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
         byte[] apng = CreateTwoFrameApng(png);
@@ -806,6 +842,29 @@ public partial class DrawingTests {
         Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
         Assert.True(container.Frames[0].IsDefaultImage);
         Assert.False(container.Frames[1].IsDefaultImage);
+    }
+
+    [Fact]
+    public void ContainerInspectorPreservesSingleFrameApngAfterFallbackImageData() {
+        byte[] fallback = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        byte[] animatedFrame = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateSingleFrameApngAfterFallback(fallback, animatedFrame);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(apng, out OfficeRasterContainerInfo? container));
+        Assert.True(container!.IsAnimated);
+        Assert.Single(container.Frames);
+        Assert.False(container.Frames[0].IsDefaultImage);
+
+        var options = new OfficeRasterDecodeOptions {
+            AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame
+        };
+        Assert.True(OfficeRasterImageDecoder.TryDecode(apng, options, out OfficeRasterImage? image, out _));
+        Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
+
+        var reject = new OfficeRasterDecodeOptions {
+            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+        };
+        Assert.False(OfficeRasterImageDecoder.TryDecode(apng, reject, out _, out _));
     }
 
     [Fact]
@@ -888,6 +947,34 @@ public partial class DrawingTests {
         Buffer.BlockCopy(png, idatOffset, result, idatOffset + prefix.Length, idatEnd - idatOffset);
         Buffer.BlockCopy(suffix, 0, result, idatEnd + prefix.Length, suffix.Length);
         Buffer.BlockCopy(png, idatEnd, result, idatEnd + prefix.Length + suffix.Length, png.Length - idatEnd);
+        return result;
+    }
+
+    private static byte[] CreateSingleFrameApngAfterFallback(byte[] fallback, byte[] animatedFrame) {
+        int fallbackIdat = FindPngChunk(fallback, "IDAT");
+        int fallbackIdatLength = ReadBigEndianInt32(fallback, fallbackIdat);
+        int fallbackIdatEnd = fallbackIdat + 12 + fallbackIdatLength;
+        int animatedIdat = FindPngChunk(animatedFrame, "IDAT");
+        int animatedIdatLength = ReadBigEndianInt32(animatedFrame, animatedIdat);
+
+        byte[] animationControl = new byte[8];
+        WriteBigEndianInt32(animationControl, 0, 1);
+        byte[] frameData = new byte[animatedIdatLength + 4];
+        WriteBigEndianInt32(frameData, 0, 1);
+        Buffer.BlockCopy(animatedFrame, animatedIdat + 8, frameData, 4, animatedIdatLength);
+
+        byte[] prefix = CreatePngChunk("acTL", animationControl);
+        byte[] suffix = CreatePngChunk("fcTL", CreateFrameControl(sequence: 0))
+            .Concat(CreatePngChunk("fdAT", frameData))
+            .ToArray();
+        byte[] result = new byte[fallback.Length + prefix.Length + suffix.Length];
+        Buffer.BlockCopy(fallback, 0, result, 0, fallbackIdat);
+        Buffer.BlockCopy(prefix, 0, result, fallbackIdat, prefix.Length);
+        Buffer.BlockCopy(fallback, fallbackIdat, result, fallbackIdat + prefix.Length,
+            fallbackIdatEnd - fallbackIdat);
+        Buffer.BlockCopy(suffix, 0, result, fallbackIdatEnd + prefix.Length, suffix.Length);
+        Buffer.BlockCopy(fallback, fallbackIdatEnd, result,
+            fallbackIdatEnd + prefix.Length + suffix.Length, fallback.Length - fallbackIdatEnd);
         return result;
     }
 

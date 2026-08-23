@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -10,10 +11,19 @@ public static partial class OfficeJpegCodec {
 
     /// <summary>Attempts to decode JPEG bytes into an RGBA image.</summary>
     public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image, OfficeJpegDecodeOptions options = default) {
+        return TryDecode(encodedBytes, CancellationToken.None, out image, options);
+    }
+
+    internal static bool TryDecode(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        out OfficeRasterImage? image,
+        OfficeJpegDecodeOptions options = default) {
         image = null;
         if (!IsJpeg(encodedBytes)) return false;
         try {
-            byte[] pixels = OfficeJpegReader.DecodeRgba32(encodedBytes!, out int width, out int height, options);
+            byte[] pixels = OfficeJpegReader.DecodeRgba32(
+                encodedBytes!, out int width, out int height, options, cancellationToken);
             image = OfficeRasterImage.FromOwnedRgba32(width, height, pixels);
             return true;
         } catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is IndexOutOfRangeException || ex is OverflowException) {

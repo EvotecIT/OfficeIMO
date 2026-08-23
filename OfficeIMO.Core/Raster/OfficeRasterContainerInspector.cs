@@ -69,9 +69,23 @@ public static class OfficeRasterContainerInspector {
         if (bytes.Length < 14) return false;
         int cursor = 13;
         int packed = bytes[10];
-        if ((packed & 0x80) != 0) cursor = checked(cursor + (3 << ((packed & 7) + 1)));
+        OfficeColor[]? globalColorTable = null;
+        if ((packed & 0x80) != 0) {
+            int colorCount = 1 << ((packed & 7) + 1);
+            if (cursor > bytes.Length - colorCount * 3) return false;
+            globalColorTable = new OfficeColor[colorCount];
+            for (int index = 0; index < colorCount; index++) {
+                int colorOffset = cursor + index * 3;
+                globalColorTable[index] = OfficeColor.FromRgb(
+                    bytes[colorOffset], bytes[colorOffset + 1], bytes[colorOffset + 2]);
+            }
+            cursor = checked(cursor + colorCount * 3);
+        }
+        int backgroundColorIndex = bytes[11];
+        OfficeColor background = OfficeColor.Transparent;
         int loopCount = 1;
         int delayHundredths = 0;
+        int transparentIndex = -1;
         OfficeRasterFrameDisposal disposal = OfficeRasterFrameDisposal.None;
         var frames = new List<OfficeRasterFrameInfo>();
         while (cursor < bytes.Length) {
@@ -91,6 +105,7 @@ public static class OfficeRasterContainerInspector {
                         _ => OfficeRasterFrameDisposal.None
                     };
                     delayHundredths = bytes[cursor + 2] | bytes[cursor + 3] << 8;
+                    transparentIndex = (control & 1) != 0 ? bytes[cursor + 4] : -1;
                     cursor += 6;
                 } else if (label == 0xFF) {
                     if (cursor >= bytes.Length) return false;
@@ -103,6 +118,11 @@ public static class OfficeRasterContainerInspector {
                         loopCount = bytes[cursor + 2] | bytes[cursor + 3] << 8;
                     }
                     if (!SkipSubBlocks(bytes, ref cursor)) return false;
+                } else if (label == 0x01) {
+                    if (!SkipSubBlocks(bytes, ref cursor)) return false;
+                    delayHundredths = 0;
+                    disposal = OfficeRasterFrameDisposal.None;
+                    transparentIndex = -1;
                 } else if (!SkipSubBlocks(bytes, ref cursor)) {
                     return false;
                 }
@@ -125,6 +145,11 @@ public static class OfficeRasterContainerInspector {
             cursor++; // LZW minimum code size
             if (!SkipSubBlocks(bytes, ref cursor)) return false;
             if (frames.Count >= 65535) return false;
+            if (frames.Count == 0 && globalColorTable != null &&
+                backgroundColorIndex >= 0 && backgroundColorIndex < globalColorTable.Length &&
+                backgroundColorIndex != transparentIndex) {
+                background = globalColorTable[backgroundColorIndex];
+            }
             frames.Add(new OfficeRasterFrameInfo(
                 frames.Count,
                 OfficeRasterFrameKind.AnimationFrame,
@@ -138,6 +163,7 @@ public static class OfficeRasterContainerInspector {
                 frames.Count == 0));
             delayHundredths = 0;
             disposal = OfficeRasterFrameDisposal.None;
+            transparentIndex = -1;
         }
         if (frames.Count == 0) return false;
         container = new OfficeRasterContainerInfo(
@@ -146,7 +172,7 @@ public static class OfficeRasterContainerInspector {
             imageInfo.Height,
             frames.ToArray(),
             loopCount,
-            OfficeColor.Transparent);
+            background);
         return true;
     }
 
@@ -158,13 +184,10 @@ public static class OfficeRasterContainerInspector {
         container = null;
         if (!OfficePngReader.TryGetFrameCount(
                 bytes, options.CancellationToken, out int frameCount)) return false;
-        if (frameCount <= 1) {
-            container = CreateStatic(imageInfo);
-            return true;
-        }
         if (frameCount > 65535) return false;
         int loopCount = 0;
         bool seenImageData = false;
+        bool seenAnimationControl = false;
         var frames = new List<OfficeRasterFrameInfo>(frameCount);
         int cursor = 8;
         while (cursor <= bytes.Length - 12) {
@@ -175,6 +198,7 @@ public static class OfficeRasterContainerInspector {
             string type = ReadAscii(bytes, cursor + 4);
             if (type == "acTL") {
                 if (length != 8) return false;
+                seenAnimationControl = true;
                 loopCount = ReadInt32BigEndian(bytes, data + 4);
             } else if (type == "fcTL") {
                 if (length != 26) return false;
@@ -210,6 +234,10 @@ public static class OfficeRasterContainerInspector {
             }
             cursor = checked(cursor + 12 + length);
             if (type == "IEND") break;
+        }
+        if (!seenAnimationControl) {
+            container = CreateStatic(imageInfo);
+            return true;
         }
         if (frames.Count != frameCount) return false;
         container = new OfficeRasterContainerInfo(

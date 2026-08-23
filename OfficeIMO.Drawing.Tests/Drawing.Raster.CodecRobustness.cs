@@ -50,13 +50,21 @@ public sealed class DrawingRasterCodecRobustnessTests {
 
         foreach (byte[] bytes in encoded) {
             using var cancellation = new CancellationTokenSource();
-            cancellation.CancelAfter(TimeSpan.FromMilliseconds(1));
             var options = new OfficeRasterDecodeOptions {
                 CancellationToken = cancellation.Token
             };
+            var cancelThread = new Thread(() => {
+                Thread.Sleep(10);
+                cancellation.Cancel();
+            }) { IsBackground = true };
+            cancelThread.Start();
 
-            Assert.Throws<OperationCanceledException>(() =>
-                OfficeRasterImageDecoder.TryDecode(bytes, options, out _, out _));
+            try {
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeRasterImageDecoder.TryDecode(bytes, options, out _, out _));
+            } finally {
+                Assert.True(cancelThread.Join(TimeSpan.FromSeconds(5)));
+            }
         }
     }
 

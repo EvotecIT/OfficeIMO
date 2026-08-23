@@ -52,8 +52,19 @@ namespace OfficeIMO.Tests {
                 backgroundColorIndex: 1);
 
             Assert.True(OfficeRasterImageDecoder.TryDecode(gif, out OfficeRasterImage? image));
+            Assert.True(OfficeRasterContainerInspector.TryInspect(gif, out OfficeRasterContainerInfo? container));
             Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
             Assert.Equal(OfficeColor.Red, image.GetPixel(1, 1));
+            Assert.Equal(OfficeColor.Lime, container!.Background);
+
+            const int imageDescriptorOffset = 25;
+            byte[] transparentBackground = gif.Take(imageDescriptorOffset)
+                .Concat(new byte[] { 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x01, 0x00 })
+                .Concat(gif.Skip(imageDescriptorOffset))
+                .ToArray();
+            Assert.True(OfficeRasterContainerInspector.TryInspect(
+                transparentBackground, out OfficeRasterContainerInfo? transparentContainer));
+            Assert.Equal(OfficeColor.Transparent, transparentContainer!.Background);
         }
 
         [Fact]

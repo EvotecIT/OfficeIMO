@@ -218,7 +218,10 @@ public static class OfficeImageOptimizer {
         ResolveMetadataForOutput(original.Format, outputFormat, metadata, requestedMetadata,
             out OfficeJpegMetadata jpegMetadata, out OfficeImageMetadataKinds preservedMetadata,
             out OfficeImageMetadataKinds normalizedMetadata);
-        byte[] candidate = Encode(candidateImage, outputFormat, original, request, jpegMetadata);
+        bool orientationSwapsAxes = OfficeImageOrientationNormalizer.TryRead(encodedBytes, out OfficeImageOrientation orientation) &&
+            orientation >= OfficeImageOrientation.Transpose;
+        byte[] candidate = Encode(candidateImage, outputFormat, original, request, jpegMetadata,
+            requestedMetadata, orientationSwapsAxes);
         OfficeImageInfo final = OfficeImageReader.Identify(candidate);
         if (request.KeepOriginalWhenNotSmaller && !metadataRewriteRequired &&
             candidate.LongLength >= encodedBytes.LongLength) {
@@ -280,10 +283,14 @@ public static class OfficeImageOptimizer {
         OfficeImageFormat format,
         OfficeImageInfo original,
         OfficeImageOptimizationRequest request,
-        OfficeJpegMetadata jpegMetadata) {
+        OfficeJpegMetadata jpegMetadata,
+        OfficeImageMetadataKinds requestedMetadata,
+        bool orientationSwapsAxes) {
         OfficeImageExportFormat exportFormat = ToExportFormat(format);
-        double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? original.DpiX);
-        double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? original.DpiY);
+        double sourceDpiX = orientationSwapsAxes ? original.DpiY : original.DpiX;
+        double sourceDpiY = orientationSwapsAxes ? original.DpiX : original.DpiY;
+        double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? sourceDpiX);
+        double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? sourceDpiY);
         var options = new OfficeRasterEncodingOptions {
             DpiX = dpiX,
             DpiY = dpiY,
@@ -297,7 +304,7 @@ public static class OfficeImageOptimizer {
                 OptimizeHuffman = request.JpegOptimizeHuffman,
                 Background = request.JpegBackground,
                 Metadata = jpegMetadata,
-                WriteJfifHeader = request.MetadataPolicy != OfficeImageMetadataPolicy.Strip ||
+                WriteJfifHeader = (requestedMetadata & OfficeImageMetadataKinds.Resolution) != 0 ||
                                   request.OutputDpiX.HasValue || request.OutputDpiY.HasValue
             },
             Tiff = new OfficeTiffEncodeOptions {

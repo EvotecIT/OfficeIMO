@@ -223,6 +223,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerOmitsJfifDensityWhenSelectiveCopyExcludesResolution() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions { DpiX = 144D, DpiY = 72D });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.SelectiveCopy,
+                    MetadataSelection = OfficeImageMetadataKinds.None
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.False(ContainsSequence(result.Bytes, new byte[] {
+                (byte)'J', (byte)'F', (byte)'I', (byte)'F', 0
+            }));
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                OfficeImageMetadataInspector.Inspect(result.Bytes, OfficeImageFormat.Jpeg).Kinds &
+                OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerSwapsInheritedDensityAxesAfterExifRotation() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    DpiX = 72D,
+                    DpiY = 144D,
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(1, 1) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false
+                });
+
+            Assert.Equal((1, 1), (result.Final.Width, result.Final.Height));
+            Assert.InRange(result.Final.DpiX, 143.98D, 144.02D);
+            Assert.InRange(result.Final.DpiY, 71.98D, 72.02D);
+        }
+
+        [Fact]
         public void OfficeImageOptimizerDoesNotRestoreMetadataWhenARequiredStripRewriteIsLarger() {
             var source = new OfficeRasterImage(32, 32);
             for (int y = 0; y < source.Height; y++) {

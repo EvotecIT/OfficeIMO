@@ -97,7 +97,10 @@ public static class OfficeRasterImageDecoder {
                 "The requested frame or page index is outside the container.", container);
             return false;
         }
-        if (frameCount > 1 && effective.FrameLossPolicy == OfficeRasterFrameLossPolicy.RejectMultipleFrames) {
+        bool carriesAnimationSemantics = frameCount > 1 ||
+            container.IsAnimated && (format == OfficeImageFormat.Png || format == OfficeImageFormat.Webp);
+        if (carriesAnimationSemantics &&
+            effective.FrameLossPolicy == OfficeRasterFrameLossPolicy.RejectMultipleFrames) {
             info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, false,
                 container.IsMultiPage
                     ? "Multi-page TIFF input was rejected by the configured frame-loss policy."
@@ -107,7 +110,8 @@ public static class OfficeRasterImageDecoder {
         }
 
         if (format == OfficeImageFormat.Gif) {
-            bool decoded = OfficeGifReader.TryDecodeFrame(bytes, effective.FrameIndex, out image, out int decodedFrameCount);
+            bool decoded = OfficeGifReader.TryDecodeFrame(
+                bytes, effective.FrameIndex, effective.CancellationToken, out image, out int decodedFrameCount);
             string? diagnostic = decoded && frameCount > 1
                 ? "The selected GIF frame was decoded; remaining animation frames were not retained in the static raster result."
                 : decoded ? null : "The requested GIF frame could not be decoded.";
@@ -119,14 +123,14 @@ public static class OfficeRasterImageDecoder {
         }
 
         if (format == OfficeImageFormat.Png) {
-            if (frameCount > 1) {
+            if (container.IsAnimated) {
                 bool decoded = OfficeApngDecoder.TryDecodeFrame(bytes, container, effective.FrameIndex,
                     effective.MaximumDecodedPixels, effective.CancellationToken, out image);
                 if (!decoded) image = null;
                 info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded,
-                    decoded
+                    decoded && frameCount > 1
                         ? "The selected APNG frame was composed; remaining animation frames were not retained in the static raster result."
-                        : "The selected APNG frame could not be decoded within the configured limits.", container);
+                        : decoded ? null : "The selected APNG frame could not be decoded within the configured limits.", container);
                 return decoded;
             }
         }
@@ -150,8 +154,8 @@ public static class OfficeRasterImageDecoder {
         bool success = format switch {
             OfficeImageFormat.Png => OfficePngReader.TryDecode(
                 bytes, effective.CancellationToken, out image),
-            OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(bytes, out image),
-            OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(bytes, out image),
+            OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(bytes, effective.CancellationToken, out image),
+            OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(bytes, effective.CancellationToken, out image),
             OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
                 bytes, effective.CancellationToken, out image),
             _ => false

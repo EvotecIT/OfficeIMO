@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -87,6 +88,15 @@ internal static partial class OfficeJpegReader {
     /// Decodes a JPEG image to an RGBA buffer.
     /// </summary>
     public static byte[] DecodeRgba32(byte[] data, out int width, out int height, OfficeJpegDecodeOptions options) {
+        return DecodeRgba32(data, out width, out height, options, CancellationToken.None);
+    }
+
+    internal static byte[] DecodeRgba32(
+        byte[] data,
+        out int width,
+        out int height,
+        OfficeJpegDecodeOptions options,
+        CancellationToken cancellationToken) {
         return Decode(
             data,
             out width,
@@ -95,7 +105,8 @@ internal static partial class OfficeJpegReader {
             options,
             requestedColorTransform: null,
             usePdfColorTransformDefault: false,
-            returnColorComponents: false);
+            returnColorComponents: false,
+            cancellationToken);
     }
 
     internal static byte[] DecodeColorComponents(
@@ -118,7 +129,8 @@ internal static partial class OfficeJpegReader {
             options,
             requestedColorTransform,
             usePdfColorTransformDefault,
-            returnColorComponents: true);
+            returnColorComponents: true,
+            CancellationToken.None);
     }
 
     private static byte[] Decode(
@@ -129,8 +141,10 @@ internal static partial class OfficeJpegReader {
         OfficeJpegDecodeOptions options,
         int? requestedColorTransform,
         bool usePdfColorTransformDefault,
-        bool returnColorComponents) {
+        bool returnColorComponents,
+        CancellationToken cancellationToken) {
         componentCount = 0;
+        cancellationToken.ThrowIfCancellationRequested();
         if (!IsJpeg(data)) throw new FormatException("Invalid JPEG signature.");
         OfficeRasterGuards.EnsurePayloadWithinLimits(data.Length, "JPEG payload exceeds size limits.");
 
@@ -148,6 +162,7 @@ internal static partial class OfficeJpegReader {
 
         var offset = 2;
         while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (data[offset] != 0xFF) {
                 offset++;
                 continue;
@@ -167,7 +182,7 @@ internal static partial class OfficeJpegReader {
                 var scan = ParseScanHeader(data.Slice(offset, segLen - 2), ref frame);
                 offset += segLen - 2;
 
-                var scanEnd = FindScanEnd(data, offset);
+                var scanEnd = FindScanEnd(data, offset, cancellationToken);
                 var scanData = data.Slice(offset, scanEnd - offset);
 
                 if (!progressive) {
@@ -182,7 +197,8 @@ internal static partial class OfficeJpegReader {
                         dcTables,
                         acTables,
                         restartInterval,
-                        options.AllowTruncated);
+                        options.AllowTruncated,
+                        cancellationToken);
                     offset = scanEnd;
                     continue;
                 }
@@ -198,7 +214,8 @@ internal static partial class OfficeJpegReader {
                     dcTables,
                     acTables,
                     restartInterval,
-                    options.AllowTruncated);
+                    options.AllowTruncated,
+                    cancellationToken);
                 offset = scanEnd;
                 continue;
             }
@@ -317,9 +334,9 @@ internal static partial class OfficeJpegReader {
                     options.HighQualityChroma,
                     out componentCount);
             }
-            var rgba = baselineState.RenderRgba(frame, adobeTransform, options.HighQualityChroma);
+            var rgba = baselineState.RenderRgba(frame, adobeTransform, options.HighQualityChroma, cancellationToken);
             componentCount = 4;
-            return ApplyOrientation(rgba, ref width, ref height, orientation);
+            return ApplyOrientation(rgba, ref width, ref height, orientation, cancellationToken);
         }
 
         if (progressive && hasFrame && progressiveState is not null) {
@@ -334,9 +351,9 @@ internal static partial class OfficeJpegReader {
                     options.HighQualityChroma,
                     out componentCount);
             }
-            var rgba = progressiveState.RenderRgba(frame, adobeTransform, options.HighQualityChroma);
+            var rgba = progressiveState.RenderRgba(frame, adobeTransform, options.HighQualityChroma, cancellationToken);
             componentCount = 4;
-            return ApplyOrientation(rgba, ref width, ref height, orientation);
+            return ApplyOrientation(rgba, ref width, ref height, orientation, cancellationToken);
         }
 
         throw new FormatException("JPEG scan not found.");

@@ -514,6 +514,17 @@ public sealed class DrawingRasterEncodingTests {
         }
     }
 
+    [Fact]
+    public void OfficeWebpCodecUsesArithmeticShiftForVp8lPredictorMode13() {
+        const uint left = 0xFF646464U;
+        const uint top = 0xFF000000U;
+        const uint topLeft = 0xFF676767U;
+
+        uint predicted = OfficeWebpCodec.PredictVp8l(13, left, top, topLeft, 0U);
+
+        Assert.Equal(0xFF171717U, predicted);
+    }
+
     private static byte[] CreateVp8lHuffmanEdgeFixture(bool duplicateSimpleTree) {
         var writer = new TestLsbBitWriter();
         writer.WriteBits(0, 14); // width - 1

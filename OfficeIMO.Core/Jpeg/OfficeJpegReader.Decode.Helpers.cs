@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -36,7 +37,12 @@ internal static partial class OfficeJpegReader {
         }
     }
 
-    private static byte[] ComposeRgba(JpegFrame frame, BaselineComponentState[] states, int? adobeTransform, bool highQualityChroma) {
+    private static byte[] ComposeRgba(
+        JpegFrame frame,
+        BaselineComponentState[] states,
+        int? adobeTransform,
+        bool highQualityChroma,
+        CancellationToken cancellationToken) {
         return ComposeColorComponents(
             frame,
             states,
@@ -45,6 +51,7 @@ internal static partial class OfficeJpegReader {
             usePdfColorTransformDefault: false,
             highQualityChroma,
             outputRgba: true,
+            cancellationToken,
             out _);
     }
 
@@ -56,6 +63,7 @@ internal static partial class OfficeJpegReader {
         bool usePdfColorTransformDefault,
         bool highQualityChroma,
         bool outputRgba,
+        CancellationToken cancellationToken,
         out int componentCount) {
         componentCount = frame.ComponentCount;
         if (componentCount < 1 || componentCount > 4) {
@@ -103,6 +111,7 @@ internal static partial class OfficeJpegReader {
             }
 
             for (var y = 0; y < frame.Height; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (var x = 0; x < frame.Width; x++) {
                     byte c;
                     byte m;
@@ -147,6 +156,7 @@ internal static partial class OfficeJpegReader {
             var grayIndex = FindComponentIndex(frame.Components, 1);
             if (grayIndex < 0) grayIndex = 0;
             for (var y = 0; y < frame.Height; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (var x = 0; x < frame.Width; x++) {
                     var v = SampleComponent(states, grayIndex, x, y, maxH, maxV, 0, highQualityChroma);
                     WriteGrayPixel(components, y * frame.Width + x, (byte)v, outputRgba);
@@ -190,12 +200,14 @@ internal static partial class OfficeJpegReader {
                     maxH,
                     maxV,
                     transformToRgb,
-                    outputRgba);
+                    outputRgba,
+                    cancellationToken);
                 return components;
             }
         }
 
         for (var y = 0; y < frame.Height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var x = 0; x < frame.Width; x++) {
                 if (frame.ComponentCount == 3 && !transformToRgb) {
                     int firstIndex = hasRgbComponentIds ? rIndex : 0;
@@ -247,7 +259,8 @@ internal static partial class OfficeJpegReader {
         int maximumHorizontalSampling,
         int maximumVerticalSampling,
         bool transformYccToRgb,
-        bool outputRgba) {
+        bool outputRgba,
+        CancellationToken cancellationToken) {
         int firstY = 0;
         int secondY = 0;
         int thirdY = 0;
@@ -257,6 +270,7 @@ internal static partial class OfficeJpegReader {
         int target = 0;
 
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int firstRow = firstY * first.Stride;
             int secondRow = secondY * second.Stride;
             int thirdRow = thirdY * third.Stride;
@@ -792,9 +806,10 @@ internal static partial class OfficeJpegReader {
         return -1;
     }
 
-    private static int FindScanEnd(OfficeByteView data, int start) {
+    private static int FindScanEnd(OfficeByteView data, int start, CancellationToken cancellationToken) {
         var i = start;
         while (i + 1 < data.Length) {
+            if ((i & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (data[i] == 0xFF) {
                 var j = i + 1;
                 while (j < data.Length && data[j] == 0xFF) j++;
@@ -825,7 +840,12 @@ internal static partial class OfficeJpegReader {
         return true;
     }
 
-    private static byte[] ApplyOrientation(byte[] rgba, ref int width, ref int height, int orientation) {
+    private static byte[] ApplyOrientation(
+        byte[] rgba,
+        ref int width,
+        ref int height,
+        int orientation,
+        CancellationToken cancellationToken) {
         if (orientation <= 1) return rgba;
         var srcWidth = width;
         var srcHeight = height;
@@ -834,6 +854,7 @@ internal static partial class OfficeJpegReader {
         var result = OfficeRasterGuards.AllocateRgba32(destWidth, destHeight, JpegDimensionsLimitMessage);
 
         for (var y = 0; y < destHeight; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var x = 0; x < destWidth; x++) {
                 int sx;
                 int sy;
@@ -958,12 +979,16 @@ internal static partial class OfficeJpegReader {
             };
         }
 
-        public byte[] RenderRgba(JpegFrame frame, int? adobeTransform, bool highQualityChroma) {
+        public byte[] RenderRgba(
+            JpegFrame frame,
+            int? adobeTransform,
+            bool highQualityChroma,
+            CancellationToken cancellationToken) {
             for (var i = 0; i < DecodedComponents.Length; i++) {
                 if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
             }
 
-            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma);
+            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -985,6 +1010,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                CancellationToken.None,
                 out componentCount);
         }
     }
@@ -1080,9 +1106,13 @@ internal static partial class OfficeJpegReader {
             };
         }
 
-        public byte[] RenderRgba(JpegFrame frame, int? adobeTransform, bool highQualityChroma) {
-            BaselineComponentState[] baselineStates = CreateBaselineStates();
-            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma);
+        public byte[] RenderRgba(
+            JpegFrame frame,
+            int? adobeTransform,
+            bool highQualityChroma,
+            CancellationToken cancellationToken) {
+            BaselineComponentState[] baselineStates = CreateBaselineStates(cancellationToken);
+            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -1092,7 +1122,7 @@ internal static partial class OfficeJpegReader {
             bool usePdfColorTransformDefault,
             bool highQualityChroma,
             out int componentCount) {
-            BaselineComponentState[] baselineStates = CreateBaselineStates();
+            BaselineComponentState[] baselineStates = CreateBaselineStates(CancellationToken.None);
             return ComposeColorComponents(
                 frame,
                 baselineStates,
@@ -1101,13 +1131,15 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                CancellationToken.None,
                 out componentCount);
         }
 
-        private BaselineComponentState[] CreateBaselineStates() {
+        private BaselineComponentState[] CreateBaselineStates(CancellationToken cancellationToken) {
             for (var i = 0; i < Components.Length; i++) {
                 var compState = Components[i];
                 for (var by = 0; by < compState.BlocksPerCol; by++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     for (var bx = 0; bx < compState.BlocksPerRow; bx++) {
                         var baseIndex = (by * compState.BlocksPerRow + bx) * 64;
                         for (int coefficient = 0; coefficient < 64; coefficient++) {
