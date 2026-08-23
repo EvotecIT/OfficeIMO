@@ -1142,22 +1142,22 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(3, 1);
-            table.Width = 3000;
+            table.Width = 600;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 3000;
+                row.Cells[0].Width = 600;
                 row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
             }
 
-            table.Rows[0].Cells[0].Paragraphs[0].Text = "PlainCellMarker";
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "P0";
             WordParagraph negative = table.Rows[1].Cells[0].Paragraphs[0];
-            negative.Text = "NegativeCellMarker";
-            negative.IndentationBeforePoints = -18D;
-            negative.IndentationAfterPoints = -18D;
+            negative.Text = "N0";
+            negative.IndentationBeforePoints = -30D;
+            negative.IndentationAfterPoints = -30D;
 
             WordParagraph hanging = table.Rows[2].Cells[0].Paragraphs[0];
-            hanging.Text = "CellHangingStart alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu";
+            hanging.Text = "H0 a b c d e f g h i j k l m";
             hanging.IndentationHangingPoints = 36D;
 
             document.Save();
@@ -1172,16 +1172,16 @@ public partial class Word {
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         var page = pdf.GetPage(1);
         var words = page.GetWords().ToList();
-        var plain = Assert.Single(words, word => word.Text == "PlainCellMarker");
-        var negativeWord = Assert.Single(words, word => word.Text == "NegativeCellMarker");
-        Assert.True(plain.BoundingBox.Left - negativeWord.BoundingBox.Left >= 17D,
+        var plain = Assert.Single(words, word => word.Text == "P0");
+        var negativeWord = Assert.Single(words, word => word.Text == "N0");
+        Assert.True(plain.BoundingBox.Left - negativeWord.BoundingBox.Left >= 29D,
             $"Expected the negative table-cell paragraph indent to extend text left. Plain x: {plain.BoundingBox.Left:0.##}; negative x: {negativeWord.BoundingBox.Left:0.##}.");
 
         var hangingLines = words
             .GroupBy(word => Math.Round(word.BoundingBox.Bottom, 1))
             .OrderByDescending(group => group.Key)
             .ToList();
-        int firstHangingLine = hangingLines.FindIndex(group => group.Any(word => word.Text == "CellHangingStart"));
+        int firstHangingLine = hangingLines.FindIndex(group => group.Any(word => word.Text == "H0"));
         Assert.InRange(firstHangingLine, 0, hangingLines.Count - 2);
         double firstLineX = hangingLines[firstHangingLine].Min(word => word.BoundingBox.Left);
         double continuationLineX = hangingLines[firstHangingLine + 1].Min(word => word.BoundingBox.Left);

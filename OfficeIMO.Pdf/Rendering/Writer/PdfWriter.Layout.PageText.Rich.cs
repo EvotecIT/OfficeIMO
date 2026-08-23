@@ -42,8 +42,34 @@ internal static partial class PdfWriter {
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 double runBaseline = baselines[lineIndex] + textRise;
-                bottom = System.Math.Min(bottom, runBaseline - GetDescenderForOptions(runFont, namedFont, effectiveFontSize, options));
-                top = System.Math.Max(top, runBaseline + GetAscenderForOptions(runFont, namedFont, effectiveFontSize, options));
+                double ascender = GetAscenderForOptions(runFont, namedFont, effectiveFontSize, options);
+                double descender = GetDescenderForOptions(runFont, namedFont, effectiveFontSize, options);
+                double runBottom = runBaseline - descender;
+                double runTop = runBaseline + ascender;
+                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options);
+                if (width > 0D && run.BackgroundColor.HasValue) {
+                    double paddingY = System.Math.Max(0.35D, effectiveFontSize * 0.04D);
+                    runBottom -= paddingY;
+                    runTop += paddingY;
+                }
+
+                if (width > 0D && (run.Underline || run.Strike)) {
+                    double halfDecorationWidth = System.Math.Max(0.45D, effectiveFontSize * 0.055D) / 2D;
+                    if (run.Underline) {
+                        double underlineY = runBaseline - System.Math.Max(0.8D, effectiveFontSize * 0.1D);
+                        runBottom = System.Math.Min(runBottom, underlineY - halfDecorationWidth);
+                        runTop = System.Math.Max(runTop, underlineY + halfDecorationWidth);
+                    }
+
+                    if (run.Strike) {
+                        double strikeY = runBaseline + (effectiveFontSize * 0.28D);
+                        runBottom = System.Math.Min(runBottom, strikeY - halfDecorationWidth);
+                        runTop = System.Math.Max(runTop, strikeY + halfDecorationWidth);
+                    }
+                }
+
+                bottom = System.Math.Min(bottom, runBottom);
+                top = System.Math.Max(top, runTop);
             }
         }
 

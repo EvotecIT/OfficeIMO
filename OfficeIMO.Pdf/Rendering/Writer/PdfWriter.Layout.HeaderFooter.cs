@@ -309,11 +309,29 @@ internal static partial class PdfWriter {
                 x,
                 bottomY,
                 baseHasStroke ? shape.StrokeWidth : 0D,
-                out boundsX,
-                out boundsY,
-                out boundsWidth,
-                out boundsHeight);
-            hasBounds = true;
+                out double baseX,
+                out double baseY,
+                out double baseWidth,
+                out double baseHeight);
+            if (shape.ClipPath == null || TryIntersectHeaderFooterShapeClipBounds(
+                    shape,
+                    x,
+                    bottomY,
+                    ref baseX,
+                    ref baseY,
+                    ref baseWidth,
+                    ref baseHeight)) {
+                IncludeShapeBounds(
+                    baseX,
+                    baseY,
+                    baseWidth,
+                    baseHeight,
+                    ref hasBounds,
+                    ref boundsX,
+                    ref boundsY,
+                    ref boundsWidth,
+                    ref boundsHeight);
+            }
         }
 
         OfficeShadow? shadow = shape.Shadow;
@@ -359,6 +377,51 @@ internal static partial class PdfWriter {
         }
 
         return hasBounds;
+    }
+
+    private static bool TryIntersectHeaderFooterShapeClipBounds(
+        OfficeShape shape,
+        double x,
+        double bottomY,
+        ref double boundsX,
+        ref double boundsY,
+        ref double boundsWidth,
+        ref double boundsHeight) {
+        OfficeClipPath clipPath = shape.ClipPath!;
+        double clipX;
+        double clipY;
+        double clipWidth;
+        double clipHeight;
+        if (!shape.Transform.HasValue) {
+            clipX = x;
+            clipY = bottomY + shape.Height - clipPath.Height;
+            clipWidth = clipPath.Width;
+            clipHeight = clipPath.Height;
+        } else {
+            (double left, double top, double right, double bottom) = shape.Transform.Value.TransformRectangleBounds(
+                0D,
+                0D,
+                clipPath.Width,
+                clipPath.Height);
+            clipX = x + left;
+            clipY = bottomY + shape.Height - bottom;
+            clipWidth = right - left;
+            clipHeight = bottom - top;
+        }
+
+        double intersectionX = System.Math.Max(boundsX, clipX);
+        double intersectionY = System.Math.Max(boundsY, clipY);
+        double intersectionRight = System.Math.Min(boundsX + boundsWidth, clipX + clipWidth);
+        double intersectionTop = System.Math.Min(boundsY + boundsHeight, clipY + clipHeight);
+        if (intersectionRight <= intersectionX || intersectionTop <= intersectionY) {
+            return false;
+        }
+
+        boundsX = intersectionX;
+        boundsY = intersectionY;
+        boundsWidth = intersectionRight - intersectionX;
+        boundsHeight = intersectionTop - intersectionY;
+        return true;
     }
 
     private static void ResolveHeaderFooterBaseGeometry(OfficeShape shape, out bool hasFill, out bool hasStroke) {
