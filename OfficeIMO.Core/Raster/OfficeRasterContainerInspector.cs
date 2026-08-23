@@ -21,6 +21,7 @@ public static class OfficeRasterContainerInspector {
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (encodedBytes == null || encodedBytes.Length == 0 || encodedBytes.Length > effective.MaximumEncodedBytes ||
             !OfficeImageReader.TryIdentifyByContent(encodedBytes, fileName: null, out OfficeImageInfo imageInfo) ||
+            imageInfo.Format != OfficeImageFormat.Tiff &&
             !OfficeRasterImageDecoder.IsWithinPixelLimit(imageInfo.Width, imageInfo.Height, effective.MaximumDecodedPixels)) {
             return false;
         }
@@ -84,6 +85,7 @@ public static class OfficeRasterContainerInspector {
         int backgroundColorIndex = bytes[11];
         OfficeColor background = OfficeColor.Transparent;
         int loopCount = 1;
+        bool hasLoopExtension = false;
         int delayHundredths = 0;
         int transparentIndex = -1;
         OfficeRasterFrameDisposal disposal = OfficeRasterFrameDisposal.None;
@@ -116,6 +118,7 @@ public static class OfficeRasterContainerInspector {
                     cursor += headerLength;
                     if (netscape && cursor <= bytes.Length - 5 && bytes[cursor] == 3 && bytes[cursor + 1] == 1) {
                         loopCount = bytes[cursor + 2] | bytes[cursor + 3] << 8;
+                        hasLoopExtension = true;
                     }
                     if (!SkipSubBlocks(bytes, ref cursor)) return false;
                 } else if (label == 0x01) {
@@ -166,6 +169,20 @@ public static class OfficeRasterContainerInspector {
             transparentIndex = -1;
         }
         if (frames.Count == 0) return false;
+        if (frames.Count == 1 && frames[0].Duration == TimeSpan.Zero && !hasLoopExtension) {
+            OfficeRasterFrameInfo frame = frames[0];
+            frames[0] = new OfficeRasterFrameInfo(
+                frame.Index,
+                OfficeRasterFrameKind.Image,
+                frame.Width,
+                frame.Height,
+                frame.X,
+                frame.Y,
+                frame.Duration,
+                frame.Disposal,
+                frame.Blend,
+                frame.IsDefaultImage);
+        }
         container = new OfficeRasterContainerInfo(
             OfficeImageFormat.Gif,
             imageInfo.Width,

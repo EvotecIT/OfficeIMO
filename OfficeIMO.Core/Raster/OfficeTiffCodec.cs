@@ -43,6 +43,9 @@ public sealed class OfficeTiffEncodeOptions {
 
     /// <summary>Vertical resolution in dots per inch.</summary>
     public double DpiY { get; set; } = 96D;
+
+    /// <summary>Writes TIFF XResolution, YResolution, and ResolutionUnit tags.</summary>
+    public bool WriteResolution { get; set; } = true;
 }
 
 /// <summary>
@@ -78,12 +81,12 @@ public static partial class OfficeTiffCodec {
 
         const int ifdOffset = 8;
         bool writePredictor = UsesHorizontalPredictor(effective);
-        int entryCount = BaseEntryCount + (writePredictor ? 1 : 0);
+        int entryCount = BaseEntryCount - (effective.WriteResolution ? 0 : 3) + (writePredictor ? 1 : 0);
         int ifdLength = 2 + (entryCount * 12) + 4;
         int bitsPerSampleOffset = checked(ifdOffset + ifdLength);
         int xResolutionOffset = checked(bitsPerSampleOffset + 8);
         int yResolutionOffset = checked(xResolutionOffset + 8);
-        int stripOffset = checked(yResolutionOffset + 8);
+        int stripOffset = effective.WriteResolution ? checked(yResolutionOffset + 8) : xResolutionOffset;
         int fileLength = checked(stripOffset + stripLength);
         byte[] output = new byte[fileLength];
 
@@ -104,10 +107,12 @@ public static partial class OfficeTiffCodec {
         WriteShortEntry(output, ref entry, 277, 4);
         WriteEntry(output, ref entry, 278, 4, 1, image.Height);
         WriteEntry(output, ref entry, 279, 4, 1, stripLength);
-        WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
-        WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
+        if (effective.WriteResolution) {
+            WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
+            WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
+        }
         WriteShortEntry(output, ref entry, 284, 1);
-        WriteShortEntry(output, ref entry, 296, 2);
+        if (effective.WriteResolution) WriteShortEntry(output, ref entry, 296, 2);
         if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)effective.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, 0);
@@ -116,8 +121,10 @@ public static partial class OfficeTiffCodec {
         WriteUInt16(output, bitsPerSampleOffset + 2, 8);
         WriteUInt16(output, bitsPerSampleOffset + 4, 8);
         WriteUInt16(output, bitsPerSampleOffset + 6, 8);
-        WriteRational(output, xResolutionOffset, effective.DpiX);
-        WriteRational(output, yResolutionOffset, effective.DpiY);
+        if (effective.WriteResolution) {
+            WriteRational(output, xResolutionOffset, effective.DpiX);
+            WriteRational(output, yResolutionOffset, effective.DpiY);
+        }
         if (effective.Compression == OfficeTiffCompression.PackBits) {
             int written = EncodePackBits(pixels, output, stripOffset);
             if (written != stripLength) {
@@ -204,9 +211,6 @@ public static partial class OfficeTiffCodec {
             !OfficeTiffStructureValidator.TryValidate(encodedBytes, 0, encodedBytes.Length)) {
             return false;
         }
-        if (!TryInspectPages(encodedBytes, effective, out OfficeRasterContainerInfo? inspected) ||
-            inspected == null || pageIndex >= inspected.Count) return false;
-
         try {
             bool littleEndian = encodedBytes[0] == (byte)'I';
             if (ReadUInt16(encodedBytes, 2, littleEndian) != 42) return false;
@@ -240,18 +244,18 @@ public static partial class OfficeTiffCodec {
                     entries.Add(tag, new TiffEntry(type, (int)count, entryOffset + 8));
                 }
 
-                if (!TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
-                    !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
-                    !IsWithinPixelLimit(width, height, effective.MaximumDecodedPixels)) {
-                    return false;
-                }
-
                 int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
                 int nextIfdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
                 if (currentPageIndex != pageIndex) {
                     ifdOffset = nextIfdOffset;
                     currentPageIndex++;
                     continue;
+                }
+
+                if (!TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
+                    !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
+                    !IsWithinPixelLimit(width, height, effective.MaximumDecodedPixels)) {
+                    return false;
                 }
 
                 if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||

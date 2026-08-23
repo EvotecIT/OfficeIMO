@@ -291,9 +291,12 @@ public static class OfficeImageOptimizer {
         double sourceDpiY = orientationSwapsAxes ? original.DpiX : original.DpiY;
         double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? sourceDpiX);
         double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? sourceDpiY);
+        bool writeResolution = (requestedMetadata & OfficeImageMetadataKinds.Resolution) != 0 ||
+                               request.OutputDpiX.HasValue || request.OutputDpiY.HasValue;
         var options = new OfficeRasterEncodingOptions {
             DpiX = dpiX,
             DpiY = dpiY,
+            WriteResolutionMetadata = writeResolution,
             Png = new OfficePngEncodeOptions {
                 Compression = request.PngCompression
             },
@@ -304,8 +307,7 @@ public static class OfficeImageOptimizer {
                 OptimizeHuffman = request.JpegOptimizeHuffman,
                 Background = request.JpegBackground,
                 Metadata = jpegMetadata,
-                WriteJfifHeader = (requestedMetadata & OfficeImageMetadataKinds.Resolution) != 0 ||
-                                  request.OutputDpiX.HasValue || request.OutputDpiY.HasValue
+                WriteJfifHeader = writeResolution
             },
             Tiff = new OfficeTiffEncodeOptions {
                 Compression = request.TiffCompression,
@@ -368,11 +370,13 @@ public static class OfficeImageOptimizer {
         preserved = requested & OfficeImageMetadataKinds.Resolution;
         normalized = OfficeImageMetadataKinds.None;
         if (sourceFormat == OfficeImageFormat.Jpeg && outputFormat == OfficeImageFormat.Jpeg) {
-            if ((requested & OfficeImageMetadataKinds.Exif) != 0 && source.Exif != null) {
+            bool canCopyExif = !source.ExifContainsResolution ||
+                               (requested & OfficeImageMetadataKinds.Resolution) != 0;
+            if ((requested & OfficeImageMetadataKinds.Exif) != 0 && source.Exif != null && canCopyExif) {
                 exif = OfficeImageOrientationNormalizer.NeutralizeExifOrientation(source.Exif);
                 preserved |= OfficeImageMetadataKinds.Exif;
             }
-            if ((requested & OfficeImageMetadataKinds.Xmp) != 0 && source.Xmp != null) {
+            if ((requested & OfficeImageMetadataKinds.Xmp) != 0 && source.Xmp != null && !source.HasExtendedJpegXmp) {
                 xmp = source.Xmp;
                 preserved |= OfficeImageMetadataKinds.Xmp;
             }

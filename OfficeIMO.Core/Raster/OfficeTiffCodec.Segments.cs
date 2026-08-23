@@ -49,7 +49,6 @@ public static partial class OfficeTiffCodec {
                 int rows = Math.Min(rowsPerStrip, height - rowStart);
                 int segmentSamples = planarConfiguration == 2 ? 1 : samples;
                 int expected = checked(rows * width * segmentSamples);
-                if (!retainPixels) continue;
                 byte[] decoded = retainPixels && planarConfiguration == 1
                     ? source
                     : new byte[expected];
@@ -84,7 +83,6 @@ public static partial class OfficeTiffCodec {
         for (int segment = 0; segment < tileSegmentCount; segment++) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (!HasSegment(encodedBytes, tileOffsets[segment], tileByteCounts[segment])) return false;
-            if (!retainPixels) continue;
             int plane = planarConfiguration == 2 ? segment / segmentsPerTilePlane : 0;
             int tile = planarConfiguration == 2 ? segment % segmentsPerTilePlane : segment;
             int tileX = checked((tile % tilesAcross) * tileWidth);

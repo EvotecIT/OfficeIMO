@@ -157,7 +157,7 @@ public static partial class OfficeImageReader {
             case OfficeImageFormat.Bmp:
                 return OfficeBmpReader.TryDecode(data, out _);
             case OfficeImageFormat.Tiff:
-                return OfficeTiffCodec.TryDecode(data, out _);
+                return OfficeTiffCodec.TryValidateAllPages(data);
             case OfficeImageFormat.Webp:
                 return OfficeWebpCodec.TryDecode(data, out OfficeRasterImage? webpImage) &&
                        webpImage != null &&

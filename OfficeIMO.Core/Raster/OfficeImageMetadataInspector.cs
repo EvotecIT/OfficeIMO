@@ -8,11 +8,14 @@ internal sealed class OfficeImageMetadataSnapshot {
     internal byte[]? Exif { get; set; }
     internal byte[]? Xmp { get; set; }
     internal byte[]? Icc { get; set; }
+    internal bool HasExtendedJpegXmp { get; set; }
+    internal bool ExifContainsResolution { get; set; }
 }
 
 internal static class OfficeImageMetadataInspector {
     private static readonly byte[] ExifPrefix = { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0 };
     private static readonly byte[] XmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
+    private static readonly byte[] ExtendedXmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xmp/extension/\0");
     private static readonly byte[] IccPrefix = System.Text.Encoding.ASCII.GetBytes("ICC_PROFILE\0");
 
     internal static OfficeImageMetadataSnapshot Inspect(byte[] data, OfficeImageFormat format) {
@@ -61,6 +64,9 @@ internal static class OfficeImageMetadataInspector {
                 InspectExifPayload(snapshot.Exif, snapshot);
             } else if (marker == 0xE1 && StartsWith(data, payload, count, XmpPrefix)) {
                 snapshot.Xmp = Slice(data, payload, count);
+                snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
+            } else if (marker == 0xE1 && StartsWith(data, payload, count, ExtendedXmpPrefix)) {
+                snapshot.HasExtendedJpegXmp = true;
                 snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             } else if (marker == 0xE2 && StartsWith(data, payload, count, IccPrefix) && count >= IccPrefix.Length + 2) {
                 int sequence = data[payload + IccPrefix.Length];
@@ -163,6 +169,7 @@ internal static class OfficeImageMetadataInspector {
             if (entry > exif.Length - 12) return;
             int tag = ReadUInt16(exif, entry, little);
             if (tag == 282 || tag == 283 || tag == 296) {
+                snapshot.ExifContainsResolution = true;
                 snapshot.Kinds |= OfficeImageMetadataKinds.Resolution;
             }
         }

@@ -73,12 +73,12 @@ public static partial class OfficeTiffCodec {
         int stripLength) {
         const int ifdOffset = 8;
         bool writePredictor = UsesHorizontalPredictor(options);
-        int entryCount = BaseEntryCount + (writePredictor ? 1 : 0);
+        int entryCount = BaseEntryCount - (options.WriteResolution ? 0 : 3) + (writePredictor ? 1 : 0);
         int ifdLength = 2 + (entryCount * 12) + 4;
         int bitsPerSampleOffset = checked(ifdOffset + ifdLength);
         int xResolutionOffset = checked(bitsPerSampleOffset + 8);
         int yResolutionOffset = checked(xResolutionOffset + 8);
-        int stripOffset = checked(yResolutionOffset + 8);
+        int stripOffset = options.WriteResolution ? checked(yResolutionOffset + 8) : xResolutionOffset;
         var output = new byte[stripOffset];
 
         output[0] = (byte)'I';
@@ -98,10 +98,12 @@ public static partial class OfficeTiffCodec {
         WriteShortEntry(output, ref entry, 277, 4);
         WriteEntry(output, ref entry, 278, 4, 1, image.Height);
         WriteEntry(output, ref entry, 279, 4, 1, stripLength);
-        WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
-        WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
+        if (options.WriteResolution) {
+            WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
+            WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
+        }
         WriteShortEntry(output, ref entry, 284, 1);
-        WriteShortEntry(output, ref entry, 296, 2);
+        if (options.WriteResolution) WriteShortEntry(output, ref entry, 296, 2);
         if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)options.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, 0);
@@ -110,8 +112,10 @@ public static partial class OfficeTiffCodec {
         WriteUInt16(output, bitsPerSampleOffset + 2, 8);
         WriteUInt16(output, bitsPerSampleOffset + 4, 8);
         WriteUInt16(output, bitsPerSampleOffset + 6, 8);
-        WriteRational(output, xResolutionOffset, options.DpiX);
-        WriteRational(output, yResolutionOffset, options.DpiY);
+        if (options.WriteResolution) {
+            WriteRational(output, xResolutionOffset, options.DpiX);
+            WriteRational(output, yResolutionOffset, options.DpiY);
+        }
         return output;
     }
 

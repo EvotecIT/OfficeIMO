@@ -21,6 +21,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterContainerInspectorClassifiesUntimedSingleFrameGifAsStatic() {
+            byte[] gif = CreateSinglePixelGif();
+
+            Assert.True(OfficeRasterContainerInspector.TryInspect(gif, out OfficeRasterContainerInfo? container));
+            Assert.False(container!.IsAnimated);
+            Assert.Equal(OfficeRasterFrameKind.Image, container.Frames[0].Kind);
+        }
+
+        [Fact]
+        public void OfficeRasterContainerInspectorRetainsSingleFrameGifTimingSemantics() {
+            byte[] gif = CreateSinglePixelGif();
+            int descriptor = Array.IndexOf(gif, (byte)0x2C);
+            byte[] timed = gif.Take(descriptor)
+                .Concat(new byte[] { 0x21, 0xF9, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00 })
+                .Concat(gif.Skip(descriptor))
+                .ToArray();
+
+            Assert.True(OfficeRasterContainerInspector.TryInspect(timed, out OfficeRasterContainerInfo? container));
+            Assert.True(container!.IsAnimated);
+            Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
+            Assert.False(OfficeRasterImageDecoder.TryDecode(
+                timed,
+                new OfficeRasterDecodeOptions { AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated },
+                out _,
+                out _));
+        }
+
+        [Fact]
+        public void OfficeRasterContainerInspectorRetainsSingleFrameGifLoopSemantics() {
+            byte[] gif = CreateSinglePixelGif();
+            int descriptor = Array.IndexOf(gif, (byte)0x2C);
+            byte[] loopExtension = {
+                0x21, 0xFF, 0x0B,
+                (byte)'N', (byte)'E', (byte)'T', (byte)'S', (byte)'C', (byte)'A',
+                (byte)'P', (byte)'E', (byte)'2', (byte)'.', (byte)'0',
+                0x03, 0x01, 0x00, 0x00, 0x00
+            };
+            byte[] looping = gif.Take(descriptor)
+                .Concat(loopExtension)
+                .Concat(gif.Skip(descriptor))
+                .ToArray();
+
+            Assert.True(OfficeRasterContainerInspector.TryInspect(looping, out OfficeRasterContainerInfo? container));
+            Assert.True(container!.IsAnimated);
+            Assert.Equal(0, container.LoopCount);
+        }
+
+        [Fact]
         public void OfficeRasterImageDecoder_DecodesInterlacedGifRowsThroughSharedRasterPath() {
             byte[] gif = CreateIndexedGif(
                 1,

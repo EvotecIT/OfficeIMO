@@ -97,8 +97,7 @@ public static class OfficeRasterImageDecoder {
                 "The requested frame or page index is outside the container.", container);
             return false;
         }
-        bool carriesAnimationSemantics = frameCount > 1 ||
-            container.IsAnimated && (format == OfficeImageFormat.Png || format == OfficeImageFormat.Webp);
+        bool carriesAnimationSemantics = frameCount > 1 || container.IsAnimated;
         if (carriesAnimationSemantics &&
             effective.FrameLossPolicy == OfficeRasterFrameLossPolicy.RejectMultipleFrames) {
             info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, false,

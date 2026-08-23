@@ -341,8 +341,8 @@ public sealed class DrawingRasterEncodingTests {
         Assert.False(OfficeTiffCodec.TryGetPageCount(cyclic, out _));
 
         byte[] truncated = chained.Take(chained.Length - 1).ToArray();
-        Assert.False(OfficeTiffCodec.TryDecode(truncated, out OfficeRasterImage? partial));
-        Assert.Null(partial);
+        Assert.True(OfficeTiffCodec.TryDecode(truncated, out OfficeRasterImage? partial));
+        Assert.NotNull(partial);
         Assert.False(OfficeImageReader.TryValidateContent(truncated, "truncated-chain.tiff", out _));
     }
 
@@ -392,6 +392,24 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal(source.GetPixels(), decoded!.GetPixels());
     }
 
+    [Fact]
+    public void OfficeWebpCodecFallsBackToLiteralsForUnrepresentableDirectDistances() {
+        const int width = 1024;
+        const int height = 1025;
+        int pixelCount = checked(width * height);
+        var residuals = new uint[pixelCount];
+        for (int index = 0; index < residuals.Length; index++) residuals[index] = 0x02040608U;
+        residuals[0] = residuals[pixelCount - 3] = 0x01030507U;
+        residuals[1] = residuals[pixelCount - 2] = 0x11131517U;
+        residuals[2] = residuals[pixelCount - 1] = 0x21232527U;
+        OfficeRasterImage source = CreateImageFromVp8lResiduals(width, height, residuals);
+
+        byte[] encoded = OfficeWebpCodec.Encode(source);
+
+        Assert.True(OfficeWebpCodec.TryDecode(encoded, out OfficeRasterImage? decoded));
+        Assert.Equal(source.GetPixels(), decoded!.GetPixels());
+    }
+
     [Theory]
     [InlineData(OfficeTiffCompression.None)]
     [InlineData(OfficeTiffCompression.Lzw)]
@@ -415,6 +433,51 @@ public sealed class DrawingRasterEncodingTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, options, out selected, out OfficeRasterDecodeInfo info));
         Assert.True(info.PagesDiscarded);
         Assert.Equal(OfficeRasterFrameKind.Page, info.SelectedFrame!.Kind);
+    }
+
+    [Theory]
+    [InlineData(259, 6)]
+    [InlineData(274, 9)]
+    [InlineData(277, 9)]
+    public void OfficeTiffCodecDecodesSelectedPageWhenAnotherPageUsesUnsupportedTags(
+        int tag,
+        int value) {
+        byte[] encoded = OfficeTiffCodec.EncodePages(new[] {
+            new OfficeRasterImage(2, 1, OfficeColor.Red),
+            new OfficeRasterImage(1, 2, OfficeColor.Blue)
+        });
+        int firstIfd = ReadLittleEndian(encoded, 4);
+        int secondIfd = ReadLittleEndian(encoded, firstIfd + 2 + ReadUInt16LittleEndian(encoded, firstIfd) * 12);
+        SetTiffShortTag(encoded, secondIfd, tag, value);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(encoded, out OfficeRasterContainerInfo? container));
+        Assert.Equal(2, container!.Count);
+        Assert.True(OfficeTiffCodec.TryDecodePage(encoded, 0, out OfficeRasterImage? selected));
+        Assert.Equal(OfficeColor.Red, selected!.GetPixel(0, 0));
+        Assert.False(OfficeTiffCodec.TryDecodePage(encoded, 1, out _));
+    }
+
+    [Fact]
+    public void SharedTiffDecoderAppliesPixelLimitOnlyToSelectedPage() {
+        byte[] encoded = OfficeTiffCodec.EncodePages(new[] {
+            new OfficeRasterImage(2, 1, OfficeColor.Red),
+            new OfficeRasterImage(1, 2, OfficeColor.Blue)
+        });
+        int firstIfd = ReadLittleEndian(encoded, 4);
+        SetTiffLongTag(encoded, firstIfd, 256, 1000);
+        SetTiffLongTag(encoded, firstIfd, 257, 1000);
+        var options = new OfficeRasterDecodeOptions {
+            FrameIndex = 1,
+            MaximumDecodedPixels = 4
+        };
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            encoded,
+            options,
+            out OfficeRasterImage? selected,
+            out OfficeRasterDecodeInfo info));
+        Assert.Equal((1, 2), (selected!.Width, selected.Height));
+        Assert.Equal(1, info.SelectedFrameIndex);
     }
 
     [Theory]
@@ -442,12 +505,18 @@ public sealed class DrawingRasterEncodingTests {
         OfficeRasterEncodingOptions clone = source.Clone();
 
         clone.Jpeg.Quality = 42;
+        clone.WriteResolutionMetadata = false;
+        clone.Png.WritePhysicalResolution = false;
         clone.Tiff.Compression = OfficeTiffCompression.None;
         clone.Tiff.Predictor = OfficeTiffPredictor.None;
+        clone.Tiff.WriteResolution = false;
 
         Assert.Equal(85, source.Jpeg.Quality);
+        Assert.True(source.WriteResolutionMetadata);
+        Assert.True(source.Png.WritePhysicalResolution);
         Assert.Equal(OfficeTiffCompression.PackBits, source.Tiff.Compression);
         Assert.Equal(OfficeTiffPredictor.Horizontal, source.Tiff.Predictor);
+        Assert.True(source.Tiff.WriteResolution);
     }
 
     [Theory]
@@ -482,6 +551,61 @@ public sealed class DrawingRasterEncodingTests {
         bytes[offset + 1] << 8 |
         bytes[offset + 2] << 16 |
         bytes[offset + 3] << 24;
+
+    private static int ReadUInt16LittleEndian(byte[] bytes, int offset) =>
+        bytes[offset] | bytes[offset + 1] << 8;
+
+    private static void SetTiffShortTag(byte[] bytes, int ifdOffset, int expectedTag, int value) {
+        int entryCount = ReadUInt16LittleEndian(bytes, ifdOffset);
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            if (ReadUInt16LittleEndian(bytes, entryOffset) != expectedTag) continue;
+            bytes[entryOffset + 8] = (byte)value;
+            bytes[entryOffset + 9] = (byte)(value >> 8);
+            return;
+        }
+        throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
+    private static void SetTiffLongTag(byte[] bytes, int ifdOffset, int expectedTag, int value) {
+        int entryCount = ReadUInt16LittleEndian(bytes, ifdOffset);
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            if (ReadUInt16LittleEndian(bytes, entryOffset) != expectedTag) continue;
+            WriteLittleEndian(bytes, entryOffset + 8, value);
+            return;
+        }
+        throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
+    private static OfficeRasterImage CreateImageFromVp8lResiduals(int width, int height, uint[] residuals) {
+        var image = new OfficeRasterImage(width, height);
+        var pixels = new uint[residuals.Length];
+        for (int position = 0; position < residuals.Length; position++) {
+            int x = position % width;
+            int y = position / width;
+            uint predictor = position == 0 ? 0xFF000000U : x == 0 ? pixels[position - width] : pixels[position - 1];
+            uint transformed = residuals[position];
+            int green = (int)(transformed >> 8) & 255;
+            int red = (((int)(transformed >> 16) & 255) + green) & 255;
+            int blue = (((int)transformed & 255) + green) & 255;
+            int alpha = (int)(transformed >> 24) & 255;
+            uint color = AddArgb(predictor, alpha, red, green, blue);
+            pixels[position] = color;
+            image.SetPixel(x, y, OfficeColor.FromRgba(
+                (byte)(color >> 16),
+                (byte)(color >> 8),
+                (byte)color,
+                (byte)(color >> 24)));
+        }
+        return image;
+    }
+
+    private static uint AddArgb(uint predictor, int alpha, int red, int green, int blue) =>
+        (uint)((((int)(predictor >> 24) + alpha) & 255) << 24 |
+               (((int)(predictor >> 16) + red) & 255) << 16 |
+               (((int)(predictor >> 8) + green) & 255) << 8 |
+               (((int)predictor + blue) & 255));
 
     private static int FindClassicTiffEntry(byte[] bytes, int expectedTag) {
         int ifdOffset = ReadLittleEndian(bytes, 4);

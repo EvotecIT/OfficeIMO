@@ -28,8 +28,8 @@ public static partial class OfficeTiffCodec {
             stripBytes = checked(stripBytes + strips[index].Length);
         }
 
-        int entryCount = BaseEntryCount + (UsesHorizontalPredictor(effective) ? 1 : 0);
-        int ifdBlockLength = 2 + entryCount * 12 + 4 + 8 + 8 + 8;
+        int entryCount = BaseEntryCount - (effective.WriteResolution ? 0 : 3) + (UsesHorizontalPredictor(effective) ? 1 : 0);
+        int ifdBlockLength = 2 + entryCount * 12 + 4 + 8 + (effective.WriteResolution ? 16 : 0);
         long headerLength = checked(8L + (long)pages.Count * ifdBlockLength);
         int fileLength = OfficeRasterGuards.EnsureOutputBytes(
             checked(headerLength + stripBytes),
@@ -99,7 +99,7 @@ public static partial class OfficeTiffCodec {
         int yResolutionOffset,
         int nextIfdOffset) {
         bool writePredictor = UsesHorizontalPredictor(options);
-        int entryCount = BaseEntryCount + (writePredictor ? 1 : 0);
+        int entryCount = BaseEntryCount - (options.WriteResolution ? 0 : 3) + (writePredictor ? 1 : 0);
         WriteUInt16(output, ifdOffset, entryCount);
         int entry = ifdOffset + 2;
         WriteEntry(output, ref entry, 256, 4, 1, image.Width);
@@ -112,15 +112,19 @@ public static partial class OfficeTiffCodec {
         WriteShortEntry(output, ref entry, 277, 4);
         WriteEntry(output, ref entry, 278, 4, 1, image.Height);
         WriteEntry(output, ref entry, 279, 4, 1, stripLength);
-        WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
-        WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
+        if (options.WriteResolution) {
+            WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
+            WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
+        }
         WriteShortEntry(output, ref entry, 284, 1);
-        WriteShortEntry(output, ref entry, 296, 2);
+        if (options.WriteResolution) WriteShortEntry(output, ref entry, 296, 2);
         if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)options.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, nextIfdOffset);
         for (int sample = 0; sample < 4; sample++) WriteUInt16(output, bitsOffset + sample * 2, 8);
-        WriteRational(output, xResolutionOffset, options.DpiX);
-        WriteRational(output, yResolutionOffset, options.DpiY);
+        if (options.WriteResolution) {
+            WriteRational(output, xResolutionOffset, options.DpiX);
+            WriteRational(output, yResolutionOffset, options.DpiY);
+        }
     }
 }

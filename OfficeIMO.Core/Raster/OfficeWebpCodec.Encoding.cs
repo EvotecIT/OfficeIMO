@@ -62,7 +62,9 @@ public static partial class OfficeWebpCodec {
                            residuals[position + matchLength] == residuals[position + matchLength - distance]) {
                         matchLength++;
                     }
-                    if (matchLength >= 3) matchDistance = distance;
+                    if (matchLength >= 3 && CanEncodeVp8lPrefix(checked(distance + 120), 40)) {
+                        matchDistance = distance;
+                    }
                 }
                 if (matchDistance > 0) {
                     GetVp8lPrefix(matchLength, 24, out int prefix, out int extraBits, out int extraValue);
@@ -205,6 +207,15 @@ public static partial class OfficeWebpCodec {
             }
         }
         throw new ArgumentOutOfRangeException(nameof(value));
+    }
+
+    private static bool CanEncodeVp8lPrefix(int value, int prefixCount) {
+        if (value <= 4) return value >= 1;
+        int prefix = prefixCount - 1;
+        int extraBits = (prefix - 2) >> 1;
+        int first = ((2 + (prefix & 1)) << extraBits) + 1;
+        int last = first + (1 << extraBits) - 1;
+        return value <= last;
     }
 
     private sealed class Vp8lCodebook {

@@ -39,7 +39,11 @@ public static partial class OfficeRasterImageEncoder {
                     effective.Tiff ?? throw new InvalidOperationException("TIFF encoding options cannot be null."));
                 break;
             case OfficeImageExportFormat.Webp:
-                OfficeWebpCodec.EncodeTo(image, destination, effective.DpiX, effective.DpiY);
+                if (effective.WriteResolutionMetadata) {
+                    OfficeWebpCodec.EncodeTo(image, destination, effective.DpiX, effective.DpiY);
+                } else {
+                    OfficeWebpCodec.EncodeTo(image, destination);
+                }
                 break;
             case OfficeImageExportFormat.Svg:
                 throw new ArgumentException("SVG output requires a vector renderer.", nameof(format));

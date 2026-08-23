@@ -246,6 +246,102 @@ namespace OfficeIMO.Tests {
                 OfficeImageMetadataKinds.Resolution);
         }
 
+        [Theory]
+        [InlineData(OfficeImageFormat.Png)]
+        [InlineData(OfficeImageFormat.Tiff)]
+        [InlineData(OfficeImageFormat.Webp)]
+        public void OfficeImageOptimizerOmitsResolutionMetadataFromManagedOutputsWhenStripped(
+            OfficeImageFormat outputFormat) {
+            byte[] source = OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.SteelBlue));
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                source,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = outputFormat,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Strip
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                OfficeImageMetadataInspector.Inspect(result.Bytes, outputFormat).Kinds &
+                OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageFormat.Png)]
+        [InlineData(OfficeImageFormat.Tiff)]
+        [InlineData(OfficeImageFormat.Webp)]
+        public void ExplicitOutputResolutionOverridesMetadataStripping(OfficeImageFormat outputFormat) {
+            byte[] source = OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.SteelBlue));
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                source,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = outputFormat,
+                    OutputDpiX = 300D,
+                    OutputDpiY = 150D,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Strip
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                OfficeImageMetadataInspector.Inspect(result.Bytes, outputFormat).Kinds &
+                OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
+        public void SelectiveResolutionStrippingDoesNotCopyResolutionBearingExif() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifWithResolution())
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.SelectiveCopy,
+                    MetadataSelection = OfficeImageMetadataKinds.Exif
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+            Assert.Equal(OfficeImageMetadataKinds.None, output.Kinds & OfficeImageMetadataKinds.Resolution);
+            Assert.Equal(OfficeImageMetadataKinds.Exif, result.Metadata.Lost & OfficeImageMetadataKinds.Exif);
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerReportsExtendedJpegXmpAsLossWhenReencoding() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(xmp: System.Text.Encoding.UTF8.GetBytes("<x:xmpmeta />"))
+                });
+            byte[] extended = InsertApp1SegmentAfterStartOfImage(
+                jpeg,
+                System.Text.Encoding.ASCII.GetBytes(
+                    "http://ns.adobe.com/xmp/extension/\0" +
+                    "0123456789ABCDEF0123456789ABCDEF" +
+                    "\0\0\0\x01\0\0\0\0X"));
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                extended,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Lost & OfficeImageMetadataKinds.Xmp);
+            Assert.False(OfficeImageMetadataInspector.Inspect(result.Bytes, OfficeImageFormat.Jpeg).HasExtendedJpegXmp);
+        }
+
         [Fact]
         public void OfficeImageOptimizerSwapsInheritedDensityAxesAfterExifRotation() {
             byte[] jpeg = OfficeJpegCodec.Encode(
@@ -693,6 +789,17 @@ namespace OfficeIMO.Tests {
             0x00, 0x00, 0x00, 0x00
         };
 
+        private static byte[] CreateExifWithResolution() => new byte[] {
+            (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+            0x03, 0x00,
+            0x1A, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00,
+            0x1B, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0x00,
+            0x28, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
+        };
+
         private static byte[] InsertExifSegmentAfterStartOfImage(byte[] jpeg, byte[] tiffData) {
             int payloadLength = 6 + tiffData.Length;
             int segmentLength = payloadLength + 2;
@@ -707,6 +814,21 @@ namespace OfficeIMO.Tests {
             segment[7] = (byte)'f';
             Buffer.BlockCopy(tiffData, 0, segment, 10, tiffData.Length);
 
+            var combined = new byte[jpeg.Length + segment.Length];
+            Buffer.BlockCopy(jpeg, 0, combined, 0, 2);
+            Buffer.BlockCopy(segment, 0, combined, 2, segment.Length);
+            Buffer.BlockCopy(jpeg, 2, combined, 2 + segment.Length, jpeg.Length - 2);
+            return combined;
+        }
+
+        private static byte[] InsertApp1SegmentAfterStartOfImage(byte[] jpeg, byte[] payload) {
+            int segmentLength = payload.Length + 2;
+            var segment = new byte[segmentLength + 2];
+            segment[0] = 0xFF;
+            segment[1] = 0xE1;
+            segment[2] = (byte)(segmentLength >> 8);
+            segment[3] = (byte)segmentLength;
+            Buffer.BlockCopy(payload, 0, segment, 4, payload.Length);
             var combined = new byte[jpeg.Length + segment.Length];
             Buffer.BlockCopy(jpeg, 0, combined, 0, 2);
             Buffer.BlockCopy(segment, 0, combined, 2, segment.Length);

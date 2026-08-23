@@ -7,6 +7,18 @@ public static partial class OfficeTiffCodec {
     internal static bool TryInspectPages(
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options,
+        out OfficeRasterContainerInfo? container) =>
+        TryInspectPages(encodedBytes, options, validatePayloads: false, out container);
+
+    internal static bool TryValidateAllPages(byte[] encodedBytes) {
+        var options = new OfficeRasterDecodeOptions();
+        return TryInspectPages(encodedBytes, options, validatePayloads: true, out _);
+    }
+
+    private static bool TryInspectPages(
+        byte[] encodedBytes,
+        OfficeRasterDecodeOptions options,
+        bool validatePayloads,
         out OfficeRasterContainerInfo? container) {
         container = null;
         if (!IsTiff(encodedBytes) || encodedBytes.Length > options.MaximumEncodedBytes ||
@@ -29,10 +41,10 @@ public static partial class OfficeTiffCodec {
                 if (entries == null ||
                     !TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
                     !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
-                    !OfficeRasterImageDecoder.IsWithinPixelLimit(width, height, options.MaximumDecodedPixels) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
-                    orientation < 1 || orientation > 8 ||
-                    !TryValidateStripPage(encodedBytes, entries, littleEndian, width, height, options)) return false;
+                    width < 1 || height < 1 ||
+                    validatePayloads &&
+                    (!OfficeRasterImageDecoder.IsWithinPixelLimit(width, height, options.MaximumDecodedPixels) ||
+                     !TryValidateStripPage(encodedBytes, entries, littleEndian, width, height, options))) return false;
 
                 frames.Add(new OfficeRasterFrameInfo(
                     frames.Count,
@@ -96,6 +108,7 @@ public static partial class OfficeTiffCodec {
         OfficeRasterDecodeOptions options) {
         if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
+            !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor) ||
             !TryGetBaseSampleCount(photometric, out int baseSamples) ||
@@ -103,6 +116,7 @@ public static partial class OfficeTiffCodec {
             (planarConfiguration != 1 && planarConfiguration != 2) ||
             (predictor != 1 && predictor != 2) ||
             (samples != baseSamples && samples != baseSamples + 1) ||
+            orientation < 1 || orientation > 8 ||
             (compression != (int)OfficeTiffCompression.None &&
              compression != (int)OfficeTiffCompression.Lzw &&
              compression != (int)OfficeTiffCompression.PackBits &&
@@ -112,7 +126,21 @@ public static partial class OfficeTiffCodec {
         if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
             Array.Exists(bitsPerSample, value => value != 8)) return false;
 
+        if (photometric == 5 &&
+            (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) || inkSet != 1)) {
+            return false;
+        }
+        if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out _)) {
+            return false;
+        }
+        if (samples == baseSamples + 1 &&
+            (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
+             (extraSamples[0] != 1 && extraSamples[0] != 2))) {
+            return false;
+        }
+
         return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
             compression, planarConfiguration, predictor, options, retainPixels: false, out _);
     }
+
 }
