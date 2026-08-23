@@ -12,6 +12,10 @@ internal static class ImageBenchmarkScenarios {
         new("Tiny", 16, 16, () => ImageBenchmarkCorpus.CreatePattern(16, 16));
     internal static readonly ImageBenchmarkScenario Screenshot =
         new("Screenshot", 1366, 768, () => CreateScreenshot(1366, 768));
+    internal static readonly ImageBenchmarkScenario Text =
+        new("Text", 1200, 800, () => CreateText(1200, 800));
+    internal static readonly ImageBenchmarkScenario LineArt =
+        new("LineArt", 1200, 800, () => CreateLineArt(1200, 800));
     internal static readonly ImageBenchmarkScenario Scan =
         new("Scan", 1200, 1600, () => CreateScan(1200, 1600));
     internal static readonly ImageBenchmarkScenario AlphaGraphic =
@@ -24,10 +28,13 @@ internal static class ImageBenchmarkScenarios {
         new("VeryLarge", 4096, 3072, () => CreateHighEntropy(4096, 3072));
 
     internal static IReadOnlyList<ImageBenchmarkScenario> All { get; } =
-        [Tiny, Screenshot, Scan, AlphaGraphic, HighEntropy, Photo, VeryLarge];
+        [Tiny, Screenshot, Text, LineArt, Scan, AlphaGraphic, HighEntropy, Photo, VeryLarge];
 
     internal static IReadOnlyList<string> TimedIds { get; } =
         [Tiny.Id, Screenshot.Id, AlphaGraphic.Id, HighEntropy.Id, Photo.Id];
+
+    internal static IReadOnlyList<string> ResamplingIds { get; } =
+        [Photo.Id, Text.Id, LineArt.Id, AlphaGraphic.Id];
 
     internal static ImageBenchmarkScenario Get(string id) =>
         All.Single(scenario => string.Equals(scenario.Id, id, StringComparison.Ordinal));
@@ -92,6 +99,41 @@ internal static class ImageBenchmarkScenarios {
                 }
                 byte channel = (byte)Math.Max(0, Math.Min(255, value));
                 image.SetPixel(x, y, OfficeColor.FromRgb(channel, channel, channel));
+            }
+        }
+        return image;
+    }
+
+    private static OfficeRasterImage CreateText(int width, int height) {
+        var image = new OfficeRasterImage(width, height, OfficeColor.FromRgb(250, 249, 246));
+        for (int y = 0; y < height; y++) {
+            int lineY = (y - 55) % 35;
+            int line = Math.Max(0, (y - 55) / 35);
+            for (int x = 0; x < width; x++) {
+                if (y < 43 || lineY < 0 || lineY >= 15 || x < 71 || x >= width - 70) continue;
+                int glyph = (x - 71) / 17;
+                if (glyph >= 48 + (line % 5) * 6) continue;
+                int glyphX = (x - 71) % 17;
+                bool ink = (glyphX >= 2 && glyphX <= 4) || lineY < 3 || lineY >= 12 ||
+                    ((glyph * 3 + lineY * 5) % 13) == glyphX;
+                if (ink && glyphX < 14) image.SetPixel(x, y, OfficeColor.FromRgb(28, 34, 42));
+            }
+        }
+        return image;
+    }
+
+    private static OfficeRasterImage CreateLineArt(int width, int height) {
+        var image = new OfficeRasterImage(width, height, OfficeColor.White);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                bool grid = x % 96 < 2 || y % 80 < 2;
+                bool rising = Math.Abs(((x * 3 + y * 5) % 211) - 105) < 2;
+                bool falling = Math.Abs(((x * 7 - y * 4 + 4096) % 257) - 128) < 2;
+                if (grid || rising || falling) {
+                    image.SetPixel(x, y, OfficeColor.FromRgb(18, 28, 44));
+                } else if ((x / 160 + y / 120) % 7 == 0 && x % 160 > 24 && y % 120 > 24) {
+                    image.SetPixel(x, y, OfficeColor.FromRgb(40, 116, 184));
+                }
             }
         }
         return image;

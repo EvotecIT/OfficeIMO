@@ -47,6 +47,7 @@ internal static class ImageBenchmarkValidator {
         OfficeImageOptimizationResult optimized = transform.OptimizeForPlacement();
         writer.WriteLine($"Optimize JPEG  {optimized.Final.Width,4}x{optimized.Final.Height,-4} {optimized.FinalEncodedLength,10:N0} bytes {optimized.Status}");
 
+        ImageResamplingEvidence.Validate(writer);
         ImageEncodingEvidence.Validate(writer);
         ImageConversionEvidence.Validate(writer);
     }
