@@ -45,9 +45,9 @@ public static partial class OfficeWebpCodec {
         }
 
         int position = 0;
-        int remainingCodes = maxSymbol;
+        int remainingCodeLengthInstructions = maxSymbol;
         int previous = 8;
-        while (position < alphabetSize && remainingCodes-- > 0) {
+        while (position < alphabetSize && remainingCodeLengthInstructions-- > 0) {
             int symbol = codeLengthTree.ReadSymbol(reader);
             if (symbol < 0) return false;
             if (symbol <= 15) {
@@ -69,6 +69,8 @@ public static partial class OfficeWebpCodec {
             } else {
                 return false;
             }
+            // libwebp treats max_symbol as the encoded instruction count; a repeat may expand
+            // beyond it but must remain within the destination alphabet.
             if (repeat > alphabetSize - position) return false;
             for (int index = 0; index < repeat; index++) lengths[position++] = (byte)value;
         }

@@ -773,7 +773,7 @@ public sealed class DrawingRasterEncodingTests {
         writer.WriteBits(1, 3); // symbol 1
         writer.WriteBits(1, 1); // shortened alphabet
         writer.WriteBits(0, 3); // two bits encode max_symbol
-        writer.WriteBits(1, 2); // read three encoded code-length symbols
+        writer.WriteBits(1, 2); // three encoded instructions; repeat expands to five code lengths
         writer.WriteBits(0, 1); // length 1
         writer.WriteBits(0, 1); // length 1
         writer.WriteBits(1, 1); // repeat zero (symbol 17)

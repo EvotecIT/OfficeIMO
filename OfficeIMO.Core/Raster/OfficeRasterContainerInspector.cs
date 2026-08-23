@@ -221,7 +221,9 @@ public static class OfficeRasterContainerInspector {
             if (type == "acTL") {
                 if (length != 8) return false;
                 seenAnimationControl = true;
-                loopCount = ReadInt32BigEndian(bytes, data + 4);
+                uint encodedLoopCount = ReadUInt32BigEndian(bytes, data + 4);
+                if (encodedLoopCount > int.MaxValue) return false;
+                loopCount = (int)encodedLoopCount;
             } else if (type == "fcTL") {
                 if (length != 26) return false;
                 int width = ReadInt32BigEndian(bytes, data + 4);
@@ -246,6 +248,7 @@ public static class OfficeRasterContainerInspector {
                     TimeSpan.FromSeconds(delayNumerator / (double)delayDenominator),
                     disposalCode switch {
                         1 => OfficeRasterFrameDisposal.Background,
+                        2 when frames.Count == 0 => OfficeRasterFrameDisposal.Background,
                         2 => OfficeRasterFrameDisposal.Previous,
                         _ => OfficeRasterFrameDisposal.None
                     },
@@ -261,7 +264,8 @@ public static class OfficeRasterContainerInspector {
             container = CreateStatic(imageInfo);
             return true;
         }
-        if (frames.Count != frameCount) return false;
+        if (frames.Count != frameCount ||
+            !OfficePngAnimationValidator.TryValidateStructure(bytes, options.CancellationToken)) return false;
         container = new OfficeRasterContainerInfo(
             OfficeImageFormat.Png,
             imageInfo.Width,
@@ -376,6 +380,10 @@ public static class OfficeRasterContainerInspector {
 
     private static int ReadInt32BigEndian(byte[] bytes, int offset) =>
         bytes[offset] << 24 | bytes[offset + 1] << 16 | bytes[offset + 2] << 8 | bytes[offset + 3];
+
+    private static uint ReadUInt32BigEndian(byte[] bytes, int offset) =>
+        (uint)bytes[offset] << 24 | (uint)bytes[offset + 1] << 16 |
+        (uint)bytes[offset + 2] << 8 | bytes[offset + 3];
 
     private static int ReadInt32LittleEndian(byte[] bytes, int offset) =>
         bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;

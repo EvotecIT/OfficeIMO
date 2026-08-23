@@ -202,7 +202,7 @@ public static partial class OfficeWebpCodec {
         try {
             int riffLength = ReadUInt32(encodedBytes, 4);
             if (riffLength != encodedBytes.Length - 8 ||
-                !TryFindChunk(encodedBytes, "VP8L", out int payloadOffset, out int payloadLength) ||
+                !TryFindChunk(encodedBytes, "VP8L", cancellationToken, out int payloadOffset, out int payloadLength) ||
                 payloadLength < 5 ||
                 encodedBytes[payloadOffset] != 0x2F) {
                 return false;
@@ -240,7 +240,7 @@ public static partial class OfficeWebpCodec {
                 rgba[offset + 2] = (byte)ReverseByte((byte)reader.ReadBits(8));
                 rgba[offset + 3] = (byte)ReverseByte((byte)reader.ReadBits(8));
             }
-            if (!reader.HasOnlyZeroPadding()) {
+            if (!reader.HasOnlyZeroPadding(cancellationToken)) {
                 return false;
             }
             image = OfficeRasterImage.FromOwnedRgba32(width, height, rgba);
@@ -255,12 +255,15 @@ public static partial class OfficeWebpCodec {
     private static bool TryFindChunk(
         byte[] input,
         string chunkType,
+        CancellationToken cancellationToken,
         out int payloadOffset,
         out int payloadLength) {
         payloadOffset = 0;
         payloadLength = 0;
         int offset = 12;
+        int chunkCount = 0;
         while (offset < input.Length) {
+            if ((chunkCount++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (offset > input.Length - 8) return false;
             int chunkLength = ReadUInt32(input, offset + 4);
             int chunkPayloadOffset = checked(offset + 8);
@@ -478,12 +481,14 @@ public static partial class OfficeWebpCodec {
             count >= 0L &&
             count <= _bitCount + ((long)_end - _offset) * 8L;
 
-        internal bool HasOnlyZeroPadding() {
+        internal bool HasOnlyZeroPadding(CancellationToken cancellationToken) {
             if (_bitCount > 0) {
                 ulong mask = (1UL << _bitCount) - 1UL;
                 if ((_buffer & mask) != 0UL) return false;
             }
+            int checkedBytes = 0;
             while (_offset < _end) {
+                if ((checkedBytes++ & 65535) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (_input[_offset++] != 0) return false;
             }
             return true;

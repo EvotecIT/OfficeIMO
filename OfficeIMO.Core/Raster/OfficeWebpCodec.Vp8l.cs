@@ -31,7 +31,7 @@ public static partial class OfficeWebpCodec {
             encodedBytes.Length > OfficeRasterGuards.MaximumEncodedBytes) return false;
         try {
             if (ReadUInt32(encodedBytes, 4) != encodedBytes.Length - 8 ||
-                !TryFindChunk(encodedBytes, "VP8L", out int payloadOffset, out int payloadLength) ||
+                !TryFindChunk(encodedBytes, "VP8L", cancellationToken, out int payloadOffset, out int payloadLength) ||
                 payloadLength < 5 || encodedBytes[payloadOffset] != 0x2F) return false;
             var reader = new LsbBitReader(encodedBytes, payloadOffset + 1, payloadLength - 1);
             int width = checked((int)reader.ReadBits(14) + 1);
@@ -51,7 +51,7 @@ public static partial class OfficeWebpCodec {
             if (!TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
                     allocationBudget, cancellationToken, out uint[] argb))
                 return false;
-            if (argb.Length != pixels || !reader.HasOnlyZeroPadding()) return false;
+            if (argb.Length != pixels || !reader.HasOnlyZeroPadding(cancellationToken)) return false;
 
             if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");

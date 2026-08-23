@@ -242,6 +242,8 @@ public partial class DrawingTests {
         int frameDataLength = ReadBigEndianInt32(corruptApng, frameDataOffset);
         corruptApng[frameDataOffset + 8 + frameDataLength - 1] ^= 0x01;
         WritePngChunkCrc(corruptApng, frameDataOffset, frameDataLength);
+        Assert.True(OfficeRasterContainerInspector.TryInspect(corruptApng, out OfficeRasterContainerInfo? corruptInventory));
+        Assert.Equal(2, corruptInventory!.Count);
         Assert.False(OfficeImageReader.TryValidateContent(corruptApng, "animated.png", out _));
 
         byte[] jpegWithEmptyFinalScan = {
@@ -379,7 +381,7 @@ public partial class DrawingTests {
 
         byte[] invalidFirstDisposal = (byte[])apng.Clone();
         int disposalFrameControlOffset = FindPngChunk(invalidFirstDisposal, "fcTL");
-        invalidFirstDisposal[disposalFrameControlOffset + 8 + 24] = 2;
+        invalidFirstDisposal[disposalFrameControlOffset + 8 + 24] = 3;
         WritePngChunkCrc(
             invalidFirstDisposal,
             disposalFrameControlOffset,
@@ -860,6 +862,105 @@ public partial class DrawingTests {
         Assert.True(container.Frames[0].IsDefaultImage);
         Assert.False(container.Frames[1].IsDefaultImage);
     }
+
+    [Fact]
+    public void ContainerInspectorRejectsApngLoopCountsOutsideItsPublicContract() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int animationControl = FindPngChunk(apng, "acTL");
+        WriteBigEndianInt32(apng, animationControl + 12, int.MinValue);
+        WritePngChunkCrc(apng, animationControl, 8);
+
+        Assert.True(OfficePngReader.TryGetFrameCount(apng, out int frameCount));
+        Assert.Equal(2, frameCount);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(apng, out _));
+    }
+
+    [Fact]
+    public void ContainerInspectorRejectsInvalidApngFrameSequencing() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int frameData = FindPngChunk(apng, "fdAT");
+        WriteBigEndianInt32(apng, frameData + 8, 7);
+        WritePngChunkCrc(apng, frameData, ReadBigEndianInt32(apng, frameData));
+
+        Assert.True(OfficePngReader.TryGetFrameCount(apng, out int frameCount));
+        Assert.Equal(2, frameCount);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(apng, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(
+            apng,
+            new OfficeRasterDecodeOptions {
+                AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame,
+                FrameIndex = 1
+            },
+            out _,
+            out _));
+    }
+
+    [Fact]
+    public void ApngAcceptsFrameControlBeforeAnimationControl() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int animationControl = FindPngChunk(apng, "acTL");
+        int animationControlLength = ReadBigEndianInt32(apng, animationControl) + 12;
+        int firstFrameControl = FindPngChunk(apng, "fcTL");
+        int firstFrameControlLength = ReadBigEndianInt32(apng, firstFrameControl) + 12;
+        Assert.Equal(animationControl + animationControlLength, firstFrameControl);
+
+        byte[] reordered = (byte[])apng.Clone();
+        Buffer.BlockCopy(apng, firstFrameControl, reordered, animationControl, firstFrameControlLength);
+        Buffer.BlockCopy(apng, animationControl, reordered, animationControl + firstFrameControlLength,
+            animationControlLength);
+
+        Assert.True(OfficeImageReader.TryValidateContent(reordered, "reordered-animation-control.png", out _));
+        Assert.True(OfficeRasterContainerInspector.TryInspect(reordered, out OfficeRasterContainerInfo? container));
+        Assert.Equal(2, container!.Count);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            reordered,
+            new OfficeRasterDecodeOptions { FrameIndex = 1 },
+            out OfficeRasterImage? selected,
+            out _));
+        Assert.Equal(OfficeColor.Lime, selected!.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void ApngTreatsFirstFramePreviousDisposalAsBackground() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int firstFrameControl = FindPngChunk(apng, "fcTL");
+        apng[firstFrameControl + 8 + 24] = 2;
+        WritePngChunkCrc(apng, firstFrameControl, ReadBigEndianInt32(apng, firstFrameControl));
+
+        Assert.True(OfficeImageReader.TryValidateContent(apng, "first-previous-disposal.png", out _));
+        Assert.True(OfficeRasterContainerInspector.TryInspect(apng, out OfficeRasterContainerInfo? container));
+        Assert.Equal(OfficeRasterFrameDisposal.Background, container!.Frames[0].Disposal);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void ApngValidationCopiesEachSecondaryFramePayloadAtMostOnce() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int frameDataOffset = FindPngChunk(apng, "fdAT");
+        int frameDataLength = ReadBigEndianInt32(apng, frameDataOffset);
+        var largeFrameData = new byte[8 * 1024 * 1024 + 4];
+        Buffer.BlockCopy(apng, frameDataOffset + 8, largeFrameData, 0, 4);
+        byte[] replacement = CreatePngChunk("fdAT", largeFrameData);
+        byte[] expanded = new byte[apng.Length - frameDataLength - 12 + replacement.Length];
+        Buffer.BlockCopy(apng, 0, expanded, 0, frameDataOffset);
+        Buffer.BlockCopy(replacement, 0, expanded, frameDataOffset, replacement.Length);
+        Buffer.BlockCopy(apng, frameDataOffset + frameDataLength + 12, expanded,
+            frameDataOffset + replacement.Length,
+            apng.Length - frameDataOffset - frameDataLength - 12);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Assert.False(OfficePngAnimationValidator.TryValidateAdditionalFrames(expanded));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated < 12L * 1024L * 1024L,
+            $"APNG validation allocated {allocated:N0} bytes for an 8 MB secondary payload.");
+    }
+#endif
 
     [Fact]
     public void SelectedApngFrameDecodesAdam7Payload() {

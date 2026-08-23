@@ -200,6 +200,31 @@ public static class OfficePngReader {
                consumed == payload.Scanlines.Length;
     }
 
+    internal static bool TryGetValidationWorkingSetBytes(
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        int interlaceMethod,
+        byte[]? palette,
+        out long workingSetBytes) {
+        workingSetBytes = 0L;
+        try {
+            if (!IsSupportedColorLayout(colorType, bitDepth, palette) ||
+                !OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) return false;
+            int bitsPerPixel = GetBitsPerPixel(colorType, bitDepth);
+            long stride = (((long)width * bitsPerPixel) + 7L) / 8L;
+            int expectedScanlineBytes = interlaceMethod == 0
+                ? OfficeRasterGuards.EnsureByteCount((stride + 1L) * height, "PNG decompressed data exceeds size limits.")
+                : GetExpectedAdam7ScanlineBytes(width, height, bitsPerPixel);
+            workingSetBytes = checked(expectedScanlineBytes + stride * 2L);
+            return workingSetBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (Exception exception) when (
+            exception is ArgumentException || exception is FormatException || exception is OverflowException) {
+            return false;
+        }
+    }
+
     private static bool ValidateAdam7Scanlines(PngPayload payload, CancellationToken cancellationToken) {
         int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
         int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
