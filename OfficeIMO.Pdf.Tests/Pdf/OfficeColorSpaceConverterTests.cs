@@ -312,6 +312,35 @@ public class OfficeColorSpaceConverterTests {
         Assert.True(absolute.R < relative.R || absolute.G < relative.G || absolute.B < relative.B);
     }
 
+    [Theory]
+    [InlineData(1, 33)]
+    [InlineData(2, 37)]
+    public void IccLegacyOutputLut_ConvertsPcsToFourDeviceComponents(int precision, int gridPoints) {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLabLutWithOutputTransform(precision, gridPoints);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.HasOutputTransform);
+        Assert.True(profile.TryConvertToDevice(
+            OfficeColor.FromRgb(208, 64, 32),
+            OfficeIccRenderingIntent.Perceptual,
+            out double[] components));
+
+        Assert.Equal(4, components.Length);
+        Assert.All(components, component => Assert.InRange(component, 0D, 1D));
+        Assert.Contains(components, component => component > 0.01D && component < 0.99D);
+    }
+
+    [Fact]
+    public void IccLegacyOutputLut_RejectsNonIdentityMatrixFailClosed() {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLabLutWithOutputTransform(precision: 2, outputGridPoints: 37);
+        int transformOffset = FindTagOffset(profileBytes, "B2A0");
+        WriteS15Fixed16(profileBytes, transformOffset + 16, 0.5D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.False(profile!.HasOutputTransform);
+        Assert.False(profile.TryConvertToDevice(OfficeColor.Red, out _));
+    }
+
     [Fact]
     public void IccMatrixProfile_AppliesMediaWhitePointForAbsoluteColorimetricIntent() {
         byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;

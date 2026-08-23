@@ -5,8 +5,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) =>
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _, out _, out _)!;
+    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _, out _, out _)!;
+        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes);
+        return bytes;
+    }
 
     internal static (byte[] Bytes, PdfGeneratedDocumentComplianceEvidence ComplianceEvidence) WriteComplianceArtifact(
         PdfDocument doc,
@@ -29,11 +32,12 @@ internal static partial class PdfWriter {
             out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
             out _,
             out _)!;
+        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes);
         return (bytes, complianceEvidence);
     }
 
     public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
-        return Write(destination, doc, blocks, opts, title, author, subject, keywords, out _, out _);
+        return Write(destination, doc, blocks, opts, title, author, subject, keywords, System.Threading.CancellationToken.None, out _, out _);
     }
 
     internal static long Write(
@@ -45,9 +49,29 @@ internal static partial class PdfWriter {
         string? author,
         string? subject,
         string? keywords,
+        System.Threading.CancellationToken cancellationToken,
         out int pageCount,
         out PdfSerializationReport serializationReport) {
         Guard.NotNull(destination, nameof(destination));
+        if (PdfComplianceValidator.RequiresExactArtifactValidation(opts)) {
+            byte[] exactArtifact = WriteCore(
+                doc,
+                blocks,
+                opts,
+                title,
+                author,
+                subject,
+                keywords,
+                outputStream: null,
+                out _,
+                out _,
+                out pageCount,
+                out serializationReport)!;
+            PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact);
+            cancellationToken.ThrowIfCancellationRequested();
+            destination.Write(exactArtifact, 0, exactArtifact.Length);
+            return exactArtifact.LongLength;
+        }
         WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten, out _, out pageCount, out serializationReport);
         return bytesWritten;
     }

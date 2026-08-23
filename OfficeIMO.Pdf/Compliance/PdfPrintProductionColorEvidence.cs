@@ -11,6 +11,7 @@ public sealed class PdfPrintProductionColorEvidence {
         int deviceCmykImageCount,
         int deviceRgbShadingCount,
         int deviceCmykShadingCount,
+        int deviceIndependentColorUsageCount,
         int transparentImageCount,
         int nonOpaqueGraphicsStateCount,
         int transparencyGroupCount,
@@ -21,6 +22,7 @@ public sealed class PdfPrintProductionColorEvidence {
         DeviceCmykImageCount = deviceCmykImageCount;
         DeviceRgbShadingCount = deviceRgbShadingCount;
         DeviceCmykShadingCount = deviceCmykShadingCount;
+        DeviceIndependentColorUsageCount = deviceIndependentColorUsageCount;
         TransparentImageCount = transparentImageCount;
         NonOpaqueGraphicsStateCount = nonOpaqueGraphicsStateCount;
         TransparencyGroupCount = transparencyGroupCount;
@@ -39,6 +41,8 @@ public sealed class PdfPrintProductionColorEvidence {
     public int DeviceRgbShadingCount { get; }
     /// <summary>Number of shading dictionaries that declare DeviceCMYK.</summary>
     public int DeviceCmykShadingCount { get; }
+    /// <summary>Number of inspected color uses that select CalGray, CalRGB, Lab, ICCBased, or a color space whose alternate selects one of them.</summary>
+    public int DeviceIndependentColorUsageCount { get; }
     /// <summary>Number of image XObjects with a soft mask.</summary>
     public int TransparentImageCount { get; }
     /// <summary>Number of ExtGState dictionaries with non-opaque alpha, a soft mask, or non-Normal blending.</summary>
@@ -51,6 +55,9 @@ public sealed class PdfPrintProductionColorEvidence {
     /// <summary>True when inspected page, form, pattern, image, or shading evidence still uses DeviceRGB.</summary>
     public bool HasDeviceRgbUsage =>
         DeviceRgbOperatorCount > 0 || DeviceRgbImageCount > 0 || DeviceRgbShadingCount > 0;
+
+    /// <summary>True when inspected content, images, or shadings use a device-independent color space.</summary>
+    public bool HasDeviceIndependentColorUsage => DeviceIndependentColorUsageCount > 0;
 
     /// <summary>True when inspected image, graphics-state, or group evidence uses transparency.</summary>
     public bool HasTransparency =>

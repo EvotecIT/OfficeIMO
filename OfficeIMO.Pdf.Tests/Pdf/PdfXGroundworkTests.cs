@@ -1,5 +1,7 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -77,7 +79,8 @@ public class PdfXGroundworkTests {
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
-                "FOGRA51")
+                "FOGRA51",
+                PdfTrappingStatus.False)
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "PDF/X audit font");
 
         PdfComplianceArtifact artifact = PdfDocument.Create(options)
@@ -293,8 +296,36 @@ public class PdfXGroundworkTests {
 
         Assert.True(evidence.IsComplete);
         Assert.True(evidence.HasDeviceRgbUsage);
-        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(4, evidence.DeviceRgbOperatorCount);
         Assert.Equal(1, evidence.DeviceRgbImageCount);
+    }
+
+    [Fact]
+    public void PdfX1AReadbackRejectsDeviceIndependentColorSpaceUsage() {
+        byte[] pdf = BuildInspectionPdf(
+            "/CsLab cs 0 0 10 10 re f",
+            resources: "/ColorSpace << /CsLab [/Lab << /WhitePoint [0.9642 1 0.8249] >>] >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+        PdfComplianceReadinessReport pdfX1A = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX1A2003, pdf);
+        PdfComplianceReadinessReport pdfX4 = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.True(evidence.HasDeviceIndependentColorUsage);
+        Assert.Equal(1, evidence.DeviceIndependentColorUsageCount);
+        Assert.Equal(
+            PdfComplianceRequirementStatus.Missing,
+            pdfX1A.FindRequirement("readback-pdfx1a-no-device-independent-color")!.Status);
+        Assert.Null(pdfX4.FindRequirement("readback-pdfx1a-no-device-independent-color"));
+    }
+
+    [Fact]
+    public void PrintProductionInspectorRejectsInitialDeviceRgbColorAfterSelection() {
+        byte[] pdf = BuildInspectionPdf("/DeviceRGB cs 0 0 10 10 re f");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.HasDeviceRgbUsage);
+        Assert.Equal(1, evidence.DeviceRgbOperatorCount);
     }
 
     [Fact]
@@ -326,13 +357,12 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
-    public void PdfX1AReadinessRemainsFailClosedUntilColorAndProductionPoliciesAreImplemented() {
+    public void PdfXFormalGenerationFailsClosedWhenEmbeddedFontCoverageIsMissing() {
         var options = new PdfOptions()
-            .ConfigurePdfXGroundwork(
+            .ConfigurePdfX(
                 PdfComplianceProfile.PdfX1A2003,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
-                "FOGRA39")
-            .RequireCompliance(PdfComplianceProfile.PdfX1A2003);
+                "FOGRA39");
 
         PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(options);
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(options);
@@ -344,7 +374,151 @@ public class PdfXGroundworkTests {
         Assert.Equal(PdfComplianceRequirementStatus.Unsupported, readiness.FindRequirement("pdfx-source-color-management")!.Status);
         Assert.Contains(PdfExternalValidatorKind.PdfXValidator, proof.RequiredExternalValidators);
         Assert.False(proof.CanClaimConformance);
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Create(options).ToBytes());
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("Unembedded text must fail closed.")).ToBytes());
+        Assert.Contains("font", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PdfXFormalConfigurationRequiresBooleanTrappingStatus() {
+        byte[] profile = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+
+        var options = new PdfOptions().ConfigurePdfX(
+            PdfComplianceProfile.PdfX4,
+            profile,
+            "FOGRA51");
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfOptions().ConfigurePdfX(
+            PdfComplianceProfile.PdfX4,
+            profile,
+            "FOGRA51",
+            PdfTrappingStatus.Unknown));
+
+        Assert.Equal(PdfTrappingStatus.False, options.TrappingStatus);
+        Assert.Equal("trappingStatus", exception.ParamName);
+    }
+
+    [Fact]
+    public void PdfXReadinessRejectsUnknownTrappingStatus() {
+        var options = new PdfOptions().ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            "FOGRA51",
+            PdfTrappingStatus.Unknown);
+        byte[] pdf = PdfDocument.Create(options).ToBytes();
+
+        PdfComplianceReadinessReport generated = PdfDocument.Create(options).AssessCompliance(PdfComplianceProfile.PdfX4);
+        PdfComplianceReadinessReport readback = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, generated.FindRequirement("pdfx-trapping-status")!.Status);
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, readback.FindRequirement("readback-pdfx-trapping-status")!.Status);
+    }
+
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfX1A2003)]
+    [InlineData(PdfComplianceProfile.PdfX4)]
+    public void PdfXFormalGenerationReturnsOnlyAnInternallyReadyExactArtifact(PdfComplianceProfile profile) {
+        string? fontPath = profile == PdfComplianceProfile.PdfX1A2003
+            ? PdfComplianceTestFonts.FindBundledTrueTypeFont()
+            : PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                profile,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                profile == PdfComplianceProfile.PdfX1A2003 ? "FOGRA39" : "FOGRA51",
+                PdfTrappingStatus.False)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X formal font");
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Exact CMYK print production artifact."))
+            .ToBytes();
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(profile, pdf);
+
+        Assert.All(
+            readiness.Requirements.Where(requirement => requirement.Id != "pdfx-validation"),
+            requirement => Assert.Equal(PdfComplianceRequirementStatus.Satisfied, requirement.Status));
+        Assert.Equal(PdfComplianceRequirementStatus.Unsupported, readiness.FindRequirement("pdfx-validation")!.Status);
+    }
+
+    [Fact]
+    public void PdfXFormalStreamFailureDoesNotOverwriteTheDestination() {
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51");
+        byte[] original = { 1, 2, 3, 4 };
+        using var destination = new MemoryStream();
+        destination.Write(original, 0, original.Length);
+        destination.Position = 0;
+
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Missing embedded font."))
+            .Save(destination));
+
+        Assert.Equal(original, destination.ToArray());
+    }
+
+    [Fact]
+    public async Task PdfXFormalAsyncCommitDoesNotReportCancellationAfterReplacingSeekableDestination() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X cancellation font");
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CancelAfterWriteSeekableStream(
+            Enumerable.Repeat((byte)0xCC, 16_384).ToArray(),
+            cancellation.Cancel);
+
+        PdfSaveResult result = await PdfDocument.Create(options)
+            .Meta(title: "Committed PDF/X artifact")
+            .Paragraph(paragraph => paragraph.Text("Cancellation begins only after the staged commit starts."))
+            .SaveAsync(destination, cancellation.Token);
+
+        Assert.True(result.Succeeded);
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Equal(0, destination.Position);
+        Assert.Equal(result.BytesWritten, destination.Length);
+        Assert.Equal("Committed PDF/X artifact", PdfInspector.Inspect(destination.ToArray()).Metadata.Title);
+    }
+
+    [Fact]
+    public void PdfXFormalGenerationAcceptsConfiguredExternalCmykProfile() {
+        string? profilePath = Environment.GetEnvironmentVariable("OFFICEIMO_PDFX_ICC_PROFILE");
+        if (string.IsNullOrWhiteSpace(profilePath) || !File.Exists(profilePath)) return;
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        byte[] profileBytes = File.ReadAllBytes(profilePath);
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? parsedProfile));
+        foreach (OfficeIccRenderingIntent intent in new[] {
+                     OfficeIccRenderingIntent.Perceptual,
+                     OfficeIccRenderingIntent.RelativeColorimetric,
+                     OfficeIccRenderingIntent.Saturation
+                 }) {
+            Assert.True(parsedProfile!.TryConvertToDevice(OfficeColor.FromRgb(208, 64, 32), intent, out double[] components));
+            Assert.Equal(4, components.Length);
+            Assert.All(components, component => Assert.InRange(component, 0D, 1D));
+        }
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                PdfComplianceProfile.PdfX4,
+                profileBytes,
+                "FOGRA51",
+                PdfTrappingStatus.False)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X external profile font");
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Externally sourced print profile."))
+            .ToBytes();
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.Equal(PdfComplianceRequirementStatus.Satisfied, readiness.FindRequirement("readback-pdfx-output-intent")!.Status);
+        Assert.Equal(PdfComplianceRequirementStatus.Satisfied, readiness.FindRequirement("readback-pdfx-no-device-rgb")!.Status);
     }
 
     [Fact]
@@ -360,6 +534,57 @@ public class PdfXGroundworkTests {
         Assert.Equal(PdfOutputIntentSubtype.GtsPdfX, clone.Subtype);
         Assert.Equal(PdfOutputIntentPolicy.PdfXPrintCondition, clone.Policy);
         Assert.Equal(4, clone.ColorComponents);
+        Assert.Equal(OfficeIccProfileClass.OutputDevice, AssertParsedProfile(clone.IccProfile).ProfileClass);
+    }
+
+    [Theory]
+    [InlineData("scnr")]
+    [InlineData("mntr")]
+    public void PdfXOutputIntentRejectsNonOutputDeviceIccProfiles(string deviceClass) {
+        byte[] profile = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        WriteAscii(profile, 12, deviceClass);
+
+        Assert.Throws<ArgumentException>(() => PdfOutputIntent.CreatePdfX(profile, "FOGRA51"));
+    }
+
+    [Fact]
+    public void PdfXReadbackRejectsNonOutputDeviceIccProfile() {
+        var options = new PdfOptions().ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            "FOGRA51",
+            PdfTrappingStatus.False);
+        byte[] pdf = PdfDocument.Create(options).ToBytes();
+        int signatureOffset = FindAscii(pdf, "acsp");
+        Assert.True(signatureOffset >= 36);
+        WriteAscii(pdf, signatureOffset - 24, "scnr");
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, report.FindRequirement("readback-pdfx-output-intent")!.Status);
+    }
+
+    [Fact]
+    public void PdfXGenerationGateRejectsMutatedNonOutputDeviceIntent() {
+        byte[] validProfile = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        var options = new PdfOptions().ConfigurePdfX(PdfComplianceProfile.PdfX4, validProfile, "FOGRA51");
+        byte[] inputProfile = (byte[])validProfile.Clone();
+        WriteAscii(inputProfile, 12, "scnr");
+        options.OutputIntent = new PdfOutputIntent(
+            inputProfile,
+            "FOGRA51",
+            PdfOutputIntentPolicy.PdfXPrintCondition,
+            PdfOutputIntentSubtype.GtsPdfX);
+
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(options);
+
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, readiness.FindRequirement("pdfx-output-intent")!.Status);
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options).ToBytes());
+    }
+
+    private static OfficeIccColorProfile AssertParsedProfile(byte[] profileBytes) {
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        return Assert.IsType<OfficeIccColorProfile>(profile);
     }
 
     private static byte[] CreateMinimalIccProfile(string colorSpace) {
@@ -413,5 +638,45 @@ public class PdfXGroundworkTests {
     private static void WriteAscii(Stream stream, string value) {
         byte[] bytes = Encoding.ASCII.GetBytes(value);
         stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private static void WriteAscii(byte[] bytes, int offset, string value) {
+        for (int index = 0; index < value.Length; index++) {
+            bytes[offset + index] = (byte)value[index];
+        }
+    }
+
+    private sealed class CancelAfterWriteSeekableStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly Action _cancel;
+        private bool _hasCanceled;
+
+        internal CancelAfterWriteSeekableStream(byte[] initialBytes, Action cancel) {
+            _inner = new MemoryStream();
+            _inner.Write(initialBytes, 0, initialBytes.Length);
+            _inner.Position = 0;
+            _cancel = cancel;
+        }
+
+        internal byte[] ToArray() => _inner.ToArray();
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => true;
+        public override long Length => _inner.Length;
+        public override long Position { get => _inner.Position; set => _inner.Position = value; }
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
+        public override void SetLength(long value) => _inner.SetLength(value);
+        public override void Write(byte[] buffer, int offset, int count) {
+            _inner.Write(buffer, offset, count);
+            if (_hasCanceled) return;
+            _hasCanceled = true;
+            _cancel();
+        }
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

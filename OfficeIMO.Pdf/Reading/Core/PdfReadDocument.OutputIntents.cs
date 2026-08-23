@@ -69,6 +69,7 @@ public sealed partial class PdfReadDocument {
             profileBytes.Length,
             TryReadIccDeclaredSize(profileBytes),
             TryReadIccColorSpace(profileBytes),
+            TryReadIccDeviceClass(profileBytes),
             TryReadIccSignature(profileBytes),
             hasSupportedOutputTransform);
     }
@@ -115,6 +116,14 @@ public sealed partial class PdfReadDocument {
         }
 
         return Encoding.ASCII.GetString(profile, 16, 4);
+    }
+
+    private static string? TryReadIccDeviceClass(byte[] profile) {
+        if (profile.Length < 16) {
+            return null;
+        }
+
+        return Encoding.ASCII.GetString(profile, 12, 4);
     }
 
     private static bool? TryReadIccSignature(byte[] profile) {

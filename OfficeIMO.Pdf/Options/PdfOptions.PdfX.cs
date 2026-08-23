@@ -103,11 +103,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
-    /// Configures fail-closed PDF/X metadata and print-condition groundwork.
+    /// Configures PDF/X metadata, print-condition color conversion, and production-page groundwork
+    /// without selecting a formal compliance profile.
     /// </summary>
     /// <remarks>
-    /// This method does not convert source colors or certify conformance. Generation remains blocked until the
-    /// selected profile's color, transparency, font, annotation, and exact-artifact validation contracts are satisfied.
+    /// Generated vector, text, and supported raster colors use the supplied print-condition transform. This method
+    /// intentionally leaves <see cref="ComplianceProfile"/> unchanged; use <see cref="ConfigurePdfX"/> to require
+    /// generated-policy and exact-artifact validation before bytes are returned.
     /// </remarks>
     public PdfOptions ConfigurePdfXGroundwork(
         PdfComplianceProfile profile,
@@ -137,5 +139,25 @@ public sealed partial class PdfOptions {
         BlackPreservationMode = PdfBlackPreservationMode.NeutralAxis;
         PrintProductionPageBoxes = PdfPrintProductionPageBoxes.FullBleed;
         return this;
+    }
+
+    /// <summary>
+    /// Configures fail-closed PDF/X generation using a caller-supplied CMYK print-condition ICC profile.
+    /// </summary>
+    /// <remarks>
+    /// OfficeIMO validates generated policy before serialization and inspects the exact saved artifact before returning it.
+    /// A formal conformance claim still requires qualified external preflight evidence bound to the same artifact bytes.
+    /// </remarks>
+    public PdfOptions ConfigurePdfX(
+        PdfComplianceProfile profile,
+        byte[] cmykIccProfile,
+        string outputConditionIdentifier,
+        PdfTrappingStatus trappingStatus = PdfTrappingStatus.False) {
+        if (trappingStatus == PdfTrappingStatus.Unknown) {
+            throw new ArgumentException("Formal PDF/X generation requires a truthful boolean trapping status: False or True.", nameof(trappingStatus));
+        }
+
+        return ConfigurePdfXGroundwork(profile, cmykIccProfile, outputConditionIdentifier, trappingStatus)
+            .RequireCompliance(profile);
     }
 }

@@ -29,18 +29,25 @@ internal static partial class PdfComplianceAnalyzer {
             "PDF/X output cannot use Standard security encryption.");
 
         PdfOutputIntent? outputIntent = options.OutputIntent;
+        bool hasOutputDeviceProfile = outputIntent != null &&
+            OfficeIMO.Drawing.OfficeIccColorProfile.TryCreate(outputIntent.IccProfileSnapshot, out OfficeIMO.Drawing.OfficeIccColorProfile? parsedOutputProfile) &&
+            parsedOutputProfile != null &&
+            parsedOutputProfile.ProfileClass == OfficeIMO.Drawing.OfficeIccProfileClass.OutputDevice &&
+            parsedOutputProfile.ComponentCount == 4 &&
+            parsedOutputProfile.HasOutputTransform;
         Add(requirements, "pdfx-output-intent", "PDF/X CMYK output intent",
             outputIntent != null &&
             outputIntent.Subtype == PdfOutputIntentSubtype.GtsPdfX &&
             outputIntent.Policy == PdfOutputIntentPolicy.PdfXPrintCondition &&
-            outputIntent.ColorComponents == 4,
-            "A /GTS_PDFX output intent with a CMYK print-condition ICC profile is configured.",
-            "Configure a /GTS_PDFX output intent with a caller-supplied CMYK print-condition ICC profile.");
+            outputIntent.ColorComponents == 4 &&
+            hasOutputDeviceProfile,
+            "A /GTS_PDFX output intent with a CMYK output-device print-condition ICC profile is configured.",
+            "Configure a /GTS_PDFX output intent with a caller-supplied CMYK output-device print-condition ICC profile.");
 
         Add(requirements, "pdfx-trapping-status", "PDF/X trapping status",
-            options.TrappingStatus.HasValue,
-            "A PDF/X trapping status will be written to the Info dictionary.",
-            "Set PdfOptions.TrappingStatus to Unknown, False, or True.");
+            options.TrappingStatus == PdfTrappingStatus.False || options.TrappingStatus == PdfTrappingStatus.True,
+            "A boolean PDF/X trapping status will be written to the Info dictionary.",
+            "Set PdfOptions.TrappingStatus to False or True; Unknown is not a formal PDF/X trapping value.");
 
         Add(requirements, "pdfx-vector-color-conversion", "PDF/X vector and text color conversion",
             options.ConvertVectorColorsToPdfXPrintCondition,
@@ -68,13 +75,23 @@ internal static partial class PdfComplianceAnalyzer {
 
         AddEmbeddedFontCoverageRequirement(requirements, options, generatedStandardFonts, generatedFontUsages);
 
-        requirements.Add(new PdfComplianceRequirement(
-            "pdfx-source-color-management",
-            "PDF/X source color management",
-            PdfComplianceRequirementStatus.Unsupported,
-            profile == PdfComplianceProfile.PdfX1A2003
-                ? "Appearance streams and every remaining color-bearing resource still require CMYK conversion plus proof that no RGB or transparency remains before PDF/X-1a generation can be enabled."
-                : "Appearance-stream color management, vector transparency policy, and exact readback proof are required before PDF/X-4 generation can be enabled."));
+        bool hasGeneratedColorPolicy = generatedEvidence != null &&
+            options.ConvertVectorColorsToPdfXPrintCondition &&
+            options.ConvertRasterImagesToPdfXPrintCondition &&
+            options.BlackPreservationMode != PdfBlackPreservationMode.None &&
+            (profile != PdfComplianceProfile.PdfX1A2003 || options.FlattenRasterTransparencyForPdfX);
+        if (generatedEvidence == null) {
+            requirements.Add(new PdfComplianceRequirement(
+                "pdfx-source-color-management",
+                "PDF/X source color management",
+                PdfComplianceRequirementStatus.Unsupported,
+                "Lay out and serialize the document so exact-artifact inspection can prove its color and transparency policy."));
+        } else {
+            Add(requirements, "pdfx-source-color-management", "PDF/X source color management",
+                hasGeneratedColorPolicy,
+                "Generated colors use the configured CMYK transform and the saved artifact will be inspected before it is returned.",
+                "Enable vector and raster CMYK conversion, black preservation, and PDF/X-1a transparency flattening before generation.");
+        }
 
         AddGeneratedProductionContentRequirements(requirements, options, generatedEvidence);
 

@@ -23,6 +23,85 @@ internal static class IccLutTestProfiles {
     internal static byte[] CreateCmykLut8WithDistinctRelativeIntent() =>
         Create("CMYK", 4, precision: 1, pcsIsLab: true, includeDistinctRelativeIntent: true);
 
+    internal static byte[] CreateCmykLabLutWithOutputTransform(int precision, int outputGridPoints) =>
+        AppendOutputLut(
+            Create("CMYK", 4, precision: precision, pcsIsLab: true),
+            precision,
+            outputGridPoints);
+
+    private static byte[] AppendOutputLut(byte[] inputProfile, int precision, int gridPoints) {
+        int inputEntries = precision == 1 ? 256 : 2;
+        int outputEntries = precision == 1 ? 256 : 2;
+        int tableOffset = precision == 1 ? 48 : 52;
+        int gridSamples = checked(gridPoints * gridPoints * gridPoints);
+        int tagLength = checked(
+            tableOffset +
+            3 * inputEntries * precision +
+            gridSamples * 4 * precision +
+            4 * outputEntries * precision);
+        var tag = new byte[tagLength];
+        WriteSignature(tag, 0, precision == 1 ? "mft1" : "mft2");
+        tag[8] = 3;
+        tag[9] = 4;
+        tag[10] = checked((byte)gridPoints);
+        for (int diagonal = 0; diagonal < 3; diagonal++) {
+            WriteS15Fixed16(tag, 12 + (diagonal * 3 + diagonal) * 4, 1D);
+        }
+        if (precision == 2) {
+            WriteUInt16(tag, 48, (ushort)inputEntries);
+            WriteUInt16(tag, 50, (ushort)outputEntries);
+        }
+
+        int inputOffset = tableOffset;
+        for (int channel = 0; channel < 3; channel++) {
+            WriteIdentityTable(tag, inputOffset + channel * inputEntries * precision, inputEntries, precision);
+        }
+
+        int clutOffset = inputOffset + 3 * inputEntries * precision;
+        for (int index = 0; index < gridSamples; index++) {
+            int coordinate = index;
+            double input2 = coordinate % gridPoints / (double)(gridPoints - 1);
+            coordinate /= gridPoints;
+            double input1 = coordinate % gridPoints / (double)(gridPoints - 1);
+            coordinate /= gridPoints;
+            double input0 = coordinate / (double)(gridPoints - 1);
+            int valueOffset = clutOffset + index * 4 * precision;
+            WriteNormalized(tag, valueOffset, input0, precision);
+            WriteNormalized(tag, valueOffset + precision, input1, precision);
+            WriteNormalized(tag, valueOffset + 2 * precision, input2, precision);
+            WriteNormalized(tag, valueOffset + 3 * precision, (input0 + input1 + input2) / 3D, precision);
+        }
+
+        int outputOffset = clutOffset + gridSamples * 4 * precision;
+        for (int channel = 0; channel < 4; channel++) {
+            WriteIdentityTable(tag, outputOffset + channel * outputEntries * precision, outputEntries, precision);
+        }
+        return AppendTag(inputProfile, "B2A0", tag);
+    }
+
+    private static byte[] AppendTag(byte[] inputProfile, string signature, byte[] tag) {
+        int count = checked((int)ReadUInt32(inputProfile, 128));
+        int oldTableEnd = checked(132 + count * 12);
+        const int tableGrowth = 12;
+        int shiftedLength = checked(inputProfile.Length + tableGrowth);
+        int tagOffset = (shiftedLength + 3) & ~3;
+        int paddedTagLength = (tag.Length + 3) & ~3;
+        var profile = new byte[checked(tagOffset + paddedTagLength)];
+        Buffer.BlockCopy(inputProfile, 0, profile, 0, oldTableEnd);
+        Buffer.BlockCopy(inputProfile, oldTableEnd, profile, oldTableEnd + tableGrowth, inputProfile.Length - oldTableEnd);
+        for (int index = 0; index < count; index++) {
+            int entry = 132 + index * 12;
+            WriteUInt32(profile, entry + 4, checked(ReadUInt32(profile, entry + 4) + tableGrowth));
+        }
+        WriteUInt32(profile, 0, (uint)profile.Length);
+        WriteUInt32(profile, 128, (uint)(count + 1));
+        WriteSignature(profile, oldTableEnd, signature);
+        WriteUInt32(profile, oldTableEnd + 4, (uint)tagOffset);
+        WriteUInt32(profile, oldTableEnd + 8, (uint)tag.Length);
+        Buffer.BlockCopy(tag, 0, profile, tagOffset, tag.Length);
+        return profile;
+    }
+
     private static byte[] Create(
         string colorSpace,
         int inputChannels,
@@ -190,6 +269,12 @@ internal static class IccLutTestProfiles {
         bytes[offset + 2] = (byte)(value >> 8);
         bytes[offset + 3] = (byte)value;
     }
+
+    private static uint ReadUInt32(byte[] bytes, int offset) =>
+        unchecked(((uint)bytes[offset] << 24) |
+                  ((uint)bytes[offset + 1] << 16) |
+                  ((uint)bytes[offset + 2] << 8) |
+                  bytes[offset + 3]);
 
     private static void WriteS15Fixed16(byte[] bytes, int offset, double value) =>
         WriteUInt32(bytes, offset, unchecked((uint)(int)Math.Round(value * 65536D)));

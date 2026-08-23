@@ -78,6 +78,9 @@ public sealed class PdfOutputIntentInfo {
     /// <summary>ICC profile color-space marker from the ICC header, for example RGB, GRAY, or CMYK.</summary>
     public string? DestinationOutputProfileColorSpace => _profileMetadata.Value?.ColorSpace;
 
+    /// <summary>ICC profile device-class marker from the ICC header, for example scnr, mntr, or prtr.</summary>
+    public string? DestinationOutputProfileDeviceClass => _profileMetadata.Value?.DeviceClass;
+
     /// <summary>True when the ICC header contains the acsp signature; false when a readable header is present without it.</summary>
     public bool? DestinationOutputProfileHasIccSignature => _profileMetadata.Value?.HasIccSignature;
 
@@ -90,11 +93,13 @@ internal sealed class PdfOutputIntentProfileMetadata {
         int sizeBytes,
         int? declaredSizeBytes,
         string? colorSpace,
+        string? deviceClass,
         bool? hasIccSignature,
         bool hasSupportedOutputTransform) {
         SizeBytes = sizeBytes;
         DeclaredSizeBytes = declaredSizeBytes;
         ColorSpace = colorSpace;
+        DeviceClass = deviceClass;
         HasIccSignature = hasIccSignature;
         HasSupportedOutputTransform = hasSupportedOutputTransform;
     }
@@ -102,6 +107,7 @@ internal sealed class PdfOutputIntentProfileMetadata {
     internal int SizeBytes { get; }
     internal int? DeclaredSizeBytes { get; }
     internal string? ColorSpace { get; }
+    internal string? DeviceClass { get; }
     internal bool? HasIccSignature { get; }
     internal bool HasSupportedOutputTransform { get; }
 }

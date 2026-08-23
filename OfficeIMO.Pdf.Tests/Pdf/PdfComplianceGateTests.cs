@@ -460,7 +460,7 @@ public class PdfComplianceGateTests {
         byte[] fontData = File.ReadAllBytes(fontPath!);
         string outputCondition = profile == PdfComplianceProfile.PdfX1A2003 ? "FOGRA39" : "FOGRA51";
         var options = new PdfOptions()
-            .ConfigurePdfXGroundwork(
+            .ConfigurePdfX(
                 profile,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 outputCondition,

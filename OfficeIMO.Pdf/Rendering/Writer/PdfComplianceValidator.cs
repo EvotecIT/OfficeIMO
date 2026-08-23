@@ -53,7 +53,8 @@ internal static class PdfComplianceValidator {
             options.ComplianceProfile == PdfComplianceProfile.PdfA3B ||
             options.ComplianceProfile == PdfComplianceProfile.PdfUa1 ||
             options.ComplianceProfile == PdfComplianceProfile.FacturX ||
-            options.ComplianceProfile == PdfComplianceProfile.Zugferd) {
+            options.ComplianceProfile == PdfComplianceProfile.Zugferd ||
+            IsPdfX(options.ComplianceProfile)) {
             return;
         }
 
@@ -67,7 +68,8 @@ internal static class PdfComplianceValidator {
             options.ComplianceProfile != PdfComplianceProfile.PdfA3B &&
             options.ComplianceProfile != PdfComplianceProfile.PdfUa1 &&
             options.ComplianceProfile != PdfComplianceProfile.FacturX &&
-            options.ComplianceProfile != PdfComplianceProfile.Zugferd) {
+            options.ComplianceProfile != PdfComplianceProfile.Zugferd &&
+            !IsPdfX(options.ComplianceProfile)) {
             return;
         }
 
@@ -87,6 +89,26 @@ internal static class PdfComplianceValidator {
 
         throw new InvalidOperationException(
             GetDisplayName(options.ComplianceProfile) + " generation requirements are not satisfied: " +
+            string.Join("; ", gaps.Select(static requirement => requirement.Id + ": " + requirement.Diagnostic)));
+    }
+
+    internal static bool RequiresExactArtifactValidation(PdfOptions options) => IsPdfX(options.ComplianceProfile);
+
+    internal static void ValidateGeneratedArtifact(PdfOptions options, byte[] artifact) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(artifact, nameof(artifact));
+        if (!IsPdfX(options.ComplianceProfile)) return;
+
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(options.ComplianceProfile, artifact);
+        PdfComplianceRequirement[] gaps = readiness.Requirements
+            .Where(requirement =>
+                !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&
+                requirement.Status != PdfComplianceRequirementStatus.Satisfied)
+            .ToArray();
+        if (gaps.Length == 0) return;
+
+        throw new InvalidOperationException(
+            GetDisplayName(options.ComplianceProfile) + " exact-artifact requirements are not satisfied: " +
             string.Join("; ", gaps.Select(static requirement => requirement.Id + ": " + requirement.Diagnostic)));
     }
 
@@ -157,6 +179,10 @@ internal static class PdfComplianceValidator {
     private static bool RequiresElectronicInvoice(PdfComplianceProfile profile) =>
         profile == PdfComplianceProfile.FacturX ||
         profile == PdfComplianceProfile.Zugferd;
+
+    private static bool IsPdfX(PdfComplianceProfile profile) =>
+        profile == PdfComplianceProfile.PdfX1A2003 ||
+        profile == PdfComplianceProfile.PdfX4;
 
     private static string GetProfileFamily(PdfComplianceProfile profile) {
         if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {

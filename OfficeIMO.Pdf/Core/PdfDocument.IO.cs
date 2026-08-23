@@ -278,10 +278,12 @@ public sealed partial class PdfDocument {
         Stream stream,
         System.Threading.CancellationToken cancellationToken) {
         (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) output = default;
+        bool stagedExactArtifact = PdfComplianceValidator.RequiresExactArtifactValidation(_options);
         await OfficeStreamWriter.WriteAsync(
             stream,
-            destination => output = WritePdfCore(destination),
-            cancellationToken).ConfigureAwait(false);
+            destination => output = WritePdfCore(destination, cancellationToken),
+            cancellationToken,
+            commitIsNonCancellable: stagedExactArtifact).ConfigureAwait(false);
         return output;
     }
 
@@ -301,7 +303,9 @@ public sealed partial class PdfDocument {
         return (bytesWritten, output, serialization);
     }
 
-    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) WritePdfCore(Stream stream) {
+    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) WritePdfCore(
+        Stream stream,
+        System.Threading.CancellationToken cancellationToken = default) {
         if (_source is not null) {
             stream.Write(_source.Bytes, 0, _source.Bytes.Length);
             int? sourcePageCount = _pipeline.Output?.PageCount;
@@ -330,6 +334,7 @@ public sealed partial class PdfDocument {
             _author,
             _subject,
             _keywords,
+            cancellationToken,
             out int pageCount,
             out PdfSerializationReport serializationReport);
         return (bytesWritten, pageCount, serializationReport);

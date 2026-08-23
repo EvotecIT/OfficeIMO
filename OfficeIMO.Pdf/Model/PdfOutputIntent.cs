@@ -140,9 +140,10 @@ public sealed class PdfOutputIntent {
 
         if (!OfficeIccColorProfile.TryCreate(iccProfile, out OfficeIccColorProfile? profile) ||
             profile == null ||
+            profile.ProfileClass != OfficeIccProfileClass.OutputDevice ||
             profile.ComponentCount != 4 ||
             !profile.HasOutputTransform) {
-            throw new ArgumentException("PDF/X CMYK ICC profiles must expose a supported PCS-to-device output transform.", nameof(iccProfile));
+            throw new ArgumentException("PDF/X CMYK ICC profiles must declare the output-device class and expose a supported PCS-to-device output transform.", nameof(iccProfile));
         }
 
         return outputIntent;

@@ -209,15 +209,16 @@ internal static partial class PdfComplianceAnalyzer {
             outputIntent.DestinationOutputProfileColorComponents == 4 &&
             outputIntent.DestinationOutputProfileHasIccSignature == true &&
             string.Equals(outputIntent.DestinationOutputProfileColorSpace, "CMYK", StringComparison.Ordinal) &&
+            string.Equals(outputIntent.DestinationOutputProfileDeviceClass, "prtr", StringComparison.Ordinal) &&
             hasMatchingProfileSize &&
             outputIntent.DestinationOutputProfileHasSupportedOutputTransform == true,
-            "The saved PDF contains a /GTS_PDFX output intent backed by a readable CMYK ICC profile.",
-            "The saved PDF must contain a named /GTS_PDFX output intent backed by a size-consistent, parseable CMYK ICC profile with a supported output transform and matching /N value.");
+            "The saved PDF contains a /GTS_PDFX output intent backed by a readable CMYK output-device ICC profile.",
+            "The saved PDF must contain a named /GTS_PDFX output intent backed by a size-consistent, parseable CMYK output-device ICC profile with a supported output transform and matching /N value.");
 
         Add(requirements, "readback-pdfx-trapping-status", "Readback PDF/X trapping status",
-            info.Metadata.TrappingStatus.HasValue,
-            "The saved PDF Info dictionary declares its trapping status.",
-            "The saved PDF Info dictionary must contain /Trapped /True, /False, or /Unknown.");
+            info.Metadata.TrappingStatus == PdfTrappingStatus.False || info.Metadata.TrappingStatus == PdfTrappingStatus.True,
+            "The saved PDF Info dictionary declares a boolean trapping status.",
+            "The saved PDF Info dictionary must contain /Trapped /True or /False; /Unknown is not valid for a formal PDF/X claim.");
 
         Add(requirements, "readback-pdfx-no-encryption", "Readback PDF/X encryption policy",
             !info.Security.HasEncryption,
@@ -298,6 +299,10 @@ internal static partial class PdfComplianceAnalyzer {
                 "Inspected content operators, image XObjects, and shadings contain no DeviceRGB usage.",
                 "Convert or remove DeviceRGB content operators, image XObjects, and shadings before claiming the configured CMYK PDF/X profile.");
             if (profile == PdfComplianceProfile.PdfX1A2003) {
+                Add(requirements, "readback-pdfx1a-no-device-independent-color", "Readback PDF/X-1a device-independent color policy",
+                    !colorEvidence.HasDeviceIndependentColorUsage,
+                    "Inspected content operators, image XObjects, and shadings use only device or spot-color spaces.",
+                    "Convert or remove CalGray, CalRGB, Lab, ICCBased, and device-independent Separation/DeviceN alternate color spaces for PDF/X-1a:2003.");
                 Add(requirements, "readback-pdfx1a-no-transparency", "Readback PDF/X-1a transparency policy",
                     !colorEvidence.HasTransparency,
                     "Inspected image XObjects, graphics states, and groups contain no transparency.",

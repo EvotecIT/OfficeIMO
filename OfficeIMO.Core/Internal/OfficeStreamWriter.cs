@@ -97,7 +97,8 @@ namespace OfficeIMO.Core.Internal {
         public static async Task WriteAsync(
             Stream destination,
             Action<Stream> writer,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            bool commitIsNonCancellable = false) {
 #if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(writer);
@@ -110,6 +111,12 @@ namespace OfficeIMO.Core.Internal {
             long originalPosition = PositionForDirectWrite(destination);
             try {
                 writer(destination);
+                if (commitIsNonCancellable) {
+                    CompleteDirectWrite(destination);
+                    destination.Flush();
+                    RewindDestination(destination);
+                    return;
+                }
                 cancellationToken.ThrowIfCancellationRequested();
                 CompleteDirectWrite(destination);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);

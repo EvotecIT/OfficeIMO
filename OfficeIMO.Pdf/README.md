@@ -775,7 +775,34 @@ if (!proof.CanClaimConformance) {
 }
 ```
 
-Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. PDF/X additionally inspects the complete serialized artifact before any bytes are returned or committed to a destination. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+
+### Generate a fail-closed PDF/X artifact
+
+```csharp
+using OfficeIMO.Pdf;
+
+byte[] cmykProfile = File.ReadAllBytes("PSOcoated_v3.icc");
+byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
+var options = new PdfOptions()
+    .ConfigurePdfX(
+        PdfComplianceProfile.PdfX4,
+        cmykProfile,
+        "FOGRA51",
+        PdfTrappingStatus.False)
+    .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4");
+
+PdfComplianceArtifact artifact = PdfDocument.Create(options)
+    .Meta(title: "Print-ready report")
+    .Paragraph(paragraph => paragraph.Text("Generated colors are converted through the CMYK print condition."))
+    .CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
+
+File.WriteAllBytes("print-ready.pdf", artifact.ToBytes());
+```
+
+`ConfigurePdfX` requires a caller-selected CMYK output-device profile because the correct profile depends on the printing condition and profile redistribution terms. For example, the [ICC registry entry for PSOcoated_v3](https://registry.color.org/profile-registry/PSOcoated_v3) identifies it as FOGRA51 and permits use, embedding, and exchange while restricting redistribution. OfficeIMO requires the ICC `prtr` device class, validates the header, declared size, CMYK component count, and a supported output transform, and writes a boolean trapping status (`False` by default). It converts generated vector, text, and supported raster colors, applies the selected black-preservation policy, writes production page boxes, and inspects the exact PDF for remaining DeviceRGB content, embedded fonts, prohibited references, and profile-specific transparency. PDF/X-1a:2003 also rejects device-independent color spaces and flattens raster alpha before rejecting any remaining transparency. PDF/X-4 retains its standard color-management and transparency allowances, while OfficeIMO deliberately emits a conservative CMYK generated-content subset.
+
+Internal readiness is not a certification. Pass the exact artifact to a qualified PDF/X preflight tool and bind its result with `PdfExternalValidationResult.PassedForArtifact`; `PdfComplianceProofReport.CanClaimConformance` remains false when that exact external evidence is absent or mismatched.
 
 ### Choose converter-friendly text fallbacks
 
