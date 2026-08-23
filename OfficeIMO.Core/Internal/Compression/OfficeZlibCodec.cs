@@ -28,6 +28,13 @@ namespace OfficeIMO.Core.Internal {
             CancellationToken cancellationToken = default) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (maximumOutputBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
+            if (expectedOutputBytes.HasValue && expectedOutputBytes.Value < 0) {
+                throw new ArgumentOutOfRangeException(nameof(expectedOutputBytes));
+            }
+            if (expectedOutputBytes.HasValue && expectedOutputBytes.Value > maximumOutputBytes) {
+                throw new OfficeDecompressionSizeLimitException(
+                    $"The decompressed zlib stream exceeds {maximumOutputBytes} bytes.");
+            }
             if (bytes.Length < 6) throw new InvalidDataException("The zlib stream is truncated.");
 
             int compressionMethodAndInfo = bytes[0];
@@ -46,8 +53,12 @@ namespace OfficeIMO.Core.Internal {
                     bytes, 2, bytes.Length - 6, validationOutputLimit,
                     out bool outputLimitExceeded, cancellationToken)) {
                 if (outputLimitExceeded) {
+                    if (expectedOutputBytes.HasValue && expectedOutputBytes.Value < maximumOutputBytes) {
+                        throw new InvalidDataException(
+                            $"The zlib stream expanded beyond the expected {expectedOutputBytes} bytes.");
+                    }
                     throw new OfficeDecompressionSizeLimitException(
-                        $"The decompressed zlib stream exceeds {validationOutputLimit} bytes.");
+                        $"The decompressed zlib stream exceeds {maximumOutputBytes} bytes.");
                 }
                 throw new InvalidDataException("The zlib stream contains an invalid or trailing Deflate payload.");
             }
