@@ -10,7 +10,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeTiffCodec {
     /// <summary>Encodes a single RGBA image directly to a caller-owned writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         Stream destination,
         OfficeTiffEncodeOptions? options = null) {
@@ -52,13 +52,13 @@ public static partial class OfficeTiffCodec {
 
 #if NET8_0_OR_GREATER
     /// <summary>Encodes a single RGBA image directly to a caller-owned buffer writer.</summary>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         IBufferWriter<byte> destination,
         OfficeTiffEncodeOptions? options = null) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         using var stream = new OfficeBufferWriterStream(destination);
-        Encode(image, stream, options);
+        EncodeTo(image, stream, options);
     }
 #endif
 

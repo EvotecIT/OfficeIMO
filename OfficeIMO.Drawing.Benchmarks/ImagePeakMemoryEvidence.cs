@@ -34,15 +34,40 @@ internal static class ImagePeakMemoryEvidence {
         writer.WriteLine("Scenario       Format API             Bytes      Managed    Peak working   Peak private");
         foreach (EvidenceCase evidenceCase in Cases) {
             if (filters != null && !filters.Contains(evidenceCase.ScenarioId)) continue;
+            (long materializedBytes, long streamedBytes) = ValidateEvidenceCase(evidenceCase);
             EvidenceResult materialized = RunIsolated(evidenceCase, "materialized");
             EvidenceResult streamed = RunIsolated(evidenceCase, "stream");
             WriteRow(writer, materialized);
             WriteRow(writer, streamed);
-            if (materialized.EncodedBytes <= 0 || streamed.EncodedBytes <= 0) {
+            if (materialized.EncodedBytes != materializedBytes || streamed.EncodedBytes != streamedBytes) {
                 throw new InvalidOperationException(
-                    $"{evidenceCase.ScenarioId} {evidenceCase.Format} did not produce encoded bytes.");
+                    $"{evidenceCase.ScenarioId} {evidenceCase.Format} memory evidence did not match the validated output lengths.");
             }
         }
+    }
+
+    private static (long MaterializedBytes, long StreamedBytes) ValidateEvidenceCase(
+        EvidenceCase evidenceCase) {
+        ImageBenchmarkScenario scenario = ImageBenchmarkScenarios.Get(evidenceCase.ScenarioId);
+        OfficeRasterImage image = scenario.CreateImage();
+        OfficeRasterEncodingOptions options = CreateOptions();
+        byte[] materialized = OfficeRasterImageEncoder.Encode(image, evidenceCase.Format, options);
+        using var destination = new MemoryStream();
+        OfficeRasterImageEncoder.EncodeTo(image, evidenceCase.Format, destination, options);
+        byte[] streamed = destination.ToArray();
+
+        if (!OfficeRasterImageDecoder.TryDecode(materialized, out OfficeRasterImage? expected) || expected == null ||
+            !OfficeRasterImageDecoder.TryDecode(streamed, out OfficeRasterImage? actual) || actual == null) {
+            throw new InvalidOperationException(
+                $"{evidenceCase.ScenarioId} {evidenceCase.Format} could not be decoded before memory measurement.");
+        }
+        if (expected.Width != scenario.Width || expected.Height != scenario.Height ||
+            actual.Width != scenario.Width || actual.Height != scenario.Height ||
+            !expected.GetPixels().AsSpan().SequenceEqual(actual.GetPixels())) {
+            throw new InvalidOperationException(
+                $"{evidenceCase.ScenarioId} {evidenceCase.Format} streamed output failed pre-measurement validation.");
+        }
+        return (materialized.LongLength, streamed.LongLength);
     }
 
     internal static void RunWorker(
@@ -76,7 +101,7 @@ internal static class ImagePeakMemoryEvidence {
             encodedBytes = output.LongLength;
         } else {
             var destination = new CountingWriteStream();
-            OfficeRasterImageEncoder.Encode(image, format, destination, options);
+            OfficeRasterImageEncoder.EncodeTo(image, format, destination, options);
             encodedBytes = destination.BytesWritten;
         }
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;

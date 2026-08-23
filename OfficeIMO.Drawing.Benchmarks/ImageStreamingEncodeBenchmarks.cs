@@ -30,7 +30,7 @@ public class ImageStreamingEncodeBenchmarks {
 
         byte[] materialized = Materialized();
         using var streamed = new MemoryStream();
-        OfficeRasterImageEncoder.Encode(_image, Format, streamed, _options);
+        OfficeRasterImageEncoder.EncodeTo(_image, Format, streamed, _options);
         byte[] streamedBytes = streamed.ToArray();
         if (materialized.Length != streamedBytes.Length && Format != OfficeImageExportFormat.Png) {
             throw new InvalidOperationException(
@@ -54,7 +54,7 @@ public class ImageStreamingEncodeBenchmarks {
     [Benchmark]
     public long Streamed() {
         _destination.Reset();
-        OfficeRasterImageEncoder.Encode(_image, Format, _destination, _options);
+        OfficeRasterImageEncoder.EncodeTo(_image, Format, _destination, _options);
         return _destination.BytesWritten;
     }
 

@@ -238,11 +238,11 @@ The same encoder can write directly to a caller-owned stream when materializing 
 using System.Buffers;
 
 using (Stream output = File.Create("photo.webp")) {
-    OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Webp, output, options);
+    OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Webp, output, options);
 }
 
 var writer = new ArrayBufferWriter<byte>();
-OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, writer, options);
+OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, writer, options);
 ReadOnlyMemory<byte> png = writer.WrittenMemory;
 ```
 

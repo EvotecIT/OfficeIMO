@@ -9,6 +9,16 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingRasterStreamingEncodingTests {
+    [Fact]
+    public void MaterializedEncoderCallsWithPositionalNullRemainUnambiguous() {
+        OfficeRasterImage image = CreateSampleImage();
+
+        Assert.NotEmpty(OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, null));
+        Assert.Throws<ArgumentNullException>(() => OfficePngWriter.Encode(image, null!));
+        Assert.NotEmpty(OfficeJpegCodec.Encode(image, null));
+        Assert.NotEmpty(OfficeTiffCodec.Encode(image, null));
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]
@@ -67,7 +77,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
         byte[] expected = OfficeTiffCodec.Encode(image, options);
         using var actual = new MemoryStream();
 
-        OfficeTiffCodec.Encode(image, actual, options);
+        OfficeTiffCodec.EncodeTo(image, actual, options);
 
         Assert.Equal(expected, actual.ToArray());
     }
@@ -80,7 +90,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
         OfficeRasterImage image = CreateSampleImage();
         using var actual = new MemoryStream();
 
-        OfficePngWriter.Encode(image, actual, compression);
+        OfficePngWriter.EncodeTo(image, actual, compression);
 
         Assert.True(OfficePngReader.TryDecode(actual.ToArray(), out OfficeRasterImage? decoded));
         Assert.NotNull(decoded);
@@ -92,7 +102,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
         OfficeRasterImage image = CreateSampleImage();
         using var destination = new MemoryStream();
 
-        OfficeRasterImageEncoder.Encode(
+        OfficeRasterImageEncoder.EncodeTo(
             image,
             OfficeImageExportFormat.Png,
             destination,
@@ -108,7 +118,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
         using var destination = new MemoryStream(new byte[1], writable: false);
 
         Assert.Throws<ArgumentException>(() =>
-            OfficeRasterImageEncoder.Encode(
+            OfficeRasterImageEncoder.EncodeTo(
                 image,
                 OfficeImageExportFormat.Png,
                 destination));
@@ -119,7 +129,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
         OfficeImageExportFormat format,
         OfficeRasterEncodingOptions options) {
         using var destination = new ForwardOnlyWriteStream();
-        OfficeRasterImageEncoder.Encode(image, format, destination, options);
+        OfficeRasterImageEncoder.EncodeTo(image, format, destination, options);
         destination.WriteByte(0x7A);
         byte[] withSentinel = destination.ToArray();
         Array.Resize(ref withSentinel, withSentinel.Length - 1);
@@ -134,16 +144,16 @@ public sealed class DrawingRasterStreamingEncodingTests {
         OfficeRasterEncodingOptions options) {
         switch (format) {
             case OfficeImageExportFormat.Png:
-                OfficePngWriter.Encode(image, destination, options.Png);
+                OfficePngWriter.EncodeTo(image, destination, options.Png);
                 break;
             case OfficeImageExportFormat.Jpeg:
-                OfficeJpegCodec.Encode(image, destination, options.Jpeg);
+                OfficeJpegCodec.EncodeTo(image, destination, options.Jpeg);
                 break;
             case OfficeImageExportFormat.Tiff:
-                OfficeTiffCodec.Encode(image, destination, options.Tiff);
+                OfficeTiffCodec.EncodeTo(image, destination, options.Tiff);
                 break;
             case OfficeImageExportFormat.Webp:
-                OfficeWebpCodec.Encode(image, destination, options.DpiX, options.DpiY);
+                OfficeWebpCodec.EncodeTo(image, destination, options.DpiX, options.DpiY);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));
@@ -156,16 +166,16 @@ public sealed class DrawingRasterStreamingEncodingTests {
         OfficeRasterEncodingOptions options) {
         switch (format) {
             case OfficeImageExportFormat.Png:
-                OfficePngWriter.Encode(image, destination, options.Png);
+                OfficePngWriter.EncodeTo(image, destination, options.Png);
                 break;
             case OfficeImageExportFormat.Jpeg:
-                OfficeJpegCodec.Encode(image, destination, options.Jpeg);
+                OfficeJpegCodec.EncodeTo(image, destination, options.Jpeg);
                 break;
             case OfficeImageExportFormat.Tiff:
-                OfficeTiffCodec.Encode(image, destination, options.Tiff);
+                OfficeTiffCodec.EncodeTo(image, destination, options.Tiff);
                 break;
             case OfficeImageExportFormat.Webp:
-                OfficeWebpCodec.Encode(image, destination, options.DpiX, options.DpiY);
+                OfficeWebpCodec.EncodeTo(image, destination, options.DpiX, options.DpiY);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));

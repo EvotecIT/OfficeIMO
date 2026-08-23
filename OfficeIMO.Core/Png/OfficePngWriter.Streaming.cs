@@ -12,7 +12,7 @@ public static partial class OfficePngWriter {
 
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         Stream destination,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
@@ -29,7 +29,7 @@ public static partial class OfficePngWriter {
 
     /// <summary>Encodes an RGBA image with physical-resolution metadata directly to a writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         Stream destination,
         OfficePngEncodeOptions options) {
@@ -49,23 +49,23 @@ public static partial class OfficePngWriter {
 
 #if NET8_0_OR_GREATER
     /// <summary>Encodes an RGBA image directly to a caller-owned buffer writer.</summary>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         IBufferWriter<byte> destination,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         using var stream = new OfficeBufferWriterStream(destination);
-        Encode(image, stream, compression);
+        EncodeTo(image, stream, compression);
     }
 
     /// <summary>Encodes an RGBA image with physical-resolution metadata directly to a buffer writer.</summary>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         IBufferWriter<byte> destination,
         OfficePngEncodeOptions options) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         using var stream = new OfficeBufferWriterStream(destination);
-        Encode(image, stream, options);
+        EncodeTo(image, stream, options);
     }
 #endif
 

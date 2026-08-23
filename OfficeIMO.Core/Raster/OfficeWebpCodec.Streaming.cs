@@ -9,13 +9,13 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeWebpCodec {
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
-    public static void Encode(OfficeRasterImage image, Stream destination) {
+    public static void EncodeTo(OfficeRasterImage image, Stream destination) {
         EncodeStreaming(image, destination, includeResolutionMetadata: false, 96D, 96D);
     }
 
     /// <summary>Encodes an RGBA image with Exif resolution metadata directly to a writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         Stream destination,
         double dpiX,
@@ -27,21 +27,21 @@ public static partial class OfficeWebpCodec {
 
 #if NET8_0_OR_GREATER
     /// <summary>Encodes an RGBA image directly to a caller-owned buffer writer.</summary>
-    public static void Encode(OfficeRasterImage image, IBufferWriter<byte> destination) {
+    public static void EncodeTo(OfficeRasterImage image, IBufferWriter<byte> destination) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         using var stream = new OfficeBufferWriterStream(destination);
-        Encode(image, stream);
+        EncodeTo(image, stream);
     }
 
     /// <summary>Encodes an RGBA image with Exif resolution metadata directly to a buffer writer.</summary>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         IBufferWriter<byte> destination,
         double dpiX,
         double dpiY) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         using var stream = new OfficeBufferWriterStream(destination);
-        Encode(image, stream, dpiX, dpiY);
+        EncodeTo(image, stream, dpiX, dpiY);
     }
 #endif
 

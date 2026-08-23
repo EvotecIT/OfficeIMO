@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeRasterImageEncoder {
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         OfficeImageExportFormat format,
         Stream destination,
@@ -21,25 +21,25 @@ public static partial class OfficeRasterImageEncoder {
 
         switch (format) {
             case OfficeImageExportFormat.Png:
-                OfficePngWriter.Encode(
+                OfficePngWriter.EncodeTo(
                     image,
                     destination,
                     effective.Png ?? throw new InvalidOperationException("PNG encoding options cannot be null."));
                 break;
             case OfficeImageExportFormat.Jpeg:
-                OfficeJpegCodec.Encode(
+                OfficeJpegCodec.EncodeTo(
                     image,
                     destination,
                     effective.Jpeg ?? throw new InvalidOperationException("JPEG encoding options cannot be null."));
                 break;
             case OfficeImageExportFormat.Tiff:
-                OfficeTiffCodec.Encode(
+                OfficeTiffCodec.EncodeTo(
                     image,
                     destination,
                     effective.Tiff ?? throw new InvalidOperationException("TIFF encoding options cannot be null."));
                 break;
             case OfficeImageExportFormat.Webp:
-                OfficeWebpCodec.Encode(image, destination, effective.DpiX, effective.DpiY);
+                OfficeWebpCodec.EncodeTo(image, destination, effective.DpiX, effective.DpiY);
                 break;
             case OfficeImageExportFormat.Svg:
                 throw new ArgumentException("SVG output requires a vector renderer.", nameof(format));
@@ -50,14 +50,14 @@ public static partial class OfficeRasterImageEncoder {
 
 #if NET8_0_OR_GREATER
     /// <summary>Encodes an RGBA image directly to a caller-owned buffer writer.</summary>
-    public static void Encode(
+    public static void EncodeTo(
         OfficeRasterImage image,
         OfficeImageExportFormat format,
         IBufferWriter<byte> destination,
         OfficeRasterEncodingOptions? options = null) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         using var stream = new OfficeBufferWriterStream(destination);
-        Encode(image, format, stream, options);
+        EncodeTo(image, format, stream, options);
     }
 #endif
 }
