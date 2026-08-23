@@ -101,6 +101,45 @@
       "compatibilityIssues": []
     },
     {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-08-23T17:34:51.4260267+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/image-tiff-lzw-net10.0-windows-quick.json",
+      "resultSha256": "0dd553f080a299297f8cba8deacaa048adee6ffe6904f45a9e49b874144c63eb",
+      "artifactDestinationSha256": "984820a1e8bc66a8f266c52d7b7ce952185336e22b306f60dd3737069bfdf1dd",
+      "artifactFileName": "image-tiff-lzw-net10.0-windows-quick.json",
+      "artifactRelativePath": "image-tiff-lzw-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.Drawing.TiffLzw",
+      "environment": {
+        "osFamily": "",
+        "osDescription": "",
+        "osArchitecture": "",
+        "processArchitecture": "",
+        "processorName": "",
+        "physicalProcessorCount": null,
+        "physicalCoreCount": null,
+        "logicalCoreCount": null,
+        "runtimeVersion": "",
+        "dotNetSdkVersion": "",
+        "runner": "",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Drawing.TiffLzw",
+        "benchmark.workload.shape.sha256": "dcf8547ac87cc47fafe5eb72bc38e1c0b9a4dafe7c36b05bf3ff8b1bc89502bc",
+        "benchmark.workload.affinityMask": "0xFFFF",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "image-tiff-lzw-net10.0",
+        "benchmark.workload.sourceCommit": "8edcab40a55ecab90971a642fbe67f850a997e6f",
+        "gitSha": "8edcab40a55ecab90971a642fbe67f850a997e6f",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "linux",
       "runMode": "full",
@@ -1096,6 +1135,32 @@
         "quick"
       ],
       "latestUtc": "2026-07-31T10:57:12.894909+00:00"
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T17:34:51.4260267+00:00"
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-tiff-lzw-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
