@@ -77,3 +77,31 @@ public class HtmlToMarkdownOfficeProfileBenchmarks {
         }
     }
 }
+
+[MemoryDiagnoser]
+public class HtmlToMarkdownLargeArticleStageBenchmarks {
+    private string _html = string.Empty;
+    private HtmlConversionDocument _document = null!;
+    private MarkdownDoc _markdownDocument = null!;
+    private HtmlToMarkdownOptions _options = null!;
+
+    [GlobalSetup]
+    public void Setup() {
+        _html = HtmlToMarkdownBenchmarkCorpus.Get("LargeArticle");
+        _options = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        _document = HtmlConversionDocument.Parse(_html);
+        _markdownDocument = _document.ToMarkdownDocument(_options);
+    }
+
+    [Benchmark]
+    public HtmlConversionDocument ParseHtml() => HtmlConversionDocument.Parse(_html);
+
+    [Benchmark]
+    public MarkdownDoc ConvertModel() => _document.ToMarkdownDocument(_options);
+
+    [Benchmark]
+    public string RenderModel() => _markdownDocument.ToMarkdown(_options.MarkdownWriteOptions);
+
+    [Benchmark]
+    public string FullConversion() => HtmlConversionDocument.Parse(_html).ToMarkdown(_options);
+}

@@ -29,7 +29,9 @@ public sealed partial class HtmlConversionDocument {
         Uri? baseUri) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
         _sourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
-        _options = options?.Clone() ?? throw new ArgumentNullException(nameof(options));
+        // Parse owns this already-resolved snapshot; retaining it avoids cloning the full policy
+        // and limits graph a second time before any lazy projection has been requested.
+        _options = options ?? throw new ArgumentNullException(nameof(options));
         _mediaContext = _options.Profile == HtmlConversionProfile.HighFidelityPrint
             ? HtmlCssMediaContext.Print
             : HtmlCssMediaContext.Screen;
@@ -104,6 +106,15 @@ public sealed partial class HtmlConversionDocument {
     /// </summary>
     internal IHtmlDocument CreateSourceDocumentForConversion() {
         lock (_analysisSync) return HtmlDocumentParser.CloneDocument(_sourceDocument);
+    }
+
+    /// <summary>
+    /// Projects the canonical source DOM under the document's analysis lock. The projection must
+    /// treat the supplied document as read-only and must not retain it after the callback returns.
+    /// </summary>
+    internal T ProjectSourceDocument<T>(Func<IHtmlDocument, T> projection) {
+        if (projection == null) throw new ArgumentNullException(nameof(projection));
+        lock (_analysisSync) return projection(_sourceDocument);
     }
 
     /// <summary>

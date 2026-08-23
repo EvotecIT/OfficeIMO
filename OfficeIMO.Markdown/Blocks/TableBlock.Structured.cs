@@ -133,12 +133,55 @@ public sealed partial class TableBlock {
             return PrepareRowCells(fallbackRow, expectedCount);
         }
 
+        if (structuredRow.Count == expectedCount && HasOnlySingleColumnCells(structuredRow)) {
+            var directMarkdown = new string[structuredRow.Count];
+            for (int i = 0; i < structuredRow.Count; i++) {
+                directMarkdown[i] = structuredRow[i]?.Markdown ?? string.Empty;
+            }
+            return directMarkdown;
+        }
+
         var cells = PrepareStructuredRowCells(structuredRow, expectedCount);
         var markdown = new string[cells.Count];
         for (int i = 0; i < cells.Count; i++) {
             markdown[i] = cells[i]?.Markdown ?? string.Empty;
         }
         return markdown;
+    }
+
+    private static string[] PrepareEscapedMarkdownRow(
+        IReadOnlyList<TableCell>? structuredRow,
+        IReadOnlyList<string>? fallbackRow,
+        int expectedCount,
+        bool preserveMarkdownEscapes) {
+        if (structuredRow != null
+            && structuredRow.Count == expectedCount
+            && HasOnlySingleColumnCells(structuredRow)) {
+            var escaped = new string[structuredRow.Count];
+            for (int i = 0; i < structuredRow.Count; i++) {
+                string markdown = structuredRow[i]?.Markdown ?? string.Empty;
+                escaped[i] = EscapeMarkdownCell(markdown, preserveMarkdownEscapes);
+            }
+            return escaped;
+        }
+
+        IReadOnlyList<string> source = structuredRow == null
+            ? PrepareRowCells(fallbackRow, expectedCount)
+            : PrepareStructuredRowMarkdown(structuredRow, fallbackRow, expectedCount);
+        var result = new string[source.Count];
+        for (int i = 0; i < source.Count; i++) {
+            result[i] = EscapeMarkdownCell(source[i], preserveMarkdownEscapes);
+        }
+        return result;
+    }
+
+    private static bool HasOnlySingleColumnCells(IReadOnlyList<TableCell> row) {
+        for (int i = 0; i < row.Count; i++) {
+            if (row[i] != null && row[i].ColumnSpan != 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static List<TableCell> CloneStructuredRow(IReadOnlyList<TableCell> row) {

@@ -247,6 +247,18 @@ internal static class MarkdownObjectTreeBinder {
                 BindChildren(parent, listItem.ChildBlocks);
                 return true;
 
+            case TableBlock table:
+                BindChildren(parent, table.HeaderRow, table.BodyRows);
+                return true;
+
+            case TableRow row:
+                BindChildren(parent, row.Cells);
+                return true;
+
+            case TableCell cell:
+                BindChildren(parent, cell.ChildBlocks);
+                return true;
+
             case InlineSequence inlineSequence:
                 BindChildren(parent, inlineSequence.Nodes);
                 return true;
