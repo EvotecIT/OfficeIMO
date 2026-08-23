@@ -99,6 +99,7 @@ $measuredPaths = @(
     ':(glob)OfficeIMO.Html.Pdf.Browser/**/*.cs',
     'OfficeIMO.Pdf',
     'OfficeIMO.Pdf.Benchmarks',
+    'OfficeIMO.Pdf.Benchmarks.Comparisons',
     'Build/LibraryComparisonRunner',
     'Build/Run-LibraryComparisonBenchmarks.ps1',
     'Build/Test-LibraryComparisonRunnerContract.ps1'

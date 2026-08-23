@@ -79,6 +79,19 @@ try {
 
 The evidence runner validates artifacts but is not a statistical performance runner. Continue to use BenchmarkDotNet through the shared script for performance results.
 
+After a reviewed Windows or Linux High-scale run, validate every referenced PDF and preview against the report and write the compact committed summary. Raw PDFs and PNGs remain temporary; the summary retains their paths, sizes, SHA-256 hashes, aggregate manifest hash, exact source commits, contracts, and measurements:
+
+```powershell
+pwsh Build/Export-HtmlPdfArtifactEvidence.ps1 `
+    -EvidencePath $output `
+    -Platform windows `
+    -OutputPath Docs/benchmarks/html-pdf-artifact-evidence/html-pdf-artifact-evidence-net10.0-windows-high.json
+
+pwsh Build/Test-HtmlPdfArtifactEvidence.ps1
+```
+
+The release gate requires matching Windows and Linux summaries from the same clean OfficeIMO and HtmlTinkerX source commits. Any production renderer or evidence-runner change makes them stale. A package-pin-only HtmlTinkerX change is instead proven by the packed browser consumer gate because these runs compile the recorded HtmlTinkerX source checkout directly.
+
 Run one quick correctness/performance smoke through the shared PowerForge evidence path:
 
 ```powershell
