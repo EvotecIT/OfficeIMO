@@ -54,6 +54,30 @@ Deep deterministic-content validation remains outside measured operations. The m
 
 ## Run
 
+Generate a reviewable HTML-to-PDF evidence bundle before interpreting benchmark timings. This command renders the same deterministic HTML two or more times with OfficeIMO, PeachPDF, iText pdfHTML, and Chromium through HtmlTinkerX. It writes the source HTML, every PDF, first-page PNG previews, and `html-pdf-evidence.json`. The report records exact-byte, semantic, and visual repeatability; page and content checks; tagged-PDF structure; output size; cancellation capability; managed allocation volume; and host-process working-set observations.
+
+The working-set values are diagnostic and explicitly marked non-comparable. Chromium child-process memory is not included, so total resident-memory comparison remains a separate process-tree measurement. When Poppler's `pdftoppm` is on `PATH`, the runner also creates independent external previews. Use `--require-external-rasterizer` for a visual gate that must fail when Poppler is unavailable.
+
+```powershell
+$repoRoot = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
+$env:HTMLTINKERX_PROJECT_PATH = Join-Path $repoRoot 'HtmlTinkerX/Sources/HtmlTinkerX/HtmlTinkerX.csproj'
+try {
+    dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+        -c Release `
+        -f net10.0 `
+        -- html-evidence `
+        --output Ignore/Benchmarks/HtmlPdfEvidence/current `
+        --scale Easy `
+        --iterations 3 `
+        --require-external-rasterizer `
+        --require-clean-source
+} finally {
+    Remove-Item Env:HTMLTINKERX_PROJECT_PATH -ErrorAction SilentlyContinue
+}
+```
+
+The evidence runner validates artifacts but is not a statistical performance runner. Continue to use BenchmarkDotNet through the shared script for performance results.
+
 Run one quick correctness/performance smoke through the shared PowerForge evidence path:
 
 ```powershell

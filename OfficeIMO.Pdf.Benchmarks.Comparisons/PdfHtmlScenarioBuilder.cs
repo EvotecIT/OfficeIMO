@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 internal static class PdfHtmlScenarioBuilder {
     internal static string Create(PdfBenchmarkScenario scenario) {
         var html = new StringBuilder();
-        html.AppendLine("<!doctype html><html><head><meta charset=\"utf-8\"><style>");
+        html.AppendLine("<!doctype html><html lang=\"en-US\"><head><meta charset=\"utf-8\"><style>");
         html.AppendLine("@page { size: A4; margin: 12mm; }");
         html.AppendLine("body { font-family: sans-serif; font-size: 9pt; color: #172033; margin: 0; }");
         html.AppendLine(".report-page { break-after: page; page-break-after: always; }");

@@ -11,6 +11,10 @@ if (args.Length > 0 && string.Equals(args[0], "corpus", StringComparison.Ordinal
     return await PdfCorpusRunner.RunAsync(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "html-evidence", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlPdfEvidenceRunner.RunAsync(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "prepare-rich-word", StringComparison.OrdinalIgnoreCase)) {
     string repositoryRoot = ReadOption(args, "--repo-root") ?? FindRepositoryRoot();
     string outputDirectory = Path.GetFullPath(

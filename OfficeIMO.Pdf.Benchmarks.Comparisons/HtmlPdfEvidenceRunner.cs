@@ -1,0 +1,400 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using HtmlTinkerX;
+using OfficeIMO.Pdf;
+
+namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
+
+internal static class HtmlPdfEvidenceRunner {
+    private const int MinimumIterations = 2;
+    private const int MaximumIterations = 10;
+
+    internal static async Task<int> RunAsync(string[] args) {
+        ValidateArguments(args);
+        if (args.Any(value => string.Equals(value, "--help", StringComparison.OrdinalIgnoreCase))) {
+            WriteHelp();
+            return 0;
+        }
+
+        PdfBenchmarkScale scale = ReadScale(args);
+        int iterations = ReadIterations(args);
+        string outputDirectory = ResolveOutputDirectory(args);
+        Directory.CreateDirectory(outputDirectory);
+        string repositoryRoot = FindRepositoryRoot();
+        HtmlPdfEvidenceProvenance provenance = await ReadProvenanceAsync(repositoryRoot).ConfigureAwait(false);
+        if (args.Any(value => string.Equals(value, "--require-clean-source", StringComparison.OrdinalIgnoreCase))) {
+            ValidateCleanSource(provenance);
+        }
+        ExternalPdfRasterizer? rasterizer = await ExternalPdfRasterizer.FindAsync().ConfigureAwait(false);
+        if (rasterizer == null && args.Any(value => string.Equals(value, "--require-external-rasterizer", StringComparison.OrdinalIgnoreCase))) {
+            throw new InvalidOperationException("--require-external-rasterizer was specified, but pdftoppm was not found on PATH.");
+        }
+
+        PdfBenchmarkScenario scenario = PdfBenchmarkScenario.Get(scale);
+        string html = PdfHtmlScenarioBuilder.Create(scenario);
+        string htmlPath = Path.Combine(outputDirectory, "scenario.html");
+        await File.WriteAllTextAsync(htmlPath, html, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)).ConfigureAwait(false);
+
+        var engineReports = new List<HtmlPdfEngineEvidence>();
+        foreach (HtmlPdfComparisonEngine engine in HtmlPdfComparisonRenderers.AllEngines) {
+            engineReports.Add(await RunEngineAsync(engine, html, scenario, iterations, outputDirectory, rasterizer).ConfigureAwait(false));
+        }
+
+        var report = new HtmlPdfEvidenceReport(
+            SchemaVersion: 1,
+            GeneratedUtc: DateTimeOffset.UtcNow,
+            Scale: scale.ToString(),
+            Iterations: iterations,
+            Environment: new HtmlPdfEvidenceEnvironment(
+                RuntimeInformation.OSDescription,
+                RuntimeInformation.OSArchitecture.ToString(),
+                RuntimeInformation.ProcessArchitecture.ToString(),
+                Environment.Version.ToString(),
+                RuntimeInformation.FrameworkDescription,
+                rasterizer?.Identity),
+            Provenance: provenance,
+            Input: new HtmlPdfEvidenceInput(
+                Path.GetFileName(htmlPath),
+                Encoding.UTF8.GetByteCount(html),
+                Sha256(Encoding.UTF8.GetBytes(html)),
+                scenario.PageCount,
+                scenario.PageCount),
+            Engines: engineReports);
+
+        string reportPath = Path.Combine(outputDirectory, "html-pdf-evidence.json");
+        var jsonOptions = new JsonSerializerOptions {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(report, jsonOptions)).ConfigureAwait(false);
+
+        bool cancellationPassed = engineReports
+            .Where(engine => engine.Cancellation.ApiSupportsCancellation)
+            .All(engine => string.Equals(engine.Cancellation.Status, "Passed", StringComparison.Ordinal));
+        Console.WriteLine("HTML_PDF_EVIDENCE_REPORT=" + reportPath);
+        Console.WriteLine("HTML_PDF_EVIDENCE_ENGINES=" + engineReports.Count);
+        Console.WriteLine("HTML_PDF_EVIDENCE_OUTPUTS=" + engineReports.Sum(engine => engine.Outputs.Count));
+        Console.WriteLine("HTML_PDF_EVIDENCE_CANCELLATION=" + (cancellationPassed ? "Passed" : "Failed"));
+        return cancellationPassed ? 0 : 1;
+    }
+
+    private static async Task<HtmlPdfEngineEvidence> RunEngineAsync(
+        HtmlPdfComparisonEngine engine,
+        string html,
+        PdfBenchmarkScenario scenario,
+        int iterations,
+        string outputDirectory,
+        ExternalPdfRasterizer? rasterizer) {
+        var outputs = new List<HtmlPdfOutputEvidence>(iterations);
+        if (engine == HtmlPdfComparisonEngine.Chromium) {
+            await using HtmlBrowserSession session = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
+            for (int iteration = 1; iteration <= iterations; iteration++) {
+                outputs.Add(await RenderOnceAsync(
+                    engine,
+                    iteration,
+                    outputDirectory,
+                    scenario,
+                    rasterizer,
+                    token => HtmlPdfComparisonRenderers.RenderChromiumAsync(session, html, token)).ConfigureAwait(false));
+            }
+        } else {
+            for (int iteration = 1; iteration <= iterations; iteration++) {
+                outputs.Add(await RenderOnceAsync(
+                    engine,
+                    iteration,
+                    outputDirectory,
+                    scenario,
+                    rasterizer,
+                    _ => Task.FromResult(HtmlPdfComparisonRenderers.RenderManaged(engine, html))).ConfigureAwait(false));
+            }
+        }
+
+        HtmlPdfCancellationEvidence cancellation = engine == HtmlPdfComparisonEngine.Chromium
+            ? await ProbeChromiumCancellationAsync(html).ConfigureAwait(false)
+            : new HtmlPdfCancellationEvidence(
+                ApiSupportsCancellation: false,
+                Status: "Unsupported",
+                Detail: "The compared public conversion entry point does not accept a CancellationToken.");
+        string[] externalVisualHashes = outputs
+            .Select(output => output.ExternalVisual?.Sha256)
+            .Where(hash => hash != null)
+            .Cast<string>()
+            .ToArray();
+
+        return new HtmlPdfEngineEvidence(
+            Engine: engine.ToString(),
+            Owner: Owner(engine),
+            AssemblyVersion: AssemblyVersion(engine),
+            ExecutionKind: engine == HtmlPdfComparisonEngine.Chromium ? "Chromium through HtmlTinkerX" : "Managed in-process",
+            Cancellation: cancellation,
+            Determinism: new HtmlPdfDeterminismEvidence(
+                ExactBytesIdentical: outputs.Select(output => output.Sha256).Distinct(StringComparer.Ordinal).Count() == 1,
+                SemanticOutputIdentical: outputs.Select(output => output.SemanticSha256).Distinct(StringComparer.Ordinal).Count() == 1,
+                ManagedVisualPreviewIdentical: outputs.Select(output => output.ManagedVisual.Sha256).Distinct(StringComparer.Ordinal).Count() == 1,
+                ExternalVisualPreviewIdentical: externalVisualHashes.Length == outputs.Count
+                    ? externalVisualHashes.Distinct(StringComparer.Ordinal).Count() == 1
+                    : null,
+                UniqueByteHashCount: outputs.Select(output => output.Sha256).Distinct(StringComparer.Ordinal).Count(),
+                UniqueSemanticHashCount: outputs.Select(output => output.SemanticSha256).Distinct(StringComparer.Ordinal).Count(),
+                UniqueManagedVisualHashCount: outputs.Select(output => output.ManagedVisual.Sha256).Distinct(StringComparer.Ordinal).Count(),
+                UniqueExternalVisualHashCount: externalVisualHashes.Length == outputs.Count
+                    ? externalVisualHashes.Distinct(StringComparer.Ordinal).Count()
+                    : null),
+            MemoryScope: engine == HtmlPdfComparisonEngine.Chromium
+                ? "Benchmark host process only; Chromium child-process memory is excluded."
+                : "Benchmark host process containing the in-process renderer.",
+            MemoryComparable: false,
+            Outputs: outputs);
+    }
+
+    private static async Task<HtmlPdfOutputEvidence> RenderOnceAsync(
+        HtmlPdfComparisonEngine engine,
+        int iteration,
+        string outputDirectory,
+        PdfBenchmarkScenario scenario,
+        ExternalPdfRasterizer? rasterizer,
+        Func<CancellationToken, Task<byte[]>> render) {
+        long allocatedBefore = GC.GetTotalAllocatedBytes(precise: false);
+        var stopwatch = Stopwatch.StartNew();
+        byte[] bytes;
+        var memory = new HostProcessMemorySampler();
+        await using (memory.ConfigureAwait(false)) {
+            bytes = await render(CancellationToken.None).ConfigureAwait(false);
+        }
+        stopwatch.Stop();
+        long allocatedAfter = GC.GetTotalAllocatedBytes(precise: false);
+
+        PdfReadObservation observation = PdfBenchmarkValidation.ValidateGenerated(bytes, scenario, engine.ToString());
+        PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine.ToString(), scenario.PageCount);
+        PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
+        PdfTaggedContentInfo tagged = info.TaggedContent
+            ?? throw new InvalidDataException($"{engine} did not expose tagged-content evidence.");
+
+        string fileName = EngineFileName(engine) + "-" + iteration.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + ".pdf";
+        string outputPath = Path.Combine(outputDirectory, fileName);
+        await File.WriteAllBytesAsync(outputPath, bytes).ConfigureAwait(false);
+
+        PdfPageRenderResult visual = OfficeIMO.Pdf.PdfDocument.Open(bytes).Read.RenderPages(
+            "1",
+            new PdfPageRenderOptions {
+                Format = PdfPageRenderFormat.Png,
+                Dpi = 120D,
+                ContinueOnError = false,
+                MaxPages = 1
+            }).Single();
+        byte[] visualBytes = visual.Bytes
+            ?? throw new InvalidDataException($"{engine} page-one visual preview did not render.");
+        string visualFileName = Path.GetFileNameWithoutExtension(fileName) + "-page-1.png";
+        await File.WriteAllBytesAsync(Path.Combine(outputDirectory, visualFileName), visualBytes).ConfigureAwait(false);
+        HtmlPdfVisualEvidence? externalVisual = rasterizer == null
+            ? null
+            : await rasterizer.RenderFirstPageAsync(
+                outputPath,
+                outputDirectory,
+                Path.GetFileNameWithoutExtension(fileName) + "-page-1-poppler").ConfigureAwait(false);
+
+        var structureTypeCounts = tagged.StructureTypeCounts
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        string semantic = string.Join("|", new[] {
+            observation.PageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            observation.TextLength.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            observation.ReportMarkerCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            observation.CharacterChecksum.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Sha256(Encoding.UTF8.GetBytes(observation.NormalizedText)),
+            tagged.Marked.ToString(),
+            info.CatalogLanguage ?? string.Empty,
+            tagged.LanguageElementCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            tagged.StructureElementCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            tagged.MarkedContentReferenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            string.Join(",", structureTypeCounts.Select(pair => pair.Key + ":" + pair.Value))
+        });
+
+        return new HtmlPdfOutputEvidence(
+            Iteration: iteration,
+            RelativePath: fileName,
+            DurationMilliseconds: stopwatch.Elapsed.TotalMilliseconds,
+            SizeBytes: bytes.LongLength,
+            Sha256: Sha256(bytes),
+            SemanticSha256: Sha256(Encoding.UTF8.GetBytes(semantic)),
+            ManagedAllocatedBytes: Math.Max(0L, allocatedAfter - allocatedBefore),
+            HostWorkingSetBeforeBytes: memory.BeforeBytes,
+            HostWorkingSetAfterBytes: memory.AfterBytes,
+            HostPeakWorkingSetBytes: memory.PeakBytes,
+            Contract: new HtmlPdfContractEvidence(
+                observation.PageCount,
+                observation.TextLength,
+                observation.ReportMarkerCount,
+                observation.CharacterChecksum,
+                info.HasTaggedContent,
+                tagged.Marked == true,
+                info.CatalogLanguage,
+                tagged.LanguageElementCount,
+                tagged.StructureElementCount,
+                tagged.MarkedContentReferenceCount,
+                tagged.ParentTreeEntryCount,
+                tagged.HasDocumentStructureElement,
+                tagged.FiguresHaveAlternateText,
+                structureTypeCounts),
+            ManagedVisual: new HtmlPdfVisualEvidence(
+                Renderer: "OfficeIMO.Pdf managed page renderer",
+                RelativePath: visualFileName,
+                PageNumber: visual.PageNumber,
+                Width: visual.Width,
+                Height: visual.Height,
+                SizeBytes: visualBytes.LongLength,
+                Sha256: Sha256(visualBytes),
+                Diagnostics: visual.Diagnostics),
+            ExternalVisual: externalVisual);
+    }
+
+    private static async Task<HtmlPdfCancellationEvidence> ProbeChromiumCancellationAsync(string html) {
+        try {
+            await using HtmlBrowserSession session = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
+            await HtmlPdfComparisonRenderers.PrepareChromiumPageAsync(session, html).ConfigureAwait(false);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            try {
+                _ = await HtmlPdfComparisonRenderers.CaptureChromiumPageAsync(session, cancellation.Token).ConfigureAwait(false);
+                return new HtmlPdfCancellationEvidence(true, "Failed", "A pre-cancelled Chromium PDF request completed instead of cancelling.");
+            } catch (OperationCanceledException) {
+                return new HtmlPdfCancellationEvidence(true, "Passed", "A pre-cancelled Chromium PDF request was rejected through HtmlTinkerX.");
+            }
+        } catch (Exception exception) {
+            return new HtmlPdfCancellationEvidence(true, "Failed", exception.GetType().Name + ": " + exception.Message);
+        }
+    }
+
+    private static PdfBenchmarkScale ReadScale(string[] args) {
+        string? value = ReadOption(args, "--scale");
+        if (value == null) return PdfBenchmarkScale.Easy;
+        if (Enum.TryParse(value, ignoreCase: true, out PdfBenchmarkScale scale) && Enum.IsDefined(scale)) return scale;
+        throw new ArgumentException("--scale must be Easy, Medium, or High.");
+    }
+
+    private static int ReadIterations(string[] args) {
+        string? value = ReadOption(args, "--iterations");
+        if (value == null) return 3;
+        if (int.TryParse(value, out int iterations) && iterations >= MinimumIterations && iterations <= MaximumIterations) return iterations;
+        throw new ArgumentException($"--iterations must be between {MinimumIterations} and {MaximumIterations}.");
+    }
+
+    private static string ResolveOutputDirectory(string[] args) {
+        string? configured = ReadOption(args, "--output");
+        if (!string.IsNullOrWhiteSpace(configured)) return Path.GetFullPath(configured);
+        return Path.Combine(FindRepositoryRoot(), "Ignore", "Benchmarks", "HtmlPdfEvidence", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
+    }
+
+    private static string? ReadOption(string[] args, string option) {
+        for (int index = 1; index < args.Length; index++) {
+            if (!string.Equals(args[index], option, StringComparison.OrdinalIgnoreCase)) continue;
+            if (index == args.Length - 1 || args[index + 1].StartsWith("--", StringComparison.Ordinal)) {
+                throw new ArgumentException(option + " requires a value.");
+            }
+            return args[index + 1];
+        }
+        return null;
+    }
+
+    private static void ValidateArguments(string[] args) {
+        for (int index = 1; index < args.Length; index++) {
+            string argument = args[index];
+            if (string.Equals(argument, "--help", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(argument, "--require-external-rasterizer", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(argument, "--require-clean-source", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+            if (string.Equals(argument, "--output", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(argument, "--scale", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(argument, "--iterations", StringComparison.OrdinalIgnoreCase)) {
+                if (index == args.Length - 1 || args[index + 1].StartsWith("--", StringComparison.Ordinal)) {
+                    throw new ArgumentException(argument + " requires a value.");
+                }
+                index++;
+                continue;
+            }
+            throw new ArgumentException("Unknown html-evidence option: " + argument);
+        }
+    }
+
+    private static string FindRepositoryRoot() {
+        string? current = Directory.GetCurrentDirectory();
+        while (!string.IsNullOrWhiteSpace(current)) {
+            if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+            current = Directory.GetParent(current)?.FullName;
+        }
+        throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
+    }
+
+    private static string Owner(HtmlPdfComparisonEngine engine) => engine switch {
+        HtmlPdfComparisonEngine.OfficeIMO => "OfficeIMO.Html.Pdf",
+        HtmlPdfComparisonEngine.PeachPDF => "PeachPDF",
+        HtmlPdfComparisonEngine.ITextPdfHtml => "iText pdfHTML",
+        HtmlPdfComparisonEngine.Chromium => "HtmlTinkerX",
+        _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, null)
+    };
+
+    private static string EngineFileName(HtmlPdfComparisonEngine engine) => engine switch {
+        HtmlPdfComparisonEngine.OfficeIMO => "officeimo",
+        HtmlPdfComparisonEngine.PeachPDF => "peachpdf",
+        HtmlPdfComparisonEngine.ITextPdfHtml => "itext-pdfhtml",
+        HtmlPdfComparisonEngine.Chromium => "chromium-htmltinkerx",
+        _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, null)
+    };
+
+    private static string AssemblyVersion(HtmlPdfComparisonEngine engine) {
+        Assembly assembly = engine switch {
+            HtmlPdfComparisonEngine.OfficeIMO => typeof(OfficeIMO.Html.Pdf.HtmlPdfSaveOptions).Assembly,
+            HtmlPdfComparisonEngine.PeachPDF => typeof(PeachPDF.PdfGenerator).Assembly,
+            HtmlPdfComparisonEngine.ITextPdfHtml => typeof(iText.Html2pdf.HtmlConverter).Assembly,
+            HtmlPdfComparisonEngine.Chromium => typeof(HtmlBrowser).Assembly,
+            _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, null)
+        };
+        return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? assembly.GetName().Version?.ToString()
+            ?? "unknown";
+    }
+
+    private static async Task<HtmlPdfEvidenceProvenance> ReadProvenanceAsync(string repositoryRoot) {
+        GitSourceState? officeImo = await SourceProvenanceReader.ReadGitStateAsync(repositoryRoot).ConfigureAwait(false);
+        string? htmlTinkerXProjectPath = Environment.GetEnvironmentVariable("HTMLTINKERX_PROJECT_PATH");
+        bool htmlTinkerXSourceConfigured = !string.IsNullOrWhiteSpace(htmlTinkerXProjectPath);
+        GitSourceState? htmlTinkerX = !htmlTinkerXSourceConfigured
+            ? null
+            : await SourceProvenanceReader.ReadGitStateAsync(Path.GetDirectoryName(Path.GetFullPath(htmlTinkerXProjectPath!))!).ConfigureAwait(false);
+        return new HtmlPdfEvidenceProvenance(
+            OfficeIMO: new HtmlPdfSourceReference(
+                Kind: "source",
+                Version: AssemblyVersion(HtmlPdfComparisonEngine.OfficeIMO),
+                Commit: officeImo?.Commit,
+                WorktreeClean: officeImo?.IsClean),
+            HtmlTinkerX: new HtmlPdfSourceReference(
+                Kind: htmlTinkerXSourceConfigured ? "source" : "package",
+                Version: AssemblyVersion(HtmlPdfComparisonEngine.Chromium),
+                Commit: htmlTinkerX?.Commit,
+                WorktreeClean: htmlTinkerX?.IsClean));
+    }
+
+    private static void ValidateCleanSource(HtmlPdfEvidenceProvenance provenance) {
+        if (provenance.OfficeIMO.Commit == null || provenance.OfficeIMO.WorktreeClean != true) {
+            throw new InvalidOperationException("Clean, commit-addressable OfficeIMO source is required for this evidence run.");
+        }
+        if (string.Equals(provenance.HtmlTinkerX.Kind, "source", StringComparison.Ordinal) &&
+            (provenance.HtmlTinkerX.Commit == null || provenance.HtmlTinkerX.WorktreeClean != true)) {
+            throw new InvalidOperationException("Clean, commit-addressable HtmlTinkerX source is required for this evidence run.");
+        }
+    }
+
+    private static string Sha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+    private static void WriteHelp() {
+        Console.WriteLine("html-evidence --output <directory> [--scale Easy|Medium|High] [--iterations 2-10] [--require-external-rasterizer] [--require-clean-source]");
+        Console.WriteLine("Generates equivalent four-engine PDFs and machine-readable correctness, tagging, size, repeatability, cancellation, and diagnostic host-memory evidence.");
+    }
+}

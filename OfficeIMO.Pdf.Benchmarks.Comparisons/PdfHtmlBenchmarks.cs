@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using HtmlTinkerX;
-using Microsoft.Playwright;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
@@ -30,7 +29,7 @@ public class PdfHtmlBenchmarks {
     [GlobalSetup(Target = nameof(Chromium))]
     public async Task SetupChromium() {
         InitializeScenario();
-        _browserSession = await HtmlBrowser.OpenSessionAsync("about:blank").ConfigureAwait(false);
+        _browserSession = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
     }
 
     private void InitializeScenario() {
@@ -40,37 +39,21 @@ public class PdfHtmlBenchmarks {
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() =>
-        _officeImoResult = OfficeImoPdfGenerator.GenerateHtml(_html);
+        _officeImoResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.OfficeIMO, _html);
 
     [Benchmark]
     public byte[] PeachPDF() =>
-        _peachPdfResult = PeachPdfGenerator.Generate(_html);
+        _peachPdfResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.PeachPDF, _html);
 
     [Benchmark]
     public byte[] ITextPdfHtml() =>
-        _iTextPdfHtmlResult = ITextPdfHtmlGenerator.Generate(_html);
+        _iTextPdfHtmlResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.ITextPdfHtml, _html);
 
     [Benchmark]
     public async Task<byte[]> Chromium() {
         HtmlBrowserSession session = _browserSession
             ?? throw new InvalidOperationException("The HtmlTinkerX Chromium session was not initialized.");
-        await session.Page.SetContentAsync(
-            _html,
-            new PageSetContentOptions { WaitUntil = WaitUntilState.Load }).ConfigureAwait(false);
-        _chromiumResult = await HtmlBrowser.GetPagePdfAsync(session.Page,
-#if HTMLTINKERX_SOURCE
-            new HtmlBrowserPdfOptions(
-                printBackground: true,
-                format: HtmlTinkerX.PdfPageFormat.A4,
-                preferCssPageSize: true,
-                tagged: true)
-#else
-            printBackground: true,
-            format: HtmlTinkerX.PdfPageFormat.A4,
-            preferCssPageSize: true,
-            tagged: true
-#endif
-        ).ConfigureAwait(false);
+        _chromiumResult = await HtmlPdfComparisonRenderers.RenderChromiumAsync(session, _html).ConfigureAwait(false);
         return _chromiumResult;
     }
 
@@ -101,7 +84,7 @@ public class PdfHtmlBenchmarks {
         }
 
         PdfReadObservation observation = PdfBenchmarkValidation.ValidateGenerated(bytes, _scenario, engine);
-        PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine);
+        PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine, _scenario.PageCount);
         Console.WriteLine(
             $"HTML_PDF_EVIDENCE engine={engine} scale={_scenario.Scale} htmlBytes={System.Text.Encoding.UTF8.GetByteCount(_html)} " +
             $"pdfBytes={bytes.Length} pages={observation.PageCount} textLength={observation.TextLength}");

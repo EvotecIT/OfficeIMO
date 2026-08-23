@@ -26,14 +26,25 @@ internal static class PdfBenchmarkValidation {
         return observation;
     }
 
-    internal static void ValidateTaggedStructure(byte[] bytes, string engine) {
+    internal static void ValidateTaggedStructure(byte[] bytes, string engine, int expectedPageCount) {
         PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
         PdfTaggedContentInfo? tagged = info.TaggedContent;
         if (!info.HasTaggedContent ||
             tagged == null ||
+            !string.Equals(info.CatalogLanguage, "en-US", StringComparison.OrdinalIgnoreCase) ||
+            tagged.Marked != true ||
             tagged.StructureElements.Count == 0 ||
-            tagged.MarkedContentReferenceCount == 0) {
-            throw new InvalidDataException($"{engine} did not preserve a non-empty tagged structure tree.");
+            tagged.MarkedContentReferenceCount == 0 ||
+            !tagged.HasDocumentStructureElement ||
+            tagged.ParentTreeEntryCount < expectedPageCount ||
+            !tagged.FiguresHaveAlternateText) {
+            throw new InvalidDataException($"{engine} did not preserve a complete tagged-document structure tree.");
+        }
+
+        foreach (string requiredType in new[] { "H1", "P", "Table", "TR", "TH", "TD" }) {
+            if (!tagged.StructureTypeCounts.TryGetValue(requiredType, out int count) || count == 0) {
+                throw new InvalidDataException($"{engine} did not preserve required {requiredType} accessibility structure.");
+            }
         }
     }
 
