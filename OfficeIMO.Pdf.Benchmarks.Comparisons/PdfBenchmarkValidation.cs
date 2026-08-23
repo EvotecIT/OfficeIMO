@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Pdf;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
@@ -23,6 +24,17 @@ internal static class PdfBenchmarkValidation {
         PdfReadObservation observation = ReadWithPdfPig(bytes);
         ValidateRead(observation, scenario, engine);
         return observation;
+    }
+
+    internal static void ValidateTaggedStructure(byte[] bytes, string engine) {
+        PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
+        PdfTaggedContentInfo? tagged = info.TaggedContent;
+        if (!info.HasTaggedContent ||
+            tagged == null ||
+            tagged.StructureElements.Count == 0 ||
+            tagged.MarkedContentReferenceCount == 0) {
+            throw new InvalidDataException($"{engine} did not preserve a non-empty tagged structure tree.");
+        }
     }
 
     internal static void ValidateRead(PdfReadObservation observation, PdfBenchmarkScenario scenario, string engine) {

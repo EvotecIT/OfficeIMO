@@ -32,4 +32,13 @@ if ($mixedComparison.Count -ne 1 -or
     throw 'The mixed benchmark plan no longer publishes eligible library-comparison evidence.'
 }
 
+$pdfHtml = @(
+    & $runner -Workload pdfhtml -RunMode quick -PlanOnly
+)
+if ($pdfHtml.Count -ne 1 -or
+    $pdfHtml[0].ComparisonId -ne 'pdf-html-generation-net10.0' -or
+    $pdfHtml[0].ExpectedCaseCount -ne 12) {
+    throw 'The HTML-to-PDF comparison plan does not require all four engines at all three scales.'
+}
+
 Write-Host 'Library comparison runner policy verified for standalone and mixed PDF route-health selection.'

@@ -32,6 +32,7 @@ param(
         'pdfselect')]
     [string] $Workload = 'all',
     [string] $PdfCorpusRoot,
+    [string] $HtmlTinkerXRoot = $env:HTMLTINKERX_ROOT,
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [ValidateSet('net8.0', 'net10.0')]
@@ -51,6 +52,31 @@ if ($Publish -and $RunMode -ne 'full') {
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$htmlTinkerXProjectPath = $null
+$htmlTinkerXSourceRoot = $null
+$htmlTinkerXSourceCommit = $null
+$htmlTinkerXSourceDirty = $false
+if (-not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
+    $resolvedHtmlTinkerX = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HtmlTinkerXRoot)
+    $htmlTinkerXProjectPath = if ($resolvedHtmlTinkerX.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
+        $resolvedHtmlTinkerX
+    } else {
+        Join-Path $resolvedHtmlTinkerX 'Sources\HtmlTinkerX\HtmlTinkerX.csproj'
+    }
+    if (-not (Test-Path -LiteralPath $htmlTinkerXProjectPath -PathType Leaf)) {
+        throw "The HtmlTinkerX project was not found at '$htmlTinkerXProjectPath'."
+    }
+
+    $htmlTinkerXSourceRoot = (& git -C (Split-Path -Parent $htmlTinkerXProjectPath) rev-parse --show-toplevel).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($htmlTinkerXSourceRoot)) {
+        throw "Unable to resolve the HtmlTinkerX source root for '$htmlTinkerXProjectPath'."
+    }
+    $htmlTinkerXSourceCommit = (& git -C $htmlTinkerXSourceRoot rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($htmlTinkerXSourceCommit)) {
+        throw 'Unable to resolve the HtmlTinkerX source commit for benchmark provenance.'
+    }
+    $htmlTinkerXSourceDirty = @(& git -C $htmlTinkerXSourceRoot status --porcelain --untracked-files=normal).Count -gt 0
+}
 $affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
     $OutputRoot)
@@ -184,7 +210,7 @@ $definitions = [ordered]@{
         IdentityVariables = @('scale')
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High')) {
-                foreach ($engine in @('OfficeIMO', 'PeachPDF')) {
+                foreach ($engine in @('OfficeIMO', 'PeachPDF', 'ITextPdfHtml', 'Chromium')) {
                     "$engine|Scale=$scale"
                 }
             }
@@ -448,6 +474,7 @@ $executionPlan = @(
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog
             Publish = [bool] $Publish -and $willCatalog
+            ExpectedCaseCount = @($definition.ExpectedCases).Count
         }
     }
 )
@@ -488,6 +515,9 @@ $gitDirty = @(& git -C $repositoryRoot status --porcelain --untracked-files=norm
 if ($catalogEligible -and $gitDirty) {
     throw 'Cataloged benchmark evidence requires a clean Git worktree so the recorded source commit identifies the measured code exactly.'
 }
+if ($catalogEligible -and $htmlTinkerXSourceDirty) {
+    throw 'Cataloged browser benchmark evidence requires a clean HtmlTinkerX worktree so its recorded source commit identifies the measured code exactly.'
+}
 
 $measurements = [System.Collections.Generic.List[object]]::new()
 foreach ($name in $selected) {
@@ -502,6 +532,15 @@ foreach ($name in $selected) {
     }
     if ($null -ne $affinityLabel) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
+    }
+    if ($name -eq 'pdfhtml') {
+        if ($null -ne $htmlTinkerXSourceCommit) {
+            $provenanceMetadata['benchmark.browser.owner'] = 'HtmlTinkerX source'
+            $provenanceMetadata['benchmark.browser.sourceCommit'] = $htmlTinkerXSourceCommit
+        } else {
+            $provenanceMetadata['benchmark.browser.owner'] = 'HtmlTinkerX package'
+            $provenanceMetadata['benchmark.browser.packageVersion'] = '2.0.7'
+        }
     }
     $provenanceCapture = Start-BenchmarkProvenanceCapture `
         -SourceRoot $repositoryRoot `
@@ -532,14 +571,19 @@ foreach ($name in $selected) {
 
     Push-Location -LiteralPath $repositoryRoot
     $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
+    $previousHtmlTinkerXProjectPath = $env:HTMLTINKERX_PROJECT_PATH
     try {
         if ($name -eq 'pdfcorpusread') {
             $env:OFFICEIMO_PDF_CORPUS_ROOT = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PdfCorpusRoot)
+        }
+        if ($definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj') {
+            $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath
         }
         & dotnet @arguments
         $benchmarkExitCode = $LASTEXITCODE
     } finally {
         $env:OFFICEIMO_PDF_CORPUS_ROOT = $previousPdfCorpusRoot
+        $env:HTMLTINKERX_PROJECT_PATH = $previousHtmlTinkerXProjectPath
         Pop-Location
     }
     if ($benchmarkExitCode -ne 0) {
