@@ -62,6 +62,7 @@ foreach ($diagnostic in $pdfXDiagnostics) {
 }
 
 & "$PSScriptRoot/Test-LibraryComparisonRunnerContract.ps1"
+& "$PSScriptRoot/Test-HtmlPdfBenchmarkEvidence.ps1"
 & "$PSScriptRoot/Test-HtmlPdfBrowserPackages.ps1"
 & "$PSScriptRoot/Test-TypographyPackages.ps1" -RequireSixLabors
 

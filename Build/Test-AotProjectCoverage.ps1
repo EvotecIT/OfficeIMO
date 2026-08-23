@@ -48,9 +48,19 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.Drawing.SixLabors'
+        classification = 'managed-cross-platform'
+        evidence = 'The optional SixLabors font engine is validated through licensed managed package lanes; NativeAOT support is not advertised without a separately licensed native-publish proof.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Html.Pdf.Browser'
         classification = 'managed-cross-platform'
         evidence = 'The optional Chromium bridge builds and executes as managed code on supported operating systems; its HtmlTinkerX and Playwright browser runtime is not advertised as NativeAOT-compatible.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Html.Pdf.Workbench'
+        classification = 'managed-cross-platform'
+        evidence = 'The local ASP.NET Core workbench is validated as a managed browser-hosted tool and is not distributed or advertised as NativeAOT-compatible.'
     }
     [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'

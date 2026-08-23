@@ -54,7 +54,11 @@ try {
     dotnet restore $projectPath @properties --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
     if ($LASTEXITCODE -ne 0) { throw 'Packed typography consumer restore failed.' }
 
-    foreach ($framework in @('net8.0', 'net10.0')) {
+    dotnet build $projectPath --configuration Release --framework netstandard2.0 --no-restore @properties
+    if ($LASTEXITCODE -ne 0) { throw 'Packed typography consumer failed to compile on netstandard2.0.' }
+
+    $frameworks = if ($IsWindows) { @('net472', 'net8.0', 'net10.0') } else { @('net8.0', 'net10.0') }
+    foreach ($framework in $frameworks) {
         dotnet run --project $projectPath --configuration Release --framework $framework --no-restore @properties
         if ($LASTEXITCODE -ne 0) { throw "Packed typography consumer failed on $framework." }
     }
