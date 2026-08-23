@@ -304,10 +304,38 @@ public sealed class DrawingRasterEncodingTests {
 
         Assert.True(OfficeTiffCodec.TryDecode(chained, out OfficeRasterImage? firstPage));
         Assert.NotNull(firstPage);
+        Assert.True(OfficeTiffCodec.TryGetPageCount(chained, out int pageCount));
+        Assert.Equal(2, pageCount);
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            chained,
+            options: null,
+            out OfficeRasterImage? selectedPage,
+            out OfficeRasterDecodeInfo selectedInfo));
+        Assert.NotNull(selectedPage);
+        Assert.Equal(2, selectedInfo.FrameCount);
+        Assert.True(selectedInfo.AnimationDiscarded);
+
+        var rejectFrameLoss = new OfficeRasterDecodeOptions {
+            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+        };
+        Assert.False(OfficeRasterImageDecoder.TryDecode(
+            chained,
+            rejectFrameLoss,
+            out OfficeRasterImage? rejectedPage,
+            out OfficeRasterDecodeInfo rejectedInfo));
+        Assert.Null(rejectedPage);
+        Assert.Equal(2, rejectedInfo.FrameCount);
+
+        OfficeImageOptimizationResult optimization = OfficeImageOptimizer.Optimize(
+            chained,
+            new OfficeImageOptimizationRequest(1, 1) { KeepOriginalWhenNotSmaller = false });
+        Assert.Equal(OfficeImageOptimizationStatus.DecodeFailed, optimization.Status);
 
         byte[] cyclic = (byte[])first.Clone();
         WriteLittleEndian(cyclic, firstNextIfdPointerOffset, firstIfdOffset);
         Assert.False(OfficeTiffCodec.TryDecode(cyclic, out _));
+        Assert.False(OfficeTiffCodec.TryGetPageCount(cyclic, out _));
 
         byte[] truncated = chained.Take(chained.Length - 1).ToArray();
         Assert.False(OfficeTiffCodec.TryDecode(truncated, out OfficeRasterImage? partial));

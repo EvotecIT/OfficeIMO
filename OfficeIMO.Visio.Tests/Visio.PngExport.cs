@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.IO.Compression;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
@@ -2513,46 +2512,9 @@ namespace OfficeIMO.Tests {
             (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
 
         private static RgbaPng DecodeRgbaPng(byte[] bytes) {
-            AssertPngSignature(bytes);
-            int width = 0;
-            int height = 0;
-            using MemoryStream idat = new();
-            int offset = 8;
-            while (offset < bytes.Length) {
-                int length = ReadBigEndianInt32(bytes, offset);
-                string type = System.Text.Encoding.ASCII.GetString(bytes, offset + 4, 4);
-                int dataOffset = offset + 8;
-                if (type == "IHDR") {
-                    width = ReadBigEndianInt32(bytes, dataOffset);
-                    height = ReadBigEndianInt32(bytes, dataOffset + 4);
-                    Assert.Equal(8, bytes[dataOffset + 8]);
-                    Assert.Equal(6, bytes[dataOffset + 9]);
-                } else if (type == "IDAT") {
-                    idat.Write(bytes, dataOffset, length);
-                } else if (type == "IEND") {
-                    break;
-                }
-
-                offset = dataOffset + length + 4;
-            }
-
-            byte[] compressed = idat.ToArray();
-            using MemoryStream source = new(compressed, 2, compressed.Length - 6);
-            using DeflateStream deflate = new(source, CompressionMode.Decompress);
-            using MemoryStream inflated = new();
-            deflate.CopyTo(inflated);
-            byte[] scanlines = inflated.ToArray();
-            byte[] rgba = new byte[width * height * 4];
-            int sourceOffset = 0;
-            int targetOffset = 0;
-            for (int y = 0; y < height; y++) {
-                Assert.Equal(0, scanlines[sourceOffset++]);
-                Buffer.BlockCopy(scanlines, sourceOffset, rgba, targetOffset, width * 4);
-                sourceOffset += width * 4;
-                targetOffset += width * 4;
-            }
-
-            return new RgbaPng(width, height, rgba);
+            Assert.True(OfficePngReader.TryDecode(bytes, out OfficeRasterImage? decoded));
+            Assert.NotNull(decoded);
+            return new RgbaPng(decoded!.Width, decoded.Height, decoded.GetPixels());
         }
 
         private static byte[] RenderStyledItalicText(bool italic) {

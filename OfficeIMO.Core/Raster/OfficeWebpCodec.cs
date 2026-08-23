@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 
 namespace OfficeIMO.Drawing;
 
@@ -11,7 +10,7 @@ namespace OfficeIMO.Drawing;
 /// auditable implementation over compression efficiency while producing standards-compatible WebP.
 /// </remarks>
 public static class OfficeWebpCodec {
-    private const double MaximumDpi = 1000000D;
+    private const int LiteralHeaderBitCount = 1239;
 
     /// <summary>Returns whether the payload is a RIFF WebP container.</summary>
     public static bool IsWebp(byte[]? encodedBytes) =>
@@ -39,88 +38,87 @@ public static class OfficeWebpCodec {
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
         if (image.Height > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP height cannot exceed 16,384 pixels.");
 
-        byte[] pixels = image.GetPixels();
+        byte[] pixels = image.PixelBuffer;
         bool hasAlpha = HasTransparency(pixels);
-        byte[] payload;
-        using (var stream = new MemoryStream()) {
-            stream.WriteByte(0x2F);
-            var writer = new LsbBitWriter(stream);
-            writer.WriteBits((uint)(image.Width - 1), 14);
-            writer.WriteBits((uint)(image.Height - 1), 14);
-            writer.WriteBits(hasAlpha ? 1U : 0U, 1);
-            writer.WriteBits(0, 3);
+        int payloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
+        byte[]? exif = includeResolutionMetadata
+            ? CreateResolutionExif(image.Width, image.Height, dpiX, dpiY)
+            : null;
+        int paddedPayloadLength = checked(payloadLength + (payloadLength & 1));
+        int payloadOffset;
+        byte[] output;
+        if (exif == null) {
+            int fileLength = checked(20 + paddedPayloadLength);
+            output = new byte[fileLength];
+            WriteAscii(output, 0, "RIFF");
+            WriteUInt32(output, 4, fileLength - 8);
+            WriteAscii(output, 8, "WEBP");
+            WriteAscii(output, 12, "VP8L");
+            WriteUInt32(output, 16, payloadLength);
+            payloadOffset = 20;
+        } else {
+            int paddedExifLength = checked(exif.Length + (exif.Length & 1));
+            int fileLength = checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
+            output = new byte[fileLength];
+            WriteAscii(output, 0, "RIFF");
+            WriteUInt32(output, 4, fileLength - 8);
+            WriteAscii(output, 8, "WEBP");
+            WriteAscii(output, 12, "VP8X");
+            WriteUInt32(output, 16, 10);
+            output[20] = (byte)(0x08 | (hasAlpha ? 0x10 : 0x00));
+            WriteUInt24(output, 24, image.Width - 1);
+            WriteUInt24(output, 27, image.Height - 1);
 
-            writer.WriteBits(0, 1); // no transforms
-            writer.WriteBits(0, 1); // no color cache
-            writer.WriteBits(0, 1); // one Huffman code group for the whole image
+            const int vp8lChunkOffset = 30;
+            WriteAscii(output, vp8lChunkOffset, "VP8L");
+            WriteUInt32(output, vp8lChunkOffset + 4, payloadLength);
+            payloadOffset = vp8lChunkOffset + 8;
 
-            WriteLiteralTree(writer, 280);
-            WriteLiteralTree(writer, 256);
-            WriteLiteralTree(writer, 256);
-            WriteLiteralTree(writer, 256);
-            WriteSingleSymbolTree(writer);
-
-            for (int offset = 0; offset < pixels.Length; offset += 4) {
-                writer.WriteBits(ReverseByte(pixels[offset + 1]), 8); // green
-                writer.WriteBits(ReverseByte(pixels[offset]), 8);     // red
-                writer.WriteBits(ReverseByte(pixels[offset + 2]), 8); // blue
-                writer.WriteBits(ReverseByte(pixels[offset + 3]), 8); // alpha
-            }
-
-            writer.Flush();
-            payload = stream.ToArray();
+            int exifChunkOffset = payloadOffset + paddedPayloadLength;
+            WriteAscii(output, exifChunkOffset, "EXIF");
+            WriteUInt32(output, exifChunkOffset + 4, exif.Length);
+            Buffer.BlockCopy(exif, 0, output, exifChunkOffset + 8, exif.Length);
         }
 
-        return includeResolutionMetadata
-            ? BuildExtendedContainer(image.Width, image.Height, hasAlpha, payload, dpiX, dpiY)
-            : BuildSimpleContainer(payload);
-    }
-
-    private static byte[] BuildSimpleContainer(byte[] payload) {
-        int paddedPayloadLength = checked(payload.Length + (payload.Length & 1));
-        int fileLength = checked(20 + paddedPayloadLength);
-        byte[] output = new byte[fileLength];
-        WriteAscii(output, 0, "RIFF");
-        WriteUInt32(output, 4, fileLength - 8);
-        WriteAscii(output, 8, "WEBP");
-        WriteAscii(output, 12, "VP8L");
-        WriteUInt32(output, 16, payload.Length);
-        Buffer.BlockCopy(payload, 0, output, 20, payload.Length);
+        WriteLiteralPayload(output, payloadOffset, payloadLength, image.Width, image.Height, hasAlpha, pixels);
         return output;
     }
 
-    private static byte[] BuildExtendedContainer(
+    private static void WriteLiteralPayload(
+        byte[] output,
+        int payloadOffset,
+        int payloadLength,
         int width,
         int height,
         bool hasAlpha,
-        byte[] payload,
-        double dpiX,
-        double dpiY) {
-        byte[] exif = CreateResolutionExif(width, height, dpiX, dpiY);
-        int paddedPayloadLength = checked(payload.Length + (payload.Length & 1));
-        int paddedExifLength = checked(exif.Length + (exif.Length & 1));
-        int fileLength = checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
-        byte[] output = new byte[fileLength];
-        WriteAscii(output, 0, "RIFF");
-        WriteUInt32(output, 4, fileLength - 8);
-        WriteAscii(output, 8, "WEBP");
+        byte[] pixels) {
+        output[payloadOffset] = 0x2F;
+        var writer = new LsbBitWriter(output, payloadOffset + 1);
+        writer.WriteBits((uint)(width - 1), 14);
+        writer.WriteBits((uint)(height - 1), 14);
+        writer.WriteBits(hasAlpha ? 1U : 0U, 1);
+        writer.WriteBits(0, 3);
 
-        WriteAscii(output, 12, "VP8X");
-        WriteUInt32(output, 16, 10);
-        output[20] = (byte)(0x08 | (hasAlpha ? 0x10 : 0x00));
-        WriteUInt24(output, 24, width - 1);
-        WriteUInt24(output, 27, height - 1);
+        writer.WriteBits(0, 1); // no transforms
+        writer.WriteBits(0, 1); // no color cache
+        writer.WriteBits(0, 1); // one Huffman code group for the whole image
 
-        const int vp8lChunkOffset = 30;
-        WriteAscii(output, vp8lChunkOffset, "VP8L");
-        WriteUInt32(output, vp8lChunkOffset + 4, payload.Length);
-        Buffer.BlockCopy(payload, 0, output, vp8lChunkOffset + 8, payload.Length);
+        WriteLiteralTree(writer, 280);
+        WriteLiteralTree(writer, 256);
+        WriteLiteralTree(writer, 256);
+        WriteLiteralTree(writer, 256);
+        WriteSingleSymbolTree(writer);
 
-        int exifChunkOffset = vp8lChunkOffset + 8 + paddedPayloadLength;
-        WriteAscii(output, exifChunkOffset, "EXIF");
-        WriteUInt32(output, exifChunkOffset + 4, exif.Length);
-        Buffer.BlockCopy(exif, 0, output, exifChunkOffset + 8, exif.Length);
-        return output;
+        for (int offset = 0; offset < pixels.Length; offset += 4) {
+            writer.WriteBits(ReverseByte(pixels[offset + 1]), 8); // green
+            writer.WriteBits(ReverseByte(pixels[offset]), 8);     // red
+            writer.WriteBits(ReverseByte(pixels[offset + 2]), 8); // blue
+            writer.WriteBits(ReverseByte(pixels[offset + 3]), 8); // alpha
+        }
+        writer.Flush();
+        if (writer.BytesWritten != payloadOffset + payloadLength) {
+            throw new InvalidOperationException("The literal WebP payload length calculation is inconsistent.");
+        }
     }
 
     private static byte[] CreateResolutionExif(int width, int height, double dpiX, double dpiY) {
@@ -221,7 +219,7 @@ public static class OfficeWebpCodec {
             if (!reader.HasOnlyZeroPadding()) {
                 return false;
             }
-            image = OfficeRasterImage.FromRgba32(width, height, rgba);
+            image = OfficeRasterImage.FromOwnedRgba32(width, height, rgba);
             return true;
         } catch (FormatException) {
             return false;
@@ -366,7 +364,7 @@ public static class OfficeWebpCodec {
         if (dpi < OfficeRasterImageEncoder.WebpMinimumDpi ||
             double.IsNaN(dpi) ||
             double.IsInfinity(dpi) ||
-            dpi > MaximumDpi) {
+            dpi > OfficeRasterImageEncoder.WebpMaximumDpi) {
             throw new ArgumentOutOfRangeException(name, "WebP DPI must be finite and between 0.0001 and 1,000,000.");
         }
     }
@@ -382,13 +380,17 @@ public static class OfficeWebpCodec {
     }
 
     private sealed class LsbBitWriter {
-        private readonly Stream _stream;
+        private readonly byte[] _output;
+        private int _offset;
         private ulong _buffer;
         private int _bitCount;
 
-        public LsbBitWriter(Stream stream) {
-            _stream = stream;
+        public LsbBitWriter(byte[] output, int offset) {
+            _output = output;
+            _offset = offset;
         }
+
+        public int BytesWritten => _offset;
 
         public void WriteBits(uint value, int count) {
             if (count < 0 || count > 32) throw new ArgumentOutOfRangeException(nameof(count));
@@ -396,7 +398,7 @@ public static class OfficeWebpCodec {
             _buffer |= ((ulong)value & mask) << _bitCount;
             _bitCount += count;
             while (_bitCount >= 8) {
-                _stream.WriteByte((byte)_buffer);
+                WriteByte((byte)_buffer);
                 _buffer >>= 8;
                 _bitCount -= 8;
             }
@@ -404,10 +406,17 @@ public static class OfficeWebpCodec {
 
         public void Flush() {
             if (_bitCount > 0) {
-                _stream.WriteByte((byte)_buffer);
+                WriteByte((byte)_buffer);
                 _buffer = 0;
                 _bitCount = 0;
             }
+        }
+
+        private void WriteByte(byte value) {
+            if (_offset >= _output.Length) {
+                throw new InvalidOperationException("The literal WebP payload exceeded its computed length.");
+            }
+            _output[_offset++] = value;
         }
     }
 

@@ -11,6 +11,10 @@ param(
         'xlsx',
         'xlsxwrite',
         'xlsb',
+        'imagepngdecode',
+        'imagejpegdecode',
+        'imagepngencode',
+        'imageresize',
         'word',
         'wordcreate',
         'wordreport',
@@ -32,6 +36,7 @@ param(
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [ValidateSet('net8.0', 'net10.0')]
     [string] $PowerForgeFramework = 'net8.0',
+    [UInt64] $AffinityMask = 0,
     [switch] $AcceptNPOIOSMFLicense,
     [switch] $Publish,
     [switch] $PlanOnly
@@ -46,6 +51,7 @@ if ($Publish -and $RunMode -ne 'full') {
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
     $OutputRoot)
 $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
@@ -123,6 +129,38 @@ $definitions = [ordered]@{
         Suite = 'OfficeIMO.Excel.Xlsb.MarkPflug65K'
         IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
+    }
+    imagepngdecode = [pscustomobject]@{
+        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
+        Filter = '*ImagePngDecodeBenchmarks*'
+        ComparisonId = "image-png-decode-$Framework"
+        Suite = 'OfficeIMO.Drawing.PngDecode'
+        IdentityVariables = @()
+        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp')
+    }
+    imagejpegdecode = [pscustomobject]@{
+        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
+        Filter = '*ImageJpegDecodeBenchmarks*'
+        ComparisonId = "image-jpeg-decode-$Framework"
+        Suite = 'OfficeIMO.Drawing.JpegDecode'
+        IdentityVariables = @()
+        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp')
+    }
+    imagepngencode = [pscustomobject]@{
+        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
+        Filter = '*ImagePngEncodeBenchmarks*'
+        ComparisonId = "image-png-encode-$Framework"
+        Suite = 'OfficeIMO.Drawing.PngEncode'
+        IdentityVariables = @()
+        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET')
+    }
+    imageresize = [pscustomobject]@{
+        Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
+        Filter = '*ImageResizeBenchmarks*'
+        ComparisonId = "image-resize-$Framework"
+        Suite = 'OfficeIMO.Drawing.Resize'
+        IdentityVariables = @()
+        ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET')
     }
     pdfgenerate = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
@@ -462,6 +500,9 @@ foreach ($name in $selected) {
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
     }
+    if ($null -ne $affinityLabel) {
+        $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
+    }
     $provenanceCapture = Start-BenchmarkProvenanceCapture `
         -SourceRoot $repositoryRoot `
         -ArtifactRoot $artifactsPath `
@@ -484,6 +525,9 @@ foreach ($name in $selected) {
     )
     if ($RunMode -eq 'quick') {
         $arguments += @('--job', 'Dry')
+    }
+    if ($AffinityMask -ne 0) {
+        $arguments += @('--affinity', $AffinityMask.ToString([Globalization.CultureInfo]::InvariantCulture))
     }
 
     Push-Location -LiteralPath $repositoryRoot
@@ -583,6 +627,7 @@ $outputs = foreach ($measurement in $measurements) {
         Platform = $platform
         RunMode = $RunMode
         Publish = $executionPlanByWorkload[$measurement.Workload].Publish
+        AffinityMask = $affinityLabel
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
         NormalizedResult = if ($measurement.CatalogEligible) {

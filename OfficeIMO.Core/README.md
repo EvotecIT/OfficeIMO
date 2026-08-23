@@ -234,7 +234,30 @@ byte[] webp = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Web
 
 WebP output is deterministic, lossless VP8L. TIFF output is a single-page classic RGBA image with uncompressed, PackBits, or Deflate strips. JPEG uses the existing managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
 
-`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG, JPEG, classic 8-bit chunky grayscale/palette/RGB/RGBA/DeviceCMYK TIFF, uncompressed BMP, explicitly selected composited GIF frame, and OfficeIMO literal-lossless WebP decoders enforce encoded-payload and source-pixel guards. `OfficeRasterDecodeOptions` selects a GIF frame or rejects animated input, while `OfficeRasterDecodeInfo` reports the detected format, frame count, selected frame, success, and any discarded animation. TIFF accepts uncompressed, PackBits, and Deflate strips with horizontal prediction; LZW/JPEG, tiled, planar, floating-point, BigTIFF pixel data, and multi-page images remain outside the bounded profile. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
+### Optimize encoded images for a placement
+
+`OfficeImageOptimizer` resizes and re-encodes a static raster image for the pixel bounds where it will be used:
+
+```csharp
+using OfficeIMO.Drawing;
+
+byte[] source = File.ReadAllBytes("photo.jpg");
+var request = new OfficeImageOptimizationRequest(1200, 800) {
+    OutputFormat = OfficeImageFormat.Jpeg,
+    JpegQuality = 82,
+    JpegSubsampling = OfficeJpegSubsampling.Y420,
+    JpegProgressive = true,
+    JpegOptimizeHuffman = true
+};
+
+OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(source, request, "photo.jpg");
+File.WriteAllBytes("photo.optimized.jpg", result.Bytes);
+Console.WriteLine($"{result.Status}: {result.BytesSaved} bytes saved");
+```
+
+The request preserves aspect ratio, avoids upscaling, keeps the original when re-encoding is not smaller, and retains source DPI by default. Set `OutputDpiX` and `OutputDpiY` to override density. Output can be PNG, JPEG, TIFF, or WebP; use `PngCompression`, the JPEG quality/subsampling/progressive/Huffman settings, or `TiffCompression` for the selected format. The result reports whether bytes changed and exposes both original and final image metadata. Animated and multi-page input is rejected so optimization never silently drops frames or pages.
+
+`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG, JPEG, classic 8-bit chunky grayscale/palette/RGB/RGBA/DeviceCMYK TIFF, uncompressed BMP, explicitly selected composited GIF frame, and OfficeIMO literal-lossless WebP decoders enforce encoded-payload and source-pixel guards. `OfficeRasterDecodeOptions` selects a GIF frame or rejects multi-frame input, while `OfficeRasterDecodeInfo` reports the detected format, frame count, selected frame, success, and any discarded frames or pages. TIFF accepts uncompressed, PackBits, and Deflate strips with horizontal prediction. For a supported multi-page classic TIFF, the default frame-loss policy decodes the first page and reports the discarded pages; `RejectAnimated` rejects the container instead. LZW/JPEG, tiled, planar, floating-point, and BigTIFF pixel data remain outside the bounded profile. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
 
 Every format package builds on the same fluent export contract. `FitWithin(width, height)`, `FitWithinWidth(...)`, and `FitWithinHeight(...)` cap both raster and SVG output without enlarging smaller content. `ConfigureOptions(...)` exposes the complete provider-specific option object when no dedicated fluent shortcut exists. Batch limits, cancellation, progress, and `WithRenderTimeout(...)` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after a fluent builder materializes the complete result list.
 
