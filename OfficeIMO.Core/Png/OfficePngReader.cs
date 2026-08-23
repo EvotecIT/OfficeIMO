@@ -17,9 +17,18 @@ public static class OfficePngReader {
     /// Static PNG files report one frame.
     /// </summary>
     public static bool TryGetFrameCount(byte[]? bytes, out int frameCount) {
+        return TryGetFrameCount(bytes, CancellationToken.None, out frameCount);
+    }
+
+    internal static bool TryGetFrameCount(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        out int frameCount) {
         frameCount = 0;
         try {
-            return OfficePngContainerValidator.TryValidate(bytes, out frameCount, out _);
+            return OfficePngContainerValidator.TryValidate(bytes, cancellationToken, out frameCount, out _);
+        } catch (OperationCanceledException) {
+            throw;
         } catch {
             frameCount = 0;
             return false;
@@ -74,11 +83,16 @@ public static class OfficePngReader {
     }
 
     /// <summary>Validates that a PNG has a complete, bounded scanline payload without allocating an RGBA raster.</summary>
-    internal static bool TryValidateDecodedPayload(byte[] bytes) {
+    internal static bool TryValidateDecodedPayload(byte[] bytes) =>
+        TryValidateDecodedPayload(bytes, CancellationToken.None);
+
+    internal static bool TryValidateDecodedPayload(byte[] bytes, CancellationToken cancellationToken) {
         try {
-            if (!TryReadPayload(bytes, CancellationToken.None, out PngPayload payload)) return false;
-            if (!ValidatePayloadScanlines(payload)) return false;
-            return OfficePngAnimationValidator.TryValidateAdditionalFrames(bytes);
+            if (!TryReadPayload(bytes, cancellationToken, out PngPayload payload)) return false;
+            if (!ValidatePayloadScanlines(payload, cancellationToken)) return false;
+            return OfficePngAnimationValidator.TryValidateAdditionalFrames(bytes, cancellationToken);
+        } catch (OperationCanceledException) {
+            throw;
         } catch {
             return false;
         }
@@ -91,7 +105,8 @@ public static class OfficePngReader {
         int bitDepth,
         int colorType,
         int interlaceMethod,
-        byte[]? palette) {
+        byte[]? palette,
+        CancellationToken cancellationToken = default) {
         try {
             if (compressed == null || compressed.Length < 6 ||
                 !IsSupportedColorLayout(colorType, bitDepth, palette) ||
@@ -106,7 +121,8 @@ public static class OfficePngReader {
             int expectedScanlineBytes = interlaceMethod == 0
                 ? OfficeRasterGuards.EnsureByteCount((long)(stride + 1) * height, "PNG decompressed data exceeds size limits.")
                 : GetExpectedAdam7ScanlineBytes(width, height, bitsPerPixel);
-            byte[] scanlines = OfficeZlibCodec.Decompress(compressed, expectedScanlineBytes, expectedScanlineBytes);
+            byte[] scanlines = OfficeZlibCodec.Decompress(
+                compressed, expectedScanlineBytes, expectedScanlineBytes, cancellationToken);
             var payload = new PngPayload(
                 width,
                 height,
@@ -118,19 +134,24 @@ public static class OfficePngReader {
                 palette,
                 transparency: null,
                 scanlines);
-            return ValidatePayloadScanlines(payload);
+            return ValidatePayloadScanlines(payload, cancellationToken);
+        } catch (OperationCanceledException) {
+            throw;
         } catch {
             return false;
         }
     }
 
-    private static bool ValidatePayloadScanlines(PngPayload payload) {
-        if (payload.InterlaceMethod == 1) return ValidateAdam7Scanlines(payload);
-        return ValidateScanlines(payload, payload.Width, payload.Height, payload.Stride, 0, out int consumed) &&
+    private static bool ValidatePayloadScanlines(
+        PngPayload payload,
+        CancellationToken cancellationToken = default) {
+        if (payload.InterlaceMethod == 1) return ValidateAdam7Scanlines(payload, cancellationToken);
+        return ValidateScanlines(
+                   payload, payload.Width, payload.Height, payload.Stride, 0, cancellationToken, out int consumed) &&
                consumed == payload.Scanlines.Length;
     }
 
-    private static bool ValidateAdam7Scanlines(PngPayload payload) {
+    private static bool ValidateAdam7Scanlines(PngPayload payload, CancellationToken cancellationToken) {
         int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
         int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
         int[] stepX = { 8, 8, 4, 4, 2, 2, 1 };
@@ -144,18 +165,27 @@ public static class OfficePngReader {
             int stride = OfficeRasterGuards.EnsureByteCount(
                 (((long)passWidth * bitsPerPixel) + 7L) / 8L,
                 "PNG Adam7 scanline dimensions exceed size limits.");
-            if (!ValidateScanlines(payload, passWidth, passHeight, stride, sourceOffset, out int consumed)) return false;
+            if (!ValidateScanlines(
+                    payload, passWidth, passHeight, stride, sourceOffset, cancellationToken, out int consumed)) return false;
             sourceOffset = consumed;
         }
         return sourceOffset == payload.Scanlines.Length;
     }
 
-    private static bool ValidateScanlines(PngPayload payload, int width, int height, int stride, int sourceOffset, out int consumed) {
+    private static bool ValidateScanlines(
+        PngPayload payload,
+        int width,
+        int height,
+        int stride,
+        int sourceOffset,
+        CancellationToken cancellationToken,
+        out int consumed) {
         consumed = sourceOffset;
         if ((long)sourceOffset + ((long)stride + 1L) * height > payload.Scanlines.Length) return false;
         byte[] previous = new byte[stride];
         byte[] current = new byte[stride];
         for (int y = 0; y < height; y++) {
+            if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             int filter = payload.Scanlines[consumed++];
             Buffer.BlockCopy(payload.Scanlines, consumed, current, 0, stride);
             consumed += stride;
@@ -199,7 +229,8 @@ public static class OfficePngReader {
         CancellationToken cancellationToken,
         out PngPayload payload) {
         payload = null!;
-        if (bytes == null || !OfficePngContainerValidator.TryValidate(bytes, out _, out _)) return false;
+        if (bytes == null ||
+            !OfficePngContainerValidator.TryValidate(bytes, cancellationToken, out _, out _)) return false;
         cancellationToken.ThrowIfCancellationRequested();
 
         int width = 0;

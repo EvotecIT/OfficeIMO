@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -12,7 +13,14 @@ internal static class OfficePngContainerValidator {
     private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
-    internal static bool TryValidate(byte[]? bytes, out int frameCount, out string? failureReason) {
+    internal static bool TryValidate(byte[]? bytes, out int frameCount, out string? failureReason) =>
+        TryValidate(bytes, CancellationToken.None, out frameCount, out failureReason);
+
+    internal static bool TryValidate(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        out int frameCount,
+        out string? failureReason) {
         frameCount = 0;
         failureReason = null;
         if (bytes == null || bytes.Length < 33 || !HasSignature(bytes)) {
@@ -48,6 +56,7 @@ internal static class OfficePngContainerValidator {
             long decodedTextBytes = 0;
             int offset = Signature.Length;
             while (offset + 12 <= bytes.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int length = ReadBigEndianInt32(bytes, offset);
                 long chunkEnd = (long)offset + 12L + length;
                 if (length < 0 || chunkEnd > bytes.Length) {
@@ -66,7 +75,7 @@ internal static class OfficePngContainerValidator {
                 }
 
                 uint expectedCrc = ReadBigEndianUInt32(bytes, offset + 8 + length);
-                uint actualCrc = ComputeCrc(bytes, offset + 4, 4 + length);
+                uint actualCrc = ComputeCrc(bytes, offset + 4, 4 + length, cancellationToken);
                 if (actualCrc != expectedCrc) {
                     failureReason = "PNG chunk '" + type + "' has an invalid CRC.";
                     return false;
@@ -198,28 +207,31 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "iCCP":
                         if (!seenHeader || seenPalette || seenImageData || seenIccProfile || seenStandardRgb ||
-                            !HasValidIccProfile(bytes, dataOffset, length)) {
+                            !HasValidIccProfile(bytes, dataOffset, length, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid or misplaced iCCP chunk.";
                             return false;
                         }
                         seenIccProfile = true;
                         break;
                     case "tEXt":
-                        if (!seenHeader || !HasValidLatinText(bytes, dataOffset, length, ref decodedTextBytes)) {
+                        if (!seenHeader || !HasValidLatinText(
+                                bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid tEXt chunk.";
                             return false;
                         }
                         if (seenImageData) imageDataEnded = true;
                         break;
                     case "zTXt":
-                        if (!seenHeader || !HasValidCompressedText(bytes, dataOffset, length, ref decodedTextBytes)) {
+                        if (!seenHeader || !HasValidCompressedText(
+                                bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid zTXt chunk.";
                             return false;
                         }
                         if (seenImageData) imageDataEnded = true;
                         break;
                     case "iTXt":
-                        if (!seenHeader || !HasValidInternationalText(bytes, dataOffset, length, ref decodedTextBytes)) {
+                        if (!seenHeader || !HasValidInternationalText(
+                                bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid iTXt chunk.";
                             return false;
                         }
@@ -421,7 +433,11 @@ internal static class OfficePngContainerValidator {
         return true;
     }
 
-    private static bool HasValidIccProfile(byte[] bytes, int offset, int length) {
+    private static bool HasValidIccProfile(
+        byte[] bytes,
+        int offset,
+        int length,
+        CancellationToken cancellationToken) {
         if (length < 9 || !TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int compressionMethodOffset = keywordEnd + 1;
         if (compressionMethodOffset >= offset + length || bytes[compressionMethodOffset] != 0) return false;
@@ -433,7 +449,8 @@ internal static class OfficePngContainerValidator {
         try {
             byte[] profile = OfficeZlibCodec.Decompress(
                 compressed,
-                OfficeRasterGuards.MaximumEncodedBytes);
+                OfficeRasterGuards.MaximumEncodedBytes,
+                cancellationToken: cancellationToken);
             return OfficeIccProfileValidator.TryValidate(profile, 0, profile.Length);
         } catch (Exception exception) when (
             exception is ArgumentException ||
@@ -450,11 +467,13 @@ internal static class OfficePngContainerValidator {
         byte[] bytes,
         int offset,
         int length,
-        ref long decodedTextBytes) {
+        ref long decodedTextBytes,
+        CancellationToken cancellationToken) {
         if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int textOffset = keywordEnd + 1;
         int textLength = offset + length - textOffset;
         for (int index = 0; index < textLength; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (bytes[textOffset + index] == 0) return false;
         }
         return TryAddDecodedTextBytes(ref decodedTextBytes, textLength);
@@ -464,7 +483,8 @@ internal static class OfficePngContainerValidator {
         byte[] bytes,
         int offset,
         int length,
-        ref long decodedTextBytes) {
+        ref long decodedTextBytes,
+        CancellationToken cancellationToken) {
         if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int methodOffset = keywordEnd + 1;
         if (methodOffset >= offset + length || bytes[methodOffset] != 0) return false;
@@ -473,14 +493,16 @@ internal static class OfficePngContainerValidator {
             methodOffset + 1,
             offset + length - methodOffset - 1,
             ref decodedTextBytes,
-            requireUtf8: false);
+            requireUtf8: false,
+            cancellationToken);
     }
 
     private static bool HasValidInternationalText(
         byte[] bytes,
         int offset,
         int length,
-        ref long decodedTextBytes) {
+        ref long decodedTextBytes,
+        CancellationToken cancellationToken) {
         if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int end = offset + length;
         int flagOffset = keywordEnd + 1;
@@ -498,7 +520,8 @@ internal static class OfficePngContainerValidator {
         int textOffset = translatedEnd + 1;
         int textLength = end - textOffset;
         if (bytes[flagOffset] == 1) {
-            return TryInflateText(bytes, textOffset, textLength, ref decodedTextBytes, requireUtf8: true);
+            return TryInflateText(
+                bytes, textOffset, textLength, ref decodedTextBytes, requireUtf8: true, cancellationToken);
         }
         return HasValidUtf8(bytes, textOffset, textLength) &&
                TryAddDecodedTextBytes(ref decodedTextBytes, textLength);
@@ -509,12 +532,14 @@ internal static class OfficePngContainerValidator {
         int offset,
         int length,
         ref long decodedTextBytes,
-        bool requireUtf8) {
+        bool requireUtf8,
+        CancellationToken cancellationToken) {
         if (length < 6) return false;
         var compressed = new byte[length];
         Buffer.BlockCopy(bytes, offset, compressed, 0, length);
         try {
-            byte[] text = OfficeZlibCodec.Decompress(compressed, MaximumPngTextBytes);
+            byte[] text = OfficeZlibCodec.Decompress(
+                compressed, MaximumPngTextBytes, cancellationToken: cancellationToken);
             return (!requireUtf8 || HasValidUtf8(text, 0, text.Length)) &&
                    TryAddDecodedTextBytes(ref decodedTextBytes, text.Length);
         } catch (Exception exception) when (
@@ -614,9 +639,14 @@ internal static class OfficePngContainerValidator {
         return true;
     }
 
-    private static uint ComputeCrc(byte[] bytes, int offset, int count) {
+    private static uint ComputeCrc(
+        byte[] bytes,
+        int offset,
+        int count,
+        CancellationToken cancellationToken) {
         uint crc = 0xFFFFFFFFU;
         for (int index = 0; index < count; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             crc ^= bytes[offset + index];
             for (int bit = 0; bit < 8; bit++) {
                 crc = (crc & 1U) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;

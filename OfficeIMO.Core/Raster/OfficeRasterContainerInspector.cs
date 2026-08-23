@@ -156,7 +156,8 @@ public static class OfficeRasterContainerInspector {
         OfficeRasterDecodeOptions options,
         out OfficeRasterContainerInfo? container) {
         container = null;
-        if (!OfficePngReader.TryGetFrameCount(bytes, out int frameCount)) return false;
+        if (!OfficePngReader.TryGetFrameCount(
+                bytes, options.CancellationToken, out int frameCount)) return false;
         if (frameCount <= 1) {
             container = CreateStatic(imageInfo);
             return true;

@@ -240,6 +240,17 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void ApngSecondaryFrameValidationObservesCancellation() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] apng = CreateTwoFrameApng(png);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficePngAnimationValidator.TryValidateAdditionalFrames(apng, cancellation.Token));
+    }
+
+    [Fact]
     public void RasterDecoderComposesExplicitlySelectedApngFrames() {
         OfficeColor expected = OfficeColor.FromRgba(32, 96, 224, 128);
         byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, expected));

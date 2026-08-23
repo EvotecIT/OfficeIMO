@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -8,7 +9,9 @@ namespace OfficeIMO.Drawing;
 internal static class OfficePngAnimationValidator {
     private const int SignatureLength = 8;
 
-    internal static bool TryValidateAdditionalFrames(byte[] bytes) {
+    internal static bool TryValidateAdditionalFrames(
+        byte[] bytes,
+        CancellationToken cancellationToken = default) {
         try {
             int canvasWidth = 0;
             int canvasHeight = 0;
@@ -26,6 +29,7 @@ internal static class OfficePngAnimationValidator {
 
             int offset = SignatureLength;
             while (offset + 12 <= bytes.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int length = ReadBigEndianInt32(bytes, offset);
                 int dataOffset = offset + 8;
                 string type = Encoding.ASCII.GetString(bytes, offset + 4, 4);
@@ -48,7 +52,8 @@ internal static class OfficePngAnimationValidator {
                     case "fcTL":
                         if (!seenAnimationControl || length != 26 ||
                             (currentFrame != null && currentFrame.UsesDefaultImageData && !seenImageData) ||
-                            !TryFinishFrame(currentFrame, bitDepth, colorType, interlaceMethod, palette)) {
+                            !TryFinishFrame(
+                                currentFrame, bitDepth, colorType, interlaceMethod, palette, cancellationToken)) {
                             return false;
                         }
                         uint frameSequence = ReadBigEndianUInt32(bytes, dataOffset);
@@ -84,13 +89,15 @@ internal static class OfficePngAnimationValidator {
                         }
                         uint dataSequence = ReadBigEndianUInt32(bytes, dataOffset);
                         if (dataSequence != expectedSequence++) return false;
-                        currentFrame.Compressed.Write(bytes, dataOffset + 4, length - 4);
+                        WritePayload(
+                            currentFrame.Compressed, bytes, dataOffset + 4, length - 4, cancellationToken);
                         break;
                     case "IEND":
                         if (!seenAnimationControl) return true;
                         return declaredFrameCount > 0 &&
                                frameControlCount == declaredFrameCount &&
-                               TryFinishFrame(currentFrame, bitDepth, colorType, interlaceMethod, palette);
+                               TryFinishFrame(
+                                   currentFrame, bitDepth, colorType, interlaceMethod, palette, cancellationToken);
                 }
 
                 offset += 12 + length;
@@ -110,7 +117,8 @@ internal static class OfficePngAnimationValidator {
         int bitDepth,
         int colorType,
         int interlaceMethod,
-        byte[]? palette) {
+        byte[]? palette,
+        CancellationToken cancellationToken) {
         if (frame == null || frame.UsesDefaultImageData) return true;
         return OfficePngReader.TryValidateCompressedPayload(
             frame.Compressed.ToArray(),
@@ -119,7 +127,25 @@ internal static class OfficePngAnimationValidator {
             bitDepth,
             colorType,
             interlaceMethod,
-            palette);
+            palette,
+            cancellationToken);
+    }
+
+    private static void WritePayload(
+        Stream destination,
+        byte[] bytes,
+        int offset,
+        int count,
+        CancellationToken cancellationToken) {
+        const int copyChunkBytes = 64 * 1024;
+        int remaining = count;
+        while (remaining > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int copy = Math.Min(remaining, copyChunkBytes);
+            destination.Write(bytes, offset, copy);
+            offset += copy;
+            remaining -= copy;
+        }
     }
 
     private static bool HasValidFrameBounds(

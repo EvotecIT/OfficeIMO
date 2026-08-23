@@ -38,10 +38,10 @@ public sealed class DrawingRasterCodecRobustnessTests {
     }
 
     [Fact]
-    public void BoundedPngAndTiffDecodeObserveCancellationInsideCodecWork() {
+    public void BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork() {
         var source = new OfficeRasterImage(4096, 1025, OfficeColor.FromRgba(24, 80, 160, 224));
         byte[][] encoded = {
-            OfficePngWriter.Encode(source),
+            CreatePngWithLargeAncillaryPayload(),
             OfficeTiffCodec.Encode(source, new OfficeTiffEncodeOptions {
                 Compression = OfficeTiffCompression.Lzw,
                 Predictor = OfficeTiffPredictor.Horizontal
@@ -58,6 +58,44 @@ public sealed class DrawingRasterCodecRobustnessTests {
             Assert.Throws<OperationCanceledException>(() =>
                 OfficeRasterImageDecoder.TryDecode(bytes, options, out _, out _));
         }
+    }
+
+    private static byte[] CreatePngWithLargeAncillaryPayload() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        int iendOffset = png.Length - 12;
+        const int payloadLength = 16 * 1024 * 1024;
+        var chunk = new byte[payloadLength + 12];
+        WriteBigEndianInt32(chunk, 0, payloadLength);
+        chunk[4] = (byte)'v';
+        chunk[5] = (byte)'p';
+        chunk[6] = (byte)'A';
+        chunk[7] = (byte)'g';
+        uint crc = ComputeCrc(chunk, 4, payloadLength + 4);
+        WriteBigEndianInt32(chunk, payloadLength + 8, unchecked((int)crc));
+
+        var result = new byte[png.Length + chunk.Length];
+        Buffer.BlockCopy(png, 0, result, 0, iendOffset);
+        Buffer.BlockCopy(chunk, 0, result, iendOffset, chunk.Length);
+        Buffer.BlockCopy(png, iendOffset, result, iendOffset + chunk.Length, 12);
+        return result;
+    }
+
+    private static uint ComputeCrc(byte[] bytes, int offset, int count) {
+        uint crc = 0xFFFFFFFFU;
+        for (int index = 0; index < count; index++) {
+            crc ^= bytes[offset + index];
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1U) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
+            }
+        }
+        return crc ^ 0xFFFFFFFFU;
+    }
+
+    private static void WriteBigEndianInt32(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)(value >> 24);
+        bytes[offset + 1] = (byte)(value >> 16);
+        bytes[offset + 2] = (byte)(value >> 8);
+        bytes[offset + 3] = (byte)value;
     }
 
     private static int MutateAndDecode(byte[] encoded, int firstOffset) {
