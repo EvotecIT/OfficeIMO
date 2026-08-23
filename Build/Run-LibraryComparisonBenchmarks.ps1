@@ -15,6 +15,8 @@ param(
         'markdownhtml',
         'htmltomarkdown',
         'rtfhtml',
+        'emailmimeread',
+        'emailmimewrite',
         'odscreate',
         'odsread',
         'epubread',
@@ -232,6 +234,36 @@ $definitions = [ordered]@{
         ExpectedCases = @(
             foreach ($scale in @('Small', 'Normal')) {
                 foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    emailmimeread = [pscustomobject]@{
+        Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
+        Filter = '*EmailMimeReadBenchmarks*'
+        ComparisonId = "email-mime-read-$Framework"
+        Suite = 'OfficeIMO.Email.MimeRead'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'MimeKit')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    emailmimewrite = [pscustomobject]@{
+        Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
+        Filter = '*EmailMimeWriteBenchmarks*'
+        ComparisonId = "email-mime-write-$Framework"
+        Suite = 'OfficeIMO.Email.MimeWrite'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'MimeKit')) {
                     "$engine|Scale=$scale"
                 }
             }

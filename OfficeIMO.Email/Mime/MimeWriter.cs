@@ -490,6 +490,10 @@ internal static class MimeWriter {
 
         WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
+        if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
+            WriteBase64(output, attachment.Content, state.Options.Base64LineLength);
+            return;
+        }
         using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment)) {
             WriteBase64(output, input, state.Options.Base64LineLength,
                 state.Options.MaxOutputBytes);
@@ -497,6 +501,37 @@ internal static class MimeWriter {
     }
 
     private static void WriteBase64(Stream output, byte[] data, int lineLength) {
+        if (data.Length == 0) {
+            WriteLine(output, string.Empty);
+            return;
+        }
+        const int maximumBufferedInputBytes = 1024 * 1024;
+        if (data.Length <= maximumBufferedInputBytes) {
+            int bytesPerLine = checked(lineLength / 4 * 3);
+            int encodedCharacters = checked((data.Length + 2) / 3 * 4);
+            int lineCount = checked((data.Length + bytesPerLine - 1) / bytesPerLine);
+            var encoded = new byte[checked(encodedCharacters + lineCount * 2)];
+            int sourceOffset = 0;
+            int outputOffset = 0;
+            while (sourceOffset < data.Length) {
+                int sourceLength = Math.Min(bytesPerLine, data.Length - sourceOffset);
+                System.Buffers.OperationStatus status = System.Buffers.Text.Base64.EncodeToUtf8(
+                    data.AsSpan(sourceOffset, sourceLength),
+                    encoded.AsSpan(outputOffset),
+                    out int consumed,
+                    out int written,
+                    isFinalBlock: true);
+                if (status != System.Buffers.OperationStatus.Done || consumed != sourceLength) {
+                    throw new InvalidOperationException("The MIME base64 payload could not be encoded.");
+                }
+                sourceOffset += consumed;
+                outputOffset += written;
+                encoded[outputOffset++] = (byte)'\r';
+                encoded[outputOffset++] = (byte)'\n';
+            }
+            output.Write(encoded, 0, outputOffset);
+            return;
+        }
         using (var input = new MemoryStream(data, writable: false)) {
             WriteBase64(output, input, lineLength, data.LongLength);
         }
