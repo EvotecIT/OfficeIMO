@@ -1,0 +1,200 @@
+name: Real-world corpus evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/real-world-corpus-evidence.yml'
+      - 'Build/RealWorldCorpus/**'
+      - 'Build/Test-RealWorldCorpusContract.ps1'
+      - 'Docs/officeimo.real-world-corpus-evidence.md'
+      - 'OfficeIMO.Reader.*/**'
+      - 'OfficeIMO.SharedSource/**'
+      - 'OfficeIMO.Word/**'
+      - 'OfficeIMO.Excel/**'
+      - 'OfficeIMO.PowerPoint/**'
+      - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.Html/**'
+      - 'OfficeIMO.Rtf/**'
+  workflow_dispatch:
+    inputs:
+      chunk:
+        description: 'Three-digit Govdocs1 ZIP chunk'
+        required: true
+        default: '000'
+        type: string
+      max_per_format:
+        description: 'Maximum unique files sampled per format'
+        required: true
+        default: '100'
+        type: string
+      timeout_seconds:
+        description: 'Per-file classification and read timeout'
+        required: true
+        default: '30'
+        type: string
+  schedule:
+    - cron: '17 3 1 * *'
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  runner-contract:
+    name: Corpus runner contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Validate bounded sampling and reporting
+        shell: pwsh
+        run: ./Build/Test-RealWorldCorpusContract.ps1
+
+  corpus-evidence:
+    name: Govdocs1 corpus evidence (non-gating)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      CORPUS_CHUNK: ${{ inputs.chunk || '000' }}
+      MAX_PER_FORMAT: ${{ inputs.max_per_format || '100' }}
+      FILE_TIMEOUT_SECONDS: ${{ inputs.timeout_seconds || '30' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Download and validate the pinned corpus chunk
+        id: download
+        shell: bash
+        run: |
+          set -uo pipefail
+          if [[ ! "$CORPUS_CHUNK" =~ ^[0-9]{3}$ ]]; then
+            echo "Chunk must contain exactly three digits."
+            exit 2
+          fi
+          corpus_url="https://downloads.digitalcorpora.org/corpora/files/govdocs1/zipfiles/${CORPUS_CHUNK}.zip"
+          archive="${RUNNER_TEMP}/govdocs1-${CORPUS_CHUNK}.zip"
+          input="${RUNNER_TEMP}/govdocs1-${CORPUS_CHUNK}"
+          reports="${RUNNER_TEMP}/real-world-corpus-reports"
+          mkdir -p "$input" "$reports"
+          echo "source_uri=$corpus_url" >> "$GITHUB_OUTPUT"
+          echo "input_directory=$input" >> "$GITHUB_OUTPUT"
+          echo "report_directory=$reports" >> "$GITHUB_OUTPUT"
+          if ! curl --fail --location --retry 3 --retry-all-errors --connect-timeout 30 --max-time 1800 --max-filesize 2147483648 --output "$archive" "$corpus_url"; then
+            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"corpus-download-failed","sourceUri":"%s"}\n' "$corpus_url" > "$reports/download-status.json"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! python3 - "$archive" "$input" <<'PY'
+          import pathlib
+          import stat
+          import sys
+          import zipfile
+
+          archive = pathlib.Path(sys.argv[1])
+          output = pathlib.Path(sys.argv[2]).resolve()
+          with zipfile.ZipFile(archive) as package:
+              entries = package.infolist()
+              if len(entries) > 5_000:
+                  raise ValueError(f"archive contains {len(entries)} entries; limit is 5000")
+              total = sum(entry.file_size for entry in entries)
+              if total > 5 * 1024 * 1024 * 1024:
+                  raise ValueError(f"archive expands to {total} bytes; limit is 5 GiB")
+              for entry in entries:
+                  name = entry.filename.replace('\\', '/')
+                  relative = pathlib.PurePosixPath(name)
+                  mode = (entry.external_attr >> 16) & 0o170000
+                  if relative.is_absolute() or '..' in relative.parts:
+                      raise ValueError(f"unsafe archive path: {entry.filename!r}")
+                  if mode == stat.S_IFLNK:
+                      raise ValueError(f"archive symlink is not allowed: {entry.filename!r}")
+                  if entry.file_size > 1024 * 1024 * 1024:
+                      raise ValueError(f"archive entry exceeds 1 GiB: {entry.filename!r}")
+                  target = (output / pathlib.Path(*relative.parts)).resolve()
+                  if output != target and output not in target.parents:
+                      raise ValueError(f"archive path escapes output: {entry.filename!r}")
+              package.extractall(output)
+          PY
+          then
+            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"archive-validation-failed","sourceUri":"%s"}\n' "$corpus_url" > "$reports/download-status.json"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          archive_sha256="$(sha256sum "$archive" | awk '{print $1}')"
+          echo "archive_sha256=$archive_sha256" >> "$GITHUB_OUTPUT"
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+      - name: Measure the bounded content-detected sample
+        if: steps.download.outputs.available == 'true'
+        shell: bash
+        run: |
+          dotnet run --project Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj \
+            --framework net10.0 --configuration "$BUILD_CONFIGURATION" -- run \
+            --input "${{ steps.download.outputs.input_directory }}" \
+            --json "${{ steps.download.outputs.report_directory }}/report.json" \
+            --markdown "${{ steps.download.outputs.report_directory }}/report.md" \
+            --corpus-id "govdocs1-${CORPUS_CHUNK}" \
+            --source-uri "${{ steps.download.outputs.source_uri }}" \
+            --archive-sha256 "${{ steps.download.outputs.archive_sha256 }}" \
+            --max-per-format "$MAX_PER_FORMAT" \
+            --max-total 600 \
+            --max-file-bytes 52428800 \
+            --max-traversal-entries 5000 \
+            --timeout-seconds "$FILE_TIMEOUT_SECONDS" \
+            --parallelism 4 \
+            --include-source-names
+
+      - name: Publish the evidence summary
+        if: always() && steps.download.outputs.available == 'true'
+        shell: bash
+        run: |
+          report="${{ steps.download.outputs.report_directory }}/report.md"
+          if [[ -f "$report" ]]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The corpus runner did not produce its Markdown report." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Surface observed failures without changing the non-gating measurement result
+        if: steps.download.outputs.available == 'true'
+        shell: pwsh
+        run: |
+          $report = Get-Content -LiteralPath '${{ steps.download.outputs.report_directory }}/report.json' -Raw | ConvertFrom-Json -Depth 100
+          $observations = $report.totals.failed + $report.totals.timedOut + $report.totals.completedWithErrors + $report.totals.classificationFailed + $report.totals.classificationTimedOut
+          if ($observations -gt 0) {
+            Write-Host "::warning::$observations files failed, timed out, or returned error diagnostics. Inspect the uploaded report; the evidence job measures rather than gates these discoveries."
+          }
+          if ($report.totals.rejectedByPolicy -gt 0) {
+            Write-Host "::notice::$($report.totals.rejectedByPolicy) files were rejected by an explicit OfficeIMO permission or resource policy."
+          }
+
+      - name: Upload reports only
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: real-world-corpus-evidence-${{ env.CORPUS_CHUNK }}
+          path: ${{ steps.download.outputs.report_directory }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Mark unavailable corpus evidence as not measured
+        if: steps.download.outputs.available != 'true'
+        shell: bash
+        run: |
+          echo "The corpus could not be downloaded and validated, so this run produced no OfficeIMO evidence." >> "$GITHUB_STEP_SUMMARY"
+          exit 1
