@@ -24,7 +24,7 @@ internal static class HtmlPdfEvidenceRunner {
         PdfBenchmarkScale scale = ReadScale(args);
         int iterations = ReadIterations(args);
         string outputDirectory = ResolveOutputDirectory(args);
-        Directory.CreateDirectory(outputDirectory);
+        PrepareOutputDirectory(outputDirectory);
         string repositoryRoot = FindRepositoryRoot();
         HtmlPdfEvidenceProvenance provenance = await ReadProvenanceAsync(repositoryRoot).ConfigureAwait(false);
         if (args.Any(value => string.Equals(value, "--require-clean-source", StringComparison.OrdinalIgnoreCase))) {
@@ -171,7 +171,7 @@ internal static class HtmlPdfEvidenceRunner {
         long allocatedAfter = GC.GetTotalAllocatedBytes(precise: false);
 
         PdfReadObservation observation = PdfBenchmarkValidation.ValidateGenerated(bytes, scenario, engine.ToString());
-        PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine.ToString(), scenario.PageCount);
+        PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine.ToString(), scenario);
         PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
         PdfTaggedContentInfo tagged = info.TaggedContent
             ?? throw new InvalidDataException($"{engine} did not expose tagged-content evidence.");
@@ -208,11 +208,15 @@ internal static class HtmlPdfEvidenceRunner {
             observation.ReportMarkerCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             observation.CharacterChecksum.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Sha256(Encoding.UTF8.GetBytes(observation.NormalizedText)),
+            info.HasTaggedContent.ToString(),
             tagged.Marked.ToString(),
             info.CatalogLanguage ?? string.Empty,
             tagged.LanguageElementCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             tagged.StructureElementCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             tagged.MarkedContentReferenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            tagged.ParentTreeEntryCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            tagged.HasDocumentStructureElement.ToString(),
+            tagged.FiguresHaveAlternateText.ToString(),
             string.Join(",", structureTypeCounts.Select(pair => pair.Key + ":" + pair.Value))
         });
 
@@ -291,6 +295,14 @@ internal static class HtmlPdfEvidenceRunner {
         return Path.Combine(FindRepositoryRoot(), "Ignore", "Benchmarks", "HtmlPdfEvidence", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
     }
 
+    private static void PrepareOutputDirectory(string outputDirectory) {
+        if (Directory.Exists(outputDirectory) && Directory.EnumerateFileSystemEntries(outputDirectory).Any()) {
+            throw new IOException(
+                $"HTML-to-PDF evidence output must be a new or empty directory: '{outputDirectory}'.");
+        }
+        Directory.CreateDirectory(outputDirectory);
+    }
+
     private static string? ReadOption(string[] args, string option) {
         for (int index = 1; index < args.Length; index++) {
             if (!string.Equals(args[index], option, StringComparison.OrdinalIgnoreCase)) continue;
@@ -363,7 +375,14 @@ internal static class HtmlPdfEvidenceRunner {
 
     private static async Task<HtmlPdfEvidenceProvenance> ReadProvenanceAsync(string repositoryRoot) {
         GitSourceState? officeImo = await SourceProvenanceReader.ReadGitStateAsync(repositoryRoot).ConfigureAwait(false);
-        string? htmlTinkerXProjectPath = Environment.GetEnvironmentVariable("HTMLTINKERX_PROJECT_PATH");
+        string? htmlTinkerXProjectPath = Environment.GetEnvironmentVariable("HTMLTINKERX_PROJECT_PATH")
+            ?? Assembly.GetExecutingAssembly()
+                .GetCustomAttributes<AssemblyMetadataAttribute>()
+                .FirstOrDefault(attribute => string.Equals(
+                    attribute.Key,
+                    "HtmlTinkerXSourceProjectPath",
+                    StringComparison.Ordinal))
+                ?.Value;
         bool htmlTinkerXSourceConfigured = !string.IsNullOrWhiteSpace(htmlTinkerXProjectPath);
         GitSourceState? htmlTinkerX = !htmlTinkerXSourceConfigured
             ? null

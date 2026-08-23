@@ -84,7 +84,7 @@ public class PdfHtmlBenchmarks {
         }
 
         PdfReadObservation observation = PdfBenchmarkValidation.ValidateGenerated(bytes, _scenario, engine);
-        PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine, _scenario.PageCount);
+        PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine, _scenario);
         Console.WriteLine(
             $"HTML_PDF_EVIDENCE engine={engine} scale={_scenario.Scale} htmlBytes={System.Text.Encoding.UTF8.GetByteCount(_html)} " +
             $"pdfBytes={bytes.Length} pages={observation.PageCount} textLength={observation.TextLength}");

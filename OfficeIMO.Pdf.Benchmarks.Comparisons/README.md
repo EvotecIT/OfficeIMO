@@ -61,12 +61,13 @@ The working-set values are diagnostic and explicitly marked non-comparable. Chro
 ```powershell
 $repoRoot = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
 $env:HTMLTINKERX_PROJECT_PATH = Join-Path $repoRoot 'HtmlTinkerX/Sources/HtmlTinkerX/HtmlTinkerX.csproj'
+$output = Join-Path 'Ignore/Benchmarks/HtmlPdfEvidence' (Get-Date -Format 'yyyyMMdd-HHmmss')
 try {
     dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
         -c Release `
         -f net10.0 `
         -- html-evidence `
-        --output Ignore/Benchmarks/HtmlPdfEvidence/current `
+        --output $output `
         --scale Easy `
         --iterations 3 `
         --require-external-rasterizer `

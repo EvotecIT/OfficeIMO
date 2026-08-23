@@ -41,4 +41,11 @@ if ($pdfHtml.Count -ne 1 -or
     throw 'The HTML-to-PDF comparison plan does not require all four engines at all three scales.'
 }
 
+$unrelated = @(
+    & $runner -Workload csv -RunMode quick -HtmlTinkerXRoot 'missing-htmltinkerx-that-must-not-be-resolved' -PlanOnly
+)
+if ($unrelated.Count -ne 1 -or $unrelated[0].Workload -ne 'csv') {
+    throw 'An unrelated comparison workload still depends on HtmlTinkerX discovery.'
+}
+
 Write-Host 'Library comparison runner policy verified for standalone and mixed PDF route-health selection.'

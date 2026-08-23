@@ -56,7 +56,8 @@ $htmlTinkerXProjectPath = $null
 $htmlTinkerXSourceRoot = $null
 $htmlTinkerXSourceCommit = $null
 $htmlTinkerXSourceDirty = $false
-if (-not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
+$usesHtmlTinkerX = $Workload -eq 'pdfhtml' -or $Workload -eq 'all'
+if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
     $resolvedHtmlTinkerX = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HtmlTinkerXRoot)
     $htmlTinkerXProjectPath = if ($resolvedHtmlTinkerX.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
         $resolvedHtmlTinkerX
@@ -515,7 +516,7 @@ $gitDirty = @(& git -C $repositoryRoot status --porcelain --untracked-files=norm
 if ($catalogEligible -and $gitDirty) {
     throw 'Cataloged benchmark evidence requires a clean Git worktree so the recorded source commit identifies the measured code exactly.'
 }
-if ($catalogEligible -and $htmlTinkerXSourceDirty) {
+if ($selected -contains 'pdfhtml' -and $catalogEligible -and $htmlTinkerXSourceDirty) {
     throw 'Cataloged browser benchmark evidence requires a clean HtmlTinkerX worktree so its recorded source commit identifies the measured code exactly.'
 }
 

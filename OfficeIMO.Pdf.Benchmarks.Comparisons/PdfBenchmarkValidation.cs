@@ -26,7 +26,7 @@ internal static class PdfBenchmarkValidation {
         return observation;
     }
 
-    internal static void ValidateTaggedStructure(byte[] bytes, string engine, int expectedPageCount) {
+    internal static void ValidateTaggedStructure(byte[] bytes, string engine, PdfBenchmarkScenario scenario) {
         PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
         PdfTaggedContentInfo? tagged = info.TaggedContent;
         if (!info.HasTaggedContent ||
@@ -36,15 +36,33 @@ internal static class PdfBenchmarkValidation {
             tagged.StructureElements.Count == 0 ||
             tagged.MarkedContentReferenceCount == 0 ||
             !tagged.HasDocumentStructureElement ||
-            tagged.ParentTreeEntryCount < expectedPageCount ||
+            tagged.ParentTreeEntryCount != scenario.PageCount ||
             !tagged.FiguresHaveAlternateText) {
             throw new InvalidDataException($"{engine} did not preserve a complete tagged-document structure tree.");
         }
 
-        foreach (string requiredType in new[] { "H1", "P", "Table", "TR", "TH", "TD" }) {
-            if (!tagged.StructureTypeCounts.TryGetValue(requiredType, out int count) || count == 0) {
-                throw new InvalidDataException($"{engine} did not preserve required {requiredType} accessibility structure.");
+        int columnCount = scenario.TableRows(1)[0].Length;
+        var exactRoleCounts = new Dictionary<string, int>(StringComparer.Ordinal) {
+            ["Document"] = 1,
+            ["H1"] = scenario.PageCount,
+            ["Table"] = scenario.PageCount,
+            ["TR"] = scenario.PageCount * (scenario.RowsPerPage + 1),
+            ["TH"] = scenario.PageCount * columnCount,
+            ["TD"] = scenario.PageCount * scenario.RowsPerPage * columnCount
+        };
+        foreach ((string requiredType, int expectedCount) in exactRoleCounts) {
+            tagged.StructureTypeCounts.TryGetValue(requiredType, out int actualCount);
+            if (actualCount != expectedCount) {
+                throw new InvalidDataException(
+                    $"{engine} preserved {actualCount} {requiredType} accessibility elements; expected {expectedCount}.");
             }
+        }
+
+        tagged.StructureTypeCounts.TryGetValue("P", out int paragraphCount);
+        int minimumParagraphCount = scenario.PageCount * scenario.ParagraphsPerPage;
+        if (paragraphCount < minimumParagraphCount) {
+            throw new InvalidDataException(
+                $"{engine} preserved {paragraphCount} paragraph accessibility elements; expected at least {minimumParagraphCount}.");
         }
     }
 
