@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
@@ -9,20 +10,21 @@ public static partial class OfficeTiffCodec {
     private const int LzwFirstCode = 258;
     private const int LzwMaximumCode = 4095;
 
-    private static byte[] EncodeLzw(byte[] input) {
+    private static byte[] EncodeLzw(byte[] input, int inputCount) {
         if (input == null) throw new ArgumentNullException(nameof(input));
-        var writer = new TiffLzwBitWriter(Math.Max(32, input.Length));
+        if (inputCount < 0 || inputCount > input.Length) throw new ArgumentOutOfRangeException(nameof(inputCount));
+        using var writer = new TiffLzwBitWriter(Math.Max(32, inputCount));
         writer.Write(LzwClearCode, 9);
-        if (input.Length == 0) {
+        if (inputCount == 0) {
             writer.Write(LzwEndCode, 9);
             return writer.Finish();
         }
 
-        var dictionary = new Dictionary<int, int>(Math.Min(4096, input.Length));
+        var dictionary = new Dictionary<int, int>(Math.Min(4096, inputCount));
         int codeSize = 9;
         int nextCode = LzwFirstCode;
         int prefix = input[0];
-        for (int index = 1; index < input.Length; index++) {
+        for (int index = 1; index < inputCount; index++) {
             byte suffix = input[index];
             int key = (prefix << 8) | suffix;
             if (dictionary.TryGetValue(key, out int combined)) {
@@ -111,13 +113,13 @@ public static partial class OfficeTiffCodec {
         return ended && target == outputEnd;
     }
 
-    private sealed class TiffLzwBitWriter {
+    private sealed class TiffLzwBitWriter : IDisposable {
         private byte[] _buffer;
         private int _length;
         private uint _bits;
         private int _bitCount;
 
-        internal TiffLzwBitWriter(int capacity) => _buffer = new byte[capacity];
+        internal TiffLzwBitWriter(int capacity) => _buffer = ArrayPool<byte>.Shared.Rent(capacity);
 
         internal void Write(int code, int width) {
             _bits = (_bits << width) | (uint)code;
@@ -140,9 +142,18 @@ public static partial class OfficeTiffCodec {
             return result;
         }
 
+        public void Dispose() {
+            byte[] buffer = _buffer;
+            _buffer = Array.Empty<byte>();
+            if (buffer.Length > 0) ArrayPool<byte>.Shared.Return(buffer);
+        }
+
         private void EnsureCapacity() {
             if (_length < _buffer.Length) return;
-            Array.Resize(ref _buffer, checked(_buffer.Length * 2));
+            byte[] expanded = ArrayPool<byte>.Shared.Rent(checked(_buffer.Length * 2));
+            Buffer.BlockCopy(_buffer, 0, expanded, 0, _length);
+            ArrayPool<byte>.Shared.Return(_buffer);
+            _buffer = expanded;
         }
     }
 

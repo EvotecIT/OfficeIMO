@@ -20,10 +20,10 @@ public static partial class OfficeTiffCodec {
         ValidateOptions(effective);
 
         byte[] pixels = image.PixelBuffer;
-        byte[] compressionInput = PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective);
         byte[]? compressed = effective.Compression switch {
-            OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(compressionInput),
-            OfficeTiffCompression.Lzw => EncodeLzw(compressionInput),
+            OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(
+                PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective)),
+            OfficeTiffCompression.Lzw => EncodeTiffLzw(pixels, image.Width, image.Height, effective),
             _ => null
         };
         int stripLength = effective.Compression switch {

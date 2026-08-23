@@ -69,19 +69,19 @@ public static partial class OfficeTiffCodec {
 
     private static byte[] EncodeTiffStrip(OfficeRasterImage image, OfficeTiffEncodeOptions options) {
         byte[] pixels = image.PixelBuffer;
-        byte[] compressionInput = PrepareTiffCompressionInput(pixels, image.Width, image.Height, options);
         switch (options.Compression) {
             case OfficeTiffCompression.None:
                 return pixels;
             case OfficeTiffCompression.Lzw:
-                return EncodeLzw(compressionInput);
+                return EncodeTiffLzw(pixels, image.Width, image.Height, options);
             case OfficeTiffCompression.PackBits:
                 int length = EncodePackBits(pixels, null, 0);
                 var packed = new byte[length];
                 if (EncodePackBits(pixels, packed, 0) != length) throw new InvalidOperationException("TIFF PackBits length changed while encoding.");
                 return packed;
             case OfficeTiffCompression.Deflate:
-                return OfficeZlibCodec.Compress(compressionInput);
+                return OfficeZlibCodec.Compress(
+                    PrepareTiffCompressionInput(pixels, image.Width, image.Height, options));
             default:
                 throw new ArgumentOutOfRangeException(nameof(options.Compression));
         }

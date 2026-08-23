@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -61,10 +62,10 @@ public static partial class OfficeTiffCodec {
         ValidateOptions(effective);
 
         byte[] pixels = image.PixelBuffer;
-        byte[] compressionInput = PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective);
         byte[]? strip = effective.Compression switch {
-            OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(compressionInput),
-            OfficeTiffCompression.Lzw => EncodeLzw(compressionInput),
+            OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(
+                PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective)),
+            OfficeTiffCompression.Lzw => EncodeTiffLzw(pixels, image.Width, image.Height, effective),
             OfficeTiffCompression.None => pixels,
             _ => null
         };
@@ -417,15 +418,35 @@ public static partial class OfficeTiffCodec {
         OfficeTiffEncodeOptions options) {
         if (!UsesHorizontalPredictor(options)) return pixels;
         byte[] predicted = (byte[])pixels.Clone();
+        ApplyHorizontalPredictor(predicted, width, height);
+        return predicted;
+    }
+
+    private static byte[] EncodeTiffLzw(
+        byte[] pixels,
+        int width,
+        int height,
+        OfficeTiffEncodeOptions options) {
+        if (!UsesHorizontalPredictor(options)) return EncodeLzw(pixels, pixels.Length);
+        byte[] scratch = ArrayPool<byte>.Shared.Rent(pixels.Length);
+        try {
+            Buffer.BlockCopy(pixels, 0, scratch, 0, pixels.Length);
+            ApplyHorizontalPredictor(scratch, width, height);
+            return EncodeLzw(scratch, pixels.Length);
+        } finally {
+            ArrayPool<byte>.Shared.Return(scratch);
+        }
+    }
+
+    private static void ApplyHorizontalPredictor(byte[] pixels, int width, int height) {
         const int samples = 4;
         int rowBytes = checked(width * samples);
         for (int y = 0; y < height; y++) {
             int row = y * rowBytes;
             for (int offset = row + rowBytes - 1; offset >= row + samples; offset--) {
-                predicted[offset] = unchecked((byte)(predicted[offset] - predicted[offset - samples]));
+                pixels[offset] = unchecked((byte)(pixels[offset] - pixels[offset - samples]));
             }
         }
-        return predicted;
     }
 
     private static void ValidateDpi(double dpi, string name) {
