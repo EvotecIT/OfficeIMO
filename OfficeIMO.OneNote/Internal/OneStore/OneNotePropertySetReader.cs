@@ -85,7 +85,7 @@ internal static class OneNotePropertySetReader {
                         if (length >= 0x40000000U || length > int.MaxValue) {
                             throw Error("ONENOTE_PROPERTY_DATA_LENGTH", "A length-prefixed property value is too large.");
                         }
-                        property.Data = OneNoteBinaryPayload.FromBytes(ReadBytes((int)length));
+                        property.Data = OneNoteBinaryPayload.FromOwnedBytes(ReadBytes((int)length));
                         break;
                     }
                     case 0x08:
@@ -144,7 +144,7 @@ internal static class OneNotePropertySetReader {
             ulong value = 0;
             for (int index = 0; index < bytes.Length; index++) value |= (ulong)bytes[index] << (index * 8);
             property.ScalarValue = value;
-            property.Data = OneNoteBinaryPayload.FromBytes(bytes);
+            property.Data = OneNoteBinaryPayload.FromOwnedBytes(bytes);
         }
 
         private int ReadReferenceCount() {

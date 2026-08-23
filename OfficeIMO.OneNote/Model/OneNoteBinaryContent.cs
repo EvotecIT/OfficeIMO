@@ -26,6 +26,11 @@ public sealed class OneNoteBinaryPayload {
         return new OneNoteBinaryPayload(copy, null, copy.LongLength);
     }
 
+    internal static OneNoteBinaryPayload FromOwnedBytes(byte[] bytes) {
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        return new OneNoteBinaryPayload(bytes, null, bytes.LongLength);
+    }
+
     /// <summary>
     /// Creates a lazy payload. The factory must return a new readable stream for every call.
     /// </summary>
@@ -55,6 +60,12 @@ public sealed class OneNoteBinaryPayload {
         if (maxBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
         if (Length.HasValue && Length.Value > maxBytes) {
             throw new IOException("The OneNote payload exceeds the requested materialization limit.");
+        }
+
+        if (_bytes != null) {
+            var copy = new byte[_bytes.Length];
+            Buffer.BlockCopy(_bytes, 0, copy, 0, _bytes.Length);
+            return copy;
         }
 
         using (Stream stream = OpenRead())

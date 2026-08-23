@@ -141,7 +141,7 @@ public sealed class OneNoteFileNode {
         BaseType = baseType;
         FileOffset = fileOffset;
         ChunkReference = chunkReference;
-        EncodedData = OneNoteBinaryPayload.FromBytes(encodedData);
+        EncodedData = OneNoteBinaryPayload.FromOwnedBytes(encodedData);
     }
 
     /// <summary>Raw 10-bit file-node identifier.</summary>
