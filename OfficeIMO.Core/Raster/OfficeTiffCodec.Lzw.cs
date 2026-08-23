@@ -1,5 +1,7 @@
 using System;
+#if NET8_0_OR_GREATER
 using System.Buffers;
+#endif
 using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
@@ -119,7 +121,13 @@ public static partial class OfficeTiffCodec {
         private uint _bits;
         private int _bitCount;
 
-        internal TiffLzwBitWriter(int capacity) => _buffer = ArrayPool<byte>.Shared.Rent(capacity);
+        internal TiffLzwBitWriter(int capacity) {
+#if NET8_0_OR_GREATER
+            _buffer = ArrayPool<byte>.Shared.Rent(capacity);
+#else
+            _buffer = new byte[capacity];
+#endif
+        }
 
         internal void Write(int code, int width) {
             _bits = (_bits << width) | (uint)code;
@@ -143,17 +151,23 @@ public static partial class OfficeTiffCodec {
         }
 
         public void Dispose() {
+#if NET8_0_OR_GREATER
             byte[] buffer = _buffer;
             _buffer = Array.Empty<byte>();
             if (buffer.Length > 0) ArrayPool<byte>.Shared.Return(buffer);
+#endif
         }
 
         private void EnsureCapacity() {
             if (_length < _buffer.Length) return;
+#if NET8_0_OR_GREATER
             byte[] expanded = ArrayPool<byte>.Shared.Rent(checked(_buffer.Length * 2));
             Buffer.BlockCopy(_buffer, 0, expanded, 0, _length);
             ArrayPool<byte>.Shared.Return(_buffer);
             _buffer = expanded;
+#else
+            Array.Resize(ref _buffer, checked(_buffer.Length * 2));
+#endif
         }
     }
 

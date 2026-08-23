@@ -1,5 +1,7 @@
 using System;
+#if NET8_0_OR_GREATER
 using System.Buffers;
+#endif
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -428,13 +430,19 @@ public static partial class OfficeTiffCodec {
         int height,
         OfficeTiffEncodeOptions options) {
         if (!UsesHorizontalPredictor(options)) return EncodeLzw(pixels, pixels.Length);
+#if NET8_0_OR_GREATER
         byte[] scratch = ArrayPool<byte>.Shared.Rent(pixels.Length);
+#else
+        byte[] scratch = new byte[pixels.Length];
+#endif
         try {
             Buffer.BlockCopy(pixels, 0, scratch, 0, pixels.Length);
             ApplyHorizontalPredictor(scratch, width, height);
             return EncodeLzw(scratch, pixels.Length);
         } finally {
+#if NET8_0_OR_GREATER
             ArrayPool<byte>.Shared.Return(scratch);
+#endif
         }
     }
 
