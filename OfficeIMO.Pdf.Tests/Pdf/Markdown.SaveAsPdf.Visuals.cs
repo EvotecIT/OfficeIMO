@@ -293,7 +293,7 @@ _Figure 2. Revenue chart_
   "type": "bar",
   "title": "Przegl\u0105d",
   "data": {
-    "labels": ["Za\u017B\u00F3\u0142\u0107"],
+    "labels": ["Za\u017C\u00F3\u0142\u0107"],
     "datasets": [
       { "label": "G\u0119\u015Bl\u0105", "data": [10] }
     ]

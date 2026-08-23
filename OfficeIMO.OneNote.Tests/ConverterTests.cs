@@ -330,7 +330,7 @@ public sealed class ConverterTests {
     }
 
     private static string GetFirstPageContentStreamDictionary(byte[] pdf) {
-        string raw = Encoding.Latin1.GetString(pdf);
+        string raw = Encoding.GetEncoding(28591).GetString(pdf);
         System.Text.RegularExpressions.Match contents = System.Text.RegularExpressions.Regex.Match(
             raw,
             @"/Contents\s+(\d+)\s+0\s+R",
