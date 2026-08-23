@@ -44,7 +44,60 @@ namespace OfficeIMO.Core.Internal {
 
             using var source = new MemoryStream(bytes, 2, bytes.Length - 6, writable: false);
             using var deflate = new DeflateStream(source, CompressionMode.Decompress);
-            using var output = new MemoryStream(expectedOutputBytes.GetValueOrDefault());
+            byte[] result = expectedOutputBytes.HasValue
+                ? DecompressExact(deflate, expectedOutputBytes.Value, maximumOutputBytes)
+                : DecompressBounded(deflate, maximumOutputBytes);
+            uint expectedChecksum = ReadBigEndianUInt32(bytes, bytes.Length - 4);
+            if (Adler32(result) != expectedChecksum) {
+                throw new InvalidDataException("The zlib stream Adler-32 checksum is invalid.");
+            }
+            return result;
+        }
+
+        private static uint Adler32(byte[] data) {
+            const uint Modulus = 65521;
+            const int MaximumChunk = 5552;
+            uint a = 1;
+            uint b = 0;
+            int offset = 0;
+            while (offset < data.Length) {
+                int end = Math.Min(offset + MaximumChunk, data.Length);
+                while (offset < end) {
+                    a += data[offset++];
+                    b += a;
+                }
+                a %= Modulus;
+                b %= Modulus;
+            }
+            return (b << 16) | a;
+        }
+
+        private static byte[] DecompressExact(DeflateStream deflate, int expectedOutputBytes, int maximumOutputBytes) {
+            if (expectedOutputBytes < 0) throw new ArgumentOutOfRangeException(nameof(expectedOutputBytes));
+            if (expectedOutputBytes > maximumOutputBytes) {
+                throw new OfficeDecompressionSizeLimitException(
+                    $"The decompressed zlib stream exceeds {maximumOutputBytes} bytes.");
+            }
+
+            var result = new byte[expectedOutputBytes];
+            int offset = 0;
+            while (offset < result.Length) {
+                int read = deflate.Read(result, offset, result.Length - offset);
+                if (read == 0) {
+                    throw new InvalidDataException(
+                        $"The zlib stream expanded to {offset} bytes instead of {expectedOutputBytes} bytes.");
+                }
+                offset += read;
+            }
+            if (deflate.ReadByte() != -1) {
+                throw new InvalidDataException(
+                    $"The zlib stream expanded beyond the expected {expectedOutputBytes} bytes.");
+            }
+            return result;
+        }
+
+        private static byte[] DecompressBounded(DeflateStream deflate, int maximumOutputBytes) {
+            using var output = new MemoryStream();
             var buffer = new byte[8192];
             while (true) {
                 int read = deflate.Read(buffer, 0, buffer.Length);
@@ -55,28 +108,7 @@ namespace OfficeIMO.Core.Internal {
                 }
                 output.Write(buffer, 0, read);
             }
-
-            byte[] result = output.ToArray();
-            if (expectedOutputBytes.HasValue && result.Length != expectedOutputBytes.Value) {
-                throw new InvalidDataException(
-                    $"The zlib stream expanded to {result.Length} bytes instead of {expectedOutputBytes.Value} bytes.");
-            }
-            uint expectedChecksum = ReadBigEndianUInt32(bytes, bytes.Length - 4);
-            if (Adler32(result) != expectedChecksum) {
-                throw new InvalidDataException("The zlib stream Adler-32 checksum is invalid.");
-            }
-            return result;
-        }
-
-        private static uint Adler32(byte[] data) {
-            const uint Modulus = 65521;
-            uint a = 1;
-            uint b = 0;
-            for (int index = 0; index < data.Length; index++) {
-                a = (a + data[index]) % Modulus;
-                b = (b + a) % Modulus;
-            }
-            return (b << 16) | a;
+            return output.ToArray();
         }
 
         private static uint ReadBigEndianUInt32(byte[] bytes, int offset) =>

@@ -47,7 +47,7 @@ public static partial class OfficeTiffCodec {
         OfficeTiffEncodeOptions effective = options ?? new OfficeTiffEncodeOptions();
         ValidateOptions(effective);
 
-        byte[] pixels = image.GetPixels();
+        byte[] pixels = image.PixelBuffer;
         byte[] strip = effective.Compression switch {
             OfficeTiffCompression.PackBits => EncodePackBits(pixels),
             OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(pixels),
@@ -271,7 +271,7 @@ public static partial class OfficeTiffCodec {
                 }
 
                 if (isFirstIfd && rgba != null) {
-                    firstImage = OfficeRasterImage.FromRgba32(orientedWidth, orientedHeight, rgba);
+                    firstImage = OfficeRasterImage.FromOwnedRgba32(orientedWidth, orientedHeight, rgba);
                 }
                 int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
                 ifdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);

@@ -44,14 +44,20 @@ public sealed class OfficeRasterImage {
     }
 
     internal static OfficeRasterImage FromRgba32(int width, int height, byte[] pixels) {
-        if (pixels == null) throw new ArgumentNullException(nameof(pixels));
-        if (pixels.Length != checked(width * height * 4)) {
-            throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(pixels));
-        }
+        ValidateRgba32Buffer(width, height, pixels);
+        return new OfficeRasterImage(width, height, (byte[])pixels.Clone());
+    }
 
-        var image = new OfficeRasterImage(width, height);
-        Buffer.BlockCopy(pixels, 0, image._pixels, 0, pixels.Length);
-        return image;
+    /// <summary>Creates an image by taking ownership of a newly allocated decoder buffer.</summary>
+    internal static OfficeRasterImage FromOwnedRgba32(int width, int height, byte[] pixels) {
+        ValidateRgba32Buffer(width, height, pixels);
+        return new OfficeRasterImage(width, height, pixels);
+    }
+
+    private OfficeRasterImage(int width, int height, byte[] ownedPixels) {
+        Width = width;
+        Height = height;
+        _pixels = ownedPixels;
     }
 
     /// <summary>Gets the color of a pixel.</summary>
@@ -120,6 +126,15 @@ public sealed class OfficeRasterImage {
 
         if ((uint)y >= (uint)Height) {
             throw new ArgumentOutOfRangeException(nameof(y));
+        }
+    }
+
+    private static void ValidateRgba32Buffer(int width, int height, byte[] pixels) {
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (pixels == null) throw new ArgumentNullException(nameof(pixels));
+        if (pixels.Length != checked(width * height * 4)) {
+            throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(pixels));
         }
     }
 

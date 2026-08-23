@@ -13,6 +13,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Website search and answer-engine operations](officeimo.website-seo-geo-operations.md) — publication and discovery checks.
 - [CI and test strategy](officeimo.ci-test-strategy.md) — test ownership and validation lanes.
 - [Excel benchmark notes](officeimo.excel.benchmark-notes.md) — reproducible comparison-suite execution and provenance.
+- [Image engine benchmarks](../OfficeIMO.Drawing.Benchmarks/README.md) — validated identification, decode, encode, resize, and placement-optimization workloads, with isolated opt-in library comparisons.
 
 ## Current product contracts
 
