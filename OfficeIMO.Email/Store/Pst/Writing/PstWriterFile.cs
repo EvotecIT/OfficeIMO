@@ -79,6 +79,7 @@ internal sealed class PstWriterFile : IDisposable {
 
     internal ulong WriteDataTree(byte[] bytes) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        if (bytes.Length <= MaximumBlockPayload) return WriteBlock(bytes, isInternal: false).Bid;
         using (var input = new MemoryStream(bytes, writable: false)) return WriteDataTree(input, bytes.LongLength);
     }
 
@@ -147,6 +148,11 @@ internal sealed class PstWriterFile : IDisposable {
     internal ulong WriteDataTreeBlocks(IReadOnlyList<byte[]> blocks) {
         if (blocks == null) throw new ArgumentNullException(nameof(blocks));
         if (blocks.Count == 0) return WriteBlock(Array.Empty<byte>(), isInternal: false).Bid;
+        if (blocks.Count == 1) {
+            byte[] payload = blocks[0] ??
+                throw new ArgumentException("A PST data-tree block cannot be null.", nameof(blocks));
+            return WriteBlock(payload, isInternal: false).Bid;
+        }
         PstWriterDataTreeJournal leaves = NewDataTreeJournal();
         try {
         ulong total = 0;
