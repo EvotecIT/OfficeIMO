@@ -363,10 +363,12 @@ internal static class HtmlPdfEvidenceRunner {
     }
 
     private static string FindRepositoryRoot() {
-        string? current = Directory.GetCurrentDirectory();
-        while (!string.IsNullOrWhiteSpace(current)) {
-            if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
-            current = Directory.GetParent(current)?.FullName;
+        foreach (string seed in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() }) {
+            string? current = Path.GetFullPath(seed);
+            while (!string.IsNullOrWhiteSpace(current)) {
+                if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+                current = Directory.GetParent(current)?.FullName;
+            }
         }
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
     }
