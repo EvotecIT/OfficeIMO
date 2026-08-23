@@ -104,12 +104,14 @@ internal static class HtmlPdfEvidenceRunner {
                 rasterizer).ConfigureAwait(false));
         }
 
-        HtmlPdfCancellationEvidence cancellation = engine == HtmlPdfComparisonEngine.Chromium
-            ? await ProbeChromiumCancellationAsync(html).ConfigureAwait(false)
-            : new HtmlPdfCancellationEvidence(
+        HtmlPdfCancellationEvidence cancellation = engine switch {
+            HtmlPdfComparisonEngine.OfficeIMO => await ProbeOfficeImoCancellationAsync(html).ConfigureAwait(false),
+            HtmlPdfComparisonEngine.Chromium => await ProbeChromiumCancellationAsync(html).ConfigureAwait(false),
+            _ => new HtmlPdfCancellationEvidence(
                 ApiSupportsCancellation: false,
                 Status: "Unsupported",
-                Detail: "The compared public conversion entry point does not accept a CancellationToken.");
+                Detail: "The compared public conversion entry point does not accept a CancellationToken.")
+        };
         string[] externalVisualHashes = outputs
             .Select(output => output.ExternalVisual?.Sha256)
             .Where(hash => hash != null)
@@ -462,5 +464,20 @@ internal static class HtmlPdfEvidenceRunner {
     private static void WriteHelp() {
         Console.WriteLine("html-evidence --output <directory> [--scale Easy|Medium|High] [--iterations 2-10] [--require-external-rasterizer] [--require-clean-source]");
         Console.WriteLine("Generates equivalent four-engine PDFs and machine-readable correctness, tagging, size, repeatability, cancellation, and isolated process-tree memory evidence.");
+    }
+
+    private static async Task<HtmlPdfCancellationEvidence> ProbeOfficeImoCancellationAsync(string html) {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        try {
+            _ = await OfficeImoPdfGenerator.GenerateHtmlAsync(
+                html,
+                cancellationToken: cancellation.Token).ConfigureAwait(false);
+            return new HtmlPdfCancellationEvidence(true, "Failed", "A pre-cancelled OfficeIMO HTML-to-PDF request completed instead of cancelling.");
+        } catch (OperationCanceledException) {
+            return new HtmlPdfCancellationEvidence(true, "Passed", "A pre-cancelled OfficeIMO HTML-to-PDF request was rejected through ToPdfAsync.");
+        } catch (Exception exception) {
+            return new HtmlPdfCancellationEvidence(true, "Failed", exception.GetType().Name + ": " + exception.Message);
+        }
     }
 }
