@@ -15,6 +15,8 @@ param(
         'markdownhtml',
         'htmltomarkdown',
         'rtfhtml',
+        'odscreate',
+        'odsread',
         'imagepngdecode',
         'imagejpegdecode',
         'imagepngencode',
@@ -200,6 +202,35 @@ $definitions = [ordered]@{
         ExpectedCases = @(
             foreach ($scale in @('Small', 'Medium', 'Large', 'Producer')) {
                 foreach ($engine in @('OfficeIMO', 'RtfPipe')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    odscreate = [pscustomobject]@{
+        Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
+        Filter = '*OdsCreateComparisonBenchmarks*'
+        ComparisonId = "opendocument-ods-create-$Framework"
+        Suite = 'OfficeIMO.OpenDocument.OdsCreate'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    odsread = [pscustomobject]@{
+        Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
+        Filter = '*OdsReadComparisonBenchmarks*'
+        ComparisonId = "opendocument-ods-read-$Framework"
+        Suite = 'OfficeIMO.OpenDocument.OdsRead'
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
                     "$engine|Scale=$scale"
                 }
             }

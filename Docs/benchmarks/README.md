@@ -13,7 +13,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | Managed allocations are recorded; text output bytes are not yet a shared metric | Markdig and ReverseMarkdown after semantic equivalence checks | Optimize the measured allocation gaps, then add output-size sidecars where size affects storage or transport |
 | HTML | BenchmarkDotNet stage, pagination, Drawing, and PDF projection suites | Managed allocations are recorded; several output methods return byte counts | No general renderer is equivalent across the complete OfficeIMO contract | Add bounded peak-memory evidence for large non-PDF rendering workflows |
 | RTF | BenchmarkDotNet plus regression budgets for parse, rewrite, and adapters | Budget runner records peak working set and output bytes | RtfPipe for validated RTF-to-HTML | Add Linux/macOS evidence and tune only after repeatable full runs |
-| OpenDocument | BenchmarkDotNet open, sparse-write, and formula suites plus isolated create/open/edit probes | Evidence runner records peak working set and package input/output bytes | No current managed .NET authoring library covers the same ODT/ODS/ODP contract | Capture repeatable Windows and non-Windows baselines, then tune measured owner hot paths |
+| OpenDocument | BenchmarkDotNet open, sparse-write, formula, and validated ODS create/read comparisons | Evidence runner records peak working set and package input/output bytes; the ODS comparison exports validated size sidecars | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
 | OneNote | BenchmarkDotNet native read, write, and Markdown projection | Write returns bytes but size and peak memory are not recorded as evidence | No like-for-like offline semantic `.one` competitor | Add validated artifact-size and isolated peak-memory evidence |
 | Email | Allocation/time regression tests plus bounded real-store evidence | Retained memory and source-read ceilings are covered | MimeKit is the credible MIME comparison target | Keep comparison work isolated from the runtime package and validate identical MIME semantics |
 | ZIP, Security, Provenance, AsciiDoc, LaTeX, EPUB, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
@@ -67,6 +67,26 @@ benchmark dependency and does not enter normal restore, build, or packages.
 The shared runner captures the validated input/output-size sidecar with the
 same source commit, framework, platform, and environment provenance as timing
 and allocation evidence.
+
+## OpenDocument comparisons
+
+`OfficeIMO.OpenDocument.Benchmarks.Comparisons` measures complete in-memory ODS
+creation and package open/read traversal through OfficeIMO and
+OpenStandardLibrary. Both writers receive the same dense string-cell corpus.
+Both readers receive the same OfficeIMO-generated package and enumerate every
+populated cell. Validation reopens both outputs through OfficeIMO and checks
+sheet, row, cell, content-length, and boundary-marker contracts before output
+sizes are accepted.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.OpenDocument.Benchmarks.Comparisons -- validate --json .benchmark-artifacts\opendocument\validation.json
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload odscreate -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload odsread -RunMode full -Framework net8.0
+```
+
+The comparison project is outside `OfficeIMO.sln`; OpenStandardLibrary remains
+an opt-in benchmark dependency. It is not used as an ODT or ODP comparator
+because it does not expose equivalent document models for those formats.
 
 ## PDF comparisons
 
