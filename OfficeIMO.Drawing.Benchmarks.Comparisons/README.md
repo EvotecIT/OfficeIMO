@@ -13,4 +13,12 @@ dotnet run --project OfficeIMO.Drawing.Benchmarks.Comparisons -c Release -f net1
 dotnet run --project OfficeIMO.Drawing.Benchmarks.Comparisons -c Release -f net10.0 -- --job Dry --filter '*ImagePng*Benchmarks*'
 ```
 
+On heterogeneous or multi-CCD processors, collect comparative evidence through the repository runner with a reviewed affinity mask that keeps the benchmark on one representative processor region. For example, this host exposes one CCD as logical processors 0-15:
+
+```powershell
+./Build/Run-LibraryComparisonBenchmarks.ps1 -RunMode full -Workload imagepngdecode -AffinityMask 0xFFFF
+```
+
+The runner records the mask in benchmark provenance. Affinity reduces scheduler noise; it does not make small differences meaningful, so conclusions should still favor effect sizes that clearly exceed run-to-run variation.
+
 BenchmarkDotNet's allocation column reports managed allocations only. SkiaSharp and Magick.NET perform material work in native code, so their managed allocation numbers are not total-memory comparisons; use process/native-memory profiling before drawing memory-efficiency conclusions across engines.

@@ -11,14 +11,16 @@ internal static class ImageComparisonAdapters {
     }
 
     internal static int DecodeSkia(byte[] encoded) {
-        using SKBitmap bitmap = SKBitmap.Decode(encoded)
-            ?? throw new InvalidOperationException("SkiaSharp could not decode the image.");
+        using SKBitmap bitmap = DecodeSkiaBitmap(encoded);
         return checked(bitmap.Width * bitmap.Height);
     }
 
     internal static int DecodeMagick(byte[] encoded) {
         using var image = new MagickImage(encoded);
-        return checked((int)(image.Width * image.Height));
+        using IPixelCollection<byte> pixels = image.GetPixels();
+        byte[] rgba = pixels.ToByteArray(PixelMapping.RGBA)
+            ?? throw new InvalidOperationException("Magick.NET did not expose decoded RGBA pixels.");
+        return checked(rgba.Length / 4);
     }
 
     internal static int DecodeStb(byte[] encoded) {
@@ -87,18 +89,22 @@ internal static class ImageComparisonAdapters {
     }
 
     internal static byte[] DecodeSkiaRgba(byte[] encoded) {
+        using SKBitmap decoded = DecodeSkiaBitmap(encoded);
+        var rgba = new byte[checked(decoded.Width * decoded.Height * 4)];
+        System.Runtime.InteropServices.Marshal.Copy(decoded.GetPixels(), rgba, 0, rgba.Length);
+        return rgba;
+    }
+
+    private static SKBitmap DecodeSkiaBitmap(byte[] encoded) {
         using SKData data = SKData.CreateCopy(encoded);
         using SKCodec codec = SKCodec.Create(data)
             ?? throw new InvalidOperationException("SkiaSharp could not create a decoder.");
         var info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
-        using var decoded = new SKBitmap(info);
+        var decoded = new SKBitmap(info);
         SKCodecResult result = codec.GetPixels(info, decoded.GetPixels());
-        if (result != SKCodecResult.Success) {
-            throw new InvalidOperationException("SkiaSharp did not decode a complete RGBA image: " + result + ".");
-        }
-        var rgba = new byte[checked(decoded.Width * decoded.Height * 4)];
-        System.Runtime.InteropServices.Marshal.Copy(decoded.GetPixels(), rgba, 0, rgba.Length);
-        return rgba;
+        if (result == SKCodecResult.Success) return decoded;
+        decoded.Dispose();
+        throw new InvalidOperationException("SkiaSharp did not decode a complete RGBA image: " + result + ".");
     }
 
     internal static byte[] DecodeMagickRgba(byte[] encoded) {

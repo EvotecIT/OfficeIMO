@@ -36,6 +36,7 @@ param(
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [ValidateSet('net8.0', 'net10.0')]
     [string] $PowerForgeFramework = 'net8.0',
+    [UInt64] $AffinityMask = 0,
     [switch] $AcceptNPOIOSMFLicense,
     [switch] $Publish,
     [switch] $PlanOnly
@@ -50,6 +51,7 @@ if ($Publish -and $RunMode -ne 'full') {
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
     $OutputRoot)
 $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
@@ -498,6 +500,9 @@ foreach ($name in $selected) {
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
     }
+    if ($null -ne $affinityLabel) {
+        $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
+    }
     $provenanceCapture = Start-BenchmarkProvenanceCapture `
         -SourceRoot $repositoryRoot `
         -ArtifactRoot $artifactsPath `
@@ -520,6 +525,9 @@ foreach ($name in $selected) {
     )
     if ($RunMode -eq 'quick') {
         $arguments += @('--job', 'Dry')
+    }
+    if ($AffinityMask -ne 0) {
+        $arguments += @('--affinity', $AffinityMask.ToString([Globalization.CultureInfo]::InvariantCulture))
     }
 
     Push-Location -LiteralPath $repositoryRoot
@@ -619,6 +627,7 @@ $outputs = foreach ($measurement in $measurements) {
         Platform = $platform
         RunMode = $RunMode
         Publish = $executionPlanByWorkload[$measurement.Workload].Publish
+        AffinityMask = $affinityLabel
         SourceCommit = $gitSha
         ArtifactsPath = $measurement.ArtifactsPath
         NormalizedResult = if ($measurement.CatalogEligible) {
