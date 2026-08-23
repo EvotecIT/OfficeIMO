@@ -90,6 +90,30 @@ public static class OfficeRasterImageDecoder {
             }
         }
 
+        if (format == OfficeImageFormat.Tiff) {
+            if (!OfficeTiffCodec.TryGetPageCount(bytes, out int tiffPageCount)) {
+                info = new OfficeRasterDecodeInfo(format, 0, effective.FrameIndex, succeeded: false, diagnostic: "The TIFF container is malformed or outside the managed decoder subset.");
+                return false;
+            }
+            if (tiffPageCount > 1) {
+                if (effective.AnimationPolicy == OfficeRasterAnimationPolicy.RejectAnimated) {
+                    info = new OfficeRasterDecodeInfo(format, tiffPageCount, effective.FrameIndex, succeeded: false, diagnostic: "Multi-page TIFF input was rejected by the configured frame-loss policy.");
+                    return false;
+                }
+                if (effective.FrameIndex != 0) {
+                    info = new OfficeRasterDecodeInfo(format, tiffPageCount, effective.FrameIndex, succeeded: false, diagnostic: "Managed TIFF decoding currently exposes only the first page.");
+                    return false;
+                }
+
+                bool decoded = OfficeTiffCodec.TryDecode(bytes, out image);
+                info = new OfficeRasterDecodeInfo(format, tiffPageCount, effective.FrameIndex, decoded,
+                    decoded
+                        ? "The first TIFF page was decoded; remaining pages were not retained in the static raster result."
+                        : "The first TIFF page could not be decoded.");
+                return decoded;
+            }
+        }
+
         int webpFrameCount = format == OfficeImageFormat.Webp ? CountWebpAnimationFrames(bytes) : 1;
         if (webpFrameCount > 1) {
             info = new OfficeRasterDecodeInfo(format, webpFrameCount, effective.FrameIndex, succeeded: false,

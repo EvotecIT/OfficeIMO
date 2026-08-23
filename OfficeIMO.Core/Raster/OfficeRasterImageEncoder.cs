@@ -10,6 +10,10 @@ public static class OfficeRasterImageEncoder {
     internal const double JpegMinimumDpi = 0.5D;
     internal const double TiffMinimumDpi = 0.001D;
     internal const double WebpMinimumDpi = 0.0001D;
+    internal const double PngMaximumDpi = uint.MaxValue * 0.0254D;
+    internal const double JpegMaximumDpi = ushort.MaxValue;
+    internal const double TiffMaximumDpi = 1000000D;
+    internal const double WebpMaximumDpi = 1000000D;
     internal const int JpegMaximumDimension = ushort.MaxValue;
     internal const int WebpMaximumDimension = 16384;
 
@@ -41,6 +45,22 @@ public static class OfficeRasterImageEncoder {
         OfficeImageExportFormat.Svg => throw new ArgumentException("SVG output does not encode raster density.", nameof(format)),
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
+
+    internal static double GetMaximumDpi(OfficeImageExportFormat format) => format switch {
+        OfficeImageExportFormat.Png => PngMaximumDpi,
+        OfficeImageExportFormat.Jpeg => JpegMaximumDpi,
+        OfficeImageExportFormat.Tiff => TiffMaximumDpi,
+        OfficeImageExportFormat.Webp => WebpMaximumDpi,
+        OfficeImageExportFormat.Svg => throw new ArgumentException("SVG output does not encode raster density.", nameof(format)),
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
+
+    internal static double NormalizeDpi(OfficeImageExportFormat format, double dpi) {
+        if (double.IsNaN(dpi) || double.IsInfinity(dpi) || dpi <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(dpi), "Raster DPI must be finite and greater than zero.");
+        }
+        return Math.Min(GetMaximumDpi(format), Math.Max(GetMinimumDpi(format), dpi));
+    }
 
     /// <summary>Encodes an RGBA image using the requested raster format.</summary>
     public static byte[] Encode(

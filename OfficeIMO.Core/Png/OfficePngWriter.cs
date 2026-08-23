@@ -67,9 +67,18 @@ public static class OfficePngWriter {
             throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(rgba));
         }
 
-        byte[] scanlines = CreateRgbaScanlines(width, height, rgba, compression == OfficePngCompression.Optimal);
-
-        return EncodeScanlines(width, height, 8, 6, scanlines, compression);
+        byte[] compressed;
+        switch (compression) {
+            case OfficePngCompression.Optimal:
+                compressed = DeflateRgbaScanlines(width, height, rgba);
+                break;
+            case OfficePngCompression.Stored:
+                compressed = DeflateZlibStored(CreateRgbaScanlines(width, height, rgba, adaptiveFiltering: false));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(compression));
+        }
+        return CreateFromCompressedScanlines(width, height, 8, 6, compressed);
     }
 
     /// <summary>Encodes raw RGBA pixels with explicit compression and physical-resolution metadata.</summary>
@@ -79,12 +88,17 @@ public static class OfficePngWriter {
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         ValidateRgba(width, height, rgba);
 
-        byte[] scanlines = CreateRgbaScanlines(width, height, rgba, options.Compression == OfficePngCompression.Optimal);
-        byte[] compressed = options.Compression switch {
-            OfficePngCompression.Optimal => DeflateZlib(scanlines),
-            OfficePngCompression.Stored => DeflateZlibStored(scanlines),
-            _ => throw new ArgumentOutOfRangeException(nameof(options.Compression))
-        };
+        byte[] compressed;
+        switch (options.Compression) {
+            case OfficePngCompression.Optimal:
+                compressed = DeflateRgbaScanlines(width, height, rgba);
+                break;
+            case OfficePngCompression.Stored:
+                compressed = DeflateZlibStored(CreateRgbaScanlines(width, height, rgba, adaptiveFiltering: false));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(options.Compression));
+        }
         return CreateFromCompressedScanlines(
             width,
             height,
@@ -267,11 +281,11 @@ public static class OfficePngWriter {
         if (dpi < OfficeRasterImageEncoder.PngMinimumDpi ||
             double.IsNaN(dpi) ||
             double.IsInfinity(dpi) ||
-            dpi > uint.MaxValue * 0.0254D) {
+            dpi > OfficeRasterImageEncoder.PngMaximumDpi) {
             throw new ArgumentOutOfRangeException(
                 paramName,
                 "PNG DPI must be finite and between 0.0127 and " +
-                (uint.MaxValue * 0.0254D).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                OfficeRasterImageEncoder.PngMaximumDpi.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 ".");
         }
     }
@@ -355,6 +369,54 @@ public static class OfficePngWriter {
         return stream.ToArray();
     }
 
+    private static byte[] DeflateRgbaScanlines(int width, int height, byte[] rgba) {
+        int stride = checked(width * 4);
+        var filteredRow = new byte[checked(stride + 1)];
+        var paethCandidate = new byte[stride];
+        var compressionBatch = new byte[Math.Max(filteredRow.Length, 64 * 1024)];
+        int batchLength = 0;
+        uint adlerA = 1;
+        uint adlerB = 0;
+        using MemoryStream stream = new MemoryStream();
+        stream.WriteByte(0x78);
+        stream.WriteByte(0x9C);
+        using (var deflate = new DeflateStream(stream, CompressionLevel.Optimal, leaveOpen: true)) {
+            for (int y = 0; y < height; y++) {
+                int rowOffset = y * stride;
+                if (y == 0) {
+                    filteredRow[0] = 1;
+                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1);
+                } else {
+                    int previousRowOffset = rowOffset - stride;
+                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1);
+                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate);
+                    if (paethScore < upScore) {
+                        filteredRow[0] = 4;
+                        Buffer.BlockCopy(paethCandidate, 0, filteredRow, 1, stride);
+                    } else {
+                        filteredRow[0] = 2;
+                    }
+                }
+
+                if (filteredRow.Length > compressionBatch.Length - batchLength) {
+                    deflate.Write(compressionBatch, 0, batchLength);
+                    batchLength = 0;
+                }
+                Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRow.Length);
+                batchLength += filteredRow.Length;
+                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB);
+            }
+            if (batchLength > 0) deflate.Write(compressionBatch, 0, batchLength);
+        }
+
+        uint adler = (adlerB << 16) | adlerA;
+        stream.WriteByte((byte)((adler >> 24) & 0xFF));
+        stream.WriteByte((byte)((adler >> 16) & 0xFF));
+        stream.WriteByte((byte)((adler >> 8) & 0xFF));
+        stream.WriteByte((byte)(adler & 0xFF));
+        return stream.ToArray();
+    }
+
     private static byte[] DeflateZlibStored(byte[] data) {
         using MemoryStream stream = new MemoryStream();
         stream.WriteByte(0x78);
@@ -383,22 +445,27 @@ public static class OfficePngWriter {
     }
 
     private static uint Adler32(byte[] data) {
-        const uint mod = 65521;
-        const int maximumChunk = 5552;
         uint a = 1;
         uint b = 0;
-        int offset = 0;
-        while (offset < data.Length) {
-            int end = Math.Min(offset + maximumChunk, data.Length);
+        UpdateAdler32(data, 0, data.Length, ref a, ref b);
+        return (b << 16) | a;
+    }
+
+    private static void UpdateAdler32(byte[] data, int offset, int count, ref uint a, ref uint b) {
+        const uint mod = 65521;
+        const int maximumChunk = 5552;
+        int remaining = count;
+        while (remaining > 0) {
+            int chunk = Math.Min(maximumChunk, remaining);
+            int end = offset + chunk;
             while (offset < end) {
                 a += data[offset++];
                 b += a;
             }
             a %= mod;
             b %= mod;
+            remaining -= chunk;
         }
-
-        return (b << 16) | a;
     }
 
     private static void WriteChunk(Stream stream, string type, byte[] data) {

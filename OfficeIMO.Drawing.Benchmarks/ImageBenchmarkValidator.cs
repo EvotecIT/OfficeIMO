@@ -24,12 +24,18 @@ internal static class ImageBenchmarkValidator {
         encode.Setup();
         writer.WriteLine($"Encode PNG     {encode.Png().Length,10:N0} bytes");
         writer.WriteLine($"Encode JPEG    {encode.Jpeg().Length,10:N0} bytes");
+        writer.WriteLine($"Encode JPEG420 {encode.Jpeg420().Length,10:N0} bytes");
+        writer.WriteLine($"JPEG420 prog   {encode.Jpeg420ProgressiveOptimized().Length,10:N0} bytes");
         writer.WriteLine($"Encode TIFF    {encode.Tiff().Length,10:N0} bytes");
+        writer.WriteLine($"TIFF Deflate   {encode.TiffDeflate().Length,10:N0} bytes");
         writer.WriteLine($"Encode WebP    {encode.Webp().Length,10:N0} bytes");
 
         var transform = new ImageTransformBenchmarks();
         transform.Setup();
         OfficeImageOptimizationResult optimized = transform.OptimizeForPlacement();
         writer.WriteLine($"Optimize JPEG  {optimized.Final.Width,4}x{optimized.Final.Height,-4} {optimized.FinalEncodedLength,10:N0} bytes {optimized.Status}");
+
+        ImageEncodingEvidence.Validate(writer);
+        ImageConversionEvidence.Validate(writer);
     }
 }

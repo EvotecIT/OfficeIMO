@@ -746,13 +746,13 @@ internal static class OfficeJpegWriter {
         if (dpiX < OfficeRasterImageEncoder.JpegMinimumDpi ||
             double.IsNaN(dpiX) ||
             double.IsInfinity(dpiX) ||
-            dpiX > ushort.MaxValue) {
+            dpiX > OfficeRasterImageEncoder.JpegMaximumDpi) {
             throw new ArgumentOutOfRangeException(nameof(dpiX));
         }
         if (dpiY < OfficeRasterImageEncoder.JpegMinimumDpi ||
             double.IsNaN(dpiY) ||
             double.IsInfinity(dpiY) ||
-            dpiY > ushort.MaxValue) {
+            dpiY > OfficeRasterImageEncoder.JpegMaximumDpi) {
             throw new ArgumentOutOfRangeException(nameof(dpiY));
         }
         WriteMarker(s, 0xFFE0);

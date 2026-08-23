@@ -325,18 +325,169 @@ namespace OfficeIMO.Tests {
             Assert.InRange(decoded!.GetPixel(10, 5).A, 95, 97);
         }
 
+        [Theory]
+        [InlineData(OfficeImageFormat.Png)]
+        [InlineData(OfficeImageFormat.Jpeg)]
+        [InlineData(OfficeImageFormat.Tiff)]
+        [InlineData(OfficeImageFormat.Webp)]
+        public void OfficeImageOptimizer_EncodesRequestedFormatWithSourceResolution(OfficeImageFormat outputFormat) {
+            var source = new OfficeRasterImage(16, 12, OfficeColor.SteelBlue);
+            byte[] png = OfficePngWriter.Encode(source, new OfficePngEncodeOptions {
+                DpiX = 144D,
+                DpiY = 120D
+            });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                png,
+                new OfficeImageOptimizationRequest(8, 6) {
+                    OutputFormat = outputFormat,
+                    KeepOriginalWhenNotSmaller = false,
+                    TiffCompression = OfficeTiffCompression.Deflate,
+                    JpegOptimizeHuffman = true
+                });
+
+            OfficeImageInfo encodedInfo = OfficeImageReader.Identify(result.Bytes);
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(outputFormat, result.Final.Format);
+            Assert.Equal(outputFormat, encodedInfo.Format);
+            Assert.Equal((8, 6), (encodedInfo.Width, encodedInfo.Height));
+            Assert.InRange(encodedInfo.DpiX, 143.98D, 144.02D);
+            Assert.InRange(encodedInfo.DpiY, 119.98D, 120.02D);
+            Assert.Equal(encodedInfo.DpiX, result.Final.DpiX);
+            Assert.Equal(encodedInfo.DpiY, result.Final.DpiY);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageFormat.Jpeg, 65535D)]
+        [InlineData(OfficeImageFormat.Tiff, 1000000D)]
+        [InlineData(OfficeImageFormat.Webp, 1000000D)]
+        public void OfficeImageOptimizer_ClampsSourceResolutionToDestinationMaximum(
+            OfficeImageFormat outputFormat,
+            double expectedMaximumDpi) {
+            var source = new OfficeRasterImage(4, 4, OfficeColor.SteelBlue);
+            byte[] png = OfficePngWriter.Encode(source, new OfficePngEncodeOptions {
+                DpiX = 60000000D,
+                DpiY = 60000000D
+            });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                png,
+                new OfficeImageOptimizationRequest(4, 4) {
+                    OutputFormat = outputFormat,
+                    KeepOriginalWhenNotSmaller = false
+                });
+
+            OfficeImageInfo encodedInfo = OfficeImageReader.Identify(result.Bytes);
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.InRange(encodedInfo.DpiX, expectedMaximumDpi - 0.01D, expectedMaximumDpi + 0.01D);
+            Assert.InRange(encodedInfo.DpiY, expectedMaximumDpi - 0.01D, expectedMaximumDpi + 0.01D);
+            Assert.Equal(encodedInfo.DpiX, result.Final.DpiX);
+            Assert.Equal(encodedInfo.DpiY, result.Final.DpiY);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageFormat.Png, 0.0127D)]
+        [InlineData(OfficeImageFormat.Jpeg, 0.5D)]
+        public void OfficeImageOptimizer_ClampsSourceResolutionToDestinationMinimum(
+            OfficeImageFormat outputFormat,
+            double expectedMinimumDpi) {
+            var source = new OfficeRasterImage(4, 4, OfficeColor.SteelBlue);
+            byte[] webp = OfficeWebpCodec.Encode(source, 0.0001D, 0.0001D);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                webp,
+                new OfficeImageOptimizationRequest(4, 4) {
+                    OutputFormat = outputFormat,
+                    KeepOriginalWhenNotSmaller = false
+                });
+
+            OfficeImageInfo encodedInfo = OfficeImageReader.Identify(result.Bytes);
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.True(encodedInfo.DpiX >= expectedMinimumDpi);
+            Assert.True(encodedInfo.DpiY >= expectedMinimumDpi);
+            Assert.Equal(encodedInfo.DpiX, result.Final.DpiX);
+            Assert.Equal(encodedInfo.DpiY, result.Final.DpiY);
+        }
+
         [Fact]
-        public void OfficeImageOptimizer_DoesNotRewriteAnimationCapableFormats() {
-            byte[] gif = {
-                (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
-                1, 0, 1, 0, 0, 0, 0
+        public void OfficeImageOptimizer_UsesExplicitOutputResolutionWhenNoResizeIsNeeded() {
+            byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.SteelBlue));
+            var request = new OfficeImageOptimizationRequest(4, 4) {
+                OutputDpiX = 300D,
+                OutputDpiY = 150D,
+                KeepOriginalWhenNotSmaller = false
             };
 
-            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(gif, new OfficeImageOptimizationRequest(1, 1));
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(png, request);
 
-            Assert.Equal(OfficeImageOptimizationStatus.UnsupportedFormat, result.Status);
-            Assert.False(result.Changed);
-            Assert.Equal(gif, result.Bytes);
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.InRange(result.Final.DpiX, 299.98D, 300.02D);
+            Assert.InRange(result.Final.DpiY, 149.98D, 150.02D);
+        }
+
+        [Fact]
+        public void OfficeImageOptimizationRequest_RejectsInvalidOutputResolution() {
+            var request = new OfficeImageOptimizationRequest(4, 4);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => request.OutputDpiX = 0D);
+            Assert.Throws<ArgumentOutOfRangeException>(() => request.OutputDpiX = double.NaN);
+            Assert.Throws<ArgumentOutOfRangeException>(() => request.OutputDpiY = double.PositiveInfinity);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageFormat.Tiff)]
+        [InlineData(OfficeImageFormat.Webp)]
+        public void OfficeImageOptimizer_ConvertsManagedStaticInputsToPng(OfficeImageFormat sourceFormat) {
+            OfficeRasterImage source = CreateQuadrantImage(16, 12);
+            OfficeImageExportFormat exportFormat = sourceFormat == OfficeImageFormat.Tiff
+                ? OfficeImageExportFormat.Tiff
+                : OfficeImageExportFormat.Webp;
+            byte[] encoded = OfficeRasterImageEncoder.Encode(source, exportFormat);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                encoded,
+                new OfficeImageOptimizationRequest(8, 6) {
+                    KeepOriginalWhenNotSmaller = false
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(sourceFormat, result.Original.Format);
+            Assert.Equal(OfficeImageFormat.Png, result.Final.Format);
+            Assert.True(OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? decoded));
+            Assert.Equal((8, 6), (decoded!.Width, decoded.Height));
+        }
+
+        [Fact]
+        public void OfficeImageOptimizer_ConvertsStaticGifWithoutImplicitAnimationLoss() {
+            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                gif,
+                new OfficeImageOptimizationRequest(1, 1) {
+                    KeepOriginalWhenNotSmaller = false
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageFormat.Gif, result.Original.Format);
+            Assert.Equal(OfficeImageFormat.Png, result.Final.Format);
+            Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? decoded));
+            Assert.Equal((1, 1), (decoded!.Width, decoded.Height));
+        }
+
+        [Fact]
+        public void OfficeImageOptimizer_ResultKeepsEncodedBytesImmutable() {
+            byte[] source = OfficePngWriter.Encode(new OfficeRasterImage(8, 8, OfficeColor.SteelBlue));
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                source,
+                new OfficeImageOptimizationRequest(4, 4) {
+                    KeepOriginalWhenNotSmaller = false
+                });
+            byte[] first = result.Bytes;
+            byte expected = first[0];
+
+            first[0] ^= 0xFF;
+
+            Assert.Equal(expected, result.Bytes[0]);
         }
 
         private static OfficeRasterImage CreateQuadrantImage(int width, int height) {
