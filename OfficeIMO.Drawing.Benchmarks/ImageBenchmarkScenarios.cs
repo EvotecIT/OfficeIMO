@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace OfficeIMO.Drawing.Benchmarks;
 
 internal sealed record ImageBenchmarkScenario(
@@ -40,23 +42,11 @@ internal static class ImageBenchmarkScenarios {
         All.Single(scenario => string.Equals(scenario.Id, id, StringComparison.Ordinal));
 
     internal static string Fingerprint(OfficeRasterImage image) {
-        ulong hash = 14695981039346656037UL;
-        for (int sampleY = 0; sampleY < 16; sampleY++) {
-            int y = Math.Min(image.Height - 1, sampleY * image.Height / 16);
-            for (int sampleX = 0; sampleX < 16; sampleX++) {
-                int x = Math.Min(image.Width - 1, sampleX * image.Width / 16);
-                OfficeColor color = image.GetPixel(x, y);
-                hash = Mix(hash, color.R);
-                hash = Mix(hash, color.G);
-                hash = Mix(hash, color.B);
-                hash = Mix(hash, color.A);
-            }
-        }
-        return hash.ToString("X16");
+        byte[] pixels = image.GetPixels();
+        using SHA256 sha256 = SHA256.Create();
+        byte[] hash = sha256.ComputeHash(pixels);
+        return BitConverter.ToString(hash, 0, 8).Replace("-", string.Empty);
     }
-
-    private static ulong Mix(ulong hash, byte value) =>
-        unchecked((hash ^ value) * 1099511628211UL);
 
     private static OfficeRasterImage CreateScreenshot(int width, int height) {
         var image = new OfficeRasterImage(width, height, OfficeColor.FromRgb(246, 248, 250));

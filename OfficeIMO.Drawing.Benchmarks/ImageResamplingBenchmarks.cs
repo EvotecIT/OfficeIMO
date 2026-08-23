@@ -20,9 +20,24 @@ public class ImageResamplingBenchmarks {
         _source = scenario.CreateImage();
         _width = Math.Max(1, _source.Width / 4);
         _height = Math.Max(1, _source.Height / 4);
-        Validate(ResizeBilinear(), nameof(ResizeBilinear));
-        Validate(ResizeArea(), nameof(ResizeArea));
-        Validate(ResizeLanczos3(), nameof(ResizeLanczos3));
+        ImageResamplingExpectations.Validate(
+            ScenarioId,
+            OfficeRasterResamplingMode.Bilinear,
+            ResizeBilinear(),
+            _width,
+            _height);
+        ImageResamplingExpectations.Validate(
+            ScenarioId,
+            OfficeRasterResamplingMode.Area,
+            ResizeArea(),
+            _width,
+            _height);
+        ImageResamplingExpectations.Validate(
+            ScenarioId,
+            OfficeRasterResamplingMode.Lanczos3,
+            ResizeLanczos3(),
+            _width,
+            _height);
     }
 
     [Benchmark(Baseline = true)]
@@ -37,10 +52,4 @@ public class ImageResamplingBenchmarks {
     public OfficeRasterImage ResizeLanczos3() =>
         OfficeRasterResampler.Resize(_source, _width, _height, OfficeRasterResamplingMode.Lanczos3);
 
-    private void Validate(OfficeRasterImage image, string method) {
-        if (image.Width != _width || image.Height != _height) {
-            throw new InvalidOperationException(
-                $"{ScenarioId} {method} produced {image.Width}x{image.Height}; expected {_width}x{_height}.");
-        }
-    }
 }

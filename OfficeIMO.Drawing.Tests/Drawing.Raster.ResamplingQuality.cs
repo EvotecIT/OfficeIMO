@@ -136,6 +136,19 @@ public sealed class DrawingRasterResamplingQualityTests {
             OfficeRasterResampler.Resize(source, 1, 1, (OfficeRasterResamplingMode)999));
     }
 
+    [Theory]
+    [InlineData(OfficeRasterResamplingMode.Area)]
+    [InlineData(OfficeRasterResamplingMode.Lanczos3)]
+    public void HighQualityResizeRejectsOversizedAxisMetadataBeforeAllocation(
+        OfficeRasterResamplingMode mode) {
+        var source = new OfficeRasterImage(1, 1, OfficeColor.Red);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            OfficeRasterResampler.Resize(source, 50_000_000, 1, mode));
+
+        Assert.Contains("scratch space", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void AssertColorNear(OfficeColor expected, OfficeColor actual, int tolerance) {
         Assert.InRange(actual.R, Math.Max(0, expected.R - tolerance), Math.Min(255, expected.R + tolerance));
         Assert.InRange(actual.G, Math.Max(0, expected.G - tolerance), Math.Min(255, expected.G + tolerance));

@@ -25,6 +25,7 @@ internal static class ImageResamplingEvidence {
             byte[] expected = reference.GetPixels();
             foreach (OfficeRasterResamplingMode mode in Modes) {
                 OfficeRasterImage actual = OfficeRasterResampler.Resize(source, width, height, mode);
+                ImageResamplingExpectations.Validate(scenarioId, mode, actual, width, height);
                 byte[] pixels = actual.GetPixels();
                 OfficeRasterImage repeated = OfficeRasterResampler.Resize(source, width, height, mode);
                 if (!pixels.AsSpan().SequenceEqual(repeated.GetPixels())) {

@@ -51,6 +51,11 @@ public static partial class OfficeRasterResampler {
         int sourceLength,
         int destinationLength,
         OfficeRasterResamplingMode mode) {
+        long contributionLimit = OfficeRasterGuards.MaximumDecodedBytes / 8L;
+        long metadataBytes = (long)destinationLength * 3L * sizeof(int);
+        if (destinationLength <= 0 || metadataBytes > contributionLimit) {
+            throw new ArgumentException(ScratchLimitMessage);
+        }
         var starts = new int[destinationLength];
         var counts = new int[destinationLength];
         var offsets = new int[destinationLength];
@@ -74,7 +79,7 @@ public static partial class OfficeRasterResampler {
         long contributionBytes = total * sizeof(double) + destinationLength * 3L * sizeof(int);
         if (total <= 0L ||
             total > int.MaxValue ||
-            contributionBytes > OfficeRasterGuards.MaximumDecodedBytes / 8L) {
+            contributionBytes > contributionLimit) {
             throw new ArgumentException(ScratchLimitMessage);
         }
         var weights = new double[(int)total];
