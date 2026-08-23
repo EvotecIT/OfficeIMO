@@ -250,55 +250,48 @@ public static partial class MarkdownReader {
         out int endIndex,
         out MarkdownSyntaxNode? syntaxNode) {
         int idx = startIndex;
-        var tempDoc = MarkdownDoc.Create();
+        var nestedDocument = MarkdownDoc.Create();
         int previousMarkerIndentOffset = state.ListMarkerIndentOffset;
-        bool inheritedBoundaryProbe = state.IsListBoundaryProbe;
+        bool previousRelativeListMarkerIndent = state.UseRelativeListMarkerIndent;
+        bool requiresSourceRemap = false;
         state.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
-        state.IsListBoundaryProbe = true;
-        IMarkdownListBlock? parsedList = null;
+        state.UseRelativeListMarkerIndent = true;
         try {
-            if (parser.TryParse(lines, ref idx, options, tempDoc, state) &&
-                tempDoc.Blocks.Count == 1 &&
-                tempDoc.Blocks[0] is IMarkdownListBlock parsed) {
-                parsedList = parsed;
+            bool parsedNestedList;
+            using (nestedDocument.DeferObjectTreeBinding(completeBindingOnDispose: false)) {
+                parsedNestedList = parser.TryParse(lines, ref idx, options, nestedDocument, state);
+            }
+
+            if (parsedNestedList &&
+                nestedDocument.Blocks.Count == 1 &&
+                nestedDocument.Blocks[0] is IMarkdownListBlock parsed) {
+                requiresSourceRemap = state.SourceLineAbsoluteNumbers != null ||
+                    !IsDirectSourceBackedNestedList(lines, startIndex, idx, options);
+                if (!requiresSourceRemap) {
+                    list = parsed;
+                    endIndex = idx;
+                    syntaxNode = BuildSyntaxNode((IMarkdownBlock)parsed);
+                    SynchronizeOwnedSyntaxCaches(syntaxNode);
+                    MarkdownObjectTreeBinder.BindSourceSpans(syntaxNode);
+                    return true;
+                }
             }
         } finally {
             state.ListMarkerIndentOffset = previousMarkerIndentOffset;
-            state.IsListBoundaryProbe = inheritedBoundaryProbe;
+            state.UseRelativeListMarkerIndent = previousRelativeListMarkerIndent;
         }
 
-        if (parsedList != null) {
-            if (!inheritedBoundaryProbe) {
-                var slices = BuildListItemNestedSourceLines(lines, continuationIndent, startIndex, idx, state);
-                var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(slices, options, state);
-                if (blocks.Count == 1 &&
-                    blocks[0] is IMarkdownListBlock sourceMappedList &&
-                    syntaxChildren.Count == 1) {
-                    list = sourceMappedList;
-                    syntaxNode = syntaxChildren[0];
-                    endIndex = idx;
-                    return true;
-                }
-
-                if (TryParseNestedListFallback(
-                    lines,
-                    startIndex,
-                    options,
-                    state,
-                    parser,
-                    out var fallbackList,
-                    out var fallbackEndIndex)) {
-                    list = fallbackList;
-                    syntaxNode = null;
-                    endIndex = fallbackEndIndex;
-                    return true;
-                }
+        if (requiresSourceRemap) {
+            var slices = BuildListItemNestedSourceLines(lines, continuationIndent, startIndex, idx, state);
+            var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(slices, options, state);
+            if (blocks.Count == 1 &&
+                blocks[0] is IMarkdownListBlock sourceMappedList &&
+                syntaxChildren.Count == 1) {
+                list = sourceMappedList;
+                endIndex = idx;
+                syntaxNode = syntaxChildren[0];
+                return true;
             }
-
-            list = parsedList;
-            endIndex = idx;
-            syntaxNode = null;
-            return true;
         }
 
         list = null!;
@@ -307,36 +300,24 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool TryParseNestedListFallback(
+    private static bool IsDirectSourceBackedNestedList(
         string[] lines,
         int startIndex,
-        MarkdownReaderOptions options,
-        MarkdownReaderState state,
-        IMarkdownBlockParser parser,
-        out IMarkdownListBlock list,
-        out int endIndex) {
-        var fallbackDocument = MarkdownDoc.Create();
-        var fallbackIndex = startIndex;
-        var previousMarkerIndentOffset = state.ListMarkerIndentOffset;
-        var previousBoundaryProbe = state.IsListBoundaryProbe;
-        state.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
-        state.IsListBoundaryProbe = false;
-        try {
-            if (parser.TryParse(lines, ref fallbackIndex, options, fallbackDocument, state) &&
-                fallbackDocument.Blocks.Count == 1 &&
-                fallbackDocument.Blocks[0] is IMarkdownListBlock fallbackList) {
-                list = fallbackList;
-                endIndex = fallbackIndex;
-                return true;
+        int endIndex,
+        MarkdownReaderOptions options) {
+        for (int lineIndex = startIndex; lineIndex < endIndex; lineIndex++) {
+            var line = lines[lineIndex] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(line) || line.IndexOf('\t') >= 0) {
+                return false;
             }
-        } finally {
-            state.ListMarkerIndentOffset = previousMarkerIndentOffset;
-            state.IsListBoundaryProbe = previousBoundaryProbe;
+
+            if (!IsUnorderedListLine(line) &&
+                !IsOrderedListLine(line, options, out _, out _, out _, out _)) {
+                return false;
+            }
         }
 
-        list = null!;
-        endIndex = startIndex;
-        return false;
+        return endIndex > startIndex;
     }
 
     private static bool TryParseNestedAttributedListBlock(

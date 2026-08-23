@@ -79,7 +79,7 @@ public static partial class MarkdownReader {
             }
 
             int lineIndentColumns = CountLeadingIndentColumns(line);
-            int relativeLineIndentColumns = state?.CaptureSyntaxTree == false
+            int relativeLineIndentColumns = state?.CaptureSyntaxTree == false || state?.UseRelativeListMarkerIndent == true
                 ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
                 : lineIndentColumns;
             bool underIndentedMarkerContinuation = options.StrictListIndentation
@@ -210,7 +210,7 @@ public static partial class MarkdownReader {
 
         string line = lines[nextIndex] ?? string.Empty;
         int lineIndentColumns = CountLeadingIndentColumns(line);
-        int relativeLineIndentColumns = state?.CaptureSyntaxTree == false
+        int relativeLineIndentColumns = state?.CaptureSyntaxTree == false || state?.UseRelativeListMarkerIndent == true
             ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
             : lineIndentColumns;
         bool underIndentedMarkerContinuation = options.StrictListIndentation

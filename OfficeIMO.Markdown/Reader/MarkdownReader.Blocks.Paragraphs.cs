@@ -189,6 +189,20 @@ public static partial class MarkdownReader {
         if (HasNonSyntaxOnlyListItemLeadSyntaxChildren(item.SyntaxChildren)) return;
         int absoluteLineOffset = (state?.SourceLineOffset ?? 0) + lineOffset;
 
+        if (lines.Count == 1 &&
+            sourceLines?.Count == 1 &&
+            item.Content.Nodes.Count > 0 &&
+            !StartsListItemLeadWithStandaloneBlock(lines, options)) {
+            var sourceLine = sourceLines[0];
+            item.SyntaxChildren.Add(BuildSyntaxNode(item.LeadParagraphBlock, CreateSpan(
+                state,
+                sourceLine.AbsoluteLine,
+                sourceLine.StartColumn,
+                sourceLine.AbsoluteLine,
+                sourceLine.StartColumn + Math.Max(0, sourceLine.Text.Length - 1))));
+            return;
+        }
+
         if (TryParseListItemLeadBlockSyntaxNodes(lines, lineOffset, options, state, sourceLines, out var leadBlockSyntax)) {
             for (int i = 0; i < leadBlockSyntax.Count; i++) {
                 item.SyntaxChildren.Add(leadBlockSyntax[i]);

@@ -117,6 +117,7 @@ public sealed class MarkdownReaderState {
     internal int SourceLineOffset { get; set; }
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }
+    internal bool UseRelativeListMarkerIndent { get; set; }
     /// <summary>Whether this parse is producing the source-backed syntax representation.</summary>
     internal bool CaptureSyntaxTree { get; set; }
     /// <summary>Enables a lightweight semantic pass used only to locate an exact nested-list boundary.</summary>
