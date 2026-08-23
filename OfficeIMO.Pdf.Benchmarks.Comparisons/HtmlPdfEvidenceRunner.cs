@@ -24,7 +24,7 @@ internal static class HtmlPdfEvidenceRunner {
         PdfBenchmarkScale scale = ReadScale(args);
         int iterations = ReadIterations(args);
         string outputDirectory = ResolveOutputDirectory(args);
-        PrepareOutputDirectory(outputDirectory);
+        using EvidenceOutputReservation outputReservation = EvidenceOutputReservation.Acquire(outputDirectory);
         string repositoryRoot = FindRepositoryRoot();
         HtmlPdfEvidenceProvenance provenance = await ReadProvenanceAsync(repositoryRoot).ConfigureAwait(false);
         if (args.Any(value => string.Equals(value, "--require-clean-source", StringComparison.OrdinalIgnoreCase))) {
@@ -292,15 +292,10 @@ internal static class HtmlPdfEvidenceRunner {
     private static string ResolveOutputDirectory(string[] args) {
         string? configured = ReadOption(args, "--output");
         if (!string.IsNullOrWhiteSpace(configured)) return Path.GetFullPath(configured);
-        return Path.Combine(FindRepositoryRoot(), "Ignore", "Benchmarks", "HtmlPdfEvidence", DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
-    }
-
-    private static void PrepareOutputDirectory(string outputDirectory) {
-        if (Directory.Exists(outputDirectory) && Directory.EnumerateFileSystemEntries(outputDirectory).Any()) {
-            throw new IOException(
-                $"HTML-to-PDF evidence output must be a new or empty directory: '{outputDirectory}'.");
-        }
-        Directory.CreateDirectory(outputDirectory);
+        string runDirectory = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss.fff", System.Globalization.CultureInfo.InvariantCulture) +
+            "-" + Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            "-" + Guid.NewGuid().ToString("N")[..8];
+        return Path.Combine(FindRepositoryRoot(), "Ignore", "Benchmarks", "HtmlPdfEvidence", runDirectory);
     }
 
     private static string? ReadOption(string[] args, string option) {
@@ -375,18 +370,19 @@ internal static class HtmlPdfEvidenceRunner {
 
     private static async Task<HtmlPdfEvidenceProvenance> ReadProvenanceAsync(string repositoryRoot) {
         GitSourceState? officeImo = await SourceProvenanceReader.ReadGitStateAsync(repositoryRoot).ConfigureAwait(false);
-        string? htmlTinkerXProjectPath = Environment.GetEnvironmentVariable("HTMLTINKERX_PROJECT_PATH")
-            ?? Assembly.GetExecutingAssembly()
-                .GetCustomAttributes<AssemblyMetadataAttribute>()
-                .FirstOrDefault(attribute => string.Equals(
-                    attribute.Key,
-                    "HtmlTinkerXSourceProjectPath",
-                    StringComparison.Ordinal))
-                ?.Value;
-        bool htmlTinkerXSourceConfigured = !string.IsNullOrWhiteSpace(htmlTinkerXProjectPath);
+        string? compiledHtmlTinkerXProjectPath = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => string.Equals(
+                attribute.Key,
+                "HtmlTinkerXSourceProjectPath",
+                StringComparison.Ordinal))
+            ?.Value;
+        string? environmentHtmlTinkerXProjectPath = Environment.GetEnvironmentVariable("HTMLTINKERX_PROJECT_PATH");
+        ValidateCompiledSourceSelection(compiledHtmlTinkerXProjectPath, environmentHtmlTinkerXProjectPath);
+        bool htmlTinkerXSourceConfigured = !string.IsNullOrWhiteSpace(compiledHtmlTinkerXProjectPath);
         GitSourceState? htmlTinkerX = !htmlTinkerXSourceConfigured
             ? null
-            : await SourceProvenanceReader.ReadGitStateAsync(Path.GetDirectoryName(Path.GetFullPath(htmlTinkerXProjectPath!))!).ConfigureAwait(false);
+            : await SourceProvenanceReader.ReadGitStateAsync(Path.GetDirectoryName(Path.GetFullPath(compiledHtmlTinkerXProjectPath!))!).ConfigureAwait(false);
         return new HtmlPdfEvidenceProvenance(
             OfficeIMO: new HtmlPdfSourceReference(
                 Kind: "source",
@@ -398,6 +394,27 @@ internal static class HtmlPdfEvidenceRunner {
                 Version: AssemblyVersion(HtmlPdfComparisonEngine.Chromium),
                 Commit: htmlTinkerX?.Commit,
                 WorktreeClean: htmlTinkerX?.IsClean));
+    }
+
+    private static void ValidateCompiledSourceSelection(string? compiledPath, string? environmentPath) {
+        if (string.IsNullOrWhiteSpace(compiledPath)) {
+            if (!string.IsNullOrWhiteSpace(environmentPath)) {
+                throw new InvalidOperationException(
+                    "HTMLTINKERX_PROJECT_PATH is set at runtime, but this executable was not compiled against HtmlTinkerX source.");
+            }
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(environmentPath)) return;
+
+        string authoritativePath = Path.GetFullPath(compiledPath);
+        string runtimePath = Path.GetFullPath(environmentPath);
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (!string.Equals(authoritativePath, runtimePath, comparison)) {
+            throw new InvalidOperationException(
+                $"Runtime HTMLTINKERX_PROJECT_PATH '{runtimePath}' does not match compiled source '{authoritativePath}'.");
+        }
     }
 
     private static void ValidateCleanSource(HtmlPdfEvidenceProvenance provenance) {
