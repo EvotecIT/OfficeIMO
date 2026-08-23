@@ -8,6 +8,23 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public class OpenDocumentOdsTests {
     [Fact]
+    public void StringCellsUseElementContentAsTheCanonicalValue() {
+        OdsDocument document = OdsDocument.Create();
+        OdsCell cell = document.AddSheet("Data").Cell(0, 0);
+        cell.SetString("OfficeIMO  value\twith\na line");
+
+        XElement rawCell = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        Assert.Equal("string", (string?)rawCell.Attribute(OdfNamespaces.Office + "value-type"));
+        Assert.Null(rawCell.Attribute(OdfNamespaces.Office + "string-value"));
+
+        OdsCellValue reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()))
+            .Sheets.Single().GetValue(0, 0);
+        Assert.Equal("OfficeIMO  value\twith\na line", reopened.LexicalValue);
+        Assert.Equal("OfficeIMO  value\twith\na line", reopened.DisplayText);
+    }
+
+    [Fact]
     public void SequentialDenseEdits_Allow_Backfill_And_ContinueAppending() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");

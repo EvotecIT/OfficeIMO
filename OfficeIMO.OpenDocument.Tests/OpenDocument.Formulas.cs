@@ -1,9 +1,22 @@
 using System;
+using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentFormulaTests {
+    [Fact]
+    public void StringFormulaCachesUseTheDedicatedValueAttribute() {
+        OdsDocument document = OdsDocument.Create();
+        OdsCell cell = document.AddSheet("Data").Cell(0, 0);
+        cell.Formula = "of:=\"cached\"";
+        cell.SetString("cached");
+
+        Assert.Equal("cached", (string?)document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single()
+            .Attribute(OdfNamespaces.Office + "string-value"));
+    }
+
     [Fact]
     public void FormulaMutationInvalidatesCachedValueAndAllowsExplicitReplacement() {
         OdsDocument document = OdsDocument.Create();

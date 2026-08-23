@@ -5,6 +5,15 @@ internal static class OdfTextCodec {
 
     internal static string Read(XElement element) {
         if (element == null) throw new ArgumentNullException(nameof(element));
+        XNode? first = element.FirstNode;
+        if (first == null) return string.Empty;
+        if (first is XText text && first.NextNode == null) {
+            string value = text.Value;
+            if (value.Length > MaximumDecodedCharacters) {
+                throw new InvalidDataException($"Decoded OpenDocument text exceeds the {MaximumDecodedCharacters}-character safety limit.");
+            }
+            return value;
+        }
         return ReadNodes(element.Nodes());
     }
 
