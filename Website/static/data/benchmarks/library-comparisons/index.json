@@ -104,10 +104,10 @@
       "comparisonId": "image-tiff-lzw-net10.0",
       "platform": "windows",
       "runMode": "quick",
-      "generatedUtc": "2026-08-23T17:51:35.548509+00:00",
+      "generatedUtc": "2026-08-23T17:54:25.25253+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/image-tiff-lzw-net10.0-windows-quick.json",
-      "resultSha256": "1aed8b46ef3a81e69c837ac3af30c6d4c92f435c05468c6e9c7e906a1e698f9c",
+      "resultSha256": "b50bab43e9455285ff98661bddb1d83689f28840e4277ccb36cb4544da42f062",
       "artifactDestinationSha256": "984820a1e8bc66a8f266c52d7b7ce952185336e22b306f60dd3737069bfdf1dd",
       "artifactFileName": "image-tiff-lzw-net10.0-windows-quick.json",
       "artifactRelativePath": "image-tiff-lzw-net10.0-windows-quick.json",
@@ -132,8 +132,8 @@
         "benchmark.workload.affinityMask": "0xFFFF",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "image-tiff-lzw-net10.0",
-        "benchmark.workload.sourceCommit": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
-        "gitSha": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
+        "benchmark.workload.sourceCommit": "ca88c7b2129de3212f098dfe9cce4ee5d18d2dfb",
+        "gitSha": "ca88c7b2129de3212f098dfe9cce4ee5d18d2dfb",
         "runMode": "quick"
       },
       "comparable": true,
@@ -1183,7 +1183,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-08-23T17:51:35.548509+00:00"
+      "latestUtc": "2026-08-23T17:54:25.25253+00:00"
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",

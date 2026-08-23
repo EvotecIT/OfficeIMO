@@ -1,8 +1,8 @@
 {
-  "runId": "import-20260823175135",
+  "runId": "import-20260823175425",
   "suite": "OfficeIMO.Drawing.TiffLzw",
-  "startedUtc": "2026-08-23T17:51:21.0426983+00:00",
-  "finishedUtc": "2026-08-23T17:51:35.548509+00:00",
+  "startedUtc": "2026-08-23T17:54:09.4420951+00:00",
+  "finishedUtc": "2026-08-23T17:54:25.25253+00:00",
   "samples": [
     {
       "runId": "import",
@@ -15,7 +15,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 9.809,
+      "durationMs": 8.803,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -68,8 +68,8 @@
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 9.809,
-        "Mean": 9.809,
+        "MeanMs": 8.803,
+        "Mean": 8.803,
         "Ratio": 1,
         "Allocated": 301557.76
       }
@@ -85,7 +85,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 4.866,
+      "durationMs": 5.846,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -138,9 +138,9 @@
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 4.866,
-        "Mean": 4.866,
-        "Ratio": 0.5,
+        "MeanMs": 5.846,
+        "Mean": 5.846,
+        "Ratio": 0.66,
         "Allocated": 117626.88
       }
     },
@@ -155,7 +155,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 6.504,
+      "durationMs": 5.648,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -208,9 +208,9 @@
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 6.504,
-        "Mean": 6.504,
-        "Ratio": 0.66,
+        "MeanMs": 5.648,
+        "Mean": 5.648,
+        "Ratio": 0.64,
         "Allocated": 3170467.84
       }
     },
@@ -225,7 +225,7 @@
       "runMode": "quick",
       "iteration": 0,
       "status": "Succeeded",
-      "durationMs": 4.516,
+      "durationMs": 3.231,
       "allocatedBytes": null,
       "workingSetDeltaBytes": null,
       "outputMetric": null,
@@ -278,9 +278,9 @@
         "BenchmarkDotNetReport": "OfficeIMO.Drawing.Benchmarks.Comparisons.ImageTiffLzwBenchmarks"
       },
       "metrics": {
-        "MeanMs": 4.516,
-        "Mean": 4.516,
-        "Ratio": 0.46,
+        "MeanMs": 3.231,
+        "Mean": 3.231,
+        "Ratio": 0.37,
         "Allocated": 1052682.24
       }
     }
@@ -344,10 +344,10 @@
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 4.516,
-      "meanMs": 4.516,
-      "minMs": 4.516,
-      "maxMs": 4.516,
+      "medianMs": 3.231,
+      "meanMs": 3.231,
+      "minMs": 3.231,
+      "maxMs": 3.231,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -355,9 +355,9 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 4.516,
-        "Mean": 4.516,
-        "Ratio": 0.46,
+        "MeanMs": 3.231,
+        "Mean": 3.231,
+        "Ratio": 0.37,
         "Allocated": 1052682.24
       }
     },
@@ -419,10 +419,10 @@
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 4.866,
-      "meanMs": 4.866,
-      "minMs": 4.866,
-      "maxMs": 4.866,
+      "medianMs": 5.846,
+      "meanMs": 5.846,
+      "minMs": 5.846,
+      "maxMs": 5.846,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -430,9 +430,9 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 4.866,
-        "Mean": 4.866,
-        "Ratio": 0.5,
+        "MeanMs": 5.846,
+        "Mean": 5.846,
+        "Ratio": 0.66,
         "Allocated": 117626.88
       }
     },
@@ -494,10 +494,10 @@
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 6.504,
-      "meanMs": 6.504,
-      "minMs": 6.504,
-      "maxMs": 6.504,
+      "medianMs": 5.648,
+      "meanMs": 5.648,
+      "minMs": 5.648,
+      "maxMs": 5.648,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -505,9 +505,9 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 6.504,
-        "Mean": 6.504,
-        "Ratio": 0.66,
+        "MeanMs": 5.648,
+        "Mean": 5.648,
+        "Ratio": 0.64,
         "Allocated": 3170467.84
       }
     },
@@ -569,10 +569,10 @@
       "sampleCount": 1,
       "failureCount": 0,
       "status": "Succeeded",
-      "medianMs": 9.809,
-      "meanMs": 9.809,
-      "minMs": 9.809,
-      "maxMs": 9.809,
+      "medianMs": 8.803,
+      "meanMs": 8.803,
+      "minMs": 8.803,
+      "maxMs": 8.803,
       "p95Ms": null,
       "p99Ms": null,
       "stdDevMs": null,
@@ -580,8 +580,8 @@
       "outlierCount": 0,
       "failureReasons": {},
       "metrics": {
-        "MeanMs": 9.809,
-        "Mean": 9.809,
+        "MeanMs": 8.803,
+        "Mean": 8.803,
         "Ratio": 1,
         "Allocated": 301557.76
       }
@@ -590,18 +590,18 @@
   "comparison": [],
   "artifacts": {},
   "metadata": {
-    "importedUtc": "2026-08-23T17:51:35.6384214\u002B00:00",
+    "importedUtc": "2026-08-23T17:54:25.3548173\u002B00:00",
     "benchmark.workload.affinityMask": "0xFFFF",
-    "benchmark.workload.sourceCommit": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
+    "benchmark.workload.sourceCommit": "ca88c7b2129de3212f098dfe9cce4ee5d18d2dfb",
     "benchmark.workload.framework": "net10.0",
     "benchmark.workload.id": "image-tiff-lzw-net10.0",
     "runMode": "quick",
     "benchmark.provenance.runMode": "quick",
-    "gitSha": "7fd195c0bbb8b6a3f03b1034e46898a19b07fce5",
+    "gitSha": "ca88c7b2129de3212f098dfe9cce4ee5d18d2dfb",
     "gitWorktreeClean": "true",
     "gitBranch": "feature/image-engine-completeness",
     "benchmark.provenance.source": "sidecar",
-    "benchmark.provenance.sidecar.sha256": "a78b8dbd2c5e01e0e62eaef9f45b4d08b95e01bd2664eb6046c8d01da2d8cf8d"
+    "benchmark.provenance.sidecar.sha256": "8f2fc31cfedb3057a6844ea6b496b0e1f80feb57a01b0f60fd4c9e552aa39289"
   },
   "environment": {
     "osFamily": "",
