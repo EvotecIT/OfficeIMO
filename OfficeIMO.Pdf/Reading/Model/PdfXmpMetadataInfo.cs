@@ -22,6 +22,8 @@ public sealed class PdfXmpMetadataInfo {
         int? pdfAPart,
         string? pdfAConformance,
         int? pdfUaPart,
+        string? pdfXVersion,
+        string? pdfXConformance,
         string? electronicInvoiceDocumentType,
         string? electronicInvoiceDocumentFileName,
         string? electronicInvoiceVersion,
@@ -43,6 +45,8 @@ public sealed class PdfXmpMetadataInfo {
         PdfAPart = pdfAPart;
         PdfAConformance = pdfAConformance;
         PdfUaPart = pdfUaPart;
+        PdfXVersion = pdfXVersion;
+        PdfXConformance = pdfXConformance;
         ElectronicInvoiceDocumentType = electronicInvoiceDocumentType;
         ElectronicInvoiceDocumentFileName = electronicInvoiceDocumentFileName;
         ElectronicInvoiceVersion = electronicInvoiceVersion;
@@ -108,6 +112,16 @@ public sealed class PdfXmpMetadataInfo {
 
     /// <summary>True when PDF/UA identification metadata was found.</summary>
     public bool HasPdfUaIdentification => PdfUaPart.HasValue;
+
+    /// <summary>PDF/X version from pdfxid:GTS_PDFXVersion.</summary>
+    public string? PdfXVersion { get; }
+
+    /// <summary>PDF/X conformance from pdfxid:GTS_PDFXConformance.</summary>
+    public string? PdfXConformance { get; }
+
+    /// <summary>True when PDF/X identification metadata was found.</summary>
+    public bool HasPdfXIdentification =>
+        !string.IsNullOrEmpty(PdfXVersion) || !string.IsNullOrEmpty(PdfXConformance);
 
     /// <summary>Factur-X/ZUGFeRD document type from the XMP extension metadata.</summary>
     public string? ElectronicInvoiceDocumentType { get; }

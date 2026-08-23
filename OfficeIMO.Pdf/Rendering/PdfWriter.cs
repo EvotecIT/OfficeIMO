@@ -65,6 +65,7 @@ internal static partial class PdfWriter {
         out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
         out int pageCount,
         out PdfSerializationReport serializationReport) {
+        opts.Validate();
         PdfComplianceValidator.ValidateGenerationOptions(opts);
         opts.ResetEmbeddedFontProgramUsage();
 
@@ -116,6 +117,7 @@ internal static partial class PdfWriter {
         var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language)>();
         var namedFontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfNamedFontFace, int>>();
         var formHelveticaFontIds = new Dictionary<PdfOptions, int>();
+        var printColorTransforms = new Dictionary<PdfOptions, PdfPrintColorTransform?>();
         var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfOptions Options)>();
         var pendingFontOptions = new Dictionary<int, List<PdfOptions>>();
         var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfOptions Options)>();
@@ -136,6 +138,15 @@ internal static partial class PdfWriter {
                 fontOptions.TextShapingProviderSnapshot,
                 fontOptions.Language));
             return shapingContexts.Count;
+        }
+
+        PdfPrintColorTransform? GetPrintColorTransform(PdfOptions colorOptions) {
+            if (!printColorTransforms.TryGetValue(colorOptions, out PdfPrintColorTransform? transform)) {
+                transform = PdfPrintColorTransform.Create(colorOptions);
+                printColorTransforms[colorOptions] = transform;
+            }
+
+            return transform;
         }
 
         int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
@@ -486,6 +497,9 @@ internal static partial class PdfWriter {
 
             var shadings = new List<(string Name, int Id)>();
             if (page.Shadings.Count > 0) {
+                PdfPrintColorTransform? shadingColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
+                    ? GetPrintColorTransform(pageOpts)
+                    : null;
                 foreach (var shading in page.Shadings) {
                     string shadingObject = shading.IsRadial
                         ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
@@ -495,13 +509,15 @@ internal static partial class PdfWriter {
                             shading.X1,
                             shading.Y1,
                             shading.R1,
-                            shading.Stops)
+                            shading.Stops,
+                            shadingColorTransform)
                         : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
                             shading.X0,
                             shading.Y0,
                             shading.X1,
                             shading.Y1,
-                            shading.Stops);
+                            shading.Stops,
+                            shadingColorTransform);
                     int shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                 }
@@ -529,6 +545,21 @@ internal static partial class PdfWriter {
                         throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
                     }
 
+                    PdfPrintColorTransform? imageColorTransform = pageOpts.ConvertRasterImagesToPdfXPrintCondition
+                        ? GetPrintColorTransform(pageOpts)
+                        : null;
+                    if (imageColorTransform != null) {
+                        if (!TryConvertImageStreamToCmyk(
+                                img.Data,
+                                imageStream,
+                                imageColorTransform,
+                                pageOpts.FlattenRasterTransparencyForPdfX,
+                                pageOpts.PdfXTransparencyBackground,
+                                out string? conversionReason)) {
+                            throw new NotSupportedException(conversionReason ?? "Raster image could not be converted to the configured PDF/X CMYK print condition.");
+                        }
+                    }
+
                     int imgId = EnsureImageXObject(imageStream);
                     if (!pageImageResourceNames.TryGetValue(imgId, out string? name)) {
                         name = "/Im" + (pageImageResourceNames.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -546,6 +577,12 @@ internal static partial class PdfWriter {
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
                     string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
+                    PdfPrintColorTransform? effectColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
+                        ? GetPrintColorTransform(pageOpts)
+                        : null;
+                    if (effectColorTransform != null) {
+                        effectContent = effectColorTransform.NormalizeGeneratedContent(effectContent);
+                    }
                     effect.MarkedContentIds.Clear();
                     effect.MarkedContentIds.AddRange(ExtractMarkedContentIds(effectContent));
                     if (markInfo && effect.MarkedContentIds.Count > 0 && !effect.StructParentIndex.HasValue) {
@@ -609,6 +646,13 @@ internal static partial class PdfWriter {
                     EnsureFont,
                     EnsureFormHelveticaFont,
                     markInfo);
+            }
+
+            PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
+                ? GetPrintColorTransform(pageOpts)
+                : null;
+            if (pageColorTransform != null) {
+                contentStr = pageColorTransform.NormalizeGeneratedContent(contentStr);
             }
 
             byte[] contentBytes = Encoding.ASCII.GetBytes(contentStr);
@@ -937,9 +981,10 @@ internal static partial class PdfWriter {
         int metadataId = 0;
         PdfAIdentification? pdfAIdentification = opts.PdfAIdentificationSnapshot;
         PdfUaIdentification? pdfUaIdentification = opts.PdfUaIdentificationSnapshot;
+        PdfXIdentification? pdfXIdentification = opts.PdfXIdentificationSnapshot;
         PdfElectronicInvoiceMetadata? electronicInvoiceMetadata = opts.ElectronicInvoiceMetadataSnapshot;
-        if (opts.IncludeXmpMetadata || pdfAIdentification != null || pdfUaIdentification != null || electronicInvoiceMetadata != null) {
-            byte[] xmpMetadata = PdfXmpMetadataBuilder.Build(title, author, subject, keywords, pdfAIdentification, pdfUaIdentification, electronicInvoiceMetadata);
+        if (opts.IncludeXmpMetadata || pdfAIdentification != null || pdfUaIdentification != null || electronicInvoiceMetadata != null || pdfXIdentification != null) {
+            byte[] xmpMetadata = PdfXmpMetadataBuilder.Build(title, author, subject, keywords, pdfAIdentification, pdfUaIdentification, electronicInvoiceMetadata, pdfXIdentification);
             metadataId = AddStreamObject(
                 objects,
                 "<< /Type /Metadata /Subtype /XML /Length " + xmpMetadata.Length.ToString(CultureInfo.InvariantCulture) + " >>",
@@ -1043,7 +1088,7 @@ internal static partial class PdfWriter {
             portfolioId,
             optionalContentPropertiesId));
 
-        infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
+        infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords, opts.TrappingStatus));
         MaterializePendingFontObjects();
 
         PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion

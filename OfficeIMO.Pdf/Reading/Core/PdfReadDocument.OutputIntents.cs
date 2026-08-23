@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
@@ -59,11 +61,16 @@ public sealed partial class PdfReadDocument {
             profileStream,
             PdfIccProfileCacheRepresentation.DecodedBytes,
             profileBytes.LongLength);
+        bool hasSupportedOutputTransform =
+            OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile) &&
+            profile != null &&
+            profile.HasOutputTransform;
         return new PdfOutputIntentProfileMetadata(
             profileBytes.Length,
             TryReadIccDeclaredSize(profileBytes),
             TryReadIccColorSpace(profileBytes),
-            TryReadIccSignature(profileBytes));
+            TryReadIccSignature(profileBytes),
+            hasSupportedOutputTransform);
     }
 
     private int? TryReadStreamColorComponents(PdfStream stream) {

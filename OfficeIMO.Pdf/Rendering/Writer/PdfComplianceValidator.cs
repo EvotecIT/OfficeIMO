@@ -35,6 +35,15 @@ internal static class PdfComplianceValidator {
         "Mustang validation fixtures in the build lane"
     };
 
+    private static readonly string[] PdfXRequirements = {
+        "profile-specific pdfxid XMP identification",
+        "CMYK print-condition ICC output intent with /GTS_PDFX subtype",
+        "embedded-font coverage for every generated glyph",
+        "black-preserving source-color conversion and exact color-space proof",
+        "profile-specific transparency, annotation, form, layer, page-box, and self-containment policy",
+        "qualified external PDF/X preflight validation bound to the exact artifact"
+    };
+
     internal static void ValidateGenerationOptions(PdfOptions options) {
         Guard.NotNull(options, nameof(options));
         Guard.ComplianceProfile(options.ComplianceProfile, nameof(options.ComplianceProfile));
@@ -117,6 +126,12 @@ internal static class PdfComplianceValidator {
                 yield return requirement;
             }
         }
+
+        if (profile == PdfComplianceProfile.PdfX1A2003 || profile == PdfComplianceProfile.PdfX4) {
+            foreach (string requirement in PdfXRequirements) {
+                yield return requirement;
+            }
+        }
     }
 
     private static IEnumerable<string> GetBaseRequirements(PdfComplianceProfile profile) =>
@@ -156,6 +171,10 @@ internal static class PdfComplianceValidator {
             return "EN 16931 e-invoice";
         }
 
+        if (profile == PdfComplianceProfile.PdfX1A2003 || profile == PdfComplianceProfile.PdfX4) {
+            return "PDF/X";
+        }
+
         return "PDF/A";
     }
 
@@ -174,6 +193,8 @@ internal static class PdfComplianceValidator {
             PdfComplianceProfile.PdfUa2 => "PDF/UA-2",
             PdfComplianceProfile.FacturX => "Factur-X",
             PdfComplianceProfile.Zugferd => "ZUGFeRD",
+            PdfComplianceProfile.PdfX1A2003 => "PDF/X-1a:2003",
+            PdfComplianceProfile.PdfX4 => "PDF/X-4",
             _ => "None"
         };
 }

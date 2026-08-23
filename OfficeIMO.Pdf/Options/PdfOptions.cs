@@ -76,8 +76,10 @@ public sealed partial class PdfOptions {
     private PdfComplianceProfile _complianceProfile;
     private PdfAIdentification? _pdfAIdentification;
     private PdfUaIdentification? _pdfUaIdentification;
+    private PdfXIdentification? _pdfXIdentification;
     private PdfElectronicInvoiceMetadata? _electronicInvoiceMetadata;
     private PdfOutputIntent? _outputIntent;
+    private PdfTrappingStatus? _trappingStatus;
     private PdfTaggedStructureMode _taggedStructureMode;
     private string? _language;
     private PdfCatalogPageMode? _catalogPageMode;

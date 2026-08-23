@@ -12,4 +12,6 @@ public sealed class PdfMetadata {
     public string? Subject { get; set; }
     /// <summary>Document keywords.</summary>
     public string? Keywords { get; set; }
+    /// <summary>Print trapping status from the Info dictionary.</summary>
+    public PdfTrappingStatus? TrappingStatus { get; set; }
 }

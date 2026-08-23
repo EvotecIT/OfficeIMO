@@ -5,14 +5,17 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public enum PdfExternalValidatorKind {
     /// <summary>veraPDF archival-profile validator, commonly used for PDF/A validation.</summary>
-    VeraPdf,
+    VeraPdf = 0,
 
     /// <summary>PDF/UA accessibility validator.</summary>
-    PdfUaValidator,
+    PdfUaValidator = 1,
 
     /// <summary>Mustang validator, commonly used for Factur-X and ZUGFeRD e-invoice validation.</summary>
-    Mustang,
+    Mustang = 2,
 
     /// <summary>Caller-supplied validator not otherwise modeled by OfficeIMO.Pdf.</summary>
-    Custom
+    Custom = 3,
+
+    /// <summary>Qualified PDF/X preflight validator.</summary>
+    PdfXValidator = 4
 }

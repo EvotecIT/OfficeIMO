@@ -37,7 +37,16 @@ public sealed partial class PdfReadDocument {
             Title = GetStr("Title"),
             Author = GetStr("Author"),
             Subject = GetStr("Subject"),
-            Keywords = GetStr("Keywords")
+            Keywords = GetStr("Keywords"),
+            TrappingStatus = ParseTrappingStatus(dict.Get<PdfName>("Trapped")?.Name)
         };
     }
+
+    private static PdfTrappingStatus? ParseTrappingStatus(string? value) =>
+        value switch {
+            "True" => PdfTrappingStatus.True,
+            "False" => PdfTrappingStatus.False,
+            "Unknown" => PdfTrappingStatus.Unknown,
+            _ => null
+        };
 }

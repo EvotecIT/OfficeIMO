@@ -80,18 +80,28 @@ public sealed class PdfOutputIntentInfo {
 
     /// <summary>True when the ICC header contains the acsp signature; false when a readable header is present without it.</summary>
     public bool? DestinationOutputProfileHasIccSignature => _profileMetadata.Value?.HasIccSignature;
+
+    /// <summary>True when the ICC profile is parseable and exposes a supported PCS-to-device output transform.</summary>
+    public bool? DestinationOutputProfileHasSupportedOutputTransform => _profileMetadata.Value?.HasSupportedOutputTransform;
 }
 
 internal sealed class PdfOutputIntentProfileMetadata {
-    internal PdfOutputIntentProfileMetadata(int sizeBytes, int? declaredSizeBytes, string? colorSpace, bool? hasIccSignature) {
+    internal PdfOutputIntentProfileMetadata(
+        int sizeBytes,
+        int? declaredSizeBytes,
+        string? colorSpace,
+        bool? hasIccSignature,
+        bool hasSupportedOutputTransform) {
         SizeBytes = sizeBytes;
         DeclaredSizeBytes = declaredSizeBytes;
         ColorSpace = colorSpace;
         HasIccSignature = hasIccSignature;
+        HasSupportedOutputTransform = hasSupportedOutputTransform;
     }
 
     internal int SizeBytes { get; }
     internal int? DeclaredSizeBytes { get; }
     internal string? ColorSpace { get; }
     internal bool? HasIccSignature { get; }
+    internal bool HasSupportedOutputTransform { get; }
 }

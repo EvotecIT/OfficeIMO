@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static class PdfXmpMetadataBuilder {
     private static readonly char[] KeywordSeparators = { ',', ';' };
 
-    internal static byte[] Build(string? title, string? author, string? subject, string? keywords, PdfAIdentification? pdfAIdentification = null, PdfUaIdentification? pdfUaIdentification = null, PdfElectronicInvoiceMetadata? electronicInvoiceMetadata = null) {
+    internal static byte[] Build(string? title, string? author, string? subject, string? keywords, PdfAIdentification? pdfAIdentification = null, PdfUaIdentification? pdfUaIdentification = null, PdfElectronicInvoiceMetadata? electronicInvoiceMetadata = null, PdfXIdentification? pdfXIdentification = null) {
         var sb = new StringBuilder();
         sb.Append("<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n");
         sb.Append("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n");
@@ -16,6 +16,12 @@ internal static class PdfXmpMetadataBuilder {
         if (pdfUaIdentification != null) {
             sb.Append(" xmlns:pdfuaid=\"")
                 .Append(PdfUaIdentification.NamespaceUri)
+                .Append('"');
+        }
+
+        if (pdfXIdentification != null) {
+            sb.Append(" xmlns:pdfxid=\"")
+                .Append(PdfXIdentification.NamespaceUri)
                 .Append('"');
         }
 
@@ -34,6 +40,7 @@ internal static class PdfXmpMetadataBuilder {
         AppendElement(sb, "pdf:Keywords", keywords);
         AppendPdfAIdentification(sb, pdfAIdentification);
         AppendPdfUaIdentification(sb, pdfUaIdentification);
+        AppendPdfXIdentification(sb, pdfXIdentification);
         AppendElectronicInvoiceMetadata(sb, electronicInvoiceMetadata);
         sb.Append("</rdf:Description>\n");
         sb.Append("</rdf:RDF>\n");
@@ -119,6 +126,15 @@ internal static class PdfXmpMetadataBuilder {
         sb.Append("<pdfuaid:part>")
             .Append(identification.Part.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Append("</pdfuaid:part>\n");
+    }
+
+    private static void AppendPdfXIdentification(StringBuilder sb, PdfXIdentification? identification) {
+        if (identification == null) {
+            return;
+        }
+
+        AppendElement(sb, "pdfxid:GTS_PDFXVersion", identification.Version);
+        AppendElement(sb, "pdfxid:GTS_PDFXConformance", identification.Conformance);
     }
 
     private static void AppendElectronicInvoiceMetadata(StringBuilder sb, PdfElectronicInvoiceMetadata? metadata) {

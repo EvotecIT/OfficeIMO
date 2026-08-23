@@ -62,6 +62,8 @@ public sealed partial class PdfReadDocument {
             document is null ? null : ReadIntegerElementByNamespace(document, "part", PdfAIdentificationNamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "conformance", PdfAIdentificationNamespaceUri),
             document is null ? null : ReadIntegerElementByNamespace(document, "part", PdfUaIdentification.NamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "GTS_PDFXVersion", PdfXIdentification.NamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "GTS_PDFXConformance", PdfXIdentification.NamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "DocumentType", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "DocumentFileName", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "Version", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
