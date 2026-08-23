@@ -715,6 +715,53 @@
       "compatibilityIssues": []
     },
     {
+      "comparisonId": "pdf-html-generation-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-08-23T14:25:39.5227033+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-quick.json",
+      "resultSha256": "df6d69bb28fe7c10ba1de0dd71cbbd154a5c497c1b008eb33a944c635d32d6f2",
+      "artifactDestinationSha256": "f2c5c6d4baf7941615da7fef1be178cdff25440f114bb018c628d91e17d51009",
+      "artifactFileName": "pdf-html-generation-net10.0-windows-quick.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.Pdf.HtmlGeneration",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26200.9168/25H2/2025Update/HudsonValley2)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.11 (10.0.11, 10.0.1126.37416)",
+        "dotNetSdkVersion": "10.0.111",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Pdf.HtmlGeneration",
+        "environment.runtimeVersion": ".NET 10.0.11 (10.0.11, 10.0.1126.37416)",
+        "environment.dotNetSdkVersion": "10.0.111",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "X64",
+        "environment.processArchitecture": "X64",
+        "environment.processorName": "AMD Ryzen 9 9950X3D2",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "16",
+        "environment.logicalCoreCount": "32",
+        "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "pdf-html-generation-net10.0",
+        "benchmark.workload.sourceCommit": "53b484a30198da98cc2daf1dad5c65f03c7d502a",
+        "gitSha": "53b484a30198da98cc2daf1dad5c65f03c7d502a",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "pdf-merge-net10.0",
       "platform": "windows",
       "runMode": "full",
@@ -1308,6 +1355,32 @@
     {
       "comparisonId": "pdf-html-generation-net10.0",
       "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-generation-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T14:25:39.5227033+00:00"
+    },
+    {
+      "comparisonId": "pdf-html-generation-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-generation-net10.0",
+      "runMode": "quick",
       "platform": "macos",
       "available": false,
       "runModes": [],
