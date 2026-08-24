@@ -110,9 +110,20 @@ internal sealed class CorpusConfiguration {
     public int TimeoutSeconds { get; set; }
     public int Parallelism { get; set; }
     public bool SourceNamesIncluded { get; set; }
+    public CorpusReaderPolicyConfiguration ReaderPolicy { get; set; } = new();
     public CorpusPackagePolicyConfiguration PackagePolicy { get; set; } = new();
     public string Selection { get; set; } = "sha256-ascending-stratified";
     public string Operation { get; set; } = "officeimo-reader-normalized-read";
+}
+
+internal sealed class CorpusReaderPolicyConfiguration {
+    public ReaderDetectionMode DetectionMode { get; set; }
+    public bool InspectContainers { get; set; }
+    public int DetectionMaxProbeBytes { get; set; }
+    public int DetectionMaxContainerEntries { get; set; }
+    public int ReadMaxCharacters { get; set; }
+    public int ReadMaxTableRows { get; set; }
+    public bool ComputeHashes { get; set; }
 }
 
 internal sealed class CorpusPackagePolicyConfiguration {

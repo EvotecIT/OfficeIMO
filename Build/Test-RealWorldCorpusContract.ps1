@@ -111,6 +111,15 @@ try {
         $first.configuration.packagePolicy.maxCompressionRatio -ne 500) {
         throw 'The JSON evidence did not record the package policy applied by the worker.'
     }
+    if ($first.configuration.readerPolicy.detectionMode -ne 'preferContent' -or
+        -not $first.configuration.readerPolicy.inspectContainers -or
+        $first.configuration.readerPolicy.detectionMaxProbeBytes -ne 65536 -or
+        $first.configuration.readerPolicy.detectionMaxContainerEntries -ne 512 -or
+        $first.configuration.readerPolicy.readMaxCharacters -ne 8000 -or
+        $first.configuration.readerPolicy.readMaxTableRows -ne 200 -or
+        $first.configuration.readerPolicy.computeHashes) {
+        throw 'The JSON evidence did not record the reader policy applied by the worker.'
+    }
     if ($first.totals.discovered -ne 8 -or $first.totals.oversize -ne 1) { throw 'The report did not account for every synthetic input.' }
     if ($first.totals.duplicateContent -ne 1) { throw 'Exact duplicate content was not identified.' }
     if ($first.totals.selected -ne 3) { throw 'The expected unique HTML and RTF sample was not selected.' }
@@ -127,8 +136,10 @@ try {
     $markdown = Get-Content -LiteralPath $firstMarkdown -Raw
     if ($markdown.Contains($scratch, [StringComparison]::OrdinalIgnoreCase) -or $markdown.Contains($inputDirectory, [StringComparison]::OrdinalIgnoreCase)) { throw 'A full input path leaked into the Markdown evidence.' }
     if ($markdown -notmatch 'not a reliability guarantee' -or $markdown -notmatch 'does not assess visual fidelity') { throw 'The generated evidence omitted its interpretation boundaries.' }
-    if ($markdown -notmatch '\| 4096 \| 20 \| 30 \| 2 \| 2 \| 3 \| 4096 \| 4096 \| 67108864 \| 33554432 \| 268435456 \| 500 \|') {
-        throw 'The Markdown evidence did not record the package policy applied by the worker.'
+    if ($markdown -notmatch '\| 4096 \| 20 \| 30 \| 2 \| 2 \| 3 \|' -or
+        $markdown -notmatch '\| PreferContent \| yes \| 65536 \| 512 \| 8000 \| 200 \| no \|' -or
+        $markdown -notmatch '\| 4096 \| 4096 \| 67108864 \| 33554432 \| 268435456 \| 500 \|') {
+        throw 'The Markdown evidence did not record the sampling, reader, and package policies applied by the worker.'
     }
     if ($markdown.Contains('![corpus](target)', [StringComparison]::Ordinal) -or $markdown.Contains('![source](target)', [StringComparison]::Ordinal)) {
         throw 'Provenance values were able to inject Markdown content into the evidence report.'

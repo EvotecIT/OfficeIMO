@@ -251,6 +251,7 @@ internal static class CorpusCoordinator {
                 TimeoutSeconds = options.TimeoutSeconds,
                 Parallelism = options.Parallelism,
                 SourceNamesIncluded = options.IncludeSourceNames,
+                ReaderPolicy = CorpusReaderPolicy.Describe(),
                 PackagePolicy = CorpusPackagePolicy.Describe(options.MaxFileBytes)
             },
             Environment = new CorpusEnvironment {

@@ -20,6 +20,15 @@ internal static class CorpusMarkdownContract {
             Configuration = new CorpusConfiguration {
                 MaxPerFormat = 17,
                 MaxTotal = 23,
+                ReaderPolicy = new CorpusReaderPolicyConfiguration {
+                    DetectionMode = ReaderDetectionMode.PreferContent,
+                    InspectContainers = true,
+                    DetectionMaxProbeBytes = 31,
+                    DetectionMaxContainerEntries = 37,
+                    ReadMaxCharacters = 41,
+                    ReadMaxTableRows = 43,
+                    ComputeHashes = false
+                },
                 PackagePolicy = new CorpusPackagePolicyConfiguration {
                     MaxPackageBytes = 29
                 }
@@ -52,9 +61,14 @@ internal static class CorpusMarkdownContract {
                 throw new InvalidOperationException($"Dynamic Markdown field '{field}' is not inert.");
             }
         }
-        if (!markdown.Contains("| Samples per format | Total samples | Package bytes |", StringComparison.Ordinal) ||
-            !markdown.Contains("| 0 | 0 | 0 | 0 | 17 | 23 | 29 |", StringComparison.Ordinal)) {
-            throw new InvalidOperationException("Markdown does not record the sampling and package limits.");
+        if (!markdown.Contains("| Samples per format | Total samples |", StringComparison.Ordinal) ||
+            !markdown.Contains("| 0 | 0 | 0 | 0 | 17 | 23 |", StringComparison.Ordinal) ||
+            !markdown.Contains("| Detection mode | Inspect containers | Detection probe bytes |", StringComparison.Ordinal) ||
+            !markdown.Contains("| PreferContent | yes | 31 | 37 | 41 | 43 | no |", StringComparison.Ordinal) ||
+            !markdown.Contains("| Package bytes | Package parts |", StringComparison.Ordinal) ||
+            !markdown.Contains("| 29 | 0 | 0 | 0 | 0 | 0 |", StringComparison.Ordinal)) {
+            throw new InvalidOperationException(
+                "Markdown does not record the sampling, reader, and package limits.");
         }
         Console.WriteLine("Dynamic Markdown fields are inert.");
         return 0;

@@ -13,12 +13,8 @@ internal static class CorpusWorker {
     public static CorpusWorkerResult Classify(string path, long maxFileBytes) {
         byte[] snapshot = ReadBoundedSnapshot(path, maxFileBytes);
         string sha256 = Convert.ToHexString(SHA256.HashData(snapshot)).ToLowerInvariant();
-        ReaderDetectionResult detection = Reader.Detect(snapshot, Path.GetFileName(path), new ReaderDetectionOptions {
-            Mode = ReaderDetectionMode.PreferContent,
-            MaxProbeBytes = 64 * 1024,
-            MaxContainerEntries = 512,
-            InspectContainers = true
-        });
+        ReaderDetectionResult detection = Reader.Detect(snapshot, Path.GetFileName(path),
+            CorpusReaderPolicy.CreateDetectionOptions());
         return new CorpusWorkerResult {
             Stage = CorpusOutcomes.Classification,
             Succeeded = true,
@@ -40,15 +36,8 @@ internal static class CorpusWorker {
             throw new CorpusInputChangedException();
         }
         ValidatePackage(snapshot, Path.GetFileName(path), maxFileBytes);
-        OfficeDocumentReadResult result = Reader.ReadDocument(snapshot, Path.GetFileName(path), new ReaderOptions {
-            MaxInputBytes = maxFileBytes,
-            DetectionMode = ReaderDetectionMode.PreferContent,
-            DetectionMaxProbeBytes = 64 * 1024,
-            DetectionMaxContainerEntries = 512,
-            ComputeHashes = false,
-            MaxChars = 8_000,
-            MaxTableRows = 200
-        });
+        OfficeDocumentReadResult result = Reader.ReadDocument(snapshot, Path.GetFileName(path),
+            CorpusReaderPolicy.CreateReadOptions(maxFileBytes));
         return new CorpusWorkerResult {
             Stage = CorpusOutcomes.Probe,
             Succeeded = true,
@@ -69,12 +58,8 @@ internal static class CorpusWorker {
     }
 
     private static void ValidatePackage(byte[] snapshot, string sourceName, long maxFileBytes) {
-        ReaderDetectionResult detection = Reader.Detect(snapshot, sourceName, new ReaderDetectionOptions {
-            Mode = ReaderDetectionMode.PreferContent,
-            MaxProbeBytes = 64 * 1024,
-            MaxContainerEntries = 512,
-            InspectContainers = true
-        });
+        ReaderDetectionResult detection = Reader.Detect(snapshot, sourceName,
+            CorpusReaderPolicy.CreateDetectionOptions());
         if (!IsPackageKind(detection.ContentKind) &&
             !IsPackageKind(detection.Kind)) {
             return;
