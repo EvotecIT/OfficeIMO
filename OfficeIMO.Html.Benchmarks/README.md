@@ -38,11 +38,15 @@ Capture process-isolated whole-document layout memory without PDF work:
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Html.Benchmarks -- --layout-evidence --repeat 3 --json .benchmark-artifacts\html\layout-evidence.json
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Html.Benchmarks -- --layout-verify-budgets --repeat 1
 ```
 
 Each child validates the expected page and text-marker contract, then records
 allocation, retained managed heap, sampled managed-heap peak, process peak,
-input bytes, page count, and rendered text characters.
+input bytes, page count, and rendered text characters. The checked-in
+`html-layout-performance-budgets.json` file gates allocations and memory growth
+for all six workloads. Elapsed and absolute process-peak limits are deliberately
+looser gross-regression guards; they are not portable throughput claims.
 
 ## Review budgets
 

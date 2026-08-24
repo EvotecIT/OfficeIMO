@@ -7,7 +7,12 @@ if (args.Length > 0 && string.Equals(args[0], "--layout-evidence-probe", StringC
 }
 
 if (args.Length > 0 && string.Equals(args[0], "--layout-evidence", StringComparison.OrdinalIgnoreCase)) {
-    Environment.ExitCode = HtmlLayoutEvidenceRunner.RunEvidence(args.Skip(1).ToArray());
+    Environment.ExitCode = HtmlLayoutEvidenceRunner.RunEvidence(args.Skip(1).ToArray(), verifyBudgets: false);
+    return;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "--layout-verify-budgets", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = HtmlLayoutEvidenceRunner.RunEvidence(args.Skip(1).ToArray(), verifyBudgets: true);
     return;
 }
 

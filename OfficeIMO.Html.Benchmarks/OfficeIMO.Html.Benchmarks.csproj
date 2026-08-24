@@ -19,4 +19,8 @@
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="html-layout-performance-budgets.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

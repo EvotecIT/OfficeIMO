@@ -31,7 +31,7 @@ internal static class HtmlLayoutEvidenceRunner {
         }
     }
 
-    internal static int RunEvidence(string[] args) {
+    internal static int RunEvidence(string[] args, bool verifyBudgets) {
         try {
             string? workloadFilter = GetOption(args, "--workload");
             string? jsonPath = GetOption(args, "--json");
@@ -40,10 +40,13 @@ internal static class HtmlLayoutEvidenceRunner {
                 ? Workloads
                 : [ResolveWorkload(workloadFilter!)];
             var measurements = new List<HtmlLayoutEvidenceMeasurement>(workloads.Length * repeat);
+            var failures = new List<string>();
+            HtmlLayoutBudgetManifest? budgetManifest = verifyBudgets ? LoadBudgetManifest() : null;
             foreach (string workload in workloads) {
                 for (int iteration = 1; iteration <= repeat; iteration++) {
                     HtmlLayoutEvidenceMeasurement measurement = RunChildProbe(workload) with { Iteration = iteration };
                     measurements.Add(measurement);
+                    if (budgetManifest != null) EvaluateBudget(budgetManifest, measurement, failures);
                     Console.WriteLine(
                         $"{workload,-16} #{iteration} {measurement.ElapsedMilliseconds,10:F2} ms " +
                         $"{measurement.AllocatedBytes / 1048576D,9:F2} MiB alloc " +
@@ -70,17 +73,51 @@ internal static class HtmlLayoutEvidenceRunner {
                 DateTimeOffset.UtcNow, ResolveCommit(), ResolveSourceTreeDirty(),
                 RuntimeInformation.FrameworkDescription, RuntimeInformation.OSDescription,
                 RuntimeInformation.ProcessArchitecture.ToString(), Environment.ProcessorCount,
-                repeat, measurements, summaries);
+                repeat, measurements, summaries, failures);
             if (!string.IsNullOrWhiteSpace(jsonPath)) {
                 string fullPath = Path.GetFullPath(jsonPath!);
                 Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
                 File.WriteAllText(fullPath, JsonSerializer.Serialize(report, JsonOptions));
                 Console.WriteLine("Wrote " + fullPath);
             }
-            return 0;
+            foreach (string failure in failures) Console.Error.WriteLine("BUDGET FAILURE: " + failure);
+            return failures.Count == 0 ? 0 : 1;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception);
             return 1;
+        }
+    }
+
+    private static HtmlLayoutBudgetManifest LoadBudgetManifest() {
+        string path = Path.Combine(AppContext.BaseDirectory, "html-layout-performance-budgets.json");
+        return JsonSerializer.Deserialize<HtmlLayoutBudgetManifest>(File.ReadAllText(path), JsonOptions)
+            ?? throw new InvalidOperationException("HTML layout performance budget manifest is invalid.");
+    }
+
+    private static void EvaluateBudget(
+        HtmlLayoutBudgetManifest manifest,
+        HtmlLayoutEvidenceMeasurement measurement,
+        ICollection<string> failures) {
+        HtmlLayoutBudget? budget = manifest.Budgets.FirstOrDefault(item =>
+            string.Equals(item.Workload, measurement.Workload, StringComparison.OrdinalIgnoreCase));
+        if (budget == null) {
+            failures.Add("Missing budget for " + measurement.Workload + ".");
+            return;
+        }
+        if (measurement.ElapsedMilliseconds > budget.MaxElapsedMilliseconds) {
+            failures.Add($"{measurement.Workload}: elapsed {measurement.ElapsedMilliseconds:F2} ms > {budget.MaxElapsedMilliseconds:F2} ms.");
+        }
+        if (measurement.AllocatedBytes > budget.MaxAllocatedBytes) {
+            failures.Add($"{measurement.Workload}: allocations {measurement.AllocatedBytes} > {budget.MaxAllocatedBytes} bytes.");
+        }
+        if (measurement.RetainedManagedHeapGrowthBytes > budget.MaxRetainedManagedHeapGrowthBytes) {
+            failures.Add($"{measurement.Workload}: retained managed growth {measurement.RetainedManagedHeapGrowthBytes} > {budget.MaxRetainedManagedHeapGrowthBytes} bytes.");
+        }
+        if (measurement.PeakManagedHeapGrowthBytes > budget.MaxPeakManagedHeapGrowthBytes) {
+            failures.Add($"{measurement.Workload}: managed peak growth {measurement.PeakManagedHeapGrowthBytes} > {budget.MaxPeakManagedHeapGrowthBytes} bytes.");
+        }
+        if (measurement.AbsoluteProcessPeakWorkingSetBytes > budget.MaxAbsoluteProcessPeakWorkingSetBytes) {
+            failures.Add($"{measurement.Workload}: absolute process peak {measurement.AbsoluteProcessPeakWorkingSetBytes} > {budget.MaxAbsoluteProcessPeakWorkingSetBytes} bytes.");
         }
     }
 
@@ -107,8 +144,8 @@ internal static class HtmlLayoutEvidenceRunner {
         long workingSetBefore = process.WorkingSet64;
         using var sampler = new HtmlLayoutMemorySampler(process);
         HtmlRenderDocument retained = scenario.Render();
-        scenario.Validate(retained);
         HtmlLayoutMemoryPeak peak = sampler.Stop();
+        int textCharacters = scenario.Validate(retained);
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long retainedGrowth = Math.Max(0, GC.GetTotalMemory(forceFullCollection: false) - heapBefore);
         process.Refresh();
@@ -116,7 +153,7 @@ internal static class HtmlLayoutEvidenceRunner {
         GC.KeepAlive(retained);
 
         return new HtmlLayoutEvidenceMeasurement(
-            workload, 1, scenario.InputBytes, retained.Pages.Count, retained.Text.Length,
+            workload, 1, scenario.InputBytes, retained.Pages.Count, textCharacters,
             stopwatch.Elapsed.TotalMilliseconds, allocated, retainedGrowth,
             Math.Max(0, peak.ManagedHeapBytes - heapBefore),
             Math.Max(0, peak.WorkingSetBytes - workingSetBefore), processPeak);
@@ -200,8 +237,9 @@ internal sealed class HtmlLayoutScenario {
     internal int InputBytes { get; }
     internal HtmlRenderDocument Render() => HtmlRenderEngine.Render(_prepared ?? HtmlConversionDocument.Parse(_html), _options);
 
-    internal void Validate(HtmlRenderDocument rendered) {
-        if (rendered.Pages.Count == 0 || rendered.Text.Length == 0) throw new InvalidOperationException(Name + " produced no layout output.");
+    internal int Validate(HtmlRenderDocument rendered) {
+        string renderedText = rendered.Text;
+        if (rendered.Pages.Count == 0 || renderedText.Length == 0) throw new InvalidOperationException(Name + " produced no layout output.");
         string[] markers = Name switch {
             "Report100" => ["Benchmark Report", "Line 99"],
             "Purchase250" => ["SKU-00000", "SKU-00249", "Total $"],
@@ -210,7 +248,7 @@ internal sealed class HtmlLayoutScenario {
             "Long1000" => ["PAGE-0000", "PAGE-0999"],
             _ => ["Static standards packet", "Second-page evidence"]
         };
-        if (markers.Any(marker => !rendered.Text.Contains(marker, StringComparison.Ordinal))) {
+        if (markers.Any(marker => !renderedText.Contains(marker, StringComparison.Ordinal))) {
             throw new InvalidOperationException(Name + " lost a required text marker.");
         }
         int? expectedPages = Name switch { "Long100" => 100, "Long1000" => 1000, "StaticStandards" => 2, _ => null };
@@ -218,6 +256,7 @@ internal sealed class HtmlLayoutScenario {
             throw new InvalidOperationException($"{Name} produced {rendered.Pages.Count} pages; expected {expectedPages.Value}.");
         }
         if (Name == "StaticStandards") rendered.RequireNoLoss();
+        return renderedText.Length;
     }
 
     internal static HtmlLayoutScenario Create(string name) => name switch {
