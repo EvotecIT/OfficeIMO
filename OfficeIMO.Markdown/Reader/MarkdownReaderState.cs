@@ -120,6 +120,8 @@ public sealed class MarkdownReaderState {
     internal bool UseRelativeListMarkerIndent { get; set; }
     /// <summary>Whether this parse is producing the source-backed syntax representation.</summary>
     internal bool CaptureSyntaxTree { get; set; }
+    /// <summary>Whether table parsing should build the rich inline and structured cell model.</summary>
+    internal bool BuildTableCellModels { get; set; } = true;
     /// <summary>Enables a lightweight semantic pass used only to locate an exact nested-list boundary.</summary>
     internal bool IsListBoundaryProbe { get; set; }
     internal bool SuppressBlockGenericAttributes { get; set; }

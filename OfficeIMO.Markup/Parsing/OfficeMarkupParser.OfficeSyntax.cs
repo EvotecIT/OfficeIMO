@@ -5,6 +5,16 @@ namespace OfficeIMO.Markup;
 public static partial class OfficeMarkupParser {
     private static Dictionary<string, string> ExtractFrontMatter(ref string markup) {
         var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        int firstContent = 0;
+        while (firstContent < markup.Length && markup[firstContent] is ' ' or '\t') {
+            firstContent++;
+        }
+        if (firstContent + 3 > markup.Length
+            || markup[firstContent] != '-'
+            || markup[firstContent + 1] != '-'
+            || markup[firstContent + 2] != '-') {
+            return metadata;
+        }
         var lines = markup.Split('\n');
         if (lines.Length < 3 || !string.Equals(lines[0].Trim(), "---", StringComparison.Ordinal)) {
             return metadata;
@@ -75,6 +85,10 @@ public static partial class OfficeMarkupParser {
     }
 
     private static bool HasSlideSeparators(string markup) {
+        if (!MayContainSlideSeparator(markup)) {
+            return false;
+        }
+
         var inFence = false;
         char fenceMarker = default;
         var fenceLength = 0;
@@ -97,6 +111,36 @@ public static partial class OfficeMarkupParser {
             if (!inFence && string.Equals(trimmed, "---", StringComparison.Ordinal)) {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    private static bool MayContainSlideSeparator(string markup) {
+        int index = 0;
+        while (index < markup.Length) {
+            while (index < markup.Length && markup[index] is ' ' or '\t') {
+                index++;
+            }
+
+            if (index + 3 <= markup.Length
+                && markup[index] == '-'
+                && markup[index + 1] == '-'
+                && markup[index + 2] == '-') {
+                int tail = index + 3;
+                while (tail < markup.Length && markup[tail] is ' ' or '\t' or '\r') {
+                    tail++;
+                }
+                if (tail == markup.Length || markup[tail] == '\n') {
+                    return true;
+                }
+            }
+
+            int newline = markup.IndexOf('\n', index);
+            if (newline < 0) {
+                return false;
+            }
+            index = newline + 1;
         }
 
         return false;
@@ -202,7 +246,7 @@ public static partial class OfficeMarkupParser {
                 return;
             }
 
-            var nested = MarkdownReader.Parse(markdown, CreateNestedMarkdownOptions());
+            var nested = MarkdownReader.ParseSemanticProjection(markdown, CreateNestedMarkdownOptions());
             MapMarkdownBlocks(nested.Blocks, target, profile, diagnostics);
         }
 

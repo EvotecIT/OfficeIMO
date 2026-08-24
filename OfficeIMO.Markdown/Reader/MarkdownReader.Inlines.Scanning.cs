@@ -81,25 +81,61 @@ public static partial class MarkdownReader {
         MarkdownReaderOptions options,
         bool allowLinks,
         bool allowImages) {
-        if (options.Abbreviations) {
-            return true;
-        }
-
         for (int i = 0; i < text.Length; i++) {
             char value = text[i];
             if (value == '\\' || value == '&' || value == '\n' ||
                 IsPotentialInlineStart(value, options.InlineHtml, allowLinks, allowImages)) {
                 return true;
             }
+        }
 
-            if ((options.AutolinkUrls && (value == 'h' || value == 'H')) ||
-                (options.AutolinkWwwUrls && (value == 'w' || value == 'W')) ||
-                (options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(value)) ||
-                (options.AutolinkEmails && IsEmailStartChar(value))) {
+        return ContainsPotentialBareAutolinkSyntax(text, options);
+    }
+
+    private static bool ContainsPotentialBareAutolinkSyntax(string text, MarkdownReaderOptions options) {
+        if (string.IsNullOrEmpty(text)) {
+            return false;
+        }
+
+        if (options.AutolinkUrls
+            && (text.IndexOf("http://", StringComparison.Ordinal) >= 0
+                || text.IndexOf("https://", StringComparison.Ordinal) >= 0)) {
+            return true;
+        }
+
+        if (options.AutolinkWwwUrls) {
+            var comparison = options.AutolinkRequireLowercaseWwwPrefix
+                ? StringComparison.Ordinal
+                : StringComparison.OrdinalIgnoreCase;
+            if (text.IndexOf("www.", comparison) >= 0) {
                 return true;
             }
         }
 
-        return false;
+        if (options.AutolinkBareSchemeUrls
+            && (ContainsEnabledBareScheme(text, options, "mailto:")
+                || ContainsEnabledBareScheme(text, options, "ftp://")
+                || ContainsEnabledBareScheme(text, options, "tel:")
+                || ContainsEnabledBareScheme(text, options, "xmpp:"))) {
+            return true;
+        }
+
+        // A plain email autolink cannot exist without an at sign. The full parser
+        // performs the precise boundary and address validation when one is present.
+        return options.AutolinkEmails && text.IndexOf('@') >= 0;
+    }
+
+    private static bool ContainsEnabledBareScheme(
+        string text,
+        MarkdownReaderOptions options,
+        string scheme) {
+        if (!IsBareSchemePrefixEnabled(options, scheme)) {
+            return false;
+        }
+
+        var comparison = options.AutolinkRequireLowercaseBareSchemePrefix
+            ? StringComparison.Ordinal
+            : StringComparison.OrdinalIgnoreCase;
+        return text.IndexOf(scheme, comparison) >= 0;
     }
 }

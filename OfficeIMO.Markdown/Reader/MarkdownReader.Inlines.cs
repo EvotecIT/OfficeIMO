@@ -6,9 +6,11 @@ namespace OfficeIMO.Markdown;
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
         InlineSequence sequence;
+        bool hasRegisteredAbbreviations = options.Abbreviations && state?.Abbreviations.Count > 0;
         if (state?.CaptureSyntaxTree == false
             && sourceMap == null
             && options.InlineParserExtensions.Count == 0
+            && !hasRegisteredAbbreviations
             && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)) {
             sequence = new InlineSequence { AutoSpacing = false };
             if (!string.IsNullOrEmpty(text)) {
@@ -46,6 +48,7 @@ public static partial class MarkdownReader {
         var inlineParserExtensions = BuildEffectiveInlineParserExtensions(options);
         if (sourceMap == null
             && inlineParserExtensions.Count == 0
+            && !(options.Abbreviations && state?.Abbreviations.Count > 0)
             && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)) {
             root.AddRaw(new MarkdownTextRun(text));
             return root;

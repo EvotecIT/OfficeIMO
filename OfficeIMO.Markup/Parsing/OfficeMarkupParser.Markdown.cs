@@ -3,28 +3,50 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Markup;
 
 public static partial class OfficeMarkupParser {
+    private static readonly MarkdownReaderOptions DefaultMarkdownOptions = CreateDefaultMarkdownOptions();
+
+    private static MarkdownReaderOptions CreateDefaultMarkdownOptions() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        // OfficeMarkupParser owns front-matter extraction before the Markdown pass.
+        // Keep nested Markdown parsing from cloning an option graph just to disable it again.
+        options.FrontMatter = false;
+        RegisterOfficeFences(options);
+        return options;
+    }
+
     private static MarkdownReaderOptions CreateMarkdownOptions(OfficeMarkupParserOptions options) {
-        var markdownOptions = options.MarkdownOptions ?? MarkdownReaderOptions.CreateOfficeIMOProfile();
+        if (options.MarkdownOptions == null) {
+            return DefaultMarkdownOptions;
+        }
+
+        var markdownOptions = options.MarkdownOptions;
         RegisterOfficeFences(markdownOptions);
         return markdownOptions;
     }
 
     private static void RegisterOfficeFences(MarkdownReaderOptions options) {
         AddFence(options, "OfficeIMO Markup", OfficeLanguages, "officeimo");
-        AddFence(options, "Mermaid diagram", new[] { "mermaid" }, "diagram");
+        AddFence(options, "Mermaid diagram", MermaidLanguages, "diagram");
     }
 
-    private static void AddFence(MarkdownReaderOptions options, string name, IEnumerable<string> languages, string semanticKind) {
-        var languageList = languages.ToArray();
-        bool alreadyRegistered = options.FencedBlockExtensions.Any(extension =>
-            extension.Languages.Any(language => languageList.Any(candidate => string.Equals(candidate, language, StringComparison.OrdinalIgnoreCase))));
-        if (alreadyRegistered) {
-            return;
+    private static void AddFence(MarkdownReaderOptions options, string name, string[] languages, string semanticKind) {
+        for (int extensionIndex = 0; extensionIndex < options.FencedBlockExtensions.Count; extensionIndex++) {
+            IReadOnlyList<string> registeredLanguages = options.FencedBlockExtensions[extensionIndex].Languages;
+            for (int registeredIndex = 0; registeredIndex < registeredLanguages.Count; registeredIndex++) {
+                for (int candidateIndex = 0; candidateIndex < languages.Length; candidateIndex++) {
+                    if (string.Equals(
+                        registeredLanguages[registeredIndex],
+                        languages[candidateIndex],
+                        StringComparison.OrdinalIgnoreCase)) {
+                        return;
+                    }
+                }
+            }
         }
 
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             name,
-            languageList,
+            languages,
             context => new SemanticFencedBlock(semanticKind, context.InfoString, context.Content, context.Caption)));
     }
 
@@ -47,51 +69,40 @@ public static partial class OfficeMarkupParser {
         IList<OfficeMarkupDiagnostic> diagnostics) {
         switch (markdownBlock) {
             case HeadingBlock heading:
-                return new OfficeMarkupHeadingBlock(heading.Level, heading.Text) {
-                    SourceText = markdownBlock.RenderMarkdown()
-                };
+                return WithLazySourceText(new OfficeMarkupHeadingBlock(heading.Level, heading.Text), markdownBlock);
 
             case ParagraphBlock paragraph:
-                return new OfficeMarkupParagraphBlock(ToPlainText(paragraph.Inlines)) {
-                    SourceText = markdownBlock.RenderMarkdown()
-                };
+                return WithLazySourceText(new OfficeMarkupParagraphBlock(ToPlainText(paragraph.Inlines)), markdownBlock);
 
             case UnorderedListBlock unordered:
-                return MapList(unordered.Items, ordered: false, start: 1, profile, diagnostics, markdownBlock.RenderMarkdown());
+                return MapList(unordered.Items, ordered: false, start: 1, profile, diagnostics, markdownBlock);
 
             case OrderedListBlock ordered:
-                return MapList(ordered.Items, ordered: true, start: ordered.Start, profile, diagnostics, markdownBlock.RenderMarkdown());
+                return MapList(ordered.Items, ordered: true, start: ordered.Start, profile, diagnostics, markdownBlock);
 
             case CodeBlock code when IsMermaid(code.Language):
-                return new OfficeMarkupDiagramBlock("mermaid", code.Content) {
-                    SourceText = markdownBlock.RenderMarkdown()
-                };
+                return WithLazySourceText(new OfficeMarkupDiagramBlock("mermaid", code.Content), markdownBlock);
 
             case CodeBlock code:
-                return new OfficeMarkupCodeBlock(code.Language, code.Content) {
-                    SourceText = markdownBlock.RenderMarkdown()
-                };
+                return WithLazySourceText(new OfficeMarkupCodeBlock(code.Language, code.Content), markdownBlock);
 
             case ImageBlock image:
-                return new OfficeMarkupImageBlock(image.Path, image.PlainAlt ?? image.Alt, image.Title, image.Width, image.Height) {
-                    SourceText = markdownBlock.RenderMarkdown()
-                };
+                return WithLazySourceText(
+                    new OfficeMarkupImageBlock(image.Path, image.PlainAlt ?? image.Alt, image.Title, image.Width, image.Height),
+                    markdownBlock);
 
             case TableBlock table:
-                return MapTable(table, markdownBlock.RenderMarkdown());
+                return MapTable(table, markdownBlock);
 
             case SemanticFencedBlock semantic when string.Equals(semantic.SemanticKind, "diagram", StringComparison.OrdinalIgnoreCase):
-                return new OfficeMarkupDiagramBlock(semantic.Language, semantic.Content) {
-                    SourceText = markdownBlock.RenderMarkdown()
-                };
+                return WithLazySourceText(new OfficeMarkupDiagramBlock(semantic.Language, semantic.Content), markdownBlock);
 
             case SemanticFencedBlock semantic:
                 return MapOfficeExtension(semantic, profile, diagnostics, markdownBlock.RenderMarkdown());
 
             default:
-                return new OfficeMarkupRawMarkdownBlock(markdownBlock.RenderMarkdown()) {
-                    SourceText = markdownBlock.RenderMarkdown()
-                };
+                string rendered = markdownBlock.RenderMarkdown();
+                return new OfficeMarkupRawMarkdownBlock(rendered) { SourceText = rendered };
         }
     }
 
@@ -101,10 +112,8 @@ public static partial class OfficeMarkupParser {
         int start,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        string sourceText) {
-        var list = new OfficeMarkupListBlock(ordered, start) {
-            SourceText = sourceText
-        };
+        IMarkdownBlock sourceBlock) {
+        var list = WithLazySourceText(new OfficeMarkupListBlock(ordered, start), sourceBlock);
 
         foreach (var item in source) {
             var astItem = new OfficeMarkupListItem(ToPlainText(item.Content), item.IsTask, item.Checked);
@@ -115,10 +124,8 @@ public static partial class OfficeMarkupParser {
         return list;
     }
 
-    private static OfficeMarkupTableBlock MapTable(TableBlock source, string sourceText) {
-        var table = new OfficeMarkupTableBlock {
-            SourceText = sourceText
-        };
+    private static OfficeMarkupTableBlock MapTable(TableBlock source, IMarkdownBlock sourceBlock) {
+        var table = WithLazySourceText(new OfficeMarkupTableBlock(), sourceBlock);
 
         foreach (var header in source.Headers) {
             table.Headers.Add(header ?? string.Empty);
@@ -129,6 +136,12 @@ public static partial class OfficeMarkupParser {
         }
 
         return table;
+    }
+
+    private static TBlock WithLazySourceText<TBlock>(TBlock target, IMarkdownBlock source)
+        where TBlock : OfficeMarkupBlock {
+        target.SetLazySourceText(source);
+        return target;
     }
 
     private static OfficeMarkupBlock MapOfficeExtension(
@@ -236,7 +249,7 @@ public static partial class OfficeMarkupParser {
         }
 
         if (!string.IsNullOrWhiteSpace(directive.Body)) {
-            var nested = MarkdownReader.Parse(directive.Body, CreateNestedMarkdownOptions());
+            var nested = MarkdownReader.ParseSemanticProjection(directive.Body, CreateNestedMarkdownOptions());
             MapMarkdownBlocks(nested.Blocks, slide.Blocks, profile, diagnostics);
         }
 
@@ -253,7 +266,7 @@ public static partial class OfficeMarkupParser {
         };
 
         if (!string.IsNullOrWhiteSpace(directive.Body)) {
-            var nested = MarkdownReader.Parse(directive.Body, CreateNestedMarkdownOptions());
+            var nested = MarkdownReader.ParseSemanticProjection(directive.Body, CreateNestedMarkdownOptions());
             MapMarkdownBlocks(nested.Blocks, section.Blocks, profile, diagnostics);
         }
 

@@ -13,8 +13,9 @@ public static partial class MarkdownReader {
         MarkdownSyntaxNode? syntaxTree = null,
         string? sourceMarkdown = null,
         string? originalMarkdown = null,
-        bool preservesOriginalMarkdown = false) {
-        var transforms = BuildEffectiveDocumentTransforms(options);
+        bool preservesOriginalMarkdown = false,
+        bool skipAbsentRegisteredFenceTransform = false) {
+        var transforms = BuildEffectiveDocumentTransforms(options, sourceMarkdown, skipAbsentRegisteredFenceTransform);
         var topLevelBlockSourceSpans = syntaxTree == null
             ? null
             : BuildTopLevelBlockSourceSpans(document, syntaxTree);
@@ -59,13 +60,17 @@ public static partial class MarkdownReader {
         return spans;
     }
 
-    private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(MarkdownReaderOptions options) {
+    private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(
+        MarkdownReaderOptions options,
+        string? sourceMarkdown = null,
+        bool skipAbsentRegisteredFenceTransform = false) {
         if (options == null) {
             return Array.Empty<IMarkdownDocumentTransform>();
         }
 
         var normalization = options.InputNormalization;
-        bool needsRegisteredFencedBlockTransform = options.FencedBlockExtensions.Count > 0;
+        bool needsRegisteredFencedBlockTransform = options.FencedBlockExtensions.Count > 0
+            && (!skipAbsentRegisteredFenceTransform || MayContainFencedBlock(sourceMarkdown));
         // These flags intentionally map to AST/document transforms rather than pre-parse text
         // repair because the markdown already parses into recoverable paragraph/heading/list
         // structures. Keeping them here makes the routing boundary explicit and prevents the
@@ -171,5 +176,14 @@ public static partial class MarkdownReader {
         }
 
         return transforms;
+    }
+
+    private static bool MayContainFencedBlock(string? markdown) {
+        if (string.IsNullOrEmpty(markdown)) {
+            return false;
+        }
+
+        return markdown!.IndexOf("```", StringComparison.Ordinal) >= 0
+            || markdown.IndexOf("~~~", StringComparison.Ordinal) >= 0;
     }
 }

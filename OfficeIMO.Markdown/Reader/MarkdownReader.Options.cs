@@ -211,6 +211,7 @@ public static partial class MarkdownReader {
         clone.SourceLineAbsoluteNumbers = state.SourceLineAbsoluteNumbers;
         clone.ListMarkerIndentOffset = state.ListMarkerIndentOffset;
         clone.CaptureSyntaxTree = state.CaptureSyntaxTree;
+        clone.BuildTableCellModels = state.BuildTableCellModels;
         clone.IsListBoundaryProbe = state.IsListBoundaryProbe;
         clone.UseRelativeListMarkerIndent = state.UseRelativeListMarkerIndent;
         clone.SuppressBlockGenericAttributes = state.SuppressBlockGenericAttributes;

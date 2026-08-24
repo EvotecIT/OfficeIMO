@@ -79,6 +79,27 @@ public static partial class MarkdownReader {
     }
 
     /// <summary>
+    /// Parses a transient semantic document for an owning projection layer. The returned model keeps
+    /// block and inline values needed for projection, but omits table cell navigation models and
+    /// object-tree binding that the caller will discard.
+    /// </summary>
+    internal static MarkdownDoc ParseSemanticProjection(string markdown, MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new MarkdownReaderOptions();
+        var state = new MarkdownReaderState { BuildTableCellModels = false };
+        return ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out _,
+            out _,
+            syntaxNodes: null,
+            lineOffset: 0,
+            transformDiagnostics: null);
+    }
+
+    /// <summary>
     /// Parses Markdown text into both the object model and a lightweight syntax tree with source spans.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTree(string markdown, MarkdownReaderOptions? options = null) {
@@ -214,7 +235,7 @@ public static partial class MarkdownReader {
             }
             var lines = state.CaptureSyntaxTree
                 ? text.Split('\n')
-                : SplitMarkdownLines(text);
+                : SplitMarkdownLines(text, reuseRepeatedLines: state.BuildTableCellModels);
             int i = 0;
 
             // Parsing with syntax capture binds the complete object and source trees together
@@ -288,7 +309,8 @@ public static partial class MarkdownReader {
                 syntaxTree,
                 normalizedSourceText,
                 options.PreserveTrivia ? markdown : null,
-                options.PreserveTrivia);
+                options.PreserveTrivia,
+                skipAbsentRegisteredFenceTransform: !state.BuildTableCellModels);
             return transformed;
         } finally {
             state.SourceLineOffset = previousLineOffset;
@@ -362,10 +384,10 @@ public static partial class MarkdownReader {
         return builder.ToString();
     }
 
-    private static string[] SplitMarkdownLines(string markdown) {
+    private static string[] SplitMarkdownLines(string markdown, bool reuseRepeatedLines = true) {
         int carriageReturn = markdown.IndexOf('\r');
-        bool reuseRepeatedLines = ShouldReuseRepeatedMarkdownLines(markdown);
-        if (carriageReturn < 0 && !reuseRepeatedLines) {
+        bool shouldReuseRepeatedLines = reuseRepeatedLines && ShouldReuseRepeatedMarkdownLines(markdown);
+        if (carriageReturn < 0 && !shouldReuseRepeatedLines) {
             return markdown.Split('\n');
         }
 
@@ -381,7 +403,7 @@ public static partial class MarkdownReader {
             }
         }
 
-        Dictionary<MarkdownLineKey, string>? repeatedLines = reuseRepeatedLines
+        Dictionary<MarkdownLineKey, string>? repeatedLines = shouldReuseRepeatedLines
             ? new Dictionary<MarkdownLineKey, string>(MarkdownLineKeyComparer.Instance)
             : null;
         var lines = new string[lineCount];

@@ -29,16 +29,13 @@ public static partial class MarkdownReader {
             || sourceMap != null
             || options.InlineParserExtensions.Count != 0
             || options.InlineTransformExtensions.Count != 0
-            || options.Abbreviations
-            || options.AutolinkUrls
-            || options.AutolinkWwwUrls
-            || options.AutolinkBareSchemeUrls
-            || options.AutolinkEmails
+            || (options.Abbreviations && state?.Abbreviations.Count > 0)
+            || ContainsPotentialBareAutolinkSyntax(text, options)
             || string.IsNullOrEmpty(text)) {
             return false;
         }
 
-        bool allowLiteralBrackets = !options.Footnotes && state.LinkRefs.Count == 0;
+        bool allowLiteralBrackets = !options.Footnotes && (state == null || state.LinkRefs.Count == 0);
         if (!ValidateSimpleCommonMarkInlineTokens(text, options, allowLiteralBrackets)) {
             return false;
         }
@@ -185,11 +182,8 @@ public static partial class MarkdownReader {
             || sourceMap != null
             || options.InlineParserExtensions.Count != 0
             || options.InlineTransformExtensions.Count != 0
-            || options.Abbreviations
-            || options.AutolinkUrls
-            || options.AutolinkWwwUrls
-            || options.AutolinkBareSchemeUrls
-            || options.AutolinkEmails
+            || (options.Abbreviations && state?.Abbreviations.Count > 0)
+            || ContainsPotentialBareAutolinkSyntax(text, options)
             || options.CjkFriendlyEmphasis
             || string.IsNullOrEmpty(text)) {
             return false;

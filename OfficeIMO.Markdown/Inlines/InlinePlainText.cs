@@ -6,6 +6,19 @@ internal static class InlinePlainText {
             return string.Empty;
         }
 
+        if (sequence.Nodes.Count == 1) {
+            IMarkdownInline node = sequence.Nodes[0];
+            if (node is MarkdownTextRun textRun) {
+                return textRun.Text;
+            }
+            if (node is CodeSpanInline code) {
+                return code.Text;
+            }
+            if (node is IInlineContainerMarkdownInline container && container.NestedInlines != null) {
+                return Extract(container.NestedInlines);
+            }
+        }
+
         var sb = new System.Text.StringBuilder();
         AppendPlainText(sb, sequence);
         return sb.ToString();
