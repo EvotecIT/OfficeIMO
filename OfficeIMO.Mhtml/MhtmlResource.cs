@@ -8,13 +8,18 @@ public sealed class MhtmlResource {
 
     /// <summary>Creates an embedded MHTML resource snapshot.</summary>
     public MhtmlResource(byte[] content, string? contentType = null, string? contentId = null,
-        string? contentLocation = null, string? fileName = null) {
+        string? contentLocation = null, string? fileName = null)
+        : this(content, contentType, contentId, contentLocation, fileName, takeOwnership: false) {
+    }
+
+    private MhtmlResource(byte[] content, string? contentType, string? contentId,
+        string? contentLocation, string? fileName, bool takeOwnership) {
         if (content == null) throw new ArgumentNullException(nameof(content));
         if (string.IsNullOrWhiteSpace(contentId) && string.IsNullOrWhiteSpace(contentLocation) &&
             string.IsNullOrWhiteSpace(fileName)) {
             throw new ArgumentException("An MHTML resource requires a Content-ID, Content-Location, or filename.");
         }
-        _content = (byte[])content.Clone();
+        _content = takeOwnership ? content : (byte[])content.Clone();
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType!.Trim();
         ContentId = NormalizeContentId(contentId);
         ContentLocation = string.IsNullOrWhiteSpace(contentLocation) ? null : contentLocation!.Trim();
@@ -53,20 +58,33 @@ public sealed class MhtmlResource {
         ContentLocation = ContentLocation,
         IsInline = true,
         IsMimeRelated = true,
-        Content = (byte[])_content.Clone(),
+        Content = _content,
         Length = _content.LongLength
     };
 
     internal static MhtmlResource FromEmailAttachment(EmailAttachment attachment) {
         if (attachment == null) throw new ArgumentNullException(nameof(attachment));
-        byte[] content;
-        using (Stream stream = attachment.OpenContentStream()) {
-            using var output = new MemoryStream();
-            stream.CopyTo(output);
-            content = output.ToArray();
+        if (attachment.Content != null) {
+            return new MhtmlResource(
+                attachment.Content,
+                attachment.ContentType,
+                attachment.ContentId,
+                attachment.ContentLocation,
+                attachment.FileName,
+                takeOwnership: true);
         }
-        return new MhtmlResource(content, attachment.ContentType, attachment.ContentId,
-            attachment.ContentLocation, attachment.FileName);
+
+        using Stream stream = attachment.OpenContentStream();
+        int capacity = attachment.Length is > 0 and <= int.MaxValue ? (int)attachment.Length : 0;
+        using var output = capacity == 0 ? new MemoryStream() : new MemoryStream(capacity);
+        stream.CopyTo(output);
+        return new MhtmlResource(
+            output.ToArray(),
+            attachment.ContentType,
+            attachment.ContentId,
+            attachment.ContentLocation,
+            attachment.FileName,
+            takeOwnership: true);
     }
 
     private static string? NormalizeContentId(string? contentId) {

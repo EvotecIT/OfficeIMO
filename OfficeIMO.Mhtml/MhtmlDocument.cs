@@ -44,7 +44,8 @@ public sealed class MhtmlDocument {
         RootContentId = NormalizeContentId(_mimeDocument.Body.HtmlContentId);
         Subject = NormalizeOptional(_mimeDocument.Subject);
         BaseUri = ResolveBaseUri(ContentLocation, sourceBaseUri);
-        _resources = _mimeDocument.Attachments.Where(static attachment => attachment.IsMimeRelated)
+        _resources = _mimeDocument.Attachments
+            .Where(attachment => attachment.IsMimeRelated && !IsSelectedHtmlRoot(attachment, _mimeDocument.Body))
             .Select(MhtmlResource.FromEmailAttachment)
             .ToArray();
         _mimeDiagnostics = readResult.Diagnostics.Concat(BuildResourceDiagnostics(_resources, BaseUri)).ToArray();
@@ -369,6 +370,25 @@ public sealed class MhtmlDocument {
         string? contentType = GetHeaderValue(headers, "Content-Type");
         return contentType != null && contentType.TrimStart()
             .StartsWith("multipart/related", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSelectedHtmlRoot(EmailAttachment attachment, EmailBody body) {
+        if (attachment == null || body == null
+            || string.IsNullOrWhiteSpace(attachment.ContentType)
+            || !attachment.ContentType!.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        string? attachmentContentId = NormalizeContentId(attachment.ContentId);
+        string? rootContentId = NormalizeContentId(body.HtmlContentId);
+        if (rootContentId != null) {
+            return string.Equals(attachmentContentId, rootContentId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string? attachmentLocation = NormalizeOptional(attachment.ContentLocation);
+        string? rootLocation = NormalizeOptional(body.HtmlContentLocation);
+        return rootLocation != null
+            && string.Equals(attachmentLocation, rootLocation, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetHeaderValue(IEnumerable<EmailHeader> headers, string name) =>

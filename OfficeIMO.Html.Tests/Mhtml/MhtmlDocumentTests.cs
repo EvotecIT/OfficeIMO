@@ -204,6 +204,45 @@ public sealed class MhtmlDocumentTests {
     }
 
     [Fact]
+    public void LoadDoesNotExposeFirstRelatedHtmlRootAsAResource() {
+        const string archive =
+            "MIME-Version: 1.0\r\n" +
+            "Subject: root first\r\n" +
+            "Content-Type: multipart/related; boundary=archive; type=\"text/html\"; start=\"<root>\"\r\n\r\n" +
+            "--archive\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <root>\r\n" +
+            "Content-Location: https://example.test/page/index.html\r\n\r\n" +
+            "<html><body><img src=\"cid:logo\"></body></html>\r\n" +
+            "--archive\r\nContent-Type: image/png\r\nContent-ID: <logo>\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nAQID\r\n" +
+            "--archive--\r\n";
+        using var stream = new MemoryStream(Encoding.ASCII.GetBytes(archive));
+
+        MhtmlDocument document = MhtmlDocument.Load(stream);
+
+        MhtmlResource resource = Assert.Single(document.Resources);
+        Assert.Equal("logo", resource.ContentId);
+        Assert.Equal(new byte[] { 1, 2, 3 }, resource.Content);
+    }
+
+    [Fact]
+    public void ResourceContentRemainsAnImmutableSnapshotAfterConstructionAndLoad() {
+        byte[] input = { 1, 2, 3 };
+        var resource = new MhtmlResource(input, "image/png", contentId: "logo");
+        input[0] = 9;
+        byte[] firstRead = resource.Content;
+        firstRead[1] = 9;
+
+        var source = new MhtmlDocument("<img src='cid:logo'>", new[] { resource }, rootContentId: "root");
+        using var stream = new MemoryStream(source.ToBytes());
+        MhtmlResource loaded = Assert.Single(MhtmlDocument.Load(stream).Resources);
+        byte[] loadedRead = loaded.Content;
+        loadedRead[2] = 9;
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, resource.Content);
+        Assert.Equal(new byte[] { 1, 2, 3 }, loaded.Content);
+    }
+
+    [Fact]
     public async Task ConfigureRenderOptionsAllowsPackageResourcesWithoutRelaxingHyperlinksOrFallbacks() {
         int fallbackCalls = 0;
         var document = new MhtmlDocument(
