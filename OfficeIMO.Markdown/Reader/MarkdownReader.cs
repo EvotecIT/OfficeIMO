@@ -138,35 +138,19 @@ public static partial class MarkdownReader {
     /// Parses Markdown text into both the object model and a lightweight syntax tree with source spans.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTree(string markdown, MarkdownReaderOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        options ??= new MarkdownReaderOptions();
-        var state = new MarkdownReaderState();
-        var syntaxNodes = new List<MarkdownSyntaxNode>();
-        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
-        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, out var sourceMarkdown, syntaxNodes, lineOffset: 0, transformDiagnostics: diagnostics);
-        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
-        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
-            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
-        }
-
-        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
-        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(
-            document,
-            originalSyntaxTree,
-            finalSyntaxTree,
-            sourceMarkdown,
-            options.PreserveTrivia ? markdown : null,
-            options.PreserveTrivia,
-            diagnostics,
-            referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
-            abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
+        return ParseWithSyntaxTreeCore(markdown, options);
     }
 
     /// <summary>
     /// Parses Markdown text into the object model, original syntax tree, and document-transform diagnostics.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTreeAndDiagnostics(string markdown, MarkdownReaderOptions? options = null) {
+        return ParseWithSyntaxTreeCore(markdown, options);
+    }
+
+    private static MarkdownParseResult ParseWithSyntaxTreeCore(
+        string markdown,
+        MarkdownReaderOptions? options) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();

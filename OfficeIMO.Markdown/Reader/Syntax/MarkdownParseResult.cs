@@ -5,6 +5,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownParseResult {
     private Dictionary<object, MarkdownSyntaxNode>? _finalNodeByAssociatedObject;
+    private IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic>? _generatedSyntaxDiagnostics;
     /// <summary>The parsed markdown object model.</summary>
     public MarkdownDoc Document { get; }
     /// <summary>
@@ -31,7 +32,21 @@ public sealed class MarkdownParseResult {
     /// <summary>Optional document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
     /// <summary>Diagnostics for final syntax nodes generated from semantic content rather than exact parsed source.</summary>
-    public IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> GeneratedSyntaxDiagnostics { get; }
+    public IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> GeneratedSyntaxDiagnostics {
+        get {
+            IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic>? diagnostics =
+                System.Threading.Volatile.Read(ref _generatedSyntaxDiagnostics);
+            if (diagnostics != null) {
+                return diagnostics;
+            }
+
+            var created = BuildGeneratedSyntaxDiagnostics(FinalSyntaxTree);
+            return System.Threading.Interlocked.CompareExchange(
+                ref _generatedSyntaxDiagnostics,
+                created,
+                comparand: null) ?? created;
+        }
+    }
     /// <summary>Effective reference-style link definitions collected during parsing, in source order where spans are available.</summary>
     public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions { get; }
     /// <summary>Effective abbreviation definitions collected during parsing, in source order where spans are available.</summary>
@@ -54,7 +69,6 @@ public sealed class MarkdownParseResult {
         OriginalMarkdown = preservesOriginalMarkdown ? originalMarkdown ?? string.Empty : SourceMarkdown;
         PreservesOriginalMarkdown = preservesOriginalMarkdown;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
-        GeneratedSyntaxDiagnostics = BuildGeneratedSyntaxDiagnostics(FinalSyntaxTree);
         ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownReferenceLinkDefinition>();
         AbbreviationDefinitions = abbreviationDefinitions ?? Array.Empty<MarkdownAbbreviationDefinition>();
         document.AttachParseResult(this);

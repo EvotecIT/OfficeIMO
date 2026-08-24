@@ -12,8 +12,10 @@ internal static class MarkdownParseEvidenceRunner {
     private const int WarmupDocuments = 128;
     private const int TargetInputBytesPerProbe = 8 * 1024 * 1024;
     private const string OfficeEngine = "OfficeIMO-Semantic";
+    private const string OfficeSourceBackedEngine = "OfficeIMO-SourceBacked";
+    private const string OfficeSyntaxTreeEngine = "OfficeIMO-SyntaxTree";
     private const string MarkdigEngine = "Markdig";
-    private static readonly string[] Engines = [OfficeEngine, MarkdigEngine];
+    private static readonly string[] Engines = [OfficeEngine, OfficeSourceBackedEngine, OfficeSyntaxTreeEngine, MarkdigEngine];
     private static readonly MarkdownPipeline MarkdigCommonMarkPipeline = new MarkdownPipelineBuilder().Build();
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -24,7 +26,7 @@ internal static class MarkdownParseEvidenceRunner {
     internal static int RunProbe(string[] args) {
         if (args.Length != 3) {
             Console.Error.WriteLine(
-                "Usage: --parse-evidence-probe <OfficeIMO-Semantic|Markdig> <corpus> <documents>");
+                "Usage: --parse-evidence-probe <OfficeIMO-Semantic|OfficeIMO-SourceBacked|OfficeIMO-SyntaxTree|Markdig> <corpus> <documents>");
             return 2;
         }
 
@@ -188,10 +190,13 @@ internal static class MarkdownParseEvidenceRunner {
             semanticFingerprint);
     }
 
-    private static object Parse(string engine, string markdown, MarkdownReaderOptions officeOptions) =>
-        string.Equals(engine, OfficeEngine, StringComparison.Ordinal)
-            ? MarkdownReader.ParseSemantic(markdown, officeOptions)
-            : Markdig.Markdown.Parse(markdown, MarkdigCommonMarkPipeline);
+    private static object Parse(string engine, string markdown, MarkdownReaderOptions officeOptions) => engine switch {
+        OfficeEngine => MarkdownReader.ParseSemantic(markdown, officeOptions),
+        OfficeSourceBackedEngine => MarkdownReader.Parse(markdown, officeOptions),
+        OfficeSyntaxTreeEngine => MarkdownReader.ParseWithSyntaxTree(markdown, officeOptions),
+        MarkdigEngine => Markdig.Markdown.Parse(markdown, MarkdigCommonMarkPipeline),
+        _ => throw new ArgumentException("Unknown Markdown parse benchmark engine: " + engine, nameof(engine))
+    };
 
     private static MarkdownParseEvidenceMeasurement RunChildProbe(string engine, string corpus, int documents) {
         string processPath = Environment.ProcessPath

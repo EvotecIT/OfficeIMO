@@ -4,7 +4,9 @@ namespace OfficeIMO.Markdown;
 /// Base type for the navigable OfficeIMO.Markdown object tree.
 /// </summary>
 public abstract class MarkdownObject {
-    private MarkdownObjectMetadata? _metadata;
+    // Parsed objects can use their already-retained syntax node as immutable source metadata.
+    // Objects edited or constructed independently fall back to a writable metadata holder.
+    private object? _metadata;
 
     /// <summary>Parent node in the markdown object tree, or <c>null</c> for the document root.</summary>
     public MarkdownObject? Parent { get; private set; }
@@ -26,18 +28,30 @@ public abstract class MarkdownObject {
 
     /// <summary>Source span mapped from the syntax tree when available.</summary>
     public MarkdownSourceSpan? SourceSpan {
-        get => _metadata?.SourceSpan;
+        get => _metadata switch {
+            MarkdownSyntaxNode syntaxNode => syntaxNode.SourceSpan,
+            MarkdownObjectMetadata metadata => metadata.SourceSpan,
+            _ => null
+        };
         internal set {
             if (value.HasValue) {
-                Metadata.SourceSpan = value;
-            } else if (_metadata != null) {
-                _metadata.SourceSpan = null;
+                WritableMetadata.SourceSpan = value;
+            } else if (_metadata is MarkdownObjectMetadata metadata) {
+                metadata.SourceSpan = null;
+            } else if (_metadata is MarkdownSyntaxNode syntaxNode) {
+                _metadata = syntaxNode.Attributes.IsEmpty
+                    ? null
+                    : new MarkdownObjectMetadata { Attributes = syntaxNode.Attributes };
             }
         }
     }
 
     /// <summary>Generic Markdown attributes associated with this node.</summary>
-    public MarkdownAttributeSet Attributes => _metadata?.Attributes ?? MarkdownAttributeSet.Empty;
+    public MarkdownAttributeSet Attributes => _metadata switch {
+        MarkdownSyntaxNode syntaxNode => syntaxNode.Attributes,
+        MarkdownObjectMetadata metadata => metadata.Attributes,
+        _ => MarkdownAttributeSet.Empty
+    };
 
     /// <summary>Immediate child objects in document order.</summary>
     public IReadOnlyList<MarkdownObject> ChildObjects => MarkdownObjectTreeBinder.GetChildObjects(this);
@@ -99,16 +113,49 @@ public abstract class MarkdownObject {
 
     internal void SetAttributes(MarkdownAttributeSet? attributes) {
         if (attributes == null || attributes.IsEmpty) {
-            if (_metadata != null) {
-                _metadata.Attributes = MarkdownAttributeSet.Empty;
+            if (_metadata is MarkdownObjectMetadata metadata) {
+                metadata.Attributes = MarkdownAttributeSet.Empty;
+            } else if (_metadata is MarkdownSyntaxNode syntaxNode) {
+                _metadata = syntaxNode.SourceSpan.HasValue
+                    ? new MarkdownObjectMetadata { SourceSpan = syntaxNode.SourceSpan }
+                    : null;
             }
             return;
         }
 
-        Metadata.Attributes = attributes;
+        WritableMetadata.Attributes = attributes;
     }
 
-    private MarkdownObjectMetadata Metadata => _metadata ??= new MarkdownObjectMetadata();
+    internal void BindSyntaxNode(MarkdownSyntaxNode syntaxNode) {
+        if (syntaxNode == null) {
+            throw new ArgumentNullException(nameof(syntaxNode));
+        }
+
+        MarkdownAttributeSet existingAttributes = Attributes;
+        _metadata = syntaxNode.Attributes.IsEmpty && !existingAttributes.IsEmpty
+            ? new MarkdownObjectMetadata {
+                SourceSpan = syntaxNode.SourceSpan,
+                Attributes = existingAttributes
+            }
+            : syntaxNode;
+    }
+
+    private MarkdownObjectMetadata WritableMetadata {
+        get {
+            if (_metadata is MarkdownObjectMetadata metadata) {
+                return metadata;
+            }
+
+            var created = _metadata is MarkdownSyntaxNode syntaxNode
+                ? new MarkdownObjectMetadata {
+                    SourceSpan = syntaxNode.SourceSpan,
+                    Attributes = syntaxNode.Attributes
+                }
+                : new MarkdownObjectMetadata();
+            _metadata = created;
+            return created;
+        }
+    }
 }
 
 internal sealed class MarkdownObjectMetadata {
