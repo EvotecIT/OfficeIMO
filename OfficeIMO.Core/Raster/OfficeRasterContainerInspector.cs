@@ -448,6 +448,7 @@ public static class OfficeRasterContainerInspector {
         if (length < 8 || offset < 0 || offset > source.Length - length) return false;
         int end = checked(offset + length);
         int cursor = offset;
+        bool seenAlpha = false;
         bool seenImage = false;
         while (cursor < end) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -461,12 +462,24 @@ public static class OfficeRasterContainerInspector {
                 (payloadLength & 1) != 0 && source[(int)payloadEnd] != 0) return false;
 
             string type = ReadAscii(source, cursor);
-            if (type != "VP8L" || seenImage ||
-                !TryDecodeWebpAnimationFrame(
-                    source, cursor, (int)paddedEnd - cursor,
-                    expectedWidth, expectedHeight, retainedFrameInventoryBytes,
-                    cancellationToken)) return false;
-            seenImage = true;
+            if (type == "ALPH") {
+                if (seenAlpha || seenImage ||
+                    !OfficeImageReader.HasValidWebpAlphaHeader(source, payloadOffset, payloadLength)) return false;
+                seenAlpha = true;
+            } else if (type == "VP8 " || type == "VP8L") {
+                if (seenImage || seenAlpha && type == "VP8L" ||
+                    !OfficeImageReader.TryReadWebpImageHeader(
+                        source, payloadOffset, payloadLength, type,
+                        out int width, out int height, out _) ||
+                    width != expectedWidth || height != expectedHeight) return false;
+                if (type == "VP8L" && !TryDecodeWebpAnimationFrame(
+                        source, cursor, (int)paddedEnd - cursor,
+                        expectedWidth, expectedHeight, retainedFrameInventoryBytes,
+                        cancellationToken)) return false;
+                seenImage = true;
+            } else {
+                return false;
+            }
             cursor = (int)paddedEnd;
         }
         return cursor == end && seenImage;

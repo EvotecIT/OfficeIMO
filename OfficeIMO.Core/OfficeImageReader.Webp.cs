@@ -285,7 +285,7 @@ public static partial class OfficeImageReader {
         return false;
     }
 
-    private static bool HasValidWebpAlphaHeader(byte[] data, int offset, int length) {
+    internal static bool HasValidWebpAlphaHeader(byte[] data, int offset, int length) {
         if (length < 2) return false;
         byte control = data[offset];
         // Compression method 0 is the only defined value, preprocessing values 2-3 are reserved,
@@ -293,7 +293,7 @@ public static partial class OfficeImageReader {
         return (control & 0xC3) == 0 && (control & 0x30) <= 0x10;
     }
 
-    private static bool TryReadWebpImageHeader(
+    internal static bool TryReadWebpImageHeader(
         byte[] data,
         int offset,
         int length,

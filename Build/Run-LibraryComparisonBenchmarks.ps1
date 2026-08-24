@@ -158,7 +158,7 @@ $definitions = [ordered]@{
     }
     imagetifflzw = [pscustomobject]@{
         Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImageTiffLzwBenchmarks*'
+        Filter = '*ImageTiffLzw*Benchmarks*'
         ComparisonId = "image-tiff-lzw-$Framework"
         Suite = 'OfficeIMO.Drawing.TiffLzw'
         IdentityVariables = @()
@@ -166,7 +166,7 @@ $definitions = [ordered]@{
     }
     imagewebplossless = [pscustomobject]@{
         Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
-        Filter = '*ImageWebpLosslessBenchmarks*'
+        Filter = '*ImageWebpLossless*Benchmarks*'
         ComparisonId = "image-webp-lossless-$Framework"
         Suite = 'OfficeIMO.Drawing.WebpLossless'
         IdentityVariables = @()

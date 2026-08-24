@@ -1169,6 +1169,22 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void AnimatedWebpInventoryAcceptsLossyFramesWithOptionalAlpha() {
+        byte[] lossy = Convert.FromBase64String(
+            "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
+        byte[] vp8Chunk = lossy.Skip(12).ToArray();
+        byte[] opaque = CreateAnimatedWebpFrame(vp8Chunk, hasAlpha: false);
+        byte[] alpha = CreateAnimatedWebpFrame(
+            CreateWebpChunk("ALPH", new byte[] { 0, 0xFF }).Concat(vp8Chunk).ToArray(),
+            hasAlpha: true);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(opaque, out OfficeRasterContainerInfo? opaqueContainer));
+        Assert.Single(opaqueContainer!.Frames);
+        Assert.True(OfficeRasterContainerInspector.TryInspect(alpha, out OfficeRasterContainerInfo? alphaContainer));
+        Assert.Single(alphaContainer!.Frames);
+    }
+
+    [Fact]
     public void ContainerInspectorPreservesSingleFrameApngAfterFallbackImageData() {
         byte[] fallback = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
         byte[] animatedFrame = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
@@ -1296,6 +1312,27 @@ public partial class DrawingTests {
         bytes.AddRange(CreateWebpChunk("VP8X", new byte[] { 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0 }));
         bytes.AddRange(CreateWebpChunk("ANIM", new byte[6]));
         bytes.AddRange(CreateWebpChunk("ANMF", frame.ToArray()));
+        byte[] result = bytes.ToArray();
+        WriteInt32LittleEndian(result, 4, result.Length - 8);
+        return result;
+    }
+
+    private static byte[] CreateAnimatedWebpFrame(byte[] frameChunks, bool hasAlpha) {
+        var frame = new byte[16 + frameChunks.Length];
+        frame[6] = 1;
+        frame[9] = 1;
+        Buffer.BlockCopy(frameChunks, 0, frame, 16, frameChunks.Length);
+        var extendedHeader = new byte[10];
+        extendedHeader[0] = (byte)(0x02 | (hasAlpha ? 0x10 : 0));
+        extendedHeader[4] = 1;
+        extendedHeader[7] = 1;
+        var bytes = new List<byte>(64 + frame.Length) {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P'
+        };
+        bytes.AddRange(CreateWebpChunk("VP8X", extendedHeader));
+        bytes.AddRange(CreateWebpChunk("ANIM", new byte[6]));
+        bytes.AddRange(CreateWebpChunk("ANMF", frame));
         byte[] result = bytes.ToArray();
         WriteInt32LittleEndian(result, 4, result.Length - 8);
         return result;
