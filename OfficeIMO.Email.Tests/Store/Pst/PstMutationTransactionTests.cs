@@ -547,7 +547,7 @@ public sealed class PstMutationTransactionTests {
                    EmailStorePstMutationTransaction.Open(aliasPath)) {
                 Assert.Equal(EmailStorePathIdentity.ResolvePhysicalPath(sourcePath),
                     transaction.SourcePath);
-                Assert.Single(Directory.GetFiles(sourceDirectory, ".officeimo-pst-*.lock"));
+                Assert.Empty(Directory.GetFiles(sourceDirectory, ".officeimo-pst-*.lock"));
                 Assert.Empty(Directory.GetFiles(aliasDirectory, ".officeimo-pst-*.lock"));
                 transaction.CreateFolder("Committed through alias");
                 report = transaction.Commit();

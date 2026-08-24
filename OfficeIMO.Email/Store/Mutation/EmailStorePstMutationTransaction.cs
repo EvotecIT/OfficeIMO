@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store;
 
@@ -67,8 +68,17 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         FileStream? input = null;
         PstMutationTransactionLock? transactionLock = null;
         try {
-            input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
-                64 * 1024, FileOptions.RandomAccess);
+            // The separate mutation-lock handle denies writers after acquisition while allowing the
+            // reader and the final atomic replacement to coexist with that lock handle.
+            try {
+                input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete,
+                    64 * 1024, FileOptions.RandomAccess);
+            } catch (IOException exception) when (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                throw new IOException(
+                    "Another OfficeIMO mutation transaction already owns this physical PST, " +
+                    "or the PST could not be opened safely.", exception);
+            }
             transactionLock = PstMutationTransactionLock.Acquire(sourcePath, input.SafeFileHandle);
             PstHeader header = PstHeader.Read(input, EmailStoreFormat.Pst);
             if (!header.IsUnicode) {

@@ -107,6 +107,19 @@ public class PathIdentityContracts {
         Assert.NotEqual(extended, other);
     }
 
+    [Fact]
+    public void LinuxFilesystemClassificationDoesNotGuessForNtfsOrUnknownDrivers() {
+        Assert.True(OfficePathIdentity.TryClassifyLinuxFileSystemCaseBehavior(0x2011bab0, out bool exFat));
+        Assert.True(exFat);
+        Assert.True(OfficePathIdentity.TryClassifyLinuxFileSystemCaseBehavior(0x0000ef53, out bool ext));
+        Assert.False(ext);
+
+        Assert.False(OfficePathIdentity.TryClassifyLinuxFileSystemCaseBehavior(0x5346544e, out bool ntfs));
+        Assert.False(ntfs);
+        Assert.False(OfficePathIdentity.TryClassifyLinuxFileSystemCaseBehavior(0x12345678, out bool unknown));
+        Assert.False(unknown);
+    }
+
     private static void CreateHardLink(string alias, string source) {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             if (!CreateHardLinkWindows(alias, source, IntPtr.Zero)) {

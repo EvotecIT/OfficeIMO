@@ -355,10 +355,10 @@ copy items and folder subtrees; apply typed or raw MAPI property patches; add, r
 one patch to a query-selected batch; and move items between normal and associated contents. `DryRun()` returns an
 immutable, value-free operation plan before any file is written. Disposing without a commit leaves the source
 byte-for-byte unchanged. A no-op commit does not rewrite it. The transaction also detects source length or timestamp
-changes before replacement. It holds both the source read lock and an adjacent, path-scoped cross-process OfficeIMO
-mutation lock through staging and replacement. The final replacement remains an atomic filesystem operation;
-software that does not participate in the OfficeIMO lock must coordinate its own simultaneous replacement of the
-same path.
+changes before replacement. It holds both the source read handle and a physical-file operating-system lock through
+staging and replacement. The lock coordinates participating OfficeIMO processes across path aliases and user profiles
+without creating a predictable sidecar file. The final replacement remains an atomic filesystem operation; software
+that does not participate in the OfficeIMO lock must coordinate its own simultaneous replacement of the same path.
 
 `CommitAsync` performs the staging flush and optional backup copy with asynchronous file I/O and cancellation. PST
 serialization and semantic comparison are ordered, stateful phases and remain synchronous; the API does not disguise

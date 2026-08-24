@@ -44,8 +44,8 @@ namespace OfficeIMO.Internal {
                 TryGetPathAnchor(rightPath, out OfficePhysicalFileIdentity rightAnchor,
                     out string rightTail, out string rightExisting)) {
                 if (!AreIdentitiesEquivalent(leftAnchor, rightAnchor)) return false;
-                bool caseInsensitive = IsCaseInsensitiveFileSystem(leftExisting) ||
-                    IsCaseInsensitiveFileSystem(rightExisting);
+                bool caseInsensitive = IsPotentiallyCaseInsensitiveFileSystem(leftExisting) ||
+                    IsPotentiallyCaseInsensitiveFileSystem(rightExisting);
                 return string.Equals(NormalizeMissingTail(leftTail, caseInsensitive),
                     NormalizeMissingTail(rightTail, caseInsensitive), StringComparison.Ordinal);
             }
@@ -73,7 +73,7 @@ namespace OfficeIMO.Internal {
                 return true;
             }
 
-            bool caseInsensitive = IsCaseInsensitiveFileSystem(root);
+            bool caseInsensitive = IsPotentiallyCaseInsensitiveFileSystem(root);
             string normalizedCandidate = Normalize(candidate, caseInsensitive);
             string normalizedRoot = TrimEndingDirectorySeparators(Normalize(root, caseInsensitive));
             if (string.Equals(normalizedCandidate, normalizedRoot, StringComparison.Ordinal)) return true;
@@ -113,6 +113,16 @@ namespace OfficeIMO.Internal {
         }
 
         internal static bool IsCaseInsensitiveFileSystem(string path) {
+            return TryGetFileSystemCaseBehavior(path, out bool caseInsensitive)
+                ? caseInsensitive
+                : IsConservativelyCaseInsensitivePlatform;
+        }
+
+        private static bool IsPotentiallyCaseInsensitiveFileSystem(string path) =>
+            !TryGetFileSystemCaseBehavior(path, out bool caseInsensitive) || caseInsensitive;
+
+        private static bool TryGetFileSystemCaseBehavior(string path, out bool caseInsensitive) {
+            caseInsensitive = false;
             string fullPath = Path.GetFullPath(path);
             string? existingPath = TrimEndingDirectorySeparators(fullPath);
             OfficeFileMetadata existingMetadata = default(OfficeFileMetadata);
@@ -120,31 +130,25 @@ namespace OfficeIMO.Internal {
                    !TryGetPathMetadata(existingPath, out existingMetadata)) {
                 existingPath = Path.GetDirectoryName(existingPath);
             }
-            if (string.IsNullOrEmpty(existingPath)) return IsConservativelyCaseInsensitivePlatform;
+            if (string.IsNullOrEmpty(existingPath)) return false;
 
             string? directory = existingMetadata.IsDirectory ? existingPath : Path.GetDirectoryName(existingPath);
-            if (string.IsNullOrEmpty(directory)) return IsConservativelyCaseInsensitivePlatform;
+            if (string.IsNullOrEmpty(directory)) return false;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
-                TryGetWindowsDirectoryCaseInsensitive(directory, out bool caseInsensitive)) {
-                return caseInsensitive;
-            }
+                TryGetWindowsDirectoryCaseInsensitive(directory, out caseInsensitive)) return true;
             if (TryGetPathMetadata(directory, out OfficeFileMetadata directoryMetadata) && directoryMetadata.IsDirectory) {
                 if ((RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                      RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) &&
-                    TryGetUnixDirectoryCaseInsensitive(directory, out caseInsensitive)) {
-                    return caseInsensitive;
-                }
+                    TryGetUnixDirectoryCaseInsensitive(directory, out caseInsensitive)) return true;
                 try {
-                    foreach (string entry in Directory.EnumerateFileSystemEntries(directory)) {
-                        if (TryDetectFromExistingName(entry, out caseInsensitive)) return caseInsensitive;
-                    }
+                    foreach (string entry in Directory.EnumerateFileSystemEntries(directory))
+                        if (TryDetectFromExistingName(entry, out caseInsensitive)) return true;
                 } catch (IOException) {
                 } catch (UnauthorizedAccessException) {
                 }
-
             }
-            return true;
+            return false;
         }
 
         private static bool IsConservativelyCaseInsensitivePlatform =>

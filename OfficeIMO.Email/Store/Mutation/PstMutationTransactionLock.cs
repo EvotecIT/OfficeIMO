@@ -1,23 +1,23 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Win32.SafeHandles;
 
 namespace OfficeIMO.Email.Store;
 
-/// <summary>Coordinates OfficeIMO mutation transactions for one PST path across processes.</summary>
+/// <summary>Coordinates OfficeIMO mutation transactions for one physical PST across processes.</summary>
 internal sealed class PstMutationTransactionLock : IDisposable {
+    private const long LockOffset = long.MaxValue - 1;
+    private const int LockExclusive = 2;
+    private const int LockNonBlocking = 4;
+    private const int LockUnlock = 8;
     private static readonly ConcurrentDictionary<string, byte> ProcessLocks =
         new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
-    private readonly FileStream _pathLockStream;
-    private readonly FileStream _identityLockStream;
+    private readonly FileStream _lockStream;
     private readonly string _identity;
     private bool _disposed;
 
-    private PstMutationTransactionLock(FileStream pathLockStream, FileStream identityLockStream, string identity) {
-        _pathLockStream = pathLockStream;
-        _identityLockStream = identityLockStream;
+    private PstMutationTransactionLock(FileStream lockStream, string identity) {
+        _lockStream = lockStream;
         _identity = identity;
     }
 
@@ -26,63 +26,43 @@ internal sealed class PstMutationTransactionLock : IDisposable {
     internal static PstMutationTransactionLock Acquire(string sourcePath, SafeFileHandle sourceHandle) {
         string identity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath, sourceHandle);
         if (!ProcessLocks.TryAdd(identity, 0)) {
-            throw new IOException("Another OfficeIMO mutation transaction already owns this PST path.");
+            throw new IOException("Another OfficeIMO mutation transaction already owns this physical PST.");
         }
-        byte[] digest;
-        using (SHA256 sha = SHA256.Create()) digest = sha.ComputeHash(Encoding.UTF8.GetBytes(identity));
-        string lockName = ".officeimo-pst-" +
-            BitConverter.ToString(digest).Replace("-", string.Empty) + ".lock";
-        Array.Clear(digest, 0, digest.Length);
 
-        FileStream? pathLockStream = null;
-        FileStream? identityLockStream = null;
+        FileStream? lockStream = null;
         try {
-            string physicalPath = EmailStorePathIdentity.ResolvePhysicalPath(sourcePath);
-            string lockDirectory = Path.GetDirectoryName(physicalPath) ?? Directory.GetCurrentDirectory();
-            string lockPath = Path.Combine(lockDirectory, lockName);
-            pathLockStream = OpenLockStream(lockPath, sharedAcrossUsers: true);
-
-            string identityLockRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            if (string.IsNullOrWhiteSpace(identityLockRoot)) identityLockRoot = Path.GetTempPath();
-            string identityLockDirectory = Path.Combine(identityLockRoot, "OfficeIMO", "PstMutationLocks");
-            Directory.CreateDirectory(identityLockDirectory);
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
-                ChangeMode(identityLockDirectory, 0x1c0U) != 0) {
-                throw new IOException("The per-user OfficeIMO PST mutation lock directory could not be secured " +
-                    "(OS error " + Marshal.GetLastWin32Error() + ").");
-            }
-            identityLockStream = OpenLockStream(Path.Combine(identityLockDirectory, lockName),
-                sharedAcrossUsers: false);
-
-            string currentIdentity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath);
-            if (!string.Equals(identity, currentIdentity, StringComparison.Ordinal)) {
+            lockStream = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new FileStream(sourcePath, FileMode.Open, FileAccess.ReadWrite,
+                    FileShare.Read | FileShare.Delete, 1, FileOptions.RandomAccess)
+                : DuplicateUnixStream(sourceHandle);
+            string lockIdentity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath,
+                lockStream.SafeFileHandle);
+            if (!string.Equals(identity, lockIdentity, StringComparison.Ordinal)) {
                 throw new IOException(
                     "The source PST path changed while its mutation lock was being acquired.");
             }
-            return new PstMutationTransactionLock(pathLockStream, identityLockStream, identity);
+            AcquirePhysicalLock(lockStream);
+            string currentIdentity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath);
+            if (!string.Equals(identity, currentIdentity, StringComparison.Ordinal)) {
+                ReleasePhysicalLock(lockStream);
+                throw new IOException(
+                    "The source PST path changed while its mutation lock was being acquired.");
+            }
+            return new PstMutationTransactionLock(lockStream, identity);
         } catch (UnauthorizedAccessException exception) {
-            identityLockStream?.Dispose();
-            pathLockStream?.Dispose();
+            lockStream?.Dispose();
             ProcessLocks.TryRemove(identity, out _);
             throw new IOException(
-                "The adjacent OfficeIMO PST mutation lock could not be created.", exception);
+                "The physical PST mutation lock could not be acquired with write access.", exception);
         } catch (IOException exception) {
-            identityLockStream?.Dispose();
-            pathLockStream?.Dispose();
+            lockStream?.Dispose();
             ProcessLocks.TryRemove(identity, out _);
-            throw new IOException("Another OfficeIMO mutation transaction already owns this PST path.", exception);
+            throw new IOException("Another OfficeIMO mutation transaction already owns this physical PST.", exception);
+        } catch {
+            lockStream?.Dispose();
+            ProcessLocks.TryRemove(identity, out _);
+            throw;
         }
-    }
-
-    private static FileStream OpenLockStream(string lockPath, bool sharedAcrossUsers) {
-        var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
-            FileShare.None, 1, FileOptions.RandomAccess);
-        if (!sharedAcrossUsers || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return stream;
-        if (ChangeMode(lockPath, 0x1b6U) == 0) return stream;
-        int error = Marshal.GetLastWin32Error();
-        stream.Dispose();
-        throw new IOException("The adjacent OfficeIMO PST mutation lock could not be shared " +
-            "(OS error " + error + ").");
     }
 
     public void Dispose() {
@@ -90,15 +70,57 @@ internal sealed class PstMutationTransactionLock : IDisposable {
         _disposed = true;
         try {
             try {
-                _identityLockStream.Dispose();
+                ReleasePhysicalLock(_lockStream);
             } finally {
-                _pathLockStream.Dispose();
+                _lockStream.Dispose();
             }
         } finally {
             ProcessLocks.TryRemove(_identity, out _);
         }
     }
 
-    [DllImport("libc", EntryPoint = "chmod", CharSet = CharSet.Ansi, SetLastError = true)]
-    private static extern int ChangeMode(string path, uint mode);
+    private static void AcquirePhysicalLock(FileStream stream) {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            stream.Lock(LockOffset, 1);
+            return;
+        }
+        int descriptor = stream.SafeFileHandle.DangerousGetHandle().ToInt32();
+        if (Flock(descriptor, LockExclusive | LockNonBlocking) != 0) {
+            throw new IOException("The physical PST lock could not be acquired " +
+                "(OS error " + Marshal.GetLastWin32Error() + ").");
+        }
+    }
+
+    private static FileStream DuplicateUnixStream(SafeFileHandle sourceHandle) {
+        int descriptor = Dup(sourceHandle.DangerousGetHandle().ToInt32());
+        if (descriptor < 0) {
+            throw new IOException("The source PST handle could not be duplicated for physical locking " +
+                "(OS error " + Marshal.GetLastWin32Error() + ").");
+        }
+        var duplicate = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+        try {
+            return new FileStream(duplicate, FileAccess.Read, 1, isAsync: false);
+        } catch {
+            duplicate.Dispose();
+            throw;
+        }
+    }
+
+    private static void ReleasePhysicalLock(FileStream stream) {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            stream.Unlock(LockOffset, 1);
+            return;
+        }
+        int descriptor = stream.SafeFileHandle.DangerousGetHandle().ToInt32();
+        if (Flock(descriptor, LockUnlock) != 0) {
+            throw new IOException("The physical PST lock could not be released " +
+                "(OS error " + Marshal.GetLastWin32Error() + ").");
+        }
+    }
+
+    [DllImport("libc", EntryPoint = "flock", SetLastError = true)]
+    private static extern int Flock(int descriptor, int operation);
+
+    [DllImport("libc", EntryPoint = "dup", SetLastError = true)]
+    private static extern int Dup(int descriptor);
 }

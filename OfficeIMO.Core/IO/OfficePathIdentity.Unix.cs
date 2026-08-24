@@ -29,7 +29,6 @@ namespace OfficeIMO.Internal {
         private const ulong LinuxOverlayFileSystem = 0x794c7630;
         private const ulong LinuxMsDosFileSystem = 0x00004d44;
         private const ulong LinuxExFatFileSystem = 0x2011bab0;
-        private const ulong LinuxNtfsFileSystem = 0x5346544e;
         private const uint UnixFileTypeMask = 0xf000;
         private const uint UnixDirectoryType = 0x4000;
 
@@ -235,8 +234,8 @@ namespace OfficeIMO.Internal {
             if (descriptor < 0) return false;
             try {
                 ulong request = IntPtr.Size == 8 ? LinuxGetFileFlags64 : LinuxGetFileFlags32;
-                if (LinuxIoctl(descriptor, request, out int flags) != 0) return false;
-                if ((flags & LinuxCaseFoldFlag) != 0) {
+                if (LinuxIoctl(descriptor, request, out int flags) == 0 &&
+                    (flags & LinuxCaseFoldFlag) != 0) {
                     caseInsensitive = true;
                     return true;
                 }
@@ -255,22 +254,27 @@ namespace OfficeIMO.Internal {
                 ulong fileSystem = IntPtr.Size == 8
                     ? unchecked((ulong)Marshal.ReadInt64(buffer, 0))
                     : unchecked((uint)Marshal.ReadInt32(buffer, 0));
-                if (fileSystem == LinuxMsDosFileSystem || fileSystem == LinuxExFatFileSystem ||
-                    fileSystem == LinuxNtfsFileSystem) {
-                    caseInsensitive = true;
-                    return true;
-                }
-                if (fileSystem == LinuxExtFileSystem || fileSystem == LinuxF2fsFileSystem ||
-                    fileSystem == LinuxBcachefsFileSystem || fileSystem == LinuxBtrfsFileSystem ||
-                    fileSystem == LinuxXfsFileSystem || fileSystem == LinuxTmpfsFileSystem ||
-                    fileSystem == LinuxOverlayFileSystem) {
-                    caseInsensitive = false;
-                    return true;
-                }
-                return false;
+                return TryClassifyLinuxFileSystemCaseBehavior(fileSystem, out caseInsensitive);
             } finally {
                 Marshal.FreeHGlobal(buffer);
             }
+        }
+
+        internal static bool TryClassifyLinuxFileSystemCaseBehavior(ulong fileSystem,
+            out bool caseInsensitive) {
+            if (fileSystem == LinuxMsDosFileSystem || fileSystem == LinuxExFatFileSystem) {
+                caseInsensitive = true;
+                return true;
+            }
+            if (fileSystem == LinuxExtFileSystem || fileSystem == LinuxF2fsFileSystem ||
+                fileSystem == LinuxBcachefsFileSystem || fileSystem == LinuxBtrfsFileSystem ||
+                fileSystem == LinuxXfsFileSystem || fileSystem == LinuxTmpfsFileSystem ||
+                fileSystem == LinuxOverlayFileSystem) {
+                caseInsensitive = false;
+                return true;
+            }
+            caseInsensitive = false;
+            return false;
         }
 
         private static bool TryReadUnixLinkTarget(string path, out string? target) {
