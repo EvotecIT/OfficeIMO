@@ -17,7 +17,8 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | OneNote | BenchmarkDotNet native read, write, and Markdown projection plus isolated create/write, read, and read/edit/write workflows | Managed allocations, sampled managed-heap growth, process peak, input bytes, and output bytes are recorded | No like-for-like offline semantic `.one` competitor has been identified | Native scale evidence and regression budgets are in place; add non-Windows evidence and a competitor only when the same offline semantic contract exists |
 | Email | Full validated EML read/write evidence is within 2x of MimeKit; the 2,000-item PST scale contract fell from 68.19s to 4.03s | Validated EML output is 1.07-1.08x MimeKit; the 4.08 MB PST retained 0.70 MB managed memory | MimeKit 4.17.0 for equivalent complete MIME workflows | Add isolated peak-memory and non-Windows evidence; add a PST competitor only if the same managed creation contract is available |
 | ZIP | Full validated safe-traversal evidence is 1.03-1.16x raw platform traversal by mean time and 1.00-1.01x by allocation | Isolated peak managed-heap growth matches the platform lane; output size is not applicable because both lanes consume the same ZIP | `System.IO.Compression` metadata projection, explicitly without OfficeIMO's safety policy | Add Linux/macOS evidence |
-| Security, Provenance, AsciiDoc, LaTeX, EPUB, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
+| EPUB | Full validated open/read evidence uses 0.26-0.37x VersOne's mean time and 0.24-0.28x its managed allocation | Retained result size is 0.94-0.99x; managed peak is 0.28-0.44x; both lanes consume the same input package | VersOne.Epub plus HtmlAgilityPack for equivalent metadata, raw-XHTML, visible-text, and spine-order extraction | Add Linux/macOS evidence; add creation evidence only if OfficeIMO gains an EPUB writer |
+| Security, Provenance, AsciiDoc, LaTeX, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
 
 This table describes measurement coverage, not a library ranking. A returned
 byte count is not yet durable size evidence unless the runner records it with
@@ -211,6 +212,7 @@ hashes, and path hashes before measurements are accepted.
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Epub.Benchmarks.Comparisons -- validate --json .benchmark-artifacts\epub\validation.json
 .\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload epubread -RunMode full -Framework net8.0
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Epub.Benchmarks.Comparisons -- --evidence --repeat 3 --json .benchmark-artifacts\epub\comparison-evidence.json
 ```
 
 The comparison project is outside `OfficeIMO.sln`; VersOne.Epub and
@@ -218,6 +220,13 @@ HtmlAgilityPack remain opt-in benchmark dependencies. The validated sidecar
 records shared input size. There is no creation-size comparison because
 OfficeIMO.Epub currently exposes a read/extraction API rather than an EPUB
 package writer.
+
+The full Windows run is recorded in
+[`officeimo.epub-read-2026-08-24.md`](officeimo.epub-read-2026-08-24.md).
+OfficeIMO uses 0.26-0.37x the comparator's mean time and 0.24-0.28x its managed
+allocation. The isolated runner places retained heap, managed-heap peak, and
+absolute process peak below 1x for both scales. EPUB therefore clears the 2x
+contender ceiling without a runtime optimization in this slice.
 
 ## PDF comparisons
 
