@@ -36,9 +36,12 @@ public static class OfficeRasterContainerInspector {
                 return OfficeTiffCodec.TryInspectPages(encodedBytes, effective, out container);
             case OfficeImageFormat.Webp:
                 return TryInspectWebp(encodedBytes, imageInfo, effective, out container);
-            default:
+            case OfficeImageFormat.Jpeg:
+            case OfficeImageFormat.Bmp:
                 container = CreateStatic(imageInfo);
                 return true;
+            default:
+                return false;
         }
     }
 

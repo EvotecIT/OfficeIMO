@@ -13,16 +13,24 @@ internal static class OfficePngAnimationValidator {
     internal static bool TryValidateStructure(
         byte[] bytes,
         CancellationToken cancellationToken = default) =>
-        TryValidate(bytes, validateCompressedPayloads: false, cancellationToken);
+        TryValidate(bytes, validateCompressedPayloads: false, retainedPayloadBytes: 0L, cancellationToken);
 
     internal static bool TryValidateAdditionalFrames(
         byte[] bytes,
         CancellationToken cancellationToken = default) =>
-        TryValidate(bytes, validateCompressedPayloads: true, cancellationToken);
+        TryValidateAdditionalFrames(bytes, retainedPayloadBytes: 0L, cancellationToken);
+
+    internal static bool TryValidateAdditionalFrames(
+        byte[] bytes,
+        long retainedPayloadBytes,
+        CancellationToken cancellationToken = default) =>
+        retainedPayloadBytes >= 0L &&
+        TryValidate(bytes, validateCompressedPayloads: true, retainedPayloadBytes, cancellationToken);
 
     private static bool TryValidate(
         byte[] bytes,
         bool validateCompressedPayloads,
+        long retainedPayloadBytes,
         CancellationToken cancellationToken) {
         try {
             int canvasWidth = 0;
@@ -69,7 +77,7 @@ internal static class OfficePngAnimationValidator {
                             (currentFrame != null && currentFrame.UsesDefaultImageData && !seenImageData) ||
                             !TryFinishFrame(
                                 bytes, currentFrame, validateCompressedPayloads, bitDepth, colorType, interlaceMethod,
-                                palette, cancellationToken)) {
+                                palette, retainedPayloadBytes, cancellationToken)) {
                             return false;
                         }
                         uint frameSequence = ReadBigEndianUInt32(bytes, dataOffset);
@@ -116,7 +124,7 @@ internal static class OfficePngAnimationValidator {
                                frameControlCount == declaredFrameCount &&
                                TryFinishFrame(
                                    bytes, currentFrame, validateCompressedPayloads, bitDepth, colorType, interlaceMethod,
-                                   palette, cancellationToken);
+                                   palette, retainedPayloadBytes, cancellationToken);
                 }
 
                 offset += 12 + length;
@@ -139,6 +147,7 @@ internal static class OfficePngAnimationValidator {
         int colorType,
         int interlaceMethod,
         byte[]? palette,
+        long retainedPayloadBytes,
         CancellationToken cancellationToken) {
         if (frame == null || frame.UsesDefaultImageData) return true;
         if (!frame.SawDataChunk) return false;
@@ -146,10 +155,14 @@ internal static class OfficePngAnimationValidator {
         if (!OfficePngReader.TryGetValidationWorkingSetBytes(
                 frame.Width, frame.Height, bitDepth, colorType, interlaceMethod, palette,
                 out long validationWorkingSetBytes)) return false;
-        long peakBytes = checked(
-            source.Length + frame.CompressedLength + validationWorkingSetBytes +
-            frame.Segments!.Count * 16L + (palette?.Length ?? 0) + 64L * 1024L);
-        if (peakBytes > OfficeRasterGuards.MaximumDecodedBytes || frame.CompressedLength > int.MaxValue) return false;
+        if (frame.CompressedLength > int.MaxValue ||
+            !IsFrameValidationWorkingSetWithinLimit(
+                source.LongLength,
+                retainedPayloadBytes,
+                frame.CompressedLength,
+                validationWorkingSetBytes,
+                frame.Segments!.Count,
+                palette?.LongLength ?? 0L)) return false;
         byte[] compressed = new byte[(int)frame.CompressedLength];
         int destinationOffset = 0;
         foreach (FrameSegment segment in frame.Segments) {
@@ -165,6 +178,25 @@ internal static class OfficePngAnimationValidator {
             interlaceMethod,
             palette,
             cancellationToken);
+    }
+
+    internal static bool IsFrameValidationWorkingSetWithinLimit(
+        long encodedBytes,
+        long retainedPayloadBytes,
+        long compressedBytes,
+        long validationWorkingSetBytes,
+        int segmentCount,
+        long paletteBytes) {
+        if (encodedBytes < 0L || retainedPayloadBytes < 0L || compressedBytes < 0L ||
+            validationWorkingSetBytes < 0L || segmentCount < 0 || paletteBytes < 0L) return false;
+        try {
+            long peakBytes = checked(
+                encodedBytes + retainedPayloadBytes + compressedBytes + validationWorkingSetBytes +
+                segmentCount * 16L + paletteBytes + 64L * 1024L);
+            return peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
     }
 
     private static void CopyPayload(

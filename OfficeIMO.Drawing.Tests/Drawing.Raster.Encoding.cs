@@ -669,6 +669,119 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void TiffContainerReportsTheOrientationNormalizedFirstPageCanvas() {
+        byte[] encoded = OfficeTiffCodec.Encode(
+            new OfficeRasterImage(3, 2, OfficeColor.Red));
+        int firstIfd = ReadLittleEndian(encoded, 4);
+        SetTiffShortTag(encoded, firstIfd, 274, 6);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(
+            encoded,
+            out OfficeRasterContainerInfo? container));
+        OfficeRasterFrameInfo frame = Assert.Single(container!.Frames);
+        Assert.Equal((2, 3), (container.CanvasWidth, container.CanvasHeight));
+        Assert.Equal((3, 2), (frame.Width, frame.Height));
+        Assert.True(OfficeTiffCodec.TryDecodePage(encoded, 0, out OfficeRasterImage? decoded));
+        Assert.Equal((2, 3), (decoded!.Width, decoded.Height));
+    }
+
+    [Fact]
+    public void RasterContainerInspectionRejectsIdentifiableButUnsupportedFormats() {
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"3\"><rect width=\"2\" height=\"3\"/></svg>");
+        byte[] icon = CreateSingleEntryIcon(
+            OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Blue)));
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(svg, null, out OfficeImageInfo svgInfo));
+        Assert.Equal(OfficeImageFormat.Svg, svgInfo.Format);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(svg, out _));
+        Assert.True(OfficeImageReader.TryIdentifyByContent(icon, null, out OfficeImageInfo iconInfo));
+        Assert.Equal(OfficeImageFormat.Icon, iconInfo.Format);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(icon, out _));
+    }
+
+    [Fact]
+    public void PngDecodeAccountsForEncodedScanlineAndRgbaBuffersTogether() {
+        const long oneHundredTwentyMiB = 120L * 1024L * 1024L;
+        Assert.False(OfficePngReader.IsDecodeWorkingSetWithinLimit(
+            oneHundredTwentyMiB,
+            compressedBufferBytes: 0L,
+            compressedCopyBytes: 0L,
+            width: 6000,
+            height: 5000,
+            stride: 24_000,
+            scanlineBytes: oneHundredTwentyMiB,
+            paletteBytes: 0L,
+            transparencyBytes: 0L,
+            includeRgbaOutput: true));
+        Assert.True(OfficePngReader.IsDecodeWorkingSetWithinLimit(
+            encodedBytes: 64 * 1024,
+            compressedBufferBytes: 64 * 1024,
+            compressedCopyBytes: 0L,
+            width: 1024,
+            height: 1024,
+            stride: 4096,
+            scanlineBytes: 4L * 1024L * 1024L,
+            paletteBytes: 0L,
+            transparencyBytes: 0L,
+            includeRgbaOutput: true));
+    }
+
+    [Fact]
+    public void PngSuggestedPaletteNamesHaveABoundedRetainedMetadataBudget() {
+        long metadataBytes = 0L;
+        Assert.True(OfficePngContainerValidator.TryReserveSuggestedPaletteName(
+            encodedBytes: 64 * 1024,
+            nameLength: 79,
+            ref metadataBytes));
+
+        metadataBytes = OfficePngContainerValidator.MaximumSuggestedPaletteMetadataBytes - 1L;
+        Assert.False(OfficePngContainerValidator.TryReserveSuggestedPaletteName(
+            encodedBytes: 64 * 1024,
+            nameLength: 1,
+            ref metadataBytes));
+    }
+
+    [Fact]
+    public void PngCompressedMetadataAccountsForSourceCopyAndExpansionBuffers() {
+        Assert.True(OfficePngContainerValidator.TryGetCompressedMetadataOutputLimit(
+            encodedBytes: 64 * 1024,
+            compressedBytes: 64 * 1024,
+            requestedMaximumOutputBytes: 1024 * 1024,
+            out int maximumOutputBytes));
+        Assert.Equal(1024 * 1024, maximumOutputBytes);
+
+        Assert.False(OfficePngContainerValidator.TryGetCompressedMetadataOutputLimit(
+            encodedBytes: 128L * 1024L * 1024L,
+            compressedBytes: 128L * 1024L * 1024L,
+            requestedMaximumOutputBytes: 1024 * 1024,
+            out _));
+    }
+
+    [Fact]
+    public void ApngSecondaryFrameValidationAccountsForTheRetainedDefaultPayload() {
+        const long oneHundredTwentyMiB = 120L * 1024L * 1024L;
+        const long eightyMiB = 80L * 1024L * 1024L;
+        const long twentyMiB = 20L * 1024L * 1024L;
+        const long fortyMiB = 40L * 1024L * 1024L;
+
+        Assert.True(OfficePngAnimationValidator.IsFrameValidationWorkingSetWithinLimit(
+            encodedBytes: oneHundredTwentyMiB,
+            retainedPayloadBytes: 0L,
+            compressedBytes: twentyMiB,
+            validationWorkingSetBytes: eightyMiB,
+            segmentCount: 1,
+            paletteBytes: 0L));
+        Assert.False(OfficePngAnimationValidator.IsFrameValidationWorkingSetWithinLimit(
+            encodedBytes: oneHundredTwentyMiB,
+            retainedPayloadBytes: fortyMiB,
+            compressedBytes: twentyMiB,
+            validationWorkingSetBytes: eightyMiB,
+            segmentCount: 1,
+            paletteBytes: 0L));
+    }
+
+    [Fact]
     public void SharedTiffDecoderAppliesPixelLimitOnlyToSelectedPage() {
         byte[] encoded = OfficeTiffCodec.EncodePages(new[] {
             new OfficeRasterImage(2, 1, OfficeColor.Red),
@@ -776,6 +889,20 @@ public sealed class DrawingRasterEncodingTests {
             return;
         }
         throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
+    private static byte[] CreateSingleEntryIcon(byte[] payload) {
+        var icon = new byte[22 + payload.Length];
+        icon[2] = 1;
+        icon[4] = 1;
+        icon[6] = 1;
+        icon[7] = 1;
+        icon[10] = 1;
+        icon[12] = 32;
+        WriteLittleEndian(icon, 14, payload.Length);
+        WriteLittleEndian(icon, 18, 22);
+        Buffer.BlockCopy(payload, 0, icon, 22, payload.Length);
+        return icon;
     }
 
     private static void SetTiffLongTag(byte[] bytes, int ifdOffset, int expectedTag, int value) {

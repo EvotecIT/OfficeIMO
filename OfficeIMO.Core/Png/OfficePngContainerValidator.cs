@@ -10,6 +10,8 @@ namespace OfficeIMO.Drawing;
 /// <summary>Validates PNG chunk framing, ordering, and CRC integrity without decoding pixels.</summary>
 internal static class OfficePngContainerValidator {
     private const int MaximumPngTextBytes = 1024 * 1024;
+    internal const long MaximumSuggestedPaletteMetadataBytes = 4L * 1024L * 1024L;
+    private const long SuggestedPaletteEntryOverheadBytes = 256L;
     private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
@@ -47,6 +49,7 @@ internal static class OfficePngContainerValidator {
             bool seenExif = false;
             bool seenModificationTime = false;
             var suggestedPaletteNames = new HashSet<string>(StringComparer.Ordinal);
+            long suggestedPaletteMetadataBytes = 0;
             int bitDepth = 0;
             int colorType = 0;
             int paletteEntries = 0;
@@ -256,7 +259,13 @@ internal static class OfficePngContainerValidator {
                         if (seenImageData) imageDataEnded = true;
                         break;
                     case "sPLT":
-                        if (!seenHeader || !HasValidSuggestedPalette(bytes, dataOffset, length, suggestedPaletteNames)) {
+                        if (!seenHeader || !HasValidSuggestedPalette(
+                                bytes,
+                                dataOffset,
+                                length,
+                                suggestedPaletteNames,
+                                bytes.LongLength,
+                                ref suggestedPaletteMetadataBytes)) {
                             failureReason = "PNG bytes contain an invalid or repeated sPLT chunk.";
                             return false;
                         }
@@ -317,19 +326,42 @@ internal static class OfficePngContainerValidator {
         byte[] bytes,
         int offset,
         int length,
-        HashSet<string> names) {
+        HashSet<string> names,
+        long encodedBytes,
+        ref long metadataBytes) {
         if (!TryReadKeyword(bytes, offset, length, out int keywordEnd)) return false;
         int nameLength = keywordEnd - offset;
-        var nameCharacters = new char[nameLength];
-        for (int index = 0; index < nameLength; index++) nameCharacters[index] = (char)bytes[offset + index];
-        string name = new(nameCharacters);
-        if (!names.Add(name)) return false;
         int sampleDepthOffset = offset + nameLength + 1;
         if (sampleDepthOffset >= offset + length) return false;
         int sampleDepth = bytes[sampleDepthOffset];
         int entrySize = sampleDepth == 8 ? 6 : sampleDepth == 16 ? 10 : 0;
         int entriesLength = length - nameLength - 2;
-        return entrySize != 0 && entriesLength >= entrySize && entriesLength % entrySize == 0;
+        if (entrySize == 0 || entriesLength < entrySize || entriesLength % entrySize != 0 ||
+            !TryReserveSuggestedPaletteName(encodedBytes, nameLength, ref metadataBytes)) return false;
+
+        var nameCharacters = new char[nameLength];
+        for (int index = 0; index < nameLength; index++) nameCharacters[index] = (char)bytes[offset + index];
+        return names.Add(new string(nameCharacters));
+    }
+
+    internal static bool TryReserveSuggestedPaletteName(
+        long encodedBytes,
+        int nameLength,
+        ref long metadataBytes) {
+        if (encodedBytes < 0L || nameLength < 1 || nameLength > 79 || metadataBytes < 0L) return false;
+        try {
+            // Covers the retained UTF-16 string, HashSet slots/buckets, and transient resize slack.
+            long reservation = checked(SuggestedPaletteEntryOverheadBytes + nameLength * 4L);
+            long updatedMetadataBytes = checked(metadataBytes + reservation);
+            if (updatedMetadataBytes > MaximumSuggestedPaletteMetadataBytes ||
+                checked(encodedBytes + updatedMetadataBytes + 64L * 1024L) > OfficeRasterGuards.MaximumDecodedBytes) {
+                return false;
+            }
+            metadataBytes = updatedMetadataBytes;
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
     }
 
     private static bool HasValidModificationTime(byte[] bytes, int offset, int length) {
@@ -443,13 +475,17 @@ internal static class OfficePngContainerValidator {
         if (compressionMethodOffset >= offset + length || bytes[compressionMethodOffset] != 0) return false;
         int compressedOffset = compressionMethodOffset + 1;
         int compressedLength = offset + length - compressedOffset;
-        if (compressedLength < 6) return false;
+        if (compressedLength < 6 || !TryGetCompressedMetadataOutputLimit(
+                bytes.LongLength,
+                compressedLength,
+                OfficeRasterGuards.MaximumEncodedBytes,
+                out int maximumProfileBytes)) return false;
         var compressed = new byte[compressedLength];
         Buffer.BlockCopy(bytes, compressedOffset, compressed, 0, compressedLength);
         try {
             byte[] profile = OfficeZlibCodec.Decompress(
                 compressed,
-                OfficeRasterGuards.MaximumEncodedBytes,
+                maximumProfileBytes,
                 cancellationToken: cancellationToken);
             return OfficeIccProfileValidator.TryValidate(profile, 0, profile.Length);
         } catch (Exception exception) when (
@@ -534,12 +570,16 @@ internal static class OfficePngContainerValidator {
         ref long decodedTextBytes,
         bool requireUtf8,
         CancellationToken cancellationToken) {
-        if (length < 6) return false;
+        if (length < 6 || !TryGetCompressedMetadataOutputLimit(
+                bytes.LongLength,
+                length,
+                MaximumPngTextBytes,
+                out int maximumTextBytes)) return false;
         var compressed = new byte[length];
         Buffer.BlockCopy(bytes, offset, compressed, 0, length);
         try {
             byte[] text = OfficeZlibCodec.Decompress(
-                compressed, MaximumPngTextBytes, cancellationToken: cancellationToken);
+                compressed, maximumTextBytes, cancellationToken: cancellationToken);
             return (!requireUtf8 || HasValidUtf8(text, 0, text.Length)) &&
                    TryAddDecodedTextBytes(ref decodedTextBytes, text.Length);
         } catch (Exception exception) when (
@@ -549,6 +589,26 @@ internal static class OfficePngContainerValidator {
             exception is InvalidDataException ||
             exception is NotSupportedException ||
             exception is OverflowException) {
+            return false;
+        }
+    }
+
+    internal static bool TryGetCompressedMetadataOutputLimit(
+        long encodedBytes,
+        long compressedBytes,
+        int requestedMaximumOutputBytes,
+        out int maximumOutputBytes) {
+        maximumOutputBytes = 0;
+        if (encodedBytes < 0L || compressedBytes < 0L || requestedMaximumOutputBytes < 1) return false;
+        try {
+            long availableBytes = checked(
+                OfficeRasterGuards.MaximumDecodedBytes - encodedBytes - compressedBytes - 64L * 1024L);
+            // Bounded zlib output can retain MemoryStream growth capacity and its final ToArray copy together.
+            long boundedOutputBytes = Math.Min(requestedMaximumOutputBytes, availableBytes / 3L);
+            if (boundedOutputBytes < 1L) return false;
+            maximumOutputBytes = (int)boundedOutputBytes;
+            return true;
+        } catch (OverflowException) {
             return false;
         }
     }

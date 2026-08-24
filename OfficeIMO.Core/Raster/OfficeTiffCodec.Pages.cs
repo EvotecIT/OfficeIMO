@@ -49,6 +49,7 @@ public static partial class OfficeTiffCodec {
             var visitedIfds = new HashSet<int>();
             var frames = new List<OfficeRasterFrameInfo>();
             long validatedPixels = 0L;
+            int firstOrientation = 1;
             var validationBudget = validatePayloads
                 ? new TiffValidationBudget(maximumValidationWorkBytes)
                 : null;
@@ -64,6 +65,9 @@ public static partial class OfficeTiffCodec {
                     !TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
                     !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
                     width < 1 || height < 1 ||
+                    (frames.Count == 0 &&
+                     (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out firstOrientation) ||
+                      firstOrientation < 1 || firstOrientation > 8)) ||
                     validatePayloads && !TryReserveAndValidatePage(
                         encodedBytes, entries, littleEndian, width, height, options,
                         validationBudget!, ref validatedPixels)) return false;
@@ -84,10 +88,11 @@ public static partial class OfficeTiffCodec {
             }
             if (frames.Count == 0) return false;
             OfficeRasterFrameInfo first = frames[0];
+            bool firstPageSwapsAxes = firstOrientation >= 5;
             container = new OfficeRasterContainerInfo(
                 OfficeImageFormat.Tiff,
-                first.Width,
-                first.Height,
+                firstPageSwapsAxes ? first.Height : first.Width,
+                firstPageSwapsAxes ? first.Width : first.Height,
                 frames.ToArray(),
                 1,
                 OfficeColor.Transparent);
