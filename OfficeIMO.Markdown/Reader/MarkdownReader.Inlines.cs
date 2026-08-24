@@ -52,10 +52,10 @@ public static partial class MarkdownReader {
         inlineHtmlWrapperMatches ??= options.InlineHtml
             ? BuildInlineHtmlWrapperMatchIndex(text)
             : InlineHtmlWrapperMatchIndex.Empty;
-        EmphasisClosingRunIndex? emphasisClosingRuns = text.IndexOf('*') >= 0 || text.IndexOf('_') >= 0
+        using EmphasisClosingRunIndex? emphasisClosingRuns = text.IndexOf('*') >= 0 || text.IndexOf('_') >= 0
             ? EmphasisClosingRunIndex.Build(text, options.CjkFriendlyEmphasis)
             : null;
-        EmphasisClosingRunIndex? standardEmphasisClosingRuns = options.CjkFriendlyEmphasis && text.IndexOf('_') >= 0
+        using EmphasisClosingRunIndex? standardEmphasisClosingRuns = options.CjkFriendlyEmphasis && text.IndexOf('_') >= 0
             ? EmphasisClosingRunIndex.Build(text, cjkFriendlyEmphasis: false)
             : emphasisClosingRuns;
 
@@ -403,17 +403,18 @@ public static partial class MarkdownReader {
                 }
             }
 
-            if (TryParseInlineExtension(
-                text,
-                pos,
-                options,
-                state,
-                allowLinks,
-                allowImages,
-                sourceMap,
-                inlineParserExtensions,
-                ParseNestedInlineSegment,
-                out var extensionResult)) {
+            if (inlineParserExtensions.Count > 0
+                && TryParseInlineExtension(
+                    text,
+                    pos,
+                    options,
+                    state,
+                    allowLinks,
+                    allowImages,
+                    sourceMap,
+                    inlineParserExtensions,
+                    ParseNestedInlineSegment,
+                    out var extensionResult)) {
                 AddRawNode(extensionResult.Inline, pos, extensionResult.ConsumedLength);
                 pos += extensionResult.ConsumedLength;
                 continue;

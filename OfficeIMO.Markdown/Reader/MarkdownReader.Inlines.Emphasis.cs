@@ -1,3 +1,7 @@
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
+
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
@@ -28,21 +32,24 @@ public static partial class MarkdownReader {
         public int OpenIndex { get; }
     }
 
-    private sealed class EmphasisClosingRunIndex {
+    private sealed class EmphasisClosingRunIndex : IDisposable {
         private const byte HasRunOfAtLeastTwo = 1 << 2;
         private const byte SingleRunCountMask = 0x03;
-        private readonly byte[] _asteriskSuffixSummaries;
-        private readonly byte[] _underscoreSuffixSummaries;
+        private readonly byte[]? _asteriskSuffixSummaries;
+        private readonly byte[]? _underscoreSuffixSummaries;
+        private readonly int _summaryLength;
         private readonly ClosingRunLengthIndex _asteriskOddRuns;
         private readonly ClosingRunLengthIndex _asteriskEvenRuns;
         private readonly ClosingRunLengthIndex _underscoreOddRuns;
         private readonly ClosingRunLengthIndex _underscoreEvenRuns;
         private readonly ClosingRunPositionIndex _asteriskPositions;
         private readonly ClosingRunPositionIndex _underscorePositions;
+        private bool _disposed;
 
         private EmphasisClosingRunIndex(
-            byte[] asteriskSuffixSummaries,
-            byte[] underscoreSuffixSummaries,
+            byte[]? asteriskSuffixSummaries,
+            byte[]? underscoreSuffixSummaries,
+            int summaryLength,
             ClosingRunLengthIndex asteriskOddRuns,
             ClosingRunLengthIndex asteriskEvenRuns,
             ClosingRunLengthIndex underscoreOddRuns,
@@ -51,6 +58,7 @@ public static partial class MarkdownReader {
             ClosingRunPositionIndex underscorePositions) {
             _asteriskSuffixSummaries = asteriskSuffixSummaries;
             _underscoreSuffixSummaries = underscoreSuffixSummaries;
+            _summaryLength = summaryLength;
             _asteriskOddRuns = asteriskOddRuns;
             _asteriskEvenRuns = asteriskEvenRuns;
             _underscoreOddRuns = underscoreOddRuns;
@@ -60,18 +68,29 @@ public static partial class MarkdownReader {
         }
 
         internal static EmphasisClosingRunIndex Build(string text, bool cjkFriendlyEmphasis) {
-            var asteriskSummaries = new byte[text.Length + 1];
-            var underscoreSummaries = new byte[text.Length + 1];
-            var asteriskOddRuns = new Dictionary<int, int>();
-            var asteriskEvenRuns = new Dictionary<int, int>();
-            var underscoreOddRuns = new Dictionary<int, int>();
-            var underscoreEvenRuns = new Dictionary<int, int>();
-            var asteriskPositions = new List<(int Start, int Length)>();
-            var underscorePositions = new List<(int Start, int Length)>();
+            int summaryLength = text.Length + 1;
+            byte[]? asteriskSummaries = text.IndexOf('*') >= 0
+                ? RentSummaryBuffer(summaryLength)
+                : null;
+            byte[]? underscoreSummaries = text.IndexOf('_') >= 0
+                ? RentSummaryBuffer(summaryLength)
+                : null;
+            if (asteriskSummaries != null) asteriskSummaries[text.Length] = 0;
+            if (underscoreSummaries != null) underscoreSummaries[text.Length] = 0;
+            List<ClosingRunLengthSummary>? asteriskOddRuns = null;
+            List<ClosingRunLengthSummary>? asteriskEvenRuns = null;
+            List<ClosingRunLengthSummary>? underscoreOddRuns = null;
+            List<ClosingRunLengthSummary>? underscoreEvenRuns = null;
+            List<(int Start, int Length)>? asteriskPositions = null;
+            List<(int Start, int Length)>? underscorePositions = null;
 
             for (int index = text.Length - 1; index >= 0; index--) {
-                asteriskSummaries[index] = asteriskSummaries[index + 1];
-                underscoreSummaries[index] = underscoreSummaries[index + 1];
+                if (asteriskSummaries != null) {
+                    asteriskSummaries[index] = asteriskSummaries[index + 1];
+                }
+                if (underscoreSummaries != null) {
+                    underscoreSummaries[index] = underscoreSummaries[index + 1];
+                }
 
                 char marker = text[index];
                 if ((marker != '*' && marker != '_') || (index > 0 && text[index - 1] == marker)) {
@@ -88,20 +107,23 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
-                (marker == '*' ? asteriskPositions : underscorePositions)
-                    .Add((index, runLength));
-
-                Dictionary<int, int> runStarts;
                 if (marker == '*') {
-                    runStarts = (runLength & 1) == 0 ? asteriskEvenRuns : asteriskOddRuns;
+                    (asteriskPositions ??= new List<(int Start, int Length)>()).Add((index, runLength));
+                    if ((runLength & 1) == 0) {
+                        RecordRunLength(ref asteriskEvenRuns, runLength, index);
+                    } else {
+                        RecordRunLength(ref asteriskOddRuns, runLength, index);
+                    }
                 } else {
-                    runStarts = (runLength & 1) == 0 ? underscoreEvenRuns : underscoreOddRuns;
-                }
-                if (!runStarts.TryGetValue(runLength, out int currentMaximumStart) || index > currentMaximumStart) {
-                    runStarts[runLength] = index;
+                    (underscorePositions ??= new List<(int Start, int Length)>()).Add((index, runLength));
+                    if ((runLength & 1) == 0) {
+                        RecordRunLength(ref underscoreEvenRuns, runLength, index);
+                    } else {
+                        RecordRunLength(ref underscoreOddRuns, runLength, index);
+                    }
                 }
 
-                byte[] summaries = marker == '*' ? asteriskSummaries : underscoreSummaries;
+                byte[] summaries = marker == '*' ? asteriskSummaries! : underscoreSummaries!;
                 if (runLength >= 2) {
                     summaries[index] |= HasRunOfAtLeastTwo;
                 } else {
@@ -113,12 +135,60 @@ public static partial class MarkdownReader {
             return new EmphasisClosingRunIndex(
                 asteriskSummaries,
                 underscoreSummaries,
+                summaryLength,
                 ClosingRunLengthIndex.Create(asteriskOddRuns),
                 ClosingRunLengthIndex.Create(asteriskEvenRuns),
                 ClosingRunLengthIndex.Create(underscoreOddRuns),
                 ClosingRunLengthIndex.Create(underscoreEvenRuns),
                 ClosingRunPositionIndex.Create(asteriskPositions),
                 ClosingRunPositionIndex.Create(underscorePositions));
+        }
+
+        public void Dispose() {
+            if (_disposed) {
+                return;
+            }
+            _disposed = true;
+
+            if (_asteriskSuffixSummaries != null) {
+                ReturnSummaryBuffer(_asteriskSuffixSummaries);
+            }
+            if (_underscoreSuffixSummaries != null) {
+                ReturnSummaryBuffer(_underscoreSuffixSummaries);
+            }
+        }
+
+        private static byte[] RentSummaryBuffer(int minimumLength) {
+#if NET8_0_OR_GREATER
+            return ArrayPool<byte>.Shared.Rent(minimumLength);
+#else
+            return new byte[minimumLength];
+#endif
+        }
+
+        private static void ReturnSummaryBuffer(byte[] buffer) {
+#if NET8_0_OR_GREATER
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
+#endif
+        }
+
+        private static void RecordRunLength(
+            ref List<ClosingRunLengthSummary>? runs,
+            int runLength,
+            int start) {
+            runs ??= new List<ClosingRunLengthSummary>(2);
+            for (int index = 0; index < runs.Count; index++) {
+                if (runs[index].RunLength != runLength) {
+                    continue;
+                }
+
+                if (start > runs[index].MaximumStart) {
+                    runs[index] = new ClosingRunLengthSummary(runLength, start);
+                }
+                return;
+            }
+
+            runs.Add(new ClosingRunLengthSummary(runLength, start));
         }
 
         internal bool HasRunAtLeastTwo(int start, char marker) {
@@ -154,12 +224,21 @@ public static partial class MarkdownReader {
         }
 
         private byte GetSummary(int start, char marker) {
-            byte[] summaries = marker == '*' ? _asteriskSuffixSummaries : _underscoreSuffixSummaries;
-            int index = Math.Max(0, Math.Min(start, summaries.Length - 1));
+            byte[]? summaries = marker == '*' ? _asteriskSuffixSummaries : _underscoreSuffixSummaries;
+            if (summaries == null) {
+                return 0;
+            }
+            int index = Math.Max(0, Math.Min(start, _summaryLength - 1));
             return summaries[index];
         }
 
+        private readonly record struct ClosingRunLengthSummary(int RunLength, int MaximumStart);
+
         private sealed class ClosingRunLengthIndex {
+            private static readonly ClosingRunLengthIndex Empty = new(
+                Array.Empty<int>(),
+                Array.Empty<int>(),
+                leafOffset: 1);
             private readonly int[] _runLengths;
             private readonly int[] _maximumStarts;
             private readonly int _leafOffset;
@@ -170,12 +249,16 @@ public static partial class MarkdownReader {
                 _leafOffset = leafOffset;
             }
 
-            internal static ClosingRunLengthIndex Create(Dictionary<int, int> maximumStartsByRunLength) {
-                int[] runLengths = maximumStartsByRunLength.Keys.ToArray();
-                Array.Sort(runLengths);
+            internal static ClosingRunLengthIndex Create(List<ClosingRunLengthSummary>? runSummaries) {
+                if (runSummaries == null || runSummaries.Count == 0) {
+                    return Empty;
+                }
+
+                runSummaries.Sort(static (left, right) => left.RunLength.CompareTo(right.RunLength));
+                var runLengths = new int[runSummaries.Count];
 
                 int leafOffset = 1;
-                while (leafOffset < runLengths.Length) {
+                while (leafOffset < runSummaries.Count) {
                     leafOffset <<= 1;
                 }
 
@@ -183,8 +266,9 @@ public static partial class MarkdownReader {
                 for (int index = 0; index < maximumStarts.Length; index++) {
                     maximumStarts[index] = -1;
                 }
-                for (int index = 0; index < runLengths.Length; index++) {
-                    maximumStarts[leafOffset + index] = maximumStartsByRunLength[runLengths[index]];
+                for (int index = 0; index < runSummaries.Count; index++) {
+                    runLengths[index] = runSummaries[index].RunLength;
+                    maximumStarts[leafOffset + index] = runSummaries[index].MaximumStart;
                 }
                 for (int index = leafOffset - 1; index > 0; index--) {
                     maximumStarts[index] = Math.Max(maximumStarts[index * 2], maximumStarts[(index * 2) + 1]);
@@ -234,6 +318,10 @@ public static partial class MarkdownReader {
         }
 
         private sealed class ClosingRunPositionIndex {
+            private static readonly ClosingRunPositionIndex Empty = new(
+                Array.Empty<int>(),
+                Array.Empty<int>(),
+                Array.Empty<int>());
             private readonly int[] _allStarts;
             private readonly int[] _singleStarts;
             private readonly int[] _doubleStarts;
@@ -248,17 +336,30 @@ public static partial class MarkdownReader {
             }
 
             internal static ClosingRunPositionIndex Create(
-                List<(int Start, int Length)> descendingRuns) {
-                descendingRuns.Reverse();
-                int[] all = descendingRuns.Select(static run => run.Start).ToArray();
-                int[] singles = descendingRuns
-                    .Where(static run => run.Length == 1)
-                    .Select(static run => run.Start)
-                    .ToArray();
-                int[] doubles = descendingRuns
-                    .Where(static run => run.Length == 2)
-                    .Select(static run => run.Start)
-                    .ToArray();
+                List<(int Start, int Length)>? descendingRuns) {
+                if (descendingRuns == null || descendingRuns.Count == 0) {
+                    return Empty;
+                }
+
+                int singleCount = 0;
+                int doubleCount = 0;
+                for (int index = 0; index < descendingRuns.Count; index++) {
+                    if (descendingRuns[index].Length == 1) singleCount++;
+                    else if (descendingRuns[index].Length == 2) doubleCount++;
+                }
+
+                var all = new int[descendingRuns.Count];
+                var singles = new int[singleCount];
+                var doubles = new int[doubleCount];
+                int allIndex = 0;
+                int singleIndex = 0;
+                int doubleIndex = 0;
+                for (int index = descendingRuns.Count - 1; index >= 0; index--) {
+                    (int start, int length) = descendingRuns[index];
+                    all[allIndex++] = start;
+                    if (length == 1) singles[singleIndex++] = start;
+                    else if (length == 2) doubles[doubleIndex++] = start;
+                }
                 return new ClosingRunPositionIndex(all, singles, doubles);
             }
 

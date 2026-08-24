@@ -4,6 +4,8 @@ namespace OfficeIMO.Markdown;
 /// Base type for the navigable OfficeIMO.Markdown object tree.
 /// </summary>
 public abstract class MarkdownObject {
+    private MarkdownObjectMetadata? _metadata;
+
     /// <summary>Parent node in the markdown object tree, or <c>null</c> for the document root.</summary>
     public MarkdownObject? Parent { get; private set; }
 
@@ -23,10 +25,19 @@ public abstract class MarkdownObject {
     public MarkdownObject? NextSibling { get; private set; }
 
     /// <summary>Source span mapped from the syntax tree when available.</summary>
-    public MarkdownSourceSpan? SourceSpan { get; internal set; }
+    public MarkdownSourceSpan? SourceSpan {
+        get => _metadata?.SourceSpan;
+        internal set {
+            if (value.HasValue) {
+                Metadata.SourceSpan = value;
+            } else if (_metadata != null) {
+                _metadata.SourceSpan = null;
+            }
+        }
+    }
 
     /// <summary>Generic Markdown attributes associated with this node.</summary>
-    public MarkdownAttributeSet Attributes { get; private set; } = MarkdownAttributeSet.Empty;
+    public MarkdownAttributeSet Attributes => _metadata?.Attributes ?? MarkdownAttributeSet.Empty;
 
     /// <summary>Immediate child objects in document order.</summary>
     public IReadOnlyList<MarkdownObject> ChildObjects => MarkdownObjectTreeBinder.GetChildObjects(this);
@@ -87,8 +98,22 @@ public abstract class MarkdownObject {
     }
 
     internal void SetAttributes(MarkdownAttributeSet? attributes) {
-        Attributes = attributes == null || attributes.IsEmpty ? MarkdownAttributeSet.Empty : attributes;
+        if (attributes == null || attributes.IsEmpty) {
+            if (_metadata != null) {
+                _metadata.Attributes = MarkdownAttributeSet.Empty;
+            }
+            return;
+        }
+
+        Metadata.Attributes = attributes;
     }
+
+    private MarkdownObjectMetadata Metadata => _metadata ??= new MarkdownObjectMetadata();
+}
+
+internal sealed class MarkdownObjectMetadata {
+    internal MarkdownSourceSpan? SourceSpan;
+    internal MarkdownAttributeSet Attributes = MarkdownAttributeSet.Empty;
 }
 
 /// <summary>
