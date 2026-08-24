@@ -143,10 +143,10 @@
       "comparisonId": "image-webp-lossless-net10.0",
       "platform": "windows",
       "runMode": "quick",
-      "generatedUtc": "2026-08-23T22:39:26.6730518+02:00",
+      "generatedUtc": "2026-08-24T12:57:15.33459+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/image-webp-lossless-net10.0-windows-quick.json",
-      "resultSha256": "4b31a965ea45378647b22289f0b7f57cd79123c4293dd10d18c91999f3209069",
+      "resultSha256": "ed89cf4d18370f0718b79280476bc3963052c83666e87e8910b22492009e77dd",
       "artifactDestinationSha256": "e0cd6d448d8c2c4fd3b4d94fc4fe9cae7a32935bd7c45bcd19e3ce67ed07fb14",
       "artifactFileName": "image-webp-lossless-net10.0-windows-quick.json",
       "artifactRelativePath": "image-webp-lossless-net10.0-windows-quick.json",
@@ -167,12 +167,12 @@
       },
       "compatibility": {
         "suite": "OfficeIMO.Drawing.WebpLossless",
-        "benchmark.workload.shape.sha256": "79da4952804790157211ebcd61a06d406ddeeb3fbbb4ce5fb141301163ab4bde",
+        "benchmark.workload.shape.sha256": "9c8576fad960e8eeec66d1d65c86a391e308f47baf80227f50fe558b103043fd",
         "benchmark.workload.affinityMask": "0xFFFF",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "image-webp-lossless-net10.0",
-        "benchmark.workload.sourceCommit": "4c7796585526c9ebf047be2a32c13b3b5663860a",
-        "gitSha": "4c7796585526c9ebf047be2a32c13b3b5663860a",
+        "benchmark.workload.sourceCommit": "dcc4d09d3593f7afde7306aa24c86baf259e0a8b",
+        "gitSha": "dcc4d09d3593f7afde7306aa24c86baf259e0a8b",
         "runMode": "quick"
       },
       "comparable": true,
@@ -1209,7 +1209,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-08-23T22:39:26.6730518+02:00"
+      "latestUtc": "2026-08-24T12:57:15.33459+00:00"
     },
     {
       "comparisonId": "image-webp-lossless-net10.0",
