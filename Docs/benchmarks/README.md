@@ -6,7 +6,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 
 | Owner | Time and allocations | Peak memory and output size | Equivalent comparison | Current evidence gap |
 | --- | --- | --- | --- | --- |
-| CSV | BenchmarkDotNet read/write suites | Output is validated; size is not a shared comparison metric | CsvHelper, Sep, Sylvan, Dataplat.Dbatools.Csv, and LumenWorks | Extend size evidence for file-producing lanes |
+| CSV | BenchmarkDotNet read/write suites | Validated SQL-shaped output is 0.991-0.993x Sylvan's UTF-8 size; sequential and parallel OfficeIMO output is byte-identical | CsvHelper, Sep, Sylvan, Dataplat.Dbatools.Csv, and LumenWorks | Extend size evidence to other equivalent file-producing shapes and add isolated peak-memory evidence |
 | Word | Validated BenchmarkDotNet create, read, report, and replace suites | DOCX payloads are validated; size is not exported by the shared runner | DocX, NPOI, and Open XML SDK | Add environment-qualified output-size evidence without publishing license-restricted numbers |
 | PowerPoint | Repeated isolated package workflows are within the 2× contender ceiling for both time and allocation on Windows and Linux | Sampled managed-heap growth, process peak, and output bytes are recorded and budgeted | ShapeCrawler for validated create/save and open/edit/save | Large open/edit/save remains close to the ceiling at 1.70-1.82× on Windows and should be improved further |
 | Reader | BenchmarkDotNet extraction, detection, transport, and chunking suites | External processes record peak working set; creation size is not applicable | Optional direct-process runners for equivalent extraction | Add representative application corpora and release baselines |
@@ -49,6 +49,21 @@ The Windows and Ubuntu 24.04 evidence is recorded in
 [`OfficeIMO.PowerPoint.Benchmarks/BASELINE.md`](../../OfficeIMO.PowerPoint.Benchmarks/BASELINE.md).
 Every package lane is within the 2× contender ceiling for time and allocation,
 but the large edit lane remains an explicit optimization target.
+
+## CSV output size
+
+The validated SQL-shaped DataReader writer now records UTF-8 output size and
+hashes for OfficeIMO sequential, OfficeIMO parallel, and Sylvan.Data.Csv:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks -- --datareader-write-size-evidence --rows 25000,100000 --json .benchmark-artifacts\csv\datareader-write-size.json
+```
+
+The Windows evidence is recorded in
+[`officeimo.csv-datareader-size-2026-08-24.md`](officeimo.csv-datareader-size-2026-08-24.md).
+OfficeIMO output is 0.991-0.993x Sylvan's UTF-8 size across mixed, quoted, and
+multiline shapes at 25,000 and 100,000 rows. Sequential and parallel OfficeIMO
+outputs are byte-identical.
 
 ## Reader baselines
 
