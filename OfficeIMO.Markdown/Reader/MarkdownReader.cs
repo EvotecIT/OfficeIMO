@@ -505,12 +505,12 @@ public static partial class MarkdownReader {
             if (left.Length != right.Length) {
                 return false;
             }
-            for (int offset = 0; offset < left.Length; offset++) {
-                if (left.Source[left.Start + offset] != right.Source[right.Start + offset]) {
-                    return false;
-                }
-            }
-            return true;
+            return string.CompareOrdinal(
+                left.Source,
+                left.Start,
+                right.Source,
+                right.Start,
+                left.Length) == 0;
         }
 
         public int GetHashCode(MarkdownLineKey key) {

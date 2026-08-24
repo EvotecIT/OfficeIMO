@@ -13,8 +13,15 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
 
         var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
         var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
+        var htmlOptions = CommonMarkHtmlComparison.CreatePlainHtmlOptions();
+        string semanticHtml = semanticDocument.ToHtmlFragment(htmlOptions);
+        string sourceBackedHtml = sourceBackedDocument.ToHtmlFragment(htmlOptions);
+        string markdigHtml = Markdig.Markdown.ToHtml(markdown);
 
-        Assert.Equal(sourceBackedDocument.ToHtmlFragment(), semanticDocument.ToHtmlFragment());
+        Assert.Equal(
+            CommonMarkHtmlComparison.Normalize(markdigHtml),
+            CommonMarkHtmlComparison.Normalize(semanticHtml));
+        Assert.Equal(sourceBackedHtml, semanticHtml);
         Assert.Equal(sourceBackedDocument.ToMarkdown(), semanticDocument.ToMarkdown());
         Assert.Single(semanticDocument.DescendantObjectsOfType<BoldSequenceInline>());
         Assert.Single(semanticDocument.DescendantObjectsOfType<ItalicSequenceInline>());
@@ -22,6 +29,28 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         var link = Assert.Single(semanticDocument.DescendantObjectsOfType<LinkInline>());
         Assert.NotNull(link.LabelInlines);
         Assert.Single(semanticDocument.DescendantObjectsOfType<ImageInline>());
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
+    }
+
+    [Theory]
+    [InlineData("Signal **Healthy baseline exists now** ->**Why it matters:**missing coverage ->**Next action:**review defaults.")]
+    [InlineData("Signal **Catalog count includes hidden rules -> **Why it matters:**rules drift ->**Next action:**compare inventories.**")]
+    [InlineData("First **strong** segment, then literal **unfinished markers:**remain visible.")]
+    [InlineData("Następny krok: **`ad_domain_controller_facts`**")]
+    public void ParseSemantic_CommonMark_MalformedAndNestedStrong_Matches_SourceBacked_Contract(string markdown) {
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+
+        var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
+        var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
+        var htmlOptions = CommonMarkHtmlComparison.CreatePlainHtmlOptions();
+        string semanticHtml = semanticDocument.ToHtmlFragment(htmlOptions);
+        string sourceBackedHtml = sourceBackedDocument.ToHtmlFragment(htmlOptions);
+
+        Assert.Equal(
+            CommonMarkHtmlComparison.Normalize(Markdig.Markdown.ToHtml(markdown)),
+            CommonMarkHtmlComparison.Normalize(semanticHtml));
+        Assert.Equal(sourceBackedHtml, semanticHtml);
+        Assert.Equal(sourceBackedDocument.ToMarkdown(), semanticDocument.ToMarkdown());
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
     }
 

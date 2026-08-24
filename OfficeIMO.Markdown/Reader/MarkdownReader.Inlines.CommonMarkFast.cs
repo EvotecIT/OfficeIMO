@@ -53,47 +53,48 @@ public static partial class MarkdownReader {
             }
 
             AddSimpleTextRun(sequence, text, textStart, token.Start - textStart);
-            string content = text.Substring(token.ContentStart, token.ContentLength);
             switch (token.Kind) {
                 case SimpleInlineTokenKind.Strong:
                     var strongContent = new InlineSequence { AutoSpacing = false };
-                    strongContent.AddRaw(new MarkdownTextRun(content));
+                    AddSimpleEmphasisContent(strongContent, text, token.ContentStart, token.ContentLength, options);
                     sequence.AddRaw(new BoldSequenceInline(strongContent));
                     break;
 
                 case SimpleInlineTokenKind.Emphasis:
                     var emphasisContent = new InlineSequence { AutoSpacing = false };
-                    emphasisContent.AddRaw(new MarkdownTextRun(content));
+                    AddSimpleEmphasisContent(emphasisContent, text, token.ContentStart, token.ContentLength, options);
                     sequence.AddRaw(new ItalicSequenceInline(emphasisContent));
                     break;
 
                 case SimpleInlineTokenKind.Code:
-                    sequence.AddRaw(new CodeSpanInline(content));
+                    sequence.AddRaw(new CodeSpanInline(text.Substring(token.ContentStart, token.ContentLength)));
                     break;
 
                 case SimpleInlineTokenKind.Link:
+                    string linkContent = text.Substring(token.ContentStart, token.ContentLength);
                     string target = text.Substring(token.TargetStart, token.TargetLength);
                     string? resolvedTarget = string.IsNullOrWhiteSpace(target)
                         ? string.Empty
                         : ResolveUrl(target, options);
                     if (resolvedTarget == null) {
-                        sequence.AddRaw(new MarkdownTextRun(content));
+                        sequence.AddRaw(new MarkdownTextRun(linkContent));
                     } else {
                         var label = new InlineSequence { AutoSpacing = false };
-                        label.AddRaw(new MarkdownTextRun(content));
+                        label.AddRaw(new MarkdownTextRun(linkContent));
                         sequence.AddRaw(new LinkInline(label, resolvedTarget, title: null));
                     }
                     break;
 
                 case SimpleInlineTokenKind.Image:
+                    string altText = text.Substring(token.ContentStart, token.ContentLength);
                     string source = text.Substring(token.TargetStart, token.TargetLength);
                     string? resolvedSource = string.IsNullOrWhiteSpace(source)
                         ? string.Empty
                         : ResolveUrl(source, options);
                     if (resolvedSource == null) {
-                        sequence.AddRaw(new MarkdownTextRun(content));
+                        sequence.AddRaw(new MarkdownTextRun(altText));
                     } else {
-                        sequence.AddRaw(new ImageInline(content, resolvedSource));
+                        sequence.AddRaw(new ImageInline(altText, resolvedSource));
                     }
                     break;
             }
@@ -129,6 +130,29 @@ public static partial class MarkdownReader {
                         continue;
                     }
 
+                    // A delimiter run that cannot open has no unresolved frame to affect on
+                    // this validating path. It is literal CommonMark text even when it can
+                    // close in isolation (for example, a trailing unmatched "**").
+                    if (value is '*' or '_') {
+                        int runLength = 1;
+                        while (position + runLength < text.Length && text[position + runLength] == value) {
+                            runLength++;
+                        }
+
+                        GetDelimiterFlags(
+                            text,
+                            position,
+                            value,
+                            runLength,
+                            options.CjkFriendlyEmphasis,
+                            out bool canOpen,
+                            out _);
+                        if (!canOpen) {
+                            position += runLength;
+                            continue;
+                        }
+                    }
+
                     return false;
                 }
 
@@ -137,7 +161,10 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (value is '\\' or '&' or '\n' or '<' or '~' or '=' or '+' or '^') {
+            if (value is '\\' or '&' or '\n' or '<' or '~'
+                || (value == '=' && options.Highlight)
+                || (value == '+' && options.Inserted)
+                || (value == '^' && options.Superscript)) {
                 return false;
             }
 
@@ -145,6 +172,129 @@ public static partial class MarkdownReader {
         }
 
         return foundToken || foundLiteralBracket;
+    }
+
+    private static bool TryParsePlainDoubleAsteriskInlines(
+        string text,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        MarkdownInlineSourceMap? sourceMap,
+        out InlineSequence sequence) {
+        sequence = null!;
+        if (state?.CaptureSyntaxTree != false
+            || sourceMap != null
+            || options.InlineParserExtensions.Count != 0
+            || options.InlineTransformExtensions.Count != 0
+            || options.Abbreviations
+            || options.AutolinkUrls
+            || options.AutolinkWwwUrls
+            || options.AutolinkBareSchemeUrls
+            || options.AutolinkEmails
+            || options.CjkFriendlyEmphasis
+            || string.IsNullOrEmpty(text)) {
+            return false;
+        }
+
+        int runCount = 0;
+        for (int position = 0; position < text.Length; position++) {
+            char value = text[position];
+            if (value == '*') {
+                int runLength = 1;
+                while (position + runLength < text.Length && text[position + runLength] == '*') {
+                    runLength++;
+                }
+
+                if (runLength != 2) {
+                    return false;
+                }
+
+                runCount++;
+                position++;
+                continue;
+            }
+
+            if (value is '\\' or '&' or '\r' or '\n' or '<' or '!' or '[' or ']' or '`' or '_' or '~' or '=' or '+' or '^') {
+                return false;
+            }
+        }
+
+        if (runCount < 2) {
+            return false;
+        }
+
+        var runPositions = new int[runCount];
+        var openerStack = new int[runCount];
+        var closingRunByOpener = new int[runCount];
+        for (int index = 0; index < closingRunByOpener.Length; index++) {
+            closingRunByOpener[index] = -1;
+        }
+
+        int runIndex = 0;
+        int openerCount = 0;
+        int matchedCount = 0;
+        for (int position = text.IndexOf('*'); position >= 0; position = text.IndexOf('*', position + 2)) {
+            runPositions[runIndex] = position;
+            GetDelimiterFlags(
+                text,
+                position,
+                '*',
+                2,
+                options.CjkFriendlyEmphasis,
+                out bool canOpen,
+                out bool canClose);
+
+            if (canClose && openerCount > 0) {
+                int openerRun = openerStack[--openerCount];
+                closingRunByOpener[openerRun] = runIndex;
+                matchedCount++;
+            } else if (canOpen) {
+                openerStack[openerCount++] = runIndex;
+            }
+
+            runIndex++;
+        }
+
+        if (matchedCount == 0) {
+            return false;
+        }
+
+        // Nested strong pairs need the full delimiter parser. This lightweight
+        // path handles sequential pairs plus unmatched literal delimiter runs.
+        int previousClosingPosition = -1;
+        for (int openerRun = 0; openerRun < runCount; openerRun++) {
+            int closingRun = closingRunByOpener[openerRun];
+            if (closingRun < 0) {
+                continue;
+            }
+
+            int openingPosition = runPositions[openerRun];
+            if (openingPosition < previousClosingPosition) {
+                return false;
+            }
+
+            previousClosingPosition = runPositions[closingRun] + 2;
+        }
+
+        sequence = new InlineSequence((matchedCount * 2) + 1) { AutoSpacing = false };
+        int textStart = 0;
+        for (int openerRun = 0; openerRun < runCount; openerRun++) {
+            int closingRun = closingRunByOpener[openerRun];
+            if (closingRun < 0) {
+                continue;
+            }
+
+            int openingPosition = runPositions[openerRun];
+            int closingPosition = runPositions[closingRun];
+            AddSimpleTextRun(sequence, text, textStart, openingPosition - textStart);
+
+            var strongContent = new InlineSequence(1) { AutoSpacing = false };
+            AddSimpleTextRun(strongContent, text, openingPosition + 2, closingPosition - openingPosition - 2);
+            sequence.AddRaw(new BoldSequenceInline(strongContent));
+            textStart = closingPosition + 2;
+        }
+
+        AddSimpleTextRun(sequence, text, textStart, text.Length - textStart);
+        return true;
     }
 
     private static bool IsPotentialInlineLinkOrImage(string text, int start) {
@@ -180,7 +330,7 @@ public static partial class MarkdownReader {
                 || (delimiterLength == 1
                     && ((closing > 0 && text[closing - 1] == marker)
                         || (closing + 1 < text.Length && text[closing + 1] == marker)))
-                || !IsSimpleInlineLiteral(text, start + delimiterLength, closing - start - delimiterLength)) {
+                || !IsSimpleEmphasisContent(text, start + delimiterLength, closing - start - delimiterLength, options)) {
                 return false;
             }
 
@@ -278,6 +428,58 @@ public static partial class MarkdownReader {
         }
 
         return true;
+    }
+
+    private static bool IsSimpleEmphasisContent(string text, int start, int length, MarkdownReaderOptions options) {
+        if (length <= 0 || start < 0 || start + length > text.Length) {
+            return false;
+        }
+
+        int end = start + length;
+        for (int position = start; position < end; position++) {
+            char value = text[position];
+            if (value == '`') {
+                if (!TryReadSimpleCommonMarkInlineToken(text, position, options, out var token)
+                    || token.Kind != SimpleInlineTokenKind.Code
+                    || token.End > end) {
+                    return false;
+                }
+
+                position = token.End - 1;
+                continue;
+            }
+
+            if (value is '\\' or '&' or '\r' or '\n' or '<' or '!' or '[' or '*' or '_' or '~' or '=' or '+' or '^') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void AddSimpleEmphasisContent(
+        InlineSequence sequence,
+        string text,
+        int start,
+        int length,
+        MarkdownReaderOptions options) {
+        int end = start + length;
+        int textStart = start;
+        for (int position = start; position < end; position++) {
+            if (text[position] != '`'
+                || !TryReadSimpleCommonMarkInlineToken(text, position, options, out var token)
+                || token.Kind != SimpleInlineTokenKind.Code
+                || token.End > end) {
+                continue;
+            }
+
+            AddSimpleTextRun(sequence, text, textStart, position - textStart);
+            sequence.AddRaw(new CodeSpanInline(text.Substring(token.ContentStart, token.ContentLength)));
+            position = token.End - 1;
+            textStart = token.End;
+        }
+
+        AddSimpleTextRun(sequence, text, textStart, end - textStart);
     }
 
     private static bool IsSimpleInlineLinkTarget(string text, int start, int length) {

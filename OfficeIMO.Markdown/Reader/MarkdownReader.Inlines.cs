@@ -16,6 +16,8 @@ public static partial class MarkdownReader {
             }
         } else if (TryParseSimpleCommonMarkInlines(text, options, state, sourceMap, out var simpleSequence)) {
             sequence = simpleSequence;
+        } else if (TryParsePlainDoubleAsteriskInlines(text, options, state, sourceMap, out var plainStrongSequence)) {
+            sequence = plainStrongSequence;
         } else {
             sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
         }
@@ -826,6 +828,18 @@ public static partial class MarkdownReader {
                 }
 
                 GetDelimiterFlags(text, pos, marker, runLen, options.CjkFriendlyEmphasis, out bool canOpen, out bool canClose);
+
+                // An opener with no compatible future closing run can never produce
+                // semantic emphasis. Preserve it as literal text without allocating a
+                // frame that would only be unwound at the end of the inline sequence.
+                if (canOpen
+                    && !canClose
+                    && marker is '*' or '_'
+                    && emphasisClosingRuns?.FindFirstRun(pos + runLen, marker) < 0) {
+                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    pos += runLen;
+                    continue;
+                }
 
                 if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack, emphasisClosingRuns)) {
                     AddTextNode(marker.ToString(), pos, 1);
