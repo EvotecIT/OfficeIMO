@@ -61,57 +61,68 @@ internal static class AdfJsonSerializer {
     private static AdfNode ReadNode(JsonElement element, StringBuilder path) {
         if (element.ValueKind != JsonValueKind.Object) throw FormatException(path, " must be an object.");
         var node = new AdfNode(ReadRequiredString(element, "type", path));
-
-        if (element.TryGetProperty("text", out JsonElement text)) {
-            if (text.ValueKind != JsonValueKind.String) throw FormatException(path, ".text must be a string.");
-            node.Text = text.GetString();
-        }
-
-        if (element.TryGetProperty("attrs", out JsonElement attributes)) {
-            if (attributes.ValueKind != JsonValueKind.Object) throw FormatException(path, ".attrs must be an object.");
-            foreach (JsonProperty property in attributes.EnumerateObject()) {
-                node.AddAttribute(property.Name, property.Value.Clone());
+        foreach (JsonProperty property in element.EnumerateObject()) {
+            switch (property.Name) {
+                case "type":
+                    break;
+                case "text":
+                    if (property.Value.ValueKind != JsonValueKind.String) throw FormatException(path, ".text must be a string.");
+                    node.Text = property.Value.GetString();
+                    break;
+                case "attrs":
+                    if (property.Value.ValueKind != JsonValueKind.Object) throw FormatException(path, ".attrs must be an object.");
+                    foreach (JsonProperty attribute in property.Value.EnumerateObject()) {
+                        node.AddAttribute(attribute.Name, attribute.Value.Clone());
+                    }
+                    break;
+                case "content":
+                    if (property.Value.ValueKind != JsonValueKind.Array) throw FormatException(path, ".content must be an array.");
+                    int childIndex = 0;
+                    foreach (JsonElement child in property.Value.EnumerateArray()) {
+                        int pathLength = path.Length;
+                        path.Append(".content[").Append(childIndex).Append(']');
+                        node.Content.Add(ReadNode(child, path));
+                        path.Length = pathLength;
+                        childIndex++;
+                    }
+                    break;
+                case "marks":
+                    if (property.Value.ValueKind != JsonValueKind.Array) throw FormatException(path, ".marks must be an array.");
+                    int markIndex = 0;
+                    foreach (JsonElement mark in property.Value.EnumerateArray()) {
+                        int pathLength = path.Length;
+                        path.Append(".marks[").Append(markIndex).Append(']');
+                        node.Marks.Add(ReadMark(mark, path));
+                        path.Length = pathLength;
+                        markIndex++;
+                    }
+                    break;
+                default:
+                    node.AddExtension(property.Name, property.Value.Clone());
+                    break;
             }
         }
-
-        if (element.TryGetProperty("content", out JsonElement content)) {
-            if (content.ValueKind != JsonValueKind.Array) throw FormatException(path, ".content must be an array.");
-            int index = 0;
-            foreach (JsonElement child in content.EnumerateArray()) {
-                int pathLength = path.Length;
-                path.Append(".content[").Append(index).Append(']');
-                node.Content.Add(ReadNode(child, path));
-                path.Length = pathLength;
-                index++;
-            }
-        }
-
-        if (element.TryGetProperty("marks", out JsonElement marks)) {
-            if (marks.ValueKind != JsonValueKind.Array) throw FormatException(path, ".marks must be an array.");
-            int index = 0;
-            foreach (JsonElement mark in marks.EnumerateArray()) {
-                int pathLength = path.Length;
-                path.Append(".marks[").Append(index).Append(']');
-                node.Marks.Add(ReadMark(mark, path));
-                path.Length = pathLength;
-                index++;
-            }
-        }
-
-        CopyExtensionProperties(element, node);
         return node;
     }
 
     private static AdfMark ReadMark(JsonElement element, StringBuilder path) {
         if (element.ValueKind != JsonValueKind.Object) throw FormatException(path, " must be an object.");
         var mark = new AdfMark(ReadRequiredString(element, "type", path));
-        if (element.TryGetProperty("attrs", out JsonElement attributes)) {
-            if (attributes.ValueKind != JsonValueKind.Object) throw FormatException(path, ".attrs must be an object.");
-            foreach (JsonProperty property in attributes.EnumerateObject()) {
-                mark.AddAttribute(property.Name, property.Value.Clone());
+        foreach (JsonProperty property in element.EnumerateObject()) {
+            switch (property.Name) {
+                case "type":
+                    break;
+                case "attrs":
+                    if (property.Value.ValueKind != JsonValueKind.Object) throw FormatException(path, ".attrs must be an object.");
+                    foreach (JsonProperty attribute in property.Value.EnumerateObject()) {
+                        mark.AddAttribute(attribute.Name, attribute.Value.Clone());
+                    }
+                    break;
+                default:
+                    mark.AddExtension(property.Name, property.Value.Clone());
+                    break;
             }
         }
-        CopyExtensionProperties(element, mark);
         return mark;
     }
 
@@ -158,18 +169,6 @@ internal static class AdfJsonSerializer {
     private static void CopyExtensionProperties(JsonElement source, AdfDocument target) {
         foreach (JsonProperty property in source.EnumerateObject()) {
             if (!IsKnownProperty(property.Name, PropertySet.Root)) target.AddExtension(property.Name, property.Value.Clone());
-        }
-    }
-
-    private static void CopyExtensionProperties(JsonElement source, AdfNode target) {
-        foreach (JsonProperty property in source.EnumerateObject()) {
-            if (!IsKnownProperty(property.Name, PropertySet.Node)) target.AddExtension(property.Name, property.Value.Clone());
-        }
-    }
-
-    private static void CopyExtensionProperties(JsonElement source, AdfMark target) {
-        foreach (JsonProperty property in source.EnumerateObject()) {
-            if (!IsKnownProperty(property.Name, PropertySet.Mark)) target.AddExtension(property.Name, property.Value.Clone());
         }
     }
 

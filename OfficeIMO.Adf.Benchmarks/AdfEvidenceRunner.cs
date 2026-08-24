@@ -8,7 +8,7 @@ namespace OfficeIMO.Adf.Benchmarks;
 
 internal static class AdfEvidenceRunner {
     private static readonly string[] Workloads = ["Parse", "RoundTrip"];
-    private static readonly string[] Implementations = ["System.Text.Json", "OfficeIMO"];
+    private static readonly string[] Implementations = ["System.Text.Json tree", "System.Text.Json typed", "OfficeIMO"];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -60,7 +60,7 @@ internal static class AdfEvidenceRunner {
                 RuntimeInformation.ProcessArchitecture.ToString(),
                 Environment.ProcessorCount,
                 repeat,
-                "System.Text.Json is a narrower JSON-tree cost floor; OfficeIMO additionally creates a typed ADF model and validates ADF structure.",
+                "The typed System.Text.Json model is the primary cost floor. It preserves the typed graph and extension data but does not validate ADF structure. The JSON-tree lane is narrower still.",
                 measurements);
             if (!string.IsNullOrWhiteSpace(jsonPath)) {
                 string fullPath = Path.GetFullPath(jsonPath);
@@ -82,19 +82,20 @@ internal static class AdfEvidenceRunner {
 
         AdfBenchmarkScale scale = AdfBenchmarkCorpus.Get(scaleName);
         string json = AdfBenchmarkCorpus.Create(scale);
-        bool office = implementation == "OfficeIMO";
-        Func<object> invoke = workload == "Parse"
-            ? office
-                ? () => AdfComparisonWorkflows.ParseOfficeIMO(json)
-                : () => AdfComparisonWorkflows.ParsePlatform(json)
-            : office
-                ? () => AdfComparisonWorkflows.RoundTripOfficeIMO(json)
-                : () => AdfComparisonWorkflows.RoundTripPlatform(json);
-        Action<object> validate = workload == "Parse"
-            ? office
-                ? result => AdfComparisonValidation.ValidateOfficeParse(json, (AdfDocument)result)
-                : result => AdfComparisonValidation.ValidatePlatformParse(json, (JsonNode)result)
-            : result => AdfComparisonValidation.Inspect(json, (string)result, implementation);
+        Func<object> invoke = (workload, implementation) switch {
+            ("Parse", "OfficeIMO") => () => AdfComparisonWorkflows.ParseOfficeIMO(json),
+            ("Parse", "System.Text.Json typed") => () => AdfComparisonWorkflows.ParsePlatformTyped(json),
+            ("Parse", _) => () => AdfComparisonWorkflows.ParsePlatform(json),
+            ("RoundTrip", "OfficeIMO") => () => AdfComparisonWorkflows.RoundTripOfficeIMO(json),
+            ("RoundTrip", "System.Text.Json typed") => () => AdfComparisonWorkflows.RoundTripPlatformTyped(json),
+            _ => () => AdfComparisonWorkflows.RoundTripPlatform(json)
+        };
+        Action<object> validate = (workload, implementation) switch {
+            ("Parse", "OfficeIMO") => result => AdfComparisonValidation.ValidateOfficeParse(json, (AdfDocument)result),
+            ("Parse", "System.Text.Json typed") => result => AdfComparisonValidation.ValidatePlatformTypedParse(json, (PlatformAdfDocument)result),
+            ("Parse", _) => result => AdfComparisonValidation.ValidatePlatformParse(json, (JsonNode)result),
+            _ => result => AdfComparisonValidation.Inspect(json, (string)result, implementation)
+        };
 
         object? warmup = invoke();
         validate(warmup);

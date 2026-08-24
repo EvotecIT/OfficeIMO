@@ -5,10 +5,12 @@ semantic parse/write round trips at small and normal document scales. Every
 lane validates the entire JSON tree, including unknown root, node, and mark
 properties.
 
-The `System.Text.Json` lane is a cost floor, not a feature-equivalent
-competitor: it creates a mutable JSON tree but does not create OfficeIMO's typed
-ADF model or perform ADF validation. Ratios therefore quantify the incremental
-cost of the typed contract and must not be described as product parity.
+The `System.Text.Json` tree lane is the narrowest cost floor. The typed-model
+lane additionally creates a typed document/node/mark graph and preserves
+extension data, making it the primary baseline. It still does not perform ADF
+structural validation and is not a full feature-equivalent competitor. Ratios
+therefore quantify implementation overhead and must not be described as product
+parity.
 
 Run BenchmarkDotNet on the selected runtime:
 

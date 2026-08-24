@@ -13,6 +13,11 @@ internal static class AdfComparisonValidation {
     internal static AdfOutputEvidence ValidatePlatformParse(string json, JsonNode document) =>
         Inspect(json, document.ToJsonString(), "System.Text.Json");
 
+    internal static AdfOutputEvidence ValidatePlatformTypedParse(string json, PlatformAdfDocument document) =>
+        Inspect(json, System.Text.Json.JsonSerializer.Serialize(document, new JsonSerializerOptions {
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        }), "System.Text.Json typed model");
+
     internal static AdfOutputEvidence Inspect(string input, string output, string implementation) {
         JsonNode inputNode = JsonNode.Parse(input) ?? throw new InvalidDataException("Input JSON is null.");
         JsonNode outputNode = JsonNode.Parse(output) ?? throw new InvalidDataException("Output JSON is null.");
