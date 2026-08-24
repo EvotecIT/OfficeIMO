@@ -966,12 +966,59 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
+    public void WindowsMutationSourceBlocksInPlaceWritersWhileItIsParsedAndStaged() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string path = TemporaryPstPath();
+        try {
+            CreateSource(path);
+            using EmailStorePstMutationTransaction transaction =
+                EmailStorePstMutationTransaction.Open(path);
+
+            Assert.Throws<IOException>(() => {
+                using var competingWriter = new FileStream(path, FileMode.Open,
+                    FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+            });
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void UnixMutationCanReplaceAReadOnlyPstInAWritableDirectory() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string path = TemporaryPstPath();
+        try {
+            CreateSource(path);
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.GroupRead |
+                UnixFileMode.OtherRead);
+
+            using (var transaction = EmailStorePstMutationTransaction.Open(path)) {
+                transaction.CreateFolder("Committed from read-only source");
+                Assert.True(transaction.Commit().Verification?.IsSuccessful);
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(path);
+            Assert.Contains(session.Folders, folder =>
+                folder.Name == "Committed from read-only source");
+        } finally {
+            try {
+                if (File.Exists(path)) File.SetUnixFileMode(path,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            } catch (IOException) { }
+            TryDelete(path);
+        }
+    }
+#endif
+
+    [Fact]
     public void UnixMutationLockDescriptorsAreOpenedCloseOnExec() {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         int expected = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
             ? 0x01000000
             : 0x00080000;
         Assert.Equal(expected, PstMutationTransactionLock.GetUnixOpenFlags() & expected);
+        Assert.Equal(0, PstMutationTransactionLock.GetUnixOpenFlags() & 3);
     }
 
     [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]

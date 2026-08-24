@@ -23,12 +23,13 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
 
     private EmailStorePstMutationTransaction(string sourcePath,
         EmailStorePstMutationOptions options, EmailStoreSession source,
-        FileInfo sourceFile, PstMutationTransactionLock transactionLock) {
+        long sourceLength, DateTime sourceLastWriteTimeUtc,
+        PstMutationTransactionLock transactionLock) {
         _sourcePath = sourcePath;
         _options = options;
         _source = source;
-        _sourceLength = sourceFile.Length;
-        _sourceLastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
+        _sourceLength = sourceLength;
+        _sourceLastWriteTimeUtc = sourceLastWriteTimeUtc;
         _sourceIdentity = transactionLock.Identity;
         _folders = source.Folders.ToDictionary(folder => folder.Id,
             folder => new FolderState(folder, source.IsOfficeImoWriterStore), StringComparer.Ordinal);
@@ -71,8 +72,11 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
             // The separate physical-file lock coordinates participating writers while allowing
             // ordinary readers and the final atomic replacement to coexist with that lock handle.
             try {
+                FileShare sourceShare = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? FileShare.Read
+                    : FileShare.ReadWrite | FileShare.Delete;
                 input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
-                    FileShare.ReadWrite | FileShare.Delete,
+                    sourceShare,
                     64 * 1024, FileOptions.RandomAccess);
             } catch (IOException exception) when (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 throw new IOException(
@@ -80,6 +84,9 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
                     "or the PST could not be opened safely.", exception);
             }
             transactionLock = PstMutationTransactionLock.Acquire(sourcePath, input.SafeFileHandle);
+            var sourceFile = new FileInfo(sourcePath);
+            long sourceLength = sourceFile.Length;
+            DateTime sourceLastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
             PstHeader header = PstHeader.Read(input, EmailStoreFormat.Pst);
             if (!header.IsUnicode) {
                 throw new NotSupportedException(
@@ -102,9 +109,11 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
                     nameof(EmailStorePstMutationOptions.MaxFolderCount),
                     source.Folders.Count, effective.MaxFolderCount);
             }
-            var sourceFile = new FileInfo(sourcePath);
+            EnsureSourceUnchanged(sourcePath, transactionLock.Identity,
+                sourceLength, sourceLastWriteTimeUtc);
             var transaction = new EmailStorePstMutationTransaction(
-                sourcePath, effective, source, sourceFile, transactionLock);
+                sourcePath, effective, source, sourceLength, sourceLastWriteTimeUtc,
+                transactionLock);
             transactionLock = null;
             return transaction;
         } catch {
