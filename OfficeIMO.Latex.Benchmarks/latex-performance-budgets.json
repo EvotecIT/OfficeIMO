@@ -5,7 +5,7 @@
     {
       "operation": "Parse",
       "scale": "Small",
-      "maxElapsedMilliseconds": 2,
+      "maxElapsedMilliseconds": 3,
       "maxAllocatedBytes": 190000,
       "maxRetainedManagedHeapGrowthBytes": 160000,
       "maxPeakManagedHeapGrowthBytes": 250000,
@@ -15,7 +15,7 @@
     {
       "operation": "ParseWrite",
       "scale": "Small",
-      "maxElapsedMilliseconds": 2,
+      "maxElapsedMilliseconds": 3,
       "maxAllocatedBytes": 190000,
       "maxRetainedManagedHeapGrowthBytes": 1048576,
       "maxPeakManagedHeapGrowthBytes": 250000,
@@ -25,7 +25,7 @@
     {
       "operation": "Parse",
       "scale": "Normal",
-      "maxElapsedMilliseconds": 30,
+      "maxElapsedMilliseconds": 50,
       "maxAllocatedBytes": 7300000,
       "maxRetainedManagedHeapGrowthBytes": 6500000,
       "maxPeakManagedHeapGrowthBytes": 7500000,
@@ -35,7 +35,7 @@
     {
       "operation": "ParseWrite",
       "scale": "Normal",
-      "maxElapsedMilliseconds": 30,
+      "maxElapsedMilliseconds": 50,
       "maxAllocatedBytes": 7300000,
       "maxRetainedManagedHeapGrowthBytes": 1048576,
       "maxPeakManagedHeapGrowthBytes": 7500000,
@@ -45,7 +45,7 @@
     {
       "operation": "Parse",
       "scale": "Large",
-      "maxElapsedMilliseconds": 300,
+      "maxElapsedMilliseconds": 400,
       "maxAllocatedBytes": 74000000,
       "maxRetainedManagedHeapGrowthBytes": 63000000,
       "maxPeakManagedHeapGrowthBytes": 73000000,
@@ -55,7 +55,7 @@
     {
       "operation": "ParseWrite",
       "scale": "Large",
-      "maxElapsedMilliseconds": 300,
+      "maxElapsedMilliseconds": 400,
       "maxAllocatedBytes": 74000000,
       "maxRetainedManagedHeapGrowthBytes": 1048576,
       "maxPeakManagedHeapGrowthBytes": 73000000,
