@@ -308,8 +308,9 @@ public static partial class OfficeTiffCodec {
                     alphaKind = extraSamples[0];
                 }
 
+                var decodeWorkBudget = new TiffValidationBudget(OfficeRasterGuards.MaximumDecodedBytes);
                 if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
-                        compression, planarConfiguration, predictor, effective, validationBudget: null,
+                        compression, planarConfiguration, predictor, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source)) return false;
 
                 int orientedWidth = orientation >= 5 ? height : width;
@@ -769,6 +770,7 @@ public static partial class OfficeTiffCodec {
             case 4:  // LONG
             case 9:  // SLONG
             case 11: // FLOAT
+            case 13: // IFD
                 itemSize = 4;
                 break;
             case 5:  // RATIONAL
