@@ -191,6 +191,20 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeRasterImageDecoder.TryDecode(truncated, out _));
         }
 
+        [Fact]
+        public void GifInspectionRejectsFramesWithoutAnActiveColorTable() {
+            byte[] valid = CreateSinglePixelGif();
+            int globalTableBytes = 3 << ((valid[10] & 7) + 1);
+            byte[] malformed = valid.Take(13)
+                .Concat(valid.Skip(13 + globalTableBytes))
+                .ToArray();
+            malformed[10] &= 0x7F;
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+        }
+
         [Theory]
         [InlineData(1)]
         [InlineData(9)]
@@ -300,6 +314,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "extension.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
         [Theory]
@@ -364,6 +379,7 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficeGifReader.TryDecodeFrame(withPlainText.ToArray(), 0, out OfficeRasterImage? image, out _));
             Assert.Equal(OfficeColor.Red, Assert.IsType<OfficeRasterImage>(image).GetPixel(0, 0));
             Assert.True(OfficeImageReader.TryValidateContent(withPlainText.ToArray(), "plain-text.gif", out _));
+            Assert.True(OfficeRasterContainerInspector.TryInspect(withPlainText.ToArray(), out _));
         }
 
         [Fact]
@@ -386,6 +402,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "plain-text-transparency.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
         [Fact]
@@ -399,6 +416,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "transparency-index.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
         [Theory]
@@ -411,6 +429,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed, "reserved-descriptor.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
         }
 
         [Fact]
@@ -424,6 +443,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed, "background-index.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
         }
 
         [Fact]
@@ -432,6 +452,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed, "local-palette.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
         }
 
         private static byte[] CreateSinglePixelGif() =>

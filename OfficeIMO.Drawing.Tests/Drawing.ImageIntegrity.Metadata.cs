@@ -273,11 +273,20 @@ public partial class DrawingTests {
         invalidStream[invalidStream.Length - 1] ^= 0x01;
         byte[] invalidInternationalStream = (byte[])internationalText.Clone();
         invalidInternationalStream[invalidInternationalStream.Length - 1] ^= 0x01;
+        byte[] unicodeInternationalText = Encoding.ASCII.GetBytes("Description")
+            .Concat(new byte[] { 0, 0, 0, 0, 0 })
+            .Concat(Encoding.UTF8.GetBytes("Zażółć 😀"))
+            .ToArray();
+        byte[] invalidUtf8InternationalText = Encoding.ASCII.GetBytes("Description")
+            .Concat(new byte[] { 0, 0, 0, 0, 0, 0xC0, 0xAF })
+            .ToArray();
 
         Assert.True(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "zTXt", zText), "compressed-text.png", out _));
         Assert.True(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "iTXt", internationalText), "international-text.png", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iTXt", unicodeInternationalText), "unicode-text.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "zTXt", Array.Empty<byte>()), "empty-text.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
@@ -286,6 +295,8 @@ public partial class DrawingTests {
             InsertPngChunkBefore(png, "IDAT", "zTXt", invalidStream), "text-stream.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "iTXt", invalidInternationalStream), "international-stream.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iTXt", invalidUtf8InternationalText), "invalid-utf8.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "tEXt", new byte[] { (byte)' ', 0 }), "text-keyword.png", out _));
     }

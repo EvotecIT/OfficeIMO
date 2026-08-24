@@ -402,7 +402,8 @@ public static class OfficeImageOptimizer {
                     preserved |= OfficeImageMetadataKinds.Exif;
                 }
             }
-            if ((requested & OfficeImageMetadataKinds.Xmp) != 0 && source.Xmp != null && !source.HasExtendedJpegXmp) {
+            if ((requested & OfficeImageMetadataKinds.Xmp) != 0 && source.Xmp != null &&
+                !source.HasExtendedJpegXmp && !source.HasDuplicateStandardJpegXmp) {
                 xmp = source.Xmp;
                 preserved |= OfficeImageMetadataKinds.Xmp;
             }

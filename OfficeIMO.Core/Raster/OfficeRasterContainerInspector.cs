@@ -89,6 +89,9 @@ public static class OfficeRasterContainerInspector {
             cursor = checked(cursor + colorCount * 3);
         }
         int backgroundColorIndex = bytes[11];
+        if (globalColorTable == null
+                ? backgroundColorIndex != 0
+                : backgroundColorIndex >= globalColorTable.Length) return false;
         OfficeColor background = OfficeColor.Transparent;
         int loopCount = 1;
         bool hasLoopExtension = false;
@@ -107,6 +110,7 @@ public static class OfficeRasterContainerInspector {
                 break;
             }
             if (introducer == 0x21) {
+                if (bytes[3] == (byte)'8' && bytes[4] == (byte)'7') return false;
                 if (cursor >= bytes.Length) return false;
                 byte label = bytes[cursor++];
                 if (label == 0xF9) {
@@ -126,7 +130,7 @@ public static class OfficeRasterContainerInspector {
                 } else if (label == 0xFF) {
                     if (cursor >= bytes.Length) return false;
                     int headerLength = bytes[cursor++];
-                    if (headerLength < 1 || cursor > bytes.Length - headerLength) return false;
+                    if (headerLength != 11 || cursor > bytes.Length - headerLength) return false;
                     bool netscape = headerLength == 11 &&
                         HasAscii(bytes, cursor, "NETSCAPE2.0");
                     cursor += headerLength;
@@ -136,7 +140,15 @@ public static class OfficeRasterContainerInspector {
                     }
                     if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) return false;
                 } else if (label == 0x01) {
-                    if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) return false;
+                    if (transparentIndex >= 0 &&
+                        (globalColorTable == null || transparentIndex >= globalColorTable.Length)) return false;
+                    if (!OfficeGifReader.TryReadPlainTextExtension(
+                            bytes,
+                            ref cursor,
+                            imageInfo.Width,
+                            imageInfo.Height,
+                            globalColorTable,
+                            options.CancellationToken)) return false;
                     delayHundredths = 0;
                     disposal = OfficeRasterFrameDisposal.None;
                     transparentIndex = -1;
@@ -153,12 +165,16 @@ public static class OfficeRasterContainerInspector {
             int height = ReadUInt16LittleEndian(bytes, cursor + 6);
             int descriptorPacked = bytes[cursor + 8];
             cursor += 9;
-            if (width < 1 || height < 1 || x > imageInfo.Width - width || y > imageInfo.Height - height) return false;
+            if ((descriptorPacked & 0x18) != 0 || width < 1 || height < 1 ||
+                x > imageInfo.Width - width || y > imageInfo.Height - height) return false;
+            int activeColorCount = globalColorTable?.Length ?? 0;
             if ((descriptorPacked & 0x80) != 0) {
-                int localTableBytes = 3 << ((descriptorPacked & 7) + 1);
+                activeColorCount = 1 << ((descriptorPacked & 7) + 1);
+                int localTableBytes = activeColorCount * 3;
                 if (cursor > bytes.Length - localTableBytes) return false;
                 cursor += localTableBytes;
             }
+            if (activeColorCount == 0 || transparentIndex >= activeColorCount) return false;
             if (cursor >= bytes.Length) return false;
             int minimumCodeSize = bytes[cursor++];
             if (minimumCodeSize < 2 || minimumCodeSize > 8) return false;

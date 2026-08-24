@@ -13,7 +13,6 @@ internal static class OfficePngContainerValidator {
     internal const long MaximumSuggestedPaletteMetadataBytes = 4L * 1024L * 1024L;
     private const long SuggestedPaletteEntryOverheadBytes = 256L;
     private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
-    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     internal static bool TryValidate(byte[]? bytes, out int frameCount, out string? failureReason) =>
         TryValidate(bytes, CancellationToken.None, out frameCount, out failureReason);
@@ -242,7 +241,8 @@ internal static class OfficePngContainerValidator {
                         break;
                     case "eXIf":
                         if (!seenHeader || seenExif ||
-                            !OfficeTiffStructureValidator.TryValidateExif(bytes, dataOffset, length)) {
+                            !OfficeTiffStructureValidator.TryValidateExif(
+                                bytes, dataOffset, length, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid or repeated eXIf chunk.";
                             return false;
                         }
@@ -487,7 +487,8 @@ internal static class OfficePngContainerValidator {
                 compressed,
                 maximumProfileBytes,
                 cancellationToken: cancellationToken);
-            return OfficeIccProfileValidator.TryValidate(profile, 0, profile.Length);
+            return OfficeIccProfileValidator.TryValidate(
+                profile, 0, profile.Length, cancellationToken);
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is FormatException ||
@@ -545,21 +546,22 @@ internal static class OfficePngContainerValidator {
         if (flagOffset > end - 2 || bytes[flagOffset] > 1 || bytes[flagOffset + 1] != 0) return false;
 
         int languageOffset = flagOffset + 2;
-        int languageEnd = FindNull(bytes, languageOffset, end);
-        if (languageEnd < 0 || !HasValidLanguageTag(bytes, languageOffset, languageEnd - languageOffset)) return false;
+        int languageEnd = FindNull(bytes, languageOffset, end, cancellationToken);
+        if (languageEnd < 0 || !HasValidLanguageTag(
+                bytes, languageOffset, languageEnd - languageOffset, cancellationToken)) return false;
         int translatedOffset = languageEnd + 1;
-        int translatedEnd = FindNull(bytes, translatedOffset, end);
+        int translatedEnd = FindNull(bytes, translatedOffset, end, cancellationToken);
         int translatedLength = translatedEnd - translatedOffset;
         if (translatedEnd < 0 ||
             !TryAddDecodedTextBytes(ref decodedTextBytes, translatedLength) ||
-            !HasValidUtf8(bytes, translatedOffset, translatedLength)) return false;
+            !HasValidUtf8(bytes, translatedOffset, translatedLength, cancellationToken)) return false;
         int textOffset = translatedEnd + 1;
         int textLength = end - textOffset;
         if (bytes[flagOffset] == 1) {
             return TryInflateText(
                 bytes, textOffset, textLength, ref decodedTextBytes, requireUtf8: true, cancellationToken);
         }
-        return HasValidUtf8(bytes, textOffset, textLength) &&
+        return HasValidUtf8(bytes, textOffset, textLength, cancellationToken) &&
                TryAddDecodedTextBytes(ref decodedTextBytes, textLength);
     }
 
@@ -580,7 +582,7 @@ internal static class OfficePngContainerValidator {
         try {
             byte[] text = OfficeZlibCodec.Decompress(
                 compressed, maximumTextBytes, cancellationToken: cancellationToken);
-            return (!requireUtf8 || HasValidUtf8(text, 0, text.Length)) &&
+            return (!requireUtf8 || HasValidUtf8(text, 0, text.Length, cancellationToken)) &&
                    TryAddDecodedTextBytes(ref decodedTextBytes, text.Length);
         } catch (Exception exception) when (
             exception is ArgumentException ||
@@ -629,15 +631,25 @@ internal static class OfficePngContainerValidator {
                bytes[keywordEnd] == 0 && bytes[keywordEnd - 1] != (byte)' ';
     }
 
-    private static int FindNull(byte[] bytes, int offset, int end) {
+    private static int FindNull(
+        byte[] bytes,
+        int offset,
+        int end,
+        CancellationToken cancellationToken) {
         for (int index = offset; index < end; index++) {
+            if (((index - offset) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (bytes[index] == 0) return index;
         }
         return -1;
     }
 
-    private static bool HasValidLanguageTag(byte[] bytes, int offset, int length) {
+    private static bool HasValidLanguageTag(
+        byte[] bytes,
+        int offset,
+        int length,
+        CancellationToken cancellationToken) {
         for (int index = 0; index < length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte value = bytes[offset + index];
             if (!((value >= (byte)'A' && value <= (byte)'Z') ||
                   (value >= (byte)'a' && value <= (byte)'z') ||
@@ -647,14 +659,51 @@ internal static class OfficePngContainerValidator {
         return true;
     }
 
-    private static bool HasValidUtf8(byte[] bytes, int offset, int length) {
-        try {
-            _ = StrictUtf8.GetCharCount(bytes, offset, length);
-            return true;
-        } catch (DecoderFallbackException) {
+    private static bool HasValidUtf8(
+        byte[] bytes,
+        int offset,
+        int length,
+        CancellationToken cancellationToken) {
+        int end = offset + length;
+        int nextCancellationCheck = offset;
+        for (int index = offset; index < end;) {
+            if (index >= nextCancellationCheck) {
+                cancellationToken.ThrowIfCancellationRequested();
+                nextCancellationCheck = index + 4096;
+            }
+            byte first = bytes[index++];
+            if (first <= 0x7F) continue;
+            if (first is >= 0xC2 and <= 0xDF) {
+                if (index >= end || !IsUtf8Continuation(bytes[index++])) return false;
+                continue;
+            }
+            if (first is >= 0xE0 and <= 0xEF) {
+                if (index > end - 2) return false;
+                byte second = bytes[index++];
+                byte third = bytes[index++];
+                if (!IsUtf8Continuation(third) ||
+                    first == 0xE0 && second is not (>= 0xA0 and <= 0xBF) ||
+                    first == 0xED && second is not (>= 0x80 and <= 0x9F) ||
+                    first != 0xE0 && first != 0xED && !IsUtf8Continuation(second)) return false;
+                continue;
+            }
+            if (first is >= 0xF0 and <= 0xF4) {
+                if (index > end - 3) return false;
+                byte second = bytes[index++];
+                byte third = bytes[index++];
+                byte fourth = bytes[index++];
+                if (!IsUtf8Continuation(third) || !IsUtf8Continuation(fourth) ||
+                    first == 0xF0 && second is not (>= 0x90 and <= 0xBF) ||
+                    first == 0xF4 && second is not (>= 0x80 and <= 0x8F) ||
+                    first != 0xF0 && first != 0xF4 && !IsUtf8Continuation(second)) return false;
+                continue;
+            }
             return false;
         }
+        return true;
     }
+
+    private static bool IsUtf8Continuation(byte value) => value is >= 0x80 and <= 0xBF;
 
     private static bool TryAddDecodedTextBytes(ref long total, int count) {
         total += count;

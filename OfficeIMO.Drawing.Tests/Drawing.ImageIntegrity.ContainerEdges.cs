@@ -78,6 +78,7 @@ public partial class DrawingTests {
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(withControl.ToArray(), "gif87a.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(withControl.ToArray(), "gif87a.gif", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(withControl.ToArray(), out _));
     }
 
     [Fact]

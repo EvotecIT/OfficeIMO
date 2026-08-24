@@ -687,6 +687,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerReportsDuplicateStandardJpegXmpAsLossWhenReencoding() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(xmp: System.Text.Encoding.UTF8.GetBytes("<x:xmpmeta id=\"first\" />"))
+                });
+            byte[] secondPacket = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0")
+                .Concat(System.Text.Encoding.UTF8.GetBytes("<x:xmpmeta id=\"second\" />"))
+                .ToArray();
+            byte[] duplicate = InsertApp1SegmentAfterStartOfImage(jpeg, secondPacket);
+
+            OfficeImageMetadataSnapshot sourceMetadata =
+                OfficeImageMetadataInspector.Inspect(duplicate, OfficeImageFormat.Jpeg);
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                duplicate,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.True(sourceMetadata.HasDuplicateStandardJpegXmp);
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Xmp);
+            Assert.Equal(OfficeImageMetadataKinds.Xmp,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Xmp);
+        }
+
+        [Fact]
         public void OfficeImageOptimizerReportsJpegMetadataFoundBetweenProgressiveScans() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),

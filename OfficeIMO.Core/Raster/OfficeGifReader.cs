@@ -125,7 +125,8 @@ public static class OfficeGifReader {
                         if (validateAllFrames && hasPendingGraphicControl) return false;
                         hasPendingGraphicControl = true;
                     } else if (validateAllFrames && label == 0xFF) {
-                        if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 11)) return false;
+                        if (!TryReadFixedHeaderExtension(
+                                bytes, ref offset, expectedHeaderLength: 11, cancellationToken)) return false;
                     } else if (label == 0x01) {
                         if (validateAllFrames) {
                             if (transparentIndex >= 0 &&
@@ -135,7 +136,8 @@ public static class OfficeGifReader {
                                 ref offset,
                                 width,
                                 height,
-                                globalColorTable)) return false;
+                                globalColorTable,
+                                cancellationToken)) return false;
                         } else if (!SkipSubBlocks(bytes, ref offset, cancellationToken)) {
                             return false;
                         }
@@ -234,22 +236,27 @@ public static class OfficeGifReader {
         }
     }
 
-    private static bool TryReadFixedHeaderExtension(byte[] bytes, ref int offset, int expectedHeaderLength) {
+    private static bool TryReadFixedHeaderExtension(
+        byte[] bytes,
+        ref int offset,
+        int expectedHeaderLength,
+        CancellationToken cancellationToken) {
         if (offset >= bytes.Length || bytes[offset++] != expectedHeaderLength ||
             offset > bytes.Length - expectedHeaderLength) {
             return false;
         }
 
         offset += expectedHeaderLength;
-        return SkipSubBlocks(bytes, ref offset);
+        return SkipSubBlocks(bytes, ref offset, cancellationToken);
     }
 
-    private static bool TryReadPlainTextExtension(
+    internal static bool TryReadPlainTextExtension(
         byte[] bytes,
         ref int offset,
         int canvasWidth,
         int canvasHeight,
-        OfficeColor[]? globalColorTable) {
+        OfficeColor[]? globalColorTable,
+        CancellationToken cancellationToken) {
         const int headerLength = 12;
         if (globalColorTable == null || globalColorTable.Length == 0 ||
             offset >= bytes.Length || bytes[offset++] != headerLength ||
@@ -272,7 +279,7 @@ public static class OfficeGifReader {
         }
 
         offset += headerLength;
-        return SkipSubBlocks(bytes, ref offset);
+        return SkipSubBlocks(bytes, ref offset, cancellationToken);
     }
 
     private static bool TryReadImageFrame(

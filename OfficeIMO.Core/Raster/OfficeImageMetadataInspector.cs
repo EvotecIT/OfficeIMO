@@ -9,6 +9,7 @@ internal sealed class OfficeImageMetadataSnapshot {
     internal byte[]? Xmp { get; set; }
     internal byte[]? Icc { get; set; }
     internal bool HasExtendedJpegXmp { get; set; }
+    internal bool HasDuplicateStandardJpegXmp { get; set; }
     internal bool ExifContainsResolution { get; set; }
     internal bool HasPhysicalResolution { get; set; }
     internal bool HasUnitlessResolution { get; set; }
@@ -88,6 +89,7 @@ internal static class OfficeImageMetadataInspector {
                 snapshot.Exif = Slice(data, payload, count);
                 InspectExifPayload(snapshot.Exif, snapshot);
             } else if (marker == 0xE1 && StartsWith(data, payload, count, XmpPrefix)) {
+                if (snapshot.Xmp != null) snapshot.HasDuplicateStandardJpegXmp = true;
                 snapshot.Xmp = Slice(data, payload, count);
                 snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             } else if (marker == 0xE1 && StartsWith(data, payload, count, ExtendedXmpPrefix)) {
