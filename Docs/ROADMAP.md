@@ -68,6 +68,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Document-format depth
 
+- [ ] Reduce the OfficeIMO.Word fixed cost for the validated 100-paragraph create-and-serialize workload below the 2x contender ceiling; the current Windows BenchmarkDotNet result is 2.06x Open XML SDK time and 1.81x allocation, while the 1,000-paragraph, structured-report, read, and rich replace lanes are within 2x. Preserve the equivalent rich package shell and Office-compatible defaults, and add Linux/macOS evidence.
 - [ ] Reduce Visio graph and package overhead beyond the current validated Windows baseline: large creation allocates about 84.8 MiB for a 3.35 MB VSDX and large load/inspection about 91.8 MiB. Stabilize elapsed-time evidence, add Linux/macOS runs, and add a licensed commercial comparison only when both lanes create or load and validate the same pages, shapes, connectors, Shape Data, and boundary content.
 - [ ] Improve DOCX-to-PDF rendering for floating and wrapped drawings, section-specific headers and footers, fields, footnotes and endnotes, SmartArt fallbacks, and pagination controls using Word-produced fixtures and page-level visual comparisons.
 - [ ] Improve XLSX-to-PDF rendering for charts, pivot-table snapshots, conditional formatting, print titles and areas, manual page breaks, repeated rows and columns, external-link cached values, and advanced page setup using Excel-produced fixtures.

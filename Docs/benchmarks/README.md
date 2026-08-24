@@ -7,7 +7,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | Owner | Time and allocations | Peak memory and output size | Equivalent comparison | Current evidence gap |
 | --- | --- | --- | --- | --- |
 | CSV | BenchmarkDotNet read/write suites | Validated SQL-shaped output is 0.991-0.993x Sylvan's UTF-8 size; sequential and parallel OfficeIMO output is byte-identical | CsvHelper, Sep, Sylvan, Dataplat.Dbatools.Csv, and LumenWorks | Extend size evidence to other equivalent file-producing shapes and add isolated peak-memory evidence |
-| Word | Validated BenchmarkDotNet create, read, report, and replace suites | DOCX payloads are validated; size is not exported by the shared runner | DocX, NPOI, and Open XML SDK | Add environment-qualified output-size evidence without publishing license-restricted numbers |
+| Word | Public Open XML SDK evidence is contender-level except the 100-paragraph time lane at 2.06x; read is faster and lower-allocation | Isolated managed/process peaks are within 1.80x; equivalent DOCX output sizes differ by less than 0.2% | Open XML SDK for public equivalent evidence; DocX and NPOI remain local license-restricted lanes | Reduce the small-create fixed-cost margin below 2x and add Linux/macOS evidence |
 | PowerPoint | Repeated isolated package workflows are within the 2× contender ceiling for both time and allocation on Windows and Linux | Sampled managed-heap growth, process peak, and output bytes are recorded and budgeted | ShapeCrawler for validated create/save and open/edit/save | Large open/edit/save remains close to the ceiling at 1.70-1.82× on Windows and should be improved further |
 | Reader | BenchmarkDotNet extraction, detection, transport, and chunking suites | External processes record peak working set; creation size is not applicable | Optional direct-process runners for equivalent extraction | Add representative application corpora and release baselines |
 | Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | The isolated parser runner records allocation, retained heap, managed-heap peak, process peak, input bytes, and semantic output bytes; parsing has no file-size metric | Markdig and ReverseMarkdown after semantic equivalence checks | HTML-to-Markdown and all seven CommonMark semantic parse corpora are within 2x for time and allocation; improve the narrowest margins and measure source-backed parsing separately |
@@ -70,6 +70,17 @@ The Windows evidence is recorded in
 OfficeIMO output is 0.991-0.993x Sylvan's UTF-8 size across mixed, quoted, and
 multiline shapes at 25,000 and 100,000 rows. Sequential and parallel OfficeIMO
 outputs are byte-identical.
+
+## Word Open XML SDK evidence
+
+`OfficeIMO.Word.Benchmarks` has a publishable lane containing only OfficeIMO and
+the MIT-licensed Open XML SDK. It validates equivalent rich DOCX creation,
+structured reports, complete reads, and rich load-replace-save workflows before
+timing them. The clean Windows evidence is recorded in
+[`officeimo.word-openxml-2026-08-24.md`](officeimo.word-openxml-2026-08-24.md).
+All allocation, managed-peak, and process-peak ratios are within 2x. Controlled
+elapsed-time ratios are also within 2x except 100-paragraph creation at 2.06x;
+that fixed-cost edge remains roadmap work.
 
 ## Reader baselines
 
