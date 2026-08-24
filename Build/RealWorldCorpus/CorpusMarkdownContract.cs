@@ -40,7 +40,7 @@ internal static class CorpusMarkdownContract {
             Files = new[] {
                 new CorpusFileRecord {
                     Sha256 = new string('a', 64),
-                    SourceName = Hostile("sourcename"),
+                    SourceName = Hostile("sourcename") + "\u202Espoof",
                     ContentKind = ReaderInputKind.Html,
                     Selected = true,
                     Outcome = Hostile("outcome"),
@@ -60,6 +60,12 @@ internal static class CorpusMarkdownContract {
                 !markdown.Contains(Inert(field), StringComparison.Ordinal)) {
                 throw new InvalidOperationException($"Dynamic Markdown field '{field}' is not inert.");
             }
+        }
+        if (markdown.Contains('\u202E') ||
+            !markdown.Contains("A target of 17 unique files per format", StringComparison.Ordinal) ||
+            !markdown.Contains("near 17.65% after 17 independent observations", StringComparison.Ordinal)) {
+            throw new InvalidOperationException(
+                "Markdown interpretation or Unicode format-control neutralization is inconsistent.");
         }
         if (!markdown.Contains("| Samples per format | Total samples |", StringComparison.Ordinal) ||
             !markdown.Contains("| 0 | 0 | 0 | 0 | 17 | 23 |", StringComparison.Ordinal) ||

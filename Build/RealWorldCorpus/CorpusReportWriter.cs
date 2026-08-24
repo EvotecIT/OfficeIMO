@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Globalization;
 
 namespace OfficeIMO.RealWorldCorpus;
 
@@ -94,9 +95,15 @@ internal static class CorpusReportWriter {
             text.AppendLine();
         }
         text.AppendLine("## Interpretation boundary").AppendLine();
-        text.AppendLine("A target of 100 unique files per format is large enough to expose many recurring defects while remaining practical for a monthly isolated-process run. " +
-                        "The familiar rule-of-three would put an approximate 95% upper bound near 3% after 100 independent observations with zero failures, " +
-                        "but these corpus files are not an independent random sample. That calculation explains the sample budget; it is not a reliability guarantee.").AppendLine();
+        int sampleTarget = report.Configuration.MaxPerFormat;
+        string upperBound = Math.Min(100d, 300d / sampleTarget)
+            .ToString("0.##", CultureInfo.InvariantCulture);
+        text.Append("A target of ").Append(sampleTarget)
+            .AppendLine(" unique files per format is large enough to expose many recurring defects while remaining practical for a monthly isolated-process run. " +
+                        "The familiar rule-of-three would put an approximate 95% upper bound near " + upperBound +
+                        "% after " + sampleTarget + " independent observations with zero failures, " +
+                        "but these corpus files are not an independent random sample. That calculation explains the sample budget; it is not a reliability guarantee.")
+            .AppendLine();
         text.AppendLine("The lane proves only that OfficeIMO content-detected and attempted its normalized read contract for the recorded hashes under the recorded limits and runtime. " +
                         "It does not prove rendering fidelity, editing round trips, semantic preservation of every feature, safety of opening files in another application, or support for unmeasured files. " +
                         "Actionable findings should be minimized into provenance-tracked fixtures and moved to the owning format test suite.");
@@ -106,13 +113,16 @@ internal static class CorpusReportWriter {
     private static string ShortHash(string? value) => string.IsNullOrEmpty(value) ? "unavailable" : value[..Math.Min(16, value.Length)];
     private static string E(string value) {
         var escaped = new StringBuilder(value.Length);
-        foreach (char character in value) {
-            if (char.IsControl(character)) {
+        foreach (Rune rune in value.EnumerateRunes()) {
+            UnicodeCategory category = Rune.GetUnicodeCategory(rune);
+            if (Rune.IsControl(rune) || category == UnicodeCategory.Format ||
+                category == UnicodeCategory.LineSeparator ||
+                category == UnicodeCategory.ParagraphSeparator) {
                 escaped.Append(' ');
-            } else if (char.IsPunctuation(character) || char.IsSymbol(character)) {
-                escaped.Append("&#").Append((int)character).Append(';');
+            } else if (Rune.IsPunctuation(rune) || Rune.IsSymbol(rune)) {
+                escaped.Append("&#").Append(rune.Value).Append(';');
             } else {
-                escaped.Append(character);
+                escaped.Append(rune.ToString());
             }
         }
         return escaped.ToString();
