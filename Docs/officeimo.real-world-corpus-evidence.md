@@ -71,7 +71,7 @@ dotnet run --project Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj
 
 Keep both report paths outside the input directory so evidence from an earlier run cannot become part of a later inventory.
 
-The repository contract check uses only synthetic, project-owned inputs:
+The repository contract check uses small project-owned fixtures to exercise all six normalized-reader formats, plus synthetic inputs for routing, policy, privacy, and reporting edge cases:
 
 ```powershell
 pwsh -NoProfile -File Build/Test-RealWorldCorpusContract.ps1

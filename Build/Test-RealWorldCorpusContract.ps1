@@ -6,6 +6,7 @@ $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repositoryRoot 'Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj'
 $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("officeimo-real-corpus-contract-" + [guid]::NewGuid().ToString('N'))
 $inputDirectory = Join-Path $scratch 'input'
+$formatInputDirectory = Join-Path $scratch 'all-formats-input'
 $policyInputDirectory = Join-Path $scratch 'policy-input'
 $traversalInputDirectory = Join-Path $scratch 'traversal-input'
 $firstJson = Join-Path $scratch 'first/report.json'
@@ -15,6 +16,7 @@ $secondMarkdown = Join-Path $scratch 'second/report.md'
 
 try {
     [void] (New-Item -ItemType Directory -Path $inputDirectory -Force)
+    [void] (New-Item -ItemType Directory -Path $formatInputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path $policyInputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path (Join-Path $traversalInputDirectory 'a/b/c') -Force)
     [System.IO.File]::WriteAllText((Join-Path $inputDirectory 'renamed-html.blob'), '<!doctype html><html><body><h1>Content detected</h1></body></html>')
@@ -25,6 +27,20 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $inputDirectory 'second.rtf'), '{\rtf1\ansi A second RTF document}')
     [System.IO.File]::WriteAllBytes((Join-Path $inputDirectory 'mislabeled.pdf'), [byte[]](1, 2, 3, 4, 5, 6, 7, 8))
     [System.IO.File]::WriteAllBytes((Join-Path $inputDirectory 'oversize.bin'), [byte[]]::new(4097))
+
+    $formatFixtures = [ordered]@{
+        'document.docx' = 'Website/Apps/OfficeIMO.Web.Converter/wwwroot/samples/basic.docx'
+        'workbook.xlsx' = 'Website/Apps/OfficeIMO.Web.Converter/wwwroot/samples/basic.xlsx'
+        'presentation.pptx' = 'Website/Apps/OfficeIMO.Web.Converter/wwwroot/samples/basic.pptx'
+        'document.pdf' = 'Website/static/downloads/showcase/pdf/showcase-dashboard.pdf'
+    }
+    foreach ($fixture in $formatFixtures.GetEnumerator()) {
+        [System.IO.File]::Copy(
+            (Join-Path $repositoryRoot $fixture.Value),
+            (Join-Path $formatInputDirectory $fixture.Key))
+    }
+    [System.IO.File]::WriteAllText((Join-Path $formatInputDirectory 'document.html'), '<!doctype html><html><body><p>HTML contract</p></body></html>')
+    [System.IO.File]::WriteAllText((Join-Path $formatInputDirectory 'document.rtf'), '{\rtf1\ansi RTF contract}')
 
     $deepRtf = '{\rtf1\ansi ' + ('{}' * 250001) + '}'
     $deepHtml = '<!doctype html><html><body>' + ('<b>' * 300) + 'limit' + ('</b>' * 300) + '</body></html>'
@@ -77,6 +93,29 @@ try {
         -not $markdown.Contains('&#33;&#91;source&#93;&#40;target&#41;', [StringComparison]::Ordinal) -or
         -not $markdown.Contains(('a' * 64), [StringComparison]::Ordinal)) {
         throw 'Inert provenance values were not retained in the Markdown evidence.'
+    }
+
+    $formatJson = Join-Path $scratch 'all-formats/report.json'
+    $formatMarkdown = Join-Path $scratch 'all-formats/report.md'
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $formatInputDirectory --json $formatJson --markdown $formatMarkdown `
+        --corpus-id synthetic-all-formats --formats Word,Excel,PowerPoint,Pdf,Html,Rtf `
+        --max-per-format 1 --max-total 6 --max-file-bytes 1048576 `
+        --max-traversal-entries 10 --timeout-seconds 30 --parallelism 3
+    if ($LASTEXITCODE -ne 0) { throw "All-format corpus contract run failed with exit code $LASTEXITCODE." }
+    $formatReport = Get-Content -LiteralPath $formatJson -Raw | ConvertFrom-Json -Depth 100
+    if ($formatReport.totals.discovered -ne 6 -or $formatReport.totals.eligibleUnique -ne 6 -or $formatReport.totals.selected -ne 6) {
+        throw 'The all-format contract did not content-detect and select exactly one file per format.'
+    }
+    foreach ($kind in @('word', 'excel', 'powerPoint', 'pdf', 'html', 'rtf')) {
+        $records = @($formatReport.files | Where-Object { $_.contentKind -eq $kind })
+        if ($records.Count -ne 1 -or -not $records[0].selected -or
+            $records[0].contentConfidence -notin @('medium', 'high') -or
+            $records[0].outcome -notin @('completed', 'completed-with-warnings') -or
+            $records[0].errorDiagnostics -ne 0) {
+            $observed = $records | Select-Object contentKind, contentConfidence, selected, outcome, errorDiagnostics, exceptionType | ConvertTo-Json -Compress
+            throw "The $kind normalized-reader contract was not reached successfully: $observed"
+        }
     }
 
     $policyJson = Join-Path $scratch 'policy/report.json'

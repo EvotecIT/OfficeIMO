@@ -2,19 +2,6 @@ name: Real-world corpus evidence
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/real-world-corpus-evidence.yml'
-      - 'Build/RealWorldCorpus/**'
-      - 'Build/Test-RealWorldCorpusContract.ps1'
-      - 'Docs/officeimo.real-world-corpus-evidence.md'
-      - 'OfficeIMO.Reader.*/**'
-      - 'OfficeIMO.SharedSource/**'
-      - 'OfficeIMO.Word/**'
-      - 'OfficeIMO.Excel/**'
-      - 'OfficeIMO.PowerPoint/**'
-      - 'OfficeIMO.Pdf/**'
-      - 'OfficeIMO.Html/**'
-      - 'OfficeIMO.Rtf/**'
   workflow_dispatch:
     inputs:
       chunk:

@@ -19,6 +19,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "real-world-corpus-evidence.yml"
 WORKFLOW = WORKFLOW_PATH.read_text(encoding="utf-8")
+GUARD_WORKFLOW_PATH = ROOT / ".github" / "workflows" / "real-world-corpus-contract-guard.yml"
+GUARD_WORKFLOW = GUARD_WORKFLOW_PATH.read_text(encoding="utf-8")
 PINNED_SHA256 = "7fb4673ac1905a3ed16a9c5780a70c729c3abc575b06c155b7042b91fa5946aa"
 
 
@@ -52,6 +54,28 @@ def corpus_job_timeout_minutes() -> int:
     if match is None:
         raise AssertionError("The corpus evidence job timeout is missing.")
     return int(match.group(1))
+
+
+def assert_unrestricted_pull_request_trigger(workflow: str, name: str) -> None:
+    lines = workflow.splitlines()
+    try:
+        trigger_index = lines.index("  pull_request:")
+    except ValueError as error:
+        raise AssertionError(f"{name} does not have a plain pull-request trigger.") from error
+    for line in lines[trigger_index + 1:]:
+        if not line.strip():
+            continue
+        if line.startswith("    "):
+            raise AssertionError(f"{name} restricts its pull-request trigger.")
+        break
+
+
+def assert_contract_triggers_are_cross_guarded() -> None:
+    invocation = "run: python3 ./Build/Test-RealWorldCorpusWorkflowContract.py"
+    assert_unrestricted_pull_request_trigger(WORKFLOW, "Corpus evidence workflow")
+    assert_unrestricted_pull_request_trigger(GUARD_WORKFLOW, "Corpus contract guard workflow")
+    if invocation not in WORKFLOW or invocation not in GUARD_WORKFLOW:
+        raise AssertionError("Both unrestricted workflows must execute the corpus workflow contract.")
 
 
 def bash_path(path: Path) -> str:
@@ -112,6 +136,7 @@ run_contract() {{
 
 
 def main() -> None:
+    assert_contract_triggers_are_cross_guarded()
     script = workflow_script()
     if 'timeout --signal=TERM --kill-after=30s "$DOWNLOAD_TIMEOUT_SECONDS" curl' not in script:
         raise AssertionError("The complete download is not enclosed by its wall-clock deadline.")
