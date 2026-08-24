@@ -120,6 +120,21 @@ public class PathIdentityContracts {
         Assert.False(unknown);
     }
 
+    [Fact]
+    public void LinuxStatxFallbackCoversPolicyAndCapabilityFailures() {
+        Assert.True(OfficePathIdentity.ShouldFallbackFromLinuxStatx(1));
+        Assert.True(OfficePathIdentity.ShouldFallbackFromLinuxStatx(13));
+        Assert.True(OfficePathIdentity.ShouldFallbackFromLinuxStatx(22));
+        Assert.True(OfficePathIdentity.ShouldFallbackFromLinuxStatx(38));
+        Assert.True(OfficePathIdentity.ShouldFallbackFromLinuxStatx(95));
+
+        Assert.False(OfficePathIdentity.ShouldFallbackFromLinuxStatx(2));
+        Assert.False(OfficePathIdentity.ShouldFallbackFromLinuxStatx(5));
+
+        Assert.True(OfficePathIdentity.HasRequiredLinuxStatxMetadata(0x00000105));
+        Assert.False(OfficePathIdentity.HasRequiredLinuxStatxMetadata(0x00000101));
+    }
+
     private static void CreateHardLink(string alias, string source) {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             if (!CreateHardLinkWindows(alias, source, IntPtr.Zero)) {

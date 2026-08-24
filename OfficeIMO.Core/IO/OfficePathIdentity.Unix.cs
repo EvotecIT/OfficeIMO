@@ -11,9 +11,12 @@ namespace OfficeIMO.Internal {
         private const uint StatxBasicStats = 0x000007ff;
         private const uint StatxRequiredIdentity = 0x00000105;
         private const int ErrorNoEntry = 2;
+        private const int ErrorPermissionDenied = 1;
+        private const int ErrorAccessDenied = 13;
         private const int ErrorNotDirectory = 20;
         private const int ErrorInvalidArgument = 22;
         private const int ErrorFunctionNotImplemented = 38;
+        private const int ErrorOperationNotSupported = 95;
         private const int MacPathConfCaseSensitive = 11;
         private const int LinuxOpenReadOnly = 0;
         private const int LinuxOpenDirectory = 0x10000;
@@ -68,11 +71,16 @@ namespace OfficeIMO.Internal {
         private static bool TryGetLinuxMetadata(string path, out OfficeFileMetadata metadata) {
             try {
                 if (LinuxStatX(AtFdcwd, path, 0, StatxBasicStats, out LinuxStatx status) == 0) {
+                    if (!HasRequiredLinuxStatxMetadata(status.Mask)) {
+                        return TryGetLinuxLegacyMetadata(path, out metadata);
+                    }
                     metadata = CreateLinuxMetadata(status);
                     return true;
                 }
                 int error = Marshal.GetLastWin32Error();
-                if (error == ErrorFunctionNotImplemented) return TryGetLinuxLegacyMetadata(path, out metadata);
+                if (ShouldFallbackFromLinuxStatx(error)) {
+                    return TryGetLinuxLegacyMetadata(path, out metadata);
+                }
                 if (IsConfirmedMissing(error)) {
                     metadata = default(OfficeFileMetadata);
                     return false;
@@ -87,14 +95,27 @@ namespace OfficeIMO.Internal {
             try {
                 if (LinuxStatX(descriptor, string.Empty, AtEmptyPath, StatxBasicStats, out LinuxStatx status) != 0) {
                     int error = Marshal.GetLastWin32Error();
-                    if (error == ErrorFunctionNotImplemented) return GetLinuxLegacyMetadata(descriptor);
+                    if (ShouldFallbackFromLinuxStatx(error)) return GetLinuxLegacyMetadata(descriptor);
                     throw UnixIdentityError("open descriptor", error);
+                }
+                if (!HasRequiredLinuxStatxMetadata(status.Mask)) {
+                    return GetLinuxLegacyMetadata(descriptor);
                 }
                 return CreateLinuxMetadata(status);
             } catch (EntryPointNotFoundException) {
                 return GetLinuxLegacyMetadata(descriptor);
             }
         }
+
+        internal static bool ShouldFallbackFromLinuxStatx(int error) =>
+            error == ErrorPermissionDenied ||
+            error == ErrorAccessDenied ||
+            error == ErrorInvalidArgument ||
+            error == ErrorFunctionNotImplemented ||
+            error == ErrorOperationNotSupported;
+
+        internal static bool HasRequiredLinuxStatxMetadata(uint mask) =>
+            (mask & StatxRequiredIdentity) == StatxRequiredIdentity;
 
         private static bool TryGetLinuxLegacyMetadata(string path, out OfficeFileMetadata metadata) {
             IntPtr buffer = Marshal.AllocHGlobal(256);
@@ -159,9 +180,6 @@ namespace OfficeIMO.Internal {
                              ((device & 0x00000ffffff00000UL) >> 12)));
 
         private static OfficeFileMetadata CreateLinuxMetadata(LinuxStatx status) {
-            if ((status.Mask & StatxRequiredIdentity) != StatxRequiredIdentity) {
-                throw new IOException("Linux did not return the required file type, link count, and inode metadata.");
-            }
             ulong device = ((ulong)status.DeviceMajor << 32) | status.DeviceMinor;
             var identity = new OfficePhysicalFileIdentity(string.Empty, device, status.Inode);
             return new OfficeFileMetadata(identity, status.HardLinkCount, status.Mode,
