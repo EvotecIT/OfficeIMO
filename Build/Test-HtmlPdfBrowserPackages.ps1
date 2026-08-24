@@ -1,7 +1,8 @@
 param(
     [string] $HtmlTinkerXPackagePath,
     [string] $OfficeIMOVersion = '3.2.5-browser-local',
-    [version] $MinimumHtmlTinkerXVersion = '3.0.1'
+    [version] $MinimumHtmlTinkerXVersion = '3.0.1',
+    [string] $ExpectedHtmlTinkerXCommit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,6 +14,21 @@ function Invoke-DotNet {
     & dotnet @Arguments
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet $($Arguments -join ' ') failed with exit code $LASTEXITCODE."
+    }
+}
+
+function ConvertFrom-NuGetNuspec {
+    param([Parameter(Mandatory)][xml] $Nuspec)
+
+    $namespace = [System.Xml.XmlNamespaceManager]::new($Nuspec.NameTable)
+    $namespace.AddNamespace('n', $Nuspec.DocumentElement.NamespaceURI)
+    $metadata = $Nuspec.SelectSingleNode('/n:package/n:metadata', $namespace)
+    [pscustomobject]@{
+        Id = [string] $metadata.id
+        Version = [version] ([string] $metadata.version)
+        RepositoryUrl = [string] $metadata.repository.url
+        RepositoryType = [string] $metadata.repository.type
+        RepositoryCommit = [string] $metadata.repository.commit
     }
 }
 
@@ -35,16 +51,30 @@ function Get-NuGetIdentity {
         } finally {
             $reader.Dispose()
         }
-
-        $namespace = [System.Xml.XmlNamespaceManager]::new($nuspec.NameTable)
-        $namespace.AddNamespace('n', $nuspec.DocumentElement.NamespaceURI)
-        $metadata = $nuspec.SelectSingleNode('/n:package/n:metadata', $namespace)
-        [pscustomobject]@{
-            Id = [string] $metadata.id
-            Version = [version] ([string] $metadata.version)
-        }
+        ConvertFrom-NuGetNuspec -Nuspec $nuspec
     } finally {
         $archive.Dispose()
+    }
+}
+
+function Assert-HtmlTinkerXIdentity {
+    param([Parameter(Mandatory)][object] $Identity)
+
+    if (-not $Identity.Id.Equals('HtmlTinkerX', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Selected package is '$($Identity.Id)', not HtmlTinkerX."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedHtmlTinkerXCommit)) {
+        if ($ExpectedHtmlTinkerXCommit -notmatch '^[0-9a-fA-F]{40}$') {
+            throw 'ExpectedHtmlTinkerXCommit must be a full 40-character Git commit.'
+        }
+        if ([string] $Identity.RepositoryType -ne 'git' -or
+            [string] $Identity.RepositoryUrl -notmatch '(?i)^https://github\.com/EvotecIT/HtmlTinkerX(?:\.git)?$' -or
+            -not [string]::Equals(
+                [string] $Identity.RepositoryCommit,
+                $ExpectedHtmlTinkerXCommit,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw "HtmlTinkerX package provenance does not match measured commit $ExpectedHtmlTinkerXCommit."
+        }
     }
 }
 
@@ -61,9 +91,7 @@ $resolvedHtmlTinkerXPackage = $null
 if (-not [string]::IsNullOrWhiteSpace($HtmlTinkerXPackagePath)) {
     $resolvedHtmlTinkerXPackage = (Resolve-Path -LiteralPath $HtmlTinkerXPackagePath).Path
     $identity = Get-NuGetIdentity -PackagePath $resolvedHtmlTinkerXPackage
-    if (-not $identity.Id.Equals('HtmlTinkerX', [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Package '$resolvedHtmlTinkerXPackage' is '$($identity.Id)', not HtmlTinkerX."
-    }
+    Assert-HtmlTinkerXIdentity -Identity $identity
     $htmlTinkerXVersion = $identity.Version
 }
 
@@ -101,6 +129,13 @@ try {
         "--property:HtmlTinkerXVersion=$htmlTinkerXVersion"
     )
     Invoke-DotNet restore $browserProjectPath @browserProperties --artifacts-path $artifactsPath --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
+    $installedNuspecPath = Join-Path $packagesPath (
+        "htmltinkerx/$($htmlTinkerXVersion.ToString())/htmltinkerx.nuspec")
+    if (-not (Test-Path -LiteralPath $installedNuspecPath -PathType Leaf)) {
+        throw "Restored HtmlTinkerX nuspec was not found at '$installedNuspecPath'."
+    }
+    [xml] $installedNuspec = Get-Content -LiteralPath $installedNuspecPath -Raw
+    Assert-HtmlTinkerXIdentity -Identity (ConvertFrom-NuGetNuspec -Nuspec $installedNuspec)
     Invoke-DotNet pack $browserProjectPath --configuration Release --artifacts-path $artifactsPath --no-restore --output $feedPath @browserProperties
 
     $consumerProperties = @(

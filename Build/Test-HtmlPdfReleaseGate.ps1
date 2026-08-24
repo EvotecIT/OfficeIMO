@@ -61,10 +61,17 @@ foreach ($diagnostic in $pdfXDiagnostics) {
     }
 }
 
+$artifactEvidencePath = Join-Path $PSScriptRoot '../Docs/benchmarks/html-pdf-artifact-evidence/html-pdf-artifact-evidence-net10.0-windows-high.json'
+$artifactEvidence = Get-Content -LiteralPath $artifactEvidencePath -Raw | ConvertFrom-Json
+$expectedHtmlTinkerXCommit = [string] $artifactEvidence.report.provenance.htmlTinkerX.commit
+if ($expectedHtmlTinkerXCommit -notmatch '^[0-9a-f]{40}$') {
+    throw 'OfficeIMO release is blocked: committed artifact evidence lacks an exact HtmlTinkerX source commit.'
+}
+
 & "$PSScriptRoot/Test-LibraryComparisonRunnerContract.ps1"
 & "$PSScriptRoot/Test-HtmlPdfBenchmarkEvidence.ps1"
 & "$PSScriptRoot/Test-HtmlPdfArtifactEvidence.ps1"
-& "$PSScriptRoot/Test-HtmlPdfBrowserPackages.ps1"
+& "$PSScriptRoot/Test-HtmlPdfBrowserPackages.ps1" -ExpectedHtmlTinkerXCommit $expectedHtmlTinkerXCommit
 & "$PSScriptRoot/Test-TypographyPackages.ps1" -RequireSixLabors
 
 Write-Host 'OfficeIMO HTML/PDF release gate passed.'
