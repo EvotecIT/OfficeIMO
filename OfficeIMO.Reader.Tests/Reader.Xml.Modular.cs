@@ -127,4 +127,30 @@ public sealed class ReaderXmlModularTests {
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void DocumentReaderXml_ReadXml_IndexesAlternatingSiblingNamesIndependently() {
+        var path = Path.Combine(Path.GetTempPath(), "officeimo-siblings-" + Guid.NewGuid().ToString("N") + ".xml");
+        try {
+            File.WriteAllText(path, "<root><a>1</a><b>1</b><a>2</a><b>2</b><a>3</a><c>1</c><d>1</d><e>1</e><e>2</e></root>");
+
+            var chunk = Assert.Single(XmlReaderAdapter.Read(
+                path,
+                xmlOptions: new XmlReadOptions {
+                    ChunkRows = 20,
+                    IncludeMarkdown = true
+                }));
+
+            var text = chunk.Text ?? string.Empty;
+            Assert.Contains("root[1]/a[1] | element | 1", text, StringComparison.Ordinal);
+            Assert.Contains("root[1]/a[2] | element | 2", text, StringComparison.Ordinal);
+            Assert.Contains("root[1]/a[3] | element | 3", text, StringComparison.Ordinal);
+            Assert.Contains("root[1]/b[1] | element | 1", text, StringComparison.Ordinal);
+            Assert.Contains("root[1]/b[2] | element | 2", text, StringComparison.Ordinal);
+            Assert.Contains("root[1]/e[1] | element | 1", text, StringComparison.Ordinal);
+            Assert.Contains("root[1]/e[2] | element | 2", text, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }

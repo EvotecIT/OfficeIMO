@@ -71,7 +71,7 @@ internal static class XmlReaderAdapter {
             }
 
             var rows = new List<StructuredRow>(capacity: 1024);
-            TraverseXml(root, parentPath: string.Empty, rows, cancellationToken);
+            TraverseXml(root, parentPath: string.Empty, siblingIndex: 1, rows, cancellationToken);
 
             foreach (var chunk in BuildStructuredChunks(source, rows, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                 yield return chunk;
@@ -137,10 +137,10 @@ internal static class XmlReaderAdapter {
         }
     }
 
-    private static void TraverseXml(XElement element, string parentPath, List<StructuredRow> rows, CancellationToken cancellationToken) {
+    private static void TraverseXml(XElement element, string parentPath, int siblingIndex, List<StructuredRow> rows, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var currentPath = BuildXmlPath(element, parentPath);
+        var currentPath = BuildXmlPath(element, parentPath, siblingIndex);
         rows.Add(new StructuredRow(currentPath, "element", NormalizeText(GetDirectText(element))));
 
         foreach (var attribute in element.Attributes()) {
@@ -150,15 +150,64 @@ internal static class XmlReaderAdapter {
                 NormalizeText(attribute.Value)));
         }
 
+        var siblingCounts = new SiblingNameCounter();
         foreach (var child in element.Elements()) {
-            TraverseXml(child, currentPath, rows, cancellationToken);
+            TraverseXml(child, currentPath, siblingCounts.Next(child.Name), rows, cancellationToken);
         }
     }
 
-    private static string BuildXmlPath(XElement element, string parentPath) {
-        var siblingIndex = 1 + element.ElementsBeforeSelf(element.Name).Count();
+    private static string BuildXmlPath(XElement element, string parentPath, int siblingIndex) {
         var segment = GetQualifiedName(element, element.Name) + "[" + siblingIndex.ToString(CultureInfo.InvariantCulture) + "]";
         return parentPath.Length == 0 ? segment : parentPath + "/" + segment;
+    }
+
+    private struct SiblingNameCounter {
+        private XName? _name1;
+        private XName? _name2;
+        private XName? _name3;
+        private XName? _name4;
+        private int _count1;
+        private int _count2;
+        private int _count3;
+        private int _count4;
+        private Dictionary<XName, int>? _overflow;
+
+        public int Next(XName name) {
+            if (_name1 == name) return ++_count1;
+            if (_name2 == name) return ++_count2;
+            if (_name3 == name) return ++_count3;
+            if (_name4 == name) return ++_count4;
+
+            if (_name1 == null) {
+                _name1 = name;
+                return _count1 = 1;
+            }
+            if (_name2 == null) {
+                _name2 = name;
+                return _count2 = 1;
+            }
+            if (_name3 == null) {
+                _name3 = name;
+                return _count3 = 1;
+            }
+            if (_name4 == null) {
+                _name4 = name;
+                return _count4 = 1;
+            }
+
+            if (_overflow == null) {
+                _overflow = new Dictionary<XName, int>();
+            }
+
+            if (_overflow.TryGetValue(name, out var count)) {
+                count++;
+                _overflow[name] = count;
+                return count;
+            }
+
+            _overflow.Add(name, 1);
+            return 1;
+        }
     }
 
     private static string GetQualifiedName(XElement context, XName name) {

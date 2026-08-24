@@ -3,10 +3,13 @@ using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Excel;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Word;
+using OfficeIMO.Reader.Xml;
+using OfficeIMO.Reader.Yaml;
 using OfficeIMO.Reader.Zip;
 using System.Diagnostics;
 using System.Reflection;
@@ -365,10 +368,13 @@ internal static class ReaderComparisonCommand {
         .AddEpubHandler()
         .AddExcelHandler()
         .AddHtmlHandler()
+        .AddJsonHandler()
         .AddMarkdownHandler()
         .AddPdfHandler()
         .AddPowerPointHandler()
         .AddWordHandler()
+        .AddXmlHandler()
+        .AddYamlHandler()
         .AddZipHandler()
         .Build();
 

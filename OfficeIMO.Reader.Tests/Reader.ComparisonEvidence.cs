@@ -12,7 +12,7 @@ public sealed class ReaderComparisonEvidenceTests {
         IReadOnlyList<ReaderComparisonCase> cases = ReaderComparisonCorpus.Create();
 
         Assert.Equal(
-            new[] { "csv", "docx", "epub", "html", "malformed-pdf", "msg", "pdf", "pptx", "xlsx", "zip" },
+            new[] { "csv", "docx", "epub", "html", "json", "malformed-pdf", "msg", "pdf", "pptx", "xlsx", "xml", "yaml", "zip" },
             cases.Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal).ToArray());
         Assert.All(cases, item => Assert.NotEmpty(item.Bytes));
         Assert.Contains(cases.SelectMany(item => item.Probes), probe => probe.Kind == ReaderComparisonProbeKind.RichTable);
