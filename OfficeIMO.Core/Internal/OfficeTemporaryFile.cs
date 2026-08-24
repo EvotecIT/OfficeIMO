@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Creates owner-only, non-shareable temporary files that the operating system deletes on close.</summary>
@@ -175,32 +176,16 @@ namespace OfficeIMO.Core.Internal {
         }
 
         internal static void CopyUnixFileModeNative(string sourcePath, string destinationPath) {
-            int modeOffset;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                modeOffset = 4;
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                modeOffset = RuntimeInformation.OSArchitecture == Architecture.X64 ? 24 : 16;
-            } else {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX) &&
+                !RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 throw new PlatformNotSupportedException(
                     "This Unix platform does not expose a supported native file-mode layout.");
             }
-
-            IntPtr statBuffer = Marshal.AllocHGlobal(512);
-            try {
-                if (StatFile(sourcePath, statBuffer) != 0) {
-                    throw new IOException(
-                        "Unable to inspect existing Unix file permissions (OS error "
-                        + Marshal.GetLastWin32Error() + ").");
-                }
-
-                uint mode = unchecked((uint)Marshal.ReadInt32(statBuffer, modeOffset)) & 0x0FFFU;
-                if (ChangeFileMode(destinationPath, mode) != 0) {
-                    throw new IOException(
-                        "Unable to preserve existing Unix file permissions (OS error "
-                        + Marshal.GetLastWin32Error() + ").");
-                }
-            } finally {
-                Marshal.FreeHGlobal(statBuffer);
+            uint mode = OfficePathIdentity.GetMetadata(sourcePath).UnixMode & 0x0FFFU;
+            if (ChangeFileMode(destinationPath, mode) != 0) {
+                throw new IOException(
+                    "Unable to preserve existing Unix file permissions (OS error "
+                    + Marshal.GetLastWin32Error() + ").");
             }
         }
 
@@ -210,9 +195,6 @@ namespace OfficeIMO.Core.Internal {
 
         [DllImport("libc", EntryPoint = "open", SetLastError = true)]
         private static extern int OpenFile(string path, int flags, uint mode);
-
-        [DllImport("libc", EntryPoint = "stat", SetLastError = true)]
-        private static extern int StatFile(string path, IntPtr buffer);
 
         [DllImport("libc", EntryPoint = "chmod", SetLastError = true)]
         private static extern int ChangeFileMode(string path, uint mode);

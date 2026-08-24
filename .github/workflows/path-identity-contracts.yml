@@ -1,0 +1,95 @@
+name: Physical path identity contracts
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/path-identity-contracts.yml'
+      - 'OfficeIMO.Core/IO/**'
+      - 'OfficeIMO.Core/Internal/OfficeTemporaryFile.cs'
+      - 'OfficeIMO.Core/OfficeIMO.Core.csproj'
+      - 'OfficeIMO.Email/Store/Reading/**'
+      - 'OfficeIMO.GoogleWorkspace.Drive/**'
+      - 'OfficeIMO.Shared.Tests/PathIdentityContracts.cs'
+      - 'OfficeIMO.Tool/OfficeImoToolPathSafety.cs'
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/path-identity-contracts.yml'
+      - 'OfficeIMO.Core/IO/**'
+      - 'OfficeIMO.Core/Internal/OfficeTemporaryFile.cs'
+      - 'OfficeIMO.Core/OfficeIMO.Core.csproj'
+      - 'OfficeIMO.Email/Store/Reading/**'
+      - 'OfficeIMO.GoogleWorkspace.Drive/**'
+      - 'OfficeIMO.Shared.Tests/PathIdentityContracts.cs'
+      - 'OfficeIMO.Tool/OfficeImoToolPathSafety.cs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  path-identity:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64 / net472
+            runner: windows-latest
+            framework: net472
+            architecture: x64
+          - name: Windows x64 / net8
+            runner: windows-latest
+            framework: net8.0
+            architecture: x64
+          - name: Windows x86 / net8
+            runner: windows-latest
+            framework: net8.0
+            architecture: x86
+          - name: Windows ARM64 / net8
+            runner: windows-11-arm
+            framework: net8.0
+            architecture: arm64
+          - name: Linux x64 / net8
+            runner: ubuntu-24.04
+            framework: net8.0
+            architecture: x64
+          - name: Linux ARM64 / net8
+            runner: ubuntu-24.04-arm
+            framework: net8.0
+            architecture: arm64
+          - name: macOS Intel / net8
+            runner: macos-15-intel
+            framework: net8.0
+            architecture: x64
+          - name: macOS ARM64 / net8
+            runner: macos-15
+            framework: net8.0
+            architecture: arm64
+          - name: macOS Rosetta x64 / net8
+            runner: macos-15
+            framework: net8.0
+            architecture: x64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          architecture: ${{ matrix.architecture }}
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Restore focused contracts
+        run: dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
+
+      - name: Build netstandard compatibility asset
+        run: dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -f netstandard2.0 --no-restore --nologo
+
+      - name: Run physical identity contracts
+        run: dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter FullyQualifiedName~PathIdentityContracts --nologo
