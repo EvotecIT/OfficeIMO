@@ -4,6 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Result of parsing markdown into both the object model and a syntax tree.
 /// </summary>
 public sealed class MarkdownParseResult {
+    private Dictionary<object, MarkdownSyntaxNode>? _finalNodeByAssociatedObject;
     /// <summary>The parsed markdown object model.</summary>
     public MarkdownDoc Document { get; }
     /// <summary>
@@ -67,13 +68,33 @@ public sealed class MarkdownParseResult {
             return null;
         }
 
-        foreach (var node in FinalSyntaxTree.DescendantsAndSelf()) {
-            if (ReferenceEquals(node.AssociatedObject, associatedObject)) {
-                return node;
+        Dictionary<object, MarkdownSyntaxNode>? index =
+            System.Threading.Volatile.Read(ref _finalNodeByAssociatedObject);
+        if (index == null) {
+            var created = new Dictionary<object, MarkdownSyntaxNode>(ReferenceObjectComparer.Instance);
+            foreach (MarkdownSyntaxNode node in FinalSyntaxTree.DescendantsAndSelf()) {
+                object? value = node.AssociatedObject;
+                if (value != null && !created.ContainsKey(value)) {
+                    created.Add(value, node);
+                }
             }
+            index = System.Threading.Interlocked.CompareExchange(
+                ref _finalNodeByAssociatedObject,
+                created,
+                comparand: null) ?? created;
         }
 
-        return null;
+        return index.TryGetValue(associatedObject, out MarkdownSyntaxNode? result)
+            ? result
+            : null;
+    }
+
+    private sealed class ReferenceObjectComparer : IEqualityComparer<object> {
+        internal static readonly ReferenceObjectComparer Instance = new ReferenceObjectComparer();
+
+        bool IEqualityComparer<object>.Equals(object? left, object? right) => ReferenceEquals(left, right);
+
+        int IEqualityComparer<object>.GetHashCode(object value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
     }
 
     /// <summary>

@@ -34,7 +34,7 @@ internal static partial class DocumentReaderEngine {
             return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection);
         }
 
-        ReaderChunk[] chunks = Read(path, opt, cancellationToken).ToArray();
+        ReaderChunk[] chunks = ReadResolvedPath(path, opt, handler, cancellationToken);
         return BuildChunkDocumentResult(
             chunks, path, handler.Kind, BuildPathDocumentSource(path, chunks), detection: detection);
     }
@@ -79,7 +79,12 @@ internal static partial class DocumentReaderEngine {
             }
 
             long position = readStream.Position;
-            ReaderChunk[] chunks = Read(readStream, logicalSourceName, opt, cancellationToken).ToArray();
+            ReaderChunk[] chunks = ReadResolvedStream(
+                readStream,
+                logicalSourceName,
+                opt,
+                customStreamHandler,
+                cancellationToken);
             if (readStream.CanSeek) readStream.Position = position;
             return BuildChunkDocumentResult(
                 chunks,

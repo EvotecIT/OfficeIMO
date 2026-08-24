@@ -23,6 +23,8 @@ public static class OfficeDocumentReaderBuilderMarkdownExtensions {
             Kind = ReaderInputKind.Markdown,
             Extensions = new[] { ".md", ".markdown", ".mdown", ".mkd", ".mdx" },
             DefaultMaxInputBytes = DefaultMaxInputBytes,
+            ReadPath = (path, readerOptions, token) => MarkdownReaderAdapter.Read(path, readerOptions, configured, token),
+            ReadStream = (stream, sourceName, readerOptions, token) => MarkdownReaderAdapter.Read(stream, sourceName, readerOptions, configured, token),
             ReadDocumentPath = (path, readerOptions, token) => MarkdownReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => MarkdownReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,

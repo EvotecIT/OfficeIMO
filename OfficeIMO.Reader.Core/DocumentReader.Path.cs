@@ -23,6 +23,14 @@ internal static partial class DocumentReaderEngine {
             throw CreateUnsupportedInputException(path, detection);
         }
 
+        return ReadResolvedPath(path, effective, handler, cancellationToken);
+    }
+
+    private static ReaderChunk[] ReadResolvedPath(
+        string path,
+        ReaderOptions effective,
+        ReaderHandlerDescriptor handler,
+        CancellationToken cancellationToken) {
         SourceInfo source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, effective), cancellationToken);
         IEnumerable<ReaderChunk> chunks;
         if (handler.ReadPath != null) {
@@ -36,7 +44,7 @@ internal static partial class DocumentReaderEngine {
             throw CreateAsyncOnlyHandlerException(handler.Id, "path");
         } else if (handler.SupportsStreamInput) {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            return Read(stream, path, effective, cancellationToken).ToArray();
+            return ReadResolvedStream(stream, path, effective, handler, cancellationToken);
         } else {
             throw new NotSupportedException($"Reader handler '{handler.Id}' does not support path input.");
         }
