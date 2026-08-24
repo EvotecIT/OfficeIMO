@@ -11,7 +11,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | PowerPoint | Repeated isolated package workflows are within the 2× contender ceiling for both time and allocation on Windows and Linux | Sampled managed-heap growth, process peak, and output bytes are recorded and budgeted | ShapeCrawler for validated create/save and open/edit/save | Large open/edit/save remains close to the ceiling at 1.70-1.82× on Windows and should be improved further |
 | Reader | BenchmarkDotNet extraction, detection, transport, and chunking suites | External processes record peak working set; creation size is not applicable | Optional direct-process runners for equivalent extraction | Add representative application corpora and release baselines |
 | Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | The isolated parser runner records allocation, retained heap, managed-heap peak, process peak, input bytes, and semantic output bytes; parsing has no file-size metric | Markdig and ReverseMarkdown after semantic equivalence checks | HTML-to-Markdown and all seven CommonMark semantic parse corpora are within 2x for time and allocation; improve the narrowest margins and measure source-backed parsing separately |
-| HTML | BenchmarkDotNet stage, pagination, Drawing, and PDF projection suites | Managed allocations are recorded; several output methods return byte counts | No general renderer is equivalent across the complete OfficeIMO contract | Add bounded peak-memory evidence for large non-PDF rendering workflows |
+| HTML | BenchmarkDotNet stages plus validated isolated non-PDF layout evidence; the optimized corpora allocate 18.6-49.8% less than the clean baseline | Retained heap, sampled managed peak, and absolute process peak are recorded and budgeted; file size is not applicable to the in-memory layout lane | No general renderer is equivalent across the complete paged vector and semantic contract | The 2,500-row table still allocates about 645 MiB and the 1,000-page lane about 393 MiB; continue owner-level optimization and add non-Windows evidence |
 | RTF | Full validated RTF-to-HTML evidence shows OfficeIMO faster and lower-allocation in every corpus | Output is smaller on the three equivalent generated corpora; the higher-fidelity producer output remains 3.14x larger | RtfPipe for validated RTF-to-HTML | Reduce fidelity-preserving producer HTML overhead further and add Linux/macOS evidence |
 | OpenDocument | BenchmarkDotNet open, sparse-write, formula, and validated ODS create/read comparisons | Evidence runner records peak working set and package input/output bytes; the ODS comparison exports validated size sidecars | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
 | OneNote | BenchmarkDotNet native read, write, and Markdown projection plus isolated create/write, read, and read/edit/write workflows | Managed allocations, sampled managed-heap growth, process peak, input bytes, and output bytes are recorded | No like-for-like offline semantic `.one` competitor has been identified | Native scale evidence and regression budgets are in place; add non-Windows evidence and a competitor only when the same offline semantic contract exists |
@@ -106,6 +106,24 @@ table at 1.84x, Portable README at 1.83x, and Rich AST at 1.80x, so contender
 status does not end optimization work. The isolated runner also confirms every
 retained-heap, sampled managed-heap peak, and absolute process-peak ratio within
 2x across the matrix.
+
+## HTML non-PDF layout
+
+`OfficeIMO.Html.Benchmarks` includes process-isolated complete layout workloads
+for a report, paged purchase tables, forced-page long documents, and the strict
+static standards surface. Every result validates text and page contracts before
+it is accepted.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Html.Benchmarks -- --layout-verify-budgets --repeat 3 --json .benchmark-artifacts\html\layout-evidence.json
+```
+
+The clean before/after Windows evidence is recorded in
+[`officeimo.html-layout-2026-08-24.md`](officeimo.html-layout-2026-08-24.md).
+Allocations fell by 18.6-49.8% across all six workloads. The 2,500-row paged
+table fell from 1,216.19 MiB to 645.31 MiB allocated and from 1.45 s to 0.91 s,
+but remains an explicit optimization target. No competitor claim is made
+without an equivalent paged vector and semantic render contract.
 
 ## RTF comparisons
 
