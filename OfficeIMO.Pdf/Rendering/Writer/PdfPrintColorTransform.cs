@@ -48,46 +48,54 @@ internal sealed class PdfPrintColorTransform {
             return content;
         }
 
-        string[] lines = content.Split('\n');
-        var normalized = new StringBuilder(content.Length + Math.Max(64, content.Length / 8));
-        for (int index = 0; index < lines.Length; index++) {
-            string line = lines[index];
-            if (TryNormalizeRgbOperator(line, out string? replacement)) {
-                normalized.Append(replacement);
-            } else {
-                normalized.Append(line);
-            }
-
-            if (index + 1 < lines.Length) {
-                normalized.Append('\n');
-            }
-        }
-
-        return normalized.ToString();
-    }
-
-    private bool TryNormalizeRgbOperator(string line, out string? replacement) {
-        bool converted = false;
-        string normalized = RgbOperatorPattern.Replace(line, match => {
-            if (!IsPdfContentOperatorPosition(line, match.Index)) return match.Value;
+        int scanPosition = 0;
+        int literalDepth = 0;
+        bool escaped = false;
+        bool hexadecimalString = false;
+        bool comment = false;
+        return RgbOperatorPattern.Replace(content, match => {
+            AdvanceLexicalState(
+                content,
+                ref scanPosition,
+                match.Index,
+                ref literalDepth,
+                ref escaped,
+                ref hexadecimalString,
+                ref comment);
+            bool isOperator = literalDepth == 0 && !hexadecimalString && !comment;
+            AdvanceLexicalState(
+                content,
+                ref scanPosition,
+                match.Index + match.Length,
+                ref literalDepth,
+                ref escaped,
+                ref hexadecimalString,
+                ref comment);
+            if (!isOperator) return match.Value;
             double red = double.Parse(match.Groups["red"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
             double green = double.Parse(match.Groups["green"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
             double blue = double.Parse(match.Groups["blue"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
             Convert(new PdfColor(red, green, blue), out double cyan, out double magenta, out double yellow, out double black);
-            converted = true;
             return Format(cyan) + " " + Format(magenta) + " " + Format(yellow) + " " + Format(black) +
                 (match.Groups["operator"].Value == "rg" ? " k" : " K");
         });
-        replacement = converted ? normalized : null;
-        return converted;
     }
 
-    private static bool IsPdfContentOperatorPosition(string line, int position) {
-        int literalDepth = 0;
-        bool escaped = false;
-        bool hexadecimalString = false;
-        for (int index = 0; index < position; index++) {
-            char value = line[index];
+    private static void AdvanceLexicalState(
+        string content,
+        ref int position,
+        int end,
+        ref int literalDepth,
+        ref bool escaped,
+        ref bool hexadecimalString,
+        ref bool comment) {
+        while (position < end) {
+            char value = content[position];
+            if (comment) {
+                if (value == '\r' || value == '\n') comment = false;
+                position++;
+                continue;
+            }
             if (literalDepth > 0) {
                 if (escaped) {
                     escaped = false;
@@ -98,20 +106,25 @@ internal sealed class PdfPrintColorTransform {
                 } else if (value == ')') {
                     literalDepth--;
                 }
+                position++;
                 continue;
             }
             if (hexadecimalString) {
                 if (value == '>') hexadecimalString = false;
+                position++;
                 continue;
             }
-            if (value == '%') return false;
-            if (value == '(') {
+            if (value == '%') {
+                comment = true;
+            } else if (value == '(') {
                 literalDepth = 1;
-            } else if (value == '<' && (index + 1 >= position || line[index + 1] != '<')) {
+            } else if (value == '<' &&
+                       (position == 0 || content[position - 1] != '<') &&
+                       (position + 1 >= content.Length || content[position + 1] != '<')) {
                 hexadecimalString = true;
             }
+            position++;
         }
-        return literalDepth == 0 && !hexadecimalString;
     }
 
     private void Convert(PdfColor color, out double cyan, out double magenta, out double yellow, out double black) {

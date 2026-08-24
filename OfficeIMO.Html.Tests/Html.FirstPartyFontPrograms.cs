@@ -108,6 +108,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var shapedOptions = unshapedOptions.ClonePdf();
         var shapingProvider = new CollapsingTextShapingProvider();
         shapedOptions.TextShapingProvider = shapingProvider;
+        shapedOptions.TextShapingLanguage = "pl-PL";
 
         byte[] unshapedPdf = source.ToPdfDocumentResult(unshapedOptions).ToBytes();
         byte[] shapedPdf = source.ToPdfDocumentResult(shapedOptions).ToBytes();
@@ -121,6 +122,32 @@ public sealed class HtmlFirstPartyFontProgramTests {
         Assert.True(shapedCommandCount < unshapedCommandCount);
         Assert.True(shapingProvider.Requests.Count >= 2);
         Assert.All(shapingProvider.Requests, request => Assert.Equal(725F, request.VariationCoordinates["wght"]));
+        Assert.All(shapingProvider.Requests, request => Assert.Equal("pl-PL", request.Language));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task HtmlPdfOutlinedVariableFontPropagatesCancellationToShaping() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            FontHtml("Roboto Flex", "font/ttf", fontData, "AA", link: false));
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        var shapingProvider = new CollapsingTextShapingProvider((requestNumber, request) => {
+            if (requestNumber < 2) return;
+            cancellation.Cancel();
+            request.CancellationToken.ThrowIfCancellationRequested();
+        });
+        var options = new HtmlPdfSaveOptions {
+            TextShapingProvider = shapingProvider,
+            TextShapingLanguage = "pl-PL"
+        };
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            source.ToPdfDocumentResultAsync(options, cancellation.Token));
+
+        Assert.True(shapingProvider.Requests.Count >= 2);
+        Assert.All(shapingProvider.Requests, request => Assert.Equal("pl-PL", request.Language));
+        Assert.All(shapingProvider.Requests, request => Assert.Equal(cancellation.Token, request.CancellationToken));
     }
 
     [Fact]
@@ -142,9 +169,12 @@ public sealed class HtmlFirstPartyFontProgramTests {
         InvalidOperationException characterException = Assert.Throws<InvalidOperationException>(() => source.ToPdfDocumentResult(characterLimited));
         Assert.Contains("character budget", characterException.Message, StringComparison.Ordinal);
         var commandLimited = options.ClonePdf();
+        var shapingProvider = new CollapsingTextShapingProvider();
+        commandLimited.TextShapingProvider = shapingProvider;
         commandLimited.MaxOutlinedTextPathCommands = 1;
         InvalidOperationException commandException = Assert.Throws<InvalidOperationException>(() => source.ToPdfDocumentResult(commandLimited));
         Assert.Contains("point budget", commandException.Message, StringComparison.Ordinal);
+        Assert.True(shapingProvider.Requests.Count >= 2);
     }
 
     [Fact]
@@ -191,10 +221,17 @@ public sealed class HtmlFirstPartyFontProgramTests {
         result.Report.Warnings.Select(warning => warning.Code + ": " + warning.Message));
 
     private sealed class CollapsingTextShapingProvider : IOfficeTextShapingProvider {
+        private readonly Action<int, OfficeTextShapingRequest>? _onRequest;
+
+        internal CollapsingTextShapingProvider(Action<int, OfficeTextShapingRequest>? onRequest = null) {
+            _onRequest = onRequest;
+        }
+
         internal List<OfficeTextShapingRequest> Requests { get; } = new List<OfficeTextShapingRequest>();
 
         public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
             Requests.Add(request);
+            _onRequest?.Invoke(Requests.Count, request);
             OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Shaping fixture", request.FontData).Faces);
             Assert.True(face.Program.TryGetGlyphMetrics('A', out int glyphId, out int advanceWidth));
             return new OfficeTextShapingResult(new[] {

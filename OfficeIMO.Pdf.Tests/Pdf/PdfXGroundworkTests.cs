@@ -105,7 +105,7 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
-    public void PdfXColorNormalizationDoesNotRewriteTextStringContents() {
+    public void PdfXColorNormalizationPreservesPdfLexicalContents() {
         var options = new PdfOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -114,9 +114,16 @@ public class PdfXGroundworkTests {
         PdfPrintColorTransform transform = Assert.IsType<PdfPrintColorTransform>(PdfPrintColorTransform.Create(options));
 
         string normalized = transform.NormalizeGeneratedContent(
-            "BT (literal 1 0 0 rg text) Tj ET\n0.1 0.2 0.3 rg 0 0 10 10 re f");
+            "BT (literal\n1 0 0 rg text) Tj ET\n" +
+            "<313020302030207267> Tj\n" +
+            "<< /Note (dictionary) >> 0.2 0.3 0.4 rg\n" +
+            "% 0.4 0.5 0.6 rg remains a comment\n" +
+            "0.1 0.2 0.3 rg 0 0 10 10 re f");
 
-        Assert.Contains("(literal 1 0 0 rg text)", normalized, StringComparison.Ordinal);
+        Assert.Contains("(literal\n1 0 0 rg text)", normalized, StringComparison.Ordinal);
+        Assert.Contains("<313020302030207267>", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain(">> 0.2 0.3 0.4 rg", normalized, StringComparison.Ordinal);
+        Assert.Contains("% 0.4 0.5 0.6 rg remains a comment", normalized, StringComparison.Ordinal);
         Assert.DoesNotContain("0.1 0.2 0.3 rg", normalized, StringComparison.Ordinal);
         Assert.Contains(" k 0 0 10 10 re f", normalized, StringComparison.Ordinal);
     }
