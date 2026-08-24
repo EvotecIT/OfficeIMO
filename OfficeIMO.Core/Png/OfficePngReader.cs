@@ -149,14 +149,18 @@ public static class OfficePngReader {
     internal static bool TryValidateDecodedPayload(byte[] bytes) =>
         TryValidateDecodedPayload(bytes, CancellationToken.None);
 
-    internal static bool TryValidateDecodedPayload(byte[] bytes, CancellationToken cancellationToken) {
+    internal static bool TryValidateDecodedPayload(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes = 0L) {
         try {
+            if (retainedManagedBytes < 0L) return false;
             if (!TryReadPayload(
                     bytes, cancellationToken, includeRgbaOutput: false,
-                    retainedManagedBytes: 0L, out PngPayload payload)) return false;
+                    retainedManagedBytes, out PngPayload payload)) return false;
             if (!ValidatePayloadScanlines(payload, cancellationToken)) return false;
             long retainedPayloadBytes = checked(
-                payload.Scanlines.LongLength +
+                retainedManagedBytes + payload.Scanlines.LongLength +
                 (payload.Palette?.LongLength ?? 0L) +
                 (payload.Transparency?.LongLength ?? 0L));
             return OfficePngAnimationValidator.TryValidateAdditionalFrames(

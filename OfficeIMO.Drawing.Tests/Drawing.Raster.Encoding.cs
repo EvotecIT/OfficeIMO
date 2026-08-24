@@ -638,6 +638,30 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void SelectedUnitlessTiffPageConversionDoesNotInventPhysicalResolution() {
+        byte[] encoded = OfficeTiffCodec.EncodePages(
+            new[] {
+                new OfficeRasterImage(2, 1, OfficeColor.Red),
+                new OfficeRasterImage(1, 2, OfficeColor.Blue)
+            },
+            new OfficeTiffEncodeOptions { DpiX = 72D, DpiY = 96D });
+        int firstIfd = ReadLittleEndian(encoded, 4);
+        int secondIfd = ReadLittleEndian(
+            encoded,
+            firstIfd + 2 + ReadUInt16LittleEndian(encoded, firstIfd) * 12);
+        SetTiffShortTag(encoded, secondIfd, 296, 1);
+        var options = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+
+        Assert.True(OfficeImagePngConverter.TryConvertToPng(
+            encoded, options, out byte[] png, out OfficeRasterDecodeInfo conversionInfo));
+
+        Assert.Null(conversionInfo.SelectedFrame!.DpiX);
+        Assert.Null(conversionInfo.SelectedFrame.DpiY);
+        OfficeImageMetadataSnapshot metadata = OfficeImageMetadataInspector.Inspect(png, OfficeImageFormat.Png);
+        Assert.False(metadata.HasPhysicalResolution);
+    }
+
+    [Fact]
     public void OfficeTiffPackBitsPacketsRestartAtEveryRowAcrossEncodingSurfaces() {
         var image = new OfficeRasterImage(1, 2, OfficeColor.FromRgba(1, 2, 3, 4));
         var options = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits };
@@ -669,7 +693,7 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
-    public void TiffContainerInspectionEnforcesPixelLimitForEveryPage() {
+    public void TiffContainerInspectionEnforcesAggregatePagePixelLimit() {
         byte[] encoded = OfficeTiffCodec.EncodePages(new[] {
             new OfficeRasterImage(1, 1, OfficeColor.Red),
             new OfficeRasterImage(2, 2, OfficeColor.Blue)
@@ -677,12 +701,12 @@ public sealed class DrawingRasterEncodingTests {
 
         Assert.True(OfficeRasterContainerInspector.TryInspect(
             encoded,
-            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 4 },
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 5 },
             out OfficeRasterContainerInfo? container));
         Assert.Equal(2, container!.Count);
         Assert.False(OfficeRasterContainerInspector.TryInspect(
             encoded,
-            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 3 },
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 4 },
             out _));
     }
 
@@ -775,8 +799,7 @@ public sealed class DrawingRasterEncodingTests {
         int secondIfd = ReadLittleEndian(encoded, firstIfd + 2 + ReadUInt16LittleEndian(encoded, firstIfd) * 12);
         SetTiffShortTag(encoded, secondIfd, tag, value);
 
-        Assert.True(OfficeRasterContainerInspector.TryInspect(encoded, out OfficeRasterContainerInfo? container));
-        Assert.Equal(2, container!.Count);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(encoded, out _));
         Assert.True(OfficeRasterImageDecoder.TryDecode(
             encoded,
             new OfficeRasterDecodeOptions { FrameIndex = 0 },

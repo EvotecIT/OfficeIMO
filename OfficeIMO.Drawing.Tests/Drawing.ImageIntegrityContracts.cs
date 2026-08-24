@@ -225,6 +225,7 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(truncatedGif, "truncated.gif", out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(corruptPng, "corrupt.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(corruptPng, "corrupt.png", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(corruptPng, out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(markerOnlyJpeg, "marker-only.jpg", out _));
         Assert.False(OfficeImageReader.TryValidateContent(markerOnlyJpeg, "marker-only.jpg", out _));
     }
@@ -242,8 +243,7 @@ public partial class DrawingTests {
         int frameDataLength = ReadBigEndianInt32(corruptApng, frameDataOffset);
         corruptApng[frameDataOffset + 8 + frameDataLength - 1] ^= 0x01;
         WritePngChunkCrc(corruptApng, frameDataOffset, frameDataLength);
-        Assert.True(OfficeRasterContainerInspector.TryInspect(corruptApng, out OfficeRasterContainerInfo? corruptInventory));
-        Assert.Equal(2, corruptInventory!.Count);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(corruptApng, out _));
         Assert.False(OfficeImageReader.TryValidateContent(corruptApng, "animated.png", out _));
 
         byte[] jpegWithEmptyFinalScan = {
@@ -349,8 +349,10 @@ public partial class DrawingTests {
         Assert.True(OfficeImageReader.TryIdentifyByContent(tiffWithoutCompleteStrip, "missing-strip.tiff", out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(webpHeaderOnly, "header-only.webp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(jpegWithoutTables, "missing-tables.jpg", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(jpegWithoutTables, out _));
         Assert.False(OfficeImageReader.TryValidateContent(bmpWithoutPixels, "missing-pixels.bmp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(tiffWithoutCompleteStrip, "missing-strip.tiff", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(tiffWithoutCompleteStrip, out _));
         Assert.False(OfficeImageReader.TryValidateContent(webpHeaderOnly, "header-only.webp", out _));
     }
 
@@ -522,9 +524,7 @@ public partial class DrawingTests {
             new OfficeRasterImage(1000, 1000, OfficeColor.White));
         byte[] apng = CreateRepeatedFrameApng(staticPng, frameCount: 51);
 
-        Assert.True(OfficeRasterContainerInspector.TryInspect(
-            apng, out OfficeRasterContainerInfo? container));
-        Assert.Equal(51, container!.Count);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(apng, out _));
         Assert.True(OfficeRasterImageDecoder.TryDecode(
             apng,
             new OfficeRasterDecodeOptions { FrameIndex = 0 },

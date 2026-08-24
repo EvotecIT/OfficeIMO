@@ -4,7 +4,7 @@ using System.IO;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Reads bounded frame, timing, page, disposal, and blending information without decoding pixels.</summary>
+/// <summary>Reads bounded frame, timing, page, disposal, and blending information after validating managed payloads.</summary>
 public static class OfficeRasterContainerInspector {
     /// <summary>Attempts to inspect a bounded encoded raster container.</summary>
     public static bool TryInspect(byte[]? encodedBytes, out OfficeRasterContainerInfo? container) =>
@@ -54,14 +54,18 @@ public static class OfficeRasterContainerInspector {
             case OfficeImageFormat.Gif:
                 return TryInspectGif(encodedBytes, imageInfo, effective, out container);
             case OfficeImageFormat.Png:
-                return TryInspectPng(encodedBytes, imageInfo, effective, out container);
+                return TryInspectPng(
+                    encodedBytes, imageInfo, effective,
+                    validateDecodedPayloads: enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Tiff:
                 return OfficeTiffCodec.TryInspectPages(
                     encodedBytes, effective, enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Webp:
                 return TryInspectWebp(encodedBytes, imageInfo, effective, out container);
             case OfficeImageFormat.Jpeg:
-                return TryInspectJpeg(encodedBytes, imageInfo, effective, out container);
+                return TryInspectJpeg(
+                    encodedBytes, imageInfo, effective,
+                    validateDecodedPayload: enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Bmp:
                 if (!OfficeBmpReader.TryValidatePayload(encodedBytes, effective.CancellationToken)) return false;
                 container = CreateStatic(imageInfo);
@@ -262,6 +266,7 @@ public static class OfficeRasterContainerInspector {
         byte[] bytes,
         OfficeImageInfo imageInfo,
         OfficeRasterDecodeOptions options,
+        bool validateDecodedPayload,
         out OfficeRasterContainerInfo? container) {
         container = null;
         if (!OfficeImageReader.HasCompleteJpegPayload(
@@ -269,6 +274,11 @@ public static class OfficeRasterContainerInspector {
                 options.CancellationToken,
                 requireManagedFrame: true,
                 validateMetadata: false)) return false;
+        if (validateDecodedPayload && (!OfficeJpegCodec.TryDecode(
+                bytes,
+                options.CancellationToken,
+                checked(options.RetainedManagedBytes + 128L),
+                out OfficeRasterImage? decoded) || decoded == null)) return false;
         int canvasWidth = imageInfo.Width;
         int canvasHeight = imageInfo.Height;
         if (OfficeImageOrientationNormalizer.TryRead(
@@ -285,6 +295,7 @@ public static class OfficeRasterContainerInspector {
         byte[] bytes,
         OfficeImageInfo imageInfo,
         OfficeRasterDecodeOptions options,
+        bool validateDecodedPayloads,
         out OfficeRasterContainerInfo? container) {
         container = null;
         if (!OfficePngReader.TryGetFrameCount(
@@ -292,6 +303,10 @@ public static class OfficeRasterContainerInspector {
         if (frameCount > 65535 ||
             !IsInspectionWorkingSetWithinLimit(
                 bytes.LongLength, options.RetainedManagedBytes, frameCount)) return false;
+        if (validateDecodedPayloads && !OfficePngReader.TryValidateDecodedPayload(
+                bytes,
+                options.CancellationToken,
+                checked(options.RetainedManagedBytes + frameCount * 128L))) return false;
         int loopCount = 0;
         bool seenImageData = false;
         bool seenAnimationControl = false;

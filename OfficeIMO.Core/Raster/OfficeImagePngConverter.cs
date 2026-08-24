@@ -31,12 +31,21 @@ public static class OfficeImagePngConverter {
         double? selectedDpiY = decodeInfo.Format == OfficeImageFormat.Tiff
             ? decodeInfo.SelectedFrame?.DpiY
             : null;
-        pngBytes = sourceInfo == null && (!selectedDpiX.HasValue || !selectedDpiY.HasValue)
-            ? OfficePngWriter.Encode(image)
-            : OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
-                DpiX = selectedDpiX ?? sourceInfo!.DpiX,
-                DpiY = selectedDpiY ?? sourceInfo!.DpiY
-            });
+        if (decodeInfo.Format == OfficeImageFormat.Tiff) {
+            pngBytes = selectedDpiX.HasValue && selectedDpiY.HasValue
+                ? OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
+                    DpiX = selectedDpiX.Value,
+                    DpiY = selectedDpiY.Value
+                })
+                : OfficePngWriter.Encode(image);
+        } else {
+            pngBytes = sourceInfo == null
+                ? OfficePngWriter.Encode(image)
+                : OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
+                    DpiX = sourceInfo.DpiX,
+                    DpiY = sourceInfo.DpiY
+                });
+        }
         return true;
     }
 

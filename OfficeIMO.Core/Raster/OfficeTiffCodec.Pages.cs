@@ -15,7 +15,7 @@ public static partial class OfficeTiffCodec {
         OfficeRasterDecodeOptions options,
         bool enforceAllPagePixelLimits,
         out OfficeRasterContainerInfo? container) =>
-        TryInspectPages(encodedBytes, options, validatePayloads: false, enforceAllPagePixelLimits,
+        TryInspectPages(encodedBytes, options, validatePayloads: enforceAllPagePixelLimits, enforceAllPagePixelLimits,
             OfficeRasterGuards.MaximumDecodedBytes - options.RetainedManagedBytes, out container);
 
     internal static bool TryValidateAllPages(byte[] encodedBytes) {
@@ -76,7 +76,7 @@ public static partial class OfficeTiffCodec {
                     width < 1 || height < 1 ||
                     enforceAllPagePixelLimits &&
                     (long)width * height > options.MaximumDecodedPixels ||
-                    !TryReadPageDpi(encodedBytes, entries, littleEndian, out double dpiX, out double dpiY) ||
+                    !TryReadPageDpi(encodedBytes, entries, littleEndian, out double? dpiX, out double? dpiY) ||
                     validatePayloads && !TryReserveAndValidatePage(
                         encodedBytes, entries, littleEndian, width, height, options,
                         validationBudget!, ref validatedPixels)) return false;
@@ -136,10 +136,10 @@ public static partial class OfficeTiffCodec {
         byte[] encodedBytes,
         IReadOnlyDictionary<int, TiffEntry> entries,
         bool littleEndian,
-        out double dpiX,
-        out double dpiY) {
-        dpiX = 96D;
-        dpiY = 96D;
+        out double? dpiX,
+        out double? dpiY) {
+        dpiX = null;
+        dpiY = null;
         bool hasX = entries.ContainsKey(282);
         bool hasY = entries.ContainsKey(283);
         if (!hasX && !hasY) return true;
@@ -149,10 +149,13 @@ public static partial class OfficeTiffCodec {
         if (!TryReadPositiveRational(encodedBytes, entries, 282, littleEndian, out double x) ||
             !TryReadPositiveRational(encodedBytes, entries, 283, littleEndian, out double y)) return false;
         double scale = unit == 3 ? 2.54D : 1D;
-        dpiX = x * scale;
-        dpiY = y * scale;
-        return !double.IsNaN(dpiX) && !double.IsInfinity(dpiX) &&
-               !double.IsNaN(dpiY) && !double.IsInfinity(dpiY);
+        double physicalDpiX = x * scale;
+        double physicalDpiY = y * scale;
+        if (double.IsNaN(physicalDpiX) || double.IsInfinity(physicalDpiX) ||
+            double.IsNaN(physicalDpiY) || double.IsInfinity(physicalDpiY)) return false;
+        dpiX = physicalDpiX;
+        dpiY = physicalDpiY;
+        return true;
     }
 
     private static bool TryReadPositiveRational(
