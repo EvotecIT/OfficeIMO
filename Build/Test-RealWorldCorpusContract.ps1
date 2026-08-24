@@ -8,6 +8,7 @@ $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("officeimo-real-corpus-c
 $inputDirectory = Join-Path $scratch 'input'
 $formatInputDirectory = Join-Path $scratch 'all-formats-input'
 $policyInputDirectory = Join-Path $scratch 'policy-input'
+$packagePolicyInputDirectory = Join-Path $scratch 'package-policy-input'
 $traversalInputDirectory = Join-Path $scratch 'traversal-input'
 $firstJson = Join-Path $scratch 'first/report.json'
 $firstMarkdown = Join-Path $scratch 'first/report.md'
@@ -18,6 +19,7 @@ try {
     [void] (New-Item -ItemType Directory -Path $inputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path $formatInputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path $policyInputDirectory -Force)
+    [void] (New-Item -ItemType Directory -Path $packagePolicyInputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path (Join-Path $traversalInputDirectory 'a/b/c') -Force)
     [System.IO.File]::WriteAllText((Join-Path $inputDirectory 'renamed-html.blob'), '<!doctype html><html><body><h1>Content detected</h1></body></html>')
     [System.IO.File]::WriteAllText((Join-Path $inputDirectory 'ordinary.html'), '<!doctype html><html><body><p>Second document</p></body></html>')
@@ -47,6 +49,37 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $policyInputDirectory 'deep.rtf'), $deepRtf)
     [System.IO.File]::WriteAllText((Join-Path $policyInputDirectory '![image](target).html'), $deepHtml)
 
+    $compressedPackage = Join-Path $packagePolicyInputDirectory 'compressed.docx'
+    $packageStream = [System.IO.File]::Create($compressedPackage)
+    try {
+        $archive = [System.IO.Compression.ZipArchive]::new(
+            $packageStream,
+            [System.IO.Compression.ZipArchiveMode]::Create,
+            $false)
+        try {
+            $contentTypes = $archive.CreateEntry('[Content_Types].xml')
+            $writer = [System.IO.StreamWriter]::new($contentTypes.Open())
+            try {
+                $writer.Write('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
+            } finally {
+                $writer.Dispose()
+            }
+            $document = $archive.CreateEntry('word/document.xml', [System.IO.Compression.CompressionLevel]::SmallestSize)
+            $writer = [System.IO.StreamWriter]::new($document.Open())
+            try {
+                $writer.Write('<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>')
+                $writer.Write('A' * (2 * 1024 * 1024))
+                $writer.Write('</w:t></w:r></w:p></w:body></w:document>')
+            } finally {
+                $writer.Dispose()
+            }
+        } finally {
+            $archive.Dispose()
+        }
+    } finally {
+        $packageStream.Dispose()
+    }
+
     $common = @(
         'run', '--input', $inputDirectory,
         '--corpus-id', '![corpus](target)',
@@ -70,6 +103,14 @@ try {
     $first = $firstJsonText | ConvertFrom-Json -Depth 100
     $second = Get-Content -LiteralPath $secondJson -Raw | ConvertFrom-Json -Depth 100
     if ($first.schemaVersion -ne 1 -or $first.measurementStatus -ne 'measured') { throw 'The report schema or measurement state is invalid.' }
+    if ($first.configuration.packagePolicy.maxPackageBytes -ne 4096 -or
+        $first.configuration.packagePolicy.maxPartCount -ne 4096 -or
+        $first.configuration.packagePolicy.maxPartUncompressedBytes -ne 67108864 -or
+        $first.configuration.packagePolicy.maxXmlCharactersInPart -ne 33554432 -or
+        $first.configuration.packagePolicy.maxTotalUncompressedBytes -ne 268435456 -or
+        $first.configuration.packagePolicy.maxCompressionRatio -ne 500) {
+        throw 'The JSON evidence did not record the package policy applied by the worker.'
+    }
     if ($first.totals.discovered -ne 8 -or $first.totals.oversize -ne 1) { throw 'The report did not account for every synthetic input.' }
     if ($first.totals.duplicateContent -ne 1) { throw 'Exact duplicate content was not identified.' }
     if ($first.totals.selected -ne 3) { throw 'The expected unique HTML and RTF sample was not selected.' }
@@ -86,6 +127,9 @@ try {
     $markdown = Get-Content -LiteralPath $firstMarkdown -Raw
     if ($markdown.Contains($scratch, [StringComparison]::OrdinalIgnoreCase) -or $markdown.Contains($inputDirectory, [StringComparison]::OrdinalIgnoreCase)) { throw 'A full input path leaked into the Markdown evidence.' }
     if ($markdown -notmatch 'not a reliability guarantee' -or $markdown -notmatch 'does not assess visual fidelity') { throw 'The generated evidence omitted its interpretation boundaries.' }
+    if ($markdown -notmatch '\| 4096 \| 20 \| 30 \| 2 \| 4096 \| 67108864 \| 33554432 \| 268435456 \| 500 \|') {
+        throw 'The Markdown evidence did not record the package policy applied by the worker.'
+    }
     if ($markdown.Contains('![corpus](target)', [StringComparison]::Ordinal) -or $markdown.Contains('![source](target)', [StringComparison]::Ordinal)) {
         throw 'Provenance values were able to inject Markdown content into the evidence report.'
     }
@@ -138,6 +182,21 @@ try {
         throw 'The inert source name was not retained as readable Markdown evidence.'
     }
 
+    $packagePolicyJson = Join-Path $scratch 'package-policy/report.json'
+    $packagePolicyMarkdown = Join-Path $scratch 'package-policy/report.md'
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $packagePolicyInputDirectory --json $packagePolicyJson --markdown $packagePolicyMarkdown `
+        --corpus-id synthetic-package-policy-contract --formats Word --max-per-format 1 --max-total 1 `
+        --max-file-bytes 4194304 --max-traversal-entries 5 --timeout-seconds 30 --parallelism 1
+    if ($LASTEXITCODE -ne 0) { throw "Package policy corpus contract run failed with exit code $LASTEXITCODE." }
+    $packagePolicy = Get-Content -LiteralPath $packagePolicyJson -Raw | ConvertFrom-Json -Depth 100
+    $packageRecord = @($packagePolicy.files | Where-Object selected)
+    if ($packagePolicy.totals.rejectedByPolicy -ne 1 -or $packagePolicy.totals.failed -ne 0 -or
+        $packageRecord.Count -ne 1 -or $packageRecord[0].exceptionType -ne 'OfficeIMO.OfficePackageSecurityException') {
+        $observed = $packageRecord | Select-Object contentKind, contentConfidence, outcome, exceptionType | ConvertTo-Json -Compress
+        throw "Compressed package expansion was not rejected by the shared package policy: $observed"
+    }
+
     & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- verify-markdown-contract
     if ($LASTEXITCODE -ne 0) { throw "Dynamic Markdown contract failed with exit code $LASTEXITCODE." }
 
@@ -154,6 +213,104 @@ try {
     & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
         --input $inputDirectory --json (Join-Path $inputDirectory 'prior-report.json') --markdown (Join-Path $scratch 'inside-input/report.md') *> $null
     if ($LASTEXITCODE -eq 0) { throw 'A report path inside the corpus input was silently accepted.' }
+
+    $hardLinkedReport = Join-Path $scratch 'hard-linked-report.json'
+    [void] (New-Item -ItemType HardLink -Path $hardLinkedReport -Target (Join-Path $inputDirectory 'ordinary.html'))
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $inputDirectory --json $hardLinkedReport --markdown (Join-Path $scratch 'hard-linked-report.md') *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'A hard-linked report path bypassed input containment.' }
+
+    $sharedReportTarget = Join-Path $scratch 'shared-report-target.txt'
+    [System.IO.File]::WriteAllText($sharedReportTarget, 'existing report target')
+    $sharedJsonAlias = Join-Path $scratch 'shared-report.json'
+    $sharedMarkdownAlias = Join-Path $scratch 'shared-report.md'
+    [void] (New-Item -ItemType HardLink -Path $sharedJsonAlias -Target $sharedReportTarget)
+    [void] (New-Item -ItemType HardLink -Path $sharedMarkdownAlias -Target $sharedReportTarget)
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $inputDirectory --json $sharedJsonAlias --markdown $sharedMarkdownAlias *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'Hard-linked report aliases were accepted as distinct output files.' }
+
+    $mutableInput = Join-Path $scratch 'mutable.html'
+    [System.IO.File]::WriteAllText($mutableInput, '<!doctype html><html><body>first</body></html>')
+    $classificationText = & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- `
+        classify-file --stage classification --input $mutableInput --max-file-bytes 4096
+    if ($LASTEXITCODE -ne 0) { throw 'Direct classification worker contract failed.' }
+    $classification = $classificationText | ConvertFrom-Json -Depth 100
+    if (-not $classification.succeeded -or $classification.sha256.Length -ne 64) {
+        throw 'Direct classification did not return a snapshot hash.'
+    }
+    [System.IO.File]::WriteAllText($mutableInput, '<!doctype html><html><body>second</body></html>')
+    $probeText = & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- `
+        probe-file --stage probe --input $mutableInput --max-file-bytes 4096 --expected-sha256 $classification.sha256
+    if ($LASTEXITCODE -ne 0) { throw 'Direct probe worker contract failed.' }
+    $probe = $probeText | ConvertFrom-Json -Depth 100
+    if ($probe.succeeded -or $probe.exceptionType -ne 'OfficeIMO.RealWorldCorpus.CorpusInputChangedException') {
+        throw 'A changed input was parsed under the hash recorded during classification.'
+    }
+
+    $inputAlias = Join-Path $scratch 'input-alias'
+    $insideReportDirectory = Join-Path $inputDirectory 'linked-reports'
+    [void] (New-Item -ItemType Directory -Path $insideReportDirectory -Force)
+    if ($IsWindows) {
+        [void] (New-Item -ItemType Junction -Path $inputAlias -Target $inputDirectory)
+    } else {
+        [void] [System.IO.Directory]::CreateSymbolicLink($inputAlias, $inputDirectory)
+    }
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $inputAlias --json (Join-Path $inputDirectory 'linked-input-report.json') `
+        --markdown (Join-Path $scratch 'linked-input-report.md') *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'A linked input path bypassed report containment.' }
+
+    $reportAlias = Join-Path $scratch 'report-alias'
+    if ($IsWindows) {
+        [void] (New-Item -ItemType Junction -Path $reportAlias -Target $insideReportDirectory)
+    } else {
+        [void] [System.IO.Directory]::CreateSymbolicLink($reportAlias, $insideReportDirectory)
+    }
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $inputDirectory --json (Join-Path $reportAlias 'linked-report.json') `
+        --markdown (Join-Path $scratch 'linked-report.md') *> $null
+    if ($LASTEXITCODE -eq 0) { throw 'A linked report parent bypassed report containment.' }
+
+    if ($IsWindows) {
+        $insideInputReport = Join-Path $inputDirectory 'extended-report.json'
+        $extendedInputReport = '\\?\' + $insideInputReport
+        & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+            --input $inputDirectory --json $extendedInputReport `
+            --markdown (Join-Path $scratch 'extended-report.md') *> $null
+        if ($LASTEXITCODE -eq 0) { throw 'A Windows extended path bypassed report containment.' }
+
+        $sameReport = Join-Path $scratch 'same-physical-report.json'
+        $extendedSameReport = '\\?\' + $sameReport
+        & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+            --input $inputDirectory --json $sameReport --markdown $extendedSameReport *> $null
+        if ($LASTEXITCODE -eq 0) { throw 'Windows path aliases were accepted as distinct report files.' }
+
+        $drive = $inputDirectory.Substring(0, 1).ToLowerInvariant()
+        $uncInput = "\\localhost\$drive`$" + $inputDirectory.Substring(2)
+        if (Test-Path -LiteralPath $uncInput) {
+            & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+                --input $inputDirectory --json (Join-Path $uncInput 'unc-report.json') `
+                --markdown (Join-Path $scratch 'unc-report.md') *> $null
+            if ($LASTEXITCODE -eq 0) { throw 'A Windows local-to-UNC alias bypassed report containment.' }
+
+            $uncSameReport = "\\localhost\$drive`$" + $sameReport.Substring(2)
+            & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+                --input $inputDirectory --json $sameReport --markdown $uncSameReport *> $null
+            if ($LASTEXITCODE -eq 0) { throw 'Windows local-to-UNC aliases were accepted as distinct report files.' }
+        }
+    }
+
+    if (-not $IsWindows) {
+        $danglingReportAlias = Join-Path $scratch 'dangling-report.json'
+        [void] [System.IO.File]::CreateSymbolicLink(
+            $danglingReportAlias,
+            (Join-Path $inputDirectory 'not-yet-created-report.json'))
+        & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+            --input $inputDirectory --json $danglingReportAlias `
+            --markdown (Join-Path $scratch 'dangling-report.md') *> $null
+        if ($LASTEXITCODE -eq 0) { throw 'A dangling report link bypassed report containment.' }
+    }
 
     & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
         --input $traversalInputDirectory --json (Join-Path $scratch 'traversal/report.json') --markdown (Join-Path $scratch 'traversal/report.md') `

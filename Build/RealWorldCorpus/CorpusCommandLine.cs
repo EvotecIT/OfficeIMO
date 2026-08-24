@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Reader;
 
 namespace OfficeIMO.RealWorldCorpus;
@@ -9,7 +10,7 @@ internal static class CorpusCommandLine {
         "--timeout-seconds", "--parallelism", "--include-source-names", "--formats"
     };
     private static readonly HashSet<string> WorkerOptionNames = new(StringComparer.OrdinalIgnoreCase) {
-        "--stage", "--input", "--max-file-bytes"
+        "--stage", "--input", "--max-file-bytes", "--expected-sha256"
     };
     private static readonly HashSet<string> SwitchOptionNames = new(StringComparer.OrdinalIgnoreCase) {
         "--include-source-names"
@@ -42,22 +43,7 @@ internal static class CorpusCommandLine {
             Formats = ParseFormats(Optional(values, "--formats"))
         };
 
-        options.InputDirectory = Path.GetFullPath(options.InputDirectory);
-        options.JsonReportPath = Path.GetFullPath(options.JsonReportPath);
-        options.MarkdownReportPath = Path.GetFullPath(options.MarkdownReportPath);
-        if (!Directory.Exists(options.InputDirectory)) {
-            throw new DirectoryNotFoundException($"Input directory does not exist: {options.InputDirectory}");
-        }
-        if (string.IsNullOrWhiteSpace(options.CorpusId)) {
-            throw new ArgumentException("--corpus-id cannot be empty.");
-        }
-        if (string.Equals(options.JsonReportPath, options.MarkdownReportPath, StringComparison.OrdinalIgnoreCase)) {
-            throw new ArgumentException("--json and --markdown must use different output paths.");
-        }
-        if (IsWithinDirectory(options.JsonReportPath, options.InputDirectory) ||
-            IsWithinDirectory(options.MarkdownReportPath, options.InputDirectory)) {
-            throw new ArgumentException("Report paths must be outside --input so prior evidence cannot enter a later sample.");
-        }
+        ResolveAndValidatePaths(options);
         if (options.ArchiveSha256 != null &&
             (options.ArchiveSha256.Length != 64 || options.ArchiveSha256.Any(character => !Uri.IsHexDigit(character)))) {
             throw new ArgumentException("--archive-sha256 must contain exactly 64 hexadecimal characters.");
@@ -65,12 +51,27 @@ internal static class CorpusCommandLine {
         return options;
     }
 
-    private static bool IsWithinDirectory(string path, string directory) {
-        string relative = Path.GetRelativePath(directory, path);
-        return !Path.IsPathRooted(relative) &&
-            !string.Equals(relative, "..", StringComparison.Ordinal) &&
-            !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
-            !relative.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal);
+    internal static void ResolveAndValidatePaths(CorpusRunOptions options) {
+        options.InputDirectory = OfficePathIdentity.ResolvePhysicalPath(options.InputDirectory);
+        options.JsonReportPath = OfficePathIdentity.ResolvePhysicalPath(options.JsonReportPath);
+        options.MarkdownReportPath = OfficePathIdentity.ResolvePhysicalPath(options.MarkdownReportPath);
+        if (!Directory.Exists(options.InputDirectory)) {
+            throw new DirectoryNotFoundException($"Input directory does not exist: {options.InputDirectory}");
+        }
+        if (string.IsNullOrWhiteSpace(options.CorpusId)) {
+            throw new ArgumentException("--corpus-id cannot be empty.");
+        }
+        if (OfficePathIdentity.AreEquivalent(options.JsonReportPath, options.MarkdownReportPath)) {
+            throw new ArgumentException("--json and --markdown must use different output paths.");
+        }
+        if ((File.Exists(options.JsonReportPath) && OfficePathIdentity.HasMultipleLinks(options.JsonReportPath)) ||
+            (File.Exists(options.MarkdownReportPath) && OfficePathIdentity.HasMultipleLinks(options.MarkdownReportPath))) {
+            throw new ArgumentException("Existing report files must not have multiple hard links.");
+        }
+        if (OfficePathIdentity.IsSameOrDescendant(options.JsonReportPath, options.InputDirectory) ||
+            OfficePathIdentity.IsSameOrDescendant(options.MarkdownReportPath, options.InputDirectory)) {
+            throw new ArgumentException("Report paths must be outside --input so prior evidence cannot enter a later sample.");
+        }
     }
 
     public static CorpusWorkerOptions ParseWorker(string[] args) {
@@ -79,9 +80,16 @@ internal static class CorpusCommandLine {
         if (stage is not (CorpusOutcomes.Classification or CorpusOutcomes.Probe)) {
             throw new ArgumentException("--stage must be 'classification' or 'probe'.");
         }
+        string? expectedSha256 = Optional(values, "--expected-sha256");
+        if (stage == CorpusOutcomes.Probe) {
+            ValidateSha256(expectedSha256, "--expected-sha256");
+        } else if (expectedSha256 != null) {
+            throw new ArgumentException("--expected-sha256 is valid only for the probe stage.");
+        }
         return new CorpusWorkerOptions {
             InputPath = Path.GetFullPath(Required(values, "--input")),
             MaxFileBytes = PositiveLong(values, "--max-file-bytes", 50L * 1024L * 1024L, 256, 1024L * 1024L * 1024L),
+            ExpectedSha256 = expectedSha256?.ToLowerInvariant(),
             Stage = stage
         };
     }
@@ -147,5 +155,11 @@ internal static class CorpusCommandLine {
             throw new ArgumentException("--formats supports Word, Excel, PowerPoint, Pdf, Html, and Rtf.");
         }
         return formats;
+    }
+
+    private static void ValidateSha256(string? value, string optionName) {
+        if (value == null || value.Length != 64 || value.Any(character => !Uri.IsHexDigit(character))) {
+            throw new ArgumentException($"{optionName} must contain exactly 64 hexadecimal characters.");
+        }
     }
 }

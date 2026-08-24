@@ -26,6 +26,19 @@ internal static class CorpusReportWriter {
         text.Append("| Started UTC | ").Append(report.StartedUtc.ToString("O")).AppendLine(" |");
         text.Append("| Completed UTC | ").Append(report.CompletedUtc.ToString("O")).AppendLine(" |");
         text.Append("| Runtime | ").Append(E(report.Environment.Framework)).Append(" on ").Append(E(report.Environment.OperatingSystem)).AppendLine(" |");
+        text.AppendLine().AppendLine("## Recorded limits").AppendLine();
+        text.AppendLine("| Input bytes | Traversal entries | Per-file seconds | Workers | Package parts | Expanded part bytes | Package XML characters | Total expanded bytes | Compression ratio |");
+        text.AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        text.Append("| ").Append(report.Configuration.MaxFileBytes)
+            .Append(" | ").Append(report.Configuration.MaxTraversalEntries)
+            .Append(" | ").Append(report.Configuration.TimeoutSeconds)
+            .Append(" | ").Append(report.Configuration.Parallelism)
+            .Append(" | ").Append(report.Configuration.PackagePolicy.MaxPartCount)
+            .Append(" | ").Append(report.Configuration.PackagePolicy.MaxPartUncompressedBytes)
+            .Append(" | ").Append(report.Configuration.PackagePolicy.MaxXmlCharactersInPart)
+            .Append(" | ").Append(report.Configuration.PackagePolicy.MaxTotalUncompressedBytes)
+            .Append(" | ").Append(report.Configuration.PackagePolicy.MaxCompressionRatio.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .AppendLine(" |");
         text.AppendLine().AppendLine("## Sample and outcomes").AppendLine();
         text.AppendLine("Selection is deterministic: unique content is ordered by SHA-256 and sampled round-robin across the requested format strata. " +
                         "A stratum with fewer eligible files is reported as underfilled; no other format is relabeled to fill its denominator.").AppendLine();

@@ -13,8 +13,8 @@ internal static class CorpusProgram {
             return args[0].ToLowerInvariant() switch {
                 "run" => await RunCorpusAsync(CorpusCommandLine.ParseRun(args[1..])).ConfigureAwait(false),
                 "verify-markdown-contract" => CorpusMarkdownContract.Run(),
-                "classify-file" => RunWorker(args[1..], CorpusWorker.Classify),
-                "probe-file" => RunWorker(args[1..], CorpusWorker.Probe),
+                "classify-file" => RunWorker(args[1..]),
+                "probe-file" => RunWorker(args[1..]),
                 _ => throw new ArgumentException($"Unknown command '{args[0]}'.")
             };
         } catch (Exception exception) {
@@ -25,6 +25,7 @@ internal static class CorpusProgram {
 
     private static async Task<int> RunCorpusAsync(CorpusRunOptions options) {
         CorpusReport report = await CorpusCoordinator.RunAsync(options).ConfigureAwait(false);
+        CorpusCommandLine.ResolveAndValidatePaths(options);
         CorpusReportWriter.Write(report, options.JsonReportPath, options.MarkdownReportPath);
         Console.WriteLine($"Measured {report.Totals.Selected} selected files from {report.Totals.Discovered} discovered files.");
         Console.WriteLine($"JSON: {options.JsonReportPath}");
@@ -32,11 +33,13 @@ internal static class CorpusProgram {
         return 0;
     }
 
-    private static int RunWorker(string[] args, Func<string, long, CorpusWorkerResult> action) {
+    private static int RunWorker(string[] args) {
         CorpusWorkerOptions options = CorpusCommandLine.ParseWorker(args);
         CorpusWorkerResult result;
         try {
-            result = action(options.InputPath, options.MaxFileBytes);
+            result = options.Stage == CorpusOutcomes.Classification
+                ? CorpusWorker.Classify(options.InputPath, options.MaxFileBytes)
+                : CorpusWorker.Probe(options.InputPath, options.MaxFileBytes, options.ExpectedSha256!);
         } catch (Exception exception) {
             result = CorpusWorkerResult.Failure(options.Stage, exception);
         }

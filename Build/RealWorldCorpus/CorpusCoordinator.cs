@@ -90,6 +90,7 @@ internal static class CorpusCoordinator {
             CorpusOutcomes.Classification,
             file.FullPath,
             options.MaxFileBytes,
+            null,
             TimeSpan.FromSeconds(options.TimeoutSeconds),
             cancellationToken).ConfigureAwait(false);
         file.ClassificationDurationMilliseconds = process.DurationMilliseconds;
@@ -157,6 +158,7 @@ internal static class CorpusCoordinator {
             CorpusOutcomes.Probe,
             file.FullPath,
             options.MaxFileBytes,
+            file.Sha256,
             TimeSpan.FromSeconds(options.TimeoutSeconds),
             cancellationToken).ConfigureAwait(false);
         file.ProbeDurationMilliseconds = process.DurationMilliseconds;
@@ -248,7 +250,8 @@ internal static class CorpusCoordinator {
                 MaxTraversalEntries = options.MaxTraversalEntries,
                 TimeoutSeconds = options.TimeoutSeconds,
                 Parallelism = options.Parallelism,
-                SourceNamesIncluded = options.IncludeSourceNames
+                SourceNamesIncluded = options.IncludeSourceNames,
+                PackagePolicy = CorpusPackagePolicy.Describe(options.MaxFileBytes)
             },
             Environment = new CorpusEnvironment {
                 Framework = RuntimeInformation.FrameworkDescription,
@@ -268,6 +271,7 @@ internal static class CorpusCoordinator {
         string.Equals(exceptionType, "OfficeIMO.Pdf.PdfReadLimitException", StringComparison.Ordinal) ||
         string.Equals(exceptionType, "OfficeIMO.Pdf.PdfPermissionDeniedException", StringComparison.Ordinal) ||
         string.Equals(exceptionType, "OfficeIMO.Pdf.PdfPasswordRequiredException", StringComparison.Ordinal) ||
+        string.Equals(exceptionType, "OfficeIMO.OfficePackageSecurityException", StringComparison.Ordinal) ||
         string.Equals(exceptionType, "OfficeIMO.Html.HtmlDomLimitException", StringComparison.Ordinal) ||
         string.Equals(exceptionType, "OfficeIMO.Rtf.RtfReadLimitException", StringComparison.Ordinal);
 }

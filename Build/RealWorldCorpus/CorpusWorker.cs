@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using OfficeIMO;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.All;
 
@@ -10,12 +11,9 @@ internal static class CorpusWorker {
         .Build();
 
     public static CorpusWorkerResult Classify(string path, long maxFileBytes) {
-        ValidateFile(path, maxFileBytes);
-        string sha256;
-        using (FileStream stream = File.OpenRead(path)) {
-            sha256 = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-        }
-        ReaderDetectionResult detection = Reader.Detect(path, new ReaderDetectionOptions {
+        byte[] snapshot = ReadBoundedSnapshot(path, maxFileBytes);
+        string sha256 = Convert.ToHexString(SHA256.HashData(snapshot)).ToLowerInvariant();
+        ReaderDetectionResult detection = Reader.Detect(snapshot, Path.GetFileName(path), new ReaderDetectionOptions {
             Mode = ReaderDetectionMode.PreferContent,
             MaxProbeBytes = 64 * 1024,
             MaxContainerEntries = 512,
@@ -35,9 +33,14 @@ internal static class CorpusWorker {
         };
     }
 
-    public static CorpusWorkerResult Probe(string path, long maxFileBytes) {
-        ValidateFile(path, maxFileBytes);
-        OfficeDocumentReadResult result = Reader.ReadDocument(path, new ReaderOptions {
+    public static CorpusWorkerResult Probe(string path, long maxFileBytes, string expectedSha256) {
+        byte[] snapshot = ReadBoundedSnapshot(path, maxFileBytes);
+        string actualSha256 = Convert.ToHexString(SHA256.HashData(snapshot)).ToLowerInvariant();
+        if (!string.Equals(actualSha256, expectedSha256, StringComparison.Ordinal)) {
+            throw new CorpusInputChangedException();
+        }
+        ValidatePackage(snapshot, Path.GetFileName(path), maxFileBytes);
+        OfficeDocumentReadResult result = Reader.ReadDocument(snapshot, Path.GetFileName(path), new ReaderOptions {
             MaxInputBytes = maxFileBytes,
             DetectionMode = ReaderDetectionMode.PreferContent,
             DetectionMaxProbeBytes = 64 * 1024,
@@ -65,9 +68,44 @@ internal static class CorpusWorker {
         };
     }
 
-    private static void ValidateFile(string path, long maxFileBytes) {
-        var file = new FileInfo(path);
-        if (!file.Exists) throw new FileNotFoundException("Corpus input was not found.", path);
-        if (file.Length > maxFileBytes) throw new IOException("Corpus input exceeds the configured byte limit.");
+    private static void ValidatePackage(byte[] snapshot, string sourceName, long maxFileBytes) {
+        ReaderDetectionResult detection = Reader.Detect(snapshot, sourceName, new ReaderDetectionOptions {
+            Mode = ReaderDetectionMode.PreferContent,
+            MaxProbeBytes = 64 * 1024,
+            MaxContainerEntries = 512,
+            InspectContainers = true
+        });
+        if (!IsPackageKind(detection.ExtensionKind) &&
+            !IsPackageKind(detection.ContentKind) &&
+            !IsPackageKind(detection.Kind)) {
+            return;
+        }
+
+        OfficePackageSecurityInspector.Validate(snapshot, CorpusPackagePolicy.Create(maxFileBytes));
     }
+
+    private static bool IsPackageKind(ReaderInputKind kind) =>
+        kind is ReaderInputKind.Word or ReaderInputKind.Excel or ReaderInputKind.PowerPoint;
+
+    private static byte[] ReadBoundedSnapshot(string path, long maxFileBytes) {
+        using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var snapshot = new MemoryStream((int)Math.Min(maxFileBytes, 1024L * 1024L));
+        var buffer = new byte[81920];
+        long total = 0;
+        while (true) {
+            int read = source.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            total = checked(total + read);
+            if (total > maxFileBytes) {
+                throw new IOException("Corpus input exceeds the configured byte limit.");
+            }
+            snapshot.Write(buffer, 0, read);
+        }
+        return snapshot.ToArray();
+    }
+}
+
+internal sealed class CorpusInputChangedException : IOException {
+    internal CorpusInputChangedException()
+        : base("Corpus input changed after classification; the recorded hash was not parsed.") { }
 }

@@ -50,6 +50,7 @@ internal sealed class CorpusRunOptions {
 internal sealed class CorpusWorkerOptions {
     public string InputPath { get; set; } = string.Empty;
     public long MaxFileBytes { get; set; }
+    public string? ExpectedSha256 { get; set; }
     public string Stage { get; set; } = string.Empty;
 }
 
@@ -109,8 +110,18 @@ internal sealed class CorpusConfiguration {
     public int TimeoutSeconds { get; set; }
     public int Parallelism { get; set; }
     public bool SourceNamesIncluded { get; set; }
+    public CorpusPackagePolicyConfiguration PackagePolicy { get; set; } = new();
     public string Selection { get; set; } = "sha256-ascending-stratified";
     public string Operation { get; set; } = "officeimo-reader-normalized-read";
+}
+
+internal sealed class CorpusPackagePolicyConfiguration {
+    public long MaxPackageBytes { get; set; }
+    public int MaxPartCount { get; set; }
+    public long MaxPartUncompressedBytes { get; set; }
+    public long MaxXmlCharactersInPart { get; set; }
+    public long MaxTotalUncompressedBytes { get; set; }
+    public double MaxCompressionRatio { get; set; }
 }
 
 internal sealed class CorpusEnvironment {
