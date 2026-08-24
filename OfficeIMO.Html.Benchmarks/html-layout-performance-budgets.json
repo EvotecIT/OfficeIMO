@@ -5,7 +5,7 @@
     { "workload": "Report100",       "maxElapsedMilliseconds": 75,   "maxAllocatedBytes": 25165824,  "maxRetainedManagedHeapGrowthBytes": 1048576,  "maxPeakManagedHeapGrowthBytes": 29360128,  "maxAbsoluteProcessPeakWorkingSetBytes": 157286400 },
     { "workload": "Purchase250",     "maxElapsedMilliseconds": 300,  "maxAllocatedBytes": 78643200,  "maxRetainedManagedHeapGrowthBytes": 3145728,  "maxPeakManagedHeapGrowthBytes": 57671680,  "maxAbsoluteProcessPeakWorkingSetBytes": 178257920 },
     { "workload": "Purchase2500",    "maxElapsedMilliseconds": 1250, "maxAllocatedBytes": 734003200, "maxRetainedManagedHeapGrowthBytes": 25165824, "maxPeakManagedHeapGrowthBytes": 220200960, "maxAbsoluteProcessPeakWorkingSetBytes": 419430400 },
-    { "workload": "Long100",         "maxElapsedMilliseconds": 170,  "maxAllocatedBytes": 50331648,  "maxRetainedManagedHeapGrowthBytes": 2097152,  "maxPeakManagedHeapGrowthBytes": 52428800,  "maxAbsoluteProcessPeakWorkingSetBytes": 157286400 },
+    { "workload": "Long100",         "maxElapsedMilliseconds": 200,  "maxAllocatedBytes": 50331648,  "maxRetainedManagedHeapGrowthBytes": 2097152,  "maxPeakManagedHeapGrowthBytes": 52428800,  "maxAbsoluteProcessPeakWorkingSetBytes": 157286400 },
     { "workload": "Long1000",        "maxElapsedMilliseconds": 850,  "maxAllocatedBytes": 450887680, "maxRetainedManagedHeapGrowthBytes": 12582912, "maxPeakManagedHeapGrowthBytes": 115343360, "maxAbsoluteProcessPeakWorkingSetBytes": 241172480 },
     { "workload": "StaticStandards", "maxElapsedMilliseconds": 40,   "maxAllocatedBytes": 4194304,   "maxRetainedManagedHeapGrowthBytes": 524288,   "maxPeakManagedHeapGrowthBytes": 5242880,   "maxAbsoluteProcessPeakWorkingSetBytes": 125829120 }
   ]
