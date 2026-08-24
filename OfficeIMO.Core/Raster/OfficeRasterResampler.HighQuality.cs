@@ -1,7 +1,4 @@
 using System;
-#if NET8_0_OR_GREATER
-using System.Buffers;
-#endif
 
 namespace OfficeIMO.Drawing;
 
@@ -15,48 +12,132 @@ public static partial class OfficeRasterResampler {
         int height,
         OfficeRasterResamplingMode mode,
         OfficeRasterResamplingColorSpace colorSpace) {
-        long horizontalFirstLength = (long)width * source.Height * 4L;
-        long verticalFirstLength = (long)source.Width * height * 4L;
-        long requiredIntermediate = Math.Min(horizontalFirstLength, verticalFirstLength);
-        if (requiredIntermediate <= 0L ||
-            requiredIntermediate > int.MaxValue ||
-            requiredIntermediate * sizeof(float) > OfficeRasterGuards.MaximumDecodedBytes / 2L) {
+        if (!TryMeasureSeparableWorkingSet(
+                source.Width,
+                source.Height,
+                width,
+                height,
+                mode,
+                out int intermediateLength,
+                out int horizontalContributionCount,
+                out int verticalContributionCount,
+                out _)) {
             throw new ArgumentException(ScratchLimitMessage, nameof(source));
         }
-        int intermediateLength = (int)requiredIntermediate;
-        AxisContributions horizontal = CreateContributions(source.Width, width, mode);
-        AxisContributions vertical = CreateContributions(source.Height, height, mode);
+        long horizontalFirstLength = (long)width * source.Height * 4L;
+        long verticalFirstLength = (long)source.Width * height * 4L;
+        AxisContributions horizontal = CreateContributions(
+            source.Width, width, mode, horizontalContributionCount);
+        AxisContributions vertical = CreateContributions(
+            source.Height, height, mode, verticalContributionCount);
         var result = new OfficeRasterImage(width, height);
-#if NET8_0_OR_GREATER
-        float[] intermediate = ArrayPool<float>.Shared.Rent(intermediateLength);
-#else
-        var intermediate = new float[intermediateLength];
-#endif
-        try {
-            if (horizontalFirstLength <= verticalFirstLength) {
-                ResampleHorizontal(source.PixelBuffer, source.Width, source.Height, width, horizontal, intermediate, colorSpace);
-                ResampleVertical(intermediate, width, height, vertical, result.PixelBuffer, colorSpace);
-            } else {
-                ResampleVertical(source.PixelBuffer, source.Width, source.Height, height, vertical, intermediate, colorSpace);
-                ResampleHorizontal(intermediate, source.Width, width, height, horizontal, result.PixelBuffer, colorSpace);
-            }
-        } finally {
-#if NET8_0_OR_GREATER
-            ArrayPool<float>.Shared.Return(intermediate);
-#endif
+        float[] intermediate = AllocateExactHighQualityScratch(intermediateLength);
+        if (horizontalFirstLength <= verticalFirstLength) {
+            ResampleHorizontal(source.PixelBuffer, source.Width, source.Height, width, horizontal, intermediate, colorSpace);
+            ResampleVertical(intermediate, width, height, vertical, result.PixelBuffer, colorSpace);
+        } else {
+            ResampleVertical(source.PixelBuffer, source.Width, source.Height, height, vertical, intermediate, colorSpace);
+            ResampleHorizontal(intermediate, source.Width, width, height, horizontal, result.PixelBuffer, colorSpace);
         }
         return result;
+    }
+
+    internal static float[] AllocateExactHighQualityScratch(int length) {
+        if (length <= 0) throw new ArgumentOutOfRangeException(nameof(length));
+#if NET8_0_OR_GREATER
+        return GC.AllocateUninitializedArray<float>(length);
+#else
+        return new float[length];
+#endif
+    }
+
+    internal static bool TryGetHighQualityWorkingSetBytes(
+        int sourceWidth,
+        int sourceHeight,
+        int width,
+        int height,
+        OfficeRasterResamplingMode mode,
+        out long workingSetBytes) =>
+        TryMeasureSeparableWorkingSet(
+            sourceWidth,
+            sourceHeight,
+            width,
+            height,
+            mode,
+            out _,
+            out _,
+            out _,
+            out workingSetBytes);
+
+    private static bool TryMeasureSeparableWorkingSet(
+        int sourceWidth,
+        int sourceHeight,
+        int width,
+        int height,
+        OfficeRasterResamplingMode mode,
+        out int intermediateLength,
+        out int horizontalContributionCount,
+        out int verticalContributionCount,
+        out long workingSetBytes) {
+        intermediateLength = 0;
+        horizontalContributionCount = 0;
+        verticalContributionCount = 0;
+        workingSetBytes = 0L;
+        if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0) return false;
+        try {
+            long horizontalFirstLength = checked((long)width * sourceHeight * 4L);
+            long verticalFirstLength = checked((long)sourceWidth * height * 4L);
+            long requiredIntermediate = Math.Min(horizontalFirstLength, verticalFirstLength);
+            if (requiredIntermediate <= 0L || requiredIntermediate > int.MaxValue ||
+                !TryMeasureContributions(
+                    sourceWidth, width, mode, out horizontalContributionCount, out long horizontalBytes) ||
+                !TryMeasureContributions(
+                    sourceHeight, height, mode, out verticalContributionCount, out long verticalBytes)) {
+                return false;
+            }
+
+            long sourceBytes = checked((long)sourceWidth * sourceHeight * 4L);
+            long destinationBytes = checked((long)width * height * 4L);
+            workingSetBytes = checked(
+                sourceBytes + destinationBytes + requiredIntermediate * sizeof(float) +
+                horizontalBytes + verticalBytes + 64L * 1024L);
+            if (workingSetBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
+            intermediateLength = (int)requiredIntermediate;
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static bool TryMeasureContributions(
+        int sourceLength,
+        int destinationLength,
+        OfficeRasterResamplingMode mode,
+        out int contributionCount,
+        out long storageBytes) {
+        contributionCount = 0;
+        storageBytes = 0L;
+        long metadataBytes = (long)destinationLength * 3L * sizeof(int);
+        if (sourceLength <= 0 || destinationLength <= 0 ||
+            metadataBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
+        double scale = sourceLength / (double)destinationLength;
+        long total = 0L;
+        for (int destination = 0; destination < destinationLength; destination++) {
+            GetContributionRange(sourceLength, destination, scale, mode, out _, out int count);
+            total += count;
+            if (total > int.MaxValue) return false;
+        }
+        storageBytes = checked(metadataBytes + total * sizeof(double));
+        if (storageBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
+        contributionCount = (int)total;
+        return total > 0L;
     }
 
     private static AxisContributions CreateContributions(
         int sourceLength,
         int destinationLength,
-        OfficeRasterResamplingMode mode) {
-        long contributionLimit = OfficeRasterGuards.MaximumDecodedBytes / 8L;
-        long metadataBytes = (long)destinationLength * 3L * sizeof(int);
-        if (destinationLength <= 0 || metadataBytes > contributionLimit) {
-            throw new ArgumentException(ScratchLimitMessage);
-        }
+        OfficeRasterResamplingMode mode,
+        int contributionCount) {
         var starts = new int[destinationLength];
         var counts = new int[destinationLength];
         var offsets = new int[destinationLength];
@@ -72,18 +153,13 @@ public static partial class OfficeRasterResampler {
                 out int count);
             starts[destination] = start;
             counts[destination] = count;
-            if (total > int.MaxValue) throw new ArgumentException(ScratchLimitMessage);
             offsets[destination] = (int)total;
             total += count;
         }
-
-        long contributionBytes = total * sizeof(double) + destinationLength * 3L * sizeof(int);
-        if (total <= 0L ||
-            total > int.MaxValue ||
-            contributionBytes > contributionLimit) {
+        if (total != contributionCount) {
             throw new ArgumentException(ScratchLimitMessage);
         }
-        var weights = new double[(int)total];
+        var weights = new double[contributionCount];
         for (int destination = 0; destination < destinationLength; destination++) {
             WriteContributionWeights(
                 sourceLength,

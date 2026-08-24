@@ -187,6 +187,50 @@ public sealed class DrawingRasterResamplingQualityTests {
         Assert.Contains("scratch space", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(OfficeRasterResamplingMode.Area)]
+    [InlineData(OfficeRasterResamplingMode.Lanczos3)]
+    public void HighQualityResizeAccountsForTheCompleteWorkingSetBeforeAllocation(
+        OfficeRasterResamplingMode mode) {
+        bool accepted = OfficeRasterResampler.TryGetHighQualityWorkingSetBytes(
+            sourceWidth: 4000,
+            sourceHeight: 10000,
+            width: 800,
+            height: 62500,
+            mode,
+            out long workingSetBytes);
+
+        Assert.False(accepted);
+        Assert.True(workingSetBytes > OfficeRasterGuards.MaximumDecodedBytes);
+    }
+
+    [Fact]
+    public void HighQualityScratchAllocationMatchesTheBudgetedLength() {
+        float[] scratch = OfficeRasterResampler.AllocateExactHighQualityScratch(1001);
+
+        Assert.Equal(1001, scratch.Length);
+    }
+
+    [Theory]
+    [InlineData(OfficeRasterResamplingMode.Area)]
+    [InlineData(OfficeRasterResamplingMode.Lanczos3)]
+    public void HighQualityWorkingSetAcceptsAnExactScratchNearTheLimit(
+        OfficeRasterResamplingMode mode) {
+        bool accepted = OfficeRasterResampler.TryGetHighQualityWorkingSetBytes(
+            sourceWidth: 1000,
+            sourceHeight: 1000,
+            width: 6000,
+            height: 6000,
+            mode,
+            out long workingSetBytes);
+
+        Assert.True(accepted);
+        Assert.InRange(
+            workingSetBytes,
+            230L * 1024L * 1024L,
+            OfficeRasterGuards.MaximumDecodedBytes);
+    }
+
     private static void AssertColorNear(OfficeColor expected, OfficeColor actual, int tolerance) {
         Assert.InRange(actual.R, Math.Max(0, expected.R - tolerance), Math.Min(255, expected.R + tolerance));
         Assert.InRange(actual.G, Math.Max(0, expected.G - tolerance), Math.Min(255, expected.G + tolerance));

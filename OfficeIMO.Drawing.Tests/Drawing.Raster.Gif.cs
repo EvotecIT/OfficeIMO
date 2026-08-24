@@ -205,6 +205,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeGifReaderTransfersSelectedCanvasWithoutFullCanvasSnapshots() {
+            byte[] source = CreateIndexedGif(
+                2048,
+                2048,
+                new[] { OfficeColor.Red, OfficeColor.Black },
+                new byte[] { 0 },
+                imageWidth: 1,
+                imageHeight: 1);
+            int descriptorOffset = Array.IndexOf(source, (byte)0x2C);
+            byte[] previousDisposal = { 0x21, 0xF9, 0x04, 0x0C, 0, 0, 0, 0 };
+            byte[] gif = source.Take(descriptorOffset)
+                .Concat(previousDisposal)
+                .Concat(source.Skip(descriptorOffset))
+                .ToArray();
+            OfficeGifReader.TryDecodeFrame(CreateSinglePixelGif(), 0, out _, out _);
+
+#if NET8_0_OR_GREATER
+            long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
+            Assert.True(OfficeGifReader.TryDecodeFrame(
+                gif, 0, out OfficeRasterImage? selected, out int frameCount));
+#if NET8_0_OR_GREATER
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
+
+            Assert.Equal(1, frameCount);
+            Assert.Equal((2048, 2048), (selected!.Width, selected.Height));
+            Assert.Equal(OfficeColor.Red, selected.GetPixel(0, 0));
+#if NET8_0_OR_GREATER
+            Assert.True(allocated < 24L * 1024L * 1024L,
+                $"Selected GIF frame allocated {allocated:N0} bytes.");
+#endif
+        }
+
+        [Fact]
         public void CompleteContentValidationRejectsMalformedTrailingGifFrame() {
             byte[] gif = CreateTwoFrameGif(out int secondFrameDescriptorOffset);
             gif[secondFrameDescriptorOffset + 12] = 0x07;

@@ -468,7 +468,33 @@ public partial class DrawingTests {
         WriteBigEndianInt32(apng, firstFrameControlOffset + 12, frameWidth);
         WriteBigEndianInt32(apng, secondFrameControlOffset + 12, frameWidth);
 
+        Assert.True(OfficePngAnimationValidator.TryValidateStructure(apng));
         Assert.False(OfficePngAnimationValidator.TryValidateAdditionalFrames(apng));
+    }
+
+    [Fact]
+    public void ApngEarlyFrameSelectionDoesNotChargeUnselectedFramePixels() {
+        byte[] staticPng = OfficePngWriter.Encode(
+            new OfficeRasterImage(1000, 1000, OfficeColor.White));
+        byte[] apng = CreateRepeatedFrameApng(staticPng, frameCount: 51);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(
+            apng, out OfficeRasterContainerInfo? container));
+        Assert.Equal(51, container!.Count);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            apng,
+            new OfficeRasterDecodeOptions { FrameIndex = 0 },
+            out OfficeRasterImage? selected,
+            out OfficeRasterDecodeInfo info));
+
+        Assert.Equal((1000, 1000), (selected!.Width, selected.Height));
+        Assert.Equal(0, info.SelectedFrameIndex);
+        Assert.Equal(51, info.FrameCount);
+        Assert.False(OfficeRasterImageDecoder.TryDecode(
+            apng,
+            new OfficeRasterDecodeOptions { FrameIndex = 50 },
+            out _,
+            out _));
     }
 
     [Fact]
@@ -1131,6 +1157,44 @@ public partial class DrawingTests {
         return result;
     }
 
+    private static byte[] CreateRepeatedFrameApng(byte[] png, int frameCount) {
+        if (frameCount < 1) throw new ArgumentOutOfRangeException(nameof(frameCount));
+        int ihdrOffset = FindPngChunk(png, "IHDR");
+        int width = ReadBigEndianInt32(png, ihdrOffset + 8);
+        int height = ReadBigEndianInt32(png, ihdrOffset + 12);
+        int idatOffset = FindPngChunk(png, "IDAT");
+        int idatLength = ReadBigEndianInt32(png, idatOffset);
+        int idatEnd = idatOffset + 12 + idatLength;
+        byte[] animationControl = new byte[8];
+        WriteBigEndianInt32(animationControl, 0, frameCount);
+        byte[] prefix = CreatePngChunk("acTL", animationControl)
+            .Concat(CreatePngChunk("fcTL", CreateFrameControl(0, width, height)))
+            .ToArray();
+        var suffix = new List<byte>();
+        for (int frame = 1; frame < frameCount; frame++) {
+            suffix.AddRange(CreatePngChunk(
+                "fcTL",
+                CreateFrameControl(checked(frame * 2 - 1), width, height)));
+            byte[] frameData = new byte[idatLength + 4];
+            WriteBigEndianInt32(frameData, 0, checked(frame * 2));
+            Buffer.BlockCopy(png, idatOffset + 8, frameData, 4, idatLength);
+            suffix.AddRange(CreatePngChunk("fdAT", frameData));
+        }
+
+        byte[] result = new byte[png.Length + prefix.Length + suffix.Count];
+        Buffer.BlockCopy(png, 0, result, 0, idatOffset);
+        Buffer.BlockCopy(prefix, 0, result, idatOffset, prefix.Length);
+        Buffer.BlockCopy(png, idatOffset, result, idatOffset + prefix.Length, idatEnd - idatOffset);
+        suffix.CopyTo(result, idatEnd + prefix.Length);
+        Buffer.BlockCopy(
+            png,
+            idatEnd,
+            result,
+            idatEnd + prefix.Length + suffix.Count,
+            png.Length - idatEnd);
+        return result;
+    }
+
     private static byte[] CreateAdam7RgbaPng(OfficeRasterImage image) {
         int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
         int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
@@ -1193,11 +1257,11 @@ public partial class DrawingTests {
         return result;
     }
 
-    private static byte[] CreateFrameControl(int sequence) {
+    private static byte[] CreateFrameControl(int sequence, int width = 1, int height = 1) {
         byte[] data = new byte[26];
         WriteBigEndianInt32(data, 0, sequence);
-        WriteBigEndianInt32(data, 4, 1);
-        WriteBigEndianInt32(data, 8, 1);
+        WriteBigEndianInt32(data, 4, width);
+        WriteBigEndianInt32(data, 8, height);
         data[21] = 1;
         return data;
     }

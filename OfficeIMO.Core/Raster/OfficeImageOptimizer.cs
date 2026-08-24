@@ -228,7 +228,7 @@ public static class OfficeImageOptimizer {
         OfficeImageExportFormat exportFormat = ToExportFormat(outputFormat);
         double dpiX = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiX ?? sourceDpiX);
         double dpiY = OfficeRasterImageEncoder.NormalizeDpi(exportFormat, request.OutputDpiY ?? sourceDpiY);
-        if (explicitResolutionRewrite && outputFormat == OfficeImageFormat.Jpeg &&
+        if ((explicitResolutionRewrite || orientationSwapsAxes) && outputFormat == OfficeImageFormat.Jpeg &&
             metadata.ExifContainsResolution && jpegMetadata.Exif is byte[] copiedExif) {
             if (OfficeExifMetadataEditor.TryRewritePhysicalResolution(copiedExif, dpiX, dpiY, out byte[] rewrittenExif)) {
                 jpegMetadata = new OfficeJpegMetadata(rewrittenExif, jpegMetadata.Xmp, jpegMetadata.Icc);
@@ -396,7 +396,7 @@ public static class OfficeImageOptimizer {
                 xmp = source.Xmp;
                 preserved |= OfficeImageMetadataKinds.Xmp;
             }
-            if ((requested & OfficeImageMetadataKinds.Icc) != 0 && source.Icc != null) {
+            if ((requested & OfficeImageMetadataKinds.Icc) != 0 && IsRgbIccProfile(source.Icc)) {
                 icc = source.Icc;
                 preserved |= OfficeImageMetadataKinds.Icc;
             }
@@ -408,6 +408,13 @@ public static class OfficeImageOptimizer {
         }
         jpeg = new OfficeJpegMetadata(exif, xmp, icc);
     }
+
+    private static bool IsRgbIccProfile(byte[]? profile) =>
+        profile is { Length: >= 20 } &&
+        profile[16] == (byte)'R' &&
+        profile[17] == (byte)'G' &&
+        profile[18] == (byte)'B' &&
+        profile[19] == (byte)' ';
 
     private static OfficeImageMetadataReport MetadataReport(
         OfficeImageOptimizationRequest request,

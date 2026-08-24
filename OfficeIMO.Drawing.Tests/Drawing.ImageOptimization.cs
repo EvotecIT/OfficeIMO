@@ -204,6 +204,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerReportsNonRgbIccAsLostWhenWritingRgbJpeg() {
+            byte[] grayIcc = CreateMinimalOptimizationIccProfile("GRAY");
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(icc: grayIcc)
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageMetadataKinds.Icc,
+                result.Metadata.Source & OfficeImageMetadataKinds.Icc);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Icc);
+            Assert.Equal(OfficeImageMetadataKinds.Icc,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Icc);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                OfficeImageMetadataInspector.Inspect(result.Bytes, OfficeImageFormat.Jpeg).Kinds &
+                OfficeImageMetadataKinds.Icc);
+        }
+
+        [Fact]
         public void OfficeImageOptimizerReportsNormalizedTiffOrientationAsPreserved() {
             var source = new OfficeRasterImage(2, 1);
             source.SetPixel(0, 0, OfficeColor.Red);
@@ -356,6 +384,39 @@ namespace OfficeIMO.Tests {
 
             Assert.InRange(copiedExif.PhysicalDpiX!.Value, 299.99D, 300.01D);
             Assert.InRange(copiedExif.PhysicalDpiY!.Value, 149.99D, 150.01D);
+            Assert.Equal(OfficeImageMetadataKinds.Resolution,
+                result.Metadata.Normalized & OfficeImageMetadataKinds.Resolution);
+        }
+
+        [Fact]
+        public void AxisSwappingJpegOrientationRewritesCopiedExifDensity() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 2, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(
+                        exif: CreateExifWithOrientationAndResolution(6, 300, 150)),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(1, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(
+                result.Bytes, out OfficeImageOrientation outputOrientation));
+            Assert.Equal(OfficeImageOrientation.Normal, outputOrientation);
+            Assert.InRange(output.PhysicalDpiX!.Value, 149.99D, 150.01D);
+            Assert.InRange(output.PhysicalDpiY!.Value, 299.99D, 300.01D);
+            Assert.InRange(result.Final.DpiX, 149.99D, 150.01D);
+            Assert.InRange(result.Final.DpiY, 299.99D, 300.01D);
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
                 result.Metadata.Normalized & OfficeImageMetadataKinds.Resolution);
         }
@@ -1120,17 +1181,55 @@ namespace OfficeIMO.Tests {
             0x00, 0x00, 0x00, 0x00
         };
 
-        private static byte[] CreateMinimalOptimizationIccProfile() {
+        private static byte[] CreateMinimalOptimizationIccProfile(string deviceColorSpace = "RGB ") {
+            Assert.Equal(4, deviceColorSpace.Length);
             var profile = new byte[132];
             profile[0] = 0;
             profile[1] = 0;
             profile[2] = 0;
             profile[3] = 132;
+            profile[16] = (byte)deviceColorSpace[0];
+            profile[17] = (byte)deviceColorSpace[1];
+            profile[18] = (byte)deviceColorSpace[2];
+            profile[19] = (byte)deviceColorSpace[3];
             profile[36] = (byte)'a';
             profile[37] = (byte)'c';
             profile[38] = (byte)'s';
             profile[39] = (byte)'p';
             return profile;
+        }
+
+        private static byte[] CreateExifWithOrientationAndResolution(
+            ushort orientation,
+            int dpiX,
+            int dpiY) {
+            var exif = new byte[78];
+            exif[0] = (byte)'I';
+            exif[1] = (byte)'I';
+            exif[2] = 0x2A;
+            exif[4] = 0x08;
+            exif[8] = 0x04;
+            WriteLittleEndianUInt16(exif, 10, 274);
+            WriteLittleEndianUInt16(exif, 12, 3);
+            WriteLittleEndianUInt32(exif, 14, 1);
+            WriteLittleEndianUInt16(exif, 18, orientation);
+            WriteLittleEndianUInt16(exif, 22, 282);
+            WriteLittleEndianUInt16(exif, 24, 5);
+            WriteLittleEndianUInt32(exif, 26, 1);
+            WriteLittleEndianUInt32(exif, 30, 62);
+            WriteLittleEndianUInt16(exif, 34, 283);
+            WriteLittleEndianUInt16(exif, 36, 5);
+            WriteLittleEndianUInt32(exif, 38, 1);
+            WriteLittleEndianUInt32(exif, 42, 70);
+            WriteLittleEndianUInt16(exif, 46, 296);
+            WriteLittleEndianUInt16(exif, 48, 3);
+            WriteLittleEndianUInt32(exif, 50, 1);
+            WriteLittleEndianUInt16(exif, 54, 2);
+            WriteLittleEndianUInt32(exif, 62, checked((uint)dpiX));
+            WriteLittleEndianUInt32(exif, 66, 1);
+            WriteLittleEndianUInt32(exif, 70, checked((uint)dpiY));
+            WriteLittleEndianUInt32(exif, 74, 1);
+            return exif;
         }
 
         private static bool ContainsSequence(byte[] container, byte[] value) {
@@ -1170,6 +1269,11 @@ namespace OfficeIMO.Tests {
             data[offset + 1] = (byte)(value >> 8);
             data[offset + 2] = (byte)(value >> 16);
             data[offset + 3] = (byte)(value >> 24);
+        }
+
+        private static void WriteLittleEndianUInt16(byte[] data, int offset, ushort value) {
+            data[offset] = (byte)value;
+            data[offset + 1] = (byte)(value >> 8);
         }
 
         private static byte[] InsertExifSegmentAfterStartOfImage(byte[] jpeg, byte[] tiffData) {

@@ -27,7 +27,12 @@ internal static class OfficeApngDecoder {
                 return false;
             }
 
+            long selectedPrefixPixels = 0L;
             for (int index = 0; index <= frameIndex; index++) {
+                OfficeRasterFrameInfo frame = container.Frames[index];
+                long framePixels = checked((long)frame.Width * frame.Height);
+                if (framePixels > maximumPixels || selectedPrefixPixels > maximumPixels - framePixels) return false;
+                selectedPrefixPixels += framePixels;
                 if (!IsFrameWithinMemoryBudget(bytes.Length, container, container.Frames[index], ihdr,
                         palette, transparency, framePayloads, index, index < frameIndex)) return false;
             }
