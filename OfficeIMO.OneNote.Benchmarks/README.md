@@ -35,6 +35,18 @@ ignored benchmark artifact root:
 dotnet run -c Release --framework net10.0 -- --evidence --scale Normal --repeat 3 --json .benchmark-artifacts/onenote/normal.json
 ```
 
+Verify the deterministic corpus against the checked-in allocation, managed
+heap, process-peak, and output-size ceilings:
+
+```powershell
+dotnet run -c Release --framework net10.0 -- --verify-budgets
+```
+
+The elapsed-time ceilings catch gross stalls only because every evidence sample
+includes fresh-process startup. Use BenchmarkDotNet and a same-machine healthy
+commit for timing regressions. The manifest ceilings are regression gates, not
+competitor or throughput claims.
+
 Use `--operation CreateWrite|Read|ReadEditWrite` or
 `--scale Small|Normal|Large` to narrow an investigation. The report records the
 source commit, dirty-tree state, runtime, operating system, architecture, and

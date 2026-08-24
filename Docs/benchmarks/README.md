@@ -14,7 +14,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | HTML | BenchmarkDotNet stage, pagination, Drawing, and PDF projection suites | Managed allocations are recorded; several output methods return byte counts | No general renderer is equivalent across the complete OfficeIMO contract | Add bounded peak-memory evidence for large non-PDF rendering workflows |
 | RTF | Full validated RTF-to-HTML evidence shows OfficeIMO faster and lower-allocation in every corpus | Output is smaller on the three equivalent generated corpora; the higher-fidelity producer output remains 3.14x larger | RtfPipe for validated RTF-to-HTML | Reduce fidelity-preserving producer HTML overhead further and add Linux/macOS evidence |
 | OpenDocument | BenchmarkDotNet open, sparse-write, formula, and validated ODS create/read comparisons | Evidence runner records peak working set and package input/output bytes; the ODS comparison exports validated size sidecars | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
-| OneNote | BenchmarkDotNet native read, write, and Markdown projection | Write returns bytes but size and peak memory are not recorded as evidence | No like-for-like offline semantic `.one` competitor | Add validated artifact-size and isolated peak-memory evidence |
+| OneNote | BenchmarkDotNet native read, write, and Markdown projection plus isolated create/write, read, and read/edit/write workflows | Managed allocations, sampled managed-heap growth, process peak, input bytes, and output bytes are recorded | No like-for-like offline semantic `.one` competitor has been identified | Native scale evidence and regression budgets are in place; add non-Windows evidence and a competitor only when the same offline semantic contract exists |
 | Email | Full validated EML read/write evidence is within 2x of MimeKit; the 2,000-item PST scale contract fell from 68.19s to 4.03s | Validated EML output is 1.07-1.08x MimeKit; the 4.08 MB PST retained 0.70 MB managed memory | MimeKit 4.17.0 for equivalent complete MIME workflows | Add isolated peak-memory and non-Windows evidence; add a PST competitor only if the same managed creation contract is available |
 | ZIP | Full validated safe-traversal evidence is 1.03-1.16x raw platform traversal by mean time and 1.00-1.01x by allocation | Isolated peak managed-heap growth matches the platform lane; output size is not applicable because both lanes consume the same ZIP | `System.IO.Compression` metadata projection, explicitly without OfficeIMO's safety policy | Add Linux/macOS evidence |
 | Security, Provenance, AsciiDoc, LaTeX, EPUB, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
@@ -123,6 +123,26 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.OpenDocument.Benchmarks.Co
 The comparison project is outside `OfficeIMO.sln`; OpenStandardLibrary remains
 an opt-in benchmark dependency. It is not used as an ODT or ODP comparator
 because it does not expose equivalent document models for those formats.
+
+## OneNote native workflows
+
+`OfficeIMO.OneNote.Benchmarks` measures default validated writing separately from
+serialization-only writing. Its isolated evidence runner covers deterministic
+1-page, 25-page, and 100-page create/write, read, and read/edit/write workflows.
+File-producing lanes are reopened after measurement and must match the exact
+ordered semantic fingerprint.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.OneNote.Benchmarks -- --verify-budgets
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.OneNote.Benchmarks -- --filter '*WriteDesktopSection*'
+```
+
+The Windows native baseline and writer optimization evidence are recorded in
+[`officeimo.onenote-native-2026-08-24.md`](officeimo.onenote-native-2026-08-24.md).
+No contender ratio is claimed: no other managed library was found that provides
+the same offline semantic `.one` read/write contract. The checked-in budgets
+guard allocation, managed-heap growth, process peak, and output size; timing is
+reviewed with BenchmarkDotNet and a same-machine healthy commit.
 
 ## ZIP traversal comparison
 

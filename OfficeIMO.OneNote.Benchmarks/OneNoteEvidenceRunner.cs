@@ -29,7 +29,7 @@ internal static class OneNoteEvidenceRunner {
         }
     }
 
-    internal static int RunEvidence(string[] args) {
+    internal static int RunEvidence(string[] args, bool verifyBudgets) {
         string? operationFilter = GetOption(args, "--operation");
         string? scaleFilter = GetOption(args, "--scale");
         string? jsonPath = GetOption(args, "--json");
@@ -39,6 +39,8 @@ internal static class OneNoteEvidenceRunner {
             ? OneNoteBenchmarkCorpus.Scales
             : new[] { OneNoteBenchmarkCorpus.Get(scaleFilter!) };
         var measurements = new List<OneNoteEvidenceMeasurement>();
+        var failures = new List<string>();
+        OneNoteEvidenceBudgetManifest? manifest = verifyBudgets ? LoadBudgetManifest() : null;
 
         foreach (OneNoteBenchmarkScale scale in scales) {
             string sourcePath = CreateTemporarySource(scale);
@@ -51,6 +53,7 @@ internal static class OneNoteEvidenceRunner {
                             string.Equals(operation, "CreateWrite", StringComparison.OrdinalIgnoreCase) ? null : sourcePath)
                             with { Iteration = iteration };
                         measurements.Add(measurement);
+                        if (manifest != null) EvaluateBudget(manifest, measurement, failures);
                         Console.WriteLine(
                             $"{operation,-13} {scale.Name,-6} #{iteration,-2} " +
                             $"{measurement.ElapsedMilliseconds,9:F2} ms " +
@@ -73,7 +76,8 @@ internal static class OneNoteEvidenceRunner {
             RuntimeInformation.OSDescription,
             RuntimeInformation.ProcessArchitecture.ToString(),
             Environment.ProcessorCount,
-            measurements);
+            measurements,
+            failures);
         if (!string.IsNullOrWhiteSpace(jsonPath)) {
             string fullPath = Path.GetFullPath(jsonPath!);
             string? directory = Path.GetDirectoryName(fullPath);
@@ -81,7 +85,43 @@ internal static class OneNoteEvidenceRunner {
             File.WriteAllText(fullPath, JsonSerializer.Serialize(report, JsonOptions));
             Console.WriteLine("Wrote " + fullPath);
         }
-        return 0;
+        foreach (string failure in failures) Console.Error.WriteLine("BUDGET FAILURE: " + failure);
+        return failures.Count == 0 ? 0 : 1;
+    }
+
+    private static OneNoteEvidenceBudgetManifest LoadBudgetManifest() {
+        string path = Path.Combine(AppContext.BaseDirectory, "onenote-performance-budgets.json");
+        return JsonSerializer.Deserialize<OneNoteEvidenceBudgetManifest>(File.ReadAllText(path), JsonOptions)
+            ?? throw new InvalidOperationException("OneNote performance budget manifest is invalid.");
+    }
+
+    private static void EvaluateBudget(
+        OneNoteEvidenceBudgetManifest manifest,
+        OneNoteEvidenceMeasurement measurement,
+        ICollection<string> failures) {
+        OneNoteEvidenceBudget? budget = manifest.Budgets.FirstOrDefault(item =>
+            string.Equals(item.Operation, measurement.Operation, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(item.Scale, measurement.Scale, StringComparison.OrdinalIgnoreCase));
+        if (budget == null) {
+            failures.Add($"Missing budget for {measurement.Operation}/{measurement.Scale}.");
+            return;
+        }
+        string lane = measurement.Operation + "/" + measurement.Scale;
+        if (measurement.ElapsedMilliseconds > budget.MaxElapsedMilliseconds) {
+            failures.Add($"{lane}: elapsed {measurement.ElapsedMilliseconds:F2} ms > {budget.MaxElapsedMilliseconds:F2} ms.");
+        }
+        if (measurement.AllocatedBytes > budget.MaxAllocatedBytes) {
+            failures.Add($"{lane}: allocations {measurement.AllocatedBytes} > {budget.MaxAllocatedBytes} bytes.");
+        }
+        if (measurement.PeakManagedHeapGrowthBytes > budget.MaxPeakManagedHeapGrowthBytes) {
+            failures.Add($"{lane}: managed-heap peak growth {measurement.PeakManagedHeapGrowthBytes} > {budget.MaxPeakManagedHeapGrowthBytes} bytes.");
+        }
+        if (measurement.PeakWorkingSetBytes > budget.MaxPeakWorkingSetBytes) {
+            failures.Add($"{lane}: process peak {measurement.PeakWorkingSetBytes} > {budget.MaxPeakWorkingSetBytes} bytes.");
+        }
+        if (measurement.OutputBytes > budget.MaxOutputBytes) {
+            failures.Add($"{lane}: output {measurement.OutputBytes} > {budget.MaxOutputBytes} bytes.");
+        }
     }
 
     private static OneNoteEvidenceMeasurement Measure(string operation, string scaleName, string? sourcePath) {
@@ -312,7 +352,24 @@ internal sealed record OneNoteEvidenceReport(
     string OperatingSystem,
     string Architecture,
     int ProcessorCount,
-    IReadOnlyList<OneNoteEvidenceMeasurement> Measurements);
+    IReadOnlyList<OneNoteEvidenceMeasurement> Measurements,
+    IReadOnlyList<string> Failures);
+
+internal sealed class OneNoteEvidenceBudgetManifest {
+    public int Version { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public List<OneNoteEvidenceBudget> Budgets { get; set; } = new();
+}
+
+internal sealed class OneNoteEvidenceBudget {
+    public string Operation { get; set; } = string.Empty;
+    public string Scale { get; set; } = string.Empty;
+    public double MaxElapsedMilliseconds { get; set; }
+    public long MaxAllocatedBytes { get; set; }
+    public long MaxPeakManagedHeapGrowthBytes { get; set; }
+    public long MaxPeakWorkingSetBytes { get; set; }
+    public long MaxOutputBytes { get; set; }
+}
 
 internal sealed class OneNoteManagedHeapSampler : IDisposable {
     private readonly Thread _thread;

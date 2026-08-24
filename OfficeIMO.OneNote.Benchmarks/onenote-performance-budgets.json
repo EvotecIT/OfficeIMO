@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "description": "Regression ceilings for the deterministic native OneNote corpus. Allocation, managed-heap growth, and output size are hard gates. Elapsed and process-peak ceilings catch gross regressions but are not throughput claims.",
+  "budgets": [
+    { "operation": "CreateWrite", "scale": "Small",  "maxElapsedMilliseconds": 300, "maxAllocatedBytes": 262144,   "maxPeakManagedHeapGrowthBytes": 524288,   "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 8192 },
+    { "operation": "Read", "scale": "Small",         "maxElapsedMilliseconds": 300, "maxAllocatedBytes": 262144,   "maxPeakManagedHeapGrowthBytes": 524288,   "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 0 },
+    { "operation": "ReadEditWrite", "scale": "Small","maxElapsedMilliseconds": 300, "maxAllocatedBytes": 786432,   "maxPeakManagedHeapGrowthBytes": 1048576,  "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 14336 },
+    { "operation": "CreateWrite", "scale": "Normal", "maxElapsedMilliseconds": 300, "maxAllocatedBytes": 4718592,  "maxPeakManagedHeapGrowthBytes": 5242880,  "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 139264 },
+    { "operation": "Read", "scale": "Normal",        "maxElapsedMilliseconds": 300, "maxAllocatedBytes": 4718592,  "maxPeakManagedHeapGrowthBytes": 5242880,  "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 0 },
+    { "operation": "ReadEditWrite", "scale": "Normal","maxElapsedMilliseconds": 300,"maxAllocatedBytes": 13107200, "maxPeakManagedHeapGrowthBytes": 13631488, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 147456 },
+    { "operation": "CreateWrite", "scale": "Large",  "maxElapsedMilliseconds": 500, "maxAllocatedBytes": 17825792, "maxPeakManagedHeapGrowthBytes": 18874368, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 540672 },
+    { "operation": "Read", "scale": "Large",         "maxElapsedMilliseconds": 500, "maxAllocatedBytes": 17825792, "maxPeakManagedHeapGrowthBytes": 18874368, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 0 },
+    { "operation": "ReadEditWrite", "scale": "Large","maxElapsedMilliseconds": 500, "maxAllocatedBytes": 50331648, "maxPeakManagedHeapGrowthBytes": 50331648, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 548864 }
+  ]
+}

@@ -5,8 +5,12 @@ if (args.Length > 0 && string.Equals(args[0], "--probe", StringComparison.Ordina
     return OneNoteEvidenceRunner.RunProbe(args.Skip(1).ToArray());
 }
 
+if (args.Any(argument => string.Equals(argument, "--verify-budgets", StringComparison.OrdinalIgnoreCase))) {
+    return OneNoteEvidenceRunner.RunEvidence(args, verifyBudgets: true);
+}
+
 if (args.Any(argument => string.Equals(argument, "--evidence", StringComparison.OrdinalIgnoreCase))) {
-    return OneNoteEvidenceRunner.RunEvidence(args);
+    return OneNoteEvidenceRunner.RunEvidence(args, verifyBudgets: false);
 }
 
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
