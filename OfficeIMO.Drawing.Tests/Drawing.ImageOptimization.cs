@@ -232,6 +232,96 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerRejectsMalformedRgbIccInsteadOfPreservingIt() {
+            byte[] malformedIcc = CreateMinimalOptimizationIccProfile();
+            malformedIcc[36] = (byte)'X';
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(icc: malformedIcc)
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.Icc,
+                result.Metadata.Source & OfficeImageMetadataKinds.Icc);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Icc);
+            Assert.Equal(OfficeImageMetadataKinds.Icc,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Icc);
+            Assert.True(OfficeImageReader.TryValidateContent(result.Bytes, "optimized.jpg", out _));
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerReportsMalformedExifAndXmpAsLoss() {
+            byte[] malformedExif = CreateExifOrientation(1);
+            malformedExif[malformedExif.Length - 4] = 0xFF;
+            byte[] malformedXmp = System.Text.Encoding.UTF8.GetBytes("<x:xmpmeta");
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: malformedExif, xmp: malformedXmp)
+                });
+
+            Assert.False(OfficeImageReader.TryValidateContent(jpeg, "malformed-metadata.jpg", out _));
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & (OfficeImageMetadataKinds.Exif | OfficeImageMetadataKinds.Xmp));
+            Assert.Equal(OfficeImageMetadataKinds.Exif | OfficeImageMetadataKinds.Xmp,
+                result.Metadata.Lost & (OfficeImageMetadataKinds.Exif | OfficeImageMetadataKinds.Xmp));
+            Assert.True(OfficeImageReader.TryValidateContent(result.Bytes, "optimized.jpg", out _));
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerReportsDuplicateAndIncompleteJpegIccSequencesAsLoss() {
+            byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(4, 4, OfficeColor.SteelBlue));
+            byte[] profile = CreateMinimalOptimizationIccProfile();
+            byte[] prefix = System.Text.Encoding.ASCII.GetBytes("ICC_PROFILE\0");
+            byte[] completePart = prefix.Concat(new byte[] { 1, 1 }).Concat(profile).ToArray();
+            byte[] duplicate = InsertJpegSegmentAfterStartOfImage(
+                InsertJpegSegmentAfterStartOfImage(jpeg, 0xE2, completePart),
+                0xE2,
+                completePart);
+            byte[] incompletePart = prefix.Concat(new byte[] { 1, 2 }).Concat(profile).ToArray();
+            byte[] incomplete = InsertJpegSegmentAfterStartOfImage(jpeg, 0xE2, incompletePart);
+
+            foreach (byte[] source in new[] { duplicate, incomplete }) {
+                OfficeImageMetadataSnapshot metadata =
+                    OfficeImageMetadataInspector.Inspect(source, OfficeImageFormat.Jpeg);
+                OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                    source,
+                    new OfficeImageOptimizationRequest(2, 2) {
+                        OutputFormat = OfficeImageFormat.Jpeg,
+                        KeepOriginalWhenNotSmaller = false,
+                        MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                    });
+
+                Assert.Equal(OfficeImageMetadataKinds.Icc, metadata.Kinds & OfficeImageMetadataKinds.Icc);
+                Assert.Null(metadata.Icc);
+                Assert.Equal(OfficeImageMetadataKinds.None,
+                    result.Metadata.Preserved & OfficeImageMetadataKinds.Icc);
+                Assert.Equal(OfficeImageMetadataKinds.Icc,
+                    result.Metadata.Lost & OfficeImageMetadataKinds.Icc);
+                Assert.True(OfficeImageReader.TryValidateContent(result.Bytes, "optimized.jpg", out _));
+            }
+        }
+
+        [Fact]
         public void OfficeImageOptimizerReportsNormalizedTiffOrientationAsPreserved() {
             var source = new OfficeRasterImage(2, 1);
             source.SetPixel(0, 0, OfficeColor.Red);
@@ -1594,11 +1684,17 @@ namespace OfficeIMO.Tests {
             return combined;
         }
 
-        private static byte[] InsertApp1SegmentAfterStartOfImage(byte[] jpeg, byte[] payload) {
+        private static byte[] InsertApp1SegmentAfterStartOfImage(byte[] jpeg, byte[] payload) =>
+            InsertJpegSegmentAfterStartOfImage(jpeg, 0xE1, payload);
+
+        private static byte[] InsertJpegSegmentAfterStartOfImage(
+            byte[] jpeg,
+            byte marker,
+            byte[] payload) {
             int segmentLength = payload.Length + 2;
             var segment = new byte[segmentLength + 2];
             segment[0] = 0xFF;
-            segment[1] = 0xE1;
+            segment[1] = marker;
             segment[2] = (byte)(segmentLength >> 8);
             segment[3] = (byte)segmentLength;
             Buffer.BlockCopy(payload, 0, segment, 4, payload.Length);

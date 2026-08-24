@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 
@@ -173,6 +174,10 @@ public sealed class OfficeImageOptimizationResult {
 
 /// <summary>Shared dependency-free placement-aware encoded-image optimizer.</summary>
 public static class OfficeImageOptimizer {
+    private static readonly byte[] JpegExifPrefix = { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0 };
+    private static readonly byte[] JpegXmpPrefix =
+        System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
+
     /// <summary>
     /// Resizes managed static raster input for a known placement and emits PNG, JPEG, TIFF, or WebP.
     /// Animated input is rejected so optimization never silently discards frames.
@@ -397,13 +402,16 @@ public static class OfficeImageOptimizer {
         if (sourceFormat == OfficeImageFormat.Jpeg && outputFormat == OfficeImageFormat.Jpeg) {
             bool canCopyExif = !source.ExifContainsResolution ||
                                (requested & OfficeImageMetadataKinds.Resolution) != 0;
-            if ((requested & OfficeImageMetadataKinds.Exif) != 0 && source.Exif != null && canCopyExif) {
-                if (OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(source.Exif, out exif)) {
+            byte[]? sourceExif = source.Exif;
+            if ((requested & OfficeImageMetadataKinds.Exif) != 0 &&
+                IsValidJpegExif(sourceExif) && canCopyExif) {
+                if (OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(sourceExif!, out exif)) {
                     preserved |= OfficeImageMetadataKinds.Exif;
                 }
             }
             if ((requested & OfficeImageMetadataKinds.Xmp) != 0 && source.Xmp != null &&
-                !source.HasExtendedJpegXmp && !source.HasDuplicateStandardJpegXmp) {
+                !source.HasExtendedJpegXmp && !source.HasDuplicateStandardJpegXmp &&
+                IsValidJpegXmp(source.Xmp)) {
                 xmp = source.Xmp;
                 preserved |= OfficeImageMetadataKinds.Xmp;
             }
@@ -422,10 +430,29 @@ public static class OfficeImageOptimizer {
 
     private static bool IsRgbIccProfile(byte[]? profile) =>
         profile is { Length: >= 20 } &&
+        OfficeIccProfileValidator.TryValidate(profile, 0, profile.Length) &&
         profile[16] == (byte)'R' &&
         profile[17] == (byte)'G' &&
         profile[18] == (byte)'B' &&
         profile[19] == (byte)' ';
+
+    private static bool IsValidJpegExif(byte[]? exif) =>
+        exif != null && HasPrefix(exif, JpegExifPrefix) &&
+        OfficeTiffStructureValidator.TryValidateExif(
+            exif, JpegExifPrefix.Length, exif.Length - JpegExifPrefix.Length);
+
+    private static bool IsValidJpegXmp(byte[] xmp) =>
+        HasPrefix(xmp, JpegXmpPrefix) &&
+        OfficeXmpPacketValidator.TryValidate(
+            xmp, JpegXmpPrefix.Length, xmp.Length - JpegXmpPrefix.Length);
+
+    private static bool HasPrefix(byte[] data, byte[] prefix) {
+        if (data.Length < prefix.Length) return false;
+        for (int index = 0; index < prefix.Length; index++) {
+            if (data[index] != prefix[index]) return false;
+        }
+        return true;
+    }
 
     private static OfficeImageMetadataReport MetadataReport(
         OfficeImageOptimizationRequest request,

@@ -256,6 +256,33 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngMetadataInspectionDoesNotRetainLargeExifPayloads() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var exif = new byte[4 * 1024 * 1024];
+        byte[] minimalTiff = {
+            (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
+            0, 0,
+            0, 0, 0, 0
+        };
+        Buffer.BlockCopy(minimalTiff, 0, exif, 0, minimalTiff.Length);
+        byte[] withExif = InsertPngChunkBefore(png, "IDAT", "eXIf", exif);
+
+#if NET8_0_OR_GREATER
+        long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
+        OfficeImageMetadataSnapshot metadata =
+            OfficeImageMetadataInspector.Inspect(withExif, OfficeImageFormat.Png);
+#if NET8_0_OR_GREATER
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.InRange(allocated, 0, 128 * 1024);
+#endif
+
+        Assert.True(OfficeImageReader.TryValidateContent(withExif, "large-exif.png", out _));
+        Assert.Equal(OfficeImageMetadataKinds.Exif, metadata.Kinds & OfficeImageMetadataKinds.Exif);
+        Assert.Null(metadata.Exif);
+    }
+
+    [Fact]
     public void PngContainerValidatesTextKeywordsAndCompressedTextStreams() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] compressed = OfficeZlibCodec.Compress(Encoding.UTF8.GetBytes("OfficeIMO"));

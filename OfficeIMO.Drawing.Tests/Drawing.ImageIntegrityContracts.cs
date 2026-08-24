@@ -490,6 +490,10 @@ public partial class DrawingTests {
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(extended, "metadata-only-exif.webp", out _));
         Assert.True(OfficeImageReader.TryValidateContent(extended, "metadata-only-exif.webp", out _));
+        OfficeImageMetadataSnapshot metadata =
+            OfficeImageMetadataInspector.Inspect(extended, OfficeImageFormat.Webp);
+        Assert.Equal(OfficeImageMetadataKinds.Exif, metadata.Kinds & OfficeImageMetadataKinds.Exif);
+        Assert.Null(metadata.Exif);
     }
 
     [Fact]

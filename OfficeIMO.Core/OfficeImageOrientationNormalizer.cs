@@ -162,13 +162,27 @@ public static class OfficeImageOrientationNormalizer {
     }
 
     internal static bool TryReadExifOrientationPayload(byte[] exif, out OfficeImageOrientation orientation) {
+        if (exif == null) {
+            orientation = OfficeImageOrientation.Normal;
+            return false;
+        }
+        return TryReadExifOrientationPayload(exif, 0, exif.Length, out orientation);
+    }
+
+    internal static bool TryReadExifOrientationPayload(
+        byte[] exif,
+        int offset,
+        int count,
+        out OfficeImageOrientation orientation) {
         orientation = OfficeImageOrientation.Normal;
-        if (exif == null) return false;
-        int offset = exif.Length >= 6 && exif[0] == (byte)'E' && exif[1] == (byte)'x' &&
-                     exif[2] == (byte)'i' && exif[3] == (byte)'f' && exif[4] == 0 && exif[5] == 0
-            ? 6
-            : 0;
-        return TryReadTiffOrientation(new OfficeByteView(exif).Slice(offset), out orientation);
+        if (exif == null || offset < 0 || count < 0 || offset > exif.Length - count) return false;
+        int tiffOffset = count >= 6 && exif[offset] == (byte)'E' && exif[offset + 1] == (byte)'x' &&
+                         exif[offset + 2] == (byte)'i' && exif[offset + 3] == (byte)'f' &&
+                         exif[offset + 4] == 0 && exif[offset + 5] == 0
+            ? offset + 6
+            : offset;
+        return TryReadTiffOrientation(
+            new OfficeByteView(exif).Slice(tiffOffset, count - (tiffOffset - offset)), out orientation);
     }
 
     private static bool TryWriteTiffOrientation(byte[] data, int tiffOffset, int tiffLength) =>

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Drawing;
 
 internal sealed class OfficeImageMetadataSnapshot {
@@ -51,8 +49,8 @@ internal static class OfficeImageMetadataInspector {
     }
 
     private static void InspectJpeg(byte[] data, OfficeImageMetadataSnapshot snapshot) {
-        var icc = new SortedDictionary<int, byte[]>();
-        int iccTotal = 0;
+        JpegIccPart?[]? iccParts = null;
+        bool invalidIccSequence = false;
         int offset = 2;
         bool inScan = false;
         while (offset < data.Length - 1) {
@@ -87,7 +85,7 @@ internal static class OfficeImageMetadataInspector {
             }
             if (marker == 0xE1 && StartsWith(data, payload, count, ExifPrefix)) {
                 snapshot.Exif = Slice(data, payload, count);
-                InspectExifPayload(snapshot.Exif, snapshot);
+                InspectExifPayload(snapshot.Exif, 0, snapshot.Exif.Length, snapshot);
             } else if (marker == 0xE1 && StartsWith(data, payload, count, XmpPrefix)) {
                 if (snapshot.Xmp != null) snapshot.HasDuplicateStandardJpegXmp = true;
                 snapshot.Xmp = Slice(data, payload, count);
@@ -96,32 +94,45 @@ internal static class OfficeImageMetadataInspector {
                 snapshot.HasExtendedJpegXmp = true;
                 snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             } else if (marker == 0xE2 && StartsWith(data, payload, count, IccPrefix) && count >= IccPrefix.Length + 2) {
+                snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
                 int sequence = data[payload + IccPrefix.Length];
                 int total = data[payload + IccPrefix.Length + 1];
-                if (sequence >= 1 && total >= 1 && sequence <= total) {
-                    iccTotal = total;
-                    icc[sequence] = Slice(data, payload + IccPrefix.Length + 2, count - IccPrefix.Length - 2);
+                if (sequence < 1 || total < 1 || sequence > total) {
+                    invalidIccSequence = true;
+                } else {
+                    if (iccParts == null) iccParts = new JpegIccPart?[total];
+                    if (iccParts.Length != total || iccParts[sequence - 1].HasValue) {
+                        invalidIccSequence = true;
+                    } else {
+                        iccParts[sequence - 1] = new JpegIccPart(
+                            payload + IccPrefix.Length + 2,
+                            count - IccPrefix.Length - 2);
+                    }
                 }
+            } else if (marker == 0xE2 && StartsWith(data, payload, count, IccPrefix)) {
+                snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                invalidIccSequence = true;
             } else if (marker == 0xFE) {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             }
             if (marker == 0xDA) inScan = true;
             offset += length;
         }
-        if (iccTotal > 0 && icc.Count == iccTotal) {
+        if (!invalidIccSequence && iccParts != null) {
             int length = 0;
-            for (int index = 1; index <= iccTotal; index++) {
-                if (!icc.TryGetValue(index, out byte[]? part)) return;
-                length = checked(length + part.Length);
+            for (int index = 0; index < iccParts.Length; index++) {
+                if (!iccParts[index].HasValue) return;
+                JpegIccPart part = iccParts[index]!.Value;
+                if (part.Length > OfficeRasterGuards.MaximumEncodedBytes - length) return;
+                length += part.Length;
             }
             snapshot.Icc = new byte[length];
             int target = 0;
-            for (int index = 1; index <= iccTotal; index++) {
-                byte[] part = icc[index];
-                Buffer.BlockCopy(part, 0, snapshot.Icc, target, part.Length);
+            for (int index = 0; index < iccParts.Length; index++) {
+                JpegIccPart part = iccParts[index]!.Value;
+                Buffer.BlockCopy(data, part.Offset, snapshot.Icc, target, part.Length);
                 target += part.Length;
             }
-            snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
         }
     }
 
@@ -132,8 +143,7 @@ internal static class OfficeImageMetadataInspector {
             if (length < 0 || offset > data.Length - 12 - length) break;
             string type = ReadAscii(data, offset + 4, 4);
             if (type == "eXIf") {
-                snapshot.Exif = Slice(data, offset + 8, length);
-                InspectExifPayload(snapshot.Exif, snapshot);
+                InspectExifPayload(data, offset + 8, length, snapshot);
             }
             else if (type == "iCCP") snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
             else if (type == "pHYs") {
@@ -162,8 +172,7 @@ internal static class OfficeImageMetadataInspector {
             if (length < 0 || offset > data.Length - 8 - length) break;
             string type = ReadAscii(data, offset, 4);
             if (type == "EXIF") {
-                snapshot.Exif = Slice(data, offset + 8, length);
-                InspectExifPayload(snapshot.Exif, snapshot);
+                InspectExifPayload(data, offset + 8, length, snapshot);
             }
             else if (type == "XMP ") snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             else if (type == "ICCP") snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
@@ -191,14 +200,15 @@ internal static class OfficeImageMetadataInspector {
             else if (tag == 270) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             else if (tag == 282 || tag == 283) {
                 hasResolution = true;
-                if (TryReadRational(data, entry, little, tiffBaseOffset: 0, out double resolution)) {
+                if (TryReadRational(
+                        data, entry, little, tiffBaseOffset: 0, data.Length, out double resolution)) {
                     if (tag == 282) resolutionX = resolution;
                     else resolutionY = resolution;
                 }
             }
             else if (tag == 296) {
                 hasResolution = true;
-                if (!TryReadInlineShort(data, entry, little, out resolutionUnit)) resolutionUnit = 1;
+                if (!TryReadInlineShort(data, entry, little, data.Length, out resolutionUnit)) resolutionUnit = 1;
             }
         }
         if (hasResolution) {
@@ -246,19 +256,28 @@ internal static class OfficeImageMetadataInspector {
         }
     }
 
-    private static void InspectExifPayload(byte[] exif, OfficeImageMetadataSnapshot snapshot) {
+    private static void InspectExifPayload(
+        byte[] exif,
+        int payloadOffset,
+        int payloadLength,
+        OfficeImageMetadataSnapshot snapshot) {
         snapshot.Kinds |= OfficeImageMetadataKinds.Exif;
-        if (OfficeImageOrientationNormalizer.TryReadExifOrientationPayload(exif, out OfficeImageOrientation orientation) &&
+        if (OfficeImageOrientationNormalizer.TryReadExifOrientationPayload(
+                exif, payloadOffset, payloadLength, out OfficeImageOrientation orientation) &&
             orientation != OfficeImageOrientation.Normal) {
             snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
         }
-        int tiffOffset = exif.Length >= 6 && StartsWith(exif, 0, exif.Length, ExifPrefix) ? 6 : 0;
-        if (exif.Length - tiffOffset < 10) return;
+        if (payloadOffset < 0 || payloadLength < 0 || payloadOffset > exif.Length - payloadLength) return;
+        int payloadEnd = payloadOffset + payloadLength;
+        int tiffOffset = payloadLength >= 6 && StartsWith(exif, payloadOffset, payloadLength, ExifPrefix)
+            ? payloadOffset + 6
+            : payloadOffset;
+        if (payloadEnd - tiffOffset < 10) return;
         bool little = exif[tiffOffset] == (byte)'I' && exif[tiffOffset + 1] == (byte)'I';
         bool big = exif[tiffOffset] == (byte)'M' && exif[tiffOffset + 1] == (byte)'M';
         if (!little && !big) return;
         int ifd = ReadUInt32(exif, tiffOffset + 4, little);
-        if (ifd < 0 || ifd > exif.Length - tiffOffset - 2) return;
+        if (ifd < 0 || ifd > payloadEnd - tiffOffset - 2) return;
         int absoluteIfd = tiffOffset + ifd;
         int count = ReadUInt16(exif, absoluteIfd, little);
         bool hasResolution = false;
@@ -267,17 +286,19 @@ internal static class OfficeImageMetadataInspector {
         double? resolutionY = null;
         for (int index = 0; index < count; index++) {
             int entry = absoluteIfd + 2 + index * 12;
-            if (entry > exif.Length - 12) return;
+            if (entry > payloadEnd - 12) return;
             int tag = ReadUInt16(exif, entry, little);
             if (tag == 282 || tag == 283) {
                 hasResolution = true;
-                if (TryReadRational(exif, entry, little, tiffOffset, out double resolution)) {
+                if (TryReadRational(
+                        exif, entry, little, tiffOffset, payloadEnd, out double resolution)) {
                     if (tag == 282) resolutionX = resolution;
                     else resolutionY = resolution;
                 }
             } else if (tag == 296) {
                 hasResolution = true;
-                if (!TryReadInlineShort(exif, entry, little, out resolutionUnit)) resolutionUnit = 1;
+                if (!TryReadInlineShort(
+                        exif, entry, little, payloadEnd, out resolutionUnit)) resolutionUnit = 1;
             }
         }
         if (hasResolution) {
@@ -313,14 +334,15 @@ internal static class OfficeImageMetadataInspector {
         int entry,
         bool little,
         int tiffBaseOffset,
+        int viewEnd,
         out double value) {
         value = 0D;
-        if (entry < 0 || entry > data.Length - 12 ||
+        if (viewEnd < 0 || viewEnd > data.Length || entry < 0 || entry > viewEnd - 12 ||
             ReadUInt16(data, entry + 2, little) != 5 ||
             ReadUInt32Unsigned(data, entry + 4, little) != 1U) return false;
         uint relativeOffset = ReadUInt32Unsigned(data, entry + 8, little);
         long absoluteOffset = (long)tiffBaseOffset + relativeOffset;
-        if (absoluteOffset < 0 || absoluteOffset > data.Length - 8) return false;
+        if (absoluteOffset < 0 || absoluteOffset > viewEnd - 8) return false;
         uint numerator = ReadUInt32Unsigned(data, (int)absoluteOffset, little);
         uint denominator = ReadUInt32Unsigned(data, (int)absoluteOffset + 4, little);
         if (denominator == 0U) return false;
@@ -328,9 +350,14 @@ internal static class OfficeImageMetadataInspector {
         return !double.IsNaN(value) && !double.IsInfinity(value) && value > 0D;
     }
 
-    private static bool TryReadInlineShort(byte[] data, int entry, bool little, out int value) {
+    private static bool TryReadInlineShort(
+        byte[] data,
+        int entry,
+        bool little,
+        int viewEnd,
+        out int value) {
         value = 0;
-        if (entry < 0 || entry > data.Length - 12 ||
+        if (viewEnd < 0 || viewEnd > data.Length || entry < 0 || entry > viewEnd - 12 ||
             ReadUInt16(data, entry + 2, little) != 3 ||
             ReadUInt32(data, entry + 4, little) != 1) return false;
         value = ReadUInt16(data, entry + 8, little);
@@ -398,4 +425,14 @@ internal static class OfficeImageMetadataInspector {
     private static uint ReadUInt32Unsigned(byte[] data, int offset, bool little) => little
         ? (uint)(data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24)
         : (uint)(data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]);
+
+    private readonly struct JpegIccPart {
+        internal JpegIccPart(int offset, int length) {
+            Offset = offset;
+            Length = length;
+        }
+
+        internal int Offset { get; }
+        internal int Length { get; }
+    }
 }
