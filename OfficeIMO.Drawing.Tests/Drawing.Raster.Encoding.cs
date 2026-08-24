@@ -763,7 +763,6 @@ public sealed class DrawingRasterEncodingTests {
 
     [Theory]
     [InlineData(259, 6)]
-    [InlineData(274, 9)]
     [InlineData(277, 9)]
     public void OfficeTiffCodecDecodesSelectedPageWhenAnotherPageUsesUnsupportedTags(
         int tag,
@@ -778,9 +777,56 @@ public sealed class DrawingRasterEncodingTests {
 
         Assert.True(OfficeRasterContainerInspector.TryInspect(encoded, out OfficeRasterContainerInfo? container));
         Assert.Equal(2, container!.Count);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            encoded,
+            new OfficeRasterDecodeOptions { FrameIndex = 0 },
+            out OfficeRasterImage? sharedSelected,
+            out _));
+        Assert.Equal(OfficeColor.Red, sharedSelected!.GetPixel(0, 0));
         Assert.True(OfficeTiffCodec.TryDecodePage(encoded, 0, out OfficeRasterImage? selected));
         Assert.Equal(OfficeColor.Red, selected!.GetPixel(0, 0));
         Assert.False(OfficeTiffCodec.TryDecodePage(encoded, 1, out _));
+    }
+
+    [Fact]
+    public void TiffContainerInspectionRejectsInvalidOrientationOnEveryPage() {
+        byte[] encoded = OfficeTiffCodec.EncodePages(new[] {
+            new OfficeRasterImage(2, 1, OfficeColor.Red),
+            new OfficeRasterImage(1, 2, OfficeColor.Blue)
+        });
+        int firstIfd = ReadLittleEndian(encoded, 4);
+        int secondIfd = ReadLittleEndian(encoded, firstIfd + 2 + ReadUInt16LittleEndian(encoded, firstIfd) * 12);
+        SetTiffShortTag(encoded, secondIfd, 274, 9);
+
+        Assert.False(OfficeRasterContainerInspector.TryInspect(encoded, out _));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            encoded,
+            new OfficeRasterDecodeOptions { FrameIndex = 0 },
+            out OfficeRasterImage? selected,
+            out _));
+        Assert.Equal(OfficeColor.Red, selected!.GetPixel(0, 0));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(
+            encoded,
+            new OfficeRasterDecodeOptions { FrameIndex = 1 },
+            out _,
+            out _));
+    }
+
+    [Fact]
+    public void OfficeTiffDecoderRejectsLzwPayloadWithoutInitialClearCode() {
+        byte[] encoded = OfficeTiffCodec.Encode(
+            new OfficeRasterImage(1, 1, OfficeColor.Transparent),
+            new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.Lzw });
+        int stripOffsetEntry = FindClassicTiffEntry(encoded, 273);
+        int stripByteCountEntry = FindClassicTiffEntry(encoded, 279);
+        int stripOffset = ReadLittleEndian(encoded, stripOffsetEntry + 8);
+        byte[] malformedStrip = PackTiffLzwCodes(0, 0, 0, 0, 257);
+        Array.Resize(ref encoded, stripOffset + malformedStrip.Length);
+        Buffer.BlockCopy(malformedStrip, 0, encoded, stripOffset, malformedStrip.Length);
+        WriteLittleEndian(encoded, stripByteCountEntry + 8, malformedStrip.Length);
+
+        Assert.False(OfficeTiffCodec.TryDecode(encoded, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(encoded, "missing-clear.tiff", out _));
     }
 
     [Fact]
@@ -1347,6 +1393,19 @@ public sealed class DrawingRasterEncodingTests {
         bytes[offset + 1] = (byte)(value >> 8);
         bytes[offset + 2] = (byte)(value >> 16);
         bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static byte[] PackTiffLzwCodes(params int[] codes) {
+        var bytes = new byte[(codes.Length * 9 + 7) / 8];
+        int bitOffset = 0;
+        foreach (int code in codes) {
+            for (int bit = 8; bit >= 0; bit--, bitOffset++) {
+                if ((code & (1 << bit)) != 0) {
+                    bytes[bitOffset / 8] |= (byte)(1 << (7 - bitOffset % 8));
+                }
+            }
+        }
+        return bytes;
     }
 
     private static void WriteLsbBits(byte[] bytes, int byteOffset, int bitOffset, int bitCount, uint value) {

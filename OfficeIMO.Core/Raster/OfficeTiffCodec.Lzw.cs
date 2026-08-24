@@ -72,10 +72,15 @@ public static partial class OfficeTiffCodec {
         int target = outputOffset;
         int outputEnd = checked(outputOffset + expectedCount);
         bool ended = false;
+        bool requiresInitialClear = true;
         int decodedCodes = 0;
 
         while (reader.TryRead(codeSize, out int code)) {
             if ((decodedCodes++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (requiresInitialClear) {
+                requiresInitialClear = false;
+                if (code != LzwClearCode) return false;
+            }
             if (code == LzwClearCode) {
                 codeSize = 9;
                 nextCode = LzwFirstCode;

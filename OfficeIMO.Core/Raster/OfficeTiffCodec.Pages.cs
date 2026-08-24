@@ -83,7 +83,10 @@ public static partial class OfficeTiffCodec {
                 bool hasValidOrientation =
                     TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) &&
                     orientation >= 1 && orientation <= 8;
-                if (frames.Count == 0 && !hasValidOrientation) return false;
+                // Full inventory may not advertise malformed page orientation. Selected-page decoding
+                // still skips unsupported metadata on pages that the caller did not select.
+                if (!hasValidOrientation &&
+                    (enforceAllPagePixelLimits || frames.Count == options.FrameIndex)) return false;
                 if (!hasValidOrientation) orientation = 1;
 
                 if (frames.Count == 0) firstOrientation = orientation;
