@@ -97,10 +97,11 @@ internal static class AdfEvidenceRunner {
             _ => result => AdfComparisonValidation.Inspect(json, (string)result, implementation)
         };
 
-        object? warmup = invoke();
-        validate(warmup);
+        object? warmup = null;
+        for (int index = 0; index < 8; index++) warmup = invoke();
+        validate(warmup!);
         warmup = null;
-        int operations = scale.Name == "Small" ? 12 : 2;
+        int operations = scale.Name == "Small" ? 16 : 6;
 
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long heapBefore = GC.GetTotalMemory(forceFullCollection: false);
