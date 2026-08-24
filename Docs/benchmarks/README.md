@@ -13,6 +13,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | The isolated parser runner records allocation, retained heap, managed-heap peak, process peak, input bytes, and semantic output bytes; parsing has no file-size metric | Markdig and ReverseMarkdown after semantic equivalence checks | HTML-to-Markdown and all seven CommonMark semantic parse corpora are within 2x for time and allocation; improve the narrowest margins and measure source-backed parsing separately |
 | HTML | BenchmarkDotNet stages plus validated isolated non-PDF layout evidence; the optimized corpora allocate 18.6-49.8% less than the clean baseline | Retained heap, sampled managed peak, and absolute process peak are recorded and budgeted; file size is not applicable to the in-memory layout lane | No general renderer is equivalent across the complete paged vector and semantic contract | The 2,500-row table still allocates about 645 MiB and the 1,000-page lane about 393 MiB; continue owner-level optimization and add non-Windows evidence |
 | RTF | Full validated RTF-to-HTML evidence shows OfficeIMO faster and lower-allocation in every corpus | Output is smaller on the three equivalent generated corpora; the higher-fidelity producer output remains 3.14x larger | RtfPipe for validated RTF-to-HTML | Reduce fidelity-preserving producer HTML overhead further and add Linux/macOS evidence |
+| ADF | Typed parse is 0.98-1.18x platform-model time and 1.24-1.27x allocation; semantic round trips are 0.99-1.02x time and 1.52-1.65x allocation | Retained heap and managed/process peaks are within 1.51x; round-trip output is byte-identical in size | Benchmark-only typed `System.Text.Json` model preserving nodes, marks, attributes, and extension data; it does not perform ADF validation | Add Linux/macOS evidence and a package competitor only when it can perform the same licensed parse/preserve/validate/write contract |
 | OpenDocument | ODS creation is 0.08-0.18x OpenStandardLibrary time with lower allocation; read is 0.03-0.07x time with 1.25-1.26x allocation | Every isolated allocation/managed/process-peak ratio is within 1.63x; equivalent OfficeIMO output is 35.2-41.3% smaller | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
 | OneNote | BenchmarkDotNet native read, write, and Markdown projection plus isolated create/write, read, and read/edit/write workflows | Managed allocations, sampled managed-heap growth, process peak, input bytes, and output bytes are recorded | No like-for-like offline semantic `.one` competitor has been identified | Native scale evidence and regression budgets are in place; add non-Windows evidence and a competitor only when the same offline semantic contract exists |
 | Email | Full validated EML read/write evidence is within 2x of MimeKit; the 2,000-item PST scale contract fell from 68.19s to 4.03s | EML retained heap, managed peak, and process peak are all within 2x; validated output is 1.07-1.08x MimeKit; the 4.08 MB PST retained 0.70 MB managed memory | MimeKit 4.17.0 for equivalent complete MIME workflows | Improve the 1.52x normal-write allocation margin and add non-Windows evidence; add a PST competitor only if the same managed creation contract is available |
@@ -322,6 +323,24 @@ an opt-in benchmark dependency. It is not used as an ODT or ODP comparator
 because it does not expose equivalent document models for those formats.
 The clean Windows time, allocation, peak-memory, and size record is documented
 in [`officeimo.opendocument-ods-2026-08-24.md`](officeimo.opendocument-ods-2026-08-24.md).
+
+## Atlas Document Format JSON
+
+`OfficeIMO.Adf.Benchmarks` measures complete typed ADF JSON parsing and
+semantic parse/write round trips. The primary platform floor materializes a
+typed document, node, mark, attribute, and extension-data graph; a second raw
+JSON-tree lane remains visible but is not treated as equivalent work.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Adf.Benchmarks -- --filter '*' --job short --artifacts .benchmark-artifacts\adf\bdn
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Adf.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\adf\isolated.json
+```
+
+The clean Windows record is documented in
+[`officeimo.adf-2026-08-24.md`](officeimo.adf-2026-08-24.md). Every primary
+elapsed, allocation, retained-heap, managed-peak, and process-peak ratio is
+within the 2x contender margin, and both round-trip scales preserve the exact
+input byte count.
 
 ## OneNote native workflows
 
