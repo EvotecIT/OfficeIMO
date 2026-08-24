@@ -31,6 +31,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expected, actual);
         }
 
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_TruncatesUnderreportedErrorResponses() {
+            byte[] responseBytes = Encoding.UTF8.GetBytes(new string('x', 128 * 1024));
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest) {
+                    Content = new MisreportedLengthContent(responseBytes, declaredLength: 1)
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 0
+                });
+
+            GoogleWorkspaceApiException exception =
+                await Assert.ThrowsAsync<GoogleWorkspaceApiException>(() =>
+                    transport.SendBytesAsync(
+                        "token",
+                        HttpMethod.Get,
+                        "https://lh3.googleusercontent.com/image.png",
+                        GoogleWorkspaceRequestSafety.Safe,
+                        "Google content",
+                        new TranslationReport()));
+
+            Assert.Equal(64 * 1024, exception.ResponseBody.Length);
+        }
+
         private sealed class MisreportedLengthContent : HttpContent {
             private readonly byte[] _bytes;
             private readonly long _declaredLength;

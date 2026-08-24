@@ -174,18 +174,18 @@ internal static class ReaderComparisonCorpus {
 
     internal static string BuildMarkdownBenchmark() {
         var builder = new StringBuilder();
-        builder.AppendLine("# Reader benchmark handbook");
+        builder.Append("# Reader benchmark handbook\n");
         for (int section = 1; section <= 80; section++) {
-            builder.AppendLine();
-            builder.Append("## Section ").AppendLine(section.ToString());
-            builder.AppendLine();
+            builder.Append('\n');
+            builder.Append("## Section ").Append(section).Append('\n');
+            builder.Append('\n');
             builder.Append("This representative section contains document ingestion guidance, stable citations, and bounded processing notes for item ")
-                .Append(section).AppendLine(".");
-            builder.AppendLine();
-            builder.AppendLine("| Name | Value | Status |");
-            builder.AppendLine("| --- | ---: | --- |");
+                .Append(section).Append(".\n");
+            builder.Append('\n');
+            builder.Append("| Name | Value | Status |\n");
+            builder.Append("| --- | ---: | --- |\n");
             for (int row = 1; row <= 5; row++) {
-                builder.Append("| Item ").Append(row).Append(" | ").Append(section * row).AppendLine(" | Ready |");
+                builder.Append("| Item ").Append(row).Append(" | ").Append(section * row).Append(" | Ready |\n");
             }
         }
         return builder.ToString();

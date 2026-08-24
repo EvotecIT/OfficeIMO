@@ -167,26 +167,45 @@ internal static partial class EpubReader {
             throw new InvalidDataException($"EPUB entry '{entry.FullName}' exceeds the supported in-memory size.");
         }
 
-        byte[] data = entry.Length == 0
-            ? Array.Empty<byte>()
-            : new byte[checked((int)entry.Length)];
         using Stream entryStream = entry.Open();
-        int offset = 0;
-        while (offset < data.Length) {
-            int read = entryStream.Read(data, offset, data.Length - offset);
-            if (read == 0) {
-                Array.Resize(ref data, offset);
-                return data;
+        if (entry.Length == 0) {
+            if (entryStream.ReadByte() >= 0) {
+                throw new InvalidDataException(
+                    $"EPUB entry '{entry.FullName}' expanded beyond its declared uncompressed size.");
             }
-            offset += read;
+            return Array.Empty<byte>();
         }
 
-        if (entryStream.ReadByte() >= 0) {
-            throw new InvalidDataException(
-                $"EPUB entry '{entry.FullName}' expanded beyond its declared uncompressed size.");
+        const int bufferSize = 81920;
+        int initialCapacity = checked((int)Math.Min(entry.Length, bufferSize));
+        using var output = new MemoryStream(initialCapacity);
+#if NET8_0_OR_GREATER
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(initialCapacity);
+#else
+        byte[] buffer = new byte[initialCapacity];
+#endif
+        try {
+            long total = 0;
+            while (true) {
+                int read = entryStream.Read(buffer, 0, buffer.Length);
+                if (read == 0) break;
+                if (read > entry.Length - total) {
+                    throw new InvalidDataException(
+                        $"EPUB entry '{entry.FullName}' expanded beyond its declared uncompressed size.");
+                }
+                if (maxBytes.HasValue && read > maxBytes.Value - total) {
+                    throw new InvalidDataException(
+                        $"EPUB entry '{entry.FullName}' exceeds the configured maximum size ({maxBytes.Value} bytes).");
+                }
+                output.Write(buffer, 0, read);
+                total += read;
+            }
+            return output.ToArray();
+        } finally {
+#if NET8_0_OR_GREATER
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+#endif
         }
-
-        return data;
     }
 
     private static bool TryParseXml(string content, out XDocument? document) {

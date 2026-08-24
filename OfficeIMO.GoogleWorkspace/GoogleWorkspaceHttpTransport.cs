@@ -570,11 +570,15 @@ namespace OfficeIMO.GoogleWorkspace {
                     return result;
                 }
                 if (limit.HasValue && total >= limit.Value) {
+                    if (truncateAtLimit) return result;
                     throw new InvalidDataException(
                         $"The response exceeded the configured limit of {limit.Value} bytes.");
                 }
 
-                using var output = new MemoryStream(checked(result.Length + 81920));
+                int growthCapacity = limit.HasValue
+                    ? checked((int)Math.Min(81920L, limit.Value - total))
+                    : 81920;
+                using var output = new MemoryStream(checked(result.Length + growthCapacity));
                 output.Write(result, 0, result.Length);
                 output.Write(probe, 0, extra);
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(81920);
@@ -585,11 +589,17 @@ namespace OfficeIMO.GoogleWorkspace {
                             .ConfigureAwait(false);
                         if (read == 0) break;
                         if (limit.HasValue && read > limit.Value - copied) {
+                            if (truncateAtLimit) {
+                                int allowed = checked((int)(limit.Value - copied));
+                                output.Write(buffer, 0, allowed);
+                                break;
+                            }
                             throw new InvalidDataException(
                                 $"The response exceeded the configured limit of {limit.Value} bytes.");
                         }
                         output.Write(buffer, 0, read);
                         copied += read;
+                        if (truncateAtLimit && limit.HasValue && copied == limit.Value) break;
                     }
                     return output.ToArray();
                 } finally {

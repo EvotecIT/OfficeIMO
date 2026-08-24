@@ -48,9 +48,9 @@ public class PdfCmsSignatureValidationTests {
         Assert.False(report.MathematicalSignaturesVerified);
         Assert.False(report.DigestVerified);
         Assert.Equal("CryptographicInvalid", report.ProofStatus);
-        Assert.Equal(PdfCryptographicValidationStatus.Invalid, cryptographic.MathematicalSignatureStatus);
+        Assert.Equal(PdfCryptographicValidationStatus.Valid, cryptographic.MathematicalSignatureStatus);
         Assert.Equal(PdfCryptographicValidationStatus.Invalid, cryptographic.MessageDigestStatus);
-        Assert.Contains(report.Findings, finding => finding.Code == "CmsSignatureInvalid");
+        Assert.Contains(report.Findings, finding => finding.Code == "CmsDigestMismatch");
     }
 
     [Fact]

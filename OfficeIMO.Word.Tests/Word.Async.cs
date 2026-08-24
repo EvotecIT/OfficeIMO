@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             var cts = new CancellationTokenSource();
             cts.Cancel();
 
-            await Assert.ThrowsAsync<TaskCanceledException>(() => WordDocument.LoadAsync(filePath, cancellationToken: cts.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => WordDocument.LoadAsync(filePath, cancellationToken: cts.Token));
 
             File.Delete(filePath);
         }

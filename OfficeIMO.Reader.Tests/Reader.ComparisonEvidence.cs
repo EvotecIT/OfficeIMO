@@ -31,7 +31,7 @@ public sealed class ReaderComparisonEvidenceTests {
 
         ReaderComparisonCase markdown = Assert.Single(cases, item => item.Id == "markdown");
         Assert.Equal("handbook.md", markdown.SourceName);
-        Assert.Equal(25_947, markdown.Bytes.Length);
+        Assert.Equal(24_986, markdown.Bytes.Length);
 
         foreach (ReaderComparisonCase item in cases.Where(item => item.Id is "epub" or "zip")) {
             using var stream = new MemoryStream(item.Bytes);
