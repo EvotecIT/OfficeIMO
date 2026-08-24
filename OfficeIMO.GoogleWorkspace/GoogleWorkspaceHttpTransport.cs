@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
@@ -438,26 +439,108 @@ namespace OfficeIMO.GoogleWorkspace {
             }
 
             using Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false);
+            if (content.Headers.ContentLength is long contentLength &&
+                contentLength >= 0 &&
+                contentLength <= int.MaxValue) {
+                int targetLength = checked((int)(truncateAtLimit && limit.HasValue
+                    ? Math.Min(contentLength, limit.Value)
+                    : contentLength));
+                return await ReadDeclaredLengthResponseAsync(
+                    input,
+                    targetLength,
+                    limit,
+                    cancellationToken,
+                    truncateAtLimit).ConfigureAwait(false);
+            }
+
             using var output = new MemoryStream();
-            byte[] buffer = new byte[81920];
-            long total = 0;
-            while (true) {
-                int read = await input.ReadAsync(buffer, 0, buffer.Length,
-                    cancellationToken).ConfigureAwait(false);
-                if (read == 0) break;
-                if (limit.HasValue && read > limit.Value - total) {
-                    if (truncateAtLimit) {
-                        output.Write(buffer, 0, checked((int)(limit.Value - total)));
-                        break;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(81920);
+            try {
+                long total = 0;
+                while (true) {
+                    int read = await input.ReadAsync(buffer, 0, buffer.Length,
+                        cancellationToken).ConfigureAwait(false);
+                    if (read == 0) break;
+                    if (limit.HasValue && read > limit.Value - total) {
+                        if (truncateAtLimit) {
+                            output.Write(buffer, 0, checked((int)(limit.Value - total)));
+                            break;
+                        }
+                        throw new InvalidDataException(
+                            $"The response exceeded the configured limit of {limit.Value} bytes.");
                     }
+                    output.Write(buffer, 0, read);
+                    total += read;
+                    if (truncateAtLimit && limit.HasValue && total == limit.Value) break;
+                }
+                return output.ToArray();
+            } finally {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        private static async Task<byte[]> ReadDeclaredLengthResponseAsync(
+            Stream input,
+            int targetLength,
+            long? limit,
+            CancellationToken cancellationToken,
+            bool truncateAtLimit) {
+            byte[] result = new byte[targetLength];
+            int total = 0;
+            while (total < result.Length) {
+                int read = await input.ReadAsync(
+                    result,
+                    total,
+                    result.Length - total,
+                    cancellationToken).ConfigureAwait(false);
+                if (read == 0) {
+                    if (total != result.Length) {
+                        Array.Resize(ref result, total);
+                    }
+                    return result;
+                }
+                total += read;
+            }
+
+            if (truncateAtLimit && limit.HasValue && total == limit.Value) {
+                return result;
+            }
+
+            byte[] probe = ArrayPool<byte>.Shared.Rent(1);
+            try {
+                int extra = await input.ReadAsync(probe, 0, 1, cancellationToken).ConfigureAwait(false);
+                if (extra == 0) {
+                    return result;
+                }
+                if (limit.HasValue && total >= limit.Value) {
                     throw new InvalidDataException(
                         $"The response exceeded the configured limit of {limit.Value} bytes.");
                 }
-                output.Write(buffer, 0, read);
-                total += read;
-                if (truncateAtLimit && limit.HasValue && total == limit.Value) break;
+
+                using var output = new MemoryStream(checked(result.Length + 81920));
+                output.Write(result, 0, result.Length);
+                output.Write(probe, 0, extra);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(81920);
+                try {
+                    long copied = total + extra;
+                    while (true) {
+                        int read = await input.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+                            .ConfigureAwait(false);
+                        if (read == 0) break;
+                        if (limit.HasValue && read > limit.Value - copied) {
+                            throw new InvalidDataException(
+                                $"The response exceeded the configured limit of {limit.Value} bytes.");
+                        }
+                        output.Write(buffer, 0, read);
+                        copied += read;
+                    }
+                    return output.ToArray();
+                } finally {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+            } finally {
+                ArrayPool<byte>.Shared.Return(probe);
             }
-            return output.ToArray();
         }
 
         public Task<GoogleWorkspaceHttpResponse> SendRawAsync(
