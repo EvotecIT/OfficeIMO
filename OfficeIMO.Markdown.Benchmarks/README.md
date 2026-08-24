@@ -62,8 +62,9 @@ Run the same preflight without collecting timings:
 dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --validate-equivalence
 ```
 
-For bounded repeat evidence outside BenchmarkDotNet, run the semantic parse
-comparison in fresh child processes:
+For bounded repeat evidence outside BenchmarkDotNet, run the semantic,
+source-backed, explicit-syntax-tree, and Markdig parse lanes in fresh child
+processes:
 
 ```powershell
 dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net10.0 -- --parse-evidence --repeat 3 --json .artifacts/markdown-parse-evidence.json
@@ -74,9 +75,12 @@ a bounded document count from input size; `--documents 32` overrides it. Every
 probe validates equivalent normalized CommonMark HTML and records elapsed time,
 current-thread allocation, retained managed heap, sampled managed-heap peak,
 process peak working set, input bytes, semantic HTML bytes, and a semantic-output
-fingerprint. Elapsed and allocation ratios use per-corpus medians. Retained and
-peak values measure in-memory parsing; semantic HTML bytes are validation
-evidence, not a file-creation size measurement.
+fingerprint. Reported competitive ratios use the equivalent OfficeIMO semantic
+and Markdig lanes; source-backed and explicit-syntax-tree measurements expose
+the incremental source/trivia/syntax ownership cost. Elapsed and allocation
+ratios use per-corpus medians. Retained and peak values measure in-memory
+parsing; semantic HTML bytes are validation evidence, not a file-creation size
+measurement.
 
 The benchmark classes do not hard-code a runtime job. The selected target
 framework controls the runtime, while `--job Dry` and `--job Short` select the

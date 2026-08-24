@@ -90,15 +90,63 @@ provenance evidence, but its wall-clock timing includes more process and GC
 noise than BenchmarkDotNet. Both lanes place all seven allocation ratios inside
 2x; BenchmarkDotNet remains the primary timing evidence.
 
-This work does not close the separate source-backed parser, which retains source
-spans, trivia, and syntax ownership and needs its own richer performance
-contract.
+## Source-backed follow-up
+
+Clean source commit `7a7c2a166a1248ef8ccf8918e2f4cb5795b6d834` reduces
+the additional graph retained by `MarkdownReader.Parse` and
+`ParseWithSyntaxTree` without changing their snapshot semantics. The parser now
+reuses an associated syntax node for unmodified source metadata, packs optional
+source positions, allocates rare syntax metadata and generated diagnostics only
+when needed, and avoids materializing empty list-item block collections.
+
+The full BenchmarkDotNet job for `LongNestedList` measured:
+
+| API | Mean | Allocation | Time vs Markdig | Allocation vs Markdig | Time vs semantic | Allocation vs semantic |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `ParseSemantic` | 0.908 ms | 2.37 MB | 1.06x | 1.39x | 1.00x | 1.00x |
+| `Parse` source-backed | 3.501 ms | 7.90 MB | 4.09x | 4.62x | 3.86x | 3.33x |
+| `ParseWithSyntaxTree` | 5.571 ms | 11.35 MB | 6.51x | 6.64x | 6.14x | 4.79x |
+| Markdig | 0.856 ms | 1.71 MB | 1.00x | 1.00x | 0.94x | 0.72x |
+
+The equivalent semantic lane is inside the 2x contender band. Markdig does not
+retain OfficeIMO's complete trivia and syntax-ownership contract, so its
+source-backed ratios are a diagnostic floor rather than an equivalent-product
+ranking. They nevertheless expose a material internal cost: source-backed
+parsing is still 3.86x semantic time and 3.33x semantic allocation on this
+workload. The explicit syntax-tree lane remains above 5x Markdig in both
+dimensions and is not acceptable as a general performance margin.
+
+Against the earlier clean `LongNestedList` source-backed result, mean time fell
+from 5.896 ms to 3.501 ms (40.6%) and allocation from 9.08 MB to 7.90 MB
+(13.0%). The explicit syntax-tree lane fell from 9.228 ms to 5.571 ms (39.6%)
+and from 13.15 MB to 11.35 MB (13.7%). A same-size 64-document heap probe also
+reduced source-backed retained managed memory from 361,220,688 bytes to
+264,058,896 bytes (26.9%).
+
+The fresh-process runner then measured all seven corpora three times. The table
+below uses per-corpus medians and shows the source-backed result against Markdig
+as a diagnostic floor:
+
+| Corpus | Time | Allocation | Retained heap | Managed peak | Absolute process peak |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Portable README | 3.79x | 7.69x | 3.32x | 3.81x | 2.82x |
+| Transcript | 3.73x | 6.76x | 3.59x | 3.91x | 2.70x |
+| Technical document | 4.46x | 7.38x | 3.42x | 3.47x | 2.60x |
+| Rich AST | 3.50x | 7.17x | 2.94x | 2.83x | 2.16x |
+| Long nested list | 5.33x | 4.61x | 3.67x | 3.39x | 2.71x |
+| Large table | 0.44x | 6.35x | 4.03x | 4.46x | 2.92x |
+| Normalization stress | 1.83x | 6.94x | 4.35x | 3.85x | 2.55x |
+
+Every run produced the same normalized semantic fingerprint for all engines.
+The source-backed allocation and retained-memory ratios remain the primary open
+Markdown performance problem; clearing a 40x incident threshold is not a
+completion criterion.
 
 Reproduce the validation and current bounded runs with:
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Markdown.Benchmarks -- --validate-equivalence
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Markdown.Benchmarks -- --filter "*MarkdownParseBenchmarks*ParseSemantic*CommonMark*" --job Short --exporters json --noOverwrite
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Markdown.Benchmarks -- --filter "*MarkdownParseBenchmarks*CommonMark*" --exporters json --noOverwrite
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Markdown.Benchmarks -- --parse-evidence --repeat 3 --json .benchmark-artifacts\markdown-parse-evidence.json
 ```
 
