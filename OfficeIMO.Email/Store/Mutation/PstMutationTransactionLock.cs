@@ -8,6 +8,8 @@ namespace OfficeIMO.Email.Store;
 internal sealed class PstMutationTransactionLock : IDisposable {
     private const long LockOffset = long.MaxValue - 1;
     private const int OpenReadWrite = 2;
+    private const int LinuxOpenCloseOnExec = 0x00080000;
+    private const int MacOpenCloseOnExec = 0x01000000;
     private const int LinuxOpenFileDescriptionSetLock = 37;
     private const int MacOpenFileDescriptionSetLock = 90;
     private const short LinuxWriteLock = 1;
@@ -106,7 +108,7 @@ internal sealed class PstMutationTransactionLock : IDisposable {
             throw new PlatformNotSupportedException(
                 "Physical PST mutation locking supports Windows, Linux, and macOS.");
         }
-        int descriptor = OpenUnix(sourcePath, OpenReadWrite);
+        int descriptor = OpenUnix(sourcePath, GetUnixOpenFlags());
         if (descriptor >= 0) {
             return new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
         }
@@ -191,6 +193,11 @@ internal sealed class PstMutationTransactionLock : IDisposable {
                 "The source filesystem does not support open-file-description locks.");
         }
     }
+
+    internal static int GetUnixOpenFlags() => OpenReadWrite |
+        (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? MacOpenCloseOnExec
+            : LinuxOpenCloseOnExec);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct LinuxFileLock {

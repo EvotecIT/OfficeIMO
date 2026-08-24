@@ -104,17 +104,19 @@ namespace OfficeIMO.Core.Internal {
             }
         }
 
-        private static int GetExclusiveCreateFlags() {
+        internal static int GetExclusiveCreateFlags() {
             const int openReadWrite = 0x0002;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 const int openCreate = 0x0200;
                 const int openExclusive = 0x0800;
-                return openReadWrite | openCreate | openExclusive;
+                const int openCloseOnExec = 0x01000000;
+                return openReadWrite | openCreate | openExclusive | openCloseOnExec;
             }
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 const int linuxOpenCreate = 0x0040;
                 const int linuxOpenExclusive = 0x0080;
-                return openReadWrite | linuxOpenCreate | linuxOpenExclusive;
+                const int linuxOpenCloseOnExec = 0x00080000;
+                return openReadWrite | linuxOpenCreate | linuxOpenExclusive | linuxOpenCloseOnExec;
             }
             throw new PlatformNotSupportedException(
                 "This Unix platform does not expose a supported exclusive-create flag layout.");

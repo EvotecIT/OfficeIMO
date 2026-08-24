@@ -965,6 +965,15 @@ public sealed class PstMutationTransactionTests {
         }
     }
 
+    [Fact]
+    public void UnixMutationLockDescriptorsAreOpenedCloseOnExec() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        int expected = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? 0x01000000
+            : 0x00080000;
+        Assert.Equal(expected, PstMutationTransactionLock.GetUnixOpenFlags() & expected);
+    }
+
     [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CreateHardLinkWindows(string fileName, string existingFileName,

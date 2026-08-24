@@ -20,6 +20,7 @@ namespace OfficeIMO.Internal {
         private const int MacPathConfCaseSensitive = 11;
         private const int LinuxOpenReadOnly = 0;
         private const int LinuxOpenDirectory = 0x10000;
+        private const int LinuxOpenCloseOnExec = 0x80000;
         private const int LinuxCaseFoldFlag = 0x40000000;
         private const ulong LinuxGetFileFlags64 = 0x80086601;
         private const ulong LinuxGetFileFlags32 = 0x80046601;
@@ -248,7 +249,8 @@ namespace OfficeIMO.Internal {
             }
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return false;
 
-            int descriptor = LinuxOpen(directory, LinuxOpenReadOnly | LinuxOpenDirectory);
+            int descriptor = LinuxOpen(directory,
+                LinuxOpenReadOnly | LinuxOpenDirectory | LinuxOpenCloseOnExec);
             if (descriptor < 0) return false;
             try {
                 ulong request = IntPtr.Size == 8 ? LinuxGetFileFlags64 : LinuxGetFileFlags32;
