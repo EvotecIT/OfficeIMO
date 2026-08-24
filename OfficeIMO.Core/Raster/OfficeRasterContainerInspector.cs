@@ -37,7 +37,9 @@ public static class OfficeRasterContainerInspector {
             case OfficeImageFormat.Webp:
                 return TryInspectWebp(encodedBytes, imageInfo, effective, out container);
             case OfficeImageFormat.Jpeg:
+                return TryInspectJpeg(encodedBytes, imageInfo, effective, out container);
             case OfficeImageFormat.Bmp:
+                if (!OfficeBmpReader.TryValidatePayload(encodedBytes, effective.CancellationToken)) return false;
                 container = CreateStatic(imageInfo);
                 return true;
             default:
@@ -93,6 +95,7 @@ public static class OfficeRasterContainerInspector {
         int delayHundredths = 0;
         int transparentIndex = -1;
         OfficeRasterFrameDisposal disposal = OfficeRasterFrameDisposal.None;
+        bool hasPendingGraphicControl = false;
         var frames = new List<OfficeRasterFrameInfo>();
         bool sawTrailer = false;
         while (cursor < bytes.Length) {
@@ -110,6 +113,8 @@ public static class OfficeRasterContainerInspector {
                     if (cursor > bytes.Length - 6 || bytes[cursor] != 4 || bytes[cursor + 5] != 0) return false;
                     int control = bytes[cursor + 1];
                     int disposalCode = (control >> 2) & 7;
+                    if ((control & 0xE0) != 0 || disposalCode > 3 || hasPendingGraphicControl) return false;
+                    hasPendingGraphicControl = true;
                     disposal = disposalCode switch {
                         2 => OfficeRasterFrameDisposal.Background,
                         3 => OfficeRasterFrameDisposal.Previous,
@@ -135,6 +140,7 @@ public static class OfficeRasterContainerInspector {
                     delayHundredths = 0;
                     disposal = OfficeRasterFrameDisposal.None;
                     transparentIndex = -1;
+                    hasPendingGraphicControl = false;
                 } else if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) {
                     return false;
                 }
@@ -174,11 +180,12 @@ public static class OfficeRasterContainerInspector {
                 disposal,
                 OfficeRasterFrameBlend.Over,
                 frames.Count == 0));
+            hasPendingGraphicControl = false;
             delayHundredths = 0;
             disposal = OfficeRasterFrameDisposal.None;
             transparentIndex = -1;
         }
-        if (!sawTrailer || frames.Count == 0) return false;
+        if (!sawTrailer || frames.Count == 0 || hasPendingGraphicControl) return false;
         if (frames.Count == 1 && frames[0].Duration == TimeSpan.Zero && !hasLoopExtension) {
             OfficeRasterFrameInfo frame = frames[0];
             frames[0] = new OfficeRasterFrameInfo(
@@ -200,6 +207,29 @@ public static class OfficeRasterContainerInspector {
             frames.ToArray(),
             loopCount,
             background);
+        return true;
+    }
+
+    private static bool TryInspectJpeg(
+        byte[] bytes,
+        OfficeImageInfo imageInfo,
+        OfficeRasterDecodeOptions options,
+        out OfficeRasterContainerInfo? container) {
+        container = null;
+        if (!OfficeImageReader.HasCompleteJpegPayload(
+                bytes,
+                options.CancellationToken,
+                requireManagedFrame: true,
+                validateMetadata: false)) return false;
+        int canvasWidth = imageInfo.Width;
+        int canvasHeight = imageInfo.Height;
+        if (OfficeImageOrientationNormalizer.TryRead(
+                bytes, options.CancellationToken, out OfficeImageOrientation orientation) &&
+            orientation is >= OfficeImageOrientation.Transpose and <= OfficeImageOrientation.Rotate90CounterClockwise) {
+            canvasWidth = imageInfo.Height;
+            canvasHeight = imageInfo.Width;
+        }
+        container = CreateStatic(imageInfo, canvasWidth, canvasHeight);
         return true;
     }
 
@@ -290,6 +320,7 @@ public static class OfficeRasterContainerInspector {
         var frames = new List<OfficeRasterFrameInfo>();
         int loopCount = 1;
         OfficeColor background = OfficeColor.Transparent;
+        bool hasLosslessImage = false;
         int cursor = 12;
         while (cursor <= bytes.Length - 8) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -297,7 +328,9 @@ public static class OfficeRasterContainerInspector {
             if (length < 0 || cursor > bytes.Length - 8 - length) return false;
             int data = cursor + 8;
             string type = ReadAscii(bytes, cursor);
-            if (type == "ANIM") {
+            if (type == "VP8L") {
+                hasLosslessImage = true;
+            } else if (type == "ANIM") {
                 if (length != 6) return false;
                 background = new OfficeColor(bytes[data + 2], bytes[data + 1], bytes[data], bytes[data + 3]);
                 loopCount = ReadUInt16LittleEndian(bytes, data + 4);
@@ -328,6 +361,7 @@ public static class OfficeRasterContainerInspector {
         }
         if (cursor != bytes.Length) return false;
         if (frames.Count == 0) {
+            if (!hasLosslessImage) return false;
             container = CreateStatic(imageInfo);
             return true;
         }
@@ -342,10 +376,16 @@ public static class OfficeRasterContainerInspector {
     }
 
     private static OfficeRasterContainerInfo CreateStatic(OfficeImageInfo info) =>
+        CreateStatic(info, info.Width, info.Height);
+
+    private static OfficeRasterContainerInfo CreateStatic(
+        OfficeImageInfo info,
+        int canvasWidth,
+        int canvasHeight) =>
         new OfficeRasterContainerInfo(
             info.Format,
-            info.Width,
-            info.Height,
+            canvasWidth,
+            canvasHeight,
             new[] {
                 new OfficeRasterFrameInfo(
                     0,

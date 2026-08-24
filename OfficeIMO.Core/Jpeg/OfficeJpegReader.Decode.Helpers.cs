@@ -764,6 +764,16 @@ internal static partial class OfficeJpegReader {
         return frame;
     }
 
+    internal static bool IsSupportedRgbaFrameHeader(byte[] data, int offset, int length) {
+        try {
+            JpegFrame frame = ParseFrameHeader(new OfficeByteView(data).Slice(offset, length));
+            return frame.ComponentCount is 1 or 3 or 4;
+        } catch (Exception ex) when (ex is FormatException || ex is ArgumentException ||
+                                     ex is IndexOutOfRangeException || ex is OverflowException) {
+            return false;
+        }
+    }
+
     private static ScanHeader ParseScanHeader(OfficeByteView data, ref JpegFrame frame) {
         var components = data[0];
         if (components == 0 || components > frame.ComponentCount) throw new FormatException("Invalid JPEG scan component count.");

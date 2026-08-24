@@ -686,6 +686,68 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void JpegContainerRequiresACompletePayloadAndReportsTheOrientationNormalizedCanvas() {
+        byte[] jpeg = OfficeJpegCodec.Encode(
+            new OfficeRasterImage(3, 2, OfficeColor.Red),
+            new OfficeJpegEncodeOptions {
+                Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+            });
+        int scanOffset = FindJpegMarker(jpeg, 0xDA);
+        var incomplete = new byte[scanOffset];
+        Buffer.BlockCopy(jpeg, 0, incomplete, 0, incomplete.Length);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(incomplete, null, out OfficeImageInfo identified));
+        Assert.Equal(OfficeImageFormat.Jpeg, identified.Format);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(incomplete, out _));
+        Assert.True(OfficeRasterContainerInspector.TryInspect(
+            jpeg, out OfficeRasterContainerInfo? container));
+        OfficeRasterFrameInfo frame = Assert.Single(container!.Frames);
+        Assert.Equal((2, 3), (container.CanvasWidth, container.CanvasHeight));
+        Assert.Equal((3, 2), (frame.Width, frame.Height));
+        Assert.True(OfficeJpegCodec.TryDecode(jpeg, out OfficeRasterImage? decoded));
+        Assert.Equal((2, 3), (decoded!.Width, decoded.Height));
+    }
+
+    [Theory]
+    [InlineData(6, 1, 3, 2)]
+    [InlineData(1, 6, 2, 3)]
+    public void JpegContainerUsesTheLastValidExifOrientation(
+        ushort firstOrientation,
+        ushort lastOrientation,
+        int expectedWidth,
+        int expectedHeight) {
+        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(3, 2, OfficeColor.Red));
+        jpeg = InsertJpegExifSegmentsAfterStart(jpeg, firstOrientation, lastOrientation);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(
+            jpeg, out OfficeRasterContainerInfo? container));
+        Assert.True(OfficeJpegCodec.TryDecode(jpeg, out OfficeRasterImage? decoded));
+        Assert.Equal((expectedWidth, expectedHeight), (container!.CanvasWidth, container.CanvasHeight));
+        Assert.Equal((expectedWidth, expectedHeight), (decoded!.Width, decoded.Height));
+    }
+
+    [Fact]
+    public void JpegContainerRejectsAFrameOutsideTheManagedRgbaSubset() {
+        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(3, 2, OfficeColor.Red));
+        byte[] twoComponent = RemoveLastJpegFrameComponent(jpeg);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(twoComponent, null, out OfficeImageInfo identified));
+        Assert.Equal(OfficeImageFormat.Jpeg, identified.Format);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(twoComponent, out _));
+        Assert.False(OfficeJpegCodec.TryDecode(twoComponent, out _));
+    }
+
+    [Fact]
+    public void StaticLossyWebpRemainsOutsideTheManagedContainerSubset() {
+        byte[] webp = CreateStaticLossyWebpHeader();
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(webp, null, out OfficeImageInfo identified));
+        Assert.Equal(OfficeImageFormat.Webp, identified.Format);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(webp, out _));
+        Assert.False(OfficeWebpCodec.TryDecode(webp, out _));
+    }
+
+    [Fact]
     public void RasterContainerInspectionRejectsIdentifiableButUnsupportedFormats() {
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"3\"><rect width=\"2\" height=\"3\"/></svg>");
@@ -976,6 +1038,82 @@ public sealed class DrawingRasterEncodingTests {
         }
         throw new InvalidOperationException("JPEG frame segment was not found.");
     }
+
+    private static byte[] RemoveLastJpegFrameComponent(byte[] jpeg) {
+        int markerOffset = FindJpegMarker(jpeg, 0xC0);
+        int segmentLength = jpeg[markerOffset + 2] << 8 | jpeg[markerOffset + 3];
+        int componentCountOffset = markerOffset + 9;
+        Assert.Equal(3, jpeg[componentCountOffset]);
+        var result = new byte[jpeg.Length - 3];
+        int removedComponentOffset = markerOffset + 2 + segmentLength - 3;
+        Buffer.BlockCopy(jpeg, 0, result, 0, removedComponentOffset);
+        Buffer.BlockCopy(
+            jpeg,
+            removedComponentOffset + 3,
+            result,
+            removedComponentOffset,
+            jpeg.Length - removedComponentOffset - 3);
+        result[markerOffset + 2] = (byte)((segmentLength - 3) >> 8);
+        result[markerOffset + 3] = (byte)(segmentLength - 3);
+        result[componentCountOffset] = 2;
+        return result;
+    }
+
+    private static byte[] InsertJpegExifSegmentsAfterStart(
+        byte[] jpeg,
+        ushort firstOrientation,
+        ushort lastOrientation) {
+        byte[] first = CreateJpegExifSegment(firstOrientation);
+        byte[] last = CreateJpegExifSegment(lastOrientation);
+        var result = new byte[jpeg.Length + first.Length + last.Length];
+        Buffer.BlockCopy(jpeg, 0, result, 0, 2);
+        Buffer.BlockCopy(first, 0, result, 2, first.Length);
+        Buffer.BlockCopy(last, 0, result, 2 + first.Length, last.Length);
+        Buffer.BlockCopy(jpeg, 2, result, 2 + first.Length + last.Length, jpeg.Length - 2);
+        return result;
+    }
+
+    private static byte[] CreateJpegExifSegment(ushort orientation) {
+        byte[] tiff = CreateExifOrientation(orientation);
+        int segmentLength = checked(tiff.Length + 8);
+        var segment = new byte[segmentLength + 2];
+        segment[0] = 0xFF;
+        segment[1] = 0xE1;
+        segment[2] = (byte)(segmentLength >> 8);
+        segment[3] = (byte)segmentLength;
+        System.Text.Encoding.ASCII.GetBytes("Exif\0\0").CopyTo(segment, 4);
+        Buffer.BlockCopy(tiff, 0, segment, 10, tiff.Length);
+        return segment;
+    }
+
+    private static byte[] CreateStaticLossyWebpHeader() {
+        var webp = new byte[30];
+        System.Text.Encoding.ASCII.GetBytes("RIFF").CopyTo(webp, 0);
+        WriteLittleEndian(webp, 4, webp.Length - 8);
+        System.Text.Encoding.ASCII.GetBytes("WEBPVP8 ").CopyTo(webp, 8);
+        WriteLittleEndian(webp, 16, 10);
+        webp[23] = 0x9D;
+        webp[24] = 0x01;
+        webp[25] = 0x2A;
+        webp[26] = 1;
+        webp[28] = 1;
+        return webp;
+    }
+
+    private static int FindJpegMarker(byte[] jpeg, byte marker) {
+        for (int offset = 2; offset + 1 < jpeg.Length; offset++) {
+            if (jpeg[offset] == 0xFF && jpeg[offset + 1] == marker) return offset;
+        }
+        throw new InvalidOperationException($"JPEG marker 0x{marker:X2} was not found.");
+    }
+
+    private static byte[] CreateExifOrientation(ushort orientation) => new byte[] {
+        (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+        0x01, 0x00,
+        0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+        (byte)orientation, (byte)(orientation >> 8), 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    };
 
     private static void SetTiffLongTag(byte[] bytes, int ifdOffset, int expectedTag, int value) {
         int entryCount = ReadUInt16LittleEndian(bytes, ifdOffset);

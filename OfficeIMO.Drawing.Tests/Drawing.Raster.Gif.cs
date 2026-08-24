@@ -302,17 +302,21 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "extension.gif", out _));
         }
 
-        [Fact]
-        public void CompleteContentValidationRejectsReservedGraphicControlBits() {
+        [Theory]
+        [InlineData(0x80)]
+        [InlineData(0x10)]
+        [InlineData(0x1C)]
+        public void GifInspectionAndContentValidationRejectReservedGraphicControlValues(byte packed) {
             byte[] valid = CreateSinglePixelGif();
             int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
             var malformed = valid.ToList();
             malformed.InsertRange(
                 imageDescriptorOffset,
-                new byte[] { 0x21, 0xF9, 0x04, 0x80, 0x00, 0x00, 0x00, 0x00 });
+                new byte[] { 0x21, 0xF9, 0x04, packed, 0x00, 0x00, 0x00, 0x00 });
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "reserved-gce.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
         [Fact]
@@ -333,8 +337,10 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(dangling, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(dangling, "dangling-control.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(dangling, out _));
             Assert.True(OfficeGifReader.TryDecodeFrame(repeated, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(repeated, "repeated-control.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(repeated, out _));
         }
 
         [Fact]
