@@ -58,7 +58,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Google Workspace
 
-- [ ] Extend the shared transport evidence to Linux/macOS and large unknown-length responses, then measure Drive resumable upload/download and checkpoint persistence separately from network latency. Reduce any remaining unknown-length copy amplification while preserving response limits, cancellation, retry, safety policy, diagnostics, mutation ambiguity, and exact payload bytes; accept a competitor only when it performs those same contracts.
+- [ ] Extend the shared declared- and unknown-length transport evidence to Linux/macOS, then measure Drive resumable upload/download and checkpoint persistence separately from network latency. Move the remaining Windows unknown-length elapsed margins beyond the current 1.30-1.56x while preserving response limits, cancellation, retry, safety policy, diagnostics, mutation ambiguity, cleared pooled storage, and exact payload bytes; accept a competitor only when it performs those same contracts.
 
 ## Security and protected content
 
