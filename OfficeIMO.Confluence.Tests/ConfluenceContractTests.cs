@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -194,6 +195,17 @@ public sealed class ConfluenceContractTests {
     }
 
     [Fact]
+    public void ManagedSection_HashesUtf8AcrossSurrogateChunkBoundary() {
+        string original = new string('a', 4095) + "🚀" +
+            "<!-- officeimo:section:report:start -->\nold\n<!-- officeimo:section:report:end -->";
+
+        ConfluenceManagedSectionResult result = ConfluenceManagedSection.Apply(original, "report", "new 🚀 content");
+
+        Assert.Equal(ComputeSha256(original), result.OriginalSha256);
+        Assert.Equal(ComputeSha256(result.UpdatedBody), result.UpdatedSha256);
+    }
+
+    [Fact]
     public async Task AttachmentUpload_UsesMultipartAndXsrfHeader() {
         var handler = new RecordingHandler(request => {
             Assert.Equal(HttpMethod.Post, request.Method);
@@ -373,6 +385,12 @@ public sealed class ConfluenceContractTests {
     private static HttpResponseMessage Response(HttpStatusCode status, string body) => new HttpResponseMessage(status) {
         Content = new StringContent(body, Encoding.UTF8, "application/json"),
     };
+
+    private static string ComputeSha256(string value) {
+        using SHA256 sha = SHA256.Create();
+        byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(value));
+        return string.Concat(hash.Select(item => item.ToString("x2", System.Globalization.CultureInfo.InvariantCulture)));
+    }
 
     private sealed class ThrowingReadContent : HttpContent {
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
