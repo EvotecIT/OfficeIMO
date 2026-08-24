@@ -2,13 +2,15 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
     private sealed class StyleDeclaration {
-        internal StyleDeclaration(string value, bool isImportant) {
+        internal StyleDeclaration(string propertyName, string value, bool isImportant) {
             Value = value;
             IsImportant = isImportant;
+            IsSupported = IsSupportedDeclarationValue(propertyName, value);
         }
 
         internal string Value { get; }
         internal bool IsImportant { get; }
+        internal bool IsSupported { get; }
     }
 
     private sealed class CascadedProperty {
@@ -19,7 +21,7 @@ public static partial class HtmlComputedStyleEngine {
             Specificity = specificity;
             Order = order;
             LayerOrder = layerOrder;
-            Alternatives = new List<CascadedProperty>(alternatives ?? Array.Empty<CascadedProperty>()).AsReadOnly();
+            Alternatives = MaterializeAlternatives(alternatives);
             InheritsComputedValue = inheritsComputedValue;
         }
 
@@ -30,7 +32,7 @@ public static partial class HtmlComputedStyleEngine {
             Specificity = specificity;
             Order = order;
             LayerOrder = layerOrder;
-            Alternatives = new List<CascadedProperty>(alternatives ?? Array.Empty<CascadedProperty>()).AsReadOnly();
+            Alternatives = MaterializeAlternatives(alternatives);
             RevertsLayer = revertsLayer;
             InheritsComputedValue = false;
         }
@@ -60,6 +62,13 @@ public static partial class HtmlComputedStyleEngine {
                     ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue)
                     : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives);
         }
+
+        private static IReadOnlyList<CascadedProperty> MaterializeAlternatives(IEnumerable<CascadedProperty>? alternatives) =>
+            alternatives switch {
+                null => Array.Empty<CascadedProperty>(),
+                IReadOnlyList<CascadedProperty> list => list,
+                _ => alternatives.ToArray()
+            };
     }
 
     private readonly struct CssKeywordResolution {

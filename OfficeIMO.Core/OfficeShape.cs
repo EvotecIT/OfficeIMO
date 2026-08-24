@@ -330,8 +330,10 @@ public sealed class OfficeShape {
         ClipPath = ClipPath?.Clone(),
         FillRule = FillRule,
         CornerRadius = CornerRadius,
-        Points = new ReadOnlyCollection<OfficePoint>(new List<OfficePoint>(Points)),
-        PathCommands = new ReadOnlyCollection<OfficePathCommand>(new List<OfficePathCommand>(PathCommands))
+        // Both collections expose immutable value types through read-only interfaces, so sharing
+        // their snapshots keeps the cloned descriptor detached without recopying vector geometry.
+        Points = Points,
+        PathCommands = PathCommands
     };
 
     private static void IncludePoint(OfficePoint point, ref double minX, ref double minY, ref double maxX, ref double maxY, ref bool hasPoint, string paramName) {

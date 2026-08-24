@@ -356,13 +356,6 @@ public static partial class HtmlComputedStyleEngine {
         double? containingHeight,
         IReadOnlyList<ContainerQueryContext> containerContexts) {
         var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
-        if (parent != null) {
-            foreach (var pair in parent.Properties) {
-                if (IsInheritedProperty(pair.Key)) {
-                    properties[pair.Key] = new CascadedProperty(pair.Value, false, Specificity.Inherited, -1);
-                }
-            }
-        }
 
         string? directionAttribute = element.GetAttribute("dir")?.Trim();
         if (string.Equals(directionAttribute, "ltr", StringComparison.OrdinalIgnoreCase)
@@ -370,22 +363,26 @@ public static partial class HtmlComputedStyleEngine {
             properties["direction"] = new CascadedProperty(directionAttribute!.ToLowerInvariant(), false, Specificity.PresentationalHint, -1);
         }
 
-        foreach (StyleRule rule in rules.GetCandidates(element)) {
+        IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
+        foreach (StyleRule rule in candidateRules) {
             budget.RecordSelectorEvaluation();
             if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
                 && !TryParsePseudoElementSelector(rule.Selector, out _, out _)
                 && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
-                    ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder);
+                    if (declaration.Value.IsSupported) {
+                        ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true);
+                    }
                 }
             }
         }
 
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
-        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
-            out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties,
-            out IReadOnlyCollection<string> specifiedProperties);
-        var style = new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
+        Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties,
+            out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
+            out HashSet<string> specifiedProperties);
+        HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
+            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
         computed[element] = style;
 
         double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
@@ -396,7 +393,7 @@ public static partial class HtmlComputedStyleEngine {
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, inheritedFontSize, rootFontSize, containerContexts);
-        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, childContainerContexts, environment);
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, candidateRules, pseudoElements, budget, childContainerContexts, environment);
 
         foreach (IElement child in element.Children) {
             ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, elementHeight, childContainerContexts);
@@ -406,13 +403,13 @@ public static partial class HtmlComputedStyleEngine {
     private static void ComputePseudoElementStyles(
         IElement element,
         HtmlComputedStyle originatingStyle,
-        StyleRuleIndex rules,
+        IReadOnlyList<StyleRule> candidateRules,
         IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
         MediaEnvironment environment) {
-        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Before, budget, containerContexts, environment);
-        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.After, budget, containerContexts, environment);
+        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Before, budget, containerContexts, environment);
+        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.After, budget, containerContexts, environment);
         if (before == null && after == null) return;
         pseudoElements[element] = new HtmlPseudoElementStylePair { Before = before, After = after };
     }
@@ -420,20 +417,13 @@ public static partial class HtmlComputedStyleEngine {
     private static HtmlComputedStyle? ComputePseudoElementStyle(
         IElement element,
         HtmlComputedStyle originatingStyle,
-        StyleRuleIndex rules,
+        IReadOnlyList<StyleRule> candidateRules,
         HtmlPseudoElementKind kind,
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
         MediaEnvironment environment) {
-        var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
-        foreach (KeyValuePair<string, string> pair in originatingStyle.Properties) {
-            if (IsInheritedProperty(pair.Key)) {
-                properties[pair.Key] = new CascadedProperty(pair.Value, false, Specificity.Inherited, -1);
-            }
-        }
-
-        bool matched = false;
-        foreach (StyleRule rule in rules.GetCandidates(element)) {
+        List<StyleRule>? matchedRules = null;
+        foreach (StyleRule rule in candidateRules) {
             budget.RecordSelectorEvaluation();
             if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)
                 || !TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
@@ -442,8 +432,15 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            matched = true;
+            (matchedRules ??= new List<StyleRule>()).Add(rule);
+        }
+
+        if (matchedRules == null) return null;
+        var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
+
+        foreach (StyleRule rule in matchedRules) {
             foreach (KeyValuePair<string, StyleDeclaration> declaration in rule.Declarations) {
+                if (!declaration.Value.IsSupported) continue;
                 ApplyDeclaration(
                     properties,
                     originatingStyle.Properties,
@@ -452,15 +449,16 @@ public static partial class HtmlComputedStyleEngine {
                     declaration.Value.IsImportant,
                     rule.Specificity,
                     rule.Order,
-                    rule.LayerOrder);
+                    rule.LayerOrder,
+                    valueAlreadyValidated: true);
             }
         }
 
-        if (!matched) return null;
-        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties,
-            out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties,
-            out IReadOnlyCollection<string> specifiedProperties);
-        return new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
+        Dictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties,
+            out HashSet<string> inheritedProperties, out HashSet<string> resetProperties,
+            out HashSet<string> specifiedProperties);
+        return HtmlComputedStyle.FromOwnedCollections(
+            resolvedProperties, inheritedProperties, resetProperties, specifiedProperties);
     }
 
 }
