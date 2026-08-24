@@ -6,8 +6,12 @@ OfficeIMO.Visio now has reproducible owner-level performance coverage for
 complete VSDX creation/save and load/structural-inspection workflows. Reusing
 page-local automatic-ID bookkeeping and streaming the completed package into
 the caller's destination removed avoidable copies and temporary collections.
-Managed allocation for creation fell by 11.1% on the small corpus, 24.8% on the
-normal corpus, and 35.7% on the large corpus.
+The latest pass also replaces repeated whole-page identifier scans with a
+page-local index and avoids boxed child-shape enumerators in internal tree
+traversal. Against the original source baseline, managed allocation for
+creation is now 16.0% lower on the small corpus, 44.1% lower on the normal
+corpus, and 64.4% lower on the large corpus. Large load/inspection allocation
+is 31.0% lower.
 
 This is an owner baseline, not a contender-ratio claim. Aspose.Diagram is a
 possible commercial comparison, but its documented
@@ -34,26 +38,26 @@ from the same validated package. This prevents a faster but incomplete writer
 or reader from being treated as an improvement.
 
 The production changes preserve automatic-ID collision handling, including
-nested group children and IDs reserved during relationship construction. The
-leaf-shape path avoids a temporary set, while group trees retain duplicate-ID
-validation. Saving still rewinds and truncates caller-provided seekable streams;
-it now copies the completed package directly instead of first materializing a
-second full byte array.
+nested group children, child mutations after a group is attached to a page,
+released-ID reuse, and IDs reserved during relationship construction. Group
+trees retain duplicate-ID validation. Saving still rewinds and truncates
+caller-provided seekable streams; it copies the completed package directly
+instead of first materializing a second full byte array.
 
 ## BenchmarkDotNet results
 
 Environment: Windows 11 build 26200, AMD Ryzen 9 9950X3D2, .NET SDK 10.0.111,
 .NET 10.0.11 x64, BenchmarkDotNet 0.15.8 `ShortRun`. The final source was clean
-at commit `0352cce4b011bf05deab8cd433293d95deecdc1c`.
+at commit `9f0f999213418cb7498dc4137b7c7a9983c485a6`.
 
 | Operation | Scale | Mean | Managed allocation |
 | --- | --- | ---: | ---: |
-| Create and save | Small | 2.121 ms | 877.58 KiB |
-| Create and save | Normal | 25.591 ms | 11,983.29 KiB |
-| Create and save | Large | 97.068 ms | 86,796.99 KiB |
-| Load and inspect | Small | 1.936 ms | 1,467.96 KiB |
-| Load and inspect | Normal | 11.779 ms | 15,908.36 KiB |
-| Load and inspect | Large | 128.620 ms | 93,987.08 KiB |
+| Create and save | Small | 0.963 ms | 828.90 KiB |
+| Create and save | Normal | 8.931 ms | 8,911.55 KiB |
+| Create and save | Large | 68.685 ms | 48,019.15 KiB |
+| Load and inspect | Small | 2.365 ms | 1,450.16 KiB |
+| Load and inspect | Normal | 15.568 ms | 13,705.58 KiB |
+| Load and inspect | Large | 105.928 ms | 65,307.29 KiB |
 
 The same-machine initial production source was commit
 `62f01ceb154af3c3194b06273585d70b0f3428a4`, with the benchmark harness applied
@@ -61,18 +65,18 @@ only to measure it. Allocation changed as follows:
 
 | Workload | Initial | Final | Change |
 | --- | ---: | ---: | ---: |
-| Create and save, Small | 987.00 KiB | 877.58 KiB | 11.1% lower |
-| Create and save, Normal | 15,943.63 KiB | 11,983.29 KiB | 24.8% lower |
-| Create and save, Large | 134,928.59 KiB | 86,796.99 KiB | 35.7% lower |
-| Load and inspect, Small | 1,473.17 KiB | 1,467.96 KiB | 0.4% lower |
-| Load and inspect, Normal | 15,992.46 KiB | 15,908.36 KiB | 0.5% lower |
-| Load and inspect, Large | 94,678.68 KiB | 93,987.08 KiB | 0.7% lower |
+| Create and save, Small | 987.00 KiB | 828.90 KiB | 16.0% lower |
+| Create and save, Normal | 15,943.63 KiB | 8,911.55 KiB | 44.1% lower |
+| Create and save, Large | 134,928.59 KiB | 48,019.15 KiB | 64.4% lower |
+| Load and inspect, Small | 1,473.17 KiB | 1,450.16 KiB | 1.6% lower |
+| Load and inspect, Normal | 15,992.46 KiB | 13,705.58 KiB | 14.3% lower |
+| Load and inspect, Large | 94,678.68 KiB | 65,307.29 KiB | 31.0% lower |
 
-The short timing run is not stable enough for a blanket speed claim. Normal
-creation and large loading were faster in this run, while small and large
-creation and normal loading varied in both directions across runs. Allocation
-is the repeatable improvement; elapsed-time and remaining graph/package
-allocation stay open optimization targets.
+The short timing run remains noisy, so the result is not a blanket speed claim.
+The same-machine large means improved by 29.2% for creation and 17.6% for
+load/inspection, while the normal load mean varied upward. Allocation is the
+more repeatable improvement; elapsed-time stability and remaining XML,
+preservation, inspection-graph, and package allocation stay open targets.
 
 ## Isolated memory and output evidence
 
@@ -83,19 +87,19 @@ working-set peak. The evidence identifies the clean source commit and runtime.
 
 | Operation | Scale | Time/op | Allocation/op | Retained heap | Managed batch peak | Process peak | Package bytes |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create and save | Small | 1.64 ms | 0.92 MiB | 47.4 KiB | 29.54 MiB | 73.63 MiB | 47,522 |
-| Create and save | Normal | 23.59 ms | 12.73 MiB | 663.5 KiB | 23.54 MiB | 76.23 MiB | 678,667 |
-| Create and save | Large | 218.84 ms | 90.07 MiB | 3.20 MiB | 70.59 MiB | 146.92 MiB | 3,350,485 |
-| Load and inspect | Small | 4.07 ms | 1.45 MiB | 46.4 KiB | 46.42 MiB | 91.74 MiB | 47,522 |
-| Load and inspect | Normal | 38.02 ms | 15.78 MiB | 728.9 KiB | 48.72 MiB | 109.34 MiB | 678,667 |
-| Load and inspect | Large | 226.83 ms | 93.04 MiB | 3.56 MiB | 70.09 MiB | 141.20 MiB | 3,350,485 |
+| Create and save | Small | 1.19 ms | 0.88 MiB | 47.4 KiB | 28.12 MiB | 72.07 MiB | 47,522 |
+| Create and save | Normal | 15.77 ms | 9.74 MiB | 663.5 KiB | 11.93 MiB | 64.06 MiB | 678,667 |
+| Create and save | Large | 89.66 ms | 52.20 MiB | 3.20 MiB | 60.64 MiB | 132.36 MiB | 3,350,485 |
+| Load and inspect | Small | 1.97 ms | 1.42 MiB | 46.4 KiB | 45.52 MiB | 90.95 MiB | 47,522 |
+| Load and inspect | Normal | 36.72 ms | 13.63 MiB | 728.9 KiB | 47.65 MiB | 110.74 MiB | 678,667 |
+| Load and inspect | Large | 165.24 ms | 65.03 MiB | 3.55 MiB | 77.17 MiB | 142.09 MiB | 3,350,485 |
 
 The isolated runner includes validation and process startup behavior outside its
 timed loop, while BenchmarkDotNet supplies the primary steady-state time and
-allocation measurements. Large creation still allocates roughly 27 times the
-resulting package size, and large loading allocates roughly 29 times the input
-size. Those ratios are owner-level optimization signals, not comparisons with
-another implementation.
+allocation measurements. Large creation now allocates roughly 16 times the
+resulting package size, and large loading roughly 20 times the input size.
+Those ratios are owner-level optimization signals, not comparisons with another
+implementation.
 
 ## Reproduce
 

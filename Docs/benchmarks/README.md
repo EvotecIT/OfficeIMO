@@ -27,7 +27,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | Markup | Validated CommonMark-plus-tables semantic parse is 1.15-1.31x Markdig's mean time and 1.13-1.26x its allocation | Isolated allocation, retained heap, managed peak, process peak, input bytes, event count, and digest are recorded and budgeted; file size is not applicable to parsing | Markdig 1.3.2 after exact semantic-event validation | Move the remaining 1.25-1.31x margins toward parity and add Linux/macOS evidence |
 | Security | Detached RSA CMS signing is 0.87-0.94x platform time and 0.025-1.03x allocation; verification is 0.68-1.87x time and 0.036-1.79x allocation | Every isolated time/allocation/retained/managed/process ratio is below 2x; OfficeIMO CMS output is 1.105x platform size because it includes algorithm protection | .NET `SignedCms` for equivalent signature-only detached CMS workflows, with Bouncy Castle retained for richer structures and older targets | Reduce the remaining 1.68-1.87x platform-signature time margins and 1.69-1.79x OfficeIMO-signature small-allocation margins; add Linux/macOS evidence |
 | Provenance | Validated structural inspect/remove curves cover PNG, TIFF, SVG, ZIP, and text; the 1 MiB PNG lane is 16.0x faster to inspect and 13.7x faster to remove than the initial local baseline | Isolated retained heap, managed batch peak, process peak, input bytes, and exact removal-output bytes are recorded | No accepted managed .NET comparator exposes the same bounded inspect-and-selective-remove contract | Reduce large SVG, text, and ZIP allocation; profile the remaining PNG CRC/JUMBF cost; add Linux/macOS evidence |
-| Visio | Validated BenchmarkDotNet creation/save and load/structural-inspection curves; creation allocation is 11.1-35.7% below the initial baseline | Isolated retained heap, managed peak, process peak, package bytes, and structure counts are recorded | No accepted comparison; a commercial lane requires a valid license and the same complete VSDX contract | Large creation still allocates about 84.8 MiB for a 3.35 MB package and large loading about 91.8 MiB; stabilize elapsed evidence, reduce graph/package overhead, and add non-Windows evidence |
+| Visio | Validated BenchmarkDotNet creation/save and load/structural-inspection curves; creation allocation is 16.0-64.4% below the initial baseline and large load allocation is 31.0% lower | Isolated retained heap, managed peak, process peak, package bytes, and structure counts are recorded | No accepted comparison; a commercial lane requires a valid license and the same complete VSDX contract | Large creation still allocates about 46.9 MiB for a 3.35 MB package and large loading about 63.8 MiB; stabilize elapsed evidence, reduce XML/preservation/package overhead, and add non-Windows evidence |
 
 This table describes measurement coverage, not a library ranking. A returned
 byte count is not yet durable size evidence unless the runner records it with
@@ -219,11 +219,13 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Visio.Benchmarks -- evide
 ```
 
 The clean Windows evidence is recorded in
-[`officeimo.visio-2026-08-24.md`](officeimo.visio-2026-08-24.md). Reused ID
-bookkeeping and direct package streaming reduced creation allocation by 11.1%
-to 35.7% across the three scales. The timing sample is deliberately not
-presented as a general speedup because the short runs remain noisy. No contender
-ratio is claimed without a licensed, contract-equivalent managed implementation.
+[`officeimo.visio-2026-08-24.md`](officeimo.visio-2026-08-24.md). Page-local ID
+indexing, allocation-free tree traversal, and direct package streaming reduced
+creation allocation by 16.0% to 64.4% across the three scales; large
+load/inspection allocation is 31.0% lower. The timing sample is deliberately
+not presented as a general speedup because the short runs remain noisy. No
+contender ratio is claimed without a licensed, contract-equivalent managed
+implementation.
 
 ## HTML non-PDF layout
 
