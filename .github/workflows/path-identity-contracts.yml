@@ -83,7 +83,7 @@ jobs:
           architecture: ${{ matrix.architecture }}
           dotnet-version: |
             8.0.x
-            10.0.x
+            10.0.103
 
       - name: Restore focused contracts
         run: dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
