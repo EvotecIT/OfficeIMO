@@ -25,6 +25,7 @@ namespace OfficeIMO.Word {
         private byte[]? _legacyValidationEncodedPackageBytes;
         private bool _tableOfContentUpdateQueued;
         private bool _styleDefinitionsInitialized;
+        private WordStyleCatalogFingerprint? _styleCatalogFingerprint;
         private bool _disposed;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
     }

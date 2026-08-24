@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Net.Http;
@@ -71,9 +72,66 @@ namespace OfficeIMO.Word {
         /// <param name="stringComparison"></param>
         /// <returns></returns>
         public int FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            if (TryFindAndReplaceInSimpleTextNodes(textToFind, textToReplace, stringComparison, out int fastCount)) {
+                return fastCount;
+            }
             int countFind = 0;
             FindAndReplaceInternal(textToFind, textToReplace, ref countFind, true, stringComparison);
             return countFind;
+        }
+
+        private bool TryFindAndReplaceInSimpleTextNodes(
+            string textToFind,
+            string textToReplace,
+            StringComparison stringComparison,
+            out int count) {
+            count = 0;
+            string replacement = textToReplace ?? string.Empty;
+            if (string.IsNullOrEmpty(textToFind) ||
+                replacement.IndexOf('\r') >= 0 ||
+                replacement.IndexOf('\n') >= 0 ||
+                replacement.IndexOf('\t') >= 0) {
+                return false;
+            }
+
+            MainDocumentPart? mainPart = _wordprocessingDocument?.MainDocumentPart;
+            Body? body = mainPart?.Document?.Body;
+            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any() ||
+                body.ChildElements.Any(element => element is not Paragraph && element is not SectionProperties)) {
+                return false;
+            }
+
+            var nodes = new List<Text>();
+            foreach (Paragraph paragraph in body.Elements<Paragraph>()) {
+                if (paragraph.Descendants<OpenXmlLeafTextElement>().Any(element => element is not Text) ||
+                    paragraph.Descendants<Break>().Any() ||
+                    paragraph.Descendants<TabChar>().Any() ||
+                    paragraph.Descendants<CarriageReturn>().Any()) {
+                    return false;
+                }
+                nodes.AddRange(paragraph.Descendants<Text>());
+            }
+            string[] values = new string[nodes.Count];
+            for (int index = 0; index < nodes.Count; index++) values[index] = nodes[index].Text;
+            if (HasCrossParagraphMatch(values, textToFind, stringComparison)) return false;
+
+            for (int index = 0; index < nodes.Count; index++) {
+                string value = values[index];
+                if (value.IndexOf(textToFind, stringComparison) < 0) continue;
+                int localCount = 0;
+                string updated = value.FindAndReplace(
+                    textToFind,
+                    replacement,
+                    stringComparison,
+                    ref localCount);
+                nodes[index].Text = updated;
+                if (updated.Length > 0 &&
+                    (char.IsWhiteSpace(updated[0]) || char.IsWhiteSpace(updated[updated.Length - 1]))) {
+                    nodes[index].Space = SpaceProcessingModeValues.Preserve;
+                }
+                count += localCount;
+            }
+            return true;
         }
 
         /// <summary>
@@ -113,6 +171,29 @@ namespace OfficeIMO.Word {
                 throw new ArgumentNullException("oldText should not be null");
             }
             List<WordParagraph> foundParagraphs = new List<WordParagraph>();
+            string[] paragraphTexts = new string[paragraphs.Count];
+            for (int index = 0; index < paragraphs.Count; index++) {
+                paragraphTexts[index] = paragraphs[index]?.Text ?? string.Empty;
+            }
+            if (!HasCrossParagraphMatch(paragraphTexts, oldText, stringComparison)) {
+                for (int index = 0; index < paragraphs.Count; index++) {
+                    WordParagraph? paragraph = paragraphs[index];
+                    if (paragraph == null) continue;
+                    int localCount = 0;
+                    string updated = paragraphTexts[index].FindAndReplace(
+                        oldText,
+                        newText,
+                        stringComparison,
+                        ref localCount);
+                    if (localCount == 0) continue;
+
+                    count += localCount;
+                    if (replace) paragraph.Text = updated;
+                    foundParagraphs.Add(paragraph);
+                }
+                return foundParagraphs;
+            }
+
             var removeParas = new List<int>();
             var foundList = SearchText(paragraphs, oldText, new WordPositionInParagraph() { Paragraph = 0 }, stringComparison);
 
@@ -161,6 +242,36 @@ namespace OfficeIMO.Word {
                 }
             }
             return foundParagraphs;
+        }
+
+        private static bool HasCrossParagraphMatch(
+            IReadOnlyList<string> paragraphTexts,
+            string searched,
+            StringComparison stringComparison) {
+            if (searched.Length < 2 || paragraphTexts.Count < 2) return false;
+
+            int tailLength = searched.Length - 1;
+            string tail = paragraphTexts[0].Length <= tailLength
+                ? paragraphTexts[0]
+                : paragraphTexts[0].Substring(paragraphTexts[0].Length - tailLength);
+            for (int index = 1; index < paragraphTexts.Count; index++) {
+                string current = paragraphTexts[index];
+                int prefixLength = Math.Min(tailLength, current.Length);
+                string boundary = tail + current.Substring(0, prefixLength);
+                int searchIndex = 0;
+                while (searchIndex < tail.Length) {
+                    int matchIndex = boundary.IndexOf(searched, searchIndex, stringComparison);
+                    if (matchIndex < 0 || matchIndex >= tail.Length) break;
+                    if (matchIndex + searched.Length > tail.Length) return true;
+                    searchIndex = matchIndex + 1;
+                }
+
+                string combined = tail + current;
+                tail = combined.Length <= tailLength
+                    ? combined
+                    : combined.Substring(combined.Length - tailLength);
+            }
+            return false;
         }
 
         private static List<WordTextSegment> SearchText(List<WordParagraph> paragraphs, String searched, WordPositionInParagraph startPos, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {

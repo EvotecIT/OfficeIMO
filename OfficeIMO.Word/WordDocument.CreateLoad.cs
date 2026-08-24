@@ -14,6 +14,10 @@ namespace OfficeIMO.Word {
     /// Provides functionality for creating, loading and manipulating Word documents.
     /// </summary>
     public partial class WordDocument : IDisposable {
+        private static readonly Lazy<byte[]> DefaultDocumentPackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.Document));
+        private static readonly Lazy<byte[]> DefaultTemplatePackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.Template));
+        private static readonly Lazy<byte[]> DefaultMacroDocumentPackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.MacroEnabledDocument));
+        private static readonly Lazy<byte[]> DefaultMacroTemplatePackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.MacroEnabledTemplate));
 
         private static string GetUniqueFilePath(string filePath) {
             if (File.Exists(filePath)) {
@@ -141,6 +145,61 @@ namespace OfficeIMO.Word {
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode) {
+            byte[] templateBytes = GetDefaultPackageBytes(documentType);
+            var packageStream = new MemoryStream(templateBytes.Length + 4096);
+            packageStream.Write(templateBytes, 0, templateBytes.Length);
+            packageStream.Position = 0;
+            WordprocessingDocument wordDocument;
+            try {
+                wordDocument = WordprocessingDocument.Open(
+                    packageStream,
+                    true,
+                    new OpenSettings { AutoSave = false });
+            } catch {
+                packageStream.Dispose();
+                throw;
+            }
+
+            var word = new WordDocument {
+                FilePath = filePath,
+                OriginalStream = stream,
+                _ownedPackageStream = packageStream,
+                _wordprocessingDocument = wordDocument,
+                _document = wordDocument.MainDocumentPart?.Document
+                    ?? throw new InvalidOperationException("Default Word package is missing its main document."),
+                _persistenceMode = persistenceMode,
+                _styleDefinitionsInitialized = true
+            };
+            word.InitializeSdtIdState();
+            ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
+            InitializeNewDocumentFacade(word);
+            return word;
+        }
+
+        private static byte[] GetDefaultPackageBytes(WordprocessingDocumentType documentType) => documentType switch {
+            WordprocessingDocumentType.Document => DefaultDocumentPackage.Value,
+            WordprocessingDocumentType.Template => DefaultTemplatePackage.Value,
+            WordprocessingDocumentType.MacroEnabledDocument => DefaultMacroDocumentPackage.Value,
+            WordprocessingDocumentType.MacroEnabledTemplate => DefaultMacroTemplatePackage.Value,
+            _ => throw new ArgumentOutOfRangeException(nameof(documentType), documentType, "Unsupported Word document type.")
+        };
+
+        private static byte[] CreateDefaultPackageBytes(WordprocessingDocumentType documentType) {
+            using WordDocument document = CreateUncached(
+                filePath: null,
+                stream: null,
+                documentType,
+                DocumentPersistenceMode.Explicit);
+            using var packageStream = new MemoryStream();
+            using (document._wordprocessingDocument.Clone(packageStream, true)) {
+            }
+
+            packageStream.Position = 0;
+            WordPackageCompatibility.NormalizeOpenOfficeRelationships(packageStream);
+            return packageStream.ToArray();
+        }
+
+        private static WordDocument CreateUncached(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode) {
             WordDocument word = new WordDocument();
             if (stream != null) {
                 word.OriginalStream = stream;
@@ -219,6 +278,12 @@ namespace OfficeIMO.Word {
             ThemePart themePart1 = mainPart.AddNewPart<ThemePart>("rId7");
             GenerateThemePart1Content(themePart1);
 
+            InitializeNewDocumentFacade(word);
+
+            return word;
+        }
+
+        private static void InitializeNewDocumentFacade(WordDocument word) {
             new WordSettings(word);
             new WordCompatibilitySettings(word);
             new WordApplicationProperties(word);
@@ -228,8 +293,6 @@ namespace OfficeIMO.Word {
             new WordDocumentStatistics(word);
 
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
-
-            return word;
         }
 
         /// <summary>
@@ -370,6 +433,7 @@ namespace OfficeIMO.Word {
 
                 word.FilePath = filePath;
                 word._ownedPackageStream = memoryStream;
+                word._styleCatalogFingerprint = WordStyleCatalogFingerprint.TryCreate(sourceBytes);
                 word._legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly);
@@ -486,6 +550,7 @@ namespace OfficeIMO.Word {
             var word = new WordDocument {
                 FilePath = filePath,
                 _ownedPackageStream = memoryStream,
+                _styleCatalogFingerprint = WordStyleCatalogFingerprint.TryCreate(sourceBytes),
                 _legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly),
@@ -578,6 +643,7 @@ namespace OfficeIMO.Word {
                 var document = new WordDocument() {
                     OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!,
                     _ownedPackageStream = packageStream,
+                    _styleCatalogFingerprint = WordStyleCatalogFingerprint.TryCreate(sourceBytes),
                     _legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                         sourceBytes,
                         readOnly),

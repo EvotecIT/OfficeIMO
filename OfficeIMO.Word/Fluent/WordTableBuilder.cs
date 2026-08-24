@@ -278,6 +278,7 @@ namespace OfficeIMO.Word.Fluent {
             if (index - 1 < _table._table.Elements<TableRow>().Count() - 1) {
                 row._tableRow.Remove();
                 _table._table.InsertAt(row._tableRow, index - 1);
+                _table.InvalidateRowElements();
             }
 
             for (int i = 0; i < _columns && i < cells.Length; i++) {

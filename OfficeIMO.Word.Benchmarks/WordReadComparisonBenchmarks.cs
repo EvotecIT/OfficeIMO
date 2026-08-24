@@ -18,13 +18,19 @@ public class WordReadComparisonBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
+        SetupOfficeAndOpenXml();
+        EnsureExpected(nameof(DocX), DocX());
+        EnsureExpected(nameof(NPOI), NPOI());
+    }
+
+    internal void SetupOfficeAndOpenXml() {
         _fixture = WordBenchmarkCorpus.CreateParagraphFixture(ItemCount);
         _expected = WordBenchmarkCorpus.ObserveExpectedParagraphs(ItemCount);
         EnsureExpected(nameof(OfficeIMO), OfficeIMO());
-        EnsureExpected(nameof(DocX), DocX());
-        EnsureExpected(nameof(NPOI), NPOI());
         EnsureExpected(nameof(OpenXmlSdk), OpenXmlSdk());
     }
+
+    internal int InputBytes => _fixture.Length;
 
     [Benchmark(Baseline = true)]
     public WordReadObservation OfficeIMO() {

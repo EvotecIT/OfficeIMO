@@ -239,7 +239,6 @@ namespace OfficeIMO.Word {
 
             EnsureLegacyDocSaveDoesNotDropImportedContent(options);
 
-            _wordprocessingDocument.Save();
             return CreateOpenXmlBytesAfterSave();
         }
 
@@ -401,7 +400,6 @@ namespace OfficeIMO.Word {
                 bytes = LegacyDocWriter.WriteDocument(this, options);
             } else {
                 EnsureLegacyDocSaveDoesNotDropImportedContent(options);
-                _wordprocessingDocument.Save();
                 bytes = CreateOpenXmlBytesAfterSave();
             }
 
@@ -434,7 +432,6 @@ namespace OfficeIMO.Word {
                 }
                 return;
             }
-            _wordprocessingDocument.Save();
             OfficeFileCommit.Write(filePath, stream => {
                 using (var clone = _wordprocessingDocument.Clone(stream)) {
                     AlignDocumentTypeWithFilePath(clone, filePath);
@@ -454,6 +451,9 @@ namespace OfficeIMO.Word {
             if (_legacyValidationLivePackageStream != null) {
                 return CreateLegacyRuntimeOpenXmlBytesAfterSave(filePath);
             }
+            if (_ownedPackageStream != null) {
+                return CreateOwnedPackageSnapshot(filePath);
+            }
             using var memoryStream = new MemoryStream();
             using (var clone = _wordprocessingDocument.Clone(memoryStream, true)) {
                 if (!string.IsNullOrEmpty(filePath)) {
@@ -466,6 +466,25 @@ namespace OfficeIMO.Word {
             WordPackageCompatibility.NormalizeOpenOfficeRelationships(memoryStream);
             return memoryStream.ToArray();
         }
+
+#pragma warning disable OOXML0001
+        private byte[] CreateOwnedPackageSnapshot(string? filePath) {
+            _wordprocessingDocument.Save();
+            _wordprocessingDocument.GetPackage().Save();
+            _ownedPackageStream!.Flush();
+            byte[] packageBytes = _ownedPackageStream.ToArray();
+            using var output = new MemoryStream(packageBytes.Length + 4096);
+            output.Write(packageBytes, 0, packageBytes.Length);
+            output.Position = 0;
+            if (!string.IsNullOrEmpty(filePath)) {
+                using WordprocessingDocument savedDocument = WordprocessingDocument.Open(output, true);
+                AlignDocumentTypeWithFilePath(savedDocument, filePath!);
+            }
+            output.Position = 0;
+            WordPackageCompatibility.NormalizeOpenOfficeRelationships(output);
+            return output.ToArray();
+        }
+#pragma warning restore OOXML0001
 
 #pragma warning disable OOXML0001
         private byte[] CreateLegacyRuntimeOpenXmlBytesAfterSave(string? filePath) {
@@ -519,11 +538,15 @@ namespace OfficeIMO.Word {
 
             EnsureDestinationFileWritable(filePath);
             EnsureLegacyDocSaveDoesNotDropImportedContent(options);
-            _wordprocessingDocument.Save();
             return CreateOpenXmlBytesAfterSave(filePath);
         }
 
         private void EnsureSignedDocumentSaveAllowed(WordSaveOptions? options, string operation) {
+            if (_wordprocessingDocument.DigitalSignatureOriginPart == null &&
+                _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature == null) {
+                return;
+            }
+
             WordSignatureInfo signatureInfo = InspectSignatures();
             if (!signatureInfo.HasSignatures) {
                 return;

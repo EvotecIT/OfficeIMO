@@ -103,11 +103,11 @@ public class WordCreateReportComparisonBenchmarks {
         document.AddParagraph(WordBenchmarkCorpus.ReportTitle).SetBold().SetFontSize(18);
         document.AddParagraph(WordBenchmarkCorpus.ReportSummary);
         WordTable table = document.AddTable(RowCount + 1, 2);
-        table.Rows[0].Cells[0].Paragraphs[0].SetText("Record").SetBold();
-        table.Rows[0].Cells[1].Paragraphs[0].SetText("Owner").SetBold();
+        table.SetCellText(0, 0, "Record", bold: true);
+        table.SetCellText(0, 1, "Owner", bold: true);
         for (int index = 0; index < RowCount; index++) {
-            table.Rows[index + 1].Cells[0].Paragraphs[0].SetText(WordBenchmarkCorpus.RecordId(index));
-            table.Rows[index + 1].Cells[1].Paragraphs[0].SetText(WordBenchmarkCorpus.RecordOwner(index));
+            table.SetCellText(index + 1, 0, WordBenchmarkCorpus.RecordId(index));
+            table.SetCellText(index + 1, 1, WordBenchmarkCorpus.RecordOwner(index));
         }
         return document.ToBytes();
     }
@@ -189,17 +189,24 @@ public class WordCreateReportComparisonBenchmarks {
         return stream.ToArray();
     }
 
-    private static OpenXmlParagraph CreateParagraph(string text, bool bold = false, string? fontSizeHalfPoints = null) {
+    internal static OpenXmlParagraph CreateParagraph(string text, bool bold = false, string? fontSizeHalfPoints = null) {
         var runProperties = new RunProperties();
         if (bold) runProperties.Append(new Bold());
         if (fontSizeHalfPoints is not null) runProperties.Append(new FontSize { Val = fontSizeHalfPoints });
-        return new OpenXmlParagraph(new OpenXmlRun(runProperties, new Text(text)));
+        return new OpenXmlParagraph(
+            new ParagraphProperties(),
+            new OpenXmlRun(runProperties, new Text(text)));
     }
 
-    private static OpenXmlTable CreateTable(int rowCount) {
+    internal static OpenXmlTable CreateTable(int rowCount) {
         var table = new OpenXmlTable(
-            new TableProperties(new TableStyle { Val = "TableGrid" }),
-            new TableGrid(new GridColumn(), new GridColumn()));
+            new TableProperties(
+                new TableStyle { Val = "TableGrid" },
+                new TableWidth { Width = "0", Type = TableWidthUnitValues.Auto },
+                new DocumentFormat.OpenXml.Wordprocessing.TableLook { Val = "04A0" }),
+            new TableGrid(
+                new GridColumn { Width = "2400" },
+                new GridColumn { Width = "2400" }));
         table.Append(CreateRow("Record", "Owner", bold: true));
         for (int index = 0; index < rowCount; index++) {
             table.Append(CreateRow(
@@ -212,8 +219,14 @@ public class WordCreateReportComparisonBenchmarks {
 
     private static TableRow CreateRow(string first, string second, bool bold) =>
         new(
-            new TableCell(CreateParagraph(first, bold)),
-            new TableCell(CreateParagraph(second, bold)));
+            CreateCell(first, bold),
+            CreateCell(second, bold));
+
+    private static TableCell CreateCell(string text, bool bold) =>
+        new(
+            new TableCellProperties(
+                new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2400" }),
+            CreateParagraph(text, bold));
 
     private static void SetNpoiCell(NPOI.XWPF.UserModel.XWPFTableCell cell, string text, bool bold) {
         var run = cell.Paragraphs[0].CreateRun();

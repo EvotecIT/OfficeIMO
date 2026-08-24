@@ -72,6 +72,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal static bool HasRuntimeStyleRegistrations {
+            get {
+                lock (_stylesLock) {
+                    return _customStyles.Count > 0 || _overrides.Count > 0;
+                }
+            }
+        }
+
         /// <summary>
         /// Registers a custom paragraph style for later retrieval.
         /// </summary>
@@ -125,6 +133,7 @@ namespace OfficeIMO.Word {
                     }
                 }
                 _customStyles[styleId] = incoming;
+                WordDocument.InvalidateCompleteStyleCatalogCache();
             }
         }
 
@@ -165,6 +174,7 @@ namespace OfficeIMO.Word {
         internal static void OverrideBuiltInOpenXmlStyle(WordParagraphStyles style, Style styleDefinition) {
             lock (_stylesLock) {
                 _overrides[style] = (Style)styleDefinition.CloneNode(true);
+                WordDocument.InvalidateCompleteStyleCatalogCache();
             }
         }
 

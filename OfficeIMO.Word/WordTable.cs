@@ -288,6 +288,7 @@ namespace OfficeIMO.Word {
 
         internal Table _table;
         private readonly ConditionalWeakTable<TableRow, WordTableRow> _rowCache = new();
+        private List<TableRow>? _rowElements;
 
         internal void TrackRow(WordTableRow row) {
             if (!_rowCache.TryGetValue(row._tableRow, out _)) {
@@ -357,6 +358,7 @@ namespace OfficeIMO.Word {
 
 
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
+            document.EnsureStyleDefinitionsInitialized();
             Table table = new Table();
 
             TableProperties tableProperties1 = new TableProperties();
@@ -373,16 +375,21 @@ namespace OfficeIMO.Word {
 
             TableGrid tableGrid1 = new TableGrid();
             for (int i = 0; i < columns; i++) {
-                GridColumn gridColumn1 = new GridColumn() { };
+                GridColumn gridColumn1 = new GridColumn { Width = "2400" };
                 tableGrid1.Append(gridColumn1);
             }
             table.Append(tableGrid1);
 
+            _rowElements = new List<TableRow>(rows);
             for (int i = 0; i < rows; i++) {
-                WordTableRow row = new WordTableRow(document, this);
-                table.Append(row._tableRow);
+                var row = new TableRow();
+                _rowElements.Add(row);
+                table.Append(row);
                 for (int j = 0; j < columns; j++) {
-                    WordTableCell cell = new WordTableCell(document, this, row);
+                    row.Append(new TableCell(
+                        new TableCellProperties(
+                            new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2400" }),
+                        new Paragraph(new ParagraphProperties(), new Run())));
                 }
             }
             return table;
@@ -403,6 +410,7 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Table table, bool initializeChildren) {
             _table = table;
             _document = document;
+            _rowElements = table.Elements<TableRow>().ToList();
 
             if (initializeChildren) {
                 foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
@@ -429,7 +437,6 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, WordParagraph wordParagraph, int rows, int columns, WordTableStyle tableStyle, string location) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
-            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -454,7 +461,6 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, bool insert = true) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
-            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -477,7 +483,6 @@ namespace OfficeIMO.Word {
             _document = document;
 
             _table = GenerateTable(document, rows, columns, tableStyle);
-            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -488,7 +493,6 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Footer footer, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
-            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -498,7 +502,6 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Header header, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
-            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -512,10 +515,24 @@ namespace OfficeIMO.Word {
         /// <param name="cellsCount"></param>
         public WordTableRow AddRow(int cellsCount = 0) {
             WordTableRow row = new WordTableRow(_document, this);
+            List<TableRow> rowElements = GetRowElements();
             _table.Append(row._tableRow);
+            rowElements.Add(row._tableRow);
             AddCells(row, cellsCount);
             try { RefreshTblGridFromColumnWidths(); } catch { }
             return row;
+        }
+
+        private List<TableRow> GetRowElements() {
+            return _rowElements ??= _table.Elements<TableRow>().ToList();
+        }
+
+        internal void InvalidateRowElements() {
+            _rowElements = null;
+        }
+
+        internal void TrackRemovedRow(TableRow row) {
+            _rowElements?.Remove(row);
         }
 
         /// <summary>
@@ -556,7 +573,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="row"></param>
         private void AddRow(WordTableRow row) {
+            List<TableRow> rowElements = GetRowElements();
             _table.Append(row._tableRow);
+            rowElements.Add(row._tableRow);
         }
 
         /// <summary>

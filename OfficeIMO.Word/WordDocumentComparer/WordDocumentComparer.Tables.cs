@@ -49,6 +49,7 @@ namespace OfficeIMO.Word {
                 var clonedRow = (TableRow)tgtRow._tableRow.CloneNode(true);
                 MarkRowAsInserted(clonedRow);
                 result._table.Append(clonedRow);
+                result.InvalidateRowElements();
             }
         }
 

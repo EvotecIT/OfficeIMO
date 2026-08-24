@@ -25,6 +25,7 @@ using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         private const string NormalizedLineFeed = "\n";
+        private static readonly char[] SimpleRunUnsupportedCharacters = ['\r', '\n', '\t', NonTextBreakPlaceholder];
 
         // Non text-wrapping breaks (for example, page or column breaks) are surfaced as the Unicode line
         // separator so that they remain discoverable during text operations and can be restored exactly.
@@ -106,6 +107,10 @@ namespace OfficeIMO.Word {
                 }
 
                 Run run = ResolveTextSetterRun(out OpenXmlElement textContainer, out IReadOnlyList<Run>? contentRuns);
+                if (contentRuns == null && ReferenceEquals(textContainer, run) &&
+                    TrySetSimpleRunText(run, value ?? string.Empty)) {
+                    return;
+                }
 
                 var preservedBreaks = new List<(int ContentIndex, Break Break)>();
                 int contentNodesEncountered = 0;
@@ -236,6 +241,33 @@ namespace OfficeIMO.Word {
                     preservedIndex++;
                 }
             }
+        }
+
+        private static bool TrySetSimpleRunText(Run run, string value) {
+            if (value.IndexOfAny(SimpleRunUnsupportedCharacters) >= 0) return false;
+            Text? firstText = null;
+            foreach (OpenXmlElement child in run.ChildElements) {
+                if (child is RunProperties) continue;
+                if (child is not Text text) return false;
+                firstText ??= text;
+            }
+
+            if (firstText != null) {
+                OpenXmlElement? child = firstText.NextSibling();
+                while (child != null) {
+                    OpenXmlElement? next = child.NextSibling();
+                    if (child is Text) child.Remove();
+                    child = next;
+                }
+            }
+
+            if (firstText == null) {
+                run.Append(new Text(value) { Space = SpaceProcessingModeValues.Preserve });
+            } else {
+                firstText.Text = value;
+                firstText.Space = SpaceProcessingModeValues.Preserve;
+            }
+            return true;
         }
 
         private Run ResolveTextSetterRun(out OpenXmlElement textContainer, out IReadOnlyList<Run>? contentRuns) {

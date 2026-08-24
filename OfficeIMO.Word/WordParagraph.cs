@@ -238,6 +238,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
+                    _document?.EnsureStyleDefinitionsInitialized();
                     if (_paragraphProperties == null) {
                         _paragraph.ParagraphProperties = new ParagraphProperties();
                     }

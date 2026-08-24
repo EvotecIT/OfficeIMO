@@ -34,6 +34,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_OverrideBuiltInParagraphStyle() {
+            using (WordDocument warmup = WordDocument.Create()) {
+                Assert.NotNull(warmup._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart);
+            }
             var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal);
             Assert.NotNull(original);
             var custom = new WordParagraphStyleDefinition("Normal") { Bold = true };
@@ -43,6 +46,13 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(retrieved);
             Assert.Equal("Normal", retrieved!.StyleId);
             Assert.True(retrieved.Bold);
+
+            using (WordDocument document = WordDocument.Create()) {
+                Style normal = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                    .Elements<Style>()
+                    .Single(style => style.StyleId == "Normal");
+                Assert.NotNull(normal.StyleRunProperties?.Bold);
+            }
 
             WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, original!);
         }
