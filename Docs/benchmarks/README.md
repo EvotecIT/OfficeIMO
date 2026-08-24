@@ -21,7 +21,8 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | LaTeX | Validated BenchmarkDotNet lossless parse and parse-plus-preserve-write curves plus isolated evidence; the optimized large lane is about 69% faster and allocates about 62% less than the initial baseline | Allocation, retained heap, sampled managed peak, process peak, input bytes, and byte-identical preserve output are recorded and budgeted | No general .NET parser performs the same public lossless syntax plus semantic workflow | The 701 KiB source still retains about 57 MiB across its 256,036-token public model; reduce graph overhead and add non-Windows evidence |
 | AsciiDoc | Validated BenchmarkDotNet lossless parse and parse-plus-preserve-write curves plus isolated evidence; source-backed syntax and inline text reduce managed allocation by about 32% at every scale | Allocation, retained heap, sampled managed peak, process peak, input bytes, and byte-identical preserve output are recorded and budgeted | No accepted comparison: AsciiDocNet documents unsupported tables and list continuations required by this corpus | The 558 KiB large source still allocates 32.31 MiB and retains 22.46 MiB; reduce syntax graph and collection overhead, add non-Windows evidence, and compare only equivalent public workflows |
 | Markup | Validated CommonMark-plus-tables semantic parse is 1.15-1.31x Markdig's mean time and 1.13-1.26x its allocation | Isolated allocation, retained heap, managed peak, process peak, input bytes, event count, and digest are recorded and budgeted; file size is not applicable to parsing | Markdig 1.3.2 after exact semantic-event validation | Move the remaining 1.25-1.31x margins toward parity and add Linux/macOS evidence |
-| Security, Provenance, and Visio | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
+| Security | Detached RSA CMS signing is 0.70-0.94x platform time and 0.025-1.03x allocation; verification is 0.29-1.09x time and 0.029-2.11x allocation | Isolated retained heap, managed peak, process peak, content bytes, and CMS bytes are recorded; OfficeIMO CMS output is 1.105x platform size because it includes algorithm protection | .NET `SignedCms` for equivalent signature-only detached CMS workflows | Reduce the smallest platform-signature verification lane from 2.11x allocation and 2.07x managed peak to at most 2x; add Linux/macOS evidence |
+| Provenance and Visio | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
 
 This table describes measurement coverage, not a library ranking. A returned
 byte count is not yet durable size evidence unless the runner records it with
@@ -129,6 +130,29 @@ All three scales are within 1.31x for BenchmarkDotNet mean time and within 1.26x
 for managed allocation. The isolated retained-heap and peak-memory ratios are
 also within 1.31x. Markdig stays in the opt-in benchmark project and does not
 enter normal restore, runtime, or packaging paths.
+
+## Security detached CMS
+
+`OfficeIMO.Security.Benchmarks` compares RSA-2048 SHA-256 detached CMS signing
+and signature-only verification with .NET `SignedCms`. Both lanes use the same
+content and certificate and materialize equivalent signer metadata, standard
+signed-attribute inspection, certificate bytes, and key-usage policy. Preflight
+cross-verifies both signatures and requires tamper rejection before timing.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Security.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Security.Benchmarks -- --filter '*SecurityCms*' --job Short --noOverwrite
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Security.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\security\evidence.json
+```
+
+The clean Windows evidence is recorded in
+[`officeimo.security-cms-2026-08-24.md`](officeimo.security-cms-2026-08-24.md).
+The former 24.6-171.5x verification-time incident is removed. Every elapsed
+lane is now within 1.09x of the platform implementation, but the minimal
+platform-produced CMS still costs 2.11x allocation and 2.07x isolated managed
+peak. That lane remains explicit remediation under the 2x contender rule.
+`System.Security.Cryptography.Pkcs` remains benchmark-only and outside the
+normal solution and runtime package graph.
 
 ## HTML non-PDF layout
 

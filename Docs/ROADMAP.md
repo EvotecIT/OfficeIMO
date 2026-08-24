@@ -55,6 +55,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Security and protected content
 
+- [ ] Bring detached CMS verification of minimal platform-produced RSA signatures inside the 2x contender ceiling for both allocation and managed-heap peak; the current Windows evidence is 2.11x allocation and 2.07x sampled peak despite 1.09x elapsed time. Preserve the typed findings and certificate-policy result, and add Linux/macOS evidence before treating the lane as settled.
 - [ ] Add OCR-backed concealed-text assessment for raster images using bounded OCR regions plus pixel, geometry, and contrast evidence, with explicit safe-redaction policy. Never classify image metadata alone as visible or concealed text.
 - [ ] Add native SVG text-visibility inspection and exact cleanup across presentation attributes, computed CSS, clipping, opacity, geometry, paint order, and background resolution, with browser-rendered adversarial fixtures.
 - [ ] Add package-preserving concealed-HTML inspection and cleanup for MHTML and EPUB, including bounded MIME/resource handling, stylesheet resolution, signed-package mutation policy, and reopen validation.
