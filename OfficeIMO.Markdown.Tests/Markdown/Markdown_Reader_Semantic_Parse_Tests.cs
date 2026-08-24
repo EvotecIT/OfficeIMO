@@ -6,6 +6,26 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_Reader_Semantic_Parse_Tests {
     [Fact]
+    public void ParseSemantic_CommonMark_Flat_Inline_Tokens_Match_SourceBacked_Contract() {
+        const string markdown =
+            "Paragraph with **strong**, _emphasis_, `code`, [link](https://example.com), and ![image](https://example.com/a.png).\n";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+
+        var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
+        var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
+
+        Assert.Equal(sourceBackedDocument.ToHtmlFragment(), semanticDocument.ToHtmlFragment());
+        Assert.Equal(sourceBackedDocument.ToMarkdown(), semanticDocument.ToMarkdown());
+        Assert.Single(semanticDocument.DescendantObjectsOfType<BoldSequenceInline>());
+        Assert.Single(semanticDocument.DescendantObjectsOfType<ItalicSequenceInline>());
+        Assert.Single(semanticDocument.DescendantObjectsOfType<CodeSpanInline>());
+        var link = Assert.Single(semanticDocument.DescendantObjectsOfType<LinkInline>());
+        Assert.NotNull(link.LabelInlines);
+        Assert.Single(semanticDocument.DescendantObjectsOfType<ImageInline>());
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_SingleLine_List_FastPath_Preserves_Inline_SourceSlices() {
         const string markdown = "- prefix **bold 中** and [link](https://example.com).\n";
         var result = MarkdownReader.ParseWithSyntaxTree(

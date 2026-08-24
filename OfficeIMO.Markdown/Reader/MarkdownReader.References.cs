@@ -23,6 +23,10 @@ public static partial class MarkdownReader {
     }
 
     private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownReaderOptions options) {
+        if (!ContainsPotentialReferenceLinkDefinition(lines)) {
+            return;
+        }
+
         bool inFence = false;
         char fenceChar = '\0';
         int fenceLen = 0;
@@ -127,6 +131,26 @@ public static partial class MarkdownReader {
 
             openParagraph = IsReferenceDefinitionParagraphContinuationLine(lines, idx, options);
         }
+    }
+
+    private static bool ContainsPotentialReferenceLinkDefinition(string[]? lines) {
+        if (lines == null || lines.Length == 0) {
+            return false;
+        }
+
+        for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
+            string line = lines[lineIndex] ?? string.Empty;
+            int separator = line.IndexOf("]:", StringComparison.Ordinal);
+            if (separator <= 0) {
+                continue;
+            }
+
+            if (line.LastIndexOf('[', separator) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool CanReferenceDefinitionResolveOpenShortcutParagraph(string[] lines, int definitionIndex) {

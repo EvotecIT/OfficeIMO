@@ -67,7 +67,9 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         if (level < 1) level = 1; else if (level > 6) level = 6;
         Level = level;
         Inlines = inlines ?? new InlineSequence();
-        Text = InlinePlainText.Extract(Inlines);
+        Text = Inlines.Nodes.Count == 1 && Inlines.Nodes[0] is MarkdownTextRun textRun
+            ? textRun.Text
+            : InlinePlainText.Extract(Inlines);
         TextSourceSpan = Inlines.SourceSpan;
     }
 

@@ -10,10 +10,14 @@ public static partial class MarkdownReader {
         string markdown,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
-        int lineOffset) {
+        int lineOffset,
+        bool suppressBlockGenericAttributes = false) {
 
-        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+        var nestedOptions = options.FrontMatter
+            ? CloneOptionsWithoutFrontMatter(options)
+            : options;
         var nestedState = CreateNestedState(state, options);
+        nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
         List<MarkdownSyntaxNode>? syntaxChildren = state.CaptureSyntaxTree
             ? new List<MarkdownSyntaxNode>()
             : null;
@@ -27,15 +31,21 @@ public static partial class MarkdownReader {
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
-        IReadOnlyCollection<int>? suppressedParagraphGenericAttributeStartLines = null) {
+        IReadOnlyCollection<int>? suppressedParagraphGenericAttributeStartLines = null,
+        bool suppressBlockGenericAttributes = false) {
         if (sourceLines == null || sourceLines.Count == 0) {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
-        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+        var nestedOptions = options.FrontMatter
+            ? CloneOptionsWithoutFrontMatter(options)
+            : options;
         var nestedState = CreateNestedState(state, options);
-        nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
+        nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
+        if (state.CaptureSyntaxTree) {
+            nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
+        }
         nestedState.LazyQuoteContinuationLines.Clear();
         nestedState.QuoteContainerLines.Clear();
         nestedState.SuppressedSetextHeadingUnderlineLines.Clear();

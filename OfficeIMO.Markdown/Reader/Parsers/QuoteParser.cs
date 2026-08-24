@@ -15,7 +15,9 @@ public static partial class MarkdownReader {
             // Collect contiguous quote lines and un-prefix one ">" level
             var inner = new System.Collections.Generic.List<string>();
             var innerSourceLines = new System.Collections.Generic.List<MarkdownSourceLineSlice>();
-            var markerSourceSpans = new System.Collections.Generic.List<MarkdownSourceSpan>();
+            var markerSourceSpans = state.CaptureSyntaxTree
+                ? new System.Collections.Generic.List<MarkdownSourceSpan>()
+                : null;
             int j = i;
             bool sawQuotedLine = false;
             while (j < lines.Length) {
@@ -54,7 +56,7 @@ public static partial class MarkdownReader {
                         GetQuoteContentStartColumn(ln),
                         isQuoteContainerLine: true));
                     var markerSourceSpan = CreateQuoteMarkerSourceSpan(ln, state.SourceLineOffset + j + 1, state);
-                    if (markerSourceSpan.HasValue) {
+                    if (markerSourceSpan.HasValue && markerSourceSpans != null) {
                         markerSourceSpans.Add(markerSourceSpan.Value);
                     }
                     sawQuotedLine = true;
@@ -117,14 +119,61 @@ public static partial class MarkdownReader {
                 break;
             }
             // Recursively parse inner content as a separate document
-            var quoteState = CloneState(state);
-            quoteState.SuppressBlockGenericAttributes = true;
-            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, quoteState);
             var qb = new QuoteBlock();
-            foreach (var b in childBlocks) qb.ChildBlocks.Add(b);
-            qb.ReplaceMarkerSourceSpans(markerSourceSpans);
-            qb.SyntaxChildren = syntaxChildren;
+            IReadOnlyList<MarkdownSyntaxNode> syntaxChildren = Array.Empty<MarkdownSyntaxNode>();
+            if (CanParseSemanticQuoteAsSingleParagraph(inner, options, state)) {
+                qb.ChildBlocks.Add(new ParagraphBlock(ParseInlines(JoinParagraphLines(inner, options), options, state)));
+            } else {
+                var parsed = ParseNestedMarkdownBlocks(
+                    innerSourceLines,
+                    options,
+                    state,
+                    suppressBlockGenericAttributes: true);
+                foreach (var b in parsed.Blocks) qb.ChildBlocks.Add(b);
+                syntaxChildren = parsed.SyntaxChildren;
+            }
+            if (markerSourceSpans != null) {
+                qb.ReplaceMarkerSourceSpans(markerSourceSpans);
+                qb.SyntaxChildren = syntaxChildren;
+            }
             doc.Add(qb); i = j; return true;
+        }
+
+        private static bool CanParseSemanticQuoteAsSingleParagraph(
+            IReadOnlyList<string> lines,
+            MarkdownReaderOptions options,
+            MarkdownReaderState state) {
+            if (state.CaptureSyntaxTree
+                || options.GenericAttributes
+                || options.BlockParserExtensions.Count != 0
+                || lines == null
+                || lines.Count == 0) {
+                return false;
+            }
+
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                string line = lines[lineIndex] ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(line)
+                    || (options.IndentedCodeBlocks && CountLeadingIndentColumns(line) >= 4)
+                    || IsQuoteStarter(line)
+                    || IsAtxHeading(line, out _, out _)
+                    || IsCodeFenceOpen(line, out _, out _, out _)
+                    || LooksLikeHr(line)
+                    || IsUnorderedListLine(line)
+                    || IsOrderedListLine(line, options, out _, out _)
+                    || HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options)
+                    || TryGetSetextHeadingUnderlineLevel(line, out _)
+                    || LooksLikeReferenceDefinition(line)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool LooksLikeReferenceDefinition(string line) {
+            int separator = line.IndexOf("]:", StringComparison.Ordinal);
+            return separator > 0 && line.LastIndexOf('[', separator) >= 0;
         }
     }
 

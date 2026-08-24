@@ -48,24 +48,26 @@ public static partial class MarkdownReader {
             }
             heading.SetAttributes(parsedAttributes);
             MarkdownGenericAttributeSourceSpans.Set(heading, attributeSourceText, attributeSpan);
-            var markerStartColumn = CountLeadingSpaces(lines[i]) + 1;
-            var markerEndColumn = markerStartColumn + level - 1;
-            var absoluteLineNumber = state.SourceLineOffset + i + 1;
-            heading.SetLevelSourceInfo(0, markerStartColumn, markerStartColumn + level - 1);
-            heading.SetOpeningMarkerSourceInfo(
-                0,
-                markerStartColumn,
-                markerEndColumn,
-                CreateSpan(state, absoluteLineNumber, markerStartColumn, absoluteLineNumber, markerEndColumn));
-            if (effectiveContentEnd > contentStart) {
-                heading.SetTextSourceInfo(0, contentStart + 1, effectiveContentEnd);
-            }
-            if (effectiveClosingMarkerStart >= 0 && effectiveClosingMarkerEnd > effectiveClosingMarkerStart) {
-                heading.SetClosingMarkerSourceInfo(
+            if (state.CaptureSyntaxTree) {
+                var markerStartColumn = CountLeadingSpaces(lines[i]) + 1;
+                var markerEndColumn = markerStartColumn + level - 1;
+                var absoluteLineNumber = state.SourceLineOffset + i + 1;
+                heading.SetLevelSourceInfo(0, markerStartColumn, markerStartColumn + level - 1);
+                heading.SetOpeningMarkerSourceInfo(
                     0,
-                    effectiveClosingMarkerStart + 1,
-                    effectiveClosingMarkerEnd,
-                    CreateSpan(state, absoluteLineNumber, effectiveClosingMarkerStart + 1, absoluteLineNumber, effectiveClosingMarkerEnd));
+                    markerStartColumn,
+                    markerEndColumn,
+                    CreateSpan(state, absoluteLineNumber, markerStartColumn, absoluteLineNumber, markerEndColumn));
+                if (effectiveContentEnd > contentStart) {
+                    heading.SetTextSourceInfo(0, contentStart + 1, effectiveContentEnd);
+                }
+                if (effectiveClosingMarkerStart >= 0 && effectiveClosingMarkerEnd > effectiveClosingMarkerStart) {
+                    heading.SetClosingMarkerSourceInfo(
+                        0,
+                        effectiveClosingMarkerStart + 1,
+                        effectiveClosingMarkerEnd,
+                        CreateSpan(state, absoluteLineNumber, effectiveClosingMarkerStart + 1, absoluteLineNumber, effectiveClosingMarkerEnd));
+                }
             }
             doc.Add(heading);
             i++; return true;

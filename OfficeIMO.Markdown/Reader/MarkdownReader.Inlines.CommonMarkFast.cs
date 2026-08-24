@@ -3,8 +3,10 @@ namespace OfficeIMO.Markdown;
 public static partial class MarkdownReader {
     private enum SimpleInlineTokenKind {
         Strong,
+        Emphasis,
         Code,
-        Link
+        Link,
+        Image
     }
 
     private readonly record struct SimpleInlineToken(
@@ -54,9 +56,15 @@ public static partial class MarkdownReader {
             string content = text.Substring(token.ContentStart, token.ContentLength);
             switch (token.Kind) {
                 case SimpleInlineTokenKind.Strong:
-                    var nested = new InlineSequence { AutoSpacing = false };
-                    nested.AddRaw(new MarkdownTextRun(content));
-                    sequence.AddRaw(new BoldSequenceInline(nested));
+                    var strongContent = new InlineSequence { AutoSpacing = false };
+                    strongContent.AddRaw(new MarkdownTextRun(content));
+                    sequence.AddRaw(new BoldSequenceInline(strongContent));
+                    break;
+
+                case SimpleInlineTokenKind.Emphasis:
+                    var emphasisContent = new InlineSequence { AutoSpacing = false };
+                    emphasisContent.AddRaw(new MarkdownTextRun(content));
+                    sequence.AddRaw(new ItalicSequenceInline(emphasisContent));
                     break;
 
                 case SimpleInlineTokenKind.Code:
@@ -74,6 +82,18 @@ public static partial class MarkdownReader {
                         var label = new InlineSequence { AutoSpacing = false };
                         label.AddRaw(new MarkdownTextRun(content));
                         sequence.AddRaw(new LinkInline(label, resolvedTarget, title: null));
+                    }
+                    break;
+
+                case SimpleInlineTokenKind.Image:
+                    string source = text.Substring(token.TargetStart, token.TargetLength);
+                    string? resolvedSource = string.IsNullOrWhiteSpace(source)
+                        ? string.Empty
+                        : ResolveUrl(source, options);
+                    if (resolvedSource == null) {
+                        sequence.AddRaw(new MarkdownTextRun(content));
+                    } else {
+                        sequence.AddRaw(new ImageInline(content, resolvedSource));
                     }
                     break;
             }
@@ -95,15 +115,17 @@ public static partial class MarkdownReader {
         int position = 0;
         while (position < text.Length) {
             char value = text[position];
-            if (value is '*' or '`' or '[') {
+            if (value is '*' or '_' or '`' or '[' or '!') {
                 if (!TryReadSimpleCommonMarkInlineToken(text, position, options, out var token)) {
-                    if (value == '['
-                        && allowLiteralBrackets
-                        && position + 2 < text.Length
-                        && text[position + 2] == ']'
-                        && text[position + 1] is ' ' or 'x' or 'X') {
+                    // Without footnotes or collected reference definitions, an unmatched '['
+                    // cannot become a semantic link token. Keep scanning so ordinary bracketed
+                    // prose (including task markers and literal callout labels) stays on the
+                    // lightweight semantic path. A non-image '!' is likewise plain text.
+                    if (allowLiteralBrackets
+                        && value is '[' or '!'
+                        && !IsPotentialInlineLinkOrImage(text, position)) {
                         foundLiteralBracket = true;
-                        position += 3;
+                        position++;
                         continue;
                     }
 
@@ -115,7 +137,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (value is '\\' or '&' or '\n' or '<' or '!' or '_' or '~' or '=' or '+' or '^') {
+            if (value is '\\' or '&' or '\n' or '<' or '~' or '=' or '+' or '^') {
                 return false;
             }
 
@@ -123,6 +145,15 @@ public static partial class MarkdownReader {
         }
 
         return foundToken || foundLiteralBracket;
+    }
+
+    private static bool IsPotentialInlineLinkOrImage(string text, int start) {
+        int labelStart = text[start] == '!' ? start + 1 : start;
+        if (labelStart >= text.Length || text[labelStart] != '[') {
+            return false;
+        }
+
+        return text.IndexOf("](", labelStart + 1, StringComparison.Ordinal) >= 0;
     }
 
     private static bool TryReadSimpleCommonMarkInlineToken(
@@ -135,29 +166,36 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (text[start] == '*') {
-            if (start + 3 >= text.Length || text[start + 1] != '*') {
+        if (text[start] is '*' or '_') {
+            char marker = text[start];
+            int delimiterLength = start + 1 < text.Length && text[start + 1] == marker ? 2 : 1;
+            if (start + delimiterLength + 1 >= text.Length) {
                 return false;
             }
 
-            int closing = text.IndexOf("**", start + 2, StringComparison.Ordinal);
-            if (closing <= start + 2
-                || !IsSimpleInlineLiteral(text, start + 2, closing - start - 2)) {
+            int closing = delimiterLength == 2
+                ? text.IndexOf(marker == '*' ? "**" : "__", start + delimiterLength, StringComparison.Ordinal)
+                : text.IndexOf(marker, start + delimiterLength);
+            if (closing <= start + delimiterLength
+                || (delimiterLength == 1
+                    && ((closing > 0 && text[closing - 1] == marker)
+                        || (closing + 1 < text.Length && text[closing + 1] == marker)))
+                || !IsSimpleInlineLiteral(text, start + delimiterLength, closing - start - delimiterLength)) {
                 return false;
             }
 
-            GetDelimiterFlags(text, start, '*', 2, options.CjkFriendlyEmphasis, out bool canOpen, out _);
-            GetDelimiterFlags(text, closing, '*', 2, options.CjkFriendlyEmphasis, out _, out bool canClose);
+            GetDelimiterFlags(text, start, marker, delimiterLength, options.CjkFriendlyEmphasis, out bool canOpen, out _);
+            GetDelimiterFlags(text, closing, marker, delimiterLength, options.CjkFriendlyEmphasis, out _, out bool canClose);
             if (!canOpen || !canClose) {
                 return false;
             }
 
             token = new SimpleInlineToken(
-                SimpleInlineTokenKind.Strong,
+                delimiterLength == 2 ? SimpleInlineTokenKind.Strong : SimpleInlineTokenKind.Emphasis,
                 start,
-                closing + 2,
-                start + 2,
-                closing - start - 2);
+                closing + delimiterLength,
+                start + delimiterLength,
+                closing - start - delimiterLength);
             return true;
         }
 
@@ -183,15 +221,18 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (text[start] != '[') {
+        bool isImage = text[start] == '!';
+        int labelStart = isImage ? start + 1 : start;
+        if (labelStart >= text.Length || text[labelStart] != '[') {
             return false;
         }
 
-        int labelEnd = text.IndexOf(']', start + 1);
-        if (labelEnd <= start + 1
+        int contentStart = labelStart + 1;
+        int labelEnd = text.IndexOf(']', contentStart);
+        if (labelEnd <= contentStart
             || labelEnd + 2 >= text.Length
             || text[labelEnd + 1] != '('
-            || !IsSimpleInlineLiteral(text, start + 1, labelEnd - start - 1)) {
+            || !IsSimpleInlineLiteral(text, contentStart, labelEnd - contentStart)) {
             return false;
         }
 
@@ -202,11 +243,11 @@ public static partial class MarkdownReader {
         }
 
         token = new SimpleInlineToken(
-            SimpleInlineTokenKind.Link,
+            isImage ? SimpleInlineTokenKind.Image : SimpleInlineTokenKind.Link,
             start,
             targetEnd + 1,
-            start + 1,
-            labelEnd - start - 1,
+            contentStart,
+            labelEnd - contentStart,
             targetStart,
             targetEnd - targetStart);
         return true;

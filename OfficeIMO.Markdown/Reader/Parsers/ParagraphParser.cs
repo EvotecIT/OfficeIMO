@@ -20,9 +20,7 @@ public static partial class MarkdownReader {
                 IsFootnoteDefinitionStarter(lines[i], options) ||
                 (options.StandaloneImageBlocks && IsImageLine(lines[i]))) return false;
 
-            var sb = new StringBuilder();
             int j = i;
-            bool prevHard = false;
             while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
                    !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
@@ -38,17 +36,26 @@ public static partial class MarkdownReader {
                    !IsAbbreviationDefinitionStarter(lines[j], options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
                    !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
-                var raw = lines[j];
-                bool hard = EndsWithTwoSpaces(raw);
-                var trimmed = raw.TrimEnd();
-                trimmed = ConsumeTrailingBackslashHardBreak(trimmed, options, out bool slashHard);
-                hard = hard || slashHard;
-                if (j > i) sb.Append(prevHard ? "\n" : " ");
-                sb.Append(trimmed);
-                prevHard = hard;
                 j++;
             }
-            if (sb.Length == 0) return false;
+            if (j == i) return false;
+
+            // Common semantic parsing frequently produces single-line paragraphs with no
+            // generic-attribute work. Avoid materializing a temporary line list only to join
+            // the same line again before parsing its inlines.
+            if (!state.CaptureSyntaxTree && !options.GenericAttributes && j == i + 1) {
+                var singleLineText = GetParagraphLineJoinInfo(
+                    lines[i] ?? string.Empty,
+                    absoluteLine: 1,
+                    startColumn: 1,
+                    options,
+                    sourceTextMap: null,
+                    hasFollowingLine: false).Text;
+                doc.Add(new ParagraphBlock(ParseInlines(singleLineText, options, state)));
+                i = j;
+                return true;
+            }
+
             var paragraphLines = new List<string>(j - i);
             for (var lineIndex = i; lineIndex < j; lineIndex++) {
                 paragraphLines.Add(lines[lineIndex]);
