@@ -473,6 +473,9 @@ namespace OfficeIMO.Word {
             _wordprocessingDocument.GetPackage().Save();
             _ownedPackageStream!.Flush();
             byte[] packageBytes = _ownedPackageStream.ToArray();
+            if (!_normalizeOpenOfficeRelationshipsOnSave && string.IsNullOrEmpty(filePath)) {
+                return packageBytes;
+            }
             using var output = new MemoryStream(packageBytes.Length + 4096);
             output.Write(packageBytes, 0, packageBytes.Length);
             output.Position = 0;
@@ -480,8 +483,10 @@ namespace OfficeIMO.Word {
                 using WordprocessingDocument savedDocument = WordprocessingDocument.Open(output, true);
                 AlignDocumentTypeWithFilePath(savedDocument, filePath!);
             }
-            output.Position = 0;
-            WordPackageCompatibility.NormalizeOpenOfficeRelationships(output);
+            if (_normalizeOpenOfficeRelationshipsOnSave) {
+                output.Position = 0;
+                WordPackageCompatibility.NormalizeOpenOfficeRelationships(output);
+            }
             return output.ToArray();
         }
 #pragma warning restore OOXML0001

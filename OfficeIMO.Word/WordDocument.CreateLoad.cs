@@ -167,6 +167,7 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document
                     ?? throw new InvalidOperationException("Default Word package is missing its main document."),
+                _normalizeOpenOfficeRelationshipsOnSave = false,
                 _persistenceMode = persistenceMode,
                 _styleDefinitionsInitialized = true
             };
