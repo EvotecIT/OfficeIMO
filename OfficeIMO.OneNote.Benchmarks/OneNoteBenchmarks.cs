@@ -33,6 +33,11 @@ public class OneNoteReadWriteBenchmarks {
     public byte[] WriteDesktopSection() => OneNoteSectionWriter.Write(_section);
 
     [Benchmark]
+    public byte[] WriteDesktopSectionWithoutRoundTripValidation() => OneNoteSectionWriter.Write(
+        _section,
+        new OneNoteWriterOptions { ValidateRoundTrip = false });
+
+    [Benchmark]
     public string ProjectMarkdown() => _section.ToMarkdown();
 
 }

@@ -55,7 +55,8 @@ internal static class OneNoteEvidenceRunner {
                             $"{operation,-13} {scale.Name,-6} #{iteration,-2} " +
                             $"{measurement.ElapsedMilliseconds,9:F2} ms " +
                             $"{measurement.AllocatedBytes / 1048576D,9:F2} MiB alloc " +
-                            $"{measurement.PeakWorkingSetBytes / 1048576D,9:F2} MiB peak " +
+                            $"{measurement.PeakManagedHeapGrowthBytes / 1048576D,9:F2} MiB managed-peak growth " +
+                            $"{measurement.PeakWorkingSetBytes / 1048576D,9:F2} MiB process peak " +
                             $"{measurement.OutputBytes / 1024D,9:F2} KiB output");
                     }
                 }
@@ -93,10 +94,13 @@ internal static class OneNoteEvidenceRunner {
 
         long inputBytes = sourcePath == null ? 0 : new FileInfo(sourcePath).Length;
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        long heapBefore = GC.GetTotalMemory(forceFullCollection: false);
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
+        using var sampler = new OneNoteManagedHeapSampler();
         var stopwatch = Stopwatch.StartNew();
         OneNoteOperationResult result = Execute(operation, scale, sourcePath);
         stopwatch.Stop();
+        long peakManagedHeap = sampler.Stop();
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
         using Process process = Process.GetCurrentProcess();
         process.Refresh();
@@ -112,6 +116,7 @@ internal static class OneNoteEvidenceRunner {
             result.OutputBytes,
             stopwatch.Elapsed.TotalMilliseconds,
             allocatedBytes,
+            Math.Max(0, peakManagedHeap - heapBefore),
             process.PeakWorkingSet64,
             observation.PageCount,
             observation.ParagraphCount,
@@ -124,7 +129,7 @@ internal static class OneNoteEvidenceRunner {
         string? sourcePath) {
         if (string.Equals(operation, "CreateWrite", StringComparison.OrdinalIgnoreCase)) {
             OneNoteSection section = OneNoteBenchmarkCorpus.CreateSection(scale.PageCount);
-            byte[] bytes = OneNoteSectionWriter.Write(section);
+            byte[] bytes = OneNoteSectionWriter.Write(section, CreateEvidenceWriterOptions());
             return new OneNoteOperationResult(bytes, section);
         }
 
@@ -135,9 +140,13 @@ internal static class OneNoteEvidenceRunner {
         }
 
         loaded.Pages.Add(OneNoteBenchmarkCorpus.CreateEditPage(loaded.Pages.Count));
-        byte[] edited = OneNoteSectionWriter.Write(loaded);
+        byte[] edited = OneNoteSectionWriter.Write(loaded, CreateEvidenceWriterOptions());
         return new OneNoteOperationResult(edited, loaded);
     }
+
+    private static OneNoteWriterOptions CreateEvidenceWriterOptions() => new() {
+        ValidateRoundTrip = false
+    };
 
     private static void Validate(
         string operation,
@@ -204,7 +213,9 @@ internal static class OneNoteEvidenceRunner {
 
     private static string CreateTemporarySource(OneNoteBenchmarkScale scale) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-OneNote-{scale.Name}-{Guid.NewGuid():N}.one");
-        File.WriteAllBytes(path, OneNoteSectionWriter.Write(OneNoteBenchmarkCorpus.CreateSection(scale.PageCount)));
+        File.WriteAllBytes(path, OneNoteSectionWriter.Write(
+            OneNoteBenchmarkCorpus.CreateSection(scale.PageCount),
+            CreateEvidenceWriterOptions()));
         return path;
     }
 
@@ -287,6 +298,7 @@ internal sealed record OneNoteEvidenceMeasurement(
     long OutputBytes,
     double ElapsedMilliseconds,
     long AllocatedBytes,
+    long PeakManagedHeapGrowthBytes,
     long PeakWorkingSetBytes,
     int ObservedPageCount,
     int ObservedParagraphCount,
@@ -301,3 +313,47 @@ internal sealed record OneNoteEvidenceReport(
     string Architecture,
     int ProcessorCount,
     IReadOnlyList<OneNoteEvidenceMeasurement> Measurements);
+
+internal sealed class OneNoteManagedHeapSampler : IDisposable {
+    private readonly Thread _thread;
+    private readonly ManualResetEventSlim _stop = new(false);
+    private long _peakBytes;
+    private int _stopped;
+
+    internal OneNoteManagedHeapSampler() {
+        _peakBytes = GC.GetTotalMemory(forceFullCollection: false);
+        _thread = new Thread(SampleUntilStopped) {
+            IsBackground = true,
+            Name = "OfficeIMO.OneNote managed heap sampler"
+        };
+        _thread.Start();
+    }
+
+    internal long Stop() {
+        if (Interlocked.Exchange(ref _stopped, 1) == 0) {
+            _stop.Set();
+            _thread.Join();
+            RecordCurrentHeap();
+        }
+        return Interlocked.Read(ref _peakBytes);
+    }
+
+    public void Dispose() {
+        Stop();
+        _stop.Dispose();
+    }
+
+    private void SampleUntilStopped() {
+        while (!_stop.Wait(1)) RecordCurrentHeap();
+    }
+
+    private void RecordCurrentHeap() {
+        long observed = GC.GetTotalMemory(forceFullCollection: false);
+        long current = Interlocked.Read(ref _peakBytes);
+        while (observed > current) {
+            long prior = Interlocked.CompareExchange(ref _peakBytes, observed, current);
+            if (prior == current) return;
+            current = prior;
+        }
+    }
+}
