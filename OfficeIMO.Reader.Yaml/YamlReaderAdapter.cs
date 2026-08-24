@@ -54,18 +54,12 @@ internal static class YamlReaderAdapter {
         try {
             try {
                 parseStream.Position = parseStartPosition;
-                using (var preflightReader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true)) {
-                    if (!TryPreflightYaml(preflightReader, options, out var limitError)) {
-                        parseError = limitError;
-                    }
-                }
-
-                if (parseError == null) {
-                    parseStream.Position = parseStartPosition;
-                    using var reader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
-                    yaml = new YamlStream();
-                    yaml.Load(reader);
-                }
+                using var reader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
+                var parser = new LimitingParser(new Parser(reader), options);
+                yaml = new YamlStream();
+                yaml.Load(parser);
+            } catch (YamlLimitException ex) {
+                parseError = ex.Message;
             } catch (Exception ex) when (ex is not OperationCanceledException) {
                 parseError = "YAML parse error: " + ex.GetType().Name + ".";
             }
@@ -112,57 +106,68 @@ internal static class YamlReaderAdapter {
         }
     }
 
-    private static bool TryPreflightYaml(TextReader reader, YamlReadOptions options, out string? limitError) {
-        limitError = null;
-        var parser = new Parser(reader);
-        int events = 0;
-        int nodes = 0;
-        int containerDepth = 0;
-        while (parser.MoveNext()) {
-            events++;
-            if (events > options.MaxParseEvents) {
-                limitError = "YAML parse limit exceeded: maximum parse event count reached.";
+    private sealed class LimitingParser : IParser {
+        private readonly IParser _inner;
+        private readonly YamlReadOptions _options;
+        private int _events;
+        private int _nodes;
+        private int _containerDepth;
+
+        public LimitingParser(IParser inner, YamlReadOptions options) {
+            _inner = inner;
+            _options = options;
+        }
+
+        public ParsingEvent? Current => _inner.Current;
+
+        public bool MoveNext() {
+            if (!_inner.MoveNext()) {
                 return false;
             }
 
-            switch (parser.Current) {
+            _events++;
+            if (_events > _options.MaxParseEvents) {
+                throw new YamlLimitException("YAML parse limit exceeded: maximum parse event count reached.");
+            }
+
+            switch (_inner.Current) {
                 case MappingStart:
                 case SequenceStart:
-                    nodes++;
-                    containerDepth++;
-                    if (containerDepth > options.MaxDepth + 1) {
-                        limitError = "YAML parse limit exceeded: maximum depth reached.";
-                        return false;
+                    _nodes++;
+                    _containerDepth++;
+                    if (_containerDepth > _options.MaxDepth + 1) {
+                        throw new YamlLimitException("YAML parse limit exceeded: maximum depth reached.");
                     }
                     break;
                 case MappingEnd:
                 case SequenceEnd:
-                    containerDepth = Math.Max(0, containerDepth - 1);
+                    _containerDepth = Math.Max(0, _containerDepth - 1);
                     break;
                 case Scalar:
                 case AnchorAlias:
-                    nodes++;
-                    if (containerDepth > options.MaxDepth) {
-                        limitError = "YAML parse limit exceeded: maximum depth reached.";
-                        return false;
+                    _nodes++;
+                    if (_containerDepth > _options.MaxDepth) {
+                        throw new YamlLimitException("YAML parse limit exceeded: maximum depth reached.");
                     }
                     break;
             }
 
-            if (nodes > options.MaxNodes) {
-                limitError = "YAML parse limit exceeded: maximum node count reached.";
-                return false;
+            if (_nodes > _options.MaxNodes) {
+                throw new YamlLimitException("YAML parse limit exceeded: maximum node count reached.");
             }
 
-            if (parser.Current is Scalar scalar &&
+            if (_inner.Current is Scalar scalar &&
                 scalar.Value != null &&
-                scalar.Value.Length > options.MaxScalarLength) {
-                limitError = "YAML parse limit exceeded: scalar length exceeds maximum.";
-                return false;
+                scalar.Value.Length > _options.MaxScalarLength) {
+                throw new YamlLimitException("YAML parse limit exceeded: scalar length exceeds maximum.");
             }
-        }
 
-        return true;
+            return true;
+        }
+    }
+
+    private sealed class YamlLimitException : Exception {
+        public YamlLimitException(string message) : base(message) { }
     }
 
     private static IEnumerable<ReaderChunk> BuildStructuredChunks(
