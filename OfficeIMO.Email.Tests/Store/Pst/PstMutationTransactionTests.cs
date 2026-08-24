@@ -42,7 +42,7 @@ public sealed class PstMutationTransactionTests {
                 });
 
                 EmailStorePstMutationReport report = transaction.Commit();
-                Assert.Equal(Path.GetFullPath(path), report.SourcePath);
+                Assert.Equal(EmailStorePathIdentity.ResolvePhysicalPath(path), report.SourcePath);
                 Assert.Equal(Path.GetFullPath(backupPath), report.BackupPath);
                 Assert.True(report.Verification?.IsSuccessful);
                 Assert.Equal(1, report.CreatedFolders);
@@ -839,7 +839,9 @@ public sealed class PstMutationTransactionTests {
 
                 Assert.Contains("mandatory PST folder", exception.Message, StringComparison.Ordinal);
                 Assert.Contains(transaction.Folders, folder => folder.Id == ordinary.Id);
-                Assert.Equal(original, File.ReadAllBytes(path));
+                if (transaction.AllowsConcurrentReaders) {
+                    Assert.Equal(original, File.ReadAllBytes(path));
+                }
             }
             Assert.Equal(original, File.ReadAllBytes(path));
         } finally {
@@ -968,16 +970,20 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
-    public void MutationLockAllowsOrdinaryPathReaders() {
+    public void MutationLockReportsAndHonorsOrdinaryReaderCompatibility() {
         string path = TemporaryPstPath();
         try {
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) writer.Complete();
             byte[] original = File.ReadAllBytes(path);
             using var transaction = EmailStorePstMutationTransaction.Open(path);
 
-            Assert.Equal(original, File.ReadAllBytes(path));
-            using EmailStoreSession reader = EmailStoreSession.Open(path);
-            Assert.Equal(transaction.Folders.Count, reader.Folders.Count);
+            if (transaction.AllowsConcurrentReaders) {
+                Assert.Equal(original, File.ReadAllBytes(path));
+                using EmailStoreSession reader = EmailStoreSession.Open(path);
+                Assert.Equal(transaction.Folders.Count, reader.Folders.Count);
+            } else {
+                Assert.Throws<IOException>(() => File.ReadAllBytes(path));
+            }
         } finally {
             TryDelete(path);
         }

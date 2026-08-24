@@ -359,6 +359,9 @@ changes before replacement. It holds both the source read handle and a physical-
 staging and replacement. The lock coordinates participating OfficeIMO processes across path aliases and user profiles
 without creating a predictable sidecar file. The final replacement remains an atomic filesystem operation; software
 that does not participate in the OfficeIMO lock must coordinate its own simultaneous replacement of the same path.
+Windows and writable Linux sources keep ordinary readers available through byte-range locks. macOS, read-only Linux
+sources, and filesystems without open-file-description locking use a conservative exclusive source lock, so ordinary
+path-based readers can be temporarily blocked until the mutation transaction is committed or disposed.
 
 `CommitAsync` performs the staging flush and optional backup copy with asynchronous file I/O and cancellation. PST
 serialization and semantic comparison are ordered, stateful phases and remain synchronous; the API does not disguise
