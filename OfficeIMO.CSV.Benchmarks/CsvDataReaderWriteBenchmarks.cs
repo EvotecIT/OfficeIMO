@@ -153,6 +153,22 @@ public class CsvDataReaderWriteBenchmarks
 
     private void ValidateOutput(string method, Func<int> write)
     {
+        _ = CaptureValidatedOutput(method, write);
+    }
+
+    internal IReadOnlyList<CsvDataReaderWriteOutputEvidence> CaptureValidatedOutputSizes()
+    {
+        Initialize();
+        return
+        [
+            CsvDataReaderWriteOutputEvidence.Create("OfficeIMO", CaptureValidatedOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader)),
+            CsvDataReaderWriteOutputEvidence.Create("OfficeIMO Parallel", CaptureValidatedOutput(nameof(OfficeIMO_WriteDataReaderParallel), OfficeIMO_WriteDataReaderParallel)),
+            CsvDataReaderWriteOutputEvidence.Create("Sylvan.Data.Csv", CaptureValidatedOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader))
+        ];
+    }
+
+    private string CaptureValidatedOutput(string method, Func<int> write)
+    {
         _captureOutput = true;
         _capturedOutput = null;
         try
@@ -172,6 +188,7 @@ public class CsvDataReaderWriteBenchmarks
                 RowCount,
                 expectedTextRows: null,
                 expectedObjectRows: _rows);
+            return output;
         }
         finally
         {

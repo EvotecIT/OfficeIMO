@@ -9,6 +9,11 @@ using OfficeIMO.Benchmarks;
 using OfficeIMO.CSV.Benchmarks;
 using System.Runtime.Intrinsics.X86;
 
+if (args.Length > 0 && string.Equals(args[0], "--datareader-write-size-evidence", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = CsvDataReaderWriteSizeEvidenceRunner.Run(args.Skip(1).ToArray());
+    return;
+}
+
 if (args.Length > 0
     && string.Equals(args[0], "--print-intrinsics", StringComparison.OrdinalIgnoreCase)) {
     Console.WriteLine($"AVX512BW={Avx512BW.IsSupported}; AVX2={Avx2.IsSupported}");
