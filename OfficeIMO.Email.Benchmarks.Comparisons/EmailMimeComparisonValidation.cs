@@ -78,7 +78,7 @@ internal static class EmailMimeComparisonValidation {
         return checksum;
     }
 
-    private static EmailMimeObservation ObserveOffice(byte[] input) {
+    internal static EmailMimeObservation ObserveOffice(byte[] input) {
         EmailDocument document = EmailDocument.Load(input);
         return new EmailMimeObservation(
             document.Subject ?? string.Empty,
@@ -96,7 +96,7 @@ internal static class EmailMimeComparisonValidation {
             }).ToArray());
     }
 
-    private static EmailMimeObservation ObserveMimeKit(byte[] input) {
+    internal static EmailMimeObservation ObserveMimeKit(byte[] input) {
         using var stream = new MemoryStream(input, writable: false);
         using MimeMessage message = MimeMessage.Load(stream);
         return new EmailMimeObservation(
@@ -162,4 +162,55 @@ internal static class EmailMimeComparisonValidation {
         left.TextBody == right.TextBody &&
         left.HtmlBody == right.HtmlBody &&
         left.Attachments.SequenceEqual(right.Attachments);
+
+    internal static EmailMimeRetainedProjection RetainOffice(byte[] input) {
+        EmailDocument document = EmailDocument.Load(input);
+        return new EmailMimeRetainedProjection(
+            document,
+            document.Subject ?? string.Empty,
+            NormalizeBody(document.Body.Text),
+            NormalizeBody(document.Body.Html),
+            document.Attachments.Select(ReadAttachment).ToArray());
+    }
+
+    internal static EmailMimeRetainedProjection RetainMimeKit(byte[] input) {
+        using var stream = new MemoryStream(input, writable: false);
+        MimeMessage message = MimeMessage.Load(stream);
+        return new EmailMimeRetainedProjection(
+            message,
+            message.Subject ?? string.Empty,
+            NormalizeBody(message.TextBody),
+            NormalizeBody(message.HtmlBody),
+            message.Attachments.OfType<MimePart>().Select(part => {
+                using var decoded = new MemoryStream();
+                (part.Content ?? throw new InvalidDataException("MimeKit attachment content is missing."))
+                    .DecodeTo(decoded);
+                return decoded.ToArray();
+            }).ToArray());
+    }
+}
+
+internal sealed class EmailMimeRetainedProjection : IDisposable {
+    internal EmailMimeRetainedProjection(
+        object source,
+        string subject,
+        string textBody,
+        string htmlBody,
+        IReadOnlyList<byte[]> attachments) {
+        Source = source;
+        Subject = subject;
+        TextBody = textBody;
+        HtmlBody = htmlBody;
+        Attachments = attachments;
+    }
+
+    internal object Source { get; }
+    internal string Subject { get; }
+    internal string TextBody { get; }
+    internal string HtmlBody { get; }
+    internal IReadOnlyList<byte[]> Attachments { get; }
+
+    public void Dispose() {
+        if (Source is IDisposable disposable) disposable.Dispose();
+    }
 }

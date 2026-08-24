@@ -23,3 +23,15 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparis
 
 Use the shared library-comparison runner for provenance-backed evidence. Raw
 BenchmarkDotNet output and machine-specific traces remain local.
+
+Use the process-isolated evidence runner for retained managed heap, sampled
+managed-heap peak, process working-set peak, and output size alongside elapsed
+time and allocation. Read probes retain equivalent decoded bodies and
+attachment payloads; write probes retain each complete serialized byte array.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparisons -- --evidence --repeat 3 --json .benchmark-artifacts\email\memory-evidence.json
+```
+
+The runner reports OfficeIMO divided by MimeKit. At or below `2.00x` is the
+contender ceiling for every applicable dimension, not an optimality claim.
