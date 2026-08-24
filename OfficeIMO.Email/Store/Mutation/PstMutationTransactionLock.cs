@@ -10,12 +10,14 @@ namespace OfficeIMO.Email.Store;
 internal sealed class PstMutationTransactionLock : IDisposable {
     private static readonly ConcurrentDictionary<string, byte> ProcessLocks =
         new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
-    private readonly FileStream _lockStream;
+    private readonly FileStream _pathLockStream;
+    private readonly FileStream _identityLockStream;
     private readonly string _identity;
     private bool _disposed;
 
-    private PstMutationTransactionLock(FileStream lockStream, string identity) {
-        _lockStream = lockStream;
+    private PstMutationTransactionLock(FileStream pathLockStream, FileStream identityLockStream, string identity) {
+        _pathLockStream = pathLockStream;
+        _identityLockStream = identityLockStream;
         _identity = identity;
     }
 
@@ -32,40 +34,66 @@ internal sealed class PstMutationTransactionLock : IDisposable {
             BitConverter.ToString(digest).Replace("-", string.Empty) + ".lock";
         Array.Clear(digest, 0, digest.Length);
 
+        FileStream? pathLockStream = null;
+        FileStream? identityLockStream = null;
         try {
-            string lockRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            if (string.IsNullOrWhiteSpace(lockRoot)) lockRoot = Path.GetTempPath();
-            string lockDirectory = Path.Combine(lockRoot, "OfficeIMO", "PstMutationLocks");
-            Directory.CreateDirectory(lockDirectory);
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && ChangeMode(lockDirectory, 0x1c0U) != 0) {
+            string physicalPath = EmailStorePathIdentity.ResolvePhysicalPath(sourcePath);
+            string lockDirectory = Path.GetDirectoryName(physicalPath) ?? Directory.GetCurrentDirectory();
+            string lockPath = Path.Combine(lockDirectory, lockName);
+            pathLockStream = OpenLockStream(lockPath, sharedAcrossUsers: true);
+
+            string identityLockRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrWhiteSpace(identityLockRoot)) identityLockRoot = Path.GetTempPath();
+            string identityLockDirectory = Path.Combine(identityLockRoot, "OfficeIMO", "PstMutationLocks");
+            Directory.CreateDirectory(identityLockDirectory);
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+                ChangeMode(identityLockDirectory, 0x1c0U) != 0) {
                 throw new IOException("The per-user OfficeIMO PST mutation lock directory could not be secured " +
                     "(OS error " + Marshal.GetLastWin32Error() + ").");
             }
-            string lockPath = Path.Combine(lockDirectory, lockName);
-            var lockStream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
-                FileShare.None, 1, FileOptions.RandomAccess);
+            identityLockStream = OpenLockStream(Path.Combine(identityLockDirectory, lockName),
+                sharedAcrossUsers: false);
+
             string currentIdentity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath);
             if (!string.Equals(identity, currentIdentity, StringComparison.Ordinal)) {
-                lockStream.Dispose();
                 throw new IOException(
                     "The source PST path changed while its mutation lock was being acquired.");
             }
-            return new PstMutationTransactionLock(lockStream, identity);
+            return new PstMutationTransactionLock(pathLockStream, identityLockStream, identity);
         } catch (UnauthorizedAccessException exception) {
+            identityLockStream?.Dispose();
+            pathLockStream?.Dispose();
             ProcessLocks.TryRemove(identity, out _);
             throw new IOException(
                 "The adjacent OfficeIMO PST mutation lock could not be created.", exception);
         } catch (IOException exception) {
+            identityLockStream?.Dispose();
+            pathLockStream?.Dispose();
             ProcessLocks.TryRemove(identity, out _);
             throw new IOException("Another OfficeIMO mutation transaction already owns this PST path.", exception);
         }
+    }
+
+    private static FileStream OpenLockStream(string lockPath, bool sharedAcrossUsers) {
+        var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
+            FileShare.None, 1, FileOptions.RandomAccess);
+        if (!sharedAcrossUsers || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return stream;
+        if (ChangeMode(lockPath, 0x1b6U) == 0) return stream;
+        int error = Marshal.GetLastWin32Error();
+        stream.Dispose();
+        throw new IOException("The adjacent OfficeIMO PST mutation lock could not be shared " +
+            "(OS error " + error + ").");
     }
 
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
         try {
-            _lockStream.Dispose();
+            try {
+                _identityLockStream.Dispose();
+            } finally {
+                _pathLockStream.Dispose();
+            }
         } finally {
             ProcessLocks.TryRemove(_identity, out _);
         }
