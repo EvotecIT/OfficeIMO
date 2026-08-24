@@ -20,6 +20,7 @@ param(
         'odscreate',
         'odsread',
         'epubread',
+        'ziptraverse',
         'imagepngdecode',
         'imagejpegdecode',
         'imagepngencode',
@@ -279,6 +280,20 @@ $definitions = [ordered]@{
         ExpectedCases = @(
             foreach ($scale in @('Small', 'Normal')) {
                 foreach ($engine in @('OfficeIMO', 'VersOne.Epub+HAP')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    ziptraverse = [pscustomobject]@{
+        Project = 'OfficeIMO.Zip.Benchmarks\OfficeIMO.Zip.Benchmarks.csproj'
+        Filter = '*ZipTraversalComparisonBenchmarks*'
+        ComparisonId = "zip-safe-traversal-$Framework"
+        Suite = 'OfficeIMO.Zip.SafeTraversal'
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal', 'Large')) {
+                foreach ($engine in @('OfficeIMO', 'System.IO.Compression')) {
                     "$engine|Scale=$scale"
                 }
             }
