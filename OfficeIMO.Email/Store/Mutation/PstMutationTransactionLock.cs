@@ -13,18 +13,16 @@ internal sealed class PstMutationTransactionLock : IDisposable {
     private const int MacOpenCloseOnExec = 0x01000000;
     private const int LinuxDuplicateCloseOnExec = 1030;
     private const int MacDuplicateCloseOnExec = 67;
-    private const int LinuxOpenFileDescriptionSetLock = 37;
-    private const int MacOpenFileDescriptionSetLock = 90;
-    private const short LinuxWriteLock = 1;
-    private const short LinuxUnlock = 2;
-    private const short MacWriteLock = 3;
-    private const short MacUnlock = 2;
     private const int LockExclusive = 2;
     private const int LockNonBlocking = 4;
     private const int LockUnlock = 8;
+    private const int ErrorBadFileDescriptor = 9;
+    private const int LinuxOpenFileDescriptionSetLock = 37;
+    private const short LinuxReadLock = 0;
+    private const short LinuxWriteLock = 1;
+    private const short LinuxUnlock = 2;
     private const uint GenericRead = 0x80000000;
     private const uint ShareRead = 0x00000001;
-    private const uint ShareWrite = 0x00000002;
     private const uint ShareDelete = 0x00000004;
     private const uint OpenExisting = 3;
     private const uint FileAttributeNormal = 0x00000080;
@@ -53,12 +51,21 @@ internal sealed class PstMutationTransactionLock : IDisposable {
         }
 
         try {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                try {
+                    return OpenUnixSource(sourcePath, GetUnixReadWriteOpenFlags(),
+                        UnixLockRequest.LinuxWrite, out source);
+                } catch (UnauthorizedAccessException) {
+                    return OpenUnixSource(sourcePath, GetUnixOpenFlags(),
+                        UnixLockRequest.LinuxReadAndFlock, out source);
+                }
+            }
             try {
-                return OpenUnixSource(sourcePath, GetUnixReadWriteOpenFlags(),
-                    preferOpenFileDescriptionLock: true, out source);
-            } catch (UnauthorizedAccessException) {
                 return OpenUnixSource(sourcePath, GetUnixOpenFlags(),
-                    preferOpenFileDescriptionLock: false, out source);
+                    UnixLockRequest.FlockWithWriteRetry, out source);
+            } catch (UnixLockRequiresWriteAccessException) {
+                return OpenUnixSource(sourcePath, GetUnixReadWriteOpenFlags(),
+                    UnixLockRequest.Flock, out source);
             }
         } catch (UnauthorizedAccessException exception) {
             throw new IOException(
@@ -123,7 +130,7 @@ internal sealed class PstMutationTransactionLock : IDisposable {
     }
 
     private static PstMutationTransactionLock OpenUnixSource(string sourcePath, int flags,
-        bool preferOpenFileDescriptionLock, out FileStream source) {
+        UnixLockRequest lockRequest, out FileStream source) {
         SafeFileHandle? lockHandle = null;
         SafeFileHandle? sourceHandle = null;
         FileStream? input = null;
@@ -140,19 +147,11 @@ internal sealed class PstMutationTransactionLock : IDisposable {
             }
             processLockHeld = true;
 
-            if (preferOpenFileDescriptionLock && TryAcquireUnixOpenFileDescriptionLock(lockHandle)) {
-                lockKind = PhysicalLockKind.UnixOpenFileDescription;
-                physicalLockHeld = true;
-                input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
-                    FileShare.ReadWrite | FileShare.Delete, 64 * 1024, FileOptions.RandomAccess);
-            } else {
-                sourceHandle = DuplicateUnixHandle(lockHandle);
-                input = new FileStream(sourceHandle, FileAccess.Read, 64 * 1024, isAsync: false);
-                sourceHandle = null;
-                AcquireUnixFlock(lockHandle);
-                lockKind = PhysicalLockKind.UnixFlock;
-                physicalLockHeld = true;
-            }
+            lockKind = AcquireUnixLock(lockHandle, lockRequest);
+            physicalLockHeld = true;
+            sourceHandle = DuplicateUnixHandle(lockHandle);
+            input = new FileStream(sourceHandle, FileAccess.Read, 64 * 1024, isAsync: false);
+            sourceHandle = null;
 
             string sourceIdentity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath,
                 input.SafeFileHandle);
@@ -183,7 +182,7 @@ internal sealed class PstMutationTransactionLock : IDisposable {
 
     private static SafeFileHandle OpenAndAcquireWindowsLock(string sourcePath) {
         SafeFileHandle handle = CreateFileWindows(sourcePath, GenericRead,
-            ShareRead | ShareWrite | ShareDelete, IntPtr.Zero, OpenExisting,
+            ShareRead | ShareDelete, IntPtr.Zero, OpenExisting,
             FileAttributeNormal, IntPtr.Zero);
         if (!handle.IsInvalid) {
             try {
@@ -229,33 +228,6 @@ internal sealed class PstMutationTransactionLock : IDisposable {
             "(OS error " + Marshal.GetLastWin32Error() + ").");
     }
 
-    private static bool TryAcquireUnixOpenFileDescriptionLock(SafeFileHandle handle) {
-        int descriptor = handle.DangerousGetHandle().ToInt32();
-        int result;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            var fileLock = new MacFileLock {
-                Start = LockOffset,
-                Length = 1,
-                Type = MacWriteLock,
-                Whence = 0
-            };
-            result = SetMacFileLock(descriptor, MacOpenFileDescriptionSetLock, ref fileLock);
-        } else {
-            var fileLock = new LinuxFileLock {
-                Type = LinuxWriteLock,
-                Whence = 0,
-                Start = LockOffset,
-                Length = 1
-            };
-            result = SetLinuxFileLock(descriptor, LinuxOpenFileDescriptionSetLock, ref fileLock);
-        }
-        if (result == 0) return true;
-        int error = Marshal.GetLastWin32Error();
-        if (error == 22 || error == 45 || error == 95) return false;
-        throw new IOException("The physical PST lock could not be acquired " +
-            "(OS error " + error + ").");
-    }
-
     private static void AcquireWindowsLock(SafeFileHandle handle) {
         if (LockFileWindows(handle, unchecked((uint)LockOffset),
                 unchecked((uint)((ulong)LockOffset >> 32)), 1, 0)) return;
@@ -263,10 +235,71 @@ internal sealed class PstMutationTransactionLock : IDisposable {
             "(OS error " + Marshal.GetLastWin32Error() + ").");
     }
 
-    private static void AcquireUnixFlock(SafeFileHandle handle) {
+    private static PhysicalLockKind AcquireUnixLock(SafeFileHandle handle,
+        UnixLockRequest request) {
+        // Writable Linux sources use an OFD write lock so normal readers remain compatible.
+        // A read-only source adds a conflicting OFD read lock plus flock: the OFD lock
+        // conflicts with writable mutations, while flock serializes two read-only mutations.
+        // Filesystems without OFD support put every accessor in the flock namespace.
+        if (request == UnixLockRequest.LinuxWrite) {
+            return TryAcquireLinuxOpenFileDescriptionLock(handle, LinuxWriteLock)
+                ? PhysicalLockKind.LinuxOpenFileDescriptionWrite
+                : AcquireUnixFlock(handle, retryWithWriteAccess: false);
+        }
+        if (request == UnixLockRequest.LinuxReadAndFlock) {
+            if (!TryAcquireLinuxOpenFileDescriptionLock(handle, LinuxReadLock)) {
+                return AcquireUnixFlock(handle, retryWithWriteAccess: false);
+            }
+            try {
+                AcquireUnixFlock(handle, retryWithWriteAccess: false);
+                return PhysicalLockKind.LinuxOpenFileDescriptionReadAndFlock;
+            } catch {
+                ReleaseLinuxOpenFileDescriptionLock(handle);
+                throw;
+            }
+        }
+        return AcquireUnixFlock(handle,
+            retryWithWriteAccess: request == UnixLockRequest.FlockWithWriteRetry);
+    }
+
+    private static PhysicalLockKind AcquireUnixFlock(SafeFileHandle handle,
+        bool retryWithWriteAccess) {
         if (FlockUnix(handle.DangerousGetHandle().ToInt32(),
-                LockExclusive | LockNonBlocking) == 0) return;
+                LockExclusive | LockNonBlocking) == 0) return PhysicalLockKind.UnixFlock;
+        int error = Marshal.GetLastWin32Error();
+        if (retryWithWriteAccess && error == ErrorBadFileDescriptor) {
+            throw new UnixLockRequiresWriteAccessException();
+        }
         throw new IOException("The physical PST lock could not be acquired " +
+            "(OS error " + error + ").");
+    }
+
+    private static bool TryAcquireLinuxOpenFileDescriptionLock(SafeFileHandle handle,
+        short lockType) {
+        var fileLock = new LinuxFileLock {
+            Type = lockType,
+            Whence = 0,
+            Start = LockOffset,
+            Length = 1
+        };
+        if (SetLinuxFileLock(handle.DangerousGetHandle().ToInt32(),
+                LinuxOpenFileDescriptionSetLock, ref fileLock) == 0) return true;
+        int error = Marshal.GetLastWin32Error();
+        if (error == 22 || error == 45 || error == 95) return false;
+        throw new IOException("The physical PST lock could not be acquired " +
+            "(OS error " + error + ").");
+    }
+
+    private static void ReleaseLinuxOpenFileDescriptionLock(SafeFileHandle handle) {
+        var fileLock = new LinuxFileLock {
+            Type = LinuxUnlock,
+            Whence = 0,
+            Start = LockOffset,
+            Length = 1
+        };
+        if (SetLinuxFileLock(handle.DangerousGetHandle().ToInt32(),
+                LinuxOpenFileDescriptionSetLock, ref fileLock) == 0) return;
+        throw new IOException("The physical PST lock could not be released " +
             "(OS error " + Marshal.GetLastWin32Error() + ").");
     }
 
@@ -279,32 +312,24 @@ internal sealed class PstMutationTransactionLock : IDisposable {
             }
             return;
         }
-        if (lockKind == PhysicalLockKind.UnixFlock) {
-            if (FlockUnix(handle.DangerousGetHandle().ToInt32(), LockUnlock) == 0) return;
-            throw new IOException("The physical PST lock could not be released " +
-                "(OS error " + Marshal.GetLastWin32Error() + ").");
+        if (lockKind == PhysicalLockKind.LinuxOpenFileDescriptionWrite) {
+            ReleaseLinuxOpenFileDescriptionLock(handle);
+            return;
         }
-
-        int descriptor = handle.DangerousGetHandle().ToInt32();
-        int result;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            var fileLock = new MacFileLock {
-                Start = LockOffset,
-                Length = 1,
-                Type = MacUnlock,
-                Whence = 0
-            };
-            result = SetMacFileLock(descriptor, MacOpenFileDescriptionSetLock, ref fileLock);
-        } else {
-            var fileLock = new LinuxFileLock {
-                Type = LinuxUnlock,
-                Whence = 0,
-                Start = LockOffset,
-                Length = 1
-            };
-            result = SetLinuxFileLock(descriptor, LinuxOpenFileDescriptionSetLock, ref fileLock);
+        if (lockKind == PhysicalLockKind.LinuxOpenFileDescriptionReadAndFlock) {
+            Exception? flockFailure = null;
+            try {
+                if (FlockUnix(handle.DangerousGetHandle().ToInt32(), LockUnlock) != 0) {
+                    flockFailure = new IOException("The physical PST lock could not be released " +
+                        "(OS error " + Marshal.GetLastWin32Error() + ").");
+                }
+            } finally {
+                ReleaseLinuxOpenFileDescriptionLock(handle);
+            }
+            if (flockFailure != null) throw flockFailure;
+            return;
         }
-        if (result == 0) return;
+        if (FlockUnix(handle.DangerousGetHandle().ToInt32(), LockUnlock) == 0) return;
         throw new IOException("The physical PST lock could not be released " +
             "(OS error " + Marshal.GetLastWin32Error() + ").");
     }
@@ -321,8 +346,16 @@ internal sealed class PstMutationTransactionLock : IDisposable {
 
     private enum PhysicalLockKind {
         Windows,
-        UnixOpenFileDescription,
+        LinuxOpenFileDescriptionWrite,
+        LinuxOpenFileDescriptionReadAndFlock,
         UnixFlock
+    }
+
+    private enum UnixLockRequest {
+        LinuxWrite,
+        LinuxReadAndFlock,
+        Flock,
+        FlockWithWriteRetry
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -334,14 +367,7 @@ internal sealed class PstMutationTransactionLock : IDisposable {
         internal int ProcessId;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MacFileLock {
-        internal long Start;
-        internal long Length;
-        internal int ProcessId;
-        internal short Type;
-        internal short Whence;
-    }
+    private sealed class UnixLockRequiresWriteAccessException : IOException { }
 
     [DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode,
         SetLastError = true)]
@@ -372,7 +398,4 @@ internal sealed class PstMutationTransactionLock : IDisposable {
     private static extern int SetLinuxFileLock(int descriptor, int command,
         ref LinuxFileLock fileLock);
 
-    [DllImport("libc", EntryPoint = "fcntl", SetLastError = true)]
-    private static extern int SetMacFileLock(int descriptor, int command,
-        ref MacFileLock fileLock);
 }

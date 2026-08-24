@@ -983,6 +983,33 @@ public sealed class PstMutationTransactionTests {
         }
     }
 
+    [Fact]
+    public void WindowsPhysicalMutationLockBlocksWritersAfterTheParserHandleCloses() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string path = TemporaryPstPath();
+        try {
+            CreateSource(path);
+            using var source = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.Read, 64 * 1024, FileOptions.RandomAccess);
+            PstMutationTransactionLock physicalLock =
+                PstMutationTransactionLock.Acquire(path, source.SafeFileHandle);
+            source.Dispose();
+            try {
+                Assert.Throws<IOException>(() => {
+                    using var competingWriter = new FileStream(path, FileMode.Open,
+                        FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+                });
+            } finally {
+                physicalLock.Dispose();
+            }
+
+            using var writerAfterRelease = new FileStream(path, FileMode.Open,
+                FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public void UnixMutationCanReplaceAReadOnlyPstInAWritableDirectory() {
