@@ -25,7 +25,7 @@ internal static partial class OfficeJpegReader {
             states[componentIndex].PrevDc = 0;
         }
 
-        var reader = new JpegBitReader(scanData, allowTruncated);
+        var reader = new JpegBitReader(scanData, allowTruncated, cancellationToken);
         var mcuIndex = 0;
         var isSingle = scan.ComponentIndices.Length == 1;
         var scanComponent = frame.Components[scan.ComponentIndices[0]];
@@ -138,7 +138,7 @@ internal static partial class OfficeJpegReader {
         CancellationToken cancellationToken) {
         ValidateProgressiveScan(scan, frame, quantTables, dcTables, acTables);
         // Progressive scans are lenient to match historical behavior.
-        var reader = new JpegBitReader(scanData, allowTruncated);
+        var reader = new JpegBitReader(scanData, allowTruncated, cancellationToken);
         var mcuIndex = 0;
         var eobRun = 0;
         var isSingle = scan.ComponentIndices.Length == 1;

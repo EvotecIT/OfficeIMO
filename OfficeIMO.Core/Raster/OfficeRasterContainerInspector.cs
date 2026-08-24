@@ -15,27 +15,36 @@ public static class OfficeRasterContainerInspector {
         byte[]? encodedBytes,
         OfficeRasterDecodeOptions? options,
         out OfficeRasterContainerInfo? container) =>
-        TryInspectCore(encodedBytes, options, enforceAllTiffPagePixelLimits: true, out container);
+        TryInspectCore(
+            encodedBytes, options, enforceAllTiffPagePixelLimits: true, out container, out _);
 
     internal static bool TryInspectForDecode(
         byte[]? encodedBytes,
         OfficeRasterDecodeOptions options,
-        out OfficeRasterContainerInfo? container) =>
-        TryInspectCore(encodedBytes, options, enforceAllTiffPagePixelLimits: false, out container);
+        out OfficeRasterContainerInfo? container,
+        out OfficeImageFormat detectedFormat) =>
+        TryInspectCore(
+            encodedBytes, options, enforceAllTiffPagePixelLimits: false,
+            out container, out detectedFormat);
 
     private static bool TryInspectCore(
         byte[]? encodedBytes,
         OfficeRasterDecodeOptions? options,
         bool enforceAllTiffPagePixelLimits,
-        out OfficeRasterContainerInfo? container) {
+        out OfficeRasterContainerInfo? container,
+        out OfficeImageFormat detectedFormat) {
         container = null;
+        detectedFormat = OfficeImageFormat.Unknown;
         OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (encodedBytes == null || encodedBytes.Length == 0 || encodedBytes.Length > effective.MaximumEncodedBytes ||
             !OfficeImageReader.TryIdentifyByContent(
-                encodedBytes, fileName: null, effective.CancellationToken, out OfficeImageInfo imageInfo) ||
-            imageInfo.Format != OfficeImageFormat.Tiff &&
+                encodedBytes, fileName: null, effective.CancellationToken, out OfficeImageInfo imageInfo)) {
+            return false;
+        }
+        detectedFormat = imageInfo.Format;
+        if (imageInfo.Format != OfficeImageFormat.Tiff &&
             !OfficeRasterImageDecoder.IsWithinPixelLimit(imageInfo.Width, imageInfo.Height, effective.MaximumDecodedPixels)) {
             return false;
         }

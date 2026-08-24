@@ -77,6 +77,17 @@ internal static partial class OfficeJpegReader {
         return data.Length >= 2 && data[0] == 0xFF && data[1] == 0xD8;
     }
 
+    internal static void SkipFillBytes(
+        OfficeByteView data,
+        ref int offset,
+        CancellationToken cancellationToken) {
+        int fillBytes = 0;
+        while (offset < data.Length && data[offset] == 0xFF) {
+            if ((fillBytes++ & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            offset++;
+        }
+    }
+
     /// <summary>
     /// Decodes a JPEG image to an RGBA buffer.
     /// </summary>
@@ -168,7 +179,7 @@ internal static partial class OfficeJpegReader {
                 continue;
             }
 
-            while (offset < data.Length && data[offset] == 0xFF) offset++;
+            SkipFillBytes(data, ref offset, cancellationToken);
             if (offset >= data.Length) break;
             var marker = data[offset++];
 

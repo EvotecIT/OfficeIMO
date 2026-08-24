@@ -214,7 +214,12 @@ namespace OfficeIMO.Tests {
             malformed[imageDescriptorOffset + 10] = minimumCodeSize;
 
             Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
-            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(
+                malformed,
+                options: null,
+                out _,
+                out OfficeRasterDecodeInfo decodeInfo));
+            Assert.Equal(OfficeImageFormat.Gif, decodeInfo.Format);
         }
 
         [Fact]

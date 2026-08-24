@@ -83,8 +83,9 @@ public static class OfficeRasterImageDecoder {
             return false;
         }
         if (!OfficeRasterContainerInspector.TryInspectForDecode(
-                bytes, effective, out OfficeRasterContainerInfo? container) || container == null) {
-            info = new OfficeRasterDecodeInfo(OfficeImageFormat.Unknown, 0, effective.FrameIndex, succeeded: false,
+                bytes, effective, out OfficeRasterContainerInfo? container,
+                out OfficeImageFormat detectedFormat) || container == null) {
+            info = new OfficeRasterDecodeInfo(detectedFormat, 0, effective.FrameIndex, succeeded: false,
                 diagnostic: "The raster container is malformed, unsupported, or outside the configured limits.");
             return false;
         }
@@ -166,18 +167,5 @@ public static class OfficeRasterImageDecoder {
 
     private static bool IsDecodedImageWithinLimit(OfficeRasterImage? image, long maximumPixels) =>
         image != null && IsWithinPixelLimit(image.Width, image.Height, maximumPixels);
-
-    private static OfficeImageFormat IdentifyFormat(byte[]? bytes) =>
-        bytes != null && OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo identified)
-            ? identified.Format
-            : OfficeImageFormat.Unknown;
-
-    private static bool IsManagedRasterFormat(OfficeImageFormat format) =>
-        format == OfficeImageFormat.Png ||
-        format == OfficeImageFormat.Jpeg ||
-        format == OfficeImageFormat.Gif ||
-        format == OfficeImageFormat.Bmp ||
-        format == OfficeImageFormat.Tiff ||
-        format == OfficeImageFormat.Webp;
 
 }

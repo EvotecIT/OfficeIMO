@@ -822,7 +822,7 @@ internal static partial class OfficeJpegReader {
             if ((i & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (data[i] == 0xFF) {
                 var j = i + 1;
-                while (j < data.Length && data[j] == 0xFF) j++;
+                SkipFillBytes(data, ref j, cancellationToken);
                 if (j >= data.Length) return data.Length;
                 var marker = data[j];
                 if (marker == 0x00) {
@@ -1350,15 +1350,20 @@ internal static partial class OfficeJpegReader {
     private ref struct JpegBitReader {
         private readonly OfficeByteView _data;
         private readonly bool _allowTruncated;
+        private readonly CancellationToken _cancellationToken;
         private int _pos;
         private int _bitBuffer;
         private int _bitCount;
 
         public bool RestartMarkerSeen;
 
-        public JpegBitReader(OfficeByteView data, bool allowTruncated = false) {
+        public JpegBitReader(
+            OfficeByteView data,
+            bool allowTruncated,
+            CancellationToken cancellationToken) {
             _data = data;
             _allowTruncated = allowTruncated;
+            _cancellationToken = cancellationToken;
             _pos = 0;
             _bitBuffer = 0;
             _bitCount = 0;
@@ -1440,7 +1445,7 @@ internal static partial class OfficeJpegReader {
             while (_pos < _data.Length) {
                 var b = _data[_pos++];
                 if (b != 0xFF) continue;
-                while (_pos < _data.Length && _data[_pos] == 0xFF) _pos++;
+                SkipFillBytes(_data, ref _pos, _cancellationToken);
                 if (_pos >= _data.Length) throw new FormatException("Unexpected JPEG end.");
                 var marker = _data[_pos++];
                 if (marker >= 0xD0 && marker <= 0xD7) {
@@ -1473,7 +1478,7 @@ internal static partial class OfficeJpegReader {
                     value = b;
                     return true;
                 }
-                while (_pos < _data.Length && _data[_pos] == 0xFF) _pos++;
+                SkipFillBytes(_data, ref _pos, _cancellationToken);
                 if (_pos >= _data.Length) {
                     if (_allowTruncated) {
                         value = 0;

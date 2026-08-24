@@ -941,6 +941,19 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void JpegFillByteTraversalObservesCancellation() {
+        var fillBytes = Enumerable.Repeat((byte)0xFF, 8192).ToArray();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => {
+            int offset = 0;
+            OfficeJpegReader.SkipFillBytes(
+                new OfficeByteView(fillBytes), ref offset, cancellation.Token);
+        });
+    }
+
+    [Fact]
     public void ManagedJpegBmpAndGifCodecsPropagateCancellation() {
         OfficeRasterImage source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
         byte[] jpeg = OfficeJpegCodec.Encode(source);

@@ -26,9 +26,8 @@ public static partial class OfficeImageReader {
                 return false;
             }
 
-            while (offset < data.Length && data[offset] == 0xFF) {
-                offset++;
-            }
+            OfficeJpegReader.SkipFillBytes(
+                new OfficeByteView(data), ref offset, cancellationToken);
 
             if (offset >= data.Length) {
                 break;
@@ -142,11 +141,8 @@ public static partial class OfficeImageReader {
                 continue;
             }
             if (data[offset] != 0xFF) return false;
-            int fillBytes = 0;
-            while (offset < data.Length && data[offset] == 0xFF) {
-                if ((fillBytes++ & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-                offset++;
-            }
+            OfficeJpegReader.SkipFillBytes(
+                new OfficeByteView(data), ref offset, cancellationToken);
             if (offset >= data.Length) return false;
 
             byte marker = data[offset++];
