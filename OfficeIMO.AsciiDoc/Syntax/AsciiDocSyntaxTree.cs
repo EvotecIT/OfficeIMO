@@ -7,7 +7,7 @@ public sealed class AsciiDocSyntaxTree {
     internal AsciiDocSyntaxTree(AsciiDocSourceText source, AsciiDocSyntaxNode root) {
         Source = source ?? throw new ArgumentNullException(nameof(source));
         Root = root ?? throw new ArgumentNullException(nameof(root));
-        IsLossless = ValidateNodeCoverage(source.Text, root);
+        IsLossless = ValidateNodeCoverage(source, root);
     }
 
     /// <summary>Original source text and line mapping.</summary>
@@ -21,9 +21,9 @@ public sealed class AsciiDocSyntaxTree {
     /// </summary>
     public bool IsLossless { get; }
 
-    internal static bool ValidateNodeCoverage(string source, AsciiDocSyntaxNode node) {
-        if (node.Span.Start.Offset < 0 || node.Span.End.Offset > source.Length) return false;
-        if (!string.Equals(node.OriginalText, source.Substring(node.Span.Start.Offset, node.Span.Length), StringComparison.Ordinal)) return false;
+    internal static bool ValidateNodeCoverage(AsciiDocSourceText source, AsciiDocSyntaxNode node) {
+        if (node.Span.Start.Offset < 0 || node.Span.End.Offset > source.Text.Length) return false;
+        if (!node.HasSource(source)) return false;
         if (node.Children.Count == 0) return true;
 
         int expectedOffset = node.Span.Start.Offset;

@@ -12,8 +12,8 @@ internal sealed class AsciiDocSyntaxFactory {
     internal AsciiDocSyntaxNode Node(AsciiDocSyntaxKind kind, int start, int end, IReadOnlyList<AsciiDocSyntaxNode>? children = null) =>
         new AsciiDocSyntaxNode(
             kind,
+            _source,
             _source.CreateSpan(start, end),
-            _source.Text.Substring(start, end - start),
             CompleteCoverage(start, end, children));
 
     internal void AddLineEnding(List<AsciiDocSyntaxNode> children, AsciiDocSourceLine line) {
@@ -26,6 +26,19 @@ internal sealed class AsciiDocSyntaxFactory {
         IReadOnlyList<AsciiDocSyntaxNode>? children) {
         if (children == null || children.Count == 0) return children;
 
+        int expected = start;
+        for (int index = 0; index < children.Count; index++) {
+            AsciiDocSyntaxNode child = children[index];
+            if (child.Span.Start.Offset > expected) return CompleteCoverageWithGaps(start, end, children);
+            expected = Math.Max(expected, child.Span.End.Offset);
+        }
+        return expected == end ? children : CompleteCoverageWithGaps(start, end, children);
+    }
+
+    private IReadOnlyList<AsciiDocSyntaxNode> CompleteCoverageWithGaps(
+        int start,
+        int end,
+        IReadOnlyList<AsciiDocSyntaxNode> children) {
         var completed = new List<AsciiDocSyntaxNode>(children.Count + 2);
         int expected = start;
         for (int index = 0; index < children.Count; index++) {
@@ -41,6 +54,6 @@ internal sealed class AsciiDocSyntaxFactory {
     private AsciiDocSyntaxNode CreateTrivia(int start, int end) =>
         new AsciiDocSyntaxNode(
             AsciiDocSyntaxKind.Trivia,
-            _source.CreateSpan(start, end),
-            _source.Text.Substring(start, end - start));
+            _source,
+            _source.CreateSpan(start, end));
 }
