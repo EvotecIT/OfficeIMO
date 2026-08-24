@@ -86,7 +86,7 @@ public sealed partial class EmailStorePstMutationTransaction {
             if (_options.BackupPath != null) {
                 backupStagingPath = OfficeFileCommit.CreateStagingPath(_options.BackupPath);
                 OfficeFileCommit.EnsureTargetDirectory(_options.BackupPath);
-                File.Copy(_sourcePath, backupStagingPath, overwrite: false);
+                CopySourceTo(backupStagingPath);
                 cancellationToken.ThrowIfCancellationRequested();
                 EnsureSourceUnchanged();
                 OfficeFileCommit.CommitTemporaryFileAtomically(backupStagingPath, _options.BackupPath,
@@ -562,6 +562,18 @@ public sealed partial class EmailStorePstMutationTransaction {
     private void EnsureSourceUnchanged() {
         EnsureSourceUnchanged(_sourcePath, _sourceIdentity, _sourceLength,
             _sourceLastWriteTimeUtc);
+    }
+
+    private void CopySourceTo(string destinationPath) {
+        using (FileStream source = OpenBackupSourceStream(isAsync: false))
+        using (var destination = new FileStream(destinationPath, FileMode.CreateNew,
+                   FileAccess.Write, FileShare.None, 128 * 1024, FileOptions.SequentialScan)) {
+            source.CopyTo(destination, 128 * 1024);
+            destination.Flush(flushToDisk: true);
+            if (destination.Length != source.Length) {
+                throw new IOException("The staged PST backup length does not match the source.");
+            }
+        }
     }
 
     private static void EnsureSourceUnchanged(string sourcePath, string sourceIdentity,

@@ -87,7 +87,7 @@ public sealed partial class EmailStorePstMutationTransaction {
             if (_options.BackupPath != null) {
                 backupStagingPath = OfficeFileCommit.CreateStagingPath(_options.BackupPath);
                 OfficeFileCommit.EnsureTargetDirectory(_options.BackupPath);
-                await CopyFileAsync(_sourcePath, backupStagingPath, cancellationToken).ConfigureAwait(false);
+                await CopyFileAsync(backupStagingPath, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 EnsureSourceUnchanged();
                 OfficeFileCommit.CommitTemporaryFileAtomically(backupStagingPath, _options.BackupPath,
@@ -122,11 +122,9 @@ public sealed partial class EmailStorePstMutationTransaction {
         }
     }
 
-    private static async Task CopyFileAsync(string sourcePath, string destinationPath,
+    private async Task CopyFileAsync(string destinationPath,
         CancellationToken cancellationToken) {
-        using (var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
-                   FileShare.Read | FileShare.Delete, 128 * 1024,
-                   FileOptions.Asynchronous | FileOptions.SequentialScan))
+        using (FileStream source = OpenBackupSourceStream(isAsync: true))
         using (var destination = new FileStream(destinationPath, FileMode.CreateNew, FileAccess.Write,
                    FileShare.None, 128 * 1024,
                    FileOptions.Asynchronous | FileOptions.SequentialScan)) {

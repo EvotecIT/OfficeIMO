@@ -69,8 +69,9 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         FileStream? input = null;
         PstMutationTransactionLock? transactionLock = null;
         try {
-            // The separate physical-file lock coordinates participating writers while allowing
-            // ordinary readers and the final atomic replacement to coexist with that lock handle.
+            // Writable Unix sources and Windows use byte-range locks that coexist with ordinary
+            // readers. Read-only Unix sources and filesystems without OFD locking use an exclusive
+            // source flock instead; that conservative fallback can temporarily exclude readers.
             try {
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                     transactionLock = PstMutationTransactionLock.OpenUnixSource(
@@ -173,6 +174,16 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         _source = null;
         _transactionLock?.Dispose();
         _transactionLock = null;
+    }
+
+    private FileStream OpenBackupSourceStream(bool isAsync) {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            return _transactionLock!.OpenUnixSourceReadStream(isAsync);
+        }
+        return new FileStream(_sourcePath, FileMode.Open, FileAccess.Read,
+            FileShare.Read | FileShare.Delete, 128 * 1024,
+            isAsync ? FileOptions.Asynchronous | FileOptions.SequentialScan
+                    : FileOptions.SequentialScan);
     }
 
     private static string ResolveRootFolderId(IReadOnlyList<EmailStoreFolderInfo> folders) {

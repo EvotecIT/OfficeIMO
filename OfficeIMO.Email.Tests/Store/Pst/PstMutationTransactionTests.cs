@@ -821,24 +821,26 @@ public sealed class PstMutationTransactionTests {
                 writer.Complete();
             }
             byte[] original = File.ReadAllBytes(path);
-            using var transaction = EmailStorePstMutationTransaction.Open(path);
-            EmailStorePstMutationFolder ordinary = Assert.Single(transaction.Folders,
-                folder => folder.Name == "Ordinary parent");
-            string ipmSubtreeId = Assert.Single(transaction.Folders,
-                folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Id;
-            FieldInfo foldersField = typeof(EmailStorePstMutationTransaction).GetField(
-                "_folders", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            var folders = (IDictionary)foldersField.GetValue(transaction)!;
-            object ipmSubtree = folders[ipmSubtreeId]!;
-            PropertyInfo parentId = ipmSubtree.GetType().GetProperty(
-                "ParentId", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            parentId.SetValue(ipmSubtree, ordinary.Id);
+            using (var transaction = EmailStorePstMutationTransaction.Open(path)) {
+                EmailStorePstMutationFolder ordinary = Assert.Single(transaction.Folders,
+                    folder => folder.Name == "Ordinary parent");
+                string ipmSubtreeId = Assert.Single(transaction.Folders,
+                    folder => folder.SpecialFolderKind == EmailStoreSpecialFolderKind.IpmSubtree).Id;
+                FieldInfo foldersField = typeof(EmailStorePstMutationTransaction).GetField(
+                    "_folders", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var folders = (IDictionary)foldersField.GetValue(transaction)!;
+                object ipmSubtree = folders[ipmSubtreeId]!;
+                PropertyInfo parentId = ipmSubtree.GetType().GetProperty(
+                    "ParentId", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                parentId.SetValue(ipmSubtree, ordinary.Id);
 
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                transaction.DeleteFolder(ordinary.Id, recursive: true));
+                InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                    transaction.DeleteFolder(ordinary.Id, recursive: true));
 
-            Assert.Contains("mandatory PST folder", exception.Message, StringComparison.Ordinal);
-            Assert.Contains(transaction.Folders, folder => folder.Id == ordinary.Id);
+                Assert.Contains("mandatory PST folder", exception.Message, StringComparison.Ordinal);
+                Assert.Contains(transaction.Folders, folder => folder.Id == ordinary.Id);
+                Assert.Equal(original, File.ReadAllBytes(path));
+            }
             Assert.Equal(original, File.ReadAllBytes(path));
         } finally {
             TryDelete(path);
@@ -962,6 +964,22 @@ public sealed class PstMutationTransactionTests {
             }
         } else if (CreateHardLinkUnix(source, alias) != 0) {
             throw new IOException("Unable to create a POSIX hard link for the mutation-lock contract.");
+        }
+    }
+
+    [Fact]
+    public void MutationLockAllowsOrdinaryPathReaders() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) writer.Complete();
+            byte[] original = File.ReadAllBytes(path);
+            using var transaction = EmailStorePstMutationTransaction.Open(path);
+
+            Assert.Equal(original, File.ReadAllBytes(path));
+            using EmailStoreSession reader = EmailStoreSession.Open(path);
+            Assert.Equal(transaction.Folders.Count, reader.Folders.Count);
+        } finally {
+            TryDelete(path);
         }
     }
 
