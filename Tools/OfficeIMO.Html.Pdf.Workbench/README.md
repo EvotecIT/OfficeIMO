@@ -9,12 +9,10 @@ The public OfficeIMO converter remains a static WebAssembly application. This to
 
 ## Run from current sources
 
-The workbench consumes the new fail-closed `HtmlBrowserNetworkPolicy.Offline` contract. Until that HtmlTinkerX version is published, point the build at a current local HtmlTinkerX checkout instead of adding compatibility code:
+The workbench consumes HtmlTinkerX's fail-closed `HtmlBrowserNetworkPolicy.Offline` contract through its published package:
 
 ```powershell
-$root = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
-$htmlTinkerX = Join-Path $root 'HtmlTinkerX\Sources\HtmlTinkerX\HtmlTinkerX.csproj'
-dotnet run --project .\Tools\OfficeIMO.Html.Pdf.Workbench\OfficeIMO.Html.Pdf.Workbench.csproj --property:HtmlTinkerXProjectPath=$htmlTinkerX
+dotnet run --project .\Tools\OfficeIMO.Html.Pdf.Workbench\OfficeIMO.Html.Pdf.Workbench.csproj
 ```
 
 Open `http://127.0.0.1:5105`. The host rejects non-loopback `Workbench:Url` values.

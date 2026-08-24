@@ -3,11 +3,12 @@ using OfficeIMO.Html.Pdf.Browser;
 
 var policy = HtmlBrowserNetworkPolicy.Offline;
 var options = new HtmlBrowserPdfRendererOptions(
+    new HtmlBrowserPdfDeviceEmulation(
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true),
     viewportWidth: 390,
     viewportHeight: 844,
-    deviceScaleFactor: 3,
-    isMobile: true,
-    hasTouch: true,
     networkPolicy: policy);
 
 if (policy.AllowNetworkAccess ||

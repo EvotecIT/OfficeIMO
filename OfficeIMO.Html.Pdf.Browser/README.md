@@ -17,9 +17,10 @@ using OfficeIMO.Pdf;
 
 await using var renderer = new HtmlBrowserPdfRenderer(
     new HtmlBrowserPdfRendererOptions(
+        new HtmlBrowserPdfDeviceEmulation(
+            deviceScaleFactor: 1),
         viewportWidth: 1440,
-        viewportHeight: 900,
-        deviceScaleFactor: 1));
+        viewportHeight: 900));
 var request = new HtmlBrowserPdfRequest(
     HtmlBrowserPdfSource.FromUrl("https://example.com"),
     pdfOptions: new HtmlBrowserPdfOptions(tagged: false));
