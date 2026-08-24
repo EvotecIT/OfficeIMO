@@ -34,12 +34,43 @@ ordinary in-memory bodies and attachments reduced the measured normal write
 from about 2.85x to 1.30x time while keeping source-backed and payloads above
 1 MiB on the bounded streaming path.
 
+## Retained and peak memory
+
+An independent process-isolated run from clean source commit
+`97f21aa887402f1d64dac0de36fc0780866f013c` used three fresh child processes
+per implementation, scale, and operation on the same Windows host with .NET
+10.0.11. Read probes retain equivalent normalized bodies and every decoded
+attachment payload. Write probes retain each complete serialized byte array.
+The parent reruns the cross-reader semantic validation and rejects fingerprint
+or input-size differences before reporting ratios.
+
+| Workflow | Scale | Retained managed-heap ratio | Sampled managed-heap peak ratio | Absolute process-peak ratio |
+| --- | --- | ---: | ---: | ---: |
+| Read | Small | 0.38x | 0.57x | 0.86x |
+| Read | Normal | 0.56x | 0.32x | 0.92x |
+| Write | Small | 1.08x | 1.39x | 1.17x |
+| Write | Normal | 1.07x | 0.99x | 1.04x |
+
+Every retained-result, sampled managed-heap peak, and absolute process-peak
+ratio is within 2x. OfficeIMO reads use materially less memory; writes remain
+close to MimeKit. Absolute process peak is the working-set comparison metric
+because independently launched runtimes do not begin with identical working
+sets.
+
+The isolated runner also reproduced allocation ratios of 0.63x and 0.37x for
+small and normal reads, and 1.40x and 1.52x for writes. Normal-write allocation
+is the narrowest remaining margin and should continue to improve rather than
+being treated as optimal. BenchmarkDotNet remains the primary timing evidence;
+the shorter child-process batches are retained for memory and repeatability
+evidence, not substituted for its statistical timing job.
+
 Reproduce the validation and full runs with:
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparisons -- validate --json .benchmark-artifacts\email\validation.json
 .\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload emailmimeread -RunMode full -Framework net10.0
 .\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload emailmimewrite -RunMode full -Framework net10.0
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparisons -- --evidence --repeat 3 --json .benchmark-artifacts\email\memory-evidence.json
 ```
 
 The comparison project remains outside `OfficeIMO.sln`; MimeKit is an opt-in
