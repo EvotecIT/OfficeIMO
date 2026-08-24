@@ -97,8 +97,8 @@ public sealed partial class EmailStorePstMutationTransaction {
                 backupStagingPath = null;
                 committedBackupPath = _options.BackupPath;
             }
-            OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, _sourcePath,
-                OfficeFileCommit.ConflictPolicy.Replace);
+            OfficeFileCommit.CommitTemporaryFileAtomicallyForLockedMutation(
+                stagingPath, _sourcePath);
             stagingPath = string.Empty;
             _committed = true;
             writeReport = new EmailStorePstWriteReport(_sourcePath, writeReport.FolderCount,

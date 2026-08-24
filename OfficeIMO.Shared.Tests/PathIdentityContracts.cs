@@ -144,8 +144,9 @@ public class PathIdentityContracts {
         Assert.False(OfficePathIdentity.ShouldFallbackFromLinuxStatx(2));
         Assert.False(OfficePathIdentity.ShouldFallbackFromLinuxStatx(5));
 
-        Assert.True(OfficePathIdentity.HasRequiredLinuxStatxMetadata(0x00000105));
-        Assert.False(OfficePathIdentity.HasRequiredLinuxStatxMetadata(0x00000101));
+        Assert.True(OfficePathIdentity.HasRequiredLinuxStatxMetadata(0x00000107));
+        Assert.False(OfficePathIdentity.HasRequiredLinuxStatxMetadata(0x00000105));
+        Assert.False(OfficePathIdentity.HasRequiredLinuxStatxMetadata(0x00000103));
     }
 
     private static void CreateHardLink(string alias, string source) {

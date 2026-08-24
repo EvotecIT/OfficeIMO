@@ -98,8 +98,8 @@ public sealed partial class EmailStorePstMutationTransaction {
             }
             // The physical-file lock handle allows atomic replacement while retaining participating-writer
             // coordination; uncooperative replacers remain an explicitly documented filesystem boundary.
-            OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, _sourcePath,
-                OfficeFileCommit.ConflictPolicy.Replace);
+            OfficeFileCommit.CommitTemporaryFileAtomicallyForLockedMutation(
+                stagingPath, _sourcePath);
             stagingPath = string.Empty;
             _committed = true;
             writeReport = new EmailStorePstWriteReport(_sourcePath, writeReport.FolderCount,

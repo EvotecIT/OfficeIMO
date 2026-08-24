@@ -9,7 +9,7 @@ namespace OfficeIMO.Internal {
         private const int AtFdcwd = -100;
         private const int AtEmptyPath = 0x1000;
         private const uint StatxBasicStats = 0x000007ff;
-        private const uint StatxRequiredIdentity = 0x00000105;
+        private const uint StatxRequiredIdentity = 0x00000107;
         private const int ErrorNoEntry = 2;
         private const int ErrorPermissionDenied = 1;
         private const int ErrorAccessDenied = 13;

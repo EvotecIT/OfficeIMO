@@ -72,18 +72,21 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
             // The separate physical-file lock coordinates participating writers while allowing
             // ordinary readers and the final atomic replacement to coexist with that lock handle.
             try {
-                FileShare sourceShare = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? FileShare.Read
-                    : FileShare.ReadWrite | FileShare.Delete;
-                input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
-                    sourceShare,
-                    64 * 1024, FileOptions.RandomAccess);
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    transactionLock = PstMutationTransactionLock.OpenUnixSource(
+                        sourcePath, out input);
+                } else {
+                    input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
+                        FileShare.Read,
+                        64 * 1024, FileOptions.RandomAccess);
+                    transactionLock = PstMutationTransactionLock.Acquire(
+                        sourcePath, input.SafeFileHandle);
+                }
             } catch (IOException exception) when (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 throw new IOException(
                     "Another OfficeIMO mutation transaction already owns this physical PST, " +
                     "or the PST could not be opened safely.", exception);
             }
-            transactionLock = PstMutationTransactionLock.Acquire(sourcePath, input.SafeFileHandle);
             var sourceFile = new FileInfo(sourcePath);
             long sourceLength = sourceFile.Length;
             DateTime sourceLastWriteTimeUtc = sourceFile.LastWriteTimeUtc;

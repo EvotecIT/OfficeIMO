@@ -236,7 +236,8 @@ namespace OfficeIMO.Core.Internal {
             string targetPath,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
             CommitTemporaryFileCore(temporaryPath, targetPath, conflictPolicy,
-                allowNonAtomicReplacementFallback: true);
+                allowNonAtomicReplacementFallback: true,
+                allowReadOnlyUnixDestination: false);
         }
 
         /// <summary>
@@ -248,7 +249,21 @@ namespace OfficeIMO.Core.Internal {
             string targetPath,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
             CommitTemporaryFileCore(temporaryPath, targetPath, conflictPolicy,
-                allowNonAtomicReplacementFallback: false);
+                allowNonAtomicReplacementFallback: false,
+                allowReadOnlyUnixDestination: false);
+        }
+
+        /// <summary>
+        /// Atomically replaces a Unix destination whose inode is read-only when the caller owns a
+        /// separate mutation lock and has already verified that the parent directory is writable.
+        /// Windows destinations retain the ordinary read-only guard.
+        /// </summary>
+        internal static void CommitTemporaryFileAtomicallyForLockedMutation(
+            string temporaryPath,
+            string targetPath) {
+            CommitTemporaryFileCore(temporaryPath, targetPath, ConflictPolicy.Replace,
+                allowNonAtomicReplacementFallback: false,
+                allowReadOnlyUnixDestination: true);
         }
 
         /// <summary>
@@ -401,7 +416,8 @@ namespace OfficeIMO.Core.Internal {
             string temporaryPath,
             string targetPath,
             ConflictPolicy conflictPolicy,
-            bool allowNonAtomicReplacementFallback) {
+            bool allowNonAtomicReplacementFallback,
+            bool allowReadOnlyUnixDestination) {
             if (string.IsNullOrWhiteSpace(temporaryPath)) throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
 
             string fullTargetPath = GetFullTargetPath(targetPath);
@@ -412,7 +428,9 @@ namespace OfficeIMO.Core.Internal {
                 return;
             }
 
-            EnsureDestinationWritable(fullTargetPath);
+            if (!allowReadOnlyUnixDestination || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                EnsureDestinationWritable(fullTargetPath);
+            }
 
             if (!File.Exists(fullTargetPath)) {
                 if (TryMoveIfAbsent(temporaryPath, fullTargetPath, waitForClaim: true)) {
