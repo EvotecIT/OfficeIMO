@@ -3,17 +3,31 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfComplianceAnalyzer {
     /// <summary>Analyzes an existing PDF byte array for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, byte[] pdf, PdfReadOptions? options = null) {
+        return AssessReadback(profile, pdf, System.Threading.CancellationToken.None, options);
+    }
+
+    internal static PdfComplianceReadinessReport AssessReadback(
+        PdfComplianceProfile profile,
+        byte[] pdf,
+        System.Threading.CancellationToken cancellationToken,
+        PdfReadOptions? options = null) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo info = PdfInspector.FromReadDocument(document, probe);
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<PdfExtractedAttachment> attachments = document.ExtractAttachments();
+        cancellationToken.ThrowIfCancellationRequested();
         return AssessReadback(
             profile,
             info,
-            document.ExtractAttachments(),
-            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document) : null,
-            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document) : null);
+            attachments,
+            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document, cancellationToken) : null,
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document, cancellationToken) : null);
     }
 
     /// <summary>Analyzes an existing PDF file for profile-specific readback evidence.</summary>

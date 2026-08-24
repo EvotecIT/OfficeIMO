@@ -85,6 +85,30 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlPdfVariableFontInsideSvgDrawingUsesVectorOutlines() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        const string marker = "VariableSvgMarker";
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 36'><text x='4' y='26' font-family='Variable Svg' font-size='22'>" + marker + "</text></svg>";
+        string html = "<style>@font-face{font-family:'Variable Svg';src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(fontData)
+            + "')}</style><img style='width:220px;height:36px' src='data:image/svg+xml;base64,"
+            + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg))
+            + "' alt='variable font drawing'>";
+        var options = new HtmlPdfSaveOptions();
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+
+        Assert.Contains(marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
+            && warning.Details.TryGetValue("Representation", out string? representation)
+            && representation == "vector-outlines-plus-actual-text");
+        Assert.NotEmpty(PdfCore.PdfDocument.Open(pdf).Read.Drawing(1).Shapes);
+    }
+
+    [Fact]
     public void HtmlFontFaceLoaderAppliesConfiguredVariableFontInstance() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         HtmlConversionDocument source = HtmlConversionDocument.Parse(

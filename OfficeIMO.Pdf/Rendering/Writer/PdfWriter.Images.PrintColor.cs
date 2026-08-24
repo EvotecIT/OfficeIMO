@@ -9,7 +9,9 @@ internal static partial class PdfWriter {
         PdfPrintColorTransform transform,
         bool flattenTransparency,
         PdfColor transparencyBackground,
+        System.Threading.CancellationToken cancellationToken,
         out string? unsupportedReason) {
+        cancellationToken.ThrowIfCancellationRequested();
         unsupportedReason = null;
         long declaredPixelCount = (long)image.PixelWidth * image.PixelHeight;
         if (declaredPixelCount <= 0 || declaredPixelCount > MaxPngPixelCount) {
@@ -37,12 +39,14 @@ internal static partial class PdfWriter {
         bool hasTransparency = false;
 
         for (int row = 0; row < raster.Height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int sourceRow = row * raster.Width * 4;
             int targetRow = row * baseRowLength;
             int alphaRow = row * (1 + raster.Width);
             cmykRows[targetRow] = 0;
             if (alphaRows != null) alphaRows[alphaRow] = 0;
             for (int column = 0; column < raster.Width; column++) {
+                if ((column & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int source = sourceRow + column * 4;
                 byte alpha = pixels[source + 3];
                 hasTransparency |= alpha != 255;

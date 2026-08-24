@@ -8,6 +8,7 @@ internal static partial class PdfWriter {
         private void ProcessBlocks(System.Collections.Generic.IEnumerable<IPdfBlock> sequence) {
             var blockList = sequence as System.Collections.Generic.IList<IPdfBlock> ?? sequence.ToList();
             for (int blockIndex = 0; blockIndex < blockList.Count; blockIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (stopDocumentFlow) {
                     break;
                 }

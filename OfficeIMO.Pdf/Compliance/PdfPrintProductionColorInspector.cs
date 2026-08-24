@@ -3,8 +3,11 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfPrintProductionColorInspector {
-    internal static PdfPrintProductionColorEvidence Inspect(PdfReadDocument document) {
+    internal static PdfPrintProductionColorEvidence Inspect(
+        PdfReadDocument document,
+        System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         var contentStreams = new List<ContentStreamContext>();
         var graphicsStateDictionaries = new HashSet<PdfDictionary>();
@@ -19,6 +22,7 @@ internal static class PdfPrintProductionColorInspector {
         int transparencyGroups = 0;
 
         foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = indirect.Value switch {
                 PdfDictionary value => value,
                 PdfStream stream => stream.Dictionary,
@@ -35,6 +39,16 @@ internal static class PdfPrintProductionColorInspector {
                     candidate,
                     ResolveColorSpaceAliases(dictionary, objects, inheritResources: false),
                     contentStreams);
+            }
+
+            if (string.Equals(subtype, "Type3", StringComparison.Ordinal) &&
+                dictionary.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) &&
+                PdfObjectLookup.ResolveChain(objects, charProcsObject) is PdfDictionary charProcs) {
+                ColorSpaceAliases aliases = ResolveColorSpaceAliases(dictionary, objects, inheritResources: false);
+                foreach (PdfObject charProc in charProcs.Items.Values) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    CollectStreams(charProc, objects, aliases, contentStreams);
+                }
             }
 
             if (string.Equals(type, "Page", StringComparison.Ordinal) &&
@@ -75,6 +89,7 @@ internal static class PdfPrintProductionColorInspector {
         }
 
         foreach (PdfDictionary graphicsState in graphicsStateDictionaries) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsNonOpaqueGraphicsState(graphicsState, objects)) nonOpaqueStates++;
         }
 
@@ -82,6 +97,7 @@ internal static class PdfPrintProductionColorInspector {
         int cmykOperators = 0;
         int uninspectable = 0;
         foreach (ContentStreamContext context in contentStreams) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfStream stream = context.Stream;
             ColorSpaceAliases aliases = context.Aliases;
             if (!StreamDecoder.TryDecode(

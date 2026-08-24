@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
-        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _, out _, out _)!;
+        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, System.Threading.CancellationToken.None, out _, out _, out _, out _)!;
         PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes);
         return bytes;
     }
@@ -28,6 +28,7 @@ internal static partial class PdfWriter {
             subject,
             keywords,
             outputStream: null,
+            System.Threading.CancellationToken.None,
             out _,
             out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
             out _,
@@ -63,16 +64,17 @@ internal static partial class PdfWriter {
                 subject,
                 keywords,
                 outputStream: null,
+                cancellationToken,
                 out _,
                 out _,
                 out pageCount,
                 out serializationReport)!;
-            PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact);
+            PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             destination.Write(exactArtifact, 0, exactArtifact.Length);
             return exactArtifact.LongLength;
         }
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten, out _, out pageCount, out serializationReport);
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, cancellationToken, out long bytesWritten, out _, out pageCount, out serializationReport);
         return bytesWritten;
     }
 
@@ -85,19 +87,22 @@ internal static partial class PdfWriter {
         string? subject,
         string? keywords,
         Stream? outputStream,
+        System.Threading.CancellationToken cancellationToken,
         out long bytesWritten,
         out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
         out int pageCount,
         out PdfSerializationReport serializationReport) {
+        cancellationToken.ThrowIfCancellationRequested();
         opts.Validate();
         PdfComplianceValidator.ValidateGenerationOptions(opts);
         opts.ResetEmbeddedFontProgramUsage();
 
         // Layout blocks into pages and create per-page content streams.
         using var generatedSectionLayout = doc.BeginGeneratedSectionLayout();
-        using var layout = LayoutBlocks(blocks, opts);
+        using var layout = LayoutBlocks(blocks, opts, cancellationToken);
         pageCount = layout.Pages.Count;
         foreach (LayoutResult.Page page in layout.Pages) {
+            cancellationToken.ThrowIfCancellationRequested();
             CoalescePositionedRadioButtonFields(page.FormFields);
         }
         ValidateNamedDestinationLinks(layout.Pages);
@@ -372,6 +377,7 @@ internal static partial class PdfWriter {
             : AddObject(objects, PdfOptionalContentDictionaryBuilder.BuildProperties(layerDefinitions, optionalContentGroupIds));
 
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             var page = layout.Pages[pageIndex];
             // Make a resources dict that references the fonts we declared
             var pageOpts = page.Options ?? opts;
@@ -563,6 +569,7 @@ internal static partial class PdfWriter {
             if (page.Images.Count > 0) {
                 var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var img = page.Images[i];
                     ApplyPlacementAwareImageOptimization(img, opts, optimizedImageCache);
                     if (!TryBuildImageStream(img, out var imageStream, out string? unsupportedReason)) {
@@ -579,6 +586,7 @@ internal static partial class PdfWriter {
                                 imageColorTransform,
                                 pageOpts.FlattenRasterTransparencyForPdfX,
                                 pageOpts.PdfXTransparencyBackground,
+                                cancellationToken,
                                 out string? conversionReason)) {
                             throw new NotSupportedException(conversionReason ?? "Raster image could not be converted to the configured PDF/X CMYK print condition.");
                         }
@@ -598,6 +606,7 @@ internal static partial class PdfWriter {
 
             if (page.EffectGroups.Count > 0) {
                 for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
                     string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
@@ -605,7 +614,7 @@ internal static partial class PdfWriter {
                         ? GetPrintColorTransform(pageOpts)
                         : null;
                     if (effectColorTransform != null) {
-                        effectContent = effectColorTransform.NormalizeGeneratedContent(effectContent);
+                        effectContent = effectColorTransform.NormalizeGeneratedContent(effectContent, cancellationToken);
                     }
                     effect.MarkedContentIds.Clear();
                     effect.MarkedContentIds.AddRange(ExtractMarkedContentIds(effectContent));
@@ -673,11 +682,12 @@ internal static partial class PdfWriter {
                     EnsureFont,
                     EnsureFormHelveticaFont,
                     markInfo,
-                    pageColorTransform);
+                    pageColorTransform,
+                    cancellationToken);
             }
 
             if (pageColorTransform != null) {
-                contentStr = pageColorTransform.NormalizeGeneratedContent(contentStr);
+                contentStr = pageColorTransform.NormalizeGeneratedContent(contentStr, cancellationToken);
             }
 
             byte[] contentBytes = Encoding.ASCII.GetBytes(contentStr);

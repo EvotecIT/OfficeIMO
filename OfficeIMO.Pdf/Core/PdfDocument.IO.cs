@@ -193,7 +193,7 @@ public sealed partial class PdfDocument {
     public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfTextEncodingPreflightFails();
+        ThrowIfTextEncodingPreflightFails(cancellationToken);
         (long bytesWritten, PdfArtifactSnapshot output, PdfSerializationReport serialization) = await RenderToStreamWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
@@ -225,7 +225,7 @@ public sealed partial class PdfDocument {
         cancellationToken.ThrowIfCancellationRequested();
         EnsureOutputDirectory(fullPath);
 
-        ThrowIfTextEncodingPreflightFails();
+        ThrowIfTextEncodingPreflightFails(cancellationToken);
         PdfArtifactSnapshot? output = null;
         long bytesWritten = 0L;
         PdfSerializationReport? serialization = null;
@@ -233,7 +233,7 @@ public sealed partial class PdfDocument {
             fullPath,
             stream => {
                 using var hashingStream = new PdfPipelineHashingStream(stream);
-                (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream);
+                (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream, cancellationToken);
                 output = hashingStream.Complete(pageCount);
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -307,6 +307,7 @@ public sealed partial class PdfDocument {
         Stream stream,
         System.Threading.CancellationToken cancellationToken = default) {
         if (_source is not null) {
+            cancellationToken.ThrowIfCancellationRequested();
             stream.Write(_source.Bytes, 0, _source.Bytes.Length);
             int? sourcePageCount = _pipeline.Output?.PageCount;
             return (
@@ -340,8 +341,9 @@ public sealed partial class PdfDocument {
         return (bytesWritten, pageCount, serializationReport);
     }
 
-    private void ThrowIfTextEncodingPreflightFails() {
-        if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+    private void ThrowIfTextEncodingPreflightFails(
+        System.Threading.CancellationToken cancellationToken = default) {
+        if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException, cancellationToken)) {
             throw preflightException!;
         }
     }

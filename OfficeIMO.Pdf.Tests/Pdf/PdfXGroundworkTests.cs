@@ -394,6 +394,17 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PrintProductionInspectorInspectsType3CharacterProcedures() {
+        byte[] pdf = BuildType3ColorInspectionPdf();
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.True(evidence.HasDeviceRgbUsage);
+        Assert.Equal(1, evidence.DeviceRgbOperatorCount);
+    }
+
+    [Fact]
     public void PdfX1AReadbackRejectsDeviceIndependentColorSpaceUsage() {
         byte[] pdf = BuildInspectionPdf(
             "/CsLab cs 0 0 10 10 re f",
@@ -707,6 +718,44 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public async Task PdfXFormalAsyncPathSaveStopsDuringDeferredLayoutAndPreservesDestination() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X cancellation font");
+        using var cancellation = new CancellationTokenSource();
+        int rowsEnumerated = 0;
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdfx-cancel-" + Guid.NewGuid().ToString("N") + ".pdf");
+        byte[] original = { 9, 8, 7, 6 };
+        File.WriteAllBytes(path, original);
+
+        try {
+            PdfDocument document = PdfDocument.Create(options).TableDeferred(CreateRows, batchSize: 1);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                document.SaveAsync(path, cancellation.Token));
+
+            Assert.InRange(rowsEnumerated, 2, 3);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            File.Delete(path);
+        }
+
+        IEnumerable<string[]> CreateRows() {
+            for (int index = 0; index < 100; index++) {
+                rowsEnumerated++;
+                if (rowsEnumerated == 2) cancellation.Cancel();
+                yield return new[] { "Row " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+            }
+        }
+    }
+
+    [Fact]
     public void PdfXFormalGenerationAcceptsConfiguredExternalCmykProfile() {
         string? profilePath = Environment.GetEnvironmentVariable("OFFICEIMO_PDFX_ICC_PROFILE");
         if (string.IsNullOrWhiteSpace(profilePath) || !File.Exists(profilePath)) return;
@@ -919,6 +968,19 @@ public class PdfXGroundworkTests {
             8,
             "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /ColorSpace << /CS1 /DeviceCMYK >> >>",
             cmykContent);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildType3ColorInspectionPdf() {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf (A) Tj ET");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n");
+        WriteInspectionStream(output, 6, string.Empty, "1 0 0 rg 0 0 500 700 re f");
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

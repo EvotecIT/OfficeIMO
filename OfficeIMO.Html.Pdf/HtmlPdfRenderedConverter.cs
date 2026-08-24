@@ -734,8 +734,44 @@ internal static partial class HtmlPdfRenderedConverter {
                 }
                 if (element is not OfficeDrawingText text || string.IsNullOrWhiteSpace(text.Text)) continue;
                 FlushShapes();
+                double textX = visual.X + text.X * scaleX;
+                double textY = visual.Y + text.Y * scaleY;
+                double textWidth = text.Width * scaleX;
+                double textHeight = text.Height * scaleY;
+                double scaledFontSize = text.Font.Size * scaleY;
+                double scaledLineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY;
+                var outlinedVisual = new HtmlRenderText(
+                    text.Text,
+                    textX,
+                    textY,
+                    textWidth,
+                    textHeight,
+                    text.Font.WithSize(scaledFontSize),
+                    text.Color ?? OfficeColor.Black,
+                    text.Alignment,
+                    scaledLineHeight,
+                    paintOrder: 0,
+                    linkUri: visual.LinkUri,
+                    source: visual.Source,
+                    semanticRole: "span",
+                    layoutY: textY,
+                    semanticNodeId: null,
+                    textAdvanceWidth: text.TextAdvanceWidth.HasValue
+                        ? text.TextAdvanceWidth.Value * scaleX
+                        : null);
+                if (TryAddOutlinedText(
+                        target,
+                        outlinedVisual,
+                        webFonts,
+                        conversionReport,
+                        textWidth,
+                        asSpan: true,
+                        logicalTextOwned: false,
+                        cancellationToken)) {
+                    continue;
+                }
                 double fontSize = text.Font.Size * scaleY * PointsPerCssPixel;
-                double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY * PointsPerCssPixel;
+                double lineHeight = scaledLineHeight * PointsPerCssPixel;
                 PdfCore.PdfColor? color = text.Color.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(text.Color.Value) : null;
                 IReadOnlyList<OfficeFontFallbackRun> plannedRuns = webFonts.Faces.PlanFallbackRuns(
                     text.Text,

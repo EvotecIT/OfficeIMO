@@ -94,12 +94,19 @@ internal static class PdfComplianceValidator {
 
     internal static bool RequiresExactArtifactValidation(PdfOptions options) => IsPdfX(options.ComplianceProfile);
 
-    internal static void ValidateGeneratedArtifact(PdfOptions options, byte[] artifact) {
+    internal static void ValidateGeneratedArtifact(
+        PdfOptions options,
+        byte[] artifact,
+        System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(artifact, nameof(artifact));
+        cancellationToken.ThrowIfCancellationRequested();
         if (!IsPdfX(options.ComplianceProfile)) return;
 
-        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(options.ComplianceProfile, artifact);
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(
+            options.ComplianceProfile,
+            artifact,
+            cancellationToken);
         PdfComplianceRequirement[] gaps = readiness.Requirements
             .Where(requirement =>
                 !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&

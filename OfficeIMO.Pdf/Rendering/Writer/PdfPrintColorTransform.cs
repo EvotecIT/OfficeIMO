@@ -43,7 +43,10 @@ internal sealed class PdfPrintColorTransform {
         return new PdfPrintColorTransform(profile, options.PdfXRenderingIntent, options.BlackPreservationMode);
     }
 
-    internal string NormalizeGeneratedContent(string content) {
+    internal string NormalizeGeneratedContent(
+        string content,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(content)) {
             return content;
         }
@@ -54,6 +57,7 @@ internal sealed class PdfPrintColorTransform {
         bool hexadecimalString = false;
         bool comment = false;
         return RgbOperatorPattern.Replace(content, match => {
+            cancellationToken.ThrowIfCancellationRequested();
             AdvanceLexicalState(
                 content,
                 ref scanPosition,

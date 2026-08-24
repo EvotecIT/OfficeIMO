@@ -3,11 +3,15 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfPrintProductionStructureInspector {
-    internal static PdfPrintProductionStructureEvidence Inspect(PdfReadDocument document) {
+    internal static PdfPrintProductionStructureEvidence Inspect(
+        PdfReadDocument document,
+        System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         int validBoxes = 0;
         int invalidBoxes = 0;
         foreach (PdfReadPage page in document.Pages) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (HasValidProductionBoxes(page.GetGeometry())) validBoxes++;
             else invalidBoxes++;
         }
@@ -16,12 +20,14 @@ internal static class PdfPrintProductionStructureInspector {
         var visitedDictionaries = new HashSet<PdfDictionary>();
         var visitedArrays = new HashSet<PdfArray>();
         foreach (PdfIndirectObject indirect in document.Objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             CollectFontResources(indirect.Value, document.Objects, visitedDictionaries, visitedArrays, fontDictionaries);
         }
 
         int unembedded = 0;
         int uninspectable = 0;
         foreach (PdfDictionary font in fontDictionaries) {
+            cancellationToken.ThrowIfCancellationRequested();
             try {
                 if (!HasEmbeddedFontProgram(font, document.Objects, document.ReadOptions.Limits.MaxDecodedStreamBytes)) unembedded++;
             } catch (Exception exception) when (
