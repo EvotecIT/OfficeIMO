@@ -33,19 +33,34 @@ traversal, lazy source-backed token and syntax text, retains already contiguous
 child collections, performs one semantic discovery pass, and indexes labels and
 list items once.
 
+A later source-graph pass replaced the full line/column coordinates retained by
+every token and syntax node with compact offsets while preserving the public
+`LatexSourceSpan` contract. Token text/value and syntax source/original-text
+state now share their common backing slots, and full parsing reuses one source
+line map. Clean commit `eb186c672db974023ed867169d580d35cac173e4` produced:
+
+| Workload | Prior mean | Current mean | Time reduction | Prior allocation | Current allocation | Allocation reduction |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Small parse | 55.86 us | 48.68 us | 12.9% | 162.29 KiB | 134.01 KiB | 17.4% |
+| Small parse + write | 59.01 us | 50.30 us | 14.8% | 163.06 KiB | 134.75 KiB | 17.4% |
+| Normal parse | 4.07 ms | 2.83 ms | 30.6% | 6.57 MiB | 5.30 MiB | 19.3% |
+| Normal parse + write | 4.03 ms | 2.57 ms | 36.3% | 6.58 MiB | 5.31 MiB | 19.3% |
+| Large parse | 91.47 ms | 60.96 ms | 33.4% | 67.20 MiB | 54.47 MiB | 18.9% |
+| Large parse + write | 91.52 ms | 65.48 ms | 28.5% | 67.24 MiB | 54.51 MiB | 18.9% |
+
 ## Isolated memory and size evidence
 
-Commit `1d482f33f447d0a72ae66295c32a7eed93fa1a32` was measured from a clean tree
+Commit `eb186c672db974023ed867169d580d35cac173e4` was measured from a clean tree
 with three fresh child processes per lane. All checked-in budgets passed.
 
 | Workload | Median elapsed | Allocation | Retained heap | Managed peak growth | Process peak | Output |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Small parse | 0.84 ms | 0.16 MiB | 0.13 MiB | 0.18 MiB | 25.35 MiB | n/a |
-| Small parse + write | 0.87 ms | 0.16 MiB | approximately 0 MiB | 0.18 MiB | 25.54 MiB | 1.44 KiB |
-| Normal parse | 23.57 ms | 6.58 MiB | 5.68 MiB | 6.62 MiB | 41.13 MiB | n/a |
-| Normal parse + write | 24.08 ms | 6.59 MiB | approximately 0 MiB | 6.62 MiB | 36.79 MiB | 67.08 KiB |
-| Large parse | 199.61 ms | 67.20 MiB | 57.03 MiB | 65.70 MiB | 104.25 MiB | n/a |
-| Large parse + write | 214.03 ms | 67.24 MiB | approximately 0 MiB | 65.74 MiB | 97.96 MiB | 684.96 KiB |
+| Small parse | 0.46 ms | 0.13 MiB | 0.10 MiB | 0.15 MiB | 25.44 MiB | n/a |
+| Small parse + write | 0.47 ms | 0.13 MiB | approximately 0 MiB | 0.15 MiB | 25.45 MiB | 1.44 KiB |
+| Normal parse | 11.69 ms | 5.30 MiB | 4.42 MiB | 5.34 MiB | 40.98 MiB | n/a |
+| Normal parse + write | 12.51 ms | 5.31 MiB | approximately 0 MiB | 5.34 MiB | 36.38 MiB | 67.08 KiB |
+| Large parse | 123.49 ms | 54.47 MiB | 44.43 MiB | 54.61 MiB | 91.32 MiB | n/a |
+| Large parse + write | 136.16 ms | 54.51 MiB | approximately 0 MiB | 54.65 MiB | 87.82 MiB | 684.96 KiB |
 
 The isolated elapsed values include the deliberately forced collection and
 fresh-process measurement boundary and are therefore not interchangeable with
@@ -53,6 +68,10 @@ the steady-state BenchmarkDotNet means. Allocation and retained/peak memory are
 the main evidence from this lane. Parse-plus-write retains only the returned
 string after forced collection; plain parse retains the complete public model.
 All preserve outputs exactly match their inputs, so output inflation is 1.00x.
+Against the preceding clean graph baseline, the large parse now allocates 18.9%
+less, retains 22.1% less managed memory, and lowers managed peak growth by
+16.9%. Fresh-process elapsed time also fell, but the steady-state
+BenchmarkDotNet result above is the primary throughput evidence.
 
 ## Comparison boundary and remaining target
 
@@ -64,7 +83,7 @@ measure the same contract. Typesetting products such as Aspose.TeX produce PDF
 or images and also perform materially different work.
 
 This is an owner-level baseline, not a contender ratio or an optimality claim.
-The large public model still retains about 57 MiB for a 701 KiB source because
+The large public model still retains about 44.4 MiB for a 701 KiB source because
 it exposes 256,036 exact tokens plus the lossless syntax and semantic graphs.
 Reducing that retained graph without weakening source spans, navigation,
 editing, or exact preservation remains open work.
