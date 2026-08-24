@@ -81,27 +81,24 @@ public sealed partial class EmailStorePstMutationTransaction {
 
             string? committedBackupPath = null;
             cancellationToken.ThrowIfCancellationRequested();
-            using (var commitGuard = new FileStream(_sourcePath, FileMode.Open, FileAccess.Read,
-                FileShare.Read | FileShare.Delete, 1, FileOptions.RandomAccess)) {
-                _source.Dispose();
-                _source = null;
+            _source.Dispose();
+            _source = null;
+            EnsureSourceUnchanged();
+            if (_options.BackupPath != null) {
+                backupStagingPath = OfficeFileCommit.CreateStagingPath(_options.BackupPath);
+                OfficeFileCommit.EnsureTargetDirectory(_options.BackupPath);
+                await CopyFileAsync(backupStagingPath, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
                 EnsureSourceUnchanged();
-                if (_options.BackupPath != null) {
-                    backupStagingPath = OfficeFileCommit.CreateStagingPath(_options.BackupPath);
-                    OfficeFileCommit.EnsureTargetDirectory(_options.BackupPath);
-                    await CopyFileAsync(_sourcePath, backupStagingPath, cancellationToken).ConfigureAwait(false);
-                    cancellationToken.ThrowIfCancellationRequested();
-                    EnsureSourceUnchanged();
-                    OfficeFileCommit.CommitTemporaryFileAtomically(backupStagingPath, _options.BackupPath,
-                        _options.OverwriteBackup
-                            ? OfficeFileCommit.ConflictPolicy.Replace
-                            : OfficeFileCommit.ConflictPolicy.FailIfExists);
-                    backupStagingPath = null;
-                    committedBackupPath = _options.BackupPath;
-                }
-                OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, _sourcePath,
-                    OfficeFileCommit.ConflictPolicy.Replace);
+                OfficeFileCommit.CommitTemporaryFileAtomically(backupStagingPath, _options.BackupPath,
+                    _options.OverwriteBackup
+                        ? OfficeFileCommit.ConflictPolicy.Replace
+                        : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                backupStagingPath = null;
+                committedBackupPath = _options.BackupPath;
             }
+            OfficeFileCommit.CommitTemporaryFileAtomicallyForLockedMutation(
+                stagingPath, _sourcePath);
             stagingPath = string.Empty;
             _committed = true;
             writeReport = new EmailStorePstWriteReport(_sourcePath, writeReport.FolderCount,
@@ -125,11 +122,9 @@ public sealed partial class EmailStorePstMutationTransaction {
         }
     }
 
-    private static async Task CopyFileAsync(string sourcePath, string destinationPath,
+    private async Task CopyFileAsync(string destinationPath,
         CancellationToken cancellationToken) {
-        using (var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
-                   FileShare.Read | FileShare.Delete, 128 * 1024,
-                   FileOptions.Asynchronous | FileOptions.SequentialScan))
+        using (FileStream source = OpenBackupSourceStream(isAsync: true))
         using (var destination = new FileStream(destinationPath, FileMode.CreateNew, FileAccess.Write,
                    FileShare.None, 128 * 1024,
                    FileOptions.Asynchronous | FileOptions.SequentialScan)) {

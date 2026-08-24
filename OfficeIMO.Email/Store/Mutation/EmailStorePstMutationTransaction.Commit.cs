@@ -80,30 +80,26 @@ public sealed partial class EmailStorePstMutationTransaction {
             cancellationToken.ThrowIfCancellationRequested();
 
             string? committedBackupPath = null;
-            using (var commitGuard = new FileStream(_sourcePath, FileMode.Open, FileAccess.Read,
-                FileShare.Read | FileShare.Delete, 1, FileOptions.RandomAccess)) {
-                _source.Dispose();
-                _source = null;
+            _source.Dispose();
+            _source = null;
+            EnsureSourceUnchanged();
+            if (_options.BackupPath != null) {
+                backupStagingPath = OfficeFileCommit.CreateStagingPath(_options.BackupPath);
+                OfficeFileCommit.EnsureTargetDirectory(_options.BackupPath);
+                CopySourceTo(backupStagingPath);
+                cancellationToken.ThrowIfCancellationRequested();
                 EnsureSourceUnchanged();
-                if (_options.BackupPath != null) {
-                    backupStagingPath = OfficeFileCommit.CreateStagingPath(_options.BackupPath);
-                    OfficeFileCommit.EnsureTargetDirectory(_options.BackupPath);
-                    File.Copy(_sourcePath, backupStagingPath, overwrite: false);
-                    cancellationToken.ThrowIfCancellationRequested();
-                    EnsureSourceUnchanged();
-                    OfficeFileCommit.CommitTemporaryFileAtomically(backupStagingPath, _options.BackupPath,
-                        _options.OverwriteBackup
-                            ? OfficeFileCommit.ConflictPolicy.Replace
-                            : OfficeFileCommit.ConflictPolicy.FailIfExists);
-                    backupStagingPath = null;
-                    committedBackupPath = _options.BackupPath;
-                }
-                // FileShare.Delete is required for the atomic replacement itself. The adjacent
-                // OfficeIMO lock owns pathname coordination; uncooperative replacers remain an
-                // explicitly documented filesystem boundary rather than being silently assumed safe.
-                OfficeFileCommit.CommitTemporaryFileAtomically(stagingPath, _sourcePath,
-                    OfficeFileCommit.ConflictPolicy.Replace);
+                OfficeFileCommit.CommitTemporaryFileAtomically(backupStagingPath, _options.BackupPath,
+                    _options.OverwriteBackup
+                        ? OfficeFileCommit.ConflictPolicy.Replace
+                        : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                backupStagingPath = null;
+                committedBackupPath = _options.BackupPath;
             }
+            // The physical-file lock handle allows atomic replacement while retaining participating-writer
+            // coordination; uncooperative replacers remain an explicitly documented filesystem boundary.
+            OfficeFileCommit.CommitTemporaryFileAtomicallyForLockedMutation(
+                stagingPath, _sourcePath);
             stagingPath = string.Empty;
             _committed = true;
             writeReport = new EmailStorePstWriteReport(_sourcePath, writeReport.FolderCount,
@@ -564,9 +560,32 @@ public sealed partial class EmailStorePstMutationTransaction {
     }
 
     private void EnsureSourceUnchanged() {
-        var source = new FileInfo(_sourcePath);
-        if (!source.Exists || source.Length != _sourceLength ||
-            source.LastWriteTimeUtc != _sourceLastWriteTimeUtc) {
+        EnsureSourceUnchanged(_sourcePath, _sourceIdentity, _sourceLength,
+            _sourceLastWriteTimeUtc);
+    }
+
+    private void CopySourceTo(string destinationPath) {
+        using (FileStream source = OpenBackupSourceStream(isAsync: false))
+        using (var destination = new FileStream(destinationPath, FileMode.CreateNew,
+                   FileAccess.Write, FileShare.None, 128 * 1024, FileOptions.SequentialScan)) {
+            source.CopyTo(destination, 128 * 1024);
+            destination.Flush(flushToDisk: true);
+            if (destination.Length != source.Length) {
+                throw new IOException("The staged PST backup length does not match the source.");
+            }
+        }
+    }
+
+    private static void EnsureSourceUnchanged(string sourcePath, string sourceIdentity,
+        long sourceLength, DateTime sourceLastWriteTimeUtc) {
+        if (!string.Equals(sourceIdentity, EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath),
+                StringComparison.Ordinal)) {
+            throw new IOException(
+                "The source PST identity changed while the mutation transaction was open; the staged rewrite was not committed.");
+        }
+        var source = new FileInfo(sourcePath);
+        if (!source.Exists || source.Length != sourceLength ||
+            source.LastWriteTimeUtc != sourceLastWriteTimeUtc) {
             throw new IOException(
                 "The source PST changed while the mutation transaction was open; the staged rewrite was not committed.");
         }

@@ -329,6 +329,9 @@ namespace OfficeIMO.Shared.Tests {
         public void NetStandardUnixFallback_CreatesOwnerOnlyFileAtomicallyAndSupportsDeleteOnClose() {
             if (OperatingSystem.IsWindows()) return;
 
+            int closeOnExec = OperatingSystem.IsMacOS() ? 0x01000000 : 0x00080000;
+            Assert.Equal(closeOnExec, OfficeTemporaryFile.GetExclusiveCreateFlags() & closeOnExec);
+
             string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             string retainedPath = Path.Combine(root, "retained.tmp");
             string movedRetainedPath = Path.Combine(root, "retained-original.tmp");
