@@ -12,7 +12,7 @@ public sealed class ReaderComparisonEvidenceTests {
         IReadOnlyList<ReaderComparisonCase> cases = ReaderComparisonCorpus.Create();
 
         Assert.Equal(
-            new[] { "csv", "docx", "epub", "html", "json", "malformed-pdf", "msg", "pdf", "pptx", "xlsx", "xml", "yaml", "zip" },
+            new[] { "csv", "docx", "epub", "html", "json", "malformed-pdf", "markdown", "msg", "pdf", "pptx", "xlsx", "xml", "yaml", "zip" },
             cases.Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal).ToArray());
         Assert.All(cases, item => Assert.NotEmpty(item.Bytes));
         Assert.Contains(cases.SelectMany(item => item.Probes), probe => probe.Kind == ReaderComparisonProbeKind.RichTable);
@@ -28,6 +28,10 @@ public sealed class ReaderComparisonEvidenceTests {
         Assert.All(
             cases.Where(item => item.Id is "docx" or "pptx" or "xlsx" or "epub" or "zip"),
             item => Assert.Equal(item.Bytes, repeatedPackages[item.Id]));
+
+        ReaderComparisonCase markdown = Assert.Single(cases, item => item.Id == "markdown");
+        Assert.Equal("handbook.md", markdown.SourceName);
+        Assert.Equal(25_947, markdown.Bytes.Length);
 
         foreach (ReaderComparisonCase item in cases.Where(item => item.Id is "epub" or "zip")) {
             using var stream = new MemoryStream(item.Bytes);

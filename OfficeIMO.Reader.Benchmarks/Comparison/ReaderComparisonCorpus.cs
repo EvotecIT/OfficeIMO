@@ -162,14 +162,33 @@ internal static class ReaderComparisonCorpus {
     }
 
     private static ReaderComparisonCase CreateMarkdown() {
-        ReaderBenchmarkInput input = ReaderBenchmarkCorpus.Get("Markdown");
-        return Case("markdown", input.SourceName, input.Bytes,
+        const string sourceName = "handbook.md";
+        return Case("markdown", sourceName, Encoding.UTF8.GetBytes(BuildMarkdownBenchmark()),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "Reader benchmark handbook"),
             Probe("last-section", ReaderComparisonProbeKind.ContainsText, "Section 80"),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "Item 5"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
             Probe("heading-location", ReaderComparisonProbeKind.LocationHeading, "Reader benchmark handbook"),
-            Probe("path-location", ReaderComparisonProbeKind.LocationPath, input.SourceName));
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, sourceName));
+    }
+
+    internal static string BuildMarkdownBenchmark() {
+        var builder = new StringBuilder();
+        builder.AppendLine("# Reader benchmark handbook");
+        for (int section = 1; section <= 80; section++) {
+            builder.AppendLine();
+            builder.Append("## Section ").AppendLine(section.ToString());
+            builder.AppendLine();
+            builder.Append("This representative section contains document ingestion guidance, stable citations, and bounded processing notes for item ")
+                .Append(section).AppendLine(".");
+            builder.AppendLine();
+            builder.AppendLine("| Name | Value | Status |");
+            builder.AppendLine("| --- | ---: | --- |");
+            for (int row = 1; row <= 5; row++) {
+                builder.Append("| Item ").Append(row).Append(" | ").Append(section * row).AppendLine(" | Ready |");
+            }
+        }
+        return builder.ToString();
     }
 
     private static ReaderComparisonCase CreateCsv() {
