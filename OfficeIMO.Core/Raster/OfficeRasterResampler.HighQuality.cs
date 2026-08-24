@@ -11,13 +11,15 @@ public static partial class OfficeRasterResampler {
         int width,
         int height,
         OfficeRasterResamplingMode mode,
-        OfficeRasterResamplingColorSpace colorSpace) {
+        OfficeRasterResamplingColorSpace colorSpace,
+        long retainedManagedBytes) {
         if (!TryMeasureSeparableWorkingSet(
                 source.Width,
                 source.Height,
                 width,
                 height,
                 mode,
+                retainedManagedBytes,
                 out int intermediateLength,
                 out int horizontalContributionCount,
                 out int verticalContributionCount,
@@ -64,6 +66,27 @@ public static partial class OfficeRasterResampler {
             width,
             height,
             mode,
+            retainedManagedBytes: 0L,
+            out _,
+            out _,
+            out _,
+            out workingSetBytes);
+
+    internal static bool TryGetHighQualityWorkingSetBytes(
+        int sourceWidth,
+        int sourceHeight,
+        int width,
+        int height,
+        OfficeRasterResamplingMode mode,
+        long retainedManagedBytes,
+        out long workingSetBytes) =>
+        TryMeasureSeparableWorkingSet(
+            sourceWidth,
+            sourceHeight,
+            width,
+            height,
+            mode,
+            retainedManagedBytes,
             out _,
             out _,
             out _,
@@ -75,6 +98,7 @@ public static partial class OfficeRasterResampler {
         int width,
         int height,
         OfficeRasterResamplingMode mode,
+        long retainedManagedBytes,
         out int intermediateLength,
         out int horizontalContributionCount,
         out int verticalContributionCount,
@@ -83,7 +107,8 @@ public static partial class OfficeRasterResampler {
         horizontalContributionCount = 0;
         verticalContributionCount = 0;
         workingSetBytes = 0L;
-        if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0) return false;
+        if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0 ||
+            retainedManagedBytes < 0L) return false;
         try {
             long horizontalFirstLength = checked((long)width * sourceHeight * 4L);
             long verticalFirstLength = checked((long)sourceWidth * height * 4L);
@@ -100,7 +125,7 @@ public static partial class OfficeRasterResampler {
             long destinationBytes = checked((long)width * height * 4L);
             workingSetBytes = checked(
                 sourceBytes + destinationBytes + requiredIntermediate * sizeof(float) +
-                horizontalBytes + verticalBytes + 64L * 1024L);
+                horizontalBytes + verticalBytes + retainedManagedBytes + 64L * 1024L);
             if (workingSetBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
             intermediateLength = (int)requiredIntermediate;
             return true;

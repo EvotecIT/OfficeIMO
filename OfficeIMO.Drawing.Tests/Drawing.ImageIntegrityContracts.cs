@@ -1147,6 +1147,24 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void AnimatedWebpInventoryValidatesNestedVp8lEntropy() {
+        byte[] simple = OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        int chunkOffset = FindWebpChunk(simple, "VP8L");
+        int payloadLength = simple[chunkOffset + 4] |
+                            simple[chunkOffset + 5] << 8 |
+                            simple[chunkOffset + 6] << 16 |
+                            simple[chunkOffset + 7] << 24;
+        byte[] payload = simple.Skip(chunkOffset + 8).Take(payloadLength).ToArray();
+        byte[] valid = CreateAnimatedVp8lWebp(payload);
+        byte[] truncated = CreateAnimatedVp8lWebp(payload.Take(5).ToArray());
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(valid, out OfficeRasterContainerInfo? container));
+        Assert.Single(container!.Frames);
+        Assert.True(OfficeImageReader.TryIdentifyByContent(truncated, "truncated-frame.webp", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(truncated, out _));
+    }
+
+    [Fact]
     public void ContainerInspectorPreservesSingleFrameApngAfterFallbackImageData() {
         byte[] fallback = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
         byte[] animatedFrame = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
@@ -1261,6 +1279,22 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(chunk, 4, data.Length);
         Buffer.BlockCopy(data, 0, chunk, 8, data.Length);
         return chunk;
+    }
+
+    private static byte[] CreateAnimatedVp8lWebp(byte[] vp8lPayload) {
+        var frame = new List<byte>(16 + vp8lPayload.Length + 9);
+        frame.AddRange(new byte[16]);
+        frame.AddRange(CreateWebpChunk("VP8L", vp8lPayload));
+        var bytes = new List<byte>(64 + frame.Count) {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P'
+        };
+        bytes.AddRange(CreateWebpChunk("VP8X", new byte[] { 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0 }));
+        bytes.AddRange(CreateWebpChunk("ANIM", new byte[6]));
+        bytes.AddRange(CreateWebpChunk("ANMF", frame.ToArray()));
+        byte[] result = bytes.ToArray();
+        WriteInt32LittleEndian(result, 4, result.Length - 8);
+        return result;
     }
 
     private static int FindWebpChunk(byte[] bytes, string expectedType) {

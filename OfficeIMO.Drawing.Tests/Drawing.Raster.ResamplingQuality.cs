@@ -231,6 +231,45 @@ public sealed class DrawingRasterResamplingQualityTests {
             OfficeRasterGuards.MaximumDecodedBytes);
     }
 
+    [Theory]
+    [InlineData(OfficeRasterResamplingMode.Area)]
+    [InlineData(OfficeRasterResamplingMode.Lanczos3)]
+    public void HighQualityWorkingSetIncludesCallerRetainedBuffers(
+        OfficeRasterResamplingMode mode) {
+        Assert.True(OfficeRasterResampler.TryGetHighQualityWorkingSetBytes(
+            sourceWidth: 1000,
+            sourceHeight: 1000,
+            width: 6000,
+            height: 6000,
+            mode,
+            out long standaloneBytes));
+        Assert.False(OfficeRasterResampler.TryGetHighQualityWorkingSetBytes(
+            sourceWidth: 1000,
+            sourceHeight: 1000,
+            width: 6000,
+            height: 6000,
+            mode,
+            retainedManagedBytes: 32L * 1024L * 1024L,
+            out long optimizerBytes));
+        Assert.Equal(standaloneBytes + 32L * 1024L * 1024L, optimizerBytes);
+    }
+
+    [Theory]
+    [InlineData(OfficeRasterResamplingMode.NearestNeighbor)]
+    [InlineData(OfficeRasterResamplingMode.Bilinear)]
+    public void SimpleResizeRejectsCallerRetainedBuffersBeyondTheManagedLimit(
+        OfficeRasterResamplingMode mode) {
+        var source = new OfficeRasterImage(1, 1, OfficeColor.Red);
+
+        Assert.Throws<ArgumentException>(() => OfficeRasterResampler.Resize(
+            source,
+            4096,
+            4096,
+            mode,
+            OfficeRasterResamplingColorSpace.EncodedSrgb,
+            retainedManagedBytes: 200L * 1024L * 1024L));
+    }
+
     private static void AssertColorNear(OfficeColor expected, OfficeColor actual, int tolerance) {
         Assert.InRange(actual.R, Math.Max(0, expected.R - tolerance), Math.Min(255, expected.R + tolerance));
         Assert.InRange(actual.G, Math.Max(0, expected.G - tolerance), Math.Min(255, expected.G + tolerance));

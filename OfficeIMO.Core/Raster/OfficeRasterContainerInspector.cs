@@ -360,6 +360,7 @@ public static class OfficeRasterContainerInspector {
         int loopCount = 1;
         OfficeColor background = OfficeColor.Transparent;
         bool hasLosslessImage = false;
+        long validatedFramePixels = 0L;
         int cursor = 12;
         while (cursor <= bytes.Length - 8) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -384,6 +385,13 @@ public static class OfficeRasterContainerInspector {
                 int flags = bytes[data + 15];
                 if ((flags & 0xFC) != 0 || width < 1 || height < 1 ||
                     x > imageInfo.Width - width || y > imageInfo.Height - height) return false;
+                long framePixels = checked((long)width * height);
+                if (framePixels > options.MaximumDecodedPixels - validatedFramePixels ||
+                    !TryValidateWebpAnimationFramePayload(
+                        bytes, data + 16, length - 16, width, height,
+                        checked((frames.Count + 1L) * 128L),
+                        options.CancellationToken)) return false;
+                validatedFramePixels += framePixels;
                 frames.Add(new OfficeRasterFrameInfo(
                     frames.Count,
                     OfficeRasterFrameKind.AnimationFrame,
@@ -414,6 +422,73 @@ public static class OfficeRasterContainerInspector {
             loopCount,
             background);
         return true;
+    }
+
+    private static bool TryValidateWebpAnimationFramePayload(
+        byte[] source,
+        int offset,
+        int length,
+        int expectedWidth,
+        int expectedHeight,
+        long retainedFrameInventoryBytes,
+        System.Threading.CancellationToken cancellationToken) {
+        if (length < 8 || offset < 0 || offset > source.Length - length) return false;
+        int end = checked(offset + length);
+        int cursor = offset;
+        bool seenImage = false;
+        while (cursor < end) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (cursor > end - 8) return false;
+            int payloadLength = ReadInt32LittleEndian(source, cursor + 4);
+            if (payloadLength < 0) return false;
+            int payloadOffset = checked(cursor + 8);
+            long payloadEnd = (long)payloadOffset + payloadLength;
+            long paddedEnd = payloadEnd + (payloadLength & 1);
+            if (payloadEnd > end || paddedEnd > end ||
+                (payloadLength & 1) != 0 && source[(int)payloadEnd] != 0) return false;
+
+            string type = ReadAscii(source, cursor);
+            if (type != "VP8L" || seenImage ||
+                !TryDecodeWebpAnimationFrame(
+                    source, cursor, (int)paddedEnd - cursor,
+                    expectedWidth, expectedHeight, retainedFrameInventoryBytes,
+                    cancellationToken)) return false;
+            seenImage = true;
+            cursor = (int)paddedEnd;
+        }
+        return cursor == end && seenImage;
+    }
+
+    private static bool TryDecodeWebpAnimationFrame(
+        byte[] source,
+        int chunkOffset,
+        int chunkLength,
+        int expectedWidth,
+        int expectedHeight,
+        long retainedFrameInventoryBytes,
+        System.Threading.CancellationToken cancellationToken) {
+        int wrappedLength = checked(12 + chunkLength);
+        long retainedManagedBytes = checked(
+            source.LongLength + 24L + retainedFrameInventoryBytes + 64L * 1024L);
+        if (retainedManagedBytes > OfficeRasterGuards.MaximumDecodedBytes - wrappedLength - 24L) return false;
+        var wrapped = new byte[wrappedLength];
+        wrapped[0] = (byte)'R';
+        wrapped[1] = (byte)'I';
+        wrapped[2] = (byte)'F';
+        wrapped[3] = (byte)'F';
+        int riffLength = wrappedLength - 8;
+        wrapped[4] = (byte)riffLength;
+        wrapped[5] = (byte)(riffLength >> 8);
+        wrapped[6] = (byte)(riffLength >> 16);
+        wrapped[7] = (byte)(riffLength >> 24);
+        wrapped[8] = (byte)'W';
+        wrapped[9] = (byte)'E';
+        wrapped[10] = (byte)'B';
+        wrapped[11] = (byte)'P';
+        Buffer.BlockCopy(source, chunkOffset, wrapped, 12, chunkLength);
+        return OfficeWebpCodec.TryDecode(
+                   wrapped, cancellationToken, retainedManagedBytes, out OfficeRasterImage? decoded) &&
+               decoded != null && decoded.Width == expectedWidth && decoded.Height == expectedHeight;
     }
 
     private static OfficeRasterContainerInfo CreateStatic(OfficeImageInfo info) =>

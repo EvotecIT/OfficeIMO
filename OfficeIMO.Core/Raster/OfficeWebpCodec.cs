@@ -192,13 +192,35 @@ public static partial class OfficeWebpCodec {
         byte[]? encodedBytes,
         CancellationToken cancellationToken,
         out OfficeRasterImage? image) =>
-        TryDecodeLiteralSubset(encodedBytes, cancellationToken, out image) ||
-        TryDecodeVp8l(encodedBytes, cancellationToken, out image);
+        TryDecode(encodedBytes, cancellationToken, retainedManagedBytes: 0L, out image);
+
+    internal static bool TryDecode(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        out OfficeRasterImage? image) {
+        if (TryDecodeLiteralSubset(
+                encodedBytes, cancellationToken, retainedManagedBytes,
+                out long failedLiteralAllocationBytes, out image)) return true;
+        try {
+            return TryDecodeVp8l(
+                encodedBytes,
+                cancellationToken,
+                checked(retainedManagedBytes + failedLiteralAllocationBytes),
+                out image);
+        } catch (OverflowException) {
+            image = null;
+            return false;
+        }
+    }
 
     private static bool TryDecodeLiteralSubset(
         byte[]? encodedBytes,
         CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        out long failedAllocationBytes,
         out OfficeRasterImage? image) {
+        failedAllocationBytes = 0L;
         image = null;
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsWebp(encodedBytes) || encodedBytes == null ||
@@ -239,10 +261,12 @@ public static partial class OfficeWebpCodec {
                 return false;
             }
 
-            if (!IsLiteralDecodeWorkingSetWithinLimit(encodedBytes.LongLength, pixels)) {
+            if (!IsLiteralDecodeWorkingSetWithinLimit(
+                    encodedBytes.LongLength, pixels, retainedManagedBytes)) {
                 return false;
             }
 
+            failedAllocationBytes = checked(pixels * 4L + 24L);
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
             for (int pixel = 0; pixel < pixels; pixel++) {
                 if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -256,6 +280,7 @@ public static partial class OfficeWebpCodec {
                 return false;
             }
             image = OfficeRasterImage.FromOwnedRgba32(width, height, rgba);
+            failedAllocationBytes = 0L;
             return true;
         } catch (FormatException) {
             return false;
@@ -267,9 +292,17 @@ public static partial class OfficeWebpCodec {
     }
 
     internal static bool IsLiteralDecodeWorkingSetWithinLimit(long encodedBytes, long pixels) {
+        return IsLiteralDecodeWorkingSetWithinLimit(encodedBytes, pixels, retainedManagedBytes: 0L);
+    }
+
+    internal static bool IsLiteralDecodeWorkingSetWithinLimit(
+        long encodedBytes,
+        long pixels,
+        long retainedManagedBytes) {
         try {
-            long peakBytes = checked(encodedBytes + 24L + pixels * 4L + 24L);
-            return encodedBytes > 0L && pixels > 0L &&
+            long peakBytes = checked(
+                encodedBytes + 24L + pixels * 4L + 24L + retainedManagedBytes);
+            return encodedBytes > 0L && pixels > 0L && retainedManagedBytes >= 0L &&
                    peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
         } catch (OverflowException) {
             return false;

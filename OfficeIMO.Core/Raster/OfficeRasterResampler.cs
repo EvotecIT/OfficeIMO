@@ -34,10 +34,20 @@ public static partial class OfficeRasterResampler {
         int width,
         int height,
         OfficeRasterResamplingMode mode,
-        OfficeRasterResamplingColorSpace colorSpace) {
+        OfficeRasterResamplingColorSpace colorSpace) =>
+        Resize(source, width, height, mode, colorSpace, retainedManagedBytes: 0L);
+
+    internal static OfficeRasterImage Resize(
+        OfficeRasterImage source,
+        int width,
+        int height,
+        OfficeRasterResamplingMode mode,
+        OfficeRasterResamplingColorSpace colorSpace,
+        long retainedManagedBytes) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
         if (mode != OfficeRasterResamplingMode.NearestNeighbor &&
             mode != OfficeRasterResamplingMode.Bilinear &&
             mode != OfficeRasterResamplingMode.Area &&
@@ -51,13 +61,15 @@ public static partial class OfficeRasterResampler {
         OfficeRasterGuards.EnsureOutputPixels(width, height, "Raster resize dimensions exceed the managed image limit.");
 
         if (source.Width == width && source.Height == height) {
+            EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes);
             return OfficeRasterImage.FromRgba32(width, height, source.PixelBuffer);
         }
 
         if (mode == OfficeRasterResamplingMode.Area || mode == OfficeRasterResamplingMode.Lanczos3) {
-            return ResizeSeparable(source, width, height, mode, colorSpace);
+            return ResizeSeparable(source, width, height, mode, colorSpace, retainedManagedBytes);
         }
 
+        EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes);
         var result = new OfficeRasterImage(width, height);
         byte[] input = source.PixelBuffer;
         byte[] output = result.PixelBuffer;
@@ -77,6 +89,40 @@ public static partial class OfficeRasterResampler {
         }
 
         return result;
+    }
+
+    internal static bool TryGetSimpleWorkingSetBytes(
+        int sourceWidth,
+        int sourceHeight,
+        int width,
+        int height,
+        long retainedManagedBytes,
+        out long workingSetBytes) {
+        workingSetBytes = 0L;
+        if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0 || retainedManagedBytes < 0L) {
+            return false;
+        }
+        try {
+            workingSetBytes = checked(
+                (long)sourceWidth * sourceHeight * 4L + 24L +
+                (long)width * height * 4L + 24L +
+                retainedManagedBytes + 64L * 1024L);
+            return workingSetBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static void EnsureSimpleWorkingSet(
+        OfficeRasterImage source,
+        int width,
+        int height,
+        long retainedManagedBytes) {
+        if (!TryGetSimpleWorkingSetBytes(
+                source.Width, source.Height, width, height, retainedManagedBytes, out _)) {
+            throw new ArgumentException(
+                "Raster resampling working set exceeds the managed image limit.", nameof(source));
+        }
     }
 
     private static void CopyNearest(byte[] input, int width, int height, double x, double y, byte[] output, int target) {

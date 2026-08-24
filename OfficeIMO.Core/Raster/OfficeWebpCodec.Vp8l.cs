@@ -23,6 +23,7 @@ public static partial class OfficeWebpCodec {
     private static bool TryDecodeVp8l(
         byte[]? encodedBytes,
         CancellationToken cancellationToken,
+        long retainedManagedBytes,
         out OfficeRasterImage? image) {
         image = null;
         cancellationToken.ThrowIfCancellationRequested();
@@ -40,7 +41,8 @@ public static partial class OfficeWebpCodec {
                 !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels)) return false;
 
             var allocationBudget = new Vp8lAllocationBudget();
-            if (!allocationBudget.TryReserveBytes(encodedBytes.Length) ||
+            if (!allocationBudget.TryReserveBytes(retainedManagedBytes) ||
+                !allocationBudget.TryReserveArray(encodedBytes.Length, sizeof(byte)) ||
                 !TryReadVp8lTransforms(reader, width, height, allocationBudget, cancellationToken, out int encodedWidth,
                     out List<Vp8lTransform> transforms)) return false;
             if (!TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0,

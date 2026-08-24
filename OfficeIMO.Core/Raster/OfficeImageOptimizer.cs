@@ -235,9 +235,13 @@ public static class OfficeImageOptimizer {
                 retainedManagedBytes: decoded.PixelBuffer.LongLength + 24L + GetRetainedMetadataBytes(metadata));
         }
 
+        long retainedResamplingBytes = checked(
+            encodedBytes.LongLength + 24L + GetRetainedMetadataBytes(metadata));
         OfficeRasterImage candidateImage = width == decoded.Width && height == decoded.Height
             ? decoded
-            : OfficeRasterResampler.Resize(decoded, width, height, request.ResamplingMode, request.ResamplingColorSpace);
+            : OfficeRasterResampler.Resize(
+                decoded, width, height, request.ResamplingMode, request.ResamplingColorSpace,
+                retainedResamplingBytes);
         ResolveMetadataForOutput(original.Format, outputFormat, metadata, requestedMetadata,
             out OfficeJpegMetadata jpegMetadata, out OfficeImageMetadataKinds preservedMetadata,
             out OfficeImageMetadataKinds normalizedMetadata);
