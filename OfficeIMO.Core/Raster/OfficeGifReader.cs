@@ -35,8 +35,12 @@ public static class OfficeGifReader {
 
     /// <summary>Validates every GIF frame payload while avoiding persistent frame output.</summary>
     internal static bool TryValidateAllFrames(byte[]? bytes) =>
+        TryValidateAllFrames(bytes, CancellationToken.None);
+
+    /// <summary>Validates every GIF frame payload while avoiding persistent frame output.</summary>
+    internal static bool TryValidateAllFrames(byte[]? bytes, CancellationToken cancellationToken) =>
         TryDecodeFrameCore(
-            bytes, frameIndex: 0, validateAllFrames: true, CancellationToken.None, out _, out _);
+            bytes, frameIndex: 0, validateAllFrames: true, cancellationToken, out _, out _);
 
     private static bool TryDecodeFrameCore(
         byte[]? bytes,
@@ -163,7 +167,8 @@ public static class OfficeGifReader {
                         height,
                         globalColorTable,
                         transparentIndex,
-                        ref decodedFramePixels)) {
+                        ref decodedFramePixels,
+                        cancellationToken)) {
                         return false;
                     }
                 } else if (frameCount <= frameIndex) {
@@ -330,7 +335,7 @@ public static class OfficeGifReader {
             return false;
         }
 
-        if (!TryMeasureSubBlockBytes(bytes, offset, out int lzwLength, out _) ||
+        if (!TryMeasureSubBlockBytes(bytes, offset, cancellationToken, out int lzwLength, out _) ||
             !IsDecodeWorkingSetWithinLimit(
                 bytes.LongLength,
                 canvas.PixelBuffer.LongLength,
@@ -343,7 +348,7 @@ public static class OfficeGifReader {
 
         if (!TryReadSubBlockBytes(bytes, ref offset, cancellationToken, out byte[] lzwBytes) ||
             !TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: false,
-                colorTable.Length, cancellationToken, out byte[] indices)) {
+                rejectTrailingBytes: false, colorTable.Length, cancellationToken, out byte[] indices)) {
             return false;
         }
 
@@ -381,7 +386,8 @@ public static class OfficeGifReader {
         int canvasHeight,
         OfficeColor[]? globalColorTable,
         int transparentIndex,
-        ref long decodedFramePixels) {
+        ref long decodedFramePixels,
+        CancellationToken cancellationToken) {
         if (offset + 9 > bytes.Length) return false;
 
         int left = ReadUInt16LittleEndian(bytes, offset);
@@ -408,10 +414,35 @@ public static class OfficeGifReader {
         if (colorCount == 0 || transparentIndex >= colorCount || offset >= bytes.Length) return false;
 
         int minimumCodeSize = bytes[offset++];
-        return minimumCodeSize >= 2 && minimumCodeSize <= 8 &&
-               TryReadSubBlockBytes(bytes, ref offset, out byte[] lzwBytes) &&
+        return TryValidateImageData(
+            bytes,
+            ref offset,
+            minimumCodeSize,
+            framePixels,
+            colorCount,
+            rejectTrailingLzwBytes: true,
+            cancellationToken);
+    }
+
+    /// <summary>Validates one GIF image-data payload and advances past its sub-block terminator.</summary>
+    internal static bool TryValidateImageData(
+        byte[] bytes,
+        ref int offset,
+        int minimumCodeSize,
+        int framePixels,
+        int colorCount,
+        bool rejectTrailingLzwBytes,
+        CancellationToken cancellationToken) {
+        if (minimumCodeSize < 2 || minimumCodeSize > 8 || framePixels < 1 || colorCount < 1 ||
+            !TryMeasureSubBlockBytes(bytes, offset, cancellationToken, out int lzwLength, out _) ||
+            !IsDecodeWorkingSetWithinLimit(
+                bytes.LongLength, 0L, 0L, lzwLength, framePixels, colorCount)) {
+            return false;
+        }
+
+        return TryReadSubBlockBytes(bytes, ref offset, cancellationToken, out byte[] lzwBytes) &&
                TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: true,
-                   colorCount, CancellationToken.None, out _);
+                   rejectTrailingLzwBytes, colorCount, cancellationToken, out _);
     }
 
     private static bool TrySkipImageFrame(
@@ -485,6 +516,7 @@ public static class OfficeGifReader {
         int minimumCodeSize,
         int expectedPixelCount,
         bool requireCompleteStream,
+        bool rejectTrailingBytes,
         int colorCount,
         CancellationToken cancellationToken,
         out byte[] indices) {
@@ -573,7 +605,9 @@ public static class OfficeGifReader {
             previousCode = originalCode;
         }
 
-        if (requireCompleteStream && (!sawEndCode || outputCount != expectedPixelCount || !reader.HasNoTrailingBytes) ||
+        if (requireCompleteStream &&
+                (!sawEndCode || outputCount != expectedPixelCount ||
+                 rejectTrailingBytes && !reader.HasNoTrailingBytes) ||
             !requireCompleteStream && outputCount < expectedPixelCount) {
             return false;
         }
@@ -641,7 +675,8 @@ public static class OfficeGifReader {
         CancellationToken cancellationToken,
         out byte[] data) {
         data = Array.Empty<byte>();
-        if (!TryMeasureSubBlockBytes(bytes, offset, out int length, out int endOffset)) return false;
+        if (!TryMeasureSubBlockBytes(
+                bytes, offset, cancellationToken, out int length, out int endOffset)) return false;
         data = new byte[length];
         int sourceOffset = offset;
         int destinationOffset = 0;
@@ -662,11 +697,14 @@ public static class OfficeGifReader {
     private static bool TryMeasureSubBlockBytes(
         byte[] bytes,
         int offset,
+        CancellationToken cancellationToken,
         out int length,
         out int endOffset) {
         length = 0;
         endOffset = offset;
+        int blockCount = 0;
         while (endOffset < bytes.Length) {
+            if ((blockCount++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             int count = bytes[endOffset++];
             if (count == 0) return true;
             if (endOffset > bytes.Length - count || length > int.MaxValue - count) return false;

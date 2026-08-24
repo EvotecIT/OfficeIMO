@@ -115,6 +115,7 @@ public static class OfficeRasterContainerInspector {
         bool hasPendingGraphicControl = false;
         var frames = new List<OfficeRasterFrameInfo>();
         bool sawTrailer = false;
+        long decodedFramePixels = 0L;
         while (cursor < bytes.Length) {
             options.CancellationToken.ThrowIfCancellationRequested();
             byte introducer = bytes[cursor++];
@@ -191,8 +192,17 @@ public static class OfficeRasterContainerInspector {
             if (activeColorCount == 0 || transparentIndex >= activeColorCount) return false;
             if (cursor >= bytes.Length) return false;
             int minimumCodeSize = bytes[cursor++];
-            if (minimumCodeSize < 2 || minimumCodeSize > 8) return false;
-            if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) return false;
+            if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int framePixels) ||
+                decodedFramePixels > OfficeRasterGuards.MaximumPixels - framePixels) return false;
+            decodedFramePixels += framePixels;
+            if (!OfficeGifReader.TryValidateImageData(
+                    bytes,
+                    ref cursor,
+                    minimumCodeSize,
+                    framePixels,
+                    activeColorCount,
+                    rejectTrailingLzwBytes: false,
+                    options.CancellationToken)) return false;
             if (frames.Count >= 65535) return false;
             if (frames.Count == 0 && globalColorTable != null &&
                 backgroundColorIndex >= 0 && backgroundColorIndex < globalColorTable.Length &&

@@ -935,7 +935,7 @@ public partial class DrawingTests {
         WriteInt32LittleEndian(bmp, 22, 1);
         WriteUInt16LittleEndian(bmp, 26, 1);
         WriteUInt16LittleEndian(bmp, 28, 24);
-        byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        byte[] gif = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 

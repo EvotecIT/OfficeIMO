@@ -23,7 +23,7 @@ internal static class ImageConversionEvidence {
             new ConversionSource("TIFF", OfficeRasterImageEncoder.Encode(pattern, OfficeImageExportFormat.Tiff, sourceOptions)),
             new ConversionSource("WebP", OfficeRasterImageEncoder.Encode(pattern, OfficeImageExportFormat.Webp, sourceOptions)),
             new ConversionSource("BMP", ImageBenchmarkCorpus.CreateBmp24(64, 48)),
-            new ConversionSource("GIF", Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="))
+            new ConversionSource("GIF", Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs="))
         };
 
         writer.WriteLine();

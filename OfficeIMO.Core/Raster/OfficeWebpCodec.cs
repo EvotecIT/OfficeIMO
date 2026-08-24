@@ -42,18 +42,27 @@ public static partial class OfficeWebpCodec {
         byte[] pixels = image.PixelBuffer;
         bool hasAlpha = HasTransparency(pixels);
         int literalPayloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
+        byte[]? exif = includeResolutionMetadata
+            ? CreateResolutionExif(image.Width, image.Height, dpiX, dpiY)
+            : null;
+        int literalFileLength = GetFileLength(literalPayloadLength, exif?.Length ?? 0);
+        if (pixels.Length / 4 > Vp8lCompressionMaximumPixels) {
+            EnsureEncodingWorkingSet(pixels.LongLength, literalFileLength, 0L, exif?.LongLength ?? 0L);
+        }
         byte[]? compressedPayload = TryEncodeCompressedVp8l(image.Width, image.Height, hasAlpha, pixels);
         int payloadLength = compressedPayload != null && compressedPayload.Length < literalPayloadLength
             ? compressedPayload.Length
             : literalPayloadLength;
-        byte[]? exif = includeResolutionMetadata
-            ? CreateResolutionExif(image.Width, image.Height, dpiX, dpiY)
-            : null;
         int paddedPayloadLength = checked(payloadLength + (payloadLength & 1));
+        int fileLength = GetFileLength(payloadLength, exif?.Length ?? 0);
+        EnsureEncodingWorkingSet(
+            pixels.LongLength,
+            fileLength,
+            compressedPayload?.LongLength ?? 0L,
+            exif?.LongLength ?? 0L);
         int payloadOffset;
         byte[] output;
         if (exif == null) {
-            int fileLength = checked(20 + paddedPayloadLength);
             output = new byte[fileLength];
             WriteAscii(output, 0, "RIFF");
             WriteUInt32(output, 4, fileLength - 8);
@@ -63,7 +72,6 @@ public static partial class OfficeWebpCodec {
             payloadOffset = 20;
         } else {
             int paddedExifLength = checked(exif.Length + (exif.Length & 1));
-            int fileLength = checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
             output = new byte[fileLength];
             WriteAscii(output, 0, "RIFF");
             WriteUInt32(output, 4, fileLength - 8);
@@ -231,6 +239,10 @@ public static partial class OfficeWebpCodec {
                 return false;
             }
 
+            if (!IsLiteralDecodeWorkingSetWithinLimit(encodedBytes.LongLength, pixels)) {
+                return false;
+            }
+
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
             for (int pixel = 0; pixel < pixels; pixel++) {
                 if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -249,7 +261,55 @@ public static partial class OfficeWebpCodec {
             return false;
         } catch (OverflowException) {
             return false;
+        } catch (OutOfMemoryException) {
+            return false;
         }
+    }
+
+    internal static bool IsLiteralDecodeWorkingSetWithinLimit(long encodedBytes, long pixels) {
+        try {
+            long peakBytes = checked(encodedBytes + 24L + pixels * 4L + 24L);
+            return encodedBytes > 0L && pixels > 0L &&
+                   peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    internal static bool IsEncodingWorkingSetWithinLimit(
+        long rgbaBytes,
+        long outputBytes,
+        long compressedCandidateBytes,
+        long metadataBytes) {
+        try {
+            if (rgbaBytes < 1L || outputBytes < 1L || compressedCandidateBytes < 0L || metadataBytes < 0L ||
+                outputBytes > OfficeRasterGuards.MaximumEncodedBytes) return false;
+            long peakBytes = checked(
+                rgbaBytes + 24L + outputBytes + 24L +
+                (compressedCandidateBytes == 0L ? 0L : compressedCandidateBytes + 24L) +
+                (metadataBytes == 0L ? 0L : metadataBytes + 24L));
+            return peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static void EnsureEncodingWorkingSet(
+        long rgbaBytes,
+        long outputBytes,
+        long compressedCandidateBytes,
+        long metadataBytes) {
+        if (!IsEncodingWorkingSetWithinLimit(
+                rgbaBytes, outputBytes, compressedCandidateBytes, metadataBytes)) {
+            throw new ArgumentException("WebP output exceeds encoded-size or managed working-set limits.");
+        }
+    }
+
+    private static int GetFileLength(int payloadLength, int exifLength) {
+        int paddedPayloadLength = checked(payloadLength + (payloadLength & 1));
+        if (exifLength == 0) return checked(20 + paddedPayloadLength);
+        int paddedExifLength = checked(exifLength + (exifLength & 1));
+        return checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
     }
 
     private static bool TryFindChunk(

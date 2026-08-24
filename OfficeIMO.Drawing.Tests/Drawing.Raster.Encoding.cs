@@ -460,6 +460,34 @@ public sealed class DrawingRasterEncodingTests {
         Assert.False(budget.TryReserveArray(16, sizeof(uint)));
     }
 
+    [Fact]
+    public void LiteralWebpEncodeAndDecodePreflightRetainedBuffersTogether() {
+        const long oneHundredTwentyEightMiB = 128L * 1024L * 1024L;
+
+        Assert.False(OfficeWebpCodec.IsEncodingWorkingSetWithinLimit(
+            rgbaBytes: oneHundredTwentyEightMiB,
+            outputBytes: oneHundredTwentyEightMiB + 2L,
+            compressedCandidateBytes: 0L,
+            metadataBytes: 0L));
+        Assert.False(OfficeWebpCodec.IsEncodingWorkingSetWithinLimit(
+            rgbaBytes: oneHundredTwentyEightMiB,
+            outputBytes: oneHundredTwentyEightMiB,
+            compressedCandidateBytes: 0L,
+            metadataBytes: 0L));
+        Assert.True(OfficeWebpCodec.IsEncodingWorkingSetWithinLimit(
+            rgbaBytes: 4L * 1024L * 1024L,
+            outputBytes: 4L * 1024L * 1024L,
+            compressedCandidateBytes: 2L * 1024L * 1024L,
+            metadataBytes: 86L));
+
+        Assert.False(OfficeWebpCodec.IsLiteralDecodeWorkingSetWithinLimit(
+            encodedBytes: oneHundredTwentyEightMiB,
+            pixels: oneHundredTwentyEightMiB / 4L));
+        Assert.True(OfficeWebpCodec.IsLiteralDecodeWorkingSetWithinLimit(
+            encodedBytes: 64L * 1024L,
+            pixels: 1024L * 1024L));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

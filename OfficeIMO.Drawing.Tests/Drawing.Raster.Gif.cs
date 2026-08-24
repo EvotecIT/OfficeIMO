@@ -218,6 +218,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GifInspectionRejectsAFrameWithEmptyLzwImageData() {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            int firstSubBlockOffset = imageDescriptorOffset + 11;
+            byte[] malformed = valid.Take(firstSubBlockOffset)
+                .Concat(new byte[] { 0x00, 0x3B })
+                .ToArray();
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeGifReader.TryValidateAllFrames(malformed));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+        }
+
+        [Fact]
         public void OfficeGifReader_SkipsLzwExpansionForUnselectedTrailingFrames() {
             byte[] gif = CreateTwoFrameGif(out int secondFrameDescriptorOffset);
             gif[secondFrameDescriptorOffset + 12] = 0x07;
@@ -300,6 +314,7 @@ namespace OfficeIMO.Tests {
             malformed.Insert(insertOffset, 0x00);
             malformed[blockLengthOffset]++;
 
+            Assert.True(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "trailing-lzw.gif", out _));
         }
 
@@ -456,7 +471,11 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateSinglePixelGif() =>
-            Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            CreateIndexedGif(
+                1,
+                1,
+                new[] { OfficeColor.Black, OfficeColor.White },
+                new byte[] { 1 });
 
         private static byte[] CreateGifWithOnlyALocalColorTable(byte backgroundColorIndex) {
             byte[] source = CreateSinglePixelGif();

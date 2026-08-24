@@ -1378,7 +1378,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void OfficeImageOptimizer_ConvertsStaticGifWithoutImplicitAnimationLoss() {
-            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
 
             OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
                 gif,
