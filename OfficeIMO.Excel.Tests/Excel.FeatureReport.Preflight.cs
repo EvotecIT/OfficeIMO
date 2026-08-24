@@ -727,7 +727,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateFeatureReportGif() =>
-            Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
 
         [Fact]
         public void FeatureReport_Preflight_BlocksPdfExportForUnsupportedHeaderFooterFormatting() {

@@ -51,7 +51,7 @@ public partial class Word {
         string.Join(" ", text.Split(new[] { ' ', '\r', '\n', '\t', '\f' }, StringSplitOptions.RemoveEmptyEntries));
 
     private static void ReplaceFirstHeaderImagePartWithGif(string docPath) {
-        byte[] gifBytes = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        byte[] gifBytes = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
         using WordprocessingDocument package = WordprocessingDocument.Open(docPath, true);
         HeaderPart headerPart = package.MainDocumentPart!.HeaderParts.First();
         ImagePart imagePart = headerPart.ImageParts.First();

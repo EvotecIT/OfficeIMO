@@ -356,7 +356,7 @@ public class PdfEngineRoadmapFoundationTests {
                     Kind = "preview-image",
                     FileName = "preview.gif",
                     MediaType = "image/gif",
-                    PayloadBytes = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+                    PayloadBytes = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=")
                 }
             }
         };
@@ -370,7 +370,7 @@ public class PdfEngineRoadmapFoundationTests {
     }
 
     private static byte[] CreateTwoFrameGif() {
-        byte[] first = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        byte[] first = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
         const int imageDescriptorOffset = 19;
         return first.Take(first.Length - 1)
             .Concat(first.Skip(imageDescriptorOffset).Take(first.Length - imageDescriptorOffset - 1))

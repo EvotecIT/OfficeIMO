@@ -2518,5 +2518,5 @@ _Figure 3. Flow fallback_
         return "data:image/png;base64," + base64;
     }
 
-    private static byte[] CreateGifBytes() => Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+    private static byte[] CreateGifBytes() => Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
 }
