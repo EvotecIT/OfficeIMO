@@ -711,7 +711,19 @@ internal static class YamlReaderAdapter {
     }
 
     private static string NormalizeText(string value) {
-        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        if (value.Length == 0) return string.Empty;
+
+        var containsWhitespace = false;
+        for (int index = 0; index < value.Length; index++) {
+            if (char.IsWhiteSpace(value[index])) {
+                containsWhitespace = true;
+                break;
+            }
+        }
+
+        if (!containsWhitespace) {
+            return value.Length <= 2048 ? value : value.Substring(0, 2048);
+        }
 
         var sb = new StringBuilder(value.Length);
         bool previousWhitespace = false;
