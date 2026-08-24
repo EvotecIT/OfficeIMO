@@ -10,7 +10,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | Word | Validated BenchmarkDotNet create, read, report, and replace suites | DOCX payloads are validated; size is not exported by the shared runner | DocX, NPOI, and Open XML SDK | Add environment-qualified output-size evidence without publishing license-restricted numbers |
 | PowerPoint | Repeated isolated package workflows are within the 2× contender ceiling for both time and allocation on Windows and Linux | Sampled managed-heap growth, process peak, and output bytes are recorded and budgeted | ShapeCrawler for validated create/save and open/edit/save | Large open/edit/save remains close to the ceiling at 1.70-1.82× on Windows and should be improved further |
 | Reader | BenchmarkDotNet extraction, detection, transport, and chunking suites | External processes record peak working set; creation size is not applicable | Optional direct-process runners for equivalent extraction | Add representative application corpora and release baselines |
-| Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | Managed allocations are recorded; text output bytes are not yet a shared metric | Markdig and ReverseMarkdown after semantic equivalence checks | Semantic parsing and HTML-to-Markdown are within 2x in their validated lanes; source-backed parsing remains outside the contender boundary and needs further optimization |
+| Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | Managed allocations are recorded; parsing has no file-size metric and bounded peak-memory evidence is still missing | Markdig and ReverseMarkdown after semantic equivalence checks | HTML-to-Markdown is within 2x; CommonMark semantic parsing has one contender corpus, five material allocation gaps, and one unacceptable rich-AST gap; source-backed parsing remains a separate optimization target |
 | HTML | BenchmarkDotNet stage, pagination, Drawing, and PDF projection suites | Managed allocations are recorded; several output methods return byte counts | No general renderer is equivalent across the complete OfficeIMO contract | Add bounded peak-memory evidence for large non-PDF rendering workflows |
 | RTF | Full validated RTF-to-HTML evidence shows OfficeIMO faster and lower-allocation in every corpus | Output is smaller on the three equivalent generated corpora; the higher-fidelity producer output remains 3.14x larger | RtfPipe for validated RTF-to-HTML | Reduce fidelity-preserving producer HTML overhead further and add Linux/macOS evidence |
 | OpenDocument | BenchmarkDotNet open, sparse-write, formula, and validated ODS create/read comparisons | Evidence runner records peak working set and package input/output bytes; the ODS comparison exports validated size sidecars | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
@@ -81,6 +81,12 @@ Its three validated corpora are within 2x of ReverseMarkdown for both mean time
 and managed allocation. This does not close the source-backed parsing lane,
 which retains additional source and syntax ownership and remains outside the
 contender boundary.
+
+The full Windows CommonMark semantic parse run is recorded in
+[`officeimo.markdown-commonmark-parse-2026-08-24.md`](officeimo.markdown-commonmark-parse-2026-08-24.md).
+Only the long nested-list corpus is within 2x for both mean time and allocation.
+Five other corpora still have material allocation gaps, and the rich-AST corpus
+remains unacceptable at 3.08x mean time and 5.60x managed allocation.
 
 ## RTF comparisons
 

@@ -46,6 +46,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## HTML, RTF, and lightweight markup
 
+- [ ] Bring CommonMark semantic parsing inside the repository's contender ceiling across the validated seven-corpus contract. Prioritize reference-heavy rich AST and normalization-stress allocation, add a bounded repeatability job plus retained and peak-memory evidence, and treat source-backed parsing as a separate richer contract with its own targets.
 - [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
 
 ## Security and protected content
