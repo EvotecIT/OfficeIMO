@@ -202,6 +202,11 @@ public static class OfficeProvenanceInspector {
 
     private static bool CouldStartXml(byte[] data) {
         if (data.Length == 0) return false;
+        if (data.Length >= 4 &&
+            ((data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF) ||
+             (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == (byte)'<'))) {
+            return true;
+        }
         if (data.Length >= 2 &&
             ((data[0] == 0xFF && data[1] == 0xFE) ||
              (data[0] == 0xFE && data[1] == 0xFF) ||

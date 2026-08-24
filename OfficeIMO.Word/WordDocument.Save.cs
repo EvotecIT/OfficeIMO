@@ -15,6 +15,7 @@ namespace OfficeIMO.Word {
     /// Provides functionality for creating, loading and manipulating Word documents.
     /// </summary>
     public partial class WordDocument : IDisposable {
+        private bool? _packageContentTypesAdvertiseXmlSignatures;
 
         /// <summary>Opens the associated document in the operating system's registered application.</summary>
         public void OpenInApplication(string? filePath = null) {
@@ -452,8 +453,16 @@ namespace OfficeIMO.Word {
                 return CreateLegacyRuntimeOpenXmlBytesAfterSave(filePath);
             }
             if (_ownedPackageStream != null) {
+#if NETFRAMEWORK
+                return CreateClonedPackageSnapshot(filePath);
+#else
                 return CreateOwnedPackageSnapshot(filePath);
+#endif
             }
+            return CreateClonedPackageSnapshot(filePath);
+        }
+
+        private byte[] CreateClonedPackageSnapshot(string? filePath) {
             using var memoryStream = new MemoryStream();
             using (var clone = _wordprocessingDocument.Clone(memoryStream, true)) {
                 if (!string.IsNullOrEmpty(filePath)) {
@@ -546,13 +555,18 @@ namespace OfficeIMO.Word {
         }
 
         private void EnsureSignedDocumentSaveAllowed(WordSaveOptions? options, string operation) {
-            if (_wordprocessingDocument.DigitalSignatureOriginPart == null &&
-                _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature == null) {
-                return;
+            bool hasLiveSignatureSignal = _wordprocessingDocument.DigitalSignatureOriginPart != null ||
+                _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
+            bool hasPackageSignatureContentType = false;
+            if (!hasLiveSignatureSignal) {
+                hasPackageSignatureContentType = PackageContentTypesAdvertiseXmlSignatures();
+                if (!hasPackageSignatureContentType) {
+                    return;
+                }
             }
 
             WordSignatureInfo signatureInfo = InspectSignatures();
-            if (!signatureInfo.HasSignatures) {
+            if (!signatureInfo.HasSignatures && !hasPackageSignatureContentType) {
                 return;
             }
 
@@ -561,6 +575,44 @@ namespace OfficeIMO.Word {
             }
 
             throw new WordSignatureSavePolicyException(operation, signatureInfo);
+        }
+
+        private bool PackageContentTypesAdvertiseXmlSignatures() {
+            const string signatureContentType =
+                "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
+            if (_packageContentTypesAdvertiseXmlSignatures.HasValue) {
+                return _packageContentTypesAdvertiseXmlSignatures.Value;
+            }
+            if (_ownedPackageStream == null) {
+                return true;
+            }
+
+            long originalPosition = _ownedPackageStream.Position;
+            try {
+                _ownedPackageStream.Flush();
+                _ownedPackageStream.Position = 0;
+                using var archive = new System.IO.Compression.ZipArchive(
+                    _ownedPackageStream,
+                    System.IO.Compression.ZipArchiveMode.Read,
+                    leaveOpen: true);
+                System.IO.Compression.ZipArchiveEntry? contentTypes = archive.GetEntry("[Content_Types].xml");
+                if (contentTypes == null) {
+                    return true;
+                }
+
+                using Stream contentTypesStream = contentTypes.Open();
+                using var reader = new StreamReader(contentTypesStream, Encoding.UTF8, true, 4096, leaveOpen: false);
+                bool advertisesSignature = reader.ReadToEnd()
+                    .IndexOf(signatureContentType, StringComparison.OrdinalIgnoreCase) >= 0;
+                _packageContentTypesAdvertiseXmlSignatures = advertisesSignature;
+                return advertisesSignature;
+            } catch (InvalidDataException) {
+                return true;
+            } catch (IOException) {
+                return true;
+            } finally {
+                _ownedPackageStream.Position = originalPosition;
+            }
         }
 
     }

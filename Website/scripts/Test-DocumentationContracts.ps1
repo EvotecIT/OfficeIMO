@@ -312,11 +312,11 @@ if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
     Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 176
+    projectCount = 192
     productionComponentCount = 101
     testProjectCount = 34
-    benchmarkProjectCount = 18
-    validationProjectCount = 24
+    benchmarkProjectCount = 33
+    validationProjectCount = 25
     apiReferenceCount = 21
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {

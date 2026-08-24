@@ -15,6 +15,7 @@ namespace OfficeIMO.GoogleWorkspace {
     /// </summary>
     public sealed class GoogleWorkspaceHttpTransport : IDisposable {
         private const long MaximumErrorResponseBytes = 64L * 1024;
+        private const int MaximumDeclaredLengthPreallocationBytes = 1024 * 1024;
         private static readonly HashSet<string> OperationDefiningQueryParameters = new HashSet<string>(
             new[] {
                 "addParents",
@@ -445,12 +446,14 @@ namespace OfficeIMO.GoogleWorkspace {
                 int targetLength = checked((int)(truncateAtLimit && limit.HasValue
                     ? Math.Min(contentLength, limit.Value)
                     : contentLength));
-                return await ReadDeclaredLengthResponseAsync(
-                    input,
-                    targetLength,
-                    limit,
-                    cancellationToken,
-                    truncateAtLimit).ConfigureAwait(false);
+                if (targetLength <= MaximumDeclaredLengthPreallocationBytes) {
+                    return await ReadDeclaredLengthResponseAsync(
+                        input,
+                        targetLength,
+                        limit,
+                        cancellationToken,
+                        truncateAtLimit).ConfigureAwait(false);
+                }
             }
 
             return await ReadUnknownLengthResponseAsync(

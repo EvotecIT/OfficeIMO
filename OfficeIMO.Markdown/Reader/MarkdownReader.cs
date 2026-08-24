@@ -392,35 +392,118 @@ public static partial class MarkdownReader {
 
         return normalizeLineEndings
             ? markdown.Replace("\r\n", "\n").Replace('\r', '\n')
-            : ExpandTabsForSemanticParsing(markdown);
+            : ExpandLeadingTabsForSemanticParsing(markdown);
     }
 
-    private static string ExpandTabsForSemanticParsing(string markdown) {
+    private static string ExpandLeadingTabsForSemanticParsing(string markdown) {
         int firstTab = markdown.IndexOf('\t');
         if (firstTab < 0) {
             return markdown;
         }
 
         var builder = new StringBuilder(markdown.Length + 16);
-        int column = 0;
-        for (int i = 0; i < markdown.Length; i++) {
-            char value = markdown[i];
-            if (value == '\t') {
-                int spaces = 4 - column % 4;
-                builder.Append(' ', spaces);
-                column += spaces;
-                continue;
+        bool inFencedCode = false;
+        char fenceCharacter = '\0';
+        int fenceLength = 0;
+        int lineStart = 0;
+        while (lineStart < markdown.Length) {
+            int lineEnd = lineStart;
+            while (lineEnd < markdown.Length && markdown[lineEnd] is not ('\r' or '\n')) {
+                lineEnd++;
             }
 
-            builder.Append(value);
-            if (value is '\r' or '\n') {
-                column = 0;
+            if (inFencedCode) {
+                builder.Append(markdown, lineStart, lineEnd - lineStart);
+                if (IsClosingFence(markdown, lineStart, lineEnd, fenceCharacter, fenceLength)) {
+                    inFencedCode = false;
+                }
+            } else if (TryGetOpeningFence(markdown, lineStart, lineEnd, out fenceCharacter, out fenceLength)) {
+                builder.Append(markdown, lineStart, lineEnd - lineStart);
+                inFencedCode = true;
             } else {
-                column++;
+                AppendLineWithLeadingTabsExpanded(builder, markdown, lineStart, lineEnd);
             }
+
+            if (lineEnd < markdown.Length) {
+                builder.Append(markdown[lineEnd++]);
+                if (lineEnd < markdown.Length && markdown[lineEnd - 1] == '\r' && markdown[lineEnd] == '\n') {
+                    builder.Append(markdown[lineEnd++]);
+                }
+            }
+            lineStart = lineEnd;
         }
 
         return builder.ToString();
+    }
+
+    private static void AppendLineWithLeadingTabsExpanded(
+        StringBuilder builder,
+        string markdown,
+        int lineStart,
+        int lineEnd) {
+        int column = 0;
+        int current = lineStart;
+        while (current < lineEnd && markdown[current] is ' ' or '\t') {
+            if (markdown[current] == '\t') {
+                int spaces = 4 - column % 4;
+                builder.Append(' ', spaces);
+                column += spaces;
+            } else {
+                builder.Append(' ');
+                column++;
+            }
+            current++;
+        }
+        builder.Append(markdown, current, lineEnd - current);
+    }
+
+    private static bool TryGetOpeningFence(
+        string markdown,
+        int lineStart,
+        int lineEnd,
+        out char fenceCharacter,
+        out int fenceLength) {
+        fenceCharacter = '\0';
+        fenceLength = 0;
+        int current = lineStart;
+        while (current < lineEnd && current - lineStart < 3 && markdown[current] == ' ') {
+            current++;
+        }
+        if (current >= lineEnd || markdown[current] is not ('`' or '~')) {
+            return false;
+        }
+
+        fenceCharacter = markdown[current];
+        while (current + fenceLength < lineEnd && markdown[current + fenceLength] == fenceCharacter) {
+            fenceLength++;
+        }
+        return fenceLength >= 3;
+    }
+
+    private static bool IsClosingFence(
+        string markdown,
+        int lineStart,
+        int lineEnd,
+        char fenceCharacter,
+        int openingFenceLength) {
+        int current = lineStart;
+        while (current < lineEnd && current - lineStart < 3 && markdown[current] == ' ') {
+            current++;
+        }
+        int closingFenceLength = 0;
+        while (current + closingFenceLength < lineEnd &&
+               markdown[current + closingFenceLength] == fenceCharacter) {
+            closingFenceLength++;
+        }
+        if (closingFenceLength < openingFenceLength) {
+            return false;
+        }
+
+        current += closingFenceLength;
+        while (current < lineEnd && markdown[current] == ' ') {
+            current++;
+        }
+        return current == lineEnd;
     }
 
     private static string[] SplitMarkdownLines(string markdown, bool reuseRepeatedLines = true) {

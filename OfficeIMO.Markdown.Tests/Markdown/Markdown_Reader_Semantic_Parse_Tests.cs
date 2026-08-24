@@ -213,6 +213,19 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
     }
 
     [Fact]
+    public void ParseSemantic_Preserves_Tabs_Inside_Fenced_Code() {
+        const string markdown = "```text\n\ta\tb\n```\n";
+
+        var semanticDocument = MarkdownReader.ParseSemantic(markdown);
+        var sourceBackedDocument = MarkdownReader.Parse(markdown);
+
+        Assert.Equal("\ta\tb", Assert.Single(semanticDocument.DescendantObjectsOfType<CodeBlock>()).Content);
+        Assert.Equal(
+            Assert.Single(sourceBackedDocument.DescendantObjectsOfType<CodeBlock>()).Content,
+            Assert.Single(semanticDocument.DescendantObjectsOfType<CodeBlock>()).Content);
+    }
+
+    [Fact]
     public void ObjectTreeBinder_Binds_All_Child_Contracts_On_Custom_Inline() {
         var nestedInlines = new InlineSequence().Text("inline child");
         var blockChild = new ParagraphBlock(new InlineSequence().Text("block child"));

@@ -164,6 +164,7 @@ namespace OfficeIMO.Word {
                 FilePath = filePath,
                 OriginalStream = stream,
                 _ownedPackageStream = packageStream,
+                _packageContentTypesAdvertiseXmlSignatures = false,
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document
                     ?? throw new InvalidOperationException("Default Word package is missing its main document."),
@@ -253,6 +254,7 @@ namespace OfficeIMO.Word {
 
             word.FilePath = filePath;
             word._ownedPackageStream = packageStream;
+            word._packageContentTypesAdvertiseXmlSignatures = false;
             word._wordprocessingDocument = wordDocument;
             word._document = mainPart.Document;
             word._persistenceMode = persistenceMode;

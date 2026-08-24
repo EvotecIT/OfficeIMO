@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class GoogleWorkspaceDiagnosticsTests {
+    public partial class GoogleWorkspaceDiagnosticsTests {
         [Fact]
         public void Test_TranslationReport_ToDiagnosticEntries_ProjectsNotices() {
             var report = new TranslationReport();
