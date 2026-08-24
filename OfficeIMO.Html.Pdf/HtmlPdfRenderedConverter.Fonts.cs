@@ -34,6 +34,8 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderDocument rendered,
         int maxOutlinedTextCharactersPerRun,
         int maxOutlinedTextPathCommands,
+        IOfficeTextShapingProvider? textShapingProvider,
+        string? textShapingLanguage,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontFaceCollection faces = rendered.Fonts;
@@ -45,7 +47,12 @@ internal static partial class HtmlPdfRenderedConverter {
         var outlineBudget = new OutlinedTextBudget(
             maxOutlinedTextCharactersPerRun,
             maxOutlinedTextPathCommands);
-        if (byFamily.Count == 0) return new RegisteredWebFonts(mappings, faces, outlineBudget);
+        if (byFamily.Count == 0) return new RegisteredWebFonts(
+            mappings,
+            faces,
+            outlineBudget,
+            textShapingProvider,
+            textShapingLanguage);
 
         var orderedFamilies = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -65,7 +72,12 @@ internal static partial class HtmlPdfRenderedConverter {
             }
         }
 
-        return new RegisteredWebFonts(mappings, faces, outlineBudget);
+        return new RegisteredWebFonts(
+            mappings,
+            faces,
+            outlineBudget,
+            textShapingProvider,
+            textShapingLanguage);
     }
 
     private static void ReserveUsedStandardFontSlots(
@@ -338,15 +350,21 @@ internal static partial class HtmlPdfRenderedConverter {
         internal RegisteredWebFonts(
             IReadOnlyDictionary<string, PdfCore.PdfStandardFont> slots,
             OfficeFontFaceCollection faces,
-            OutlinedTextBudget outlineBudget) {
+            OutlinedTextBudget outlineBudget,
+            IOfficeTextShapingProvider? textShapingProvider,
+            string? textShapingLanguage) {
             Slots = slots;
             Faces = faces;
             OutlineBudget = outlineBudget;
+            TextShapingProvider = textShapingProvider;
+            TextShapingLanguage = textShapingLanguage;
         }
 
         internal IReadOnlyDictionary<string, PdfCore.PdfStandardFont> Slots { get; }
         internal OfficeFontFaceCollection Faces { get; }
         internal OutlinedTextBudget OutlineBudget { get; }
+        internal IOfficeTextShapingProvider? TextShapingProvider { get; }
+        internal string? TextShapingLanguage { get; }
     }
 
     private sealed class OutlinedTextBudget {

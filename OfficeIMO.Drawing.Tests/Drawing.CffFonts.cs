@@ -128,6 +128,24 @@ public sealed class DrawingCffFontTests {
         Assert.Contains("null ItemVariationData", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Cff2BlendAppliesRegionMajorDeltasToEachValue() {
+        var stack = new List<double> {
+            10D, 20D,
+            1D, 2D,
+            3D, 4D
+        };
+
+        OfficeType2CharStringInterpreter.ApplyBlendDeltas(
+            stack,
+            start: 0,
+            valueCount: 2,
+            scalars: new[] { 0.5D, 0.25D });
+
+        Assert.Equal(11.25D, stack[0], 6);
+        Assert.Equal(22D, stack[1], 6);
+    }
+
     private static byte[] ReadAsset(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", name));
 
     private static void WriteUInt16(byte[] data, int offset, int value) {

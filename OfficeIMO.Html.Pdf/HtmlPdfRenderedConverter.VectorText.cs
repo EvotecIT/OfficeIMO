@@ -38,7 +38,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 || face == null) {
                 return false;
             }
-            resolvedRuns.Add(new OutlinedFontRun(run.Text, face, 0D));
+            resolvedRuns.Add(new OutlinedFontRun(run.Text, face));
             requiresOutlines |= !face.CanEmbedAsStaticPdfFont;
         }
         if (!requiresOutlines) {
@@ -60,10 +60,17 @@ internal static partial class HtmlPdfRenderedConverter {
         var runs = new List<OutlinedFontRun>(resolvedRuns.Count);
         foreach (OutlinedFontRun run in resolvedRuns) {
             cancellationToken.ThrowIfCancellationRequested();
-            double advance = run.Face.Program.Measure(run.Text, visual.Font.Size);
+            OfficeTextShapingResult? shapingResult = ShapeOutlinedRun(
+                run,
+                webFonts,
+                cancellationToken,
+                out string? shapedText);
+            double advance = shapingResult == null
+                ? run.Face.Program.Measure(run.Text, visual.Font.Size)
+                : run.Face.Program.MeasureShapedText(shapedText!, shapingResult, visual.Font.Size);
             cancellationToken.ThrowIfCancellationRequested();
             if (double.IsNaN(advance) || double.IsInfinity(advance) || advance < 0D) return false;
-            runs.Add(new OutlinedFontRun(run.Text, run.Face, advance));
+            runs.Add(new OutlinedFontRun(run.Text, run.Face, advance, shapedText, shapingResult));
         }
 
         double measuredAdvance = runs.Sum(run => run.Advance);
@@ -86,13 +93,22 @@ internal static partial class HtmlPdfRenderedConverter {
             if (availablePoints <= 0) {
                 throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
             }
-            List<List<OfficePoint>> contours = bounded.GetTextContoursBounded(
-                run.Text,
-                cursor,
-                textTop,
-                visual.Font.Size,
-                availablePoints,
-                cancellationToken);
+            List<List<OfficePoint>> contours = run.ShapingResult == null
+                ? bounded.GetTextContoursBounded(
+                    run.Text,
+                    cursor,
+                    textTop,
+                    visual.Font.Size,
+                    availablePoints,
+                    cancellationToken)
+                : bounded.GetShapedTextContoursBounded(
+                    run.ShapedText!,
+                    run.ShapingResult,
+                    cursor,
+                    textTop,
+                    visual.Font.Size,
+                    availablePoints,
+                    cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             int runPointCount = 0;
             foreach (List<OfficePoint> contour in contours) {
@@ -205,6 +221,31 @@ internal static partial class HtmlPdfRenderedConverter {
             // the PDF conversion report will retain the writer's exact font diagnostic.
             return false;
         }
+    }
+
+    private static OfficeTextShapingResult? ShapeOutlinedRun(
+        OutlinedFontRun run,
+        RegisteredWebFonts webFonts,
+        CancellationToken cancellationToken,
+        out string? shapedText) {
+        shapedText = null;
+        if (webFonts.TextShapingProvider == null || run.Face.Program.ProvidesComplexTextLayout) return null;
+        shapedText = OfficeArabicTextShaper.ToLogicalText(run.Text);
+        cancellationToken.ThrowIfCancellationRequested();
+        IOfficeFontProgram program = run.Face.Program;
+        OfficeTextShapingResult? shapingResult = webFonts.TextShapingProvider.ShapeText(new OfficeTextShapingRequest(
+            shapedText,
+            program.DisplayName ?? run.Face.FamilyName,
+            program.GetFontDataForShaping(),
+            program.IsOpenTypeCff,
+            program.UnitsPerEm,
+            OfficeTextElements.ResolveBaseDirection(shapedText),
+            webFonts.TextShapingLanguage,
+            cancellationToken,
+            program.CollectionIndex,
+            run.Face.VariationCoordinatesForShaping));
+        if (shapingResult == null) shapedText = null;
+        return shapingResult;
     }
 
     private static double ResolveOutlinedTextX(
@@ -333,14 +374,27 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private readonly struct OutlinedFontRun {
-        internal OutlinedFontRun(string text, OfficeFontFace face, double advance) {
+        internal OutlinedFontRun(string text, OfficeFontFace face)
+            : this(text, face, 0D, null, null) {
+        }
+
+        internal OutlinedFontRun(
+            string text,
+            OfficeFontFace face,
+            double advance,
+            string? shapedText,
+            OfficeTextShapingResult? shapingResult) {
             Text = text;
             Face = face;
             Advance = advance;
+            ShapedText = shapedText;
+            ShapingResult = shapingResult;
         }
 
         internal string Text { get; }
         internal OfficeFontFace Face { get; }
         internal double Advance { get; }
+        internal string? ShapedText { get; }
+        internal OfficeTextShapingResult? ShapingResult { get; }
     }
 }

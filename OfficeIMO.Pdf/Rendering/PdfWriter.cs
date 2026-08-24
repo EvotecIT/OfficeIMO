@@ -660,6 +660,9 @@ internal static partial class PdfWriter {
                 string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
                 contentStr += WrapArtifactContent(footer, markInfo);
             }
+            PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
+                ? GetPrintColorTransform(pageOpts)
+                : null;
             bool flattenVisualAnnotations = opts.FlattenVisualAnnotations;
             if (flattenVisualAnnotations) {
                 contentStr += BuildFlattenedVisualAnnotationContent(
@@ -669,12 +672,10 @@ internal static partial class PdfWriter {
                     xobjects,
                     EnsureFont,
                     EnsureFormHelveticaFont,
-                    markInfo);
+                    markInfo,
+                    pageColorTransform);
             }
 
-            PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
-                ? GetPrintColorTransform(pageOpts)
-                : null;
             if (pageColorTransform != null) {
                 contentStr = pageColorTransform.NormalizeGeneratedContent(contentStr);
             }

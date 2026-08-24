@@ -83,6 +83,47 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlFontFaceLoaderAppliesConfiguredVariableFontInstance() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            FontHtml("Roboto Flex", "font/ttf", fontData, "Variable OfficeIMO", link: false));
+        var light = new HtmlPdfSaveOptions();
+        light.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 200F, ["wdth"] = 90F };
+        var black = new HtmlPdfSaveOptions();
+        black.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 900F, ["wdth"] = 120F };
+
+        byte[] lightPdf = source.ToPdfDocumentResult(light).ToBytes();
+        byte[] blackPdf = source.ToPdfDocumentResult(black).ToBytes();
+
+        Assert.NotEqual(Hash(lightPdf), Hash(blackPdf));
+    }
+
+    [Fact]
+    public void HtmlPdfOutlinedVariableFontPaintsConfiguredShapedGlyphs() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            FontHtml("Roboto Flex", "font/ttf", fontData, "AA", link: false));
+        var unshapedOptions = new HtmlPdfSaveOptions();
+        unshapedOptions.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
+        var shapedOptions = unshapedOptions.ClonePdf();
+        var shapingProvider = new CollapsingTextShapingProvider();
+        shapedOptions.TextShapingProvider = shapingProvider;
+
+        byte[] unshapedPdf = source.ToPdfDocumentResult(unshapedOptions).ToBytes();
+        byte[] shapedPdf = source.ToPdfDocumentResult(shapedOptions).ToBytes();
+        int unshapedCommandCount = PdfCore.PdfDocument.Open(unshapedPdf)
+            .Read.Drawing(1).Shapes
+            .Sum(shape => shape.Shape.PathCommands.Count);
+        int shapedCommandCount = PdfCore.PdfDocument.Open(shapedPdf)
+            .Read.Drawing(1).Shapes
+            .Sum(shape => shape.Shape.PathCommands.Count);
+
+        Assert.True(shapedCommandCount < unshapedCommandCount);
+        Assert.True(shapingProvider.Requests.Count >= 2);
+        Assert.All(shapingProvider.Requests, request => Assert.Equal(725F, request.VariationCoordinates["wght"]));
+    }
+
+    [Fact]
     public void HtmlPdfVariableOutlinesRetainHyperlinksAndHonorBudgets() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         const string text = "Accessible linked outlines";
@@ -148,4 +189,17 @@ public sealed class HtmlFirstPartyFontProgramTests {
     private static string FormatWarnings(PdfCore.PdfDocumentConversionResult result) => string.Join(
         " | ",
         result.Report.Warnings.Select(warning => warning.Code + ": " + warning.Message));
+
+    private sealed class CollapsingTextShapingProvider : IOfficeTextShapingProvider {
+        internal List<OfficeTextShapingRequest> Requests { get; } = new List<OfficeTextShapingRequest>();
+
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+            Requests.Add(request);
+            OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Shaping fixture", request.FontData).Faces);
+            Assert.True(face.Program.TryGetGlyphMetrics('A', out int glyphId, out int advanceWidth));
+            return new OfficeTextShapingResult(new[] {
+                new OfficeShapedGlyph(glyphId, request.Text, 0, advanceWidth)
+            });
+        }
+    }
 }

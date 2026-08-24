@@ -350,13 +350,23 @@ internal sealed class OfficeType2CharStringInterpreter {
         int required = checked(valueCount * (scalars.Count + 1));
         if (valueCount < 0 || _stack.Count < required) throw new InvalidDataException("The CFF2 blend operand stack is truncated.");
         int start = _stack.Count - required;
-        for (int valueIndex = 0; valueIndex < valueCount; valueIndex++) {
-            double blended = _stack[start + valueIndex];
-            int deltaStart = start + valueCount + valueIndex * scalars.Count;
-            for (int region = 0; region < scalars.Count; region++) blended += _stack[deltaStart + region] * scalars[region];
-            _stack[start + valueIndex] = blended;
-        }
+        ApplyBlendDeltas(_stack, start, valueCount, scalars);
         _stack.RemoveRange(start + valueCount, required - valueCount);
+    }
+
+    internal static void ApplyBlendDeltas(
+        IList<double> stack,
+        int start,
+        int valueCount,
+        IReadOnlyList<double> scalars) {
+        for (int valueIndex = 0; valueIndex < valueCount; valueIndex++) {
+            double blended = stack[start + valueIndex];
+            for (int region = 0; region < scalars.Count; region++) {
+                int deltaIndex = start + valueCount + region * valueCount + valueIndex;
+                blended += stack[deltaIndex] * scalars[region];
+            }
+            stack[start + valueIndex] = blended;
+        }
     }
 
     private void ConsumeEndChar() {

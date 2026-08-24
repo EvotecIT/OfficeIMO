@@ -1,9 +1,13 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfPrintColorTransform {
+    private static readonly Regex RgbOperatorPattern = new Regex(
+        @"(?<!\S)(?<red>[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?)\s+(?<green>[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?)\s+(?<blue>[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?)\s+(?<operator>rg|RG)(?!\S)",
+        RegexOptions.CultureInvariant);
     private readonly OfficeIccColorProfile _profile;
     private readonly OfficeIccRenderingIntent _renderingIntent;
     private readonly PdfBlackPreservationMode _blackPreservationMode;
@@ -63,20 +67,51 @@ internal sealed class PdfPrintColorTransform {
     }
 
     private bool TryNormalizeRgbOperator(string line, out string? replacement) {
-        replacement = null;
-        string[] tokens = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (tokens.Length != 4 ||
-            (tokens[3] != "rg" && tokens[3] != "RG") ||
-            !double.TryParse(tokens[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double red) ||
-            !double.TryParse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double green) ||
-            !double.TryParse(tokens[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double blue)) {
-            return false;
-        }
+        bool converted = false;
+        string normalized = RgbOperatorPattern.Replace(line, match => {
+            if (!IsPdfContentOperatorPosition(line, match.Index)) return match.Value;
+            double red = double.Parse(match.Groups["red"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+            double green = double.Parse(match.Groups["green"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+            double blue = double.Parse(match.Groups["blue"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+            Convert(new PdfColor(red, green, blue), out double cyan, out double magenta, out double yellow, out double black);
+            converted = true;
+            return Format(cyan) + " " + Format(magenta) + " " + Format(yellow) + " " + Format(black) +
+                (match.Groups["operator"].Value == "rg" ? " k" : " K");
+        });
+        replacement = converted ? normalized : null;
+        return converted;
+    }
 
-        Convert(new PdfColor(red, green, blue), out double cyan, out double magenta, out double yellow, out double black);
-        replacement = Format(cyan) + " " + Format(magenta) + " " + Format(yellow) + " " + Format(black) +
-            (tokens[3] == "rg" ? " k" : " K");
-        return true;
+    private static bool IsPdfContentOperatorPosition(string line, int position) {
+        int literalDepth = 0;
+        bool escaped = false;
+        bool hexadecimalString = false;
+        for (int index = 0; index < position; index++) {
+            char value = line[index];
+            if (literalDepth > 0) {
+                if (escaped) {
+                    escaped = false;
+                } else if (value == '\\') {
+                    escaped = true;
+                } else if (value == '(') {
+                    literalDepth++;
+                } else if (value == ')') {
+                    literalDepth--;
+                }
+                continue;
+            }
+            if (hexadecimalString) {
+                if (value == '>') hexadecimalString = false;
+                continue;
+            }
+            if (value == '%') return false;
+            if (value == '(') {
+                literalDepth = 1;
+            } else if (value == '<' && (index + 1 >= position || line[index + 1] != '<')) {
+                hexadecimalString = true;
+            }
+        }
+        return literalDepth == 0 && !hexadecimalString;
     }
 
     private void Convert(PdfColor color, out double cyan, out double magenta, out double yellow, out double black) {

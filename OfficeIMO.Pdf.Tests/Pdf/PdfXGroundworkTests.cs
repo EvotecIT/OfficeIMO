@@ -72,6 +72,56 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PdfXFlattenedAnnotationAppearancesAreConvertedToPrintColorSpace() {
+        var options = new PdfOptions()
+            .ConfigurePdfXGroundwork(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False)
+            .SetFlattenVisualAnnotations();
+        options.CompressContentStreams = false;
+
+        byte[] pdf = PdfDocument.Create(options)
+            .FreeTextAnnotation(
+                "CMYK reviewer note",
+                width: 140,
+                height: 44,
+                textColor: new PdfColor(0.15D, 0.35D, 0.75D),
+                borderColor: new PdfColor(0.8D, 0.2D, 0.1D),
+                fillColor: new PdfColor(0.9D, 0.95D, 1D))
+            .HighlightAnnotation(
+                "CMYK highlight",
+                width: 120,
+                height: 14,
+                color: new PdfColor(1D, 0.9D, 0.1D))
+            .ToBytes();
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.False(evidence.HasDeviceRgbUsage);
+        Assert.True(evidence.DeviceCmykOperatorCount > 0);
+    }
+
+    [Fact]
+    public void PdfXColorNormalizationDoesNotRewriteTextStringContents() {
+        var options = new PdfOptions().ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            "FOGRA51",
+            PdfTrappingStatus.False);
+        PdfPrintColorTransform transform = Assert.IsType<PdfPrintColorTransform>(PdfPrintColorTransform.Create(options));
+
+        string normalized = transform.NormalizeGeneratedContent(
+            "BT (literal 1 0 0 rg text) Tj ET\n0.1 0.2 0.3 rg 0 0 10 10 re f");
+
+        Assert.Contains("(literal 1 0 0 rg text)", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("0.1 0.2 0.3 rg", normalized, StringComparison.Ordinal);
+        Assert.Contains(" k 0 0 10 10 re f", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfXExactArtifactIsInternallyReadyOnlyWithProductionBoxesAndEmbeddedFonts() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) return;

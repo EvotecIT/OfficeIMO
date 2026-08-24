@@ -120,6 +120,8 @@ internal static partial class HtmlPdfRenderedConverter {
             rendered,
             options.MaxOutlinedTextCharactersPerRun,
             options.MaxOutlinedTextPathCommands,
+            options.TextShapingProvider,
+            options.TextShapingLanguage,
             cancellationToken);
         var activeWebFontFamilies = new HashSet<string>(
             webFonts.Slots.Keys,

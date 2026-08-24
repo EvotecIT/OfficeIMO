@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
@@ -62,6 +63,9 @@ public sealed class OfficeFontFace {
     internal byte[] DataSnapshot => _data;
 
     internal IOfficeFontProgram ParsedFont { get; }
+
+    internal IReadOnlyDictionary<string, float>? VariationCoordinatesForShaping =>
+        (ParsedFont as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping;
 
     internal OfficeFontFace Clone() =>
         new OfficeFontFace(FamilyName, ResourceFamilyName, _data, Style, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);

@@ -14,7 +14,8 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlConversionLimits limits,
         HtmlDiagnosticReport diagnostics) {
         var fonts = new OfficeFontFaceCollection {
-            FontProgramProvider = options.Fonts?.FontProgramProvider
+            FontProgramProvider = options.Fonts?.FontProgramProvider,
+            FontVariationResolver = options.Fonts?.FontVariationResolver
         };
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());

@@ -8,7 +8,8 @@ internal static partial class PdfWriter {
         List<(string Name, int Id)> xobjects,
         Func<PdfStandardFont, PdfOptions, int> ensureFont,
         Func<PdfOptions, int> ensureFormHelveticaFont,
-        bool markAsArtifact) {
+        bool markAsArtifact,
+        PdfPrintColorTransform? printColorTransform) {
         Guard.NotNull(page, nameof(page));
         Guard.NotNull(pageOptions, nameof(pageOptions));
         Guard.NotNull(objects, nameof(objects));
@@ -27,6 +28,9 @@ internal static partial class PdfWriter {
                 pageOptions,
                 ensureFont,
                 out IReadOnlyList<(string Name, int Id)> appearanceFontResources);
+            if (printColorTransform != null) {
+                appearanceContent = printColorTransform.NormalizeGeneratedContent(appearanceContent);
+            }
             byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
             string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(width, height, appearanceBytes.Length, appearanceFontResources);
             int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
@@ -39,6 +43,9 @@ internal static partial class PdfWriter {
             double width = annotation.X2 - annotation.X1;
             double height = annotation.Y2 - annotation.Y1;
             string appearanceContent = PdfAnnotationDictionaryBuilder.BuildHighlightAppearanceContent(width, height, annotation.Color);
+            if (printColorTransform != null) {
+                appearanceContent = printColorTransform.NormalizeGeneratedContent(appearanceContent);
+            }
             byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
             string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(width, height, appearanceBytes.Length, usesHighlightBlendMode: true);
             int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
