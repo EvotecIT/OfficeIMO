@@ -398,8 +398,9 @@ public static class OfficeImageOptimizer {
             bool canCopyExif = !source.ExifContainsResolution ||
                                (requested & OfficeImageMetadataKinds.Resolution) != 0;
             if ((requested & OfficeImageMetadataKinds.Exif) != 0 && source.Exif != null && canCopyExif) {
-                exif = OfficeImageOrientationNormalizer.NeutralizeExifOrientation(source.Exif);
-                preserved |= OfficeImageMetadataKinds.Exif;
+                if (OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(source.Exif, out exif)) {
+                    preserved |= OfficeImageMetadataKinds.Exif;
+                }
             }
             if ((requested & OfficeImageMetadataKinds.Xmp) != 0 && source.Xmp != null && !source.HasExtendedJpegXmp) {
                 xmp = source.Xmp;

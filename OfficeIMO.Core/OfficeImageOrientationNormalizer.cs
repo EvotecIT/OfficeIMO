@@ -136,15 +136,20 @@ public static class OfficeImageOrientationNormalizer {
         return false;
     }
 
-    internal static byte[] NeutralizeExifOrientation(byte[] exif) {
+    internal static bool TryNeutralizeExifOrientation(byte[] exif, out byte[] neutralized) {
         if (exif == null) throw new ArgumentNullException(nameof(exif));
-        byte[] copy = (byte[])exif.Clone();
-        int offset = copy.Length >= 6 && copy[0] == (byte)'E' && copy[1] == (byte)'x' &&
-                     copy[2] == (byte)'i' && copy[3] == (byte)'f' && copy[4] == 0 && copy[5] == 0
+        neutralized = (byte[])exif.Clone();
+        int offset = neutralized.Length >= 6 && neutralized[0] == (byte)'E' && neutralized[1] == (byte)'x' &&
+                     neutralized[2] == (byte)'i' && neutralized[3] == (byte)'f' && neutralized[4] == 0 && neutralized[5] == 0
             ? 6
             : 0;
-        TryWriteTiffOrientation(copy, offset, copy.Length - offset);
-        return copy;
+        bool rewritten = TryWriteTiffOrientation(
+            neutralized, offset, neutralized.Length - offset, out bool foundOrientation);
+        if (foundOrientation && !rewritten) {
+            neutralized = Array.Empty<byte>();
+            return false;
+        }
+        return true;
     }
 
     internal static bool TryReadExifOrientationPayload(byte[] exif, out OfficeImageOrientation orientation) {
@@ -157,7 +162,15 @@ public static class OfficeImageOrientationNormalizer {
         return TryReadTiffOrientation(new OfficeByteView(exif).Slice(offset), out orientation);
     }
 
-    private static bool TryWriteTiffOrientation(byte[] data, int tiffOffset, int tiffLength) {
+    private static bool TryWriteTiffOrientation(byte[] data, int tiffOffset, int tiffLength) =>
+        TryWriteTiffOrientation(data, tiffOffset, tiffLength, out _);
+
+    private static bool TryWriteTiffOrientation(
+        byte[] data,
+        int tiffOffset,
+        int tiffLength,
+        out bool foundOrientation) {
+        foundOrientation = false;
         if (tiffOffset < 0 || tiffLength < 8 || tiffOffset > data.Length - tiffLength) return false;
         bool littleEndian = data[tiffOffset] == (byte)'I' && data[tiffOffset + 1] == (byte)'I';
         bool bigEndian = data[tiffOffset] == (byte)'M' && data[tiffOffset + 1] == (byte)'M';
@@ -169,16 +182,23 @@ public static class OfficeImageOrientationNormalizer {
         if (ifdOffset < tiffOffset + 8 || ifdOffset > tiffEnd - 2) return false;
         int entryCount = ReadUInt16(data, ifdOffset, littleEndian);
         if ((long)ifdOffset + 2L + (entryCount * 12L) > tiffEnd) return false;
+        int orientationEntryOffset = -1;
         for (int index = 0; index < entryCount; index++) {
             int entryOffset = ifdOffset + 2 + (index * 12);
             if (ReadUInt16(data, entryOffset, littleEndian) != 274) continue;
+            foundOrientation = true;
+            if (orientationEntryOffset >= 0) return false;
             if (ReadUInt16(data, entryOffset + 2, littleEndian) != 3
                 || ReadUInt32(data, entryOffset + 4, littleEndian) != 1) return false;
-            data[entryOffset + 8] = littleEndian ? (byte)1 : (byte)0;
-            data[entryOffset + 9] = littleEndian ? (byte)0 : (byte)1;
-            return true;
+            orientationEntryOffset = entryOffset;
         }
-        return false;
+        if (orientationEntryOffset < 0 ||
+            !OfficeTiffStructureValidator.TryValidateExclusiveWritableRanges(
+                data, tiffOffset, tiffLength,
+                orientationEntryOffset + 8, 2, orientationEntryOffset)) return false;
+        data[orientationEntryOffset + 8] = littleEndian ? (byte)1 : (byte)0;
+        data[orientationEntryOffset + 9] = littleEndian ? (byte)0 : (byte)1;
+        return true;
     }
 
     internal static bool TryReadExifOrientation(OfficeByteView app1, out int orientation) {

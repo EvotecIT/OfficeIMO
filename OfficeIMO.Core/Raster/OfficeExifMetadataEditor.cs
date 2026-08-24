@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
@@ -9,7 +10,7 @@ internal static class OfficeExifMetadataEditor {
         double dpiX,
         double dpiY,
         out byte[] rewritten) {
-        rewritten = OfficeImageOrientationNormalizer.NeutralizeExifOrientation(exif);
+        if (!OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(exif, out rewritten)) return false;
         int tiffOffset = HasExifPrefix(rewritten) ? 6 : 0;
         int tiffLength = rewritten.Length - tiffOffset;
         if (!OfficeTiffStructureValidator.TryValidateExif(rewritten, tiffOffset, tiffLength)) return false;
@@ -21,8 +22,11 @@ internal static class OfficeExifMetadataEditor {
         int entryCount = ReadUInt16(rewritten, ifdOffset, littleEndian);
         bool sawResolutionField = false;
         int xResolutionOffset = -1;
+        int xResolutionEntryOffset = -1;
         int yResolutionOffset = -1;
+        int yResolutionEntryOffset = -1;
         int resolutionUnitOffset = -1;
+        int resolutionUnitEntryOffset = -1;
         for (int index = 0; index < entryCount; index++) {
             int entryOffset = checked(ifdOffset + 2 + index * 12);
             int tag = ReadUInt16(rewritten, entryOffset, littleEndian);
@@ -35,9 +39,11 @@ internal static class OfficeExifMetadataEditor {
                 if (tag == 282) {
                     if (xResolutionOffset >= 0) return false;
                     xResolutionOffset = valueOffset;
+                    xResolutionEntryOffset = entryOffset;
                 } else {
                     if (yResolutionOffset >= 0) return false;
                     yResolutionOffset = valueOffset;
+                    yResolutionEntryOffset = entryOffset;
                 }
                 sawResolutionField = true;
             } else if (tag == 296) {
@@ -45,19 +51,33 @@ internal static class OfficeExifMetadataEditor {
                     ReadUInt32(rewritten, entryOffset + 4, littleEndian) != 1U) return false;
                 if (resolutionUnitOffset >= 0) return false;
                 resolutionUnitOffset = entryOffset + 8;
+                resolutionUnitEntryOffset = entryOffset;
                 sawResolutionField = true;
             }
         }
-        if (xResolutionOffset >= 0 && yResolutionOffset >= 0 &&
-            RangesOverlap(xResolutionOffset, 8, yResolutionOffset, 8)) return false;
+        var writableRanges = new List<int>(9);
+        if (xResolutionOffset >= 0) {
+            writableRanges.Add(xResolutionOffset);
+            writableRanges.Add(8);
+            writableRanges.Add(xResolutionEntryOffset);
+        }
+        if (yResolutionOffset >= 0) {
+            writableRanges.Add(yResolutionOffset);
+            writableRanges.Add(8);
+            writableRanges.Add(yResolutionEntryOffset);
+        }
+        if (resolutionUnitOffset >= 0) {
+            writableRanges.Add(resolutionUnitOffset);
+            writableRanges.Add(2);
+            writableRanges.Add(resolutionUnitEntryOffset);
+        }
+        if (!OfficeTiffStructureValidator.TryValidateExclusiveWritableRanges(
+                rewritten, tiffOffset, tiffLength, writableRanges.ToArray())) return false;
         if (xResolutionOffset >= 0) WriteRational(rewritten, xResolutionOffset, dpiX, littleEndian);
         if (yResolutionOffset >= 0) WriteRational(rewritten, yResolutionOffset, dpiY, littleEndian);
         if (resolutionUnitOffset >= 0) WriteUInt16(rewritten, resolutionUnitOffset, 2, littleEndian);
         return sawResolutionField;
     }
-
-    private static bool RangesOverlap(int firstOffset, int firstLength, int secondOffset, int secondLength) =>
-        firstOffset < secondOffset + secondLength && secondOffset < firstOffset + firstLength;
 
     private static bool HasExifPrefix(byte[] exif) =>
         exif.Length >= 6 && exif[0] == (byte)'E' && exif[1] == (byte)'x' &&

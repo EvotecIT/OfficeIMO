@@ -453,6 +453,96 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExplicitJpegResolutionDropsExifWhenDensityAliasesAnotherTiffValue() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifWithResolutionAliasedToWhitePoint()),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    OutputDpiX = 300D,
+                    OutputDpiY = 150D,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+            Assert.Null(output.Exif);
+            Assert.Equal(OfficeImageMetadataKinds.Exif,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Exif);
+        }
+
+        [Fact]
+        public void ExifDensityRewriteRejectsAliasWithLongSubIfdTable() {
+            byte[] exif = CreateExifWithResolutionAliasedToLongSubIfd();
+
+            Assert.True(OfficeTiffStructureValidator.TryValidateExif(exif, 0, exif.Length));
+            Assert.False(OfficeExifMetadataEditor.TryRewritePhysicalResolution(
+                exif, 300D, 150D, out _));
+        }
+
+        [Fact]
+        public void JpegOptimizationDropsExifWhenOrientationAliasesAnotherTiffValue() {
+            byte[] exif = CreateExifWithOrientationAliasedToWhitePoint();
+            Assert.False(OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(exif, out _));
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: exif),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(1, 1) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+            Assert.Null(output.Exif);
+            Assert.Equal(OfficeImageMetadataKinds.Exif,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Exif);
+        }
+
+        [Fact]
+        public void JpegOptimizationDropsExifWithDuplicateOrientationEntries() {
+            byte[] exif = CreateExifWithDuplicateOrientations();
+            Assert.False(OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(exif, out _));
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: exif),
+                    WriteJfifHeader = false
+                });
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                jpeg,
+                new OfficeImageOptimizationRequest(1, 1) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            OfficeImageMetadataSnapshot output = OfficeImageMetadataInspector.Inspect(
+                result.Bytes,
+                OfficeImageFormat.Jpeg);
+            Assert.Null(output.Exif);
+            Assert.Equal(OfficeImageMetadataKinds.Exif,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Exif);
+        }
+
+        [Fact]
         public void ExplicitFractionalJpegResolutionUsesOneRepresentableDensity() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
@@ -1328,6 +1418,116 @@ namespace OfficeIMO.Tests {
             };
             WriteLittleEndianUInt32(exif, 50, checked((uint)dpiX));
             WriteLittleEndianUInt32(exif, 58, checked((uint)dpiY));
+            return exif;
+        }
+
+        private static byte[] CreateExifWithResolutionAliasedToWhitePoint() {
+            var exif = new byte[88];
+            exif[0] = (byte)'I';
+            exif[1] = (byte)'I';
+            WriteLittleEndianUInt16(exif, 2, 42);
+            WriteLittleEndianUInt32(exif, 4, 8);
+            WriteLittleEndianUInt16(exif, 8, 4);
+
+            WriteLittleEndianUInt16(exif, 10, 282);
+            WriteLittleEndianUInt16(exif, 12, 5);
+            WriteLittleEndianUInt32(exif, 14, 1);
+            WriteLittleEndianUInt32(exif, 18, 64);
+
+            WriteLittleEndianUInt16(exif, 22, 283);
+            WriteLittleEndianUInt16(exif, 24, 5);
+            WriteLittleEndianUInt32(exif, 26, 1);
+            WriteLittleEndianUInt32(exif, 30, 80);
+
+            WriteLittleEndianUInt16(exif, 34, 296);
+            WriteLittleEndianUInt16(exif, 36, 3);
+            WriteLittleEndianUInt32(exif, 38, 1);
+            WriteLittleEndianUInt16(exif, 42, 2);
+
+            WriteLittleEndianUInt16(exif, 46, 318);
+            WriteLittleEndianUInt16(exif, 48, 5);
+            WriteLittleEndianUInt32(exif, 50, 2);
+            WriteLittleEndianUInt32(exif, 54, 64);
+
+            WriteLittleEndianUInt32(exif, 64, 72);
+            WriteLittleEndianUInt32(exif, 68, 1);
+            WriteLittleEndianUInt32(exif, 72, 1);
+            WriteLittleEndianUInt32(exif, 76, 1);
+            WriteLittleEndianUInt32(exif, 80, 96);
+            WriteLittleEndianUInt32(exif, 84, 1);
+            return exif;
+        }
+
+        private static byte[] CreateExifWithResolutionAliasedToLongSubIfd() {
+            var exif = new byte[88];
+            exif[0] = (byte)'I';
+            exif[1] = (byte)'I';
+            WriteLittleEndianUInt16(exif, 2, 42);
+            WriteLittleEndianUInt32(exif, 4, 8);
+            WriteLittleEndianUInt16(exif, 8, 4);
+
+            WriteLittleEndianUInt16(exif, 10, 282);
+            WriteLittleEndianUInt16(exif, 12, 5);
+            WriteLittleEndianUInt32(exif, 14, 1);
+            WriteLittleEndianUInt32(exif, 18, 64);
+
+            WriteLittleEndianUInt16(exif, 22, 283);
+            WriteLittleEndianUInt16(exif, 24, 5);
+            WriteLittleEndianUInt32(exif, 26, 1);
+            WriteLittleEndianUInt32(exif, 30, 80);
+
+            WriteLittleEndianUInt16(exif, 34, 296);
+            WriteLittleEndianUInt16(exif, 36, 3);
+            WriteLittleEndianUInt32(exif, 38, 1);
+            WriteLittleEndianUInt16(exif, 42, 2);
+
+            WriteLittleEndianUInt16(exif, 46, 330);
+            WriteLittleEndianUInt16(exif, 48, 4);
+            WriteLittleEndianUInt32(exif, 50, 1);
+            WriteLittleEndianUInt32(exif, 54, 64);
+
+            WriteLittleEndianUInt32(exif, 80, 96);
+            WriteLittleEndianUInt32(exif, 84, 1);
+            return exif;
+        }
+
+        private static byte[] CreateExifWithOrientationAliasedToWhitePoint() {
+            var exif = new byte[40];
+            exif[0] = (byte)'I';
+            exif[1] = (byte)'I';
+            WriteLittleEndianUInt16(exif, 2, 42);
+            WriteLittleEndianUInt32(exif, 4, 8);
+            WriteLittleEndianUInt16(exif, 8, 2);
+
+            WriteLittleEndianUInt16(exif, 10, 274);
+            WriteLittleEndianUInt16(exif, 12, 3);
+            WriteLittleEndianUInt32(exif, 14, 1);
+            WriteLittleEndianUInt16(exif, 18, 6);
+
+            WriteLittleEndianUInt16(exif, 22, 318);
+            WriteLittleEndianUInt16(exif, 24, 5);
+            WriteLittleEndianUInt32(exif, 26, 2);
+            WriteLittleEndianUInt32(exif, 30, 18);
+            return exif;
+        }
+
+        private static byte[] CreateExifWithDuplicateOrientations() {
+            var exif = new byte[38];
+            exif[0] = (byte)'I';
+            exif[1] = (byte)'I';
+            WriteLittleEndianUInt16(exif, 2, 42);
+            WriteLittleEndianUInt32(exif, 4, 8);
+            WriteLittleEndianUInt16(exif, 8, 2);
+
+            WriteLittleEndianUInt16(exif, 10, 274);
+            WriteLittleEndianUInt16(exif, 12, 3);
+            WriteLittleEndianUInt32(exif, 14, 1);
+            WriteLittleEndianUInt16(exif, 18, 6);
+
+            WriteLittleEndianUInt16(exif, 22, 274);
+            WriteLittleEndianUInt16(exif, 24, 3);
+            WriteLittleEndianUInt32(exif, 26, 1);
+            WriteLittleEndianUInt16(exif, 30, 3);
             return exif;
         }
 

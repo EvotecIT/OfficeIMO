@@ -470,7 +470,8 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
-        if (OfficeRasterImageDecoder.TryDecode(bytes, maximumRasterPixels, out image) && image != null) return true;
+        if (OfficeRasterImageDecoder.TryDecode(
+                bytes, maximumRasterPixels, cancellationToken, out image) && image != null) return true;
         if (IsSvg(bytes, contentType) &&
             OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
             vector != null &&

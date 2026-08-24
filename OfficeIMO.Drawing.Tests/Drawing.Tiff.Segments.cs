@@ -101,6 +101,21 @@ public sealed class DrawingTiffSegmentTests {
             pendingAllocationBytes: 200L * 1024L * 1024L));
     }
 
+    [Fact]
+    public void TiffSinglePageLzwPreflightBoundsPredictorCompressionPeak() {
+        var options = new OfficeTiffEncodeOptions {
+            Compression = OfficeTiffCompression.Lzw,
+            Predictor = OfficeTiffPredictor.Horizontal
+        };
+
+        Assert.False(OfficeTiffCodec.IsSinglePageTiffCompressionWorkingSetWithinLimit(
+            sourceBytes: 20_000_000L * 4L,
+            options));
+        Assert.True(OfficeTiffCodec.IsSinglePageTiffCompressionWorkingSetWithinLimit(
+            sourceBytes: 1024L * 1024L,
+            options));
+    }
+
     private static byte[] CreatePlanarRgbTiff() {
         const int entryCount = 10;
         const int ifdOffset = 8;

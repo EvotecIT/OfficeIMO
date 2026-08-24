@@ -8,6 +8,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Composes a selected, already-validated APNG frame onto its logical canvas.</summary>
 internal static class OfficeApngDecoder {
+    private const int CancellationCopyChunkBytes = 1024 * 1024;
     private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
     internal static bool TryDecodeFrame(
@@ -28,15 +29,23 @@ internal static class OfficeApngDecoder {
             }
 
             long selectedPrefixPixels = 0L;
+            long selectedPrefixSegmentBytes = 0L;
+            for (int index = 0; index < framePayloads.Count; index++) {
+                if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+                selectedPrefixSegmentBytes = checked(selectedPrefixSegmentBytes +
+                    framePayloads[index].Segments.Count * 32L);
+            }
             for (int index = 0; index <= frameIndex; index++) {
+                if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 OfficeRasterFrameInfo frame = container.Frames[index];
                 long framePixels = checked((long)frame.Width * frame.Height);
                 if (framePixels > maximumPixels || selectedPrefixPixels > maximumPixels - framePixels) return false;
                 selectedPrefixPixels += framePixels;
                 if (!IsFrameWithinMemoryBudget(bytes.Length, container, container.Frames[index], ihdr,
-                        palette, transparency, framePayloads, index, index < frameIndex)) return false;
+                        palette, transparency, framePayloads, selectedPrefixSegmentBytes,
+                        index, index < frameIndex)) return false;
             }
-            var canvas = new OfficeRasterImage(container.CanvasWidth, container.CanvasHeight, OfficeColor.Transparent);
+            var canvas = new OfficeRasterImage(container.CanvasWidth, container.CanvasHeight);
             for (int index = 0; index <= frameIndex; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeRasterFrameInfo frame = container.Frames[index];
@@ -48,7 +57,7 @@ internal static class OfficeApngDecoder {
                 }
 
                 byte[]? previous = index < frameIndex && frame.Disposal == OfficeRasterFrameDisposal.Previous
-                    ? (byte[])canvas.PixelBuffer.Clone()
+                    ? CloneWithCancellation(canvas.PixelBuffer, cancellationToken)
                     : null;
                 Composite(canvas, decoded, frame, cancellationToken);
                 if (index == frameIndex) {
@@ -59,7 +68,7 @@ internal static class OfficeApngDecoder {
                 if (frame.Disposal == OfficeRasterFrameDisposal.Background) {
                     Clear(canvas, frame, cancellationToken);
                 } else if (frame.Disposal == OfficeRasterFrameDisposal.Previous && previous != null) {
-                    Buffer.BlockCopy(previous, 0, canvas.PixelBuffer, 0, previous.Length);
+                    CopyWithCancellation(previous, 0, canvas.PixelBuffer, 0, previous.Length, cancellationToken);
                 }
             }
             return false;
@@ -168,7 +177,12 @@ internal static class OfficeApngDecoder {
             WriteChunk(output, "IDAT", compressed.Source, segment.Offset, segment.Length, cancellationToken);
         }
         WriteChunk(output, "IEND", Array.Empty<byte>(), cancellationToken);
-        return output.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] buffer = output.GetBuffer();
+        if (output.Length == buffer.Length) return buffer;
+        var exact = new byte[checked((int)output.Length)];
+        CopyWithCancellation(buffer, 0, exact, 0, exact.Length, cancellationToken);
+        return exact;
     }
 
     private static bool IsFrameWithinMemoryBudget(
@@ -179,6 +193,7 @@ internal static class OfficeApngDecoder {
         byte[]? palette,
         byte[]? transparency,
         List<ApngFramePayload> payloads,
+        long selectedPrefixSegmentBytes,
         int frameIndex,
         bool applyDisposal) {
         int standaloneLength = GetStandalonePngLength(payloads[frameIndex], palette, transparency);
@@ -187,13 +202,9 @@ internal static class OfficeApngDecoder {
         long frameRgbaBytes = checked(framePixels * 4L);
         long maximumScanlineBytes = checked(framePixels * 8L + frame.Height * 7L);
         long compressedBytes = payloads[frameIndex].CompressedLength;
-        long segmentBytes = 0L;
-        for (int index = 0; index < payloads.Count; index++) {
-            segmentBytes = checked(segmentBytes + payloads[index].Segments.Count * 32L);
-        }
         long peakBytes = checked(
             encodedLength + ihdr.Length + (palette?.Length ?? 0) + (transparency?.Length ?? 0) +
-            container.Count * 128L + segmentBytes + canvasBytes +
+            container.Count * 128L + selectedPrefixSegmentBytes + canvasBytes +
             (applyDisposal && frame.Disposal == OfficeRasterFrameDisposal.Previous ? canvasBytes : 0L) +
             standaloneLength * 2L + compressedBytes * 3L + maximumScanlineBytes +
             frameRgbaBytes + frame.Width * 16L);
@@ -212,7 +223,7 @@ internal static class OfficeApngDecoder {
         return (int)length;
     }
 
-    private static void Composite(
+    internal static void Composite(
         OfficeRasterImage canvas,
         OfficeRasterImage frameImage,
         OfficeRasterFrameInfo frame,
@@ -220,16 +231,18 @@ internal static class OfficeApngDecoder {
         byte[] source = frameImage.PixelBuffer;
         byte[] target = canvas.PixelBuffer;
         for (int y = 0; y < frame.Height; y++) {
-            if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
+            int sourceRow = y * frame.Width * 4;
+            int targetRow = ((frame.Y + y) * canvas.Width + frame.X) * 4;
+            if (frame.Blend == OfficeRasterFrameBlend.Source) {
+                CopyWithCancellation(source, sourceRow, target, targetRow, frame.Width * 4, cancellationToken);
+                continue;
+            }
             for (int x = 0; x < frame.Width; x++) {
+                if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int sourceOffset = ((y * frame.Width) + x) * 4;
-                int targetOffset = (((frame.Y + y) * canvas.Width) + frame.X + x) * 4;
-                if (frame.Blend == OfficeRasterFrameBlend.Source) {
-                    Buffer.BlockCopy(source, sourceOffset, target, targetOffset, 4);
-                } else {
-                    canvas.BlendPixel(frame.X + x, frame.Y + y, OfficeColor.FromRgba(
-                        source[sourceOffset], source[sourceOffset + 1], source[sourceOffset + 2], source[sourceOffset + 3]));
-                }
+                canvas.BlendPixel(frame.X + x, frame.Y + y, OfficeColor.FromRgba(
+                    source[sourceOffset], source[sourceOffset + 1], source[sourceOffset + 2], source[sourceOffset + 3]));
             }
         }
     }
@@ -240,9 +253,45 @@ internal static class OfficeApngDecoder {
         CancellationToken cancellationToken) {
         byte[] pixels = canvas.PixelBuffer;
         for (int y = 0; y < frame.Height; y++) {
-            if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             int offset = (((frame.Y + y) * canvas.Width) + frame.X) * 4;
-            Array.Clear(pixels, offset, frame.Width * 4);
+            ClearWithCancellation(pixels, offset, frame.Width * 4, cancellationToken);
+        }
+    }
+
+    private static byte[] CloneWithCancellation(byte[] source, CancellationToken cancellationToken) {
+        var copy = new byte[source.Length];
+        CopyWithCancellation(source, 0, copy, 0, source.Length, cancellationToken);
+        return copy;
+    }
+
+    private static void CopyWithCancellation(
+        byte[] source,
+        int sourceOffset,
+        byte[] target,
+        int targetOffset,
+        int length,
+        CancellationToken cancellationToken) {
+        int copied = 0;
+        while (copied < length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int current = Math.Min(CancellationCopyChunkBytes, length - copied);
+            Buffer.BlockCopy(source, sourceOffset + copied, target, targetOffset + copied, current);
+            copied += current;
+        }
+    }
+
+    private static void ClearWithCancellation(
+        byte[] bytes,
+        int offset,
+        int length,
+        CancellationToken cancellationToken) {
+        int cleared = 0;
+        while (cleared < length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int current = Math.Min(CancellationCopyChunkBytes, length - cleared);
+            Array.Clear(bytes, offset + cleared, current);
+            cleared += current;
         }
     }
 
@@ -267,7 +316,7 @@ internal static class OfficeApngDecoder {
         WriteInt32BigEndian(header, 0, length);
         Buffer.BlockCopy(typeBytes, 0, header, 4, 4);
         output.Write(header, 0, header.Length);
-        output.Write(data, offset, length);
+        WriteWithCancellation(output, data, offset, length, cancellationToken);
         uint crc = ComputeCrc(typeBytes, data, offset, length, cancellationToken);
         byte[] checksum = new byte[4];
         WriteUInt32BigEndian(checksum, 0, crc);
@@ -287,6 +336,21 @@ internal static class OfficeApngDecoder {
             crc = UpdateCrc(crc, data[offset + index]);
         }
         return crc ^ 0xFFFFFFFFU;
+    }
+
+    private static void WriteWithCancellation(
+        Stream output,
+        byte[] data,
+        int offset,
+        int length,
+        CancellationToken cancellationToken) {
+        int written = 0;
+        while (written < length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int current = Math.Min(CancellationCopyChunkBytes, length - written);
+            output.Write(data, offset + written, current);
+            written += current;
+        }
     }
 
     private sealed class ApngFramePayload {

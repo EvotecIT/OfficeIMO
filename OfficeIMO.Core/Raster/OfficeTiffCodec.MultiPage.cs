@@ -105,6 +105,34 @@ public static partial class OfficeTiffCodec {
         }
     }
 
+    internal static bool IsSinglePageTiffCompressionWorkingSetWithinLimit(
+        long sourceBytes,
+        OfficeTiffEncodeOptions options) {
+        if (options == null || sourceBytes < 0L) return false;
+        try {
+            long pendingAllocationBytes = options.Compression switch {
+                OfficeTiffCompression.None => 0L,
+                OfficeTiffCompression.PackBits => 0L,
+                OfficeTiffCompression.Lzw => checked(sourceBytes *
+                    (UsesHorizontalPredictor(options) ? 6L : 5L)),
+                OfficeTiffCompression.Deflate => checked(sourceBytes *
+                    (UsesHorizontalPredictor(options) ? 5L : 4L)),
+                _ => throw new ArgumentOutOfRangeException(nameof(options.Compression))
+            };
+            return CanBeginMultiPageStripEncoding(sourceBytes, 0L, pendingAllocationBytes);
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static void EnsureSinglePageCompressionWorkingSet(
+        long sourceBytes,
+        OfficeTiffEncodeOptions options) {
+        if (!IsSinglePageTiffCompressionWorkingSetWithinLimit(sourceBytes, options)) {
+            throw new ArgumentException("The TIFF compression working set exceeds the managed limit.", nameof(options));
+        }
+    }
+
     private static long EstimateMultiPageStripEncodingPeak(
         OfficeRasterImage page,
         OfficeTiffEncodeOptions options) {

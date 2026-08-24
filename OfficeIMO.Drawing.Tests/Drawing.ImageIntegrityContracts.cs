@@ -270,6 +270,46 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void WideSingleRowApngCompositionObservesCancellationInsideTheRow() {
+        const int width = 8 * 1024 * 1024;
+        var canvas = new OfficeRasterImage(width, 1, OfficeColor.Transparent);
+        var frameImage = new OfficeRasterImage(width, 1, OfficeColor.FromRgba(32, 96, 224, 128));
+        var frame = new OfficeRasterFrameInfo(
+            0,
+            OfficeRasterFrameKind.AnimationFrame,
+            width,
+            1,
+            0,
+            0,
+            TimeSpan.Zero,
+            OfficeRasterFrameDisposal.None,
+            OfficeRasterFrameBlend.Over,
+            isDefaultImage: false);
+        using var cancellation = new CancellationTokenSource();
+        Exception? workerException = null;
+        var worker = new Thread(() => {
+            try {
+                OfficeApngDecoder.Composite(canvas, frameImage, frame, cancellation.Token);
+            } catch (Exception exception) {
+                Volatile.Write(ref workerException, exception);
+            }
+        }) { IsBackground = true };
+        worker.Start();
+
+        try {
+            Assert.True(SpinWait.SpinUntil(
+                () => Volatile.Read(ref canvas.PixelBuffer[(32 * 4) + 3]) != 0,
+                TimeSpan.FromSeconds(5)),
+                "APNG composition did not begin within the bounded wait.");
+            cancellation.Cancel();
+        } finally {
+            Assert.True(worker.Join(TimeSpan.FromSeconds(5)));
+        }
+
+        Assert.IsType<OperationCanceledException>(Volatile.Read(ref workerException));
+    }
+
+    [Fact]
     public void RasterDecoderComposesExplicitlySelectedApngFrames() {
         OfficeColor expected = OfficeColor.FromRgba(32, 96, 224, 128);
         byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, expected));

@@ -49,20 +49,17 @@ public static class OfficeRasterImageDecoder {
         }
     }
 
-    internal static bool TryDecode(byte[]? bytes, long maximumRasterPixels, out OfficeRasterImage? image) {
+    internal static bool TryDecode(
+        byte[]? bytes,
+        long maximumRasterPixels,
+        System.Threading.CancellationToken cancellationToken,
+        out OfficeRasterImage? image) {
         if (maximumRasterPixels <= 0L) throw new System.ArgumentOutOfRangeException(nameof(maximumRasterPixels));
-        OfficeImageFormat format = IdentifyFormat(bytes);
-        if (IsManagedRasterFormat(format) &&
-            OfficeImageReader.TryIdentifyByContent(bytes, fileName: null, out OfficeImageInfo info) &&
-            !IsWithinPixelLimit(info.Width, info.Height, maximumRasterPixels)) {
-            image = null;
-            return false;
-        }
-
-        if (!TryDecode(bytes, out image) || image == null) return false;
-        if (IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) return true;
-        image = null;
-        return false;
+        var options = new OfficeRasterDecodeOptions {
+            MaximumDecodedPixels = Math.Min(maximumRasterPixels, OfficeRasterGuards.MaximumPixels),
+            CancellationToken = cancellationToken
+        };
+        return TryDecode(bytes, options, out image, out _);
     }
 
     internal static bool IsWithinPixelLimit(int width, int height, long maximumRasterPixels) =>

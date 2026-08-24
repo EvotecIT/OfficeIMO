@@ -20,6 +20,7 @@ public static partial class OfficeTiffCodec {
         ValidateOptions(effective);
 
         byte[] pixels = image.PixelBuffer;
+        EnsureSinglePageCompressionWorkingSet(pixels.LongLength, effective);
         byte[]? compressed = effective.Compression switch {
             OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(
                 PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective)),
@@ -36,6 +37,15 @@ public static partial class OfficeTiffCodec {
         };
 
         byte[] header = CreateEncodingHeader(image, effective, stripLength);
+        OfficeRasterGuards.EnsureOutputBytes(
+            checked((long)header.Length + stripLength),
+            "The TIFF exceeds the encoded-size limit.");
+        long retainedStripBytes = effective.Compression is OfficeTiffCompression.Lzw or OfficeTiffCompression.Deflate
+            ? stripLength
+            : 0L;
+        if (!IsMultiPageTiffWorkingSetWithinLimit(pixels.LongLength, retainedStripBytes, header.Length)) {
+            throw new ArgumentException("The TIFF encoding working set exceeds the managed limit.", nameof(image));
+        }
         destination.Write(header, 0, header.Length);
         switch (effective.Compression) {
             case OfficeTiffCompression.None:

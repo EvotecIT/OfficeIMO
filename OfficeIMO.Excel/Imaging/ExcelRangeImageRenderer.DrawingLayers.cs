@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case ExcelVisualDrawingLayerKind.Image:
                         if (layer.Image != null) {
-                            RenderRasterImage(canvas, layer.Image, options, diagnostics);
+                            RenderRasterImage(canvas, layer.Image, options, diagnostics, cancellationToken);
                         }
 
                         break;

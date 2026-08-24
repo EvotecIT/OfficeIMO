@@ -3,9 +3,10 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
-        private static void RenderRasterImages(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void RenderRasterImages(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, System.Threading.CancellationToken cancellationToken) {
             foreach (ExcelVisualImage image in snapshot.Images) {
-                RenderRasterImage(canvas, image, options, diagnostics);
+                cancellationToken.ThrowIfCancellationRequested();
+                RenderRasterImage(canvas, image, options, diagnostics, cancellationToken);
             }
         }
 
@@ -16,11 +17,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void RenderRasterImage(OfficeRasterCanvas canvas, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void RenderRasterImage(OfficeRasterCanvas canvas, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, System.Threading.CancellationToken cancellationToken) {
             double scale = options.Scale;
-            if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
+            var decodeOptions = new OfficeRasterDecodeOptions { CancellationToken = cancellationToken };
+            if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, decodeOptions, out OfficeRasterImage? raster, out _) || raster == null) {
                 var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source);
+                cancellationToken.ThrowIfCancellationRequested();
                 fallbackCodec.TryDecode(image.Bytes, image.ContentType, out raster);
+                cancellationToken.ThrowIfCancellationRequested();
             }
 
             if (raster != null) {
