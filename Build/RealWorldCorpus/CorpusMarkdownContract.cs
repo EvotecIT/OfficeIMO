@@ -17,6 +17,13 @@ internal static class CorpusMarkdownContract {
                 Framework = Hostile("framework"),
                 OperatingSystem = Hostile("operatingsystem")
             },
+            Configuration = new CorpusConfiguration {
+                MaxPerFormat = 17,
+                MaxTotal = 23,
+                PackagePolicy = new CorpusPackagePolicyConfiguration {
+                    MaxPackageBytes = 29
+                }
+            },
             Totals = new CorpusTotals { Discovered = 1, EligibleUnique = 1, Selected = 1, Failed = 1 },
             Strata = new[] {
                 new CorpusStratum { Format = ReaderInputKind.Html, EligibleUnique = 1, RequestedMaximum = 1, Selected = 1, Failed = 1 }
@@ -44,6 +51,10 @@ internal static class CorpusMarkdownContract {
                 !markdown.Contains(Inert(field), StringComparison.Ordinal)) {
                 throw new InvalidOperationException($"Dynamic Markdown field '{field}' is not inert.");
             }
+        }
+        if (!markdown.Contains("| Samples per format | Total samples | Package bytes |", StringComparison.Ordinal) ||
+            !markdown.Contains("| 0 | 0 | 0 | 0 | 17 | 23 | 29 |", StringComparison.Ordinal)) {
+            throw new InvalidOperationException("Markdown does not record the sampling and package limits.");
         }
         Console.WriteLine("Dynamic Markdown fields are inert.");
         return 0;

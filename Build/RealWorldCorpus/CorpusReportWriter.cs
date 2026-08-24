@@ -27,12 +27,15 @@ internal static class CorpusReportWriter {
         text.Append("| Completed UTC | ").Append(report.CompletedUtc.ToString("O")).AppendLine(" |");
         text.Append("| Runtime | ").Append(E(report.Environment.Framework)).Append(" on ").Append(E(report.Environment.OperatingSystem)).AppendLine(" |");
         text.AppendLine().AppendLine("## Recorded limits").AppendLine();
-        text.AppendLine("| Input bytes | Traversal entries | Per-file seconds | Workers | Package parts | Expanded part bytes | Package XML characters | Total expanded bytes | Compression ratio |");
-        text.AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        text.AppendLine("| Input bytes | Traversal entries | Per-file seconds | Workers | Samples per format | Total samples | Package bytes | Package parts | Expanded part bytes | Package XML characters | Total expanded bytes | Compression ratio |");
+        text.AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
         text.Append("| ").Append(report.Configuration.MaxFileBytes)
             .Append(" | ").Append(report.Configuration.MaxTraversalEntries)
             .Append(" | ").Append(report.Configuration.TimeoutSeconds)
             .Append(" | ").Append(report.Configuration.Parallelism)
+            .Append(" | ").Append(report.Configuration.MaxPerFormat)
+            .Append(" | ").Append(report.Configuration.MaxTotal)
+            .Append(" | ").Append(report.Configuration.PackagePolicy.MaxPackageBytes)
             .Append(" | ").Append(report.Configuration.PackagePolicy.MaxPartCount)
             .Append(" | ").Append(report.Configuration.PackagePolicy.MaxPartUncompressedBytes)
             .Append(" | ").Append(report.Configuration.PackagePolicy.MaxXmlCharactersInPart)
