@@ -46,6 +46,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## HTML, RTF, and lightweight markup
 
+- [ ] Reduce MHTML large-write allocation and managed-heap peak beyond the current validated 1.40x and approximately 1.46x MimeKit margins while preserving deterministic multipart/related output, root selection, immutable decoded resources, and cross-reader equivalence. Retain the current read contender margins and smaller output, and add Linux/macOS evidence.
 - [ ] Reduce non-PDF HTML layout allocation beyond the current validated baseline: approximately 645 MiB for the 2,500-row paged table and 393 MiB for the 1,000-page document. Profile table border and color parsing, large render-box state, and repeated visual translation; retain the six-workload peak-memory budgets, and add a competitor only if it can produce the same paged vector, searchable-text, and semantic contract.
 - [ ] Improve Markdown parser margins beyond the current seven-corpus CommonMark semantic contender baseline. Transcript allocation is 1.91x Markdig, Large table is 1.84x, Portable README is 1.83x, and Rich AST is 1.80x. Establish a separate equivalent-work contract and targets for source-backed parsing, which retains source spans, trivia, and syntax ownership.
 - [ ] Move OfficeMarkup CommonMark semantic parsing closer to parity beyond the current validated 1.15-1.31x BenchmarkDotNet time and 1.13-1.26x allocation margins. Prioritize normal-workload elapsed time and small-workload allocation, preserve lazy exact `SourceText`, and add Linux/macOS evidence.

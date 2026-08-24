@@ -16,6 +16,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | OpenDocument | BenchmarkDotNet open, sparse-write, formula, and validated ODS create/read comparisons | Evidence runner records peak working set and package input/output bytes; the ODS comparison exports validated size sidecars | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
 | OneNote | BenchmarkDotNet native read, write, and Markdown projection plus isolated create/write, read, and read/edit/write workflows | Managed allocations, sampled managed-heap growth, process peak, input bytes, and output bytes are recorded | No like-for-like offline semantic `.one` competitor has been identified | Native scale evidence and regression budgets are in place; add non-Windows evidence and a competitor only when the same offline semantic contract exists |
 | Email | Full validated EML read/write evidence is within 2x of MimeKit; the 2,000-item PST scale contract fell from 68.19s to 4.03s | EML retained heap, managed peak, and process peak are all within 2x; validated output is 1.07-1.08x MimeKit; the 4.08 MB PST retained 0.70 MB managed memory | MimeKit 4.17.0 for equivalent complete MIME workflows | Improve the 1.52x normal-write allocation margin and add non-Windows evidence; add a PST competitor only if the same managed creation contract is available |
+| MHTML | Complete validated reads are 0.88-1.08x MimeKit plus AngleSharp time and 0.62-0.92x allocation; writes are 0.67-0.73x MimeKit time and 0.70-1.40x allocation | Retained heap, managed peak, process peak, decoded bytes, and output bytes are recorded; OfficeIMO output is 0.864-0.973x MimeKit size | MimeKit 4.17.0 plus AngleSharp 1.7.1 for equivalent MIME, HTML DOM, and decoded-resource workflows | Reduce the 1.40x large-write allocation and approximately 1.46x managed-peak margin and add Linux/macOS evidence |
 | ZIP | Full validated safe-traversal evidence is 1.03-1.16x raw platform traversal by mean time and 1.00-1.01x by allocation | Isolated peak managed-heap growth matches the platform lane; output size is not applicable because both lanes consume the same ZIP | `System.IO.Compression` metadata projection, explicitly without OfficeIMO's safety policy | Add Linux/macOS evidence |
 | EPUB | Full validated open/read evidence uses 0.26-0.37x VersOne's mean time and 0.24-0.28x its managed allocation | Retained result size is 0.94-0.99x; managed peak is 0.28-0.44x; both lanes consume the same input package | VersOne.Epub plus HtmlAgilityPack for equivalent metadata, raw-XHTML, visible-text, and spine-order extraction | Add Linux/macOS evidence; add creation evidence only if OfficeIMO gains an EPUB writer |
 | LaTeX | Validated BenchmarkDotNet lossless parse and parse-plus-preserve-write curves plus isolated evidence; the optimized large lane is about 69% faster and allocates about 62% less than the initial baseline | Allocation, retained heap, sampled managed peak, process peak, input bytes, and byte-identical preserve output are recorded and budgeted | No general .NET parser performs the same public lossless syntax plus semantic workflow | The 701 KiB source still retains about 57 MiB across its 256,036-token public model; reduce graph overhead and add non-Windows evidence |
@@ -266,6 +267,27 @@ removing disk-journal setup for single-block data trees. The isolated runner
 also places retained heap, managed-heap peak, and absolute process peak within
 2x for every read and write scale; normal-write allocation at 1.52x remains the
 next optimization margin.
+
+## MHTML archive comparisons
+
+`OfficeIMO.Mhtml.Benchmarks.Comparisons` measures complete MHTML loading and
+serialization. The comparison lane uses MimeKit for multipart/related MIME and
+AngleSharp for the HTML DOM, then retains every decoded resource. Both outputs
+must pass both readers with equal root metadata, HTML, element count, ordered
+resource metadata, decoded lengths, and payload hashes.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Mhtml.Benchmarks.Comparisons -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Mhtml.Benchmarks.Comparisons -- --filter '*Mhtml*' --job Short --noOverwrite
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Mhtml.Benchmarks.Comparisons -- evidence --repeat 3 --json .benchmark-artifacts\mhtml\evidence.json
+```
+
+The clean Windows evidence is recorded in
+[`officeimo.mhtml-2026-08-24.md`](officeimo.mhtml-2026-08-24.md). All time,
+allocation, retained-heap, and peak-memory lanes are within 2x. Large-read
+allocation fell 40.2% from the initial source, and OfficeIMO output is
+0.864-0.973x MimeKit's size. Large-write allocation and managed peak remain the
+weakest contender margins at 1.40x and approximately 1.46x, respectively.
 
 ## OpenDocument comparisons
 
