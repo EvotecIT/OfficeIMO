@@ -13,7 +13,8 @@ internal sealed class AsciiDocSyntaxFactory {
         new AsciiDocSyntaxNode(
             kind,
             _source,
-            _source.CreateSpan(start, end),
+            start,
+            end,
             CompleteCoverage(start, end, children));
 
     internal void AddLineEnding(List<AsciiDocSyntaxNode> children, AsciiDocSourceLine line) {
@@ -29,8 +30,8 @@ internal sealed class AsciiDocSyntaxFactory {
         int expected = start;
         for (int index = 0; index < children.Count; index++) {
             AsciiDocSyntaxNode child = children[index];
-            if (child.Span.Start.Offset > expected) return CompleteCoverageWithGaps(start, end, children);
-            expected = Math.Max(expected, child.Span.End.Offset);
+            if (child.StartOffset > expected) return CompleteCoverageWithGaps(start, end, children);
+            expected = Math.Max(expected, child.EndOffset);
         }
         return expected == end ? children : CompleteCoverageWithGaps(start, end, children);
     }
@@ -43,9 +44,9 @@ internal sealed class AsciiDocSyntaxFactory {
         int expected = start;
         for (int index = 0; index < children.Count; index++) {
             AsciiDocSyntaxNode child = children[index];
-            if (child.Span.Start.Offset > expected) completed.Add(CreateTrivia(expected, child.Span.Start.Offset));
+            if (child.StartOffset > expected) completed.Add(CreateTrivia(expected, child.StartOffset));
             completed.Add(child);
-            expected = Math.Max(expected, child.Span.End.Offset);
+            expected = Math.Max(expected, child.EndOffset);
         }
         if (expected < end) completed.Add(CreateTrivia(expected, end));
         return completed;
@@ -55,5 +56,6 @@ internal sealed class AsciiDocSyntaxFactory {
         new AsciiDocSyntaxNode(
             AsciiDocSyntaxKind.Trivia,
             _source,
-            _source.CreateSpan(start, end));
+            start,
+            end);
 }

@@ -22,19 +22,19 @@ public sealed class AsciiDocSyntaxTree {
     public bool IsLossless { get; }
 
     internal static bool ValidateNodeCoverage(AsciiDocSourceText source, AsciiDocSyntaxNode node) {
-        if (node.Span.Start.Offset < 0 || node.Span.End.Offset > source.Text.Length) return false;
+        if (node.StartOffset < 0 || node.EndOffset > source.Text.Length) return false;
         if (!node.HasSource(source)) return false;
         if (node.Children.Count == 0) return true;
 
-        int expectedOffset = node.Span.Start.Offset;
+        int expectedOffset = node.StartOffset;
         for (int index = 0; index < node.Children.Count; index++) {
             AsciiDocSyntaxNode child = node.Children[index];
-            if (child.Span.Start.Offset != expectedOffset) return false;
-            if (child.Span.End.Offset < child.Span.Start.Offset || child.Span.End.Offset > node.Span.End.Offset) return false;
+            if (child.StartOffset != expectedOffset) return false;
+            if (child.EndOffset < child.StartOffset || child.EndOffset > node.EndOffset) return false;
             if (!ValidateNodeCoverage(source, child)) return false;
-            expectedOffset = child.Span.End.Offset;
+            expectedOffset = child.EndOffset;
         }
 
-        return expectedOffset == node.Span.End.Offset;
+        return expectedOffset == node.EndOffset;
     }
 }
