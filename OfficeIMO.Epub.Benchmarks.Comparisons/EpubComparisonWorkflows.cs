@@ -62,6 +62,32 @@ internal static class EpubComparisonWorkflows {
                 new ChapterContent(chapter.FilePath, chapter.Content, ExtractVersOneText(chapter.Content))));
     }
 
+    internal static EpubRetainedProjection RetainOfficeIMO(byte[] package) {
+        EpubDocument document = LoadOfficeIMO(package);
+        return new EpubRetainedProjection(
+            document,
+            document.Title,
+            document.Creator,
+            document.Language,
+            document.Chapters.Select(chapter => new EpubRetainedChapter(
+                chapter.Path,
+                chapter.Html ?? string.Empty,
+                chapter.Text)).ToArray());
+    }
+
+    internal static EpubRetainedProjection RetainVersOne(byte[] package) {
+        VersOneBook book = LoadVersOne(package);
+        return new EpubRetainedProjection(
+            book,
+            book.Title,
+            book.Author,
+            book.Schema.Package.Metadata.Languages.FirstOrDefault()?.Language,
+            book.ReadingOrder.Select(chapter => new EpubRetainedChapter(
+                chapter.FilePath,
+                chapter.Content,
+                ExtractVersOneText(chapter.Content))).ToArray());
+    }
+
     private static EpubDocument LoadOfficeIMO(byte[] package) {
         using var stream = new MemoryStream(package, writable: false);
         return EpubDocument.Load(stream, OfficeIMOOptions);
@@ -163,3 +189,12 @@ internal static class EpubComparisonWorkflows {
     private const ulong FnvOffset = 14695981039346656037UL;
     private const ulong FnvPrime = 1099511628211UL;
 }
+
+internal sealed record EpubRetainedProjection(
+    object Source,
+    string? Title,
+    string? Creator,
+    string? Language,
+    IReadOnlyList<EpubRetainedChapter> Chapters);
+
+internal sealed record EpubRetainedChapter(string Path, string Content, string Text);

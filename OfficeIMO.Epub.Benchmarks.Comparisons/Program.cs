@@ -2,6 +2,16 @@ using System.Text.Json;
 using BenchmarkDotNet.Running;
 using OfficeIMO.Epub.Benchmarks.Comparisons;
 
+if (args.Length > 0 && string.Equals(args[0], "--evidence-probe", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = EpubEvidenceRunner.RunProbe(args.Skip(1).ToArray());
+    return;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "--evidence", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = EpubEvidenceRunner.RunEvidence(args.Skip(1).ToArray());
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.OrdinalIgnoreCase)) {
     IReadOnlyList<EpubComparisonReport> reports = EpubComparisonValidation.ValidateAll();
     string? outputPath = ReadOption(args, "--json");

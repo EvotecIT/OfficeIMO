@@ -46,3 +46,23 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Epub.Benchmarks.Comparison
 
 BenchmarkDotNet artifacts and validation JSON are environment-specific. Keep
 them under `.benchmark-artifacts` or another ignored output root.
+
+## Capture isolated memory evidence
+
+Use the process-isolated evidence runner to measure median elapsed time and
+managed allocations together with retained managed heap, sampled managed-heap
+peak, and process working-set peak. The retention phase keeps equivalent
+metadata, raw XHTML, normalized text, and chapter-order projections alive for
+both readers. Each child process loads only the selected reader; the parent
+validates equivalent output before measurement and rejects fingerprint or
+input-size differences across probes.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Epub.Benchmarks.Comparisons -- --evidence --repeat 3 --json .benchmark-artifacts\epub\comparison-evidence.json
+```
+
+The runner reports OfficeIMO divided by VersOne.Epub ratios. A ratio at or
+below `2.00x` is the contender boundary for every measured dimension; lower is
+better. Because both workflows read the same package and this library does not
+write EPUB files, input bytes are the applicable size evidence and there is no
+separate output-file-size ratio.
