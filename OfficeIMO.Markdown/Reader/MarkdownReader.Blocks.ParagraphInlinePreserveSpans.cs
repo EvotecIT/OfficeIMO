@@ -19,11 +19,19 @@ public static partial class MarkdownReader {
             return Array.Empty<bool>();
         }
 
-        var text = string.Join("\n", lines);
-        if (text.IndexOf('`') < 0 && text.IndexOf('<') < 0) {
-            return new bool[Math.Max(0, lines.Count - 1)];
+        bool containsCandidateDelimiter = false;
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            string line = lines[lineIndex] ?? string.Empty;
+            if (line.IndexOf('`') >= 0 || line.IndexOf('<') >= 0) {
+                containsCandidateDelimiter = true;
+                break;
+            }
+        }
+        if (!containsCandidateDelimiter) {
+            return Array.Empty<bool>();
         }
 
+        var text = string.Join("\n", lines);
         var ranges = FindMatchedCodeSpanRanges(text);
         if (options?.InlineHtml == true) {
             ranges.AddRange(FindMatchedRawInlineHtmlTagRanges(text));

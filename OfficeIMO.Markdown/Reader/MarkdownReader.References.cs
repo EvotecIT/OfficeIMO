@@ -68,7 +68,8 @@ public static partial class MarkdownReader {
             if (leading >= 4) continue;
             if (leading < line.Length && line[leading] == '\t') continue;
 
-            if (TryParseReferenceLinkDefinition(
+            bool containsPotentialDefinition = ContainsPotentialReferenceLinkDefinition(line);
+            if (containsPotentialDefinition && TryParseReferenceLinkDefinition(
                 lines,
                 idx,
                 options,
@@ -113,7 +114,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (!inQuotedFence && TryParseQuotedReferenceLinkDefinition(
+            if (containsPotentialDefinition && !inQuotedFence && TryParseQuotedReferenceLinkDefinition(
                 lines,
                 idx,
                 options,
@@ -139,18 +140,21 @@ public static partial class MarkdownReader {
         }
 
         for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
-            string line = lines[lineIndex] ?? string.Empty;
-            int separator = line.IndexOf("]:", StringComparison.Ordinal);
-            if (separator <= 0) {
-                continue;
-            }
-
-            if (line.LastIndexOf('[', separator) >= 0) {
+            if (ContainsPotentialReferenceLinkDefinition(lines[lineIndex] ?? string.Empty)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private static bool ContainsPotentialReferenceLinkDefinition(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return false;
+        }
+
+        int separator = line.IndexOf("]:", StringComparison.Ordinal);
+        return separator > 0 && line.LastIndexOf('[', separator) >= 0;
     }
 
     private static bool CanReferenceDefinitionResolveOpenShortcutParagraph(string[] lines, int definitionIndex) {
