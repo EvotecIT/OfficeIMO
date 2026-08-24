@@ -95,6 +95,18 @@ public class PathIdentityContracts {
         }
     }
 
+    [Fact]
+    public void LegacyAndExtendedWindowsIdentitiesUseTheirSharedFileIndex() {
+        var extended = OfficePhysicalFileIdentity.CreateWindowsExtended(string.Empty, 7, 101, 202, 11);
+        var legacy = OfficePhysicalFileIdentity.CreateWindowsLegacy(string.Empty, 7, 11);
+        var other = OfficePhysicalFileIdentity.CreateWindowsLegacy(string.Empty, 7, 12);
+
+        Assert.Equal(extended, legacy);
+        Assert.True(extended.HasSameNumericIdentity(legacy));
+        Assert.Equal(extended.ToStableKey(), legacy.ToStableKey());
+        Assert.NotEqual(extended, other);
+    }
+
     private static void CreateHardLink(string alias, string source) {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
             if (!CreateHardLinkWindows(alias, source, IntPtr.Zero)) {

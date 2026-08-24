@@ -16,6 +16,10 @@ namespace OfficeIMO.Internal {
         private const uint FileAttributeDirectory = 0x00000010;
         private const int ErrorFileNotFound = 2;
         private const int ErrorPathNotFound = 3;
+        private const int ErrorInvalidFunction = 1;
+        private const int ErrorNotSupported = 50;
+        private const int ErrorInvalidParameter = 87;
+        private const int ErrorCallNotImplemented = 120;
 
         private static string ResolveWindowsExistingPath(string path) {
             using (SafeFileHandle handle = OpenWindowsPathHandle(path)) {
@@ -40,19 +44,41 @@ namespace OfficeIMO.Internal {
         }
 
         private static OfficeFileMetadata GetWindowsMetadata(string path, SafeFileHandle handle) {
-            if (!GetFileInformationByHandleEx(handle, FileIdInfo, out FileIdInformation fileId,
-                    (uint)Marshal.SizeOf<FileIdInformation>())) {
-                throw WindowsIdentityError(path, "read its 128-bit file identity");
-            }
             if (!GetFileInformationByHandle(handle, out ByHandleFileInformation legacy)) {
                 throw WindowsIdentityError(path, "read its link count");
             }
             string authority = GetWindowsAuthority(GetWindowsFinalPath(handle));
-            var identity = new OfficePhysicalFileIdentity(authority, fileId.VolumeSerialNumber,
-                fileId.FileId.LowPart, fileId.FileId.HighPart);
+            OfficePhysicalFileIdentity identity;
+            ulong legacyFileIndex = ((ulong)legacy.FileIndexHigh << 32) | legacy.FileIndexLow;
+            try {
+                if (GetFileInformationByHandleEx(handle, FileIdInfo, out FileIdInformation fileId,
+                        (uint)Marshal.SizeOf<FileIdInformation>())) {
+                    identity = OfficePhysicalFileIdentity.CreateWindowsExtended(authority,
+                        fileId.VolumeSerialNumber, fileId.FileId.LowPart, fileId.FileId.HighPart,
+                        legacyFileIndex);
+                } else {
+                    int error = Marshal.GetLastWin32Error();
+                    if (!IsUnsupportedExtendedFileId(error)) {
+                        throw WindowsIdentityError(path, "read its 128-bit file identity", error);
+                    }
+                    identity = CreateLegacyWindowsIdentity(authority, legacy.VolumeSerialNumber,
+                        legacyFileIndex);
+                }
+            } catch (EntryPointNotFoundException) {
+                identity = CreateLegacyWindowsIdentity(authority, legacy.VolumeSerialNumber,
+                    legacyFileIndex);
+            }
             return new OfficeFileMetadata(identity, legacy.NumberOfLinks, 0,
                 (legacy.FileAttributes & FileAttributeDirectory) != 0);
         }
+
+        private static OfficePhysicalFileIdentity CreateLegacyWindowsIdentity(string authority,
+            ulong volume, ulong fileIndex) =>
+            OfficePhysicalFileIdentity.CreateWindowsLegacy(authority, volume, fileIndex);
+
+        private static bool IsUnsupportedExtendedFileId(int error) =>
+            error == ErrorInvalidFunction || error == ErrorNotSupported ||
+            error == ErrorInvalidParameter || error == ErrorCallNotImplemented;
 
         private static bool TryGetWindowsDirectoryCaseInsensitive(string directory, out bool caseInsensitive) {
             caseInsensitive = true;

@@ -564,6 +564,11 @@ public sealed partial class EmailStorePstMutationTransaction {
     }
 
     private void EnsureSourceUnchanged() {
+        if (!string.Equals(_sourceIdentity, EmailStorePathIdentity.GetPhysicalIdentityKey(_sourcePath),
+                StringComparison.Ordinal)) {
+            throw new IOException(
+                "The source PST identity changed while the mutation transaction was open; the staged rewrite was not committed.");
+        }
         var source = new FileInfo(_sourcePath);
         if (!source.Exists || source.Length != _sourceLength ||
             source.LastWriteTimeUtc != _sourceLastWriteTimeUtc) {

@@ -19,20 +19,70 @@ namespace OfficeIMO.Internal {
 
     /// <summary>Identifies one file within a filesystem authority and volume.</summary>
     internal readonly struct OfficePhysicalFileIdentity : IEquatable<OfficePhysicalFileIdentity> {
+        private enum IdentityKind : byte {
+            Native,
+            WindowsExtended,
+            WindowsLegacy
+        }
+
         internal OfficePhysicalFileIdentity(string authority, ulong volume, ulong fileLow, ulong fileHigh = 0) {
             Authority = authority ?? string.Empty;
             Volume = volume;
             FileLow = fileLow;
             FileHigh = fileHigh;
+            LegacyFileLow = 0;
+            Kind = IdentityKind.Native;
         }
+
+        private OfficePhysicalFileIdentity(string authority, ulong volume, ulong fileLow, ulong fileHigh,
+            ulong legacyFileLow, IdentityKind kind) {
+            Authority = authority ?? string.Empty;
+            Volume = volume;
+            FileLow = fileLow;
+            FileHigh = fileHigh;
+            LegacyFileLow = legacyFileLow;
+            Kind = kind;
+        }
+
+        internal static OfficePhysicalFileIdentity CreateWindowsExtended(string authority, ulong volume,
+            ulong fileLow, ulong fileHigh, ulong legacyFileLow) =>
+            new OfficePhysicalFileIdentity(authority, volume, fileLow, fileHigh, legacyFileLow,
+                IdentityKind.WindowsExtended);
+
+        internal static OfficePhysicalFileIdentity CreateWindowsLegacy(string authority, ulong volume,
+            ulong legacyFileLow) =>
+            new OfficePhysicalFileIdentity(authority, volume, legacyFileLow, 0, legacyFileLow,
+                IdentityKind.WindowsLegacy);
 
         internal string Authority { get; }
         internal ulong Volume { get; }
         internal ulong FileLow { get; }
         internal ulong FileHigh { get; }
+        private ulong LegacyFileLow { get; }
+        private IdentityKind Kind { get; }
 
-        internal bool HasSameNumericIdentity(OfficePhysicalFileIdentity other) =>
-            Volume == other.Volume && FileLow == other.FileLow && FileHigh == other.FileHigh;
+        internal bool HasSameNumericIdentity(OfficePhysicalFileIdentity other) {
+            if (Volume != other.Volume) return false;
+            bool windows = Kind != IdentityKind.Native;
+            bool otherWindows = other.Kind != IdentityKind.Native;
+            if (windows != otherWindows) return false;
+            if (windows) {
+                if (Kind == IdentityKind.WindowsExtended && other.Kind == IdentityKind.WindowsExtended) {
+                    return FileLow == other.FileLow && FileHigh == other.FileHigh;
+                }
+                return LegacyFileLow == other.LegacyFileLow;
+            }
+            return FileLow == other.FileLow && FileHigh == other.FileHigh;
+        }
+
+        internal string ToStableKey() {
+            if (Kind != IdentityKind.Native) {
+                return "W|" + Authority.ToUpperInvariant() + "|" + Volume.ToString("X16") + "|" +
+                    LegacyFileLow.ToString("X16");
+            }
+            return "N|" + Authority.ToUpperInvariant() + "|" + Volume.ToString("X16") + "|" +
+                FileHigh.ToString("X16") + "|" + FileLow.ToString("X16");
+        }
 
         public bool Equals(OfficePhysicalFileIdentity other) =>
             HasSameNumericIdentity(other) &&
@@ -44,6 +94,7 @@ namespace OfficeIMO.Internal {
             unchecked {
                 int hash = StringComparer.OrdinalIgnoreCase.GetHashCode(Authority);
                 hash = (hash * 397) ^ Volume.GetHashCode();
+                if (Kind != IdentityKind.Native) return (hash * 397) ^ LegacyFileLow.GetHashCode();
                 hash = (hash * 397) ^ FileLow.GetHashCode();
                 return (hash * 397) ^ FileHigh.GetHashCode();
             }

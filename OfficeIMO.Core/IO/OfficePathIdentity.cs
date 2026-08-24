@@ -86,6 +86,12 @@ namespace OfficeIMO.Internal {
                 metadata.LinkCount > 1;
         }
 
+        internal static string GetPhysicalIdentityKey(string path) =>
+            GetMetadata(ResolvePhysicalPath(path)).Identity.ToStableKey();
+
+        internal static string GetPhysicalIdentityKey(string path, SafeFileHandle handle) =>
+            GetMetadata(path, handle).Identity.ToStableKey();
+
         internal static OfficeFileMetadata GetMetadata(string path) {
             string fullPath = Path.GetFullPath(path);
             if (!TryGetPathMetadata(fullPath, out OfficeFileMetadata metadata)) {
@@ -124,7 +130,11 @@ namespace OfficeIMO.Internal {
                 return caseInsensitive;
             }
             if (TryGetPathMetadata(directory, out OfficeFileMetadata directoryMetadata) && directoryMetadata.IsDirectory) {
-                if (TryDetectFromExistingName(directory, out caseInsensitive)) return caseInsensitive;
+                if ((RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                     RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) &&
+                    TryGetUnixDirectoryCaseInsensitive(directory, out caseInsensitive)) {
+                    return caseInsensitive;
+                }
                 try {
                     foreach (string entry in Directory.EnumerateFileSystemEntries(directory)) {
                         if (TryDetectFromExistingName(entry, out caseInsensitive)) return caseInsensitive;
@@ -132,8 +142,9 @@ namespace OfficeIMO.Internal {
                 } catch (IOException) {
                 } catch (UnauthorizedAccessException) {
                 }
+
             }
-            return IsConservativelyCaseInsensitivePlatform;
+            return true;
         }
 
         private static bool IsConservativelyCaseInsensitivePlatform =>
@@ -168,10 +179,16 @@ namespace OfficeIMO.Internal {
             string alternatePath = Path.Combine(parent, alternateName.ToString());
             if (!TryGetPathMetadata(alternatePath, out _)) return true;
 
-            int matches = Directory.EnumerateFileSystemEntries(parent)
-                .Count(entry => string.Equals(Path.GetFileName(entry), name, StringComparison.OrdinalIgnoreCase));
-            caseInsensitive = matches <= 1;
-            return true;
+            try {
+                int matches = Directory.EnumerateFileSystemEntries(parent)
+                    .Count(entry => string.Equals(Path.GetFileName(entry), name, StringComparison.OrdinalIgnoreCase));
+                caseInsensitive = matches <= 1;
+                return true;
+            } catch (IOException) {
+                return false;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            }
         }
 
         private static bool ExistingAncestryContainsIdentity(string path, OfficePhysicalFileIdentity expected) {

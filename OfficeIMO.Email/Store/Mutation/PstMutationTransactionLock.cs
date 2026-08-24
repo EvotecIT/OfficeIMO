@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 
 namespace OfficeIMO.Email.Store;
 
@@ -17,9 +19,10 @@ internal sealed class PstMutationTransactionLock : IDisposable {
         _identity = identity;
     }
 
-    internal static PstMutationTransactionLock Acquire(string sourcePath) {
-        string physicalPath = EmailStorePathIdentity.ResolvePhysicalPath(sourcePath);
-        string identity = EmailStorePathIdentity.Normalize(physicalPath);
+    internal string Identity => _identity;
+
+    internal static PstMutationTransactionLock Acquire(string sourcePath, SafeFileHandle sourceHandle) {
+        string identity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath, sourceHandle);
         if (!ProcessLocks.TryAdd(identity, 0)) {
             throw new IOException("Another OfficeIMO mutation transaction already owns this PST path.");
         }
@@ -30,10 +33,23 @@ internal sealed class PstMutationTransactionLock : IDisposable {
         Array.Clear(digest, 0, digest.Length);
 
         try {
-            string lockDirectory = Path.GetDirectoryName(physicalPath) ?? Directory.GetCurrentDirectory();
+            string lockRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrWhiteSpace(lockRoot)) lockRoot = Path.GetTempPath();
+            string lockDirectory = Path.Combine(lockRoot, "OfficeIMO", "PstMutationLocks");
+            Directory.CreateDirectory(lockDirectory);
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && ChangeMode(lockDirectory, 0x1c0U) != 0) {
+                throw new IOException("The per-user OfficeIMO PST mutation lock directory could not be secured " +
+                    "(OS error " + Marshal.GetLastWin32Error() + ").");
+            }
             string lockPath = Path.Combine(lockDirectory, lockName);
             var lockStream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
                 FileShare.None, 1, FileOptions.RandomAccess);
+            string currentIdentity = EmailStorePathIdentity.GetPhysicalIdentityKey(sourcePath);
+            if (!string.Equals(identity, currentIdentity, StringComparison.Ordinal)) {
+                lockStream.Dispose();
+                throw new IOException(
+                    "The source PST path changed while its mutation lock was being acquired.");
+            }
             return new PstMutationTransactionLock(lockStream, identity);
         } catch (UnauthorizedAccessException exception) {
             ProcessLocks.TryRemove(identity, out _);
@@ -54,4 +70,7 @@ internal sealed class PstMutationTransactionLock : IDisposable {
             ProcessLocks.TryRemove(_identity, out _);
         }
     }
+
+    [DllImport("libc", EntryPoint = "chmod", CharSet = CharSet.Ansi, SetLastError = true)]
+    private static extern int ChangeMode(string path, uint mode);
 }

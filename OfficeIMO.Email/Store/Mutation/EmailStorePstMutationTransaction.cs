@@ -11,6 +11,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
     private readonly EmailStorePstMutationOptions _options;
     private readonly long _sourceLength;
     private readonly DateTime _sourceLastWriteTimeUtc;
+    private readonly string _sourceIdentity;
     private readonly Dictionary<string, FolderState> _folders;
     private readonly List<EmailStoreDiagnostic> _diagnostics;
     private PstMutationTransactionLock? _transactionLock;
@@ -27,6 +28,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         _source = source;
         _sourceLength = sourceFile.Length;
         _sourceLastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
+        _sourceIdentity = transactionLock.Identity;
         _folders = source.Folders.ToDictionary(folder => folder.Id,
             folder => new FolderState(folder, source.IsOfficeImoWriterStore), StringComparer.Ordinal);
         _diagnostics = new List<EmailStoreDiagnostic>(source.Diagnostics);
@@ -65,9 +67,9 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         FileStream? input = null;
         PstMutationTransactionLock? transactionLock = null;
         try {
-            transactionLock = PstMutationTransactionLock.Acquire(sourcePath);
             input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
                 64 * 1024, FileOptions.RandomAccess);
+            transactionLock = PstMutationTransactionLock.Acquire(sourcePath, input.SafeFileHandle);
             PstHeader header = PstHeader.Read(input, EmailStoreFormat.Pst);
             if (!header.IsUnicode) {
                 throw new NotSupportedException(

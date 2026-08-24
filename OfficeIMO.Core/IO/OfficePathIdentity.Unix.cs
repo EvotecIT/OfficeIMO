@@ -13,6 +13,23 @@ namespace OfficeIMO.Internal {
         private const int ErrorNoEntry = 2;
         private const int ErrorNotDirectory = 20;
         private const int ErrorInvalidArgument = 22;
+        private const int ErrorFunctionNotImplemented = 38;
+        private const int MacPathConfCaseSensitive = 11;
+        private const int LinuxOpenReadOnly = 0;
+        private const int LinuxOpenDirectory = 0x10000;
+        private const int LinuxCaseFoldFlag = 0x40000000;
+        private const ulong LinuxGetFileFlags64 = 0x80086601;
+        private const ulong LinuxGetFileFlags32 = 0x80046601;
+        private const ulong LinuxExtFileSystem = 0x0000ef53;
+        private const ulong LinuxF2fsFileSystem = 0xf2f52010;
+        private const ulong LinuxBcachefsFileSystem = 0xca451a4e;
+        private const ulong LinuxBtrfsFileSystem = 0x9123683e;
+        private const ulong LinuxXfsFileSystem = 0x58465342;
+        private const ulong LinuxTmpfsFileSystem = 0x01021994;
+        private const ulong LinuxOverlayFileSystem = 0x794c7630;
+        private const ulong LinuxMsDosFileSystem = 0x00004d44;
+        private const ulong LinuxExFatFileSystem = 0x2011bab0;
+        private const ulong LinuxNtfsFileSystem = 0x5346544e;
         private const uint UnixFileTypeMask = 0xf000;
         private const uint UnixDirectoryType = 0x4000;
 
@@ -56,26 +73,91 @@ namespace OfficeIMO.Internal {
                     return true;
                 }
                 int error = Marshal.GetLastWin32Error();
+                if (error == ErrorFunctionNotImplemented) return TryGetLinuxLegacyMetadata(path, out metadata);
                 if (IsConfirmedMissing(error)) {
                     metadata = default(OfficeFileMetadata);
                     return false;
                 }
                 throw UnixIdentityError(path, error);
-            } catch (EntryPointNotFoundException exception) {
-                throw new PlatformNotSupportedException("This Linux runtime does not expose statx.", exception);
+            } catch (EntryPointNotFoundException) {
+                return TryGetLinuxLegacyMetadata(path, out metadata);
             }
         }
 
         private static OfficeFileMetadata GetLinuxMetadata(int descriptor) {
             try {
                 if (LinuxStatX(descriptor, string.Empty, AtEmptyPath, StatxBasicStats, out LinuxStatx status) != 0) {
-                    throw UnixIdentityError("open descriptor");
+                    int error = Marshal.GetLastWin32Error();
+                    if (error == ErrorFunctionNotImplemented) return GetLinuxLegacyMetadata(descriptor);
+                    throw UnixIdentityError("open descriptor", error);
                 }
                 return CreateLinuxMetadata(status);
-            } catch (EntryPointNotFoundException exception) {
-                throw new PlatformNotSupportedException("This Linux runtime does not expose statx.", exception);
+            } catch (EntryPointNotFoundException) {
+                return GetLinuxLegacyMetadata(descriptor);
             }
         }
+
+        private static bool TryGetLinuxLegacyMetadata(string path, out OfficeFileMetadata metadata) {
+            IntPtr buffer = Marshal.AllocHGlobal(256);
+            try {
+                ZeroBuffer(buffer, 256);
+                if (LinuxStat(path, buffer) == 0) {
+                    metadata = ReadLinuxLegacyMetadata(buffer);
+                    return true;
+                }
+                int error = Marshal.GetLastWin32Error();
+                if (IsConfirmedMissing(error)) {
+                    metadata = default(OfficeFileMetadata);
+                    return false;
+                }
+                throw UnixIdentityError(path, error);
+            } finally {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        private static OfficeFileMetadata GetLinuxLegacyMetadata(int descriptor) {
+            IntPtr buffer = Marshal.AllocHGlobal(256);
+            try {
+                ZeroBuffer(buffer, 256);
+                if (LinuxFStat(descriptor, buffer) != 0) throw UnixIdentityError("open descriptor");
+                return ReadLinuxLegacyMetadata(buffer);
+            } finally {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        private static OfficeFileMetadata ReadLinuxLegacyMetadata(IntPtr buffer) {
+            ulong encodedDevice;
+            ulong inode;
+            ulong linkCount;
+            uint mode;
+            if (RuntimeInformation.ProcessArchitecture == Architecture.X64) {
+                encodedDevice = unchecked((ulong)Marshal.ReadInt64(buffer, 0));
+                inode = unchecked((ulong)Marshal.ReadInt64(buffer, 8));
+                linkCount = unchecked((ulong)Marshal.ReadInt64(buffer, 16));
+                mode = unchecked((uint)Marshal.ReadInt32(buffer, 24));
+            } else if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64) {
+                encodedDevice = unchecked((ulong)Marshal.ReadInt64(buffer, 0));
+                inode = unchecked((ulong)Marshal.ReadInt64(buffer, 8));
+                mode = unchecked((uint)Marshal.ReadInt32(buffer, 16));
+                linkCount = unchecked((uint)Marshal.ReadInt32(buffer, 20));
+            } else {
+                throw new PlatformNotSupportedException(
+                    "The Linux stat fallback supports x64 and ARM64 process ABIs.");
+            }
+            ulong device = ((ulong)LinuxDeviceMajor(encodedDevice) << 32) | LinuxDeviceMinor(encodedDevice);
+            return new OfficeFileMetadata(new OfficePhysicalFileIdentity(string.Empty, device, inode),
+                linkCount, mode, (mode & UnixFileTypeMask) == UnixDirectoryType);
+        }
+
+        private static uint LinuxDeviceMajor(ulong device) =>
+            unchecked((uint)(((device & 0x00000000000fff00UL) >> 8) |
+                             ((device & 0xfffff00000000000UL) >> 32)));
+
+        private static uint LinuxDeviceMinor(ulong device) =>
+            unchecked((uint)((device & 0x00000000000000ffUL) |
+                             ((device & 0x00000ffffff00000UL) >> 12)));
 
         private static OfficeFileMetadata CreateLinuxMetadata(LinuxStatx status) {
             if ((status.Mask & StatxRequiredIdentity) != StatxRequiredIdentity) {
@@ -137,6 +219,60 @@ namespace OfficeIMO.Internal {
                 (mode & UnixFileTypeMask) == UnixDirectoryType);
         }
 
+        private static bool TryGetUnixDirectoryCaseInsensitive(string directory, out bool caseInsensitive) {
+            caseInsensitive = true;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                long result = MacPathConf(directory, MacPathConfCaseSensitive);
+                if (result == 0 || result == 1) {
+                    caseInsensitive = result == 0;
+                    return true;
+                }
+                return false;
+            }
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return false;
+
+            int descriptor = LinuxOpen(directory, LinuxOpenReadOnly | LinuxOpenDirectory);
+            if (descriptor < 0) return false;
+            try {
+                ulong request = IntPtr.Size == 8 ? LinuxGetFileFlags64 : LinuxGetFileFlags32;
+                if (LinuxIoctl(descriptor, request, out int flags) != 0) return false;
+                if ((flags & LinuxCaseFoldFlag) != 0) {
+                    caseInsensitive = true;
+                    return true;
+                }
+                return TryGetLinuxFileSystemCaseBehavior(directory, out caseInsensitive);
+            } finally {
+                LinuxClose(descriptor);
+            }
+        }
+
+        private static bool TryGetLinuxFileSystemCaseBehavior(string directory, out bool caseInsensitive) {
+            caseInsensitive = true;
+            IntPtr buffer = Marshal.AllocHGlobal(256);
+            try {
+                ZeroBuffer(buffer, 256);
+                if (LinuxStatFs(directory, buffer) != 0) return false;
+                ulong fileSystem = IntPtr.Size == 8
+                    ? unchecked((ulong)Marshal.ReadInt64(buffer, 0))
+                    : unchecked((uint)Marshal.ReadInt32(buffer, 0));
+                if (fileSystem == LinuxMsDosFileSystem || fileSystem == LinuxExFatFileSystem ||
+                    fileSystem == LinuxNtfsFileSystem) {
+                    caseInsensitive = true;
+                    return true;
+                }
+                if (fileSystem == LinuxExtFileSystem || fileSystem == LinuxF2fsFileSystem ||
+                    fileSystem == LinuxBcachefsFileSystem || fileSystem == LinuxBtrfsFileSystem ||
+                    fileSystem == LinuxXfsFileSystem || fileSystem == LinuxTmpfsFileSystem ||
+                    fileSystem == LinuxOverlayFileSystem) {
+                    caseInsensitive = false;
+                    return true;
+                }
+                return false;
+            } finally {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
         private static bool TryReadUnixLinkTarget(string path, out string? target) {
             byte[] buffer = new byte[32768];
             IntPtr length = ReadLink(path, buffer, (UIntPtr)buffer.Length);
@@ -189,6 +325,27 @@ namespace OfficeIMO.Internal {
         [DllImport("libc", EntryPoint = "statx", CharSet = CharSet.Ansi, SetLastError = true)]
         private static extern int LinuxStatX(int directoryDescriptor, string path, int flags,
             uint mask, out LinuxStatx status);
+
+        [DllImport("libc", EntryPoint = "stat", CharSet = CharSet.Ansi, SetLastError = true)]
+        private static extern int LinuxStat(string path, IntPtr buffer);
+
+        [DllImport("libc", EntryPoint = "fstat", SetLastError = true)]
+        private static extern int LinuxFStat(int descriptor, IntPtr buffer);
+
+        [DllImport("libc", EntryPoint = "open", CharSet = CharSet.Ansi, SetLastError = true)]
+        private static extern int LinuxOpen(string path, int flags);
+
+        [DllImport("libc", EntryPoint = "ioctl", SetLastError = true)]
+        private static extern int LinuxIoctl(int descriptor, ulong request, out int flags);
+
+        [DllImport("libc", EntryPoint = "close", SetLastError = true)]
+        private static extern int LinuxClose(int descriptor);
+
+        [DllImport("libc", EntryPoint = "statfs", CharSet = CharSet.Ansi, SetLastError = true)]
+        private static extern int LinuxStatFs(string path, IntPtr buffer);
+
+        [DllImport("libc", EntryPoint = "pathconf", CharSet = CharSet.Ansi, SetLastError = true)]
+        private static extern long MacPathConf(string path, int name);
 
         [DllImport("libc", EntryPoint = "stat$INODE64", CharSet = CharSet.Ansi, SetLastError = true)]
         private static extern int MacStatInode64(string path, IntPtr buffer);

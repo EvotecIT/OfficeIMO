@@ -447,6 +447,34 @@ public sealed class PstMutationTransactionTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+    public void UnixPathReplacementWithMatchingBytesAndTimestampAbortsMutation() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string path = TemporaryPstPath();
+        string replacement = string.Concat(path, ".replacement");
+        try {
+            CreateSource(path);
+            byte[] original = File.ReadAllBytes(path);
+            DateTime timestamp = File.GetLastWriteTimeUtc(path);
+            using EmailStorePstMutationTransaction transaction = EmailStorePstMutationTransaction.Open(path);
+            string inbox = Assert.Single(transaction.Folders, folder => folder.Name == "Inbox").Id;
+            transaction.RenameFolder(inbox, "Must not commit");
+
+            File.WriteAllBytes(replacement, original);
+            File.SetLastWriteTimeUtc(replacement, timestamp);
+            File.Move(replacement, path, overwrite: true);
+            Assert.Equal(original.Length, new FileInfo(path).Length);
+            Assert.Equal(timestamp, File.GetLastWriteTimeUtc(path));
+
+            IOException exception = Assert.Throws<IOException>(() => transaction.Commit());
+            Assert.Contains("identity changed", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(original, File.ReadAllBytes(path));
+        } finally {
+            TryDelete(replacement);
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
     public void PhysicalPathAliasesCannotBypassBackupOrMutationLockOwnership() {
         string container = Path.Combine(Path.GetTempPath(),
             "officeimo-pst-alias-" + Guid.NewGuid().ToString("N"));
@@ -491,7 +519,7 @@ public sealed class PstMutationTransactionTests {
     }
 
     [Fact]
-    public void PhysicalFileAliasPlacesLockAndCommitsAgainstResolvedSource() {
+    public void PhysicalFileAliasCommitsAgainstResolvedSource() {
         string container = Path.Combine(Path.GetTempPath(),
             "officeimo-pst-file-alias-" + Guid.NewGuid().ToString("N"));
         string sourceDirectory = Path.Combine(container, "source");
@@ -519,7 +547,7 @@ public sealed class PstMutationTransactionTests {
                    EmailStorePstMutationTransaction.Open(aliasPath)) {
                 Assert.Equal(EmailStorePathIdentity.ResolvePhysicalPath(sourcePath),
                     transaction.SourcePath);
-                Assert.Single(Directory.GetFiles(sourceDirectory, ".officeimo-pst-*.lock"));
+                Assert.Empty(Directory.GetFiles(sourceDirectory, ".officeimo-pst-*.lock"));
                 Assert.Empty(Directory.GetFiles(aliasDirectory, ".officeimo-pst-*.lock"));
                 transaction.CreateFolder("Committed through alias");
                 report = transaction.Commit();
@@ -536,6 +564,54 @@ public sealed class PstMutationTransactionTests {
         }
     }
 #endif
+
+    [Fact]
+    public void HardlinkAliasesCannotBypassMutationLockOwnership() {
+        string container = Path.Combine(Path.GetTempPath(),
+            "officeimo-pst-hardlink-" + Guid.NewGuid().ToString("N"));
+        string sourceDirectory = Path.Combine(container, "source");
+        string aliasDirectory = Path.Combine(container, "alias");
+        string sourcePath = Path.Combine(sourceDirectory, "mailbox.pst");
+        string aliasPath = Path.Combine(aliasDirectory, "mailbox-hardlink.pst");
+        try {
+            Directory.CreateDirectory(sourceDirectory);
+            Directory.CreateDirectory(aliasDirectory);
+            CreateSource(sourcePath);
+            CreateHardLink(aliasPath, sourcePath);
+
+            Assert.True(EmailStorePathIdentity.AreEquivalent(sourcePath, aliasPath));
+            using (EmailStorePstMutationTransaction first = EmailStorePstMutationTransaction.Open(sourcePath)) {
+                IOException exception = Assert.Throws<IOException>(() =>
+                    EmailStorePstMutationTransaction.Open(aliasPath));
+                Assert.Contains("already owns", exception.Message, StringComparison.OrdinalIgnoreCase);
+            }
+        } finally {
+            if (Directory.Exists(container)) Directory.Delete(container, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void WindowsLocalAndUncAliasesCannotBypassMutationLockOwnershipWhenAvailable() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string sourcePath = TemporaryPstPath();
+        try {
+            string root = Path.GetPathRoot(sourcePath)!;
+            if (root.Length < 2 || root[1] != ':') return;
+            string uncPath = "\\\\localhost\\" + char.ToLowerInvariant(root[0]) + "$" + sourcePath.Substring(2);
+            string? uncDirectory = Path.GetDirectoryName(uncPath);
+            if (string.IsNullOrEmpty(uncDirectory) || !Directory.Exists(uncDirectory)) return;
+            CreateSource(sourcePath);
+
+            Assert.True(EmailStorePathIdentity.AreEquivalent(sourcePath, uncPath));
+            using (EmailStorePstMutationTransaction first = EmailStorePstMutationTransaction.Open(sourcePath)) {
+                IOException exception = Assert.Throws<IOException>(() =>
+                    EmailStorePstMutationTransaction.Open(uncPath));
+                Assert.Contains("already owns", exception.Message, StringComparison.OrdinalIgnoreCase);
+            }
+        } finally {
+            TryDelete(sourcePath);
+        }
+    }
 
     [Fact]
     public void MutationLockRejectsASecondOfficeIMOTransactionForTheSamePath() {
@@ -878,6 +954,24 @@ public sealed class PstMutationTransactionTests {
 
     private static string TemporaryPstPath() => Path.Combine(Path.GetTempPath(),
         string.Concat("officeimo-pst-mutation-", Guid.NewGuid().ToString("N"), ".pst"));
+
+    private static void CreateHardLink(string alias, string source) {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            if (!CreateHardLinkWindows(alias, source, IntPtr.Zero)) {
+                throw new IOException("Unable to create a Windows hard link for the mutation-lock contract.");
+            }
+        } else if (CreateHardLinkUnix(source, alias) != 0) {
+            throw new IOException("Unable to create a POSIX hard link for the mutation-lock contract.");
+        }
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CreateHardLinkWindows(string fileName, string existingFileName,
+        IntPtr securityAttributes);
+
+    [DllImport("libc", EntryPoint = "link", CharSet = CharSet.Ansi, SetLastError = true)]
+    private static extern int CreateHardLinkUnix(string existingPath, string newPath);
 
     private static void TryDelete(string path) {
         try { if (File.Exists(path)) File.Delete(path); }
