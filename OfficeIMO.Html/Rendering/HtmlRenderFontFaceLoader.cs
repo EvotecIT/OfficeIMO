@@ -187,7 +187,7 @@ internal static class HtmlRenderFontFaceLoader {
                     : HtmlRenderDiagnosticCodes.FontFormatUnsupported,
                 decodedLimitExceeded
                     ? "Decoded font data exceeded the configured operation-wide resource budget."
-                    : "A font face is not supported by the built-in TrueType decoder or the configured font-program provider.",
+                    : "A font face is not supported by the first-party font engine or the configured font-program provider.",
                 source,
                 decodedLimitExceeded
                     ? "limit=" + maximumDecodedBytes

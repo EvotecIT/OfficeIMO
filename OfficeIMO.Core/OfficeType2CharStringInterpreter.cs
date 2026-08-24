@@ -1,0 +1,565 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+
+namespace OfficeIMO.Drawing;
+
+internal interface IOfficeCffPathSink {
+    void MoveTo(double x, double y);
+    void LineTo(double x, double y);
+    void CurveTo(double control1X, double control1Y, double control2X, double control2Y, double x, double y);
+    void CloseContour();
+}
+
+/// <summary>Bounded Type 2 CharString interpreter for CFF1 and CFF2 glyph outlines.</summary>
+internal sealed class OfficeType2CharStringInterpreter {
+    private const int MaximumStack = 513;
+    private const int MaximumSubroutineDepth = 32;
+    private const int MaximumOperations = 1_000_000;
+    private readonly OfficeCffFontData _font;
+    private readonly OfficeCffFontData.CffIndex _localSubroutines;
+    private readonly OfficeCffFontData.CffIndex _globalSubroutines;
+    private readonly IOfficeCffPathSink _sink;
+    private readonly CancellationToken _cancellationToken;
+    private readonly OperationBudget _operationBudget;
+    private readonly int _seacDepth;
+    private readonly List<double> _stack = new List<double>();
+    private readonly double[] _transient = new double[32];
+    private double _x;
+    private double _y;
+    private int _stemCount;
+    private int _variationDataIndex;
+    private bool _widthConsumed;
+    private bool _contourOpen;
+
+    internal OfficeType2CharStringInterpreter(
+        OfficeCffFontData font,
+        int glyphId,
+        IOfficeCffPathSink sink,
+        CancellationToken cancellationToken)
+        : this(font, glyphId, sink, cancellationToken, new OperationBudget(), 0) {
+    }
+
+    private OfficeType2CharStringInterpreter(
+        OfficeCffFontData font,
+        int glyphId,
+        IOfficeCffPathSink sink,
+        CancellationToken cancellationToken,
+        OperationBudget operationBudget,
+        int seacDepth) {
+        _font = font ?? throw new ArgumentNullException(nameof(font));
+        _localSubroutines = font.GetLocalSubroutines(glyphId);
+        _globalSubroutines = font.GlobalSubroutines;
+        _sink = sink ?? throw new ArgumentNullException(nameof(sink));
+        _cancellationToken = cancellationToken;
+        _operationBudget = operationBudget;
+        _seacDepth = seacDepth;
+        _widthConsumed = font.IsCff2;
+    }
+
+    internal void Render(OfficeCffFontData.CffSlice charString) {
+        Execute(charString, 0);
+        CloseContour();
+        if (_stack.Count != 0) throw new InvalidDataException("The CFF CharString ends with unconsumed operands.");
+    }
+
+    private bool Execute(OfficeCffFontData.CffSlice program, int depth) {
+        if (depth > MaximumSubroutineDepth) throw new InvalidDataException("The CFF CharString subroutine depth is excessive.");
+        int offset = program.Offset;
+        int end = checked(program.Offset + program.Length);
+        byte[] data = program.Data;
+        while (offset < end) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            _operationBudget.Consume();
+            int value = data[offset];
+            if (value >= 32 || value == 28 || value == 255) {
+                Push(OfficeCffFontData.ReadNumber(data, ref offset, end, charString: true));
+                continue;
+            }
+            offset++;
+            switch (value) {
+                case 1: ConsumeStems(); break;
+                case 3: ConsumeStems(); break;
+                case 4: MoveVertical(); break;
+                case 5: RelativeLines(); break;
+                case 6: AlternatingLines(horizontalFirst: true); break;
+                case 7: AlternatingLines(horizontalFirst: false); break;
+                case 8: RelativeCurves(); break;
+                case 10: CallSubroutine(_localSubroutines, depth); break;
+                case 11: return true;
+                case 12:
+                    if (offset >= end) throw new InvalidDataException("A CFF escaped operator is truncated.");
+                    ExecuteEscaped(data[offset++]);
+                    break;
+                case 14:
+                    ConsumeEndChar();
+                    return false;
+                case 15: SelectVariationData(); break;
+                case 16: Blend(); break;
+                case 18: ConsumeStems(); break;
+                case 19:
+                case 20:
+                    ConsumeStems();
+                    int maskBytes = (_stemCount + 7) / 8;
+                    if (offset > end - maskBytes) throw new InvalidDataException("A CFF hint mask is truncated.");
+                    offset += maskBytes;
+                    break;
+                case 21: MoveRelative(); break;
+                case 22: MoveHorizontal(); break;
+                case 23: ConsumeStems(); break;
+                case 24: CurveThenLine(); break;
+                case 25: LineThenCurve(); break;
+                case 26: VerticalCurves(); break;
+                case 27: HorizontalCurves(); break;
+                case 29: CallSubroutine(_globalSubroutines, depth); break;
+                case 30: AlternatingCurves(horizontalFirst: false); break;
+                case 31: AlternatingCurves(horizontalFirst: true); break;
+                default: throw new NotSupportedException("CFF CharString operator " + value + " is not supported.");
+            }
+        }
+        return false;
+    }
+
+    private void ConsumeStems() {
+        ConsumeWidthForStem();
+        if ((_stack.Count & 1) != 0) throw new InvalidDataException("A CFF stem operator has an odd operand count.");
+        _stemCount = checked(_stemCount + _stack.Count / 2);
+        _stack.Clear();
+    }
+
+    private void ConsumeWidthForStem() {
+        if (_widthConsumed) return;
+        if ((_stack.Count & 1) != 0) _stack.RemoveAt(0);
+        _widthConsumed = true;
+    }
+
+    private void ConsumeWidthForMove(int coordinateCount) {
+        if (!_widthConsumed && _stack.Count > coordinateCount) _stack.RemoveAt(0);
+        _widthConsumed = true;
+    }
+
+    private void MoveRelative() {
+        ConsumeWidthForMove(2);
+        RequireCount(2);
+        CloseContour();
+        _x += _stack[0];
+        _y += _stack[1];
+        _sink.MoveTo(_x, _y);
+        _contourOpen = true;
+        _stack.Clear();
+    }
+
+    private void MoveHorizontal() {
+        ConsumeWidthForMove(1);
+        RequireCount(1);
+        CloseContour();
+        _x += _stack[0];
+        _sink.MoveTo(_x, _y);
+        _contourOpen = true;
+        _stack.Clear();
+    }
+
+    private void MoveVertical() {
+        ConsumeWidthForMove(1);
+        RequireCount(1);
+        CloseContour();
+        _y += _stack[0];
+        _sink.MoveTo(_x, _y);
+        _contourOpen = true;
+        _stack.Clear();
+    }
+
+    private void RelativeLines() {
+        RequireMultiple(2, minimum: 2);
+        for (int index = 0; index < _stack.Count; index += 2) LineBy(_stack[index], _stack[index + 1]);
+        _stack.Clear();
+    }
+
+    private void AlternatingLines(bool horizontalFirst) {
+        if (_stack.Count == 0) throw new InvalidDataException("A CFF line operator has no operands.");
+        bool horizontal = horizontalFirst;
+        for (int index = 0; index < _stack.Count; index++) {
+            LineBy(horizontal ? _stack[index] : 0D, horizontal ? 0D : _stack[index]);
+            horizontal = !horizontal;
+        }
+        _stack.Clear();
+    }
+
+    private void RelativeCurves() {
+        RequireMultiple(6, minimum: 6);
+        for (int index = 0; index < _stack.Count; index += 6) CurveBy(index);
+        _stack.Clear();
+    }
+
+    private void CurveThenLine() {
+        if (_stack.Count < 8 || (_stack.Count - 2) % 6 != 0) throw new InvalidDataException("A CFF rcurveline operand sequence is invalid.");
+        int index = 0;
+        while (index < _stack.Count - 2) {
+            CurveBy(index);
+            index += 6;
+        }
+        LineBy(_stack[index], _stack[index + 1]);
+        _stack.Clear();
+    }
+
+    private void LineThenCurve() {
+        if (_stack.Count < 8 || (_stack.Count - 6) % 2 != 0) throw new InvalidDataException("A CFF rlinecurve operand sequence is invalid.");
+        int index = 0;
+        while (index < _stack.Count - 6) {
+            LineBy(_stack[index], _stack[index + 1]);
+            index += 2;
+        }
+        CurveBy(index);
+        _stack.Clear();
+    }
+
+    private void VerticalCurves() {
+        if (_stack.Count < 4) throw new InvalidDataException("A CFF vvcurveto operator has too few operands.");
+        int index = 0;
+        double firstDx = (_stack.Count & 1) != 0 ? _stack[index++] : 0D;
+        while (index < _stack.Count) {
+            if (index > _stack.Count - 4) throw new InvalidDataException("A CFF vvcurveto operand sequence is invalid.");
+            CurveBy(firstDx, _stack[index], _stack[index + 1], _stack[index + 2], 0D, _stack[index + 3]);
+            firstDx = 0D;
+            index += 4;
+        }
+        _stack.Clear();
+    }
+
+    private void HorizontalCurves() {
+        if (_stack.Count < 4) throw new InvalidDataException("A CFF hhcurveto operator has too few operands.");
+        int index = 0;
+        double firstDy = (_stack.Count & 1) != 0 ? _stack[index++] : 0D;
+        while (index < _stack.Count) {
+            if (index > _stack.Count - 4) throw new InvalidDataException("A CFF hhcurveto operand sequence is invalid.");
+            CurveBy(_stack[index], firstDy, _stack[index + 1], _stack[index + 2], _stack[index + 3], 0D);
+            firstDy = 0D;
+            index += 4;
+        }
+        _stack.Clear();
+    }
+
+    private void AlternatingCurves(bool horizontalFirst) {
+        if (_stack.Count < 4) throw new InvalidDataException("A CFF alternating curve operator has too few operands.");
+        int index = 0;
+        bool horizontal = horizontalFirst;
+        while (index < _stack.Count) {
+            int remaining = _stack.Count - index;
+            if (remaining < 4) throw new InvalidDataException("A CFF alternating curve operand sequence is invalid.");
+            if (horizontal) {
+                double finalDx = remaining == 5 ? _stack[index + 4] : 0D;
+                CurveBy(_stack[index], 0D, _stack[index + 1], _stack[index + 2], finalDx, _stack[index + 3]);
+            } else {
+                double finalDy = remaining == 5 ? _stack[index + 4] : 0D;
+                CurveBy(0D, _stack[index], _stack[index + 1], _stack[index + 2], _stack[index + 3], finalDy);
+            }
+            index += remaining == 5 ? 5 : 4;
+            horizontal = !horizontal;
+        }
+        _stack.Clear();
+    }
+
+    private void ExecuteEscaped(int operation) {
+        switch (operation) {
+            case 3: Binary((left, right) => left != 0D && right != 0D ? 1D : 0D); break;
+            case 4: Binary((left, right) => left != 0D || right != 0D ? 1D : 0D); break;
+            case 5: Push(Pop() == 0D ? 1D : 0D); break;
+            case 9: Push(Math.Abs(Pop())); break;
+            case 10: Binary((left, right) => left + right); break;
+            case 11: Binary((left, right) => left - right); break;
+            case 12: Binary((left, right) => right == 0D ? throw new InvalidDataException("A CFF division uses a zero divisor.") : left / right); break;
+            case 14: Push(-Pop()); break;
+            case 15: Binary((left, right) => left == right ? 1D : 0D); break;
+            case 18: _ = Pop(); break;
+            case 20: PutTransient(); break;
+            case 21: GetTransient(); break;
+            case 22: Conditional(); break;
+            case 23: Push(0.5D); break;
+            case 24: Binary((left, right) => left * right); break;
+            case 26:
+                double value = Pop();
+                if (value < 0D) throw new InvalidDataException("A CFF sqrt operand is negative.");
+                Push(Math.Sqrt(value));
+                break;
+            case 27: Push(Peek()); break;
+            case 28: Exchange(); break;
+            case 29: Index(); break;
+            case 30: Roll(); break;
+            case 34: HorizontalFlex(); break;
+            case 35: Flex(); break;
+            case 36: HorizontalFlex1(); break;
+            case 37: Flex1(); break;
+            default: throw new NotSupportedException("CFF escaped CharString operator " + operation + " is not supported.");
+        }
+    }
+
+    private void HorizontalFlex() {
+        RequireCount(7);
+        CurveBy(_stack[0], 0D, _stack[1], _stack[2], _stack[3], 0D);
+        CurveBy(_stack[4], 0D, _stack[5], -_stack[2], _stack[6], 0D);
+        _stack.Clear();
+    }
+
+    private void Flex() {
+        RequireCount(13);
+        CurveBy(0);
+        CurveBy(6);
+        _stack.Clear();
+    }
+
+    private void HorizontalFlex1() {
+        RequireCount(9);
+        double dy6 = -(_stack[1] + _stack[3] + _stack[7]);
+        CurveBy(_stack[0], _stack[1], _stack[2], _stack[3], _stack[4], 0D);
+        CurveBy(_stack[5], 0D, _stack[6], _stack[7], _stack[8], dy6);
+        _stack.Clear();
+    }
+
+    private void Flex1() {
+        RequireCount(11);
+        double dx = _stack[0] + _stack[2] + _stack[4] + _stack[6] + _stack[8];
+        double dy = _stack[1] + _stack[3] + _stack[5] + _stack[7] + _stack[9];
+        double dx6 = Math.Abs(dx) > Math.Abs(dy) ? _stack[10] : -dx;
+        double dy6 = Math.Abs(dx) > Math.Abs(dy) ? -dy : _stack[10];
+        CurveBy(0);
+        CurveBy(_stack[6], _stack[7], _stack[8], _stack[9], dx6, dy6);
+        _stack.Clear();
+    }
+
+    private void CallSubroutine(OfficeCffFontData.CffIndex index, int depth) {
+        int operand = ToInteger(Pop(), "CFF subroutine index");
+        int biased = checked(operand + SubroutineBias(index.Count));
+        if (biased < 0 || biased >= index.Count) throw new InvalidDataException("A CFF subroutine index is outside the INDEX.");
+        _ = Execute(index[biased], depth + 1);
+    }
+
+    private void SelectVariationData() {
+        if (!_font.IsCff2) throw new InvalidDataException("The CFF1 CharString uses a CFF2 vsindex operator.");
+        RequireCount(1);
+        _variationDataIndex = ToInteger(_stack[0], "CFF2 vsindex");
+        _ = _font.VariationStore?.GetScalars(_variationDataIndex)
+            ?? throw new InvalidDataException("The CFF2 CharString uses vsindex without a VariationStore.");
+        _stack.Clear();
+    }
+
+    private void Blend() {
+        if (!_font.IsCff2 || _font.VariationStore == null) throw new InvalidDataException("The CFF CharString uses blend without a CFF2 VariationStore.");
+        int valueCount = ToInteger(Pop(), "CFF2 blend count");
+        IReadOnlyList<double> scalars = _font.VariationStore.GetScalars(_variationDataIndex);
+        int required = checked(valueCount * (scalars.Count + 1));
+        if (valueCount < 0 || _stack.Count < required) throw new InvalidDataException("The CFF2 blend operand stack is truncated.");
+        int start = _stack.Count - required;
+        for (int valueIndex = 0; valueIndex < valueCount; valueIndex++) {
+            double blended = _stack[start + valueIndex];
+            int deltaStart = start + valueCount + valueIndex * scalars.Count;
+            for (int region = 0; region < scalars.Count; region++) blended += _stack[deltaStart + region] * scalars[region];
+            _stack[start + valueIndex] = blended;
+        }
+        _stack.RemoveRange(start + valueCount, required - valueCount);
+    }
+
+    private void ConsumeEndChar() {
+        if (!_widthConsumed && (_stack.Count == 1 || _stack.Count == 5)) _stack.RemoveAt(0);
+        _widthConsumed = true;
+        if (_stack.Count == 4) {
+            if (_font.IsCff2) throw new InvalidDataException("A CFF2 CharString uses the CFF1 seac-compatible endchar form.");
+            double accentX = _stack[0];
+            double accentY = _stack[1];
+            int baseCode = ToInteger(_stack[2], "CFF seac base character");
+            int accentCode = ToInteger(_stack[3], "CFF seac accent character");
+            _stack.Clear();
+            RenderSeac(accentX, accentY, baseCode, accentCode);
+            return;
+        }
+        if (_stack.Count != 0) throw new NotSupportedException("The CFF endchar operand form is not supported.");
+        CloseContour();
+    }
+
+    private void RenderSeac(double accentX, double accentY, int baseCode, int accentCode) {
+        if (_seacDepth >= 4) throw new InvalidDataException("CFF seac composition depth is excessive.");
+        CloseContour();
+        int baseGlyph = _font.ResolveStandardEncodingGlyph(baseCode);
+        int accentGlyph = _font.ResolveStandardEncodingGlyph(accentCode);
+        var baseInterpreter = new OfficeType2CharStringInterpreter(
+            _font,
+            baseGlyph,
+            _sink,
+            _cancellationToken,
+            _operationBudget,
+            _seacDepth + 1);
+        baseInterpreter.Render(_font.GetCharString(baseGlyph));
+        var accentInterpreter = new OfficeType2CharStringInterpreter(
+            _font,
+            accentGlyph,
+            new TranslatedPathSink(_sink, accentX, accentY),
+            _cancellationToken,
+            _operationBudget,
+            _seacDepth + 1);
+        accentInterpreter.Render(_font.GetCharString(accentGlyph));
+    }
+
+    private void LineBy(double dx, double dy) {
+        EnsureContour();
+        _x += dx;
+        _y += dy;
+        _sink.LineTo(_x, _y);
+    }
+
+    private void CurveBy(int index) => CurveBy(
+        _stack[index], _stack[index + 1],
+        _stack[index + 2], _stack[index + 3],
+        _stack[index + 4], _stack[index + 5]);
+
+    private void CurveBy(double dx1, double dy1, double dx2, double dy2, double dx3, double dy3) {
+        EnsureContour();
+        double control1X = _x + dx1;
+        double control1Y = _y + dy1;
+        double control2X = control1X + dx2;
+        double control2Y = control1Y + dy2;
+        _x = control2X + dx3;
+        _y = control2Y + dy3;
+        _sink.CurveTo(control1X, control1Y, control2X, control2Y, _x, _y);
+    }
+
+    private void EnsureContour() {
+        if (_contourOpen) return;
+        _sink.MoveTo(_x, _y);
+        _contourOpen = true;
+    }
+
+    private void CloseContour() {
+        if (!_contourOpen) return;
+        _sink.CloseContour();
+        _contourOpen = false;
+    }
+
+    private void PutTransient() {
+        int index = ToInteger(Pop(), "CFF transient-array index");
+        double value = Pop();
+        if (index < 0 || index >= _transient.Length) throw new InvalidDataException("A CFF transient-array index is invalid.");
+        _transient[index] = value;
+    }
+
+    private void GetTransient() {
+        int index = ToInteger(Pop(), "CFF transient-array index");
+        if (index < 0 || index >= _transient.Length) throw new InvalidDataException("A CFF transient-array index is invalid.");
+        Push(_transient[index]);
+    }
+
+    private sealed class OperationBudget {
+        private int _remaining = MaximumOperations;
+
+        internal void Consume() {
+            if (_remaining-- <= 0) throw new InvalidDataException("The CFF CharString operation budget was exceeded.");
+        }
+    }
+
+    private sealed class TranslatedPathSink : IOfficeCffPathSink {
+        private readonly IOfficeCffPathSink _inner;
+        private readonly double _x;
+        private readonly double _y;
+
+        internal TranslatedPathSink(IOfficeCffPathSink inner, double x, double y) {
+            _inner = inner;
+            _x = x;
+            _y = y;
+        }
+
+        public void MoveTo(double x, double y) => _inner.MoveTo(x + _x, y + _y);
+        public void LineTo(double x, double y) => _inner.LineTo(x + _x, y + _y);
+        public void CurveTo(
+            double control1X,
+            double control1Y,
+            double control2X,
+            double control2Y,
+            double x,
+            double y) => _inner.CurveTo(
+                control1X + _x,
+                control1Y + _y,
+                control2X + _x,
+                control2Y + _y,
+                x + _x,
+                y + _y);
+        public void CloseContour() => _inner.CloseContour();
+    }
+
+    private void Conditional() {
+        double second = Pop();
+        double first = Pop();
+        double secondValue = Pop();
+        double firstValue = Pop();
+        Push(first <= second ? firstValue : secondValue);
+    }
+
+    private void Exchange() {
+        double right = Pop();
+        double left = Pop();
+        Push(right);
+        Push(left);
+    }
+
+    private void Index() {
+        int index = ToInteger(Pop(), "CFF stack index");
+        if (_stack.Count == 0) throw new InvalidDataException("The CFF index operator uses an empty stack.");
+        if (index < 0) index = 0;
+        if (index >= _stack.Count) index = _stack.Count - 1;
+        Push(_stack[_stack.Count - 1 - index]);
+    }
+
+    private void Roll() {
+        int shift = ToInteger(Pop(), "CFF roll shift");
+        int count = ToInteger(Pop(), "CFF roll count");
+        if (count < 0 || count > _stack.Count) throw new InvalidDataException("The CFF roll count is invalid.");
+        if (count <= 1) return;
+        shift %= count;
+        if (shift < 0) shift += count;
+        if (shift == 0) return;
+        int start = _stack.Count - count;
+        double[] values = _stack.GetRange(start, count).ToArray();
+        for (int index = 0; index < count; index++) _stack[start + ((index + shift) % count)] = values[index];
+    }
+
+    private void Binary(Func<double, double, double> operation) {
+        double right = Pop();
+        double left = Pop();
+        Push(operation(left, right));
+    }
+
+    private void Push(double value) {
+        if (_stack.Count >= MaximumStack || double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new InvalidDataException("The CFF CharString operand stack is invalid.");
+        }
+        _stack.Add(value);
+    }
+
+    private double Pop() {
+        if (_stack.Count == 0) throw new InvalidDataException("The CFF CharString operand stack underflowed.");
+        int index = _stack.Count - 1;
+        double value = _stack[index];
+        _stack.RemoveAt(index);
+        return value;
+    }
+
+    private double Peek() {
+        if (_stack.Count == 0) throw new InvalidDataException("The CFF CharString operand stack is empty.");
+        return _stack[_stack.Count - 1];
+    }
+
+    private void RequireCount(int count) {
+        if (_stack.Count != count) throw new InvalidDataException("A CFF CharString operator has an invalid operand count.");
+    }
+
+    private void RequireMultiple(int divisor, int minimum) {
+        if (_stack.Count < minimum || _stack.Count % divisor != 0) throw new InvalidDataException("A CFF CharString operator has an invalid operand count.");
+    }
+
+    private static int ToInteger(double value, string description) {
+        if (value < int.MinValue || value > int.MaxValue || value != Math.Truncate(value)) {
+            throw new InvalidDataException(description + " is not an integer.");
+        }
+        return checked((int)value);
+    }
+
+    private static int SubroutineBias(int count) => count < 1240 ? 107 : count < 33900 ? 1131 : 32768;
+}

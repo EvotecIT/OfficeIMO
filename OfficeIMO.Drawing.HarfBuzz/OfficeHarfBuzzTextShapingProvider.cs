@@ -112,6 +112,13 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
 
                 glyphCount = cached.Face.GlyphCount;
                 cached.Font.SetScale(request.UnitsPerEm, request.UnitsPerEm);
+                Variation[] variations = request.VariationCoordinatesForShaping
+                    .Select(static coordinate => new Variation {
+                        Tag = HarfBuzzSharp.Tag.Parse(coordinate.Key),
+                        Value = coordinate.Value
+                    })
+                    .ToArray();
+                cached.Font.SetVariations(variations);
                 using var buffer = new HarfBuzzSharp.Buffer();
                 buffer.AddUtf16(request.Text);
                 buffer.GuessSegmentProperties();

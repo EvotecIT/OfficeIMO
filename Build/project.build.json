@@ -13,7 +13,6 @@
     "OfficeIMO.Core": "3.2.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.2.X",
     "OfficeIMO.Drawing.HarfBuzz": "3.2.X",
-    "OfficeIMO.Drawing.SixLabors": "3.2.X",
     "OfficeIMO.Email": "3.2.X",
     "OfficeIMO.Email.Html": "3.2.X",
     "OfficeIMO.Email.Image": "3.2.X",

@@ -108,8 +108,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    env:
-      SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -132,21 +130,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          $isTrusted = '${{ github.event_name }}' -eq 'push' -or
-            ('${{ github.actor }}' -ne 'dependabot[bot]' -and
-             '${{ github.event.pull_request.head.repo.full_name }}' -eq '${{ github.repository }}')
-          $hasLicense = -not [string]::IsNullOrWhiteSpace($env:SIXLABORS_LICENSE_KEY)
-          if ($isTrusted -and -not $hasLicense) {
-            throw 'Trusted OfficeIMO typography builds require the SIXLABORS_LICENSE_KEY repository secret.'
-          }
-
           dotnet test OfficeIMO.Drawing.HarfBuzz.Tests/OfficeIMO.Drawing.HarfBuzz.Tests.csproj --configuration Release --verbosity $env:TEST_VERBOSITY
-          $sixLaborsConfiguration = if ($hasLicense) { 'Release' } else { 'Debug' }
-          dotnet test OfficeIMO.Drawing.SixLabors.Tests/OfficeIMO.Drawing.SixLabors.Tests.csproj --configuration $sixLaborsConfiguration --verbosity $env:TEST_VERBOSITY
-
-          $packageArguments = @()
-          if ($isTrusted) { $packageArguments += '-RequireSixLabors' }
-          ./Build/Test-TypographyPackages.ps1 @packageArguments
+          dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --verbosity $env:TEST_VERBOSITY --filter "FullyQualifiedName~DrawingWoff2FontTests|FullyQualifiedName~DrawingCffFontTests|FullyQualifiedName~DrawingTrueTypeVariableFontTests"
+          ./Build/Test-TypographyPackages.ps1
 
   email-package-consumers:
     name: 'OfficeIMO email platform packed consumers'

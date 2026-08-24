@@ -1,6 +1,5 @@
 param(
-    [string] $Version = '3.2.5-typography-local',
-    [switch] $RequireSixLabors
+    [string] $Version = '3.2.5-typography-local'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,27 +9,13 @@ $workingPath = Join-Path ([System.IO.Path]::GetTempPath()) ('officeimo-typograph
 $feedPath = Join-Path $workingPath 'feed'
 $configPath = Join-Path $workingPath 'nuget\nuget.config'
 $packagesPath = Join-Path $workingPath 'packages'
-$hasSixLaborsLicense = -not [string]::IsNullOrWhiteSpace($env:SIXLABORS_LICENSE_KEY)
-$previousMsBuildLicenseKey = $env:SixLaborsLicenseKey
-
-if ($RequireSixLabors -and -not $hasSixLaborsLicense) {
-    throw 'A permanent Six Labors license is required for this trusted package gate. Configure the SIXLABORS_LICENSE_KEY secret with the complete supplied license value.'
-}
-
 New-Item -ItemType Directory -Path $feedPath -Force | Out-Null
 Push-Location $repositoryRoot
 try {
-    if ($hasSixLaborsLicense) {
-        $env:SixLaborsLicenseKey = $env:SIXLABORS_LICENSE_KEY
-    }
-
     $projects = @(
         'OfficeIMO.Core/OfficeIMO.Core.csproj',
         'OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj'
     )
-    if ($hasSixLaborsLicense) {
-        $projects += 'OfficeIMO.Drawing.SixLabors/OfficeIMO.Drawing.SixLabors.csproj'
-    }
 
     foreach ($project in $projects) {
         dotnet restore $project --no-http-cache
@@ -47,8 +32,7 @@ try {
 
     $properties = @(
         '--property:EnableOfficeIMOTypographyPackageSmoke=true',
-        "--property:OfficeIMOTypographyPackageVersion=$Version",
-        "--property:IncludeOfficeIMOSixLaborsPackage=$($hasSixLaborsLicense.ToString().ToLowerInvariant())"
+        "--property:OfficeIMOTypographyPackageVersion=$Version"
     )
     $projectPath = 'Build/PackageSmoke/OfficeIMO.Typography/OfficeIMO.Typography.PackageSmoke.csproj'
     dotnet restore $projectPath @properties --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
@@ -62,12 +46,7 @@ try {
         dotnet run --project $projectPath --configuration Release --framework $framework --no-restore @properties
         if ($LASTEXITCODE -ne 0) { throw "Packed typography consumer failed on $framework." }
     }
-
-    if (-not $hasSixLaborsLicense) {
-        Write-Warning 'SixLabors package smoke was skipped because SIXLABORS_LICENSE_KEY is not configured.'
-    }
 } finally {
-    $env:SixLaborsLicenseKey = $previousMsBuildLicenseKey
     Pop-Location
     if (Test-Path -LiteralPath $workingPath) {
         Remove-Item -LiteralPath $workingPath -Recurse -Force

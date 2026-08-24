@@ -13,10 +13,6 @@ if ([string]::IsNullOrWhiteSpace($htmlTinkerXVersionText) -or
     throw 'OfficeIMO release is blocked: publish HtmlTinkerX 3.0.1 or newer with device emulation and fail-closed offline policy, then repin OfficeIMO.Html.Pdf.Browser.'
 }
 
-if ([string]::IsNullOrWhiteSpace($env:SIXLABORS_LICENSE_KEY)) {
-    throw 'OfficeIMO release is blocked: configure the permanent SIXLABORS_LICENSE_KEY before building publishable typography packages.'
-}
-
 if ([string]::IsNullOrWhiteSpace($PdfComplianceProofPath)) {
     throw 'OfficeIMO release is blocked: provide -PdfComplianceProofPath or OFFICEIMO_PDF_COMPLIANCE_PROOF_PATH from a qualified exact-artifact validation run.'
 }
@@ -72,6 +68,6 @@ if ($expectedHtmlTinkerXCommit -notmatch '^[0-9a-f]{40}$') {
 & "$PSScriptRoot/Test-HtmlPdfBenchmarkEvidence.ps1"
 & "$PSScriptRoot/Test-HtmlPdfArtifactEvidence.ps1"
 & "$PSScriptRoot/Test-HtmlPdfBrowserPackages.ps1" -ExpectedHtmlTinkerXCommit $expectedHtmlTinkerXCommit
-& "$PSScriptRoot/Test-TypographyPackages.ps1" -RequireSixLabors
+& "$PSScriptRoot/Test-TypographyPackages.ps1"
 
 Write-Host 'OfficeIMO HTML/PDF release gate passed.'

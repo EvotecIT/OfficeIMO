@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Drawing;
 
@@ -21,6 +22,7 @@ public interface IOfficeTextShapingProvider {
 /// <summary>Describes a Unicode text run and font passed to a shared shaping provider.</summary>
 public sealed class OfficeTextShapingRequest {
     private readonly byte[] _fontData;
+    private readonly IReadOnlyDictionary<string, float> _variationCoordinates;
 
     /// <summary>Creates an immutable text-shaping request.</summary>
     /// <param name="text">Original UTF-16 text to shape.</param>
@@ -48,6 +50,7 @@ public sealed class OfficeTextShapingRequest {
             language,
             default,
             fontCollectionIndex: null,
+            variationCoordinates: null,
             cloneFontData: true) {
     }
 
@@ -71,6 +74,7 @@ public sealed class OfficeTextShapingRequest {
             language,
             cancellationToken,
             fontCollectionIndex: null,
+            variationCoordinates: null,
             cloneFontData: true) {
     }
 
@@ -95,6 +99,33 @@ public sealed class OfficeTextShapingRequest {
             language,
             cancellationToken,
             fontCollectionIndex,
+            variationCoordinates: null,
+            cloneFontData: true) {
+    }
+
+    /// <summary>Creates an immutable text-shaping request for a selected variable-font instance.</summary>
+    public OfficeTextShapingRequest(
+        string text,
+        string fontName,
+        byte[] fontData,
+        bool isOpenTypeCff,
+        int unitsPerEm,
+        OfficeTextDirection direction,
+        string? language,
+        System.Threading.CancellationToken cancellationToken,
+        int? fontCollectionIndex,
+        IReadOnlyDictionary<string, float>? variationCoordinates)
+        : this(
+            text,
+            fontName,
+            fontData,
+            isOpenTypeCff,
+            unitsPerEm,
+            direction,
+            language,
+            cancellationToken,
+            fontCollectionIndex,
+            variationCoordinates,
             cloneFontData: true) {
     }
 
@@ -108,6 +139,7 @@ public sealed class OfficeTextShapingRequest {
         string? language,
         System.Threading.CancellationToken cancellationToken,
         int? fontCollectionIndex,
+        IReadOnlyDictionary<string, float>? variationCoordinates,
         bool cloneFontData) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         if (fontData == null) {
@@ -133,6 +165,7 @@ public sealed class OfficeTextShapingRequest {
         Direction = direction;
         Language = string.IsNullOrWhiteSpace(language) ? null : language;
         CancellationToken = cancellationToken;
+        _variationCoordinates = SnapshotVariationCoordinates(variationCoordinates);
     }
 
     /// <summary>Original UTF-16 text to shape.</summary>
@@ -163,6 +196,36 @@ public sealed class OfficeTextShapingRequest {
 
     /// <summary>Cancellation observed by cooperative host shapers.</summary>
     public System.Threading.CancellationToken CancellationToken { get; }
+
+    /// <summary>Clamped design-space values for the selected variable-font instance.</summary>
+    public IReadOnlyDictionary<string, float> VariationCoordinates => _variationCoordinates;
+
+    internal IReadOnlyDictionary<string, float> VariationCoordinatesForShaping => _variationCoordinates;
+
+    private static IReadOnlyDictionary<string, float> SnapshotVariationCoordinates(
+        IReadOnlyDictionary<string, float>? coordinates) {
+        var snapshot = new Dictionary<string, float>(StringComparer.Ordinal);
+        if (coordinates != null) {
+            if (coordinates.Count > 64) {
+                throw new ArgumentException("Text shaping requests support at most 64 variable-font axes.", nameof(coordinates));
+            }
+            foreach (KeyValuePair<string, float> coordinate in coordinates) {
+                if (coordinate.Key == null || coordinate.Key.Length != 4) {
+                    throw new ArgumentException("Variable-font axis tags must contain exactly four characters.", nameof(coordinates));
+                }
+                for (int index = 0; index < coordinate.Key.Length; index++) {
+                    if (coordinate.Key[index] < 0x20 || coordinate.Key[index] > 0x7E) {
+                        throw new ArgumentException("Variable-font axis tags must contain printable ASCII characters.", nameof(coordinates));
+                    }
+                }
+                if (float.IsNaN(coordinate.Value) || float.IsInfinity(coordinate.Value)) {
+                    throw new ArgumentOutOfRangeException(nameof(coordinates), "Variable-font axis values must be finite.");
+                }
+                snapshot.Add(coordinate.Key, coordinate.Value);
+            }
+        }
+        return new ReadOnlyDictionary<string, float>(snapshot);
+    }
 }
 
 /// <summary>A shaped glyph run in visual write order.</summary>

@@ -39,6 +39,7 @@ public sealed partial class OfficeRasterCanvas {
             _textShapingLanguage,
             _cancellationToken,
             font.CollectionIndex,
+            (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping,
             cloneFontData: false));
         OfficeTextShapingResult? resolved = result;
         if (cache.Count >= MaxShapedTextCacheEntries) cache.Clear();

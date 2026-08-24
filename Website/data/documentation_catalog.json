@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 182,
-    "productionComponentCount": 103,
-    "testProjectCount": 36,
+    "projectCount": 180,
+    "productionComponentCount": 102,
+    "testProjectCount": 35,
     "benchmarkProjectCount": 18,
     "validationProjectCount": 26,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41541
+    "conceptualWordCount": 41499
   },
   "categories": [
     {
@@ -22,7 +22,7 @@
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 12
+      "componentCount": 11
     },
     {
       "name": "Google Workspace",
@@ -131,7 +131,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 441,
+      "sourceFileCount": 452,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -175,19 +175,6 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.HarfBuzz"
-    },
-    {
-      "name": "OfficeIMO.Drawing.SixLabors",
-      "packageId": "OfficeIMO.Drawing.SixLabors",
-      "category": "Foundations and integrations",
-      "description": "Optional managed WOFF2, CFF/CFF2, variable-font, and complex-text engine for OfficeIMO.Drawing.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Drawing.SixLabors/OfficeIMO.Drawing.SixLabors.csproj",
-      "sourceFileCount": 4,
-      "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.SixLabors"
     },
     {
       "name": "OfficeIMO.Email",
@@ -392,7 +379,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
       "sourceFileCount": 279,
-      "referencingTestProjectCount": 7,
+      "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html"
@@ -405,7 +392,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
       "sourceFileCount": 23,
-      "referencingTestProjectCount": 5,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf"

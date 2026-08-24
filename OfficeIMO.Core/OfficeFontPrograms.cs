@@ -6,8 +6,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>
 /// Decoded font program used by OfficeIMO measurement and outline rendering.
-/// Implementations may be supplied by optional packages for formats that are not decoded by the
-/// dependency-free core, including WOFF 2, CFF/CFF2, and variable-font instances.
+/// Implementations may be supplied by specialized packages to override the first-party engine.
 /// </summary>
 public interface IOfficeFontProgram {
     /// <summary>
@@ -95,6 +94,14 @@ public interface IOfficeBoundedFontProgram : IOfficeFontProgram {
         CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Internal seam used to keep an external shaping engine on the same selected
+/// variable-font instance as the first-party metrics and outline engine.
+/// </summary>
+internal interface IOfficeVariableFontProgram {
+    IReadOnlyDictionary<string, float> VariationCoordinatesForShaping { get; }
+}
+
 /// <summary>Request passed to an optional font-program provider.</summary>
 public sealed class OfficeFontProgramLoadRequest {
     private readonly byte[] _data;
@@ -139,7 +146,8 @@ public sealed class OfficeFontProgramLoadResult {
     /// <param name="decodedByteCount">Total decoded bytes retained by the program.</param>
     /// <param name="staticOpenTypeData">
     /// Optional independent sfnt snapshot that is safe to embed as a non-variable PDF font.
-    /// Leave null for WOFF 2-only, CFF2, or active variable-font instances that must be outlined.
+    /// Leave null when the provider cannot supply a normalized static sfnt snapshot, or for active
+    /// variable-font instances that must be outlined.
     /// </param>
     public OfficeFontProgramLoadResult(
         IOfficeFontProgram program,
@@ -168,7 +176,7 @@ public sealed class OfficeFontProgramLoadResult {
 }
 
 /// <summary>
-/// Optional decoder and outline-engine seam for font formats outside the dependency-free core.
+/// Optional decoder and outline-engine override seam for specialized font engines.
 /// </summary>
 public interface IOfficeFontProgramProvider {
     /// <summary>

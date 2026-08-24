@@ -7,8 +7,8 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>
 /// Scoped caller-supplied font faces used by drawing measurement, rasterization, and SVG export.
-/// Direct TrueType sfnt and WOFF 1 containers are handled by the dependency-free core. An optional
-/// provider can add bounded WOFF 2, CFF/CFF2, and variable-font programs.
+/// Direct TrueType/OpenType, WOFF 1, WOFF 2, CFF/CFF2, and variable-font containers are handled by
+/// the first-party engine. An optional provider can override program loading for specialized engines.
 /// </summary>
 public sealed class OfficeFontFaceCollection {
     private readonly List<OfficeFontFace> _faces = new List<OfficeFontFace>();
@@ -27,6 +27,12 @@ public sealed class OfficeFontFaceCollection {
     /// The provider reference is retained by collection clones; decoded face programs are immutable.
     /// </summary>
     public IOfficeFontProgramProvider? FontProgramProvider { get; set; }
+
+    /// <summary>
+    /// Optional variable-font axis resolver invoked for each accepted face. Values are clamped to
+    /// the font-defined axis range; unknown axes and non-finite values fail closed.
+    /// </summary>
+    public Func<OfficeFontProgramLoadRequest, IReadOnlyDictionary<string, float>?>? FontVariationResolver { get; set; }
 
     /// <summary>Registered faces in registration order.</summary>
     public IReadOnlyList<OfficeFontFace> Faces => _facesView;
@@ -224,20 +230,74 @@ public sealed class OfficeFontFaceCollection {
                 out openTypeData,
                 out _,
                 out error);
-        IOfficeFontProgram? builtInProgram = decoded ? OfficeTrueTypeFont.TryLoad(openTypeData) : null;
+        IReadOnlyDictionary<string, float>? variationValues = null;
+        if (decoded && FontVariationResolver != null) {
+            try {
+                variationValues = FontVariationResolver(new OfficeFontProgramLoadRequest(
+                    familyName!.Trim(),
+                    openTypeData,
+                    OfficeFontFace.NormalizeStyle(style),
+                    OfficeFontContainerFormat.OpenType,
+                    maximumDecodedBytes ?? OfficeFontContainerDecoder.DefaultMaximumDecodedBytes));
+            } catch (Exception exception) when (!(exception is OutOfMemoryException)) {
+                error = "The variable-font axis resolver failed: " + exception.Message;
+                return false;
+            }
+        }
+        bool isFontCollection = decoded
+            && openTypeData.Length >= 4
+            && openTypeData[0] == (byte)'t'
+            && openTypeData[1] == (byte)'t'
+            && openTypeData[2] == (byte)'c'
+            && openTypeData[3] == (byte)'f';
+        if (isFontCollection && variationValues != null && variationValues.Count > 0) {
+            error = "Variable-font axes cannot be selected on a font collection. Extract and register the intended face as an individual OpenType font.";
+            return false;
+        }
+        IOfficeFontProgram? builtInProgram = null;
+        bool builtInVariable = false;
+        if (decoded) {
+            OfficeOpenTypeCffFont? cffProgram = OfficeOpenTypeCffFont.TryLoad(openTypeData, variationValues, out string? cffError);
+            if (cffProgram != null) {
+                builtInProgram = cffProgram;
+                builtInVariable = cffProgram.IsVariable;
+            } else {
+                OfficeOpenTypeReader? openTypeReader = OfficeOpenTypeReader.TryCreate(openTypeData);
+                OfficeFontVariationModel variationModel;
+                try {
+                    variationModel = openTypeReader == null
+                        ? OfficeFontVariationModel.None
+                        : OfficeFontVariationModel.Create(openTypeReader, variationValues);
+                } catch (Exception exception) when (!(exception is OutOfMemoryException)) {
+                    error = "The variable-font configuration is invalid: " + exception.Message;
+                    return false;
+                }
+                builtInVariable = variationModel.IsVariable;
+                string? trueTypeError = null;
+                builtInProgram = variationModel.IsVariable
+                    ? OfficeTrueTypeFont.TryLoad(openTypeData, variationModel, out trueTypeError)
+                    : OfficeTrueTypeFont.TryLoad(openTypeData);
+                if (builtInProgram == null && variationModel.IsVariable && !string.IsNullOrWhiteSpace(trueTypeError)) {
+                    error = trueTypeError;
+                }
+                if (builtInProgram == null && !string.IsNullOrWhiteSpace(cffError)) error = cffError;
+                if (builtInProgram == null && isFontCollection) {
+                    error = "This font collection cannot be registered directly. Extract and register the intended face as an individual OpenType font.";
+                }
+            }
+        }
         IOfficeFontProgram? parsed = builtInProgram;
         byte[] acceptedData = openTypeData;
-        bool canEmbedAsStaticPdfFont = parsed != null;
+        bool canEmbedAsStaticPdfFont = parsed != null && !builtInVariable;
         // Configuring a provider is an explicit request to use its complete layout engine even
         // for TrueType faces the dependency-free core can decode. A provider may still decline,
         // in which case the already validated built-in program remains the fallback.
         bool providerPreferred = decoded;
         if ((parsed == null || providerPreferred) && FontProgramProvider != null) {
             int providerLimit = maximumDecodedBytes ?? OfficeFontContainerDecoder.DefaultMaximumDecodedBytes;
-            // The request's container must describe the bytes handed to the provider. WOFF 1 is
-            // normalized by the core before this point, while WOFF 2 remains provider-owned.
-            // Keeping the original WOFF label with sfnt bytes makes a provider interpret the sfnt
-            // table directory as a web-font header and can reject an otherwise valid face.
+            // The request's container must describe the bytes handed to the provider. WOFF inputs
+            // are normalized by the core before this point. Keeping the original WOFF label with
+            // sfnt bytes makes a provider interpret the table directory as a web-font header.
             OfficeFontContainerFormat providerInputFormat = decoded
                 ? OfficeFontContainerDecoder.Detect(openTypeData)
                 : sourceFormat;
@@ -269,11 +329,11 @@ public sealed class OfficeFontFaceCollection {
             } else {
                 parsed = builtInProgram;
                 acceptedData = openTypeData;
-                canEmbedAsStaticPdfFont = builtInProgram != null;
+                canEmbedAsStaticPdfFont = builtInProgram != null && !builtInVariable;
             }
         }
         if (parsed == null) {
-            if (decoded) error = "Decoded font data does not contain a supported outline program.";
+            if (decoded && string.IsNullOrWhiteSpace(error)) error = "Decoded font data does not contain a supported outline program.";
             return false;
         }
 
@@ -386,7 +446,8 @@ public sealed class OfficeFontFaceCollection {
     /// <summary>Creates an independent collection snapshot.</summary>
     public OfficeFontFaceCollection Clone() {
         var clone = new OfficeFontFaceCollection {
-            FontProgramProvider = FontProgramProvider
+            FontProgramProvider = FontProgramProvider,
+            FontVariationResolver = FontVariationResolver
         };
         foreach (OfficeFontFace face in _faces) {
             clone._faces.Add(face.Clone());

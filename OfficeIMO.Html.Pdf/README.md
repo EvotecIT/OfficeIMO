@@ -117,28 +117,33 @@ result.Save("report.pdf").RequireNoLoss();
 
 ## Fonts and text shaping
 
-The dependency-light path loads policy-approved TrueType-glyf OpenType and WOFF 1 faces and provides deterministic managed Unicode, bidirectional, and bounded core-Arabic behavior. Optional font-program providers can add bounded WOFF 2, CFF/CFF2, variable-font instances, complete shaping, and reusable fallback packs without adding those dependencies to the core packages. Provider-owned programs that cannot be embedded safely, or whose shaped result cannot be represented by the scalar PDF text path, use vector outlines plus logical `ActualText` so extraction and accessibility remain intact.
+The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding; variable instances and shaped results that cannot use the scalar PDF text path are rendered as vector outlines plus logical `ActualText`, preserving extraction and accessibility.
 
-Provider-owned PDF outlines are fail-closed. The selected program must implement
+PDF outline expansion is fail-closed. The selected program must implement
 `IOfficeBoundedFontProgram`; conversion carries cancellation into contour expansion
 and enforces `MaxOutlinedTextCharactersPerRun` plus the operation-wide
 `MaxOutlinedTextPathCommands` budget. The defaults are 16,384 UTF-16 characters per
 run and 1,000,000 path commands per conversion. Raise them only for trusted inputs.
 
-`OfficeIMO.Drawing.SixLabors` supplies the managed WOFF 2/CFF/CFF2/variable-font lane on .NET 8 and newer:
+No font-program package or license key is required. Select variable-font axes on the font collection before conversion:
 
 ```csharp
-using OfficeIMO.Drawing.SixLabors;
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlPdfSaveOptions()
-    .UseSixLaborsFontPrograms();
+var options = new HtmlPdfSaveOptions();
+options.Fonts.FontVariationResolver = request =>
+    request.FamilyName == "Report Variable"
+        ? new Dictionary<string, float> {
+            ["wght"] = 720,
+            ["wdth"] = 110
+        }
+        : null;
 
 options.MaxOutlinedTextCharactersPerRun = 16_384;
 options.MaxOutlinedTextPathCommands = 1_000_000;
 ```
-
-SixLabors.Fonts 3.x validates a Six Labors license during compilation. Provide the license through its documented `SixLaborsLicenseKey`, `SixLaborsLicenseFile`, or `sixlabors.lic` mechanism and confirm that your use qualifies for the applicable license before building or distributing this optional package.
 
 For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.HarfBuzz` adapter and assign its provider to the same options object used by PDF and image output:
 

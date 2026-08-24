@@ -418,16 +418,27 @@ foreach (var issue in rendered.QualityReport.Issues) {
 }
 ```
 
-### Read TrueType outlines for renderers
+### Load first-party font programs for renderers
 
 ```csharp
+using System.Collections.Generic;
+using System.IO;
 using OfficeIMO.Drawing;
 
 OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? path);
 if (font != null) {
     Console.WriteLine($"Loaded {path}");
 }
+
+var embedded = new OfficeFontFaceCollection {
+    FontVariationResolver = request => request.FamilyName == "Report Variable"
+        ? new Dictionary<string, float> { ["wght"] = 720 }
+        : null
+};
+embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 ```
+
+`OfficeFontFaceCollection` accepts TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is available on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. The engine is part of `OfficeIMO.Core`; it does not require another font-program package or a license key.
 
 ## What it provides
 
@@ -439,7 +450,7 @@ if (font != null) {
 - `OfficeImageReader` and `OfficeImageInfo` for dependency-free image inspection where supported.
 - `OfficeImageFit` for shared stretch, contain, and cover intent.
 - `OfficeFontInfo`, `OfficeFontStyle`, `OfficeTextMeasurer`, and `OfficeTextMetrics` for deterministic layout estimates.
-- `OfficeTrueTypeFont` for dependency-free font-outline reading when renderers need glyph contours.
+- `OfficeTrueTypeFont` and `OfficeFontFaceCollection` for first-party static and variable font measurement, glyph contours, and bounded renderer integration.
 - `OfficeInkDocument`, `OfficeInkStroke`, sampled pressure/style metadata, recognition alternatives, and `OfficeInkRenderer` for reusable ink capture and projection.
 - `OfficeMathExpression`, `OfficeMath`, MathML/LaTeX conversion, deterministic measurement, and `OfficeMathRenderer` for reusable structured equations.
 - `OfficeShape`, `OfficeDrawing`, gradients, shadows, transforms, clipping, and vector descriptors that format-specific packages can map into their own coordinate systems.

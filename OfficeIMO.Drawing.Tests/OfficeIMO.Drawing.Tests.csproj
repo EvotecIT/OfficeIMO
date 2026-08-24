@@ -35,6 +35,11 @@
   <ItemGroup>
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <None Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="TestAssets\Kulek.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\OpenSans-Regular.woff2" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\SourceSansPro-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\AdobeVFPrototype-Subset.otf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\NotoEmoji-VariableFont_wght.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

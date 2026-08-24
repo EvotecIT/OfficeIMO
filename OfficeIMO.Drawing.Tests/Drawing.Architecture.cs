@@ -115,7 +115,7 @@ public class DrawingArchitectureTests {
         };
 
         foreach (string projectPath in Directory.GetFiles(RepositoryRoot, "OfficeIMO.*.csproj", SearchOption.AllDirectories)) {
-            if (IsNonProductionProject(projectPath) || IsIsolatedExternalDrawingAdapter(projectPath)) {
+            if (IsNonProductionProject(projectPath)) {
                 continue;
             }
 
@@ -127,16 +127,6 @@ public class DrawingArchitectureTests {
                     reference => string.Equals(reference, package, StringComparison.OrdinalIgnoreCase));
             }
         }
-    }
-
-    [Fact]
-    public void SixLaborsFontAdapterKeepsItsDependencyOutsideTheCoreRenderingOwners() {
-        XDocument project = LoadProject("OfficeIMO.Drawing.SixLabors", "OfficeIMO.Drawing.SixLabors.csproj");
-
-        Assert.Equal(new[] { "SixLabors.Fonts" }, GetReferencedItems(project, "PackageReference"));
-        Assert.Contains(
-            GetReferencedItems(project, "ProjectReference"),
-            reference => reference.Replace('\\', '/').EndsWith("/OfficeIMO.Core/OfficeIMO.Core.csproj", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -264,17 +254,12 @@ public class DrawingArchitectureTests {
             normalized.Contains("/OfficeIMO.VerifyTests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(".Tests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(".Benchmarks", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("/Build/PackageSmoke/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/OfficeIMO.Examples/", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsOfficeDrawingProject(string projectPath) =>
         string.Equals(Path.GetFileNameWithoutExtension(projectPath), "OfficeIMO.Core", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsIsolatedExternalDrawingAdapter(string projectPath) =>
-        string.Equals(
-            Path.GetFileNameWithoutExtension(projectPath),
-            "OfficeIMO.Drawing.SixLabors",
-            StringComparison.OrdinalIgnoreCase);
 
     private static bool ProjectSourceUsesOfficeDrawing(string projectFolder) {
         foreach (string filePath in Directory.GetFiles(projectFolder, "*.cs", SearchOption.AllDirectories)) {

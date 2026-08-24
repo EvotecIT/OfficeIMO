@@ -319,7 +319,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 "OfficeIMO.Html.Pdf",
                 HtmlPdfDiagnosticCodes.FontProgramOutlined,
                 visual.Source ?? "html-text",
-                "A provider-owned shaped font run was painted as vector outlines with logical ActualText retained for extraction and accessibility.",
+                "A shaped font run was painted as vector outlines with logical ActualText retained for extraction and accessibility.",
                 PdfCore.PdfConversionWarningSeverity.Information,
                 details: new Dictionary<string, string> {
                     ["Family"] = face.FamilyName,

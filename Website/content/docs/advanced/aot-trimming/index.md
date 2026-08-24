@@ -4,7 +4,7 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **99 of 103 production projects publish and execute in NativeAOT validation**. The optional SixLabors font engine, Chromium browser-PDF bridge, and local HTML/PDF workbench use managed cross-platform deployment. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **99 of 102 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge and local HTML/PDF workbench use managed cross-platform deployment. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
 The 99 native-validated projects are not all proved in the same way:
 
@@ -43,7 +43,7 @@ The Word, Excel, PowerPoint, and Word-to-HTML packages use the Microsoft Open XM
 | Fully rooted libraries | 97 | The complete assembly surfaces compile into NativeAOT executables on Windows and Linux: 95 libraries in the main host, with `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` each exercised in a dedicated host. All three executables must start. | These packages are suitable NativeAOT building blocks; still test the exact documents and options your application uses. |
 | Bounded Google APIs adapter | 1 | `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` constructs its data-store adapter and round-trips a value in the native executable. | The validated adapter path is native. Treat live OAuth/provider flows as application-specific until your chosen Google dependency graph publishes cleanly. |
 | Native command-line tools | 1 | `OfficeIMO.Tool` publishes and starts as a native executable on Windows and Linux with namespaced HTML, Reader, and Markup commands. | Native CLI deployment is supported; validate the concrete commands and formats used by your job. |
-| Managed cross-platform integrations | 3 | `OfficeIMO.Drawing.SixLabors` uses its licensed managed font stack; `OfficeIMO.Html.Pdf.Browser` and the local HTML/PDF workbench use the managed HtmlTinkerX and Playwright runtime. | Use managed .NET deployment for these optional integrations; do not advertise them as NativeAOT-compatible without separate native-publish proof. |
+| Managed cross-platform integrations | 2 | `OfficeIMO.Html.Pdf.Browser` and the local HTML/PDF workbench use the managed HtmlTinkerX and Playwright runtime. | Use managed .NET deployment for these optional integrations; do not advertise them as NativeAOT-compatible without separate native-publish proof. |
 | Managed Windows UI | 1 | `OfficeIMO.MarkdownRenderer.Wpf` builds and runs through the managed Windows/WPF test lane. | Do not enable NativeAOT for this WPF/WebView2 UI package. Use the managed Windows deployment model. |
 
 CI fails if a production project is added, removed, or renamed without being classified in this matrix.
