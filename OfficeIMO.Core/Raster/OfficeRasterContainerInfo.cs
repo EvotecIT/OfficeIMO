@@ -43,7 +43,9 @@ public sealed class OfficeRasterFrameInfo {
         TimeSpan duration,
         OfficeRasterFrameDisposal disposal,
         OfficeRasterFrameBlend blend,
-        bool isDefaultImage) {
+        bool isDefaultImage,
+        double? dpiX = null,
+        double? dpiY = null) {
         Index = index;
         Kind = kind;
         Width = width;
@@ -54,6 +56,8 @@ public sealed class OfficeRasterFrameInfo {
         Disposal = disposal;
         Blend = blend;
         IsDefaultImage = isDefaultImage;
+        DpiX = dpiX;
+        DpiY = dpiY;
     }
 
     /// <summary>Zero-based display or page index.</summary>
@@ -76,6 +80,10 @@ public sealed class OfficeRasterFrameInfo {
     public OfficeRasterFrameBlend Blend { get; }
     /// <summary>Whether this frame is also the container's backwards-compatible static image.</summary>
     public bool IsDefaultImage { get; }
+    /// <summary>Selected frame or page horizontal physical resolution when independently available.</summary>
+    public double? DpiX { get; }
+    /// <summary>Selected frame or page vertical physical resolution when independently available.</summary>
+    public double? DpiY { get; }
 }
 
 /// <summary>Bounded format-neutral inventory of the images, frames, or pages in a raster container.</summary>

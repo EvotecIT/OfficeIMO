@@ -23,11 +23,17 @@ public static class OfficeImagePngConverter {
             sourceInfo = identified;
         }
 
-        pngBytes = sourceInfo == null
+        double? selectedDpiX = decodeInfo.Format == OfficeImageFormat.Tiff
+            ? decodeInfo.SelectedFrame?.DpiX
+            : null;
+        double? selectedDpiY = decodeInfo.Format == OfficeImageFormat.Tiff
+            ? decodeInfo.SelectedFrame?.DpiY
+            : null;
+        pngBytes = sourceInfo == null && (!selectedDpiX.HasValue || !selectedDpiY.HasValue)
             ? OfficePngWriter.Encode(image)
             : OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
-                DpiX = sourceInfo.DpiX,
-                DpiY = sourceInfo.DpiY
+                DpiX = selectedDpiX ?? sourceInfo!.DpiX,
+                DpiY = selectedDpiY ?? sourceInfo!.DpiY
             });
         return true;
     }

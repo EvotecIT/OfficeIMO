@@ -895,9 +895,15 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void OfficeImageOptimizerBoundsInputBeforeIdentificationAndMetadataInspection() {
-            OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes);
+            OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes - 24);
             Assert.Throws<ArgumentException>(() =>
-                OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes + 1));
+                OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes - 23));
+            Assert.False(OfficeImageOptimizer.IsUnchangedResultWorkingSetWithinLimit(
+                OfficeRasterGuards.MaximumEncodedBytes,
+                retainedManagedBytes: 0L));
+            Assert.True(OfficeImageOptimizer.IsUnchangedResultWorkingSetWithinLimit(
+                encodedBytes: 64 * 1024,
+                retainedManagedBytes: 4L * 1024L * 1024L));
         }
 
         [Fact]

@@ -911,14 +911,33 @@ public partial class DrawingTests {
         Assert.Equal(source, result);
         Assert.True(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
             OfficeRasterGuards.MaximumEncodedBytes,
-            OfficeRasterGuards.MaximumEncodedBytes));
-        Assert.True(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
+            OfficeRasterGuards.MaximumEncodedBytes - 48L));
+        Assert.False(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
             OfficeRasterGuards.MaximumEncodedBytes,
-            OfficeRasterGuards.MaximumEncodedBytes - 1L));
+            OfficeRasterGuards.MaximumEncodedBytes - 47L));
 #if NET8_0_OR_GREATER
         Assert.True(allocated < 100L * 1024L,
             $"Exact-capacity stream materialization allocated {allocated:N0} bytes.");
 #endif
+    }
+
+    [Fact]
+    public void BoundedSeekableMemoryReaderBorrowsOnlyAnExposedExactBuffer() {
+        var source = new byte[64 * 1024];
+        for (int index = 0; index < source.Length; index++) source[index] = (byte)index;
+        using var stream = new MemoryStream(source, 0, source.Length, writable: false, publiclyVisible: true);
+
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            stream, source.Length, CancellationToken.None, out byte[] result));
+
+        Assert.Same(source, result);
+        Assert.Equal(stream.Length, stream.Position);
+        Assert.False(OfficeBoundedStreamReader.IsSeekableMemoryCopyWithinLimit(
+            OfficeRasterGuards.MaximumEncodedBytes,
+            OfficeRasterGuards.MaximumEncodedBytes));
+        Assert.True(OfficeBoundedStreamReader.IsSeekableMemoryCopyWithinLimit(
+            retainedStreamBytes: 64 * 1024,
+            payloadBytes: 64 * 1024));
     }
 
     [Fact]

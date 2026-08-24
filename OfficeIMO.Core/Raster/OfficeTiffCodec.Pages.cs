@@ -75,12 +75,19 @@ public static partial class OfficeTiffCodec {
                     width < 1 || height < 1 ||
                     enforceAllPagePixelLimits &&
                     (long)width * height > options.MaximumDecodedPixels ||
-                    (frames.Count == 0 &&
-                     (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out firstOrientation) ||
-                      firstOrientation < 1 || firstOrientation > 8)) ||
+                    !TryReadPageDpi(encodedBytes, entries, littleEndian, out double dpiX, out double dpiY) ||
                     validatePayloads && !TryReserveAndValidatePage(
                         encodedBytes, entries, littleEndian, width, height, options,
                         validationBudget!, ref validatedPixels)) return false;
+
+                bool hasValidOrientation =
+                    TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) &&
+                    orientation >= 1 && orientation <= 8;
+                if (frames.Count == 0 && !hasValidOrientation) return false;
+                if (!hasValidOrientation) orientation = 1;
+
+                if (frames.Count == 0) firstOrientation = orientation;
+                if (orientation >= 5) (dpiX, dpiY) = (dpiY, dpiX);
 
                 frames.Add(new OfficeRasterFrameInfo(
                     frames.Count,
@@ -92,7 +99,9 @@ public static partial class OfficeTiffCodec {
                     TimeSpan.Zero,
                     OfficeRasterFrameDisposal.None,
                     OfficeRasterFrameBlend.Source,
-                    frames.Count == 0));
+                    frames.Count == 0,
+                    dpiX,
+                    dpiY));
                 int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
                 ifdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
             }
@@ -114,6 +123,48 @@ public static partial class OfficeTiffCodec {
         } catch (OverflowException) {
             return false;
         }
+    }
+
+    private static bool TryReadPageDpi(
+        byte[] encodedBytes,
+        IReadOnlyDictionary<int, TiffEntry> entries,
+        bool littleEndian,
+        out double dpiX,
+        out double dpiY) {
+        dpiX = 96D;
+        dpiY = 96D;
+        bool hasX = entries.ContainsKey(282);
+        bool hasY = entries.ContainsKey(283);
+        if (!hasX && !hasY) return true;
+        if (!TryReadScalarOrDefault(encodedBytes, entries, 296, littleEndian, 2, out int unit) ||
+            unit < 1 || unit > 3) return false;
+        if (unit == 1 || !hasX || !hasY) return true;
+        if (!TryReadPositiveRational(encodedBytes, entries, 282, littleEndian, out double x) ||
+            !TryReadPositiveRational(encodedBytes, entries, 283, littleEndian, out double y)) return false;
+        double scale = unit == 3 ? 2.54D : 1D;
+        dpiX = x * scale;
+        dpiY = y * scale;
+        return !double.IsNaN(dpiX) && !double.IsInfinity(dpiX) &&
+               !double.IsNaN(dpiY) && !double.IsInfinity(dpiY);
+    }
+
+    private static bool TryReadPositiveRational(
+        byte[] data,
+        IReadOnlyDictionary<int, TiffEntry> entries,
+        int tag,
+        bool littleEndian,
+        out double value) {
+        value = 0D;
+        if (!entries.TryGetValue(tag, out TiffEntry entry) || entry.Type != 5 || entry.Count != 1) {
+            return false;
+        }
+        int offset = ReadOffset(data, entry.ValueFieldOffset, littleEndian);
+        if (!HasBytes(data, offset, 8)) return false;
+        uint numerator = ReadUInt32(data, offset, littleEndian);
+        uint denominator = ReadUInt32(data, offset + 4, littleEndian);
+        if (numerator == 0 || denominator == 0) return false;
+        value = numerator / (double)denominator;
+        return value > 0D;
     }
 
     private static Dictionary<int, TiffEntry>? ReadEntries(

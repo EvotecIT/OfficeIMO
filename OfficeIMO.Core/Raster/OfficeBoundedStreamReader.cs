@@ -21,6 +21,10 @@ internal static class OfficeBoundedStreamReader {
         if (stream.CanSeek) {
             long remaining = stream.Length - stream.Position;
             if (remaining <= 0L || remaining > maximumBytes || remaining > int.MaxValue) return false;
+            if (stream is MemoryStream memoryStream) {
+                if (TryBorrowFullBuffer(memoryStream, remaining, out bytes)) return true;
+                if (!IsSeekableMemoryCopyWithinLimit(memoryStream.Length, remaining)) return false;
+            }
             bytes = new byte[(int)remaining];
             return TryReadExact(stream, bytes, cancellationToken);
         }
@@ -56,11 +60,36 @@ internal static class OfficeBoundedStreamReader {
     internal static bool IsFinalCopyWithinLimit(long retainedBufferBytes, long payloadBytes) {
         if (retainedBufferBytes < 0L || payloadBytes < 0L || payloadBytes > retainedBufferBytes) return false;
         try {
-            return checked(retainedBufferBytes + payloadBytes) <=
+            return checked(retainedBufferBytes + 24L + payloadBytes + 24L) <=
                    OfficeRasterGuards.MaximumDecodedBytes;
         } catch (OverflowException) {
             return false;
         }
+    }
+
+    internal static bool IsSeekableMemoryCopyWithinLimit(long retainedStreamBytes, long payloadBytes) {
+        if (retainedStreamBytes < 0L || payloadBytes < 0L || payloadBytes > retainedStreamBytes) return false;
+        try {
+            return checked(retainedStreamBytes + 24L + payloadBytes + 24L) <=
+                   OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static bool TryBorrowFullBuffer(
+        MemoryStream stream,
+        long remaining,
+        out byte[] bytes) {
+        bytes = Array.Empty<byte>();
+        if (stream.Position != 0L || remaining != stream.Length || remaining > int.MaxValue ||
+            !stream.TryGetBuffer(out ArraySegment<byte> segment) || segment.Array == null ||
+            segment.Offset != 0 || segment.Count != remaining || segment.Array.LongLength != remaining) {
+            return false;
+        }
+        bytes = segment.Array;
+        stream.Position = stream.Length;
+        return true;
     }
 
     private static void CopyWithCancellation(

@@ -569,6 +569,36 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void SelectedTiffPageConversionUsesThatPagesPhysicalResolution() {
+        byte[] encoded = OfficeTiffCodec.EncodePages(
+            new[] {
+                new OfficeRasterImage(2, 1, OfficeColor.Red),
+                new OfficeRasterImage(1, 2, OfficeColor.Blue)
+            },
+            new OfficeTiffEncodeOptions { DpiX = 72D, DpiY = 96D });
+        int firstIfd = ReadLittleEndian(encoded, 4);
+        int secondIfd = ReadLittleEndian(
+            encoded,
+            firstIfd + 2 + ReadUInt16LittleEndian(encoded, firstIfd) * 12);
+        SetTiffRationalTag(encoded, secondIfd, 282, numerator: 144, denominator: 1);
+        SetTiffRationalTag(encoded, secondIfd, 283, numerator: 288, denominator: 1);
+        SetTiffShortTag(encoded, secondIfd, 296, 2);
+        var options = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            encoded, options, out _, out OfficeRasterDecodeInfo decodeInfo));
+        Assert.Equal(144D, decodeInfo.SelectedFrame!.DpiX);
+        Assert.Equal(288D, decodeInfo.SelectedFrame.DpiY);
+        Assert.True(OfficeImagePngConverter.TryConvertToPng(
+            encoded, options, out byte[] png, out OfficeRasterDecodeInfo conversionInfo));
+
+        OfficeImageInfo converted = OfficeImageReader.Identify(png);
+        Assert.Equal(1, conversionInfo.SelectedFrameIndex);
+        Assert.InRange(converted.DpiX, 143.98D, 144.02D);
+        Assert.InRange(converted.DpiY, 287.98D, 288.02D);
+    }
+
+    [Fact]
     public void OfficeTiffPackBitsPacketsRestartAtEveryRowAcrossEncodingSurfaces() {
         var image = new OfficeRasterImage(1, 2, OfficeColor.FromRgba(1, 2, 3, 4));
         var options = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits };
@@ -1061,6 +1091,24 @@ public sealed class DrawingRasterEncodingTests {
             return;
         }
         throw new InvalidOperationException("TIFF entry was not found.");
+    }
+
+    private static void SetTiffRationalTag(
+        byte[] bytes,
+        int ifdOffset,
+        int expectedTag,
+        int numerator,
+        int denominator) {
+        int entryCount = ReadUInt16LittleEndian(bytes, ifdOffset);
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            if (ReadUInt16LittleEndian(bytes, entryOffset) != expectedTag) continue;
+            int valueOffset = ReadLittleEndian(bytes, entryOffset + 8);
+            WriteLittleEndian(bytes, valueOffset, numerator);
+            WriteLittleEndian(bytes, valueOffset + 4, denominator);
+            return;
+        }
+        throw new InvalidOperationException("TIFF rational entry was not found.");
     }
 
     private static byte[] CreateSingleEntryIcon(byte[] payload) {
