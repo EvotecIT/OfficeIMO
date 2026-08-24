@@ -95,10 +95,22 @@ internal static class CsvDataReaderWriteSizeEvidenceRunner {
     }
 }
 
-internal sealed record CsvDataReaderWriteOutputEvidence(string Engine, int Characters, int Utf8Bytes, string Sha256) {
+internal sealed record CsvDataReaderWriteOutputEvidence(
+    string Engine,
+    int Characters,
+    int Utf8Bytes,
+    int CarriageReturns,
+    int LineFeeds,
+    string Sha256) {
     internal static CsvDataReaderWriteOutputEvidence Create(string engine, string output) {
         byte[] bytes = Encoding.UTF8.GetBytes(output);
-        return new CsvDataReaderWriteOutputEvidence(engine, output.Length, bytes.Length, Convert.ToHexString(SHA256.HashData(bytes)));
+        return new CsvDataReaderWriteOutputEvidence(
+            engine,
+            output.Length,
+            bytes.Length,
+            output.Count(character => character == '\r'),
+            output.Count(character => character == '\n'),
+            Convert.ToHexString(SHA256.HashData(bytes)));
     }
 }
 
