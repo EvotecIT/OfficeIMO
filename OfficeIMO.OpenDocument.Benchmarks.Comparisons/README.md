@@ -42,3 +42,13 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.OpenDocument.Benchmarks.Co
 
 BenchmarkDotNet artifacts and validation JSON are environment-specific. Keep
 them under `.benchmark-artifacts` or another ignored output root.
+
+## Isolated peak-memory and size evidence
+
+Run each workload and implementation in a fresh child process to capture
+allocation, retained heap, sampled managed peak, absolute process peak, input
+bytes, output bytes, source commit, dirty-tree state, and environment:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.OpenDocument.Benchmarks.Comparisons -- evidence --repeat 3 --json .benchmark-artifacts\opendocument\ods-comparison-evidence.json
+```

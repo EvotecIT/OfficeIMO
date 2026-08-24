@@ -22,7 +22,7 @@ internal static class OdsComparisonValidation {
         return new OdsComparisonReport(scale.Name, officeIMO, openStandardLibrary);
     }
 
-    private static OdsOutputEvidence Inspect(string implementation, OdsComparisonScale scale, byte[] package) {
+    internal static OdsOutputEvidence Inspect(string implementation, OdsComparisonScale scale, byte[] package) {
         OdsDocument document = OdsDocument.Load(new MemoryStream(package, writable: false));
         OdsSheet sheet = document.Sheets.Single();
         long rowCount = 0;

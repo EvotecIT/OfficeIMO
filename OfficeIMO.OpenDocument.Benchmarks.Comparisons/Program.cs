@@ -2,6 +2,16 @@ using System.Text.Json;
 using BenchmarkDotNet.Running;
 using OfficeIMO.OpenDocument.Benchmarks.Comparisons;
 
+if (args.Length > 0 && string.Equals(args[0], "--evidence-probe", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = OdsComparisonEvidenceRunner.RunProbe(args[1..]);
+    return;
+}
+
+if (args.Length > 0 && string.Equals(args[0], "evidence", StringComparison.OrdinalIgnoreCase)) {
+    Environment.ExitCode = OdsComparisonEvidenceRunner.Run(args[1..]);
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.OrdinalIgnoreCase)) {
     IReadOnlyList<OdsComparisonReport> reports = OdsComparisonValidation.ValidateAll();
     string? outputPath = ReadOption(args, "--json");
