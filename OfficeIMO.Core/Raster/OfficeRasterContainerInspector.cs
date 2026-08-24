@@ -155,19 +155,9 @@ public static class OfficeRasterContainerInspector {
                     }
                     if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) return false;
                 } else if (label == 0x01) {
-                    if (transparentIndex >= 0 &&
-                        (globalColorTable == null || transparentIndex >= globalColorTable.Length)) return false;
-                    if (!OfficeGifReader.TryReadPlainTextExtension(
-                            bytes,
-                            ref cursor,
-                            imageInfo.Width,
-                            imageInfo.Height,
-                            globalColorTable,
-                            options.CancellationToken)) return false;
-                    delayHundredths = 0;
-                    disposal = OfficeRasterFrameDisposal.None;
-                    transparentIndex = -1;
-                    hasPendingGraphicControl = false;
+                    // Plain Text Extensions are graphic rendering blocks. Until the managed GIF
+                    // decoder can render and inventory them, fail closed rather than lose content.
+                    return false;
                 } else if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) {
                     return false;
                 }

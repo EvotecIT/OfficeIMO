@@ -807,6 +807,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerReportsDuplicateJpegExifAsLossWhenReencoding() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifWithoutOrientation())
+                });
+            byte[] duplicate = InsertExifSegmentAfterStartOfImage(jpeg, CreateExifOrientation(1));
+
+            OfficeImageMetadataSnapshot sourceMetadata =
+                OfficeImageMetadataInspector.Inspect(duplicate, OfficeImageFormat.Jpeg);
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                duplicate,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.True(sourceMetadata.HasDuplicateJpegExif);
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                result.Metadata.Preserved & OfficeImageMetadataKinds.Exif);
+            Assert.Equal(OfficeImageMetadataKinds.Exif,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Exif);
+        }
+
+        [Fact]
         public void OfficeImageOptimizerReportsJpegMetadataFoundBetweenProgressiveScans() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),

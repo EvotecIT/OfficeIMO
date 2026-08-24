@@ -853,6 +853,18 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void BmpDecodeAccountsForTheRetainedEncodedPayloadAndRgbaOutput() {
+        Assert.False(OfficeBmpReader.IsDecodeWorkingSetWithinLimit(
+            encodedBytes: OfficeRasterGuards.MaximumEncodedBytes,
+            width: 8192,
+            height: 4096));
+        Assert.True(OfficeBmpReader.IsDecodeWorkingSetWithinLimit(
+            encodedBytes: 64 * 1024,
+            width: 1024,
+            height: 1024));
+    }
+
+    [Fact]
     public void JpegDecodeChargesALateExifOrientationCanvasOnce() {
         const int width = 1024;
         const int height = 1024;

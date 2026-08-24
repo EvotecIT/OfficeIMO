@@ -303,7 +303,7 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void CompleteContentValidationChecksGifPlainTextRenderingHeaders() {
+    public void CompleteContentValidationRejectsUnsupportedGifPlainTextGraphics() {
         byte[] source = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
         byte[] valid = InsertGifPlainTextExtension(source, hasGlobalColorTable: true);
         byte[] missingGlobalPalette = InsertGifPlainTextExtension(
@@ -313,7 +313,7 @@ public partial class DrawingTests {
         byte[] invalidCell = InsertGifPlainTextExtension(source, hasGlobalColorTable: true, cellWidth: 0);
         byte[] invalidColor = InsertGifPlainTextExtension(source, hasGlobalColorTable: true, foregroundIndex: 2);
 
-        Assert.True(OfficeImageReader.TryValidateContent(valid, "plain-text.gif", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(valid, "plain-text.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(missingGlobalPalette, "no-global-palette.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(invalidGrid, "invalid-grid.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(invalidCell, "invalid-cell.gif", out _));

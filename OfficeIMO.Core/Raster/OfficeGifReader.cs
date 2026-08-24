@@ -132,22 +132,9 @@ public static class OfficeGifReader {
                         if (!TryReadFixedHeaderExtension(
                                 bytes, ref offset, expectedHeaderLength: 11, cancellationToken)) return false;
                     } else if (label == 0x01) {
-                        if (validateAllFrames) {
-                            if (transparentIndex >= 0 &&
-                                (globalColorTable == null || transparentIndex >= globalColorTable.Length)) return false;
-                            if (!TryReadPlainTextExtension(
-                                bytes,
-                                ref offset,
-                                width,
-                                height,
-                                globalColorTable,
-                                cancellationToken)) return false;
-                        } else if (!SkipSubBlocks(bytes, ref offset, cancellationToken)) {
-                            return false;
-                        }
-                        transparentIndex = -1;
-                        disposalMethod = 0;
-                        hasPendingGraphicControl = false;
+                        // Plain Text Extensions are rendering blocks. This decoder does not render them,
+                        // so accepting the container would silently discard visible or timed content.
+                        return false;
                     } else if (!SkipSubBlocks(bytes, ref offset, cancellationToken)) {
                         return false;
                     }
@@ -252,38 +239,6 @@ public static class OfficeGifReader {
         }
 
         offset += expectedHeaderLength;
-        return SkipSubBlocks(bytes, ref offset, cancellationToken);
-    }
-
-    internal static bool TryReadPlainTextExtension(
-        byte[] bytes,
-        ref int offset,
-        int canvasWidth,
-        int canvasHeight,
-        OfficeColor[]? globalColorTable,
-        CancellationToken cancellationToken) {
-        const int headerLength = 12;
-        if (globalColorTable == null || globalColorTable.Length == 0 ||
-            offset >= bytes.Length || bytes[offset++] != headerLength ||
-            offset > bytes.Length - headerLength) {
-            return false;
-        }
-
-        int left = ReadUInt16LittleEndian(bytes, offset);
-        int top = ReadUInt16LittleEndian(bytes, offset + 2);
-        int width = ReadUInt16LittleEndian(bytes, offset + 4);
-        int height = ReadUInt16LittleEndian(bytes, offset + 6);
-        int cellWidth = bytes[offset + 8];
-        int cellHeight = bytes[offset + 9];
-        int foregroundIndex = bytes[offset + 10];
-        int backgroundIndex = bytes[offset + 11];
-        if (width <= 0 || height <= 0 || cellWidth <= 0 || cellHeight <= 0 ||
-            (long)left + width > canvasWidth || (long)top + height > canvasHeight ||
-            foregroundIndex >= globalColorTable.Length || backgroundIndex >= globalColorTable.Length) {
-            return false;
-        }
-
-        offset += headerLength;
         return SkipSubBlocks(bytes, ref offset, cancellationToken);
     }
 

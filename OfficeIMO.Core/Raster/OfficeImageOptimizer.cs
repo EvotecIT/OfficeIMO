@@ -404,7 +404,7 @@ public static class OfficeImageOptimizer {
                                (requested & OfficeImageMetadataKinds.Resolution) != 0;
             byte[]? sourceExif = source.Exif;
             if ((requested & OfficeImageMetadataKinds.Exif) != 0 &&
-                IsValidJpegExif(sourceExif) && canCopyExif) {
+                !source.HasDuplicateJpegExif && IsValidJpegExif(sourceExif) && canCopyExif) {
                 if (OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(sourceExif!, out exif)) {
                     preserved |= OfficeImageMetadataKinds.Exif;
                 }

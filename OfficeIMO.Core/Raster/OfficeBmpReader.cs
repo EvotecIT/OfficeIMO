@@ -22,6 +22,7 @@ public static class OfficeBmpReader {
         try {
             if (!TryReadLayout(bytes, cancellationToken, out BmpLayout layout)) return false;
             byte[] source = bytes!;
+            if (!IsDecodeWorkingSetWithinLimit(source.LongLength, layout.Width, layout.Height)) return false;
 
             OfficeRasterImage result = new OfficeRasterImage(layout.Width, layout.Height);
             int bytesPerPixel = layout.BitsPerPixel / 8;
@@ -59,6 +60,17 @@ public static class OfficeBmpReader {
         } catch (OperationCanceledException) {
             throw;
         } catch {
+            return false;
+        }
+    }
+
+    internal static bool IsDecodeWorkingSetWithinLimit(long encodedBytes, int width, int height) {
+        try {
+            long rgbaBytes = checked((long)width * height * 4L);
+            long peakBytes = checked(encodedBytes + 24L + rgbaBytes + 24L);
+            return encodedBytes > 0L && width > 0 && height > 0 &&
+                   peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
             return false;
         }
     }
