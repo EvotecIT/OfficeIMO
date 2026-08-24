@@ -29,6 +29,8 @@ internal static class MarkdownBenchmarkCorpus {
         }
     }
 
+    internal static IEnumerable<string> AllNames => Corpora.Keys;
+
     public static string Get(string name) => Corpora[name];
 
     private static string BuildPortableReadme() {
