@@ -671,10 +671,10 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-08-23T23:51:13.3623378+00:00",
+      "generatedUtc": "2026-08-24T11:48:35.7661685+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.json",
-      "resultSha256": "43c2cd712fdf66be027e13c45216f7cbc28ce327a5548a498b6699bd4cdf2074",
+      "resultSha256": "89de9460576902404f9a898062d847e7ef5be37de4a13df6554720d2fa559750",
       "artifactDestinationSha256": "5f8176805cb41dac1888f69619e22de6373d169380fbcfcea8345b3207ce53f1",
       "artifactFileName": "pdf-html-generation-net10.0-linux-full.json",
       "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.json",
@@ -707,12 +707,15 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "443178dab63f83a6f83fc33f9e7ca15bbebbde6e",
-        "gitSha": "443178dab63f83a6f83fc33f9e7ca15bbebbde6e",
+        "benchmark.workload.sourceCommit": "f2483b6b35c1b75905355401cff30c01dcb9c834",
+        "gitSha": "f2483b6b35c1b75905355401cff30c01dcb9c834",
         "runMode": "full"
       },
-      "comparable": true,
-      "compatibilityIssues": []
+      "comparable": false,
+      "compatibilityIssues": [
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027)."
+      ]
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -808,8 +811,11 @@
         "gitSha": "443178dab63f83a6f83fc33f9e7ca15bbebbde6e",
         "runMode": "full"
       },
-      "comparable": true,
-      "compatibilityIssues": []
+      "comparable": false,
+      "compatibilityIssues": [
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027)."
+      ]
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1452,7 +1458,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-23T23:51:13.3623378+00:00"
+      "latestUtc": "2026-08-24T11:48:35.7661685+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
