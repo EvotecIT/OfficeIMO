@@ -32,10 +32,9 @@ public enum LatexSyntaxKind {
 
 /// <summary>Immutable node in the lossless LaTeX syntax tree.</summary>
 public sealed class LatexSyntaxNode {
-    private readonly LatexSourceText _source;
+    private object _sourceOrOriginalText;
     private readonly int _startOffset;
     private readonly int _endOffset;
-    private string? _originalText;
     private int _indexInParent = -1;
 
     internal LatexSyntaxNode(
@@ -46,7 +45,7 @@ public sealed class LatexSyntaxNode {
         string? value,
         IReadOnlyList<LatexSyntaxNode>? children = null) {
         Kind = kind;
-        _source = source;
+        _sourceOrOriginalText = source;
         _startOffset = startOffset;
         _endOffset = endOffset;
         Value = value;
@@ -60,9 +59,18 @@ public sealed class LatexSyntaxNode {
     /// <summary>Syntax kind.</summary>
     public LatexSyntaxKind Kind { get; }
     /// <summary>Exact source span.</summary>
-    public LatexSourceSpan Span => _source.CreateSpan(_startOffset, _endOffset);
+    public LatexSourceSpan Span => GetSource().CreateSpan(_startOffset, _endOffset);
     /// <summary>Exact source slice.</summary>
-    public string OriginalText => _originalText ??= _source.Text.Substring(_startOffset, _endOffset - _startOffset);
+    public string OriginalText {
+        get {
+            if (_sourceOrOriginalText is string originalText) return originalText;
+            var source = (LatexSourceText)_sourceOrOriginalText;
+            if (Parent == null) return source.Text;
+            originalText = source.Text.Substring(_startOffset, _endOffset - _startOffset);
+            _sourceOrOriginalText = originalText;
+            return originalText;
+        }
+    }
     /// <summary>Command or environment name when applicable.</summary>
     public string? Value { get; }
     /// <summary>Parent node.</summary>
@@ -100,7 +108,16 @@ public sealed class LatexSyntaxNode {
         }
     }
 
-    internal bool HasSource(LatexSourceText source) => ReferenceEquals(_source, source);
+    internal bool HasSource(LatexSourceText source) => ReferenceEquals(GetSource(), source);
+
+    private LatexSourceText GetSource() {
+        LatexSyntaxNode? current = this;
+        while (current != null) {
+            if (current._sourceOrOriginalText is LatexSourceText source) return source;
+            current = current.Parent;
+        }
+        throw new InvalidOperationException("LaTeX syntax node is not attached to its source tree.");
+    }
 }
 
 /// <summary>Lossless syntax tree and coverage status.</summary>

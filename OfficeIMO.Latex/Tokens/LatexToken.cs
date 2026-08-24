@@ -41,7 +41,7 @@ public sealed class LatexToken {
     private readonly LatexSourceText _source;
     private readonly int _startOffset;
     private readonly int _endOffset;
-    private string? _text;
+    private object? _textOrValue;
 
     internal LatexToken(
         LatexTokenKind kind,
@@ -54,16 +54,28 @@ public sealed class LatexToken {
         _source = source;
         _startOffset = startOffset;
         _endOffset = endOffset;
-        Value = value;
+        _textOrValue = value;
         IsTerminated = isTerminated;
     }
 
     /// <summary>Token kind.</summary>
     public LatexTokenKind Kind { get; }
     /// <summary>Exact token source.</summary>
-    public string Text => _text ??= _source.Text.Substring(_startOffset, _endOffset - _startOffset);
+    public string Text {
+        get {
+            if (_textOrValue is TextAndValue cached) return cached.Text;
+            if (!HasValue && _textOrValue is string cachedText) return cachedText;
+            string text = _source.Text.Substring(_startOffset, _endOffset - _startOffset);
+            _textOrValue = HasValue
+                ? new TextAndValue(text, _textOrValue as string)
+                : text;
+            return text;
+        }
+    }
     /// <summary>Command name without backslash, or null.</summary>
-    public string? Value { get; }
+    public string? Value => _textOrValue is TextAndValue cached
+        ? cached.Value
+        : HasValue ? _textOrValue as string : null;
     /// <summary>Exact source span.</summary>
     public LatexSourceSpan Span => _source.CreateSpan(_startOffset, _endOffset);
     /// <summary>Whether an opaque verbatim region contained its expected closing delimiter.</summary>
@@ -71,4 +83,16 @@ public sealed class LatexToken {
 
     internal int StartOffset => _startOffset;
     internal int EndOffset => _endOffset;
+
+    private bool HasValue => Kind == LatexTokenKind.Command || Kind == LatexTokenKind.Verbatim;
+
+    private sealed class TextAndValue {
+        internal TextAndValue(string text, string? value) {
+            Text = text;
+            Value = value;
+        }
+
+        internal string Text { get; }
+        internal string? Value { get; }
+    }
 }
