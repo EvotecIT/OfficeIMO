@@ -20,7 +20,8 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | EPUB | Full validated open/read evidence uses 0.26-0.37x VersOne's mean time and 0.24-0.28x its managed allocation | Retained result size is 0.94-0.99x; managed peak is 0.28-0.44x; both lanes consume the same input package | VersOne.Epub plus HtmlAgilityPack for equivalent metadata, raw-XHTML, visible-text, and spine-order extraction | Add Linux/macOS evidence; add creation evidence only if OfficeIMO gains an EPUB writer |
 | LaTeX | Validated BenchmarkDotNet lossless parse and parse-plus-preserve-write curves plus isolated evidence; the optimized large lane is about 69% faster and allocates about 62% less than the initial baseline | Allocation, retained heap, sampled managed peak, process peak, input bytes, and byte-identical preserve output are recorded and budgeted | No general .NET parser performs the same public lossless syntax plus semantic workflow | The 701 KiB source still retains about 57 MiB across its 256,036-token public model; reduce graph overhead and add non-Windows evidence |
 | AsciiDoc | Validated BenchmarkDotNet lossless parse and parse-plus-preserve-write curves plus isolated evidence; source-backed syntax and inline text reduce managed allocation by about 32% at every scale | Allocation, retained heap, sampled managed peak, process peak, input bytes, and byte-identical preserve output are recorded and budgeted | No accepted comparison: AsciiDocNet documents unsupported tables and list continuations required by this corpus | The 558 KiB large source still allocates 32.31 MiB and retains 22.46 MiB; reduce syntax graph and collection overhead, add non-Windows evidence, and compare only equivalent public workflows |
-| Security, Provenance, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
+| Markup | Validated CommonMark-plus-tables semantic parse is 1.15-1.31x Markdig's mean time and 1.13-1.26x its allocation | Isolated allocation, retained heap, managed peak, process peak, input bytes, event count, and digest are recorded and budgeted; file size is not applicable to parsing | Markdig 1.3.2 after exact semantic-event validation | Move the remaining 1.25-1.31x margins toward parity and add Linux/macOS evidence |
+| Security, Provenance, and Visio | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
 
 This table describes measurement coverage, not a library ranking. A returned
 byte count is not yet durable size evidence unless the runner records it with
@@ -108,6 +109,26 @@ table at 1.84x, Portable README at 1.83x, and Rich AST at 1.80x, so contender
 status does not end optimization work. The isolated runner also confirms every
 retained-heap, sampled managed-heap peak, and absolute process-peak ratio within
 2x across the matrix.
+
+## Markup semantic parsing
+
+`OfficeIMO.Markup.Benchmarks` compares the CommonMark-compatible semantic
+projection with Markdig using CommonMark plus pipe tables in both lanes. The
+preflight requires identical semantic event counts and SHA-256 digests before
+either parser is timed.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Markup.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Markup.Benchmarks -- --filter '*OfficeMarkupParseBenchmarks*' --job Short --noOverwrite
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Markup.Benchmarks -- --evidence --verify-budgets --repeat 3 --json .benchmark-artifacts\markup\evidence.json
+```
+
+The clean Windows evidence is recorded in
+[`officeimo.markup-parse-2026-08-24.md`](officeimo.markup-parse-2026-08-24.md).
+All three scales are within 1.31x for BenchmarkDotNet mean time and within 1.26x
+for managed allocation. The isolated retained-heap and peak-memory ratios are
+also within 1.31x. Markdig stays in the opt-in benchmark project and does not
+enter normal restore, runtime, or packaging paths.
 
 ## HTML non-PDF layout
 
