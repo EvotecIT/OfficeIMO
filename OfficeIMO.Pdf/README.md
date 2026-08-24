@@ -851,6 +851,7 @@ The PDF owner recognizes the standards-defined embedded file with media type `ap
 using OfficeIMO.Pdf;
 
 byte[] invoiceXml = File.ReadAllBytes("factur-x.xml");
+DateTimeOffset invoiceModifiedAt = File.GetLastWriteTimeUtc("factur-x.xml");
 byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
 
 PdfDocument.Create(pdf => pdf.Content(content => content
@@ -860,6 +861,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
             invoiceXml,
             relationship: PdfAssociatedFileRelationship.Alternative,
             textFallbacks: PdfTextFallbackFeatures.None)
+        .SetEmbeddedFileModificationDate("factur-x.xml", invoiceModifiedAt)
         .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
         .RequireCompliance(PdfComplianceProfile.FacturX))
     .Save("invoice.pdf");

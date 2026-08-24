@@ -134,6 +134,7 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF must contain a readable catalog output intent.");
 
         requirements.Add(BuildReadbackOutputIntentPolicyRequirement(info));
+        requirements.Add(BuildReadbackPdfAEmbeddedFileModificationDateRequirement(info));
         requirements.Add(new PdfComplianceRequirement(
             "verapdf-validation",
             "veraPDF validation evidence",
@@ -519,6 +520,30 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostics.Add(ex.Message);
             return false;
         }
+    }
+
+    private static PdfComplianceRequirement BuildReadbackPdfAEmbeddedFileModificationDateRequirement(PdfDocumentInfo info) {
+        string[] missingDates = info.Attachments
+            .Where(static attachment => !attachment.ModificationDate.HasValue)
+            .Select(static attachment => attachment.FileName)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static fileName => fileName, StringComparer.Ordinal)
+            .ToArray();
+        if (missingDates.Length == 0) {
+            return new PdfComplianceRequirement(
+                "readback-pdfa-embedded-file-modification-dates",
+                "Readback PDF/A embedded-file modification dates",
+                PdfComplianceRequirementStatus.Satisfied,
+                info.Attachments.Count == 0
+                    ? "The saved PDF contains no embedded files requiring modification-date evidence."
+                    : "Every saved embedded-file stream contains a readable /Params /ModDate entry.");
+        }
+
+        return new PdfComplianceRequirement(
+            "readback-pdfa-embedded-file-modification-dates",
+            "Readback PDF/A embedded-file modification dates",
+            PdfComplianceRequirementStatus.Missing,
+            "The saved PDF is missing embedded-file /Params /ModDate evidence for: " + string.Join(", ", missingDates) + ".");
     }
 
     private static bool IsXmpUuid(string? value) {

@@ -11,6 +11,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfComplianceGateTests {
     private const string ProofOutputEnv = "OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT";
+    private static readonly DateTimeOffset EmbeddedFileModificationDate = new DateTimeOffset(2026, 8, 24, 8, 30, 0, TimeSpan.Zero);
 
     [Fact]
     public void PdfA2BFixture_ContainsArchivalPrimitivesAndEmbeddedFonts() {
@@ -68,7 +69,7 @@ public class PdfComplianceGateTests {
         Assert.Contains("pdfaid:conformance", raw, StringComparison.Ordinal);
         Assert.Contains("/EmbeddedFiles", raw, StringComparison.Ordinal);
         Assert.Contains("/AF [", raw, StringComparison.Ordinal);
-        Assert.Contains("/Params << /Size 29 /CheckSum <AEEE18719BF2A42A30C88BB9B14D60FE> >>", raw, StringComparison.Ordinal);
+        Assert.Contains("/Params << /Size 29 /CheckSum <AEEE18719BF2A42A30C88BB9B14D60FE> /ModDate <443A32303236303832343038333030302B303027303027> >>", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3 ", raw, StringComparison.Ordinal);
     }
 
@@ -407,7 +408,13 @@ public class PdfComplianceGateTests {
             .Meta(title: "OfficeIMO PDF/A-3b", author: "OfficeIMO")
             .Language("en-US")
             .SrgbOutputIntent()
-            .AttachFile("source-data.xml", Encoding.UTF8.GetBytes("<source><id>123</id></source>"), "application/xml", PdfAssociatedFileRelationship.Data, "Source data")
+            .AttachFile(new PdfEmbeddedFile(
+                "source-data.xml",
+                Encoding.UTF8.GetBytes("<source><id>123</id></source>"),
+                "application/xml",
+                PdfAssociatedFileRelationship.Data,
+                "Source data",
+                modificationDate: EmbeddedFileModificationDate))
             .H1("Archival PDF with Associated Data")
             .Paragraph(p => p.Text("This exact artifact is validated as PDF/A-3b before OfficeIMO claims conformance."));
     }
@@ -505,6 +512,7 @@ public class PdfComplianceGateTests {
                 profile,
                 invoiceXml,
                 relationship: PdfAssociatedFileRelationship.Alternative)
+            .SetEmbeddedFileModificationDate("factur-x.xml", EmbeddedFileModificationDate)
             .RequireCompliance(profile)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, fontData, "OfficeIMO Source Serif");

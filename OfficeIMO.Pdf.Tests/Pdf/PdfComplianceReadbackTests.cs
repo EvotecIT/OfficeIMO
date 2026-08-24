@@ -29,6 +29,25 @@ public class PdfComplianceReadbackTests {
     }
 
     [Fact]
+    public void AssessReadback_RejectsPdfAEmbeddedFileWithoutModificationDate() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                FileVersion = PdfFileVersion.Pdf17,
+                IncludeStandardFontToUnicodeMaps = true
+            })
+            .PdfAIdentification(3, "B")
+            .Meta(title: "Readback PDF/A attachment", author: "OfficeIMO")
+            .Language("en-US")
+            .SrgbOutputIntent()
+            .AttachFile("source-data.xml", Encoding.UTF8.GetBytes("<source />"), "application/xml", PdfAssociatedFileRelationship.Data)
+            .Paragraph(paragraph => paragraph.Text("Readback PDF/A attachment groundwork"))
+            .ToBytes();
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA3B, pdf);
+
+        AssertRequirement(report, "readback-pdfa-embedded-file-modification-dates", PdfComplianceRequirementStatus.Missing);
+    }
+
+    [Fact]
     public void AssessReadback_UsesCatalogVersionAsEffectiveVersion() {
         byte[] generated = PdfDocument.Create(new PdfOptions {
                 FileVersion = PdfFileVersion.Pdf17,
