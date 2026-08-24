@@ -454,7 +454,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
             if (length == 0 || length >= buffer.Capacity) return false;
         }
-        return IsResolvedPathInsideRoot(NormalizeWindowsFinalPath(buffer.ToString()), requestedPath);
+        return IsResolvedPathInsideRoot(EmailStorePathIdentity.NormalizeWindowsFinalPath(buffer.ToString()), requestedPath);
     }
 
     private bool IsResolvedPathInsideRoot(string resolvedPath, string requestedPath) {
@@ -470,17 +470,6 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             : Path.GetFullPath(requestedPath);
         return normalized.StartsWith(_windowsOpenRoot, _rootComparison)
             && string.Equals(normalized, requested, _rootComparison);
-    }
-
-    private static string NormalizeWindowsFinalPath(string path) {
-        const string uncPrefix = @"\\?\UNC\";
-        const string devicePrefix = @"\\?\";
-        if (path.StartsWith(uncPrefix, StringComparison.OrdinalIgnoreCase)) {
-            return @"\\" + path.Substring(uncPrefix.Length);
-        }
-        return path.StartsWith(devicePrefix, StringComparison.OrdinalIgnoreCase)
-            ? path.Substring(devicePrefix.Length)
-            : path;
     }
 
     private int OpenUnixPathWithoutLinks(string path, int fileFlags) {

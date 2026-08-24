@@ -22,6 +22,7 @@ public static class OfficeDocumentReaderBuilderMhtmlExtensions {
             DisplayName = "MHTML Reader",
             Description = "MIME HTML archive projection using OfficeIMO.Mhtml and OfficeIMO.Reader.Html.",
             Kind = ReaderInputKind.Html,
+            UseDetectedKindFallback = false,
             Extensions = new[] { ".mht", ".mhtml" },
             DefaultMaxInputBytes = DefaultMaxInputBytes,
             ReadPath = (path, readerOptions, token) => MhtmlReaderAdapter.Read(path, readerOptions,

@@ -84,8 +84,8 @@ public sealed class ReaderMhtmlModularTests {
     }
 
     [Fact]
-    public void ContentDetectedMhtmlUsesHandlerDefaultInputLimit() {
-        string path = Path.Combine(Path.GetTempPath(), "officeimo-mhtml-limit-" + Guid.NewGuid().ToString("N"));
+    public void MhtmlExtensionUsesHandlerDefaultInputLimit() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-mhtml-limit-" + Guid.NewGuid().ToString("N") + ".mhtml");
         try {
             byte[] header = Encoding.ASCII.GetBytes("<html><body>content-detected archive</body></html>");
             byte[] detectionPrefix = Enumerable.Repeat((byte)' ', 64 * 1024).ToArray();
@@ -100,6 +100,25 @@ public sealed class ReaderMhtmlModularTests {
             Exception exception = Assert.ThrowsAny<Exception>(() => reader.ReadDocument(path));
 
             Assert.Contains("MaxInputBytes", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AllPresetRoutesContentDetectedHtmlToHtmlInsteadOfMhtml() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-html-detected-" + Guid.NewGuid().ToString("N") + ".blob");
+        try {
+            File.WriteAllText(path, "<!doctype html><html><body><h1>Detected HTML</h1></body></html>");
+
+            OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
+                path,
+                new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+            Assert.Equal(ReaderInputKind.Html, result.Kind);
+            Assert.Contains("officeimo.reader.html.rich-v5", result.CapabilitiesUsed);
+            Assert.DoesNotContain("officeimo.reader.mhtml", result.CapabilitiesUsed);
+            Assert.Contains(result.Diagnostics, item => item.Code == "input-kind-detected");
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

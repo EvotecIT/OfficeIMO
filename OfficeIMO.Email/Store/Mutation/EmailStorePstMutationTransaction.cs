@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store;
 
@@ -11,6 +12,7 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
     private readonly EmailStorePstMutationOptions _options;
     private readonly long _sourceLength;
     private readonly DateTime _sourceLastWriteTimeUtc;
+    private readonly string _sourceIdentity;
     private readonly Dictionary<string, FolderState> _folders;
     private readonly List<EmailStoreDiagnostic> _diagnostics;
     private PstMutationTransactionLock? _transactionLock;
@@ -21,12 +23,14 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
 
     private EmailStorePstMutationTransaction(string sourcePath,
         EmailStorePstMutationOptions options, EmailStoreSession source,
-        FileInfo sourceFile, PstMutationTransactionLock transactionLock) {
+        long sourceLength, DateTime sourceLastWriteTimeUtc,
+        PstMutationTransactionLock transactionLock) {
         _sourcePath = sourcePath;
         _options = options;
         _source = source;
-        _sourceLength = sourceFile.Length;
-        _sourceLastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
+        _sourceLength = sourceLength;
+        _sourceLastWriteTimeUtc = sourceLastWriteTimeUtc;
+        _sourceIdentity = transactionLock.Identity;
         _folders = source.Folders.ToDictionary(folder => folder.Id,
             folder => new FolderState(folder, source.IsOfficeImoWriterStore), StringComparer.Ordinal);
         _diagnostics = new List<EmailStoreDiagnostic>(source.Diagnostics);
@@ -65,9 +69,28 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         FileStream? input = null;
         PstMutationTransactionLock? transactionLock = null;
         try {
-            transactionLock = PstMutationTransactionLock.Acquire(sourcePath);
-            input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
-                64 * 1024, FileOptions.RandomAccess);
+            // Writable Linux sources and Windows use byte-range locks that coexist with ordinary
+            // readers. macOS, read-only Linux sources, and filesystems without OFD locking use an
+            // exclusive source flock instead; that conservative path temporarily excludes readers.
+            try {
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    transactionLock = PstMutationTransactionLock.OpenUnixSource(
+                        sourcePath, out input);
+                } else {
+                    input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
+                        FileShare.Read,
+                        64 * 1024, FileOptions.RandomAccess);
+                    transactionLock = PstMutationTransactionLock.Acquire(
+                        sourcePath, input.SafeFileHandle);
+                }
+            } catch (IOException exception) when (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                throw new IOException(
+                    "Another OfficeIMO mutation transaction already owns this physical PST, " +
+                    "or the PST could not be opened safely.", exception);
+            }
+            var sourceFile = new FileInfo(sourcePath);
+            long sourceLength = sourceFile.Length;
+            DateTime sourceLastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
             PstHeader header = PstHeader.Read(input, EmailStoreFormat.Pst);
             if (!header.IsUnicode) {
                 throw new NotSupportedException(
@@ -90,9 +113,11 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
                     nameof(EmailStorePstMutationOptions.MaxFolderCount),
                     source.Folders.Count, effective.MaxFolderCount);
             }
-            var sourceFile = new FileInfo(sourcePath);
+            EnsureSourceUnchanged(sourcePath, transactionLock.Identity,
+                sourceLength, sourceLastWriteTimeUtc);
             var transaction = new EmailStorePstMutationTransaction(
-                sourcePath, effective, source, sourceFile, transactionLock);
+                sourcePath, effective, source, sourceLength, sourceLastWriteTimeUtc,
+                transactionLock);
             transactionLock = null;
             return transaction;
         } catch {
@@ -149,6 +174,19 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         _source = null;
         _transactionLock?.Dispose();
         _transactionLock = null;
+    }
+
+    internal bool AllowsConcurrentReaders =>
+        _transactionLock?.AllowsConcurrentReaders == true;
+
+    private FileStream OpenBackupSourceStream(bool isAsync) {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            return _transactionLock!.OpenUnixSourceReadStream();
+        }
+        return new FileStream(_sourcePath, FileMode.Open, FileAccess.Read,
+            FileShare.Read | FileShare.Delete, 128 * 1024,
+            isAsync ? FileOptions.Asynchronous | FileOptions.SequentialScan
+                    : FileOptions.SequentialScan);
     }
 
     private static string ResolveRootFolderId(IReadOnlyList<EmailStoreFolderInfo> folders) {
