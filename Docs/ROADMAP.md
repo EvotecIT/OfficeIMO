@@ -67,6 +67,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Document-format depth
 
+- [ ] Reduce Visio graph and package overhead beyond the current validated Windows baseline: large creation allocates about 84.8 MiB for a 3.35 MB VSDX and large load/inspection about 91.8 MiB. Stabilize elapsed-time evidence, add Linux/macOS runs, and add a licensed commercial comparison only when both lanes create or load and validate the same pages, shapes, connectors, Shape Data, and boundary content.
 - [ ] Improve DOCX-to-PDF rendering for floating and wrapped drawings, section-specific headers and footers, fields, footnotes and endnotes, SmartArt fallbacks, and pagination controls using Word-produced fixtures and page-level visual comparisons.
 - [ ] Improve XLSX-to-PDF rendering for charts, pivot-table snapshots, conditional formatting, print titles and areas, manual page breaks, repeated rows and columns, external-link cached values, and advanced page setup using Excel-produced fixtures.
 - [ ] Improve PPTX-to-PDF rendering for SmartArt fallbacks, master and theme inheritance, grouped and uncommon DrawingML, media poster frames, transitions' stable visual state, shadows, transparency, and advanced effects using PowerPoint-produced fixtures. Do not imply animation or media playback in static PDF output.
