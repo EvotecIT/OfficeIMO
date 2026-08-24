@@ -14,10 +14,13 @@ public class GoogleWorkspaceTransportBenchmarks {
     [Params(64 * 1024, 4 * 1024 * 1024)]
     public int PayloadBytes { get; set; }
 
+    [Params(ResponseLengthMode.Declared, ResponseLengthMode.Unknown)]
+    public ResponseLengthMode LengthMode { get; set; }
+
     [GlobalSetup]
     public async Task Setup() {
         _payload = GoogleWorkspaceTransportScenario.CreatePayload(PayloadBytes);
-        _transport = GoogleWorkspaceTransportScenario.CreateTransport(_payload, out _client);
+        _transport = GoogleWorkspaceTransportScenario.CreateTransport(_payload, LengthMode, out _client);
 
         byte[] result = await GoogleWorkspaceTransportScenario.DownloadAsync(_transport, PayloadBytes).ConfigureAwait(false);
         if (!result.AsSpan().SequenceEqual(_payload)) {
@@ -45,8 +48,11 @@ internal static class GoogleWorkspaceTransportScenario {
         return payload;
     }
 
-    public static GoogleWorkspaceHttpTransport CreateTransport(byte[] payload, out HttpClient client) {
-        client = new HttpClient(new PayloadHandler(payload));
+    public static GoogleWorkspaceHttpTransport CreateTransport(
+        byte[] payload,
+        ResponseLengthMode lengthMode,
+        out HttpClient client) {
+        client = new HttpClient(new PayloadHandler(payload, lengthMode));
         return new GoogleWorkspaceHttpTransport(new GoogleWorkspaceSessionOptions {
             HttpClient = client,
             MaxRetryCount = 0,
@@ -67,15 +73,43 @@ internal static class GoogleWorkspaceTransportScenario {
 
     private sealed class PayloadHandler : HttpMessageHandler {
         private readonly byte[] _payload;
+        private readonly ResponseLengthMode _lengthMode;
 
-        public PayloadHandler(byte[] payload) {
+        public PayloadHandler(byte[] payload, ResponseLengthMode lengthMode) {
             _payload = payload;
+            _lengthMode = lengthMode;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
-                Content = new ByteArrayContent(_payload)
+                Content = _lengthMode == ResponseLengthMode.Declared
+                    ? new ByteArrayContent(_payload)
+                    : new UnknownLengthContent(_payload)
             });
     }
+
+    private sealed class UnknownLengthContent : HttpContent {
+        private readonly byte[] _payload;
+
+        public UnknownLengthContent(byte[] payload) {
+            _payload = payload;
+        }
+
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+            stream.WriteAsync(_payload, 0, _payload.Length);
+
+        protected override Task<Stream> CreateContentReadStreamAsync() =>
+            Task.FromResult<Stream>(new MemoryStream(_payload, writable: false));
+
+        protected override bool TryComputeLength(out long length) {
+            length = 0;
+            return false;
+        }
+    }
+}
+
+public enum ResponseLengthMode {
+    Declared,
+    Unknown
 }

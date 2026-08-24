@@ -3,20 +3,24 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace OfficeIMO.GoogleWorkspace.Benchmarks;
 
 internal static class GoogleWorkspaceTransportEvidence {
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     public static async Task<int> RunAsync(string[] args) {
         string outputPath = ResolveOutputPath(args);
         var results = new List<TransportEvidenceResult>();
         foreach (int payloadBytes in new[] { 64 * 1024, 4 * 1024 * 1024 }) {
-            results.Add(await RunChildProbeAsync(payloadBytes).ConfigureAwait(false));
+            foreach (ResponseLengthMode lengthMode in Enum.GetValues<ResponseLengthMode>()) {
+                results.Add(await RunChildProbeAsync(payloadBytes, lengthMode).ConfigureAwait(false));
+            }
         }
 
         var report = new TransportEvidenceReport {
@@ -34,14 +38,17 @@ internal static class GoogleWorkspaceTransportEvidence {
     }
 
     public static async Task<int> RunProbeAsync(string[] args) {
-        if (args.Length != 1 || !int.TryParse(args[0], out int payloadBytes) || payloadBytes < 0) {
-            Console.Error.WriteLine("Usage: probe <payload-bytes>");
+        if (args.Length != 2
+            || !Enum.TryParse(args[0], ignoreCase: true, out ResponseLengthMode lengthMode)
+            || !int.TryParse(args[1], out int payloadBytes)
+            || payloadBytes < 0) {
+            Console.Error.WriteLine("Usage: probe <declared|unknown> <payload-bytes>");
             return 2;
         }
 
         byte[] payload = GoogleWorkspaceTransportScenario.CreatePayload(payloadBytes);
         using GoogleWorkspaceHttpTransport transport =
-            GoogleWorkspaceTransportScenario.CreateTransport(payload, out HttpClient client);
+            GoogleWorkspaceTransportScenario.CreateTransport(payload, lengthMode, out HttpClient client);
         using (client) {
             for (var index = 0; index < 2; index++) {
                 byte[] warmup = await GoogleWorkspaceTransportScenario.DownloadAsync(transport, payloadBytes)
@@ -69,6 +76,7 @@ internal static class GoogleWorkspaceTransportEvidence {
             process.Refresh();
             var evidence = new TransportEvidenceResult {
                 PayloadBytes = payloadBytes,
+                LengthMode = lengthMode,
                 OutputBytes = result.LongLength,
                 ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
                 AllocatedBytes = allocated,
@@ -85,7 +93,9 @@ internal static class GoogleWorkspaceTransportEvidence {
         }
     }
 
-    private static async Task<TransportEvidenceResult> RunChildProbeAsync(int payloadBytes) {
+    private static async Task<TransportEvidenceResult> RunChildProbeAsync(
+        int payloadBytes,
+        ResponseLengthMode lengthMode) {
         string processPath = Environment.ProcessPath
             ?? throw new InvalidOperationException("Unable to resolve the benchmark process path.");
         var startInfo = new ProcessStartInfo {
@@ -99,6 +109,7 @@ internal static class GoogleWorkspaceTransportEvidence {
             startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
         }
         startInfo.ArgumentList.Add("probe");
+        startInfo.ArgumentList.Add(lengthMode.ToString());
         startInfo.ArgumentList.Add(payloadBytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
         using Process child = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Unable to start the transport memory probe.");
@@ -199,6 +210,7 @@ internal sealed class TransportEvidenceReport {
 
 internal sealed class TransportEvidenceResult {
     public int PayloadBytes { get; set; }
+    public ResponseLengthMode LengthMode { get; set; }
     public long OutputBytes { get; set; }
     public double ElapsedMilliseconds { get; set; }
     public long AllocatedBytes { get; set; }
