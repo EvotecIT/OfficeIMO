@@ -75,8 +75,7 @@ internal static class CorpusWorker {
             MaxContainerEntries = 512,
             InspectContainers = true
         });
-        if (!IsPackageKind(detection.ExtensionKind) &&
-            !IsPackageKind(detection.ContentKind) &&
+        if (!IsPackageKind(detection.ContentKind) &&
             !IsPackageKind(detection.Kind)) {
             return;
         }

@@ -127,7 +127,7 @@ try {
     $markdown = Get-Content -LiteralPath $firstMarkdown -Raw
     if ($markdown.Contains($scratch, [StringComparison]::OrdinalIgnoreCase) -or $markdown.Contains($inputDirectory, [StringComparison]::OrdinalIgnoreCase)) { throw 'A full input path leaked into the Markdown evidence.' }
     if ($markdown -notmatch 'not a reliability guarantee' -or $markdown -notmatch 'does not assess visual fidelity') { throw 'The generated evidence omitted its interpretation boundaries.' }
-    if ($markdown -notmatch '\| 4096 \| 20 \| 30 \| 2 \| 4096 \| 67108864 \| 33554432 \| 268435456 \| 500 \|') {
+    if ($markdown -notmatch '\| 4096 \| 20 \| 30 \| 2 \| 2 \| 3 \| 4096 \| 4096 \| 67108864 \| 33554432 \| 268435456 \| 500 \|') {
         throw 'The Markdown evidence did not record the package policy applied by the worker.'
     }
     if ($markdown.Contains('![corpus](target)', [StringComparison]::Ordinal) -or $markdown.Contains('![source](target)', [StringComparison]::Ordinal)) {
@@ -246,6 +246,27 @@ try {
     $probe = $probeText | ConvertFrom-Json -Depth 100
     if ($probe.succeeded -or $probe.exceptionType -ne 'OfficeIMO.RealWorldCorpus.CorpusInputChangedException') {
         throw 'A changed input was parsed under the hash recorded during classification.'
+    }
+
+    $misleadingPackageName = Join-Path $scratch 'misleading.docx'
+    [System.IO.File]::Copy(
+        (Join-Path $repositoryRoot 'Website/static/downloads/showcase/pdf/showcase-dashboard.pdf'),
+        $misleadingPackageName)
+    $mismatchClassificationText = & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- `
+        classify-file --stage classification --input $misleadingPackageName --max-file-bytes 1048576
+    if ($LASTEXITCODE -ne 0) { throw 'Mislabeled PDF classification worker contract failed.' }
+    $mismatchClassification = $mismatchClassificationText | ConvertFrom-Json -Depth 100
+    if (-not $mismatchClassification.succeeded -or $mismatchClassification.extensionKind -ne 'word' -or
+        $mismatchClassification.contentKind -ne 'pdf' -or $mismatchClassification.detectedKind -ne 'pdf') {
+        throw 'Prefer-content classification did not override the misleading Office extension.'
+    }
+    $mismatchProbeText = & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- `
+        probe-file --stage probe --input $misleadingPackageName --max-file-bytes 1048576 `
+        --expected-sha256 $mismatchClassification.sha256
+    if ($LASTEXITCODE -ne 0) { throw 'Mislabeled PDF probe worker contract failed.' }
+    $mismatchProbe = $mismatchProbeText | ConvertFrom-Json -Depth 100
+    if (-not $mismatchProbe.succeeded -or $mismatchProbe.detectedKind -ne 'pdf') {
+        throw 'A misleading Office extension incorrectly forced package validation.'
     }
 
     $inputAlias = Join-Path $scratch 'input-alias'
