@@ -16,7 +16,8 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | OpenDocument | BenchmarkDotNet open, sparse-write, formula, and validated ODS create/read comparisons | Evidence runner records peak working set and package input/output bytes; the ODS comparison exports validated size sidecars | OpenStandardLibrary for equivalent dense-string ODS create and read workloads | Add ODT/ODP comparisons only when another library can perform the same contract; capture non-Windows evidence |
 | OneNote | BenchmarkDotNet native read, write, and Markdown projection | Write returns bytes but size and peak memory are not recorded as evidence | No like-for-like offline semantic `.one` competitor | Add validated artifact-size and isolated peak-memory evidence |
 | Email | Full validated EML read/write evidence is within 2x of MimeKit; the 2,000-item PST scale contract fell from 68.19s to 4.03s | Validated EML output is 1.07-1.08x MimeKit; the 4.08 MB PST retained 0.70 MB managed memory | MimeKit 4.17.0 for equivalent complete MIME workflows | Add isolated peak-memory and non-Windows evidence; add a PST competitor only if the same managed creation contract is available |
-| ZIP, Security, Provenance, AsciiDoc, LaTeX, EPUB, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
+| ZIP | Full validated safe-traversal evidence is 1.03-1.16x raw platform traversal by mean time and 1.00-1.01x by allocation | Isolated peak managed-heap growth matches the platform lane; output size is not applicable because both lanes consume the same ZIP | `System.IO.Compression` metadata projection, explicitly without OfficeIMO's safety policy | Add Linux/macOS evidence |
+| Security, Provenance, AsciiDoc, LaTeX, EPUB, Visio, and Markup | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
 
 This table describes measurement coverage, not a library ranking. A returned
 byte count is not yet durable size evidence unless the runner records it with
@@ -122,6 +123,26 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.OpenDocument.Benchmarks.Co
 The comparison project is outside `OfficeIMO.sln`; OpenStandardLibrary remains
 an opt-in benchmark dependency. It is not used as an ODT or ODP comparator
 because it does not expose equivalent document models for those formats.
+
+## ZIP traversal comparison
+
+`OfficeIMO.Zip.Benchmarks` measures safe, deterministic OfficeIMO traversal
+against direct `System.IO.Compression` metadata projection. Both lanes return
+the same validated ordered descriptor fields; only OfficeIMO applies path and
+expansion safety limits, so the comparison reports the cost of that policy.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- validate
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload ziptraverse -RunMode full -Framework net10.0
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- --evidence --repeat 5 --json .benchmark-artifacts\zip\evidence.json
+```
+
+The full Windows run is recorded in
+[`officeimo.zip-traversal-2026-08-24.md`](officeimo.zip-traversal-2026-08-24.md).
+All scales are within 1.16x of the raw platform lane for mean time, within 1.01x
+for managed allocation, and show effectively identical peak managed-heap
+growth. ZIP creation size is not compared because the package owns traversal
+policy rather than archive writing.
 
 ## EPUB open/read comparison
 
