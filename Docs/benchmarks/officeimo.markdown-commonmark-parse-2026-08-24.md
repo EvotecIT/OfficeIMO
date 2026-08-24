@@ -123,19 +123,37 @@ and from 13.15 MB to 11.35 MB (13.7%). A same-size 64-document heap probe also
 reduced source-backed retained managed memory from 361,220,688 bytes to
 264,058,896 bytes (26.9%).
 
-The fresh-process runner then measured all seven corpora three times. The table
-below uses per-corpus medians and shows the source-backed result against Markdig
-as a diagnostic floor:
+The subsequent compact-storage pass at clean source commit
+`bd38a837a833faa55fe45bf91b538423a02367f1` packs syntax kind and sibling index,
+shares the node's literal and rare-metadata slot, uses exact arrays for common
+inline and list-item children, boxes source-span-only transient metadata, and
+releases inline marker metadata after the syntax node owns the same immutable
+snapshot. It preserves O(1) sibling lookup and does not defer syntax literals.
+
+On `LongNestedList`, deterministic BenchmarkDotNet allocation fell again from
+7.90 MB to 7.39 MB for source-backed `Parse` and from 11.35 MB to 10.30 MB for
+`ParseWithSyntaxTree`. The corresponding allocation ratios are now 3.12x and
+4.35x the semantic lane, or 4.32x and 6.02x the Markdig diagnostic floor. This
+full run was strongly multimodal in elapsed time for several engines, so its
+timing means are not used as regression evidence.
+
+The fresh-process runner measured all seven corpora three times from the same
+clean commit. The table below uses per-corpus medians and shows the source-backed
+result against Markdig as a diagnostic floor:
 
 | Corpus | Time | Allocation | Retained heap | Managed peak | Absolute process peak |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Portable README | 3.79x | 7.69x | 3.32x | 3.81x | 2.82x |
-| Transcript | 3.73x | 6.76x | 3.59x | 3.91x | 2.70x |
-| Technical document | 4.46x | 7.38x | 3.42x | 3.47x | 2.60x |
-| Rich AST | 3.50x | 7.17x | 2.94x | 2.83x | 2.16x |
-| Long nested list | 5.33x | 4.61x | 3.67x | 3.39x | 2.71x |
-| Large table | 0.44x | 6.35x | 4.03x | 4.46x | 2.92x |
-| Normalization stress | 1.83x | 6.94x | 4.35x | 3.85x | 2.55x |
+| Portable README | 3.46x | 7.41x | 3.08x | 3.57x | 2.40x |
+| Transcript | 3.34x | 6.41x | 3.22x | 3.40x | 2.56x |
+| Technical document | 3.62x | 7.07x | 3.09x | 3.41x | 2.68x |
+| Rich AST | 2.54x | 6.87x | 2.61x | 2.81x | 2.03x |
+| Long nested list | 4.79x | 4.32x | 3.24x | 3.21x | 2.59x |
+| Large table | 0.40x | 5.96x | 3.39x | 3.67x | 2.56x |
+| Normalization stress | 1.77x | 6.57x | 3.81x | 3.53x | 2.29x |
+
+Relative to the first source-graph pass, the compact pass reduces
+source-backed allocation by 3.5-6.4% and retained heap by 7.2-15.8% across the
+seven corpora. `LongNestedList` allocation is down 6.4% and retained heap 11.9%.
 
 Every run produced the same normalized semantic fingerprint for all engines.
 The source-backed allocation and retained-memory ratios remain the primary open
