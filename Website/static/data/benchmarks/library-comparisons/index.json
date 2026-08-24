@@ -104,10 +104,10 @@
       "comparisonId": "image-tiff-lzw-net10.0",
       "platform": "windows",
       "runMode": "quick",
-      "generatedUtc": "2026-08-23T22:37:56.9806502+02:00",
+      "generatedUtc": "2026-08-24T12:56:30.1963817+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/image-tiff-lzw-net10.0-windows-quick.json",
-      "resultSha256": "ffdce766fd5dabd505d31dcd0f97a1d53a61661054d19962b20ac39e36fdcdfe",
+      "resultSha256": "7265ebdcff7adbf9cb4c9c1cdf5e4a65bc25039e38a6a030dc471d4479372245",
       "artifactDestinationSha256": "984820a1e8bc66a8f266c52d7b7ce952185336e22b306f60dd3737069bfdf1dd",
       "artifactFileName": "image-tiff-lzw-net10.0-windows-quick.json",
       "artifactRelativePath": "image-tiff-lzw-net10.0-windows-quick.json",
@@ -128,12 +128,12 @@
       },
       "compatibility": {
         "suite": "OfficeIMO.Drawing.TiffLzw",
-        "benchmark.workload.shape.sha256": "93f2fa64c9a5315971f0d4addd5dc4a84603fa11927350f3615c06a74fd3bc30",
+        "benchmark.workload.shape.sha256": "3ebed1aa588685780dc19be7a4fab11c6e616da1c3fd67a9cc970dea3cb44554",
         "benchmark.workload.affinityMask": "0xFFFF",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "image-tiff-lzw-net10.0",
-        "benchmark.workload.sourceCommit": "4c7796585526c9ebf047be2a32c13b3b5663860a",
-        "gitSha": "4c7796585526c9ebf047be2a32c13b3b5663860a",
+        "benchmark.workload.sourceCommit": "12720c209e1d021bc69865cbf2ff4e6935ffe3c2",
+        "gitSha": "12720c209e1d021bc69865cbf2ff4e6935ffe3c2",
         "runMode": "quick"
       },
       "comparable": true,
@@ -224,10 +224,10 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.111', '10.0.302').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.11 (10.0.11, 10.0.1126.37416)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.111\u0027, \u002710.0.302\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.11 (10.0.11, 10.0.1126.37416)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027)."
       ]
     },
     {
@@ -276,10 +276,10 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.111', '10.0.302').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.11 (10.0.11, 10.0.1126.37416)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.111\u0027, \u002710.0.302\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.11 (10.0.11, 10.0.1126.37416)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027)."
       ]
     },
     {
@@ -422,10 +422,10 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.111', '10.0.302').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.11 (10.0.11, 10.0.1126.37416)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.111\u0027, \u002710.0.302\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.11 (10.0.11, 10.0.1126.37416)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027)."
       ]
     },
     {
@@ -474,10 +474,10 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.111', '10.0.302').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.11 (10.0.11, 10.0.1126.37416)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.111\u0027, \u002710.0.302\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.11 (10.0.11, 10.0.1126.37416)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027)."
       ]
     },
     {
@@ -573,10 +573,10 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.111', '10.0.302').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.11 (10.0.11, 10.0.1126.37416)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.111\u0027, \u002710.0.302\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.11 (10.0.11, 10.0.1126.37416)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027)."
       ]
     },
     {
@@ -625,15 +625,15 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '356c59c9c837fdc616a96b1a7458ce21cefe1d43').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.102', '10.0.302').",
-        "environment.logicalCoreCount: lanes contain incompatible values ('10', '32').",
-        "environment.osArchitecture: lanes contain incompatible values ('Arm64', 'X64').",
-        "environment.physicalCoreCount: lanes contain incompatible values ('10', '16').",
-        "environment.processArchitecture: lanes contain incompatible values ('Arm64', 'X64').",
-        "environment.processorName: lanes contain incompatible values ('AMD Ryzen 9 9950X3D2', 'Apple M4').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.2 (10.0.2, 10.0.225.61305)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '356c59c9c837fdc616a96b1a7458ce21cefe1d43')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.102\u0027, \u002710.0.302\u0027).",
+        "environment.logicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002732\u0027).",
+        "environment.osArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.physicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002716\u0027).",
+        "environment.processArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.processorName: lanes contain incompatible values (\u0027AMD Ryzen 9 9950X3D2\u0027, \u0027Apple M4\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.2 (10.0.2, 10.0.225.61305)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027)."
       ]
     },
     {
@@ -682,10 +682,10 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.111', '10.0.302').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.11 (10.0.11, 10.0.1126.37416)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '147b51678ca24e15c945971c7456c9ed45476ece')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.111\u0027, \u002710.0.302\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.11 (10.0.11, 10.0.1126.37416)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027147b51678ca24e15c945971c7456c9ed45476ece\u0027)."
       ]
     },
     {
@@ -734,15 +734,15 @@
       },
       "comparable": false,
       "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '356c59c9c837fdc616a96b1a7458ce21cefe1d43').",
-        "environment.dotNetSdkVersion: lanes contain incompatible values ('10.0.102', '10.0.302').",
-        "environment.logicalCoreCount: lanes contain incompatible values ('10', '32').",
-        "environment.osArchitecture: lanes contain incompatible values ('Arm64', 'X64').",
-        "environment.physicalCoreCount: lanes contain incompatible values ('10', '16').",
-        "environment.processArchitecture: lanes contain incompatible values ('Arm64', 'X64').",
-        "environment.processorName: lanes contain incompatible values ('AMD Ryzen 9 9950X3D2', 'Apple M4').",
-        "environment.runtimeVersion: lanes contain incompatible values ('.NET 10.0.10 (10.0.10, 10.0.1026.32716)', '.NET 10.0.2 (10.0.2, 10.0.225.61305)').",
-        "gitSha: lanes contain incompatible values ('093ec62d034e47e10285ea24f2cae55a9d67ff8d', '356c59c9c837fdc616a96b1a7458ce21cefe1d43')."
+        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027).",
+        "environment.dotNetSdkVersion: lanes contain incompatible values (\u002710.0.102\u0027, \u002710.0.302\u0027).",
+        "environment.logicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002732\u0027).",
+        "environment.osArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.physicalCoreCount: lanes contain incompatible values (\u002710\u0027, \u002716\u0027).",
+        "environment.processArchitecture: lanes contain incompatible values (\u0027Arm64\u0027, \u0027X64\u0027).",
+        "environment.processorName: lanes contain incompatible values (\u0027AMD Ryzen 9 9950X3D2\u0027, \u0027Apple M4\u0027).",
+        "environment.runtimeVersion: lanes contain incompatible values (\u0027.NET 10.0.10 (10.0.10, 10.0.1026.32716)\u0027, \u0027.NET 10.0.2 (10.0.2, 10.0.225.61305)\u0027).",
+        "gitSha: lanes contain incompatible values (\u0027093ec62d034e47e10285ea24f2cae55a9d67ff8d\u0027, \u0027356c59c9c837fdc616a96b1a7458ce21cefe1d43\u0027)."
       ]
     },
     {
@@ -1183,7 +1183,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-08-23T22:37:56.9806502+02:00"
+      "latestUtc": "2026-08-24T12:56:30.1963817+00:00"
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",
