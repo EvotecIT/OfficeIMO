@@ -167,7 +167,7 @@ public static class OfficeProvenanceInspector {
     private static bool LooksLikeSvg(byte[] data, string? fileName, int maximumContainerEntries) {
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase)) return true;
-        if (data.Length == 0) return false;
+        if (!CouldStartXml(data)) return false;
         try {
             var settings = new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
@@ -198,6 +198,21 @@ public static class OfficeProvenanceInspector {
         } catch (XmlException) {
             return false;
         }
+    }
+
+    private static bool CouldStartXml(byte[] data) {
+        if (data.Length == 0) return false;
+        if (data.Length >= 2 &&
+            ((data[0] == 0xFF && data[1] == 0xFE) ||
+             (data[0] == 0xFE && data[1] == 0xFF) ||
+             (data[0] == 0x00 && data[1] == (byte)'<') ||
+             (data[0] == (byte)'<' && data[1] == 0x00))) {
+            return true;
+        }
+
+        int offset = data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+        while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0C or 0x0D or 0x20) offset++;
+        return offset < data.Length && data[offset] == (byte)'<';
     }
 
     private static bool HasStructuredTextExtension(string? fileName) {
@@ -310,7 +325,7 @@ public static class OfficeProvenanceRemover {
         OfficeProvenanceReport after = forcedFormat.HasValue
             ? OfficeProvenanceInspector.InspectStructuredText(output, inspectionOptions)
             : OfficeProvenanceInspector.InspectCore(output, fileName, inspectionOptions);
-        return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), reserialized);
+        return OfficeProvenanceRemovalResult.CreateOwned(output, before, after, changes.AsReadOnly(), reserialized);
     }
 
     private static OfficeProvenanceOptions CreateInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {

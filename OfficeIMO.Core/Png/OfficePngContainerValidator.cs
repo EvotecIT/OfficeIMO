@@ -615,14 +615,7 @@ internal static class OfficePngContainerValidator {
     }
 
     private static uint ComputeCrc(byte[] bytes, int offset, int count) {
-        uint crc = 0xFFFFFFFFU;
-        for (int index = 0; index < count; index++) {
-            crc ^= bytes[offset + index];
-            for (int bit = 0; bit < 8; bit++) {
-                crc = (crc & 1U) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
-            }
-        }
-        return crc ^ 0xFFFFFFFFU;
+        return OfficePngCrc32.Compute(bytes, offset, count);
     }
 
     private static int ReadBigEndianInt32(byte[] bytes, int offset) =>
