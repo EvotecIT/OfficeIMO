@@ -11,6 +11,9 @@ public sealed class OfficeRasterEncodingOptions {
     private bool _hasExplicitDpiX;
     private bool _hasExplicitDpiY;
 
+    /// <summary>Writes format-appropriate resolution metadata when supported.</summary>
+    public bool WriteResolutionMetadata { get; set; } = true;
+
     /// <summary>
     /// Horizontal output resolution shared by raster encoders when explicitly assigned.
     /// Otherwise the selected format's DPI setting remains authoritative.
@@ -53,7 +56,8 @@ public sealed class OfficeRasterEncodingOptions {
             Png = new OfficePngEncodeOptions {
                 Compression = png.Compression,
                 DpiX = png.DpiX,
-                DpiY = png.DpiY
+                DpiY = png.DpiY,
+                WritePhysicalResolution = png.WritePhysicalResolution
             },
             Jpeg = new OfficeJpegEncodeOptions {
                 Quality = jpeg.Quality,
@@ -64,14 +68,18 @@ public sealed class OfficeRasterEncodingOptions {
                 WriteJfifHeader = jpeg.WriteJfifHeader,
                 Background = jpeg.Background,
                 DpiX = jpeg.DpiX,
-                DpiY = jpeg.DpiY
+                DpiY = jpeg.DpiY,
+                RetainedManagedBytes = jpeg.RetainedManagedBytes
             },
             Tiff = new OfficeTiffEncodeOptions {
                 Compression = tiff.Compression,
+                Predictor = tiff.Predictor,
                 DpiX = tiff.DpiX,
-                DpiY = tiff.DpiY
+                DpiY = tiff.DpiY,
+                WriteResolution = tiff.WriteResolution
             }
         };
+        clone.WriteResolutionMetadata = WriteResolutionMetadata;
         clone._dpiX = _dpiX;
         clone._dpiY = _dpiY;
         clone._hasExplicitDpiX = _hasExplicitDpiX;
@@ -98,18 +106,21 @@ public sealed class OfficeRasterEncodingOptions {
                 dpiY = _hasExplicitDpiY ? _dpiY : resolved.Png.DpiY;
                 resolved.Png.DpiX = dpiX * scaleRatio;
                 resolved.Png.DpiY = dpiY * scaleRatio;
+                resolved.Png.WritePhysicalResolution &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Jpeg:
                 dpiX = _hasExplicitDpiX ? _dpiX : resolved.Jpeg.DpiX;
                 dpiY = _hasExplicitDpiY ? _dpiY : resolved.Jpeg.DpiY;
                 resolved.Jpeg.DpiX = dpiX * scaleRatio;
                 resolved.Jpeg.DpiY = dpiY * scaleRatio;
+                resolved.Jpeg.WriteJfifHeader &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Tiff:
                 dpiX = _hasExplicitDpiX ? _dpiX : resolved.Tiff.DpiX;
                 dpiY = _hasExplicitDpiY ? _dpiY : resolved.Tiff.DpiY;
                 resolved.Tiff.DpiX = dpiX * scaleRatio;
                 resolved.Tiff.DpiY = dpiY * scaleRatio;
+                resolved.Tiff.WriteResolution &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Webp:
                 dpiX = _dpiX;

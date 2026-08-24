@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Validates RFC 1951 block structure and requires one exact Deflate payload.</summary>
@@ -28,12 +29,29 @@ namespace OfficeIMO.Core.Internal {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
 
-        internal static bool TryValidateExact(byte[] bytes, int offset, int count) {
-            if (bytes == null || offset < 0 || count < 0 || offset > bytes.Length - count) return false;
+        internal static bool TryValidateExact(
+            byte[] bytes,
+            int offset,
+            int count,
+            long maximumOutputBytes,
+            CancellationToken cancellationToken = default) =>
+            TryValidateExact(bytes, offset, count, maximumOutputBytes, out _, cancellationToken);
+
+        internal static bool TryValidateExact(
+            byte[] bytes,
+            int offset,
+            int count,
+            long maximumOutputBytes,
+            out bool outputLimitExceeded,
+            CancellationToken cancellationToken = default) {
+            outputLimitExceeded = false;
+            if (bytes == null || offset < 0 || count < 0 || maximumOutputBytes < 0 ||
+                offset > bytes.Length - count) return false;
             var reader = new DeflateBitReader(bytes, offset, count);
             long outputCount = 0;
             bool final;
             do {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!reader.TryReadBits(1, out int finalValue) ||
                     !reader.TryReadBits(2, out int blockType)) {
                     return false;
@@ -41,17 +59,22 @@ namespace OfficeIMO.Core.Internal {
                 final = finalValue != 0;
                 switch (blockType) {
                     case 0:
-                        if (!TryValidateStoredBlock(reader, ref outputCount)) return false;
+                        if (!TryValidateStoredBlock(reader, ref outputCount, maximumOutputBytes,
+                                ref outputLimitExceeded)) return false;
                         break;
                     case 1:
                         if (!TryCreateFixedTables(out HuffmanTable literalLength, out HuffmanTable distance) ||
-                            !TryValidateCompressedBlock(reader, literalLength, distance, ref outputCount)) {
+                            !TryValidateCompressedBlock(reader, literalLength, distance, ref outputCount,
+                                maximumOutputBytes, ref outputLimitExceeded, cancellationToken)) {
                             return false;
                         }
                         break;
                     case 2:
-                        if (!TryReadDynamicTables(reader, out HuffmanTable dynamicLiteralLength, out HuffmanTable dynamicDistance) ||
-                            !TryValidateCompressedBlock(reader, dynamicLiteralLength, dynamicDistance, ref outputCount)) {
+                        if (!TryReadDynamicTables(reader, out HuffmanTable dynamicLiteralLength,
+                                out HuffmanTable dynamicDistance, cancellationToken) ||
+                            !TryValidateCompressedBlock(reader, dynamicLiteralLength, dynamicDistance,
+                                ref outputCount, maximumOutputBytes, ref outputLimitExceeded,
+                                cancellationToken)) {
                             return false;
                         }
                         break;
@@ -63,7 +86,11 @@ namespace OfficeIMO.Core.Internal {
             return reader.ConsumedBytes == count;
         }
 
-        private static bool TryValidateStoredBlock(DeflateBitReader reader, ref long outputCount) {
+        private static bool TryValidateStoredBlock(
+            DeflateBitReader reader,
+            ref long outputCount,
+            long maximumOutputBytes,
+            ref bool outputLimitExceeded) {
             reader.AlignToByte();
             if (!reader.TryReadBits(16, out int length) ||
                 !reader.TryReadBits(16, out int complement) ||
@@ -71,8 +98,12 @@ namespace OfficeIMO.Core.Internal {
                 !reader.TrySkipBytes(length)) {
                 return false;
             }
+            if (outputCount > maximumOutputBytes - length) {
+                outputLimitExceeded = true;
+                return false;
+            }
             outputCount += length;
-            return outputCount >= 0;
+            return true;
         }
 
         private static bool TryCreateFixedTables(out HuffmanTable literalLength, out HuffmanTable distance) {
@@ -92,7 +123,8 @@ namespace OfficeIMO.Core.Internal {
         private static bool TryReadDynamicTables(
             DeflateBitReader reader,
             out HuffmanTable literalLength,
-            out HuffmanTable distance) {
+            out HuffmanTable distance,
+            CancellationToken cancellationToken) {
             literalLength = default;
             distance = default;
             if (!reader.TryReadBits(5, out int literalCountValue) ||
@@ -115,6 +147,7 @@ namespace OfficeIMO.Core.Internal {
             var lengths = new int[literalCount + distanceCount];
             int output = 0;
             while (output < lengths.Length) {
+                if ((output & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (!codeLengthTable.TryDecode(reader, out int symbol)) return false;
                 if (symbol <= 15) {
                     lengths[output++] = symbol;
@@ -155,11 +188,19 @@ namespace OfficeIMO.Core.Internal {
             DeflateBitReader reader,
             HuffmanTable literalLength,
             HuffmanTable distance,
-            ref long outputCount) {
+            ref long outputCount,
+            long maximumOutputBytes,
+            ref bool outputLimitExceeded,
+            CancellationToken cancellationToken) {
+            int decodedSymbols = 0;
             while (literalLength.TryDecode(reader, out int symbol)) {
+                if ((decodedSymbols++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (symbol < 256) {
+                    if (outputCount >= maximumOutputBytes) {
+                        outputLimitExceeded = true;
+                        return false;
+                    }
                     outputCount++;
-                    if (outputCount < 0) return false;
                     continue;
                 }
                 if (symbol == 256) return true;
@@ -174,7 +215,11 @@ namespace OfficeIMO.Core.Internal {
                 }
                 int matchLength = LengthBases[lengthIndex] + lengthExtra;
                 int matchDistance = DistanceBases[distanceSymbol] + distanceExtra;
-                if (matchDistance > outputCount || outputCount > long.MaxValue - matchLength) return false;
+                if (matchDistance > outputCount) return false;
+                if (outputCount > maximumOutputBytes - matchLength) {
+                    outputLimitExceeded = true;
+                    return false;
+                }
                 outputCount += matchLength;
             }
             return false;

@@ -68,7 +68,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void CompleteContentValidationRejectsGif87aControlExtensions() {
-        byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        byte[] gif = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
         gif[4] = (byte)'7';
         int imageDescriptor = Array.IndexOf(gif, (byte)0x2C, 13);
         var withControl = new List<byte>(gif.Length + 8);
@@ -78,6 +78,7 @@ public partial class DrawingTests {
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(withControl.ToArray(), "gif87a.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(withControl.ToArray(), "gif87a.gif", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(withControl.ToArray(), out _));
     }
 
     [Fact]
@@ -302,11 +303,8 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void CompleteContentValidationChecksGifPlainTextRenderingHeaders() {
-        var strictSource = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==").ToList();
-        strictSource[30] = 2;
-        strictSource.Insert(32, 0x01);
-        byte[] source = strictSource.ToArray();
+    public void CompleteContentValidationRejectsUnsupportedGifPlainTextGraphics() {
+        byte[] source = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
         byte[] valid = InsertGifPlainTextExtension(source, hasGlobalColorTable: true);
         byte[] missingGlobalPalette = InsertGifPlainTextExtension(
             RemoveGifGlobalColorTable(source),
@@ -315,7 +313,7 @@ public partial class DrawingTests {
         byte[] invalidCell = InsertGifPlainTextExtension(source, hasGlobalColorTable: true, cellWidth: 0);
         byte[] invalidColor = InsertGifPlainTextExtension(source, hasGlobalColorTable: true, foregroundIndex: 2);
 
-        Assert.True(OfficeImageReader.TryValidateContent(valid, "plain-text.gif", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(valid, "plain-text.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(missingGlobalPalette, "no-global-palette.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(invalidGrid, "invalid-grid.gif", out _));
         Assert.False(OfficeImageReader.TryValidateContent(invalidCell, "invalid-cell.gif", out _));

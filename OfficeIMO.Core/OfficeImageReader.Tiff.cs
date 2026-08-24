@@ -1,10 +1,15 @@
+using System.Threading;
+
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeImageReader {
     private const int ClassicTiffMagic = 42;
     private const int BigTiffMagic = 43;
 
-    private static bool TryReadTiff(byte[] data, out OfficeImageInfo info) {
+    private static bool TryReadTiff(byte[] data, out OfficeImageInfo info) =>
+        TryReadTiff(data, CancellationToken.None, out info);
+
+    private static bool TryReadTiff(byte[] data, CancellationToken cancellationToken, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 8) {
             return false;
@@ -20,13 +25,17 @@ public static partial class OfficeImageReader {
         }
 
         return ReadUInt16(data, 2, littleEndian) switch {
-            ClassicTiffMagic => TryReadClassicTiff(data, littleEndian, out info),
-            BigTiffMagic => TryReadBigTiff(data, littleEndian, out info),
+            ClassicTiffMagic => TryReadClassicTiff(data, littleEndian, cancellationToken, out info),
+            BigTiffMagic => TryReadBigTiff(data, littleEndian, cancellationToken, out info),
             _ => false
         };
     }
 
-    private static bool TryReadClassicTiff(byte[] data, bool littleEndian, out OfficeImageInfo info) {
+    private static bool TryReadClassicTiff(
+        byte[] data,
+        bool littleEndian,
+        CancellationToken cancellationToken,
+        out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         int ifdOffset = ReadInt32(data, 4, littleEndian);
         if (ifdOffset < 8 || ifdOffset > data.Length - 2) {
@@ -49,6 +58,7 @@ public static partial class OfficeImageReader {
         int orientation = 1;
 
         for (int i = 0; i < entryCount; i++) {
+            if ((i & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = ifdOffset + 2 + (i * 12);
             int tag = ReadUInt16(data, entry, littleEndian);
             int type = ReadUInt16(data, entry + 2, littleEndian);
@@ -70,7 +80,11 @@ public static partial class OfficeImageReader {
         return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, orientation, out info);
     }
 
-    private static bool TryReadBigTiff(byte[] data, bool littleEndian, out OfficeImageInfo info) {
+    private static bool TryReadBigTiff(
+        byte[] data,
+        bool littleEndian,
+        CancellationToken cancellationToken,
+        out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 16 ||
             ReadUInt16(data, 4, littleEndian) != 8 ||
@@ -109,6 +123,7 @@ public static partial class OfficeImageReader {
         int orientation = 1;
 
         for (int i = 0; i < entryCount; i++) {
+            if ((i & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = ifdOffset + 8 + (i * 20);
             int tag = ReadUInt16(data, entry, littleEndian);
             int type = ReadUInt16(data, entry + 2, littleEndian);

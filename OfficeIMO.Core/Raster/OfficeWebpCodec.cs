@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -6,8 +7,8 @@ namespace OfficeIMO.Drawing;
 /// Dependency-free lossless WebP encoder for RGBA images.
 /// </summary>
 /// <remarks>
-/// The encoder intentionally uses a deterministic literal-only VP8L stream. It favors a small,
-/// auditable implementation over compression efficiency while producing standards-compatible WebP.
+/// The encoder deterministically selects between a literal VP8L stream and a bounded prediction,
+/// subtract-green, and LZ77 stream. Lossy VP8 and animation remain caller-codec responsibilities.
 /// </remarks>
 public static partial class OfficeWebpCodec {
     private const int LiteralHeaderBitCount = 1239;
@@ -40,15 +41,28 @@ public static partial class OfficeWebpCodec {
 
         byte[] pixels = image.PixelBuffer;
         bool hasAlpha = HasTransparency(pixels);
-        int payloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
+        int literalPayloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
         byte[]? exif = includeResolutionMetadata
             ? CreateResolutionExif(image.Width, image.Height, dpiX, dpiY)
             : null;
+        int literalFileLength = GetFileLength(literalPayloadLength, exif?.Length ?? 0);
+        if (pixels.Length / 4 > Vp8lCompressionMaximumPixels) {
+            EnsureEncodingWorkingSet(pixels.LongLength, literalFileLength, 0L, exif?.LongLength ?? 0L);
+        }
+        byte[]? compressedPayload = TryEncodeCompressedVp8l(image.Width, image.Height, hasAlpha, pixels);
+        int payloadLength = compressedPayload != null && compressedPayload.Length < literalPayloadLength
+            ? compressedPayload.Length
+            : literalPayloadLength;
         int paddedPayloadLength = checked(payloadLength + (payloadLength & 1));
+        int fileLength = GetFileLength(payloadLength, exif?.Length ?? 0);
+        EnsureEncodingWorkingSet(
+            pixels.LongLength,
+            fileLength,
+            compressedPayload?.LongLength ?? 0L,
+            exif?.LongLength ?? 0L);
         int payloadOffset;
         byte[] output;
         if (exif == null) {
-            int fileLength = checked(20 + paddedPayloadLength);
             output = new byte[fileLength];
             WriteAscii(output, 0, "RIFF");
             WriteUInt32(output, 4, fileLength - 8);
@@ -58,7 +72,6 @@ public static partial class OfficeWebpCodec {
             payloadOffset = 20;
         } else {
             int paddedExifLength = checked(exif.Length + (exif.Length & 1));
-            int fileLength = checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
             output = new byte[fileLength];
             WriteAscii(output, 0, "RIFF");
             WriteUInt32(output, 4, fileLength - 8);
@@ -80,7 +93,11 @@ public static partial class OfficeWebpCodec {
             Buffer.BlockCopy(exif, 0, output, exifChunkOffset + 8, exif.Length);
         }
 
-        WriteLiteralPayload(output, payloadOffset, payloadLength, image.Width, image.Height, hasAlpha, pixels);
+        if (compressedPayload != null && compressedPayload.Length == payloadLength) {
+            Buffer.BlockCopy(compressedPayload, 0, output, payloadOffset, payloadLength);
+        } else {
+            WriteLiteralPayload(output, payloadOffset, payloadLength, image.Width, image.Height, hasAlpha, pixels);
+        }
         return output;
     }
 
@@ -164,12 +181,48 @@ public static partial class OfficeWebpCodec {
     }
 
     /// <summary>
-    /// Attempts to decode the deterministic literal-only VP8L subset emitted by
-    /// <see cref="Encode(OfficeRasterImage)"/> and its resolution-aware overload.
-    /// General VP8/VP8L features remain the responsibility of an optional caller codec.
+    /// Attempts to decode bounded ordinary lossless VP8L, including prediction, color,
+    /// subtract-green, palette, LZ77, color-cache, and Huffman features.
+    /// Lossy VP8 and animation remain optional caller-codec responsibilities.
     /// </summary>
-    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) {
+    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
+        TryDecode(encodedBytes, CancellationToken.None, out image);
+
+    internal static bool TryDecode(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        out OfficeRasterImage? image) =>
+        TryDecode(encodedBytes, cancellationToken, retainedManagedBytes: 0L, out image);
+
+    internal static bool TryDecode(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        out OfficeRasterImage? image) {
+        if (TryDecodeLiteralSubset(
+                encodedBytes, cancellationToken, retainedManagedBytes,
+                out long failedLiteralAllocationBytes, out image)) return true;
+        try {
+            return TryDecodeVp8l(
+                encodedBytes,
+                cancellationToken,
+                checked(retainedManagedBytes + failedLiteralAllocationBytes),
+                out image);
+        } catch (OverflowException) {
+            image = null;
+            return false;
+        }
+    }
+
+    private static bool TryDecodeLiteralSubset(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        out long failedAllocationBytes,
+        out OfficeRasterImage? image) {
+        failedAllocationBytes = 0L;
         image = null;
+        cancellationToken.ThrowIfCancellationRequested();
         if (!IsWebp(encodedBytes) || encodedBytes == null ||
             encodedBytes.Length < 22 ||
             encodedBytes.Length > OfficeRasterGuards.MaximumEncodedBytes) {
@@ -179,7 +232,7 @@ public static partial class OfficeWebpCodec {
         try {
             int riffLength = ReadUInt32(encodedBytes, 4);
             if (riffLength != encodedBytes.Length - 8 ||
-                !TryFindChunk(encodedBytes, "VP8L", out int payloadOffset, out int payloadLength) ||
+                !TryFindChunk(encodedBytes, "VP8L", cancellationToken, out int payloadOffset, out int payloadLength) ||
                 payloadLength < 5 ||
                 encodedBytes[payloadOffset] != 0x2F) {
                 return false;
@@ -208,35 +261,102 @@ public static partial class OfficeWebpCodec {
                 return false;
             }
 
+            if (!IsLiteralDecodeWorkingSetWithinLimit(
+                    encodedBytes.LongLength, pixels, retainedManagedBytes)) {
+                return false;
+            }
+
+            failedAllocationBytes = checked(pixels * 4L + 24L);
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
             for (int pixel = 0; pixel < pixels; pixel++) {
+                if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int offset = pixel * 4;
                 rgba[offset + 1] = (byte)ReverseByte((byte)reader.ReadBits(8));
                 rgba[offset] = (byte)ReverseByte((byte)reader.ReadBits(8));
                 rgba[offset + 2] = (byte)ReverseByte((byte)reader.ReadBits(8));
                 rgba[offset + 3] = (byte)ReverseByte((byte)reader.ReadBits(8));
             }
-            if (!reader.HasOnlyZeroPadding()) {
+            if (!reader.HasOnlyZeroPadding(cancellationToken)) {
                 return false;
             }
             image = OfficeRasterImage.FromOwnedRgba32(width, height, rgba);
+            failedAllocationBytes = 0L;
             return true;
         } catch (FormatException) {
             return false;
         } catch (OverflowException) {
             return false;
+        } catch (OutOfMemoryException) {
+            return false;
         }
+    }
+
+    internal static bool IsLiteralDecodeWorkingSetWithinLimit(long encodedBytes, long pixels) {
+        return IsLiteralDecodeWorkingSetWithinLimit(encodedBytes, pixels, retainedManagedBytes: 0L);
+    }
+
+    internal static bool IsLiteralDecodeWorkingSetWithinLimit(
+        long encodedBytes,
+        long pixels,
+        long retainedManagedBytes) {
+        try {
+            long peakBytes = checked(
+                encodedBytes + 24L + pixels * 4L + 24L + retainedManagedBytes);
+            return encodedBytes > 0L && pixels > 0L && retainedManagedBytes >= 0L &&
+                   peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    internal static bool IsEncodingWorkingSetWithinLimit(
+        long rgbaBytes,
+        long outputBytes,
+        long compressedCandidateBytes,
+        long metadataBytes) {
+        try {
+            if (rgbaBytes < 1L || outputBytes < 1L || compressedCandidateBytes < 0L || metadataBytes < 0L ||
+                outputBytes > OfficeRasterGuards.MaximumEncodedBytes) return false;
+            long peakBytes = checked(
+                rgbaBytes + 24L + outputBytes + 24L +
+                (compressedCandidateBytes == 0L ? 0L : compressedCandidateBytes + 24L) +
+                (metadataBytes == 0L ? 0L : metadataBytes + 24L));
+            return peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static void EnsureEncodingWorkingSet(
+        long rgbaBytes,
+        long outputBytes,
+        long compressedCandidateBytes,
+        long metadataBytes) {
+        if (!IsEncodingWorkingSetWithinLimit(
+                rgbaBytes, outputBytes, compressedCandidateBytes, metadataBytes)) {
+            throw new ArgumentException("WebP output exceeds encoded-size or managed working-set limits.");
+        }
+    }
+
+    private static int GetFileLength(int payloadLength, int exifLength) {
+        int paddedPayloadLength = checked(payloadLength + (payloadLength & 1));
+        if (exifLength == 0) return checked(20 + paddedPayloadLength);
+        int paddedExifLength = checked(exifLength + (exifLength & 1));
+        return checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
     }
 
     private static bool TryFindChunk(
         byte[] input,
         string chunkType,
+        CancellationToken cancellationToken,
         out int payloadOffset,
         out int payloadLength) {
         payloadOffset = 0;
         payloadLength = 0;
         int offset = 12;
+        int chunkCount = 0;
         while (offset < input.Length) {
+            if ((chunkCount++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (offset > input.Length - 8) return false;
             int chunkLength = ReadUInt32(input, offset + 4);
             int chunkPayloadOffset = checked(offset + 8);
@@ -454,12 +574,14 @@ public static partial class OfficeWebpCodec {
             count >= 0L &&
             count <= _bitCount + ((long)_end - _offset) * 8L;
 
-        internal bool HasOnlyZeroPadding() {
+        internal bool HasOnlyZeroPadding(CancellationToken cancellationToken) {
             if (_bitCount > 0) {
                 ulong mask = (1UL << _bitCount) - 1UL;
                 if ((_buffer & mask) != 0UL) return false;
             }
+            int checkedBytes = 0;
             while (_offset < _end) {
+                if ((checkedBytes++ & 65535) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (_input[_offset++] != 0) return false;
             }
             return true;

@@ -67,6 +67,9 @@ public static partial class OfficeWebpCodec {
         int fileLength = exif == null
             ? checked(20 + paddedPayloadLength)
             : checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
+        if (fileLength > OfficeRasterGuards.MaximumEncodedBytes) {
+            throw new ArgumentException("WebP output exceeds encoded-size limits.", nameof(image));
+        }
 
         byte[] header;
         if (exif == null) {

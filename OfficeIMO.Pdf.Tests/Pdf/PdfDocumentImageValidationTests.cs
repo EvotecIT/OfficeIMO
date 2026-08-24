@@ -1290,7 +1290,7 @@ public class PdfDocumentImageValidationTests {
     }
 
     private static byte[] CreateMinimalGif() =>
-        Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
 
     public static System.Collections.Generic.IEnumerable<object[]> NormalizedRasterPayloads() {
         var image = new OfficeRasterImage(2, 1, OfficeColor.Transparent);

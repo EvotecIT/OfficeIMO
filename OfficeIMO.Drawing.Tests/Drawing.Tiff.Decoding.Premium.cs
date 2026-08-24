@@ -7,6 +7,34 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingPremiumTiffDecodingTests {
     [Fact]
+    public void DeflateValidationStopsWhenExpansionCrossesTheDeclaredLimit() {
+        byte[] rawDeflate = CompressRawDeflate(new byte[1024 * 1024]);
+
+        Assert.False(OfficeDeflateStreamValidator.TryValidateExact(
+            rawDeflate,
+            0,
+            rawDeflate.Length,
+            maximumOutputBytes: 32));
+    }
+
+    [Fact]
+    public void ZlibRejectsExpectedOutputBeyondConfiguredLimitBeforePayloadValidation() {
+        byte[] zlib = OfficeZlibCodec.Compress(new byte[] { 1 });
+        zlib[2] ^= 0xFF;
+
+        Assert.Throws<OfficeDecompressionSizeLimitException>(() =>
+            OfficeZlibCodec.Decompress(zlib, maximumOutputBytes: 32, expectedOutputBytes: 64));
+    }
+
+    [Fact]
+    public void ZlibTreatsExpansionBeyondSmallerExpectedSizeAsMalformedData() {
+        byte[] zlib = OfficeZlibCodec.Compress(new byte[64]);
+
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeZlibCodec.Decompress(zlib, maximumOutputBytes: 128, expectedOutputBytes: 32));
+    }
+
+    [Fact]
     public void TiffDecoder_DecodesLibTiffDeflatePredictorFixture() {
         byte[] tiff = Convert.FromBase64String(
             "SUkqABYAAAB4nPvPwMD4nwEACAECAA8AAAEDAAEAAAACAAAAAQEDAAEAAAABAAAAAgEDAAMAAADQAAAAAwEDAAEAAAAIAAAABgEDAAEAAAACAAAACgEDAAEAAAABAAAAEQEEAAEAAAAIAAAAEgEDAAEAAAABAAAAFQEDAAEAAAADAAAAFgEDAAEAAAABAAAAFwEEAAEAAAAOAAAAHAEDAAEAAAABAAAAKAEDAAEAAAACAAAAPQEDAAEAAAACAAAAUwEDAAMAAADWAAAAAAAAAAgACAAIAAEAAQABAA==");

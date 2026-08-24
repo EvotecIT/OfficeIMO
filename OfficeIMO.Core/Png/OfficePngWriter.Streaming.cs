@@ -43,8 +43,8 @@ public static partial class OfficePngWriter {
             image.PixelBuffer,
             destination,
             options.Compression,
-            options.DpiX,
-            options.DpiY);
+            options.WritePhysicalResolution ? options.DpiX : (double?)null,
+            options.WritePhysicalResolution ? options.DpiY : (double?)null);
     }
 
 #if NET8_0_OR_GREATER

@@ -205,7 +205,7 @@ namespace OfficeIMO.Word {
             if (usedAuthoredPolygon) {
                 context.AddTextExclusion(polygon, wrapSide);
             } else if ((wrapText == WordImageTextWrapping.Tight || wrapText == WordImageTextWrapping.Through) &&
-                TryCreateTransparentImageWrapPolygon(bytes, projection, out IReadOnlyList<OfficePoint> transparentPolygon)) {
+                TryCreateTransparentImageWrapPolygon(bytes, projection, context.CancellationToken, out IReadOnlyList<OfficePoint> transparentPolygon)) {
                 context.AddTextExclusion(transparentPolygon, wrapSide);
                 usedTransparentPolygon = true;
             } else {

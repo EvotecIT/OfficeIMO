@@ -42,7 +42,7 @@ public sealed partial class ReaderEpubModularTests {
             "<img src=\"data-uri\" alt=\"Literal data-uri path\"/>" +
             "<img src=\"/EPUB/shared/images/root.png\" alt=\"Root image\"/>" +
             "<img src=\"https://cdn.example/remote.png#v2\" alt=\"Remote image\"/>" +
-            "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
+            "<img src=\"data:image/gif;base64,R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=\" alt=\"Inline\"/>" +
             "<audio><source src=\"audio/chapter.mp3\" type=\"audio/mpeg\"/>Audio fallback</audio>" +
             "<video src=\"video/clip.mp4#clip\">Video fallback</video>" +
             "</body></html>");

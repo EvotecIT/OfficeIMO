@@ -9,6 +9,78 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void PngMetadataInspectorMatchesOnlyTheExactInternationalTextXmpKeyword() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] ordinaryInternationalText = Encoding.ASCII.GetBytes("Comment")
+            .Concat(new byte[] { 0, 0, 0, 0 })
+            .Concat(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"))
+            .Concat(new byte[] { 0 })
+            .Concat(Encoding.UTF8.GetBytes("ordinary text"))
+            .ToArray();
+        byte[] withComment = InsertPngChunkBefore(
+            png,
+            "IDAT",
+            "iTXt",
+            ordinaryInternationalText);
+        OfficeImageMetadataSnapshot commentMetadata = OfficeImageMetadataInspector.Inspect(
+            withComment,
+            OfficeImageFormat.Png);
+
+        Assert.Equal(OfficeImageMetadataKinds.Comments,
+            commentMetadata.Kinds & (OfficeImageMetadataKinds.Comments | OfficeImageMetadataKinds.Xmp));
+    }
+
+    [Theory]
+    [InlineData("tEXt")]
+    [InlineData("zTXt")]
+    [InlineData("iTXt")]
+    public void PngMetadataInspectorRecognizesExactXmpKeywordAcrossTextCarriers(string chunkType) {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
+        byte[] xmp = Encoding.UTF8.GetBytes("<x:xmpmeta/>");
+        byte[] payload = CreatePngTextPayload(chunkType, "XML:com.adobe.xmp", xmp);
+        byte[] withXmp = InsertPngChunkBefore(png, "IDAT", chunkType, payload);
+
+        OfficeImageMetadataSnapshot metadata = OfficeImageMetadataInspector.Inspect(
+            withXmp,
+            OfficeImageFormat.Png);
+
+        Assert.Equal(OfficeImageMetadataKinds.Xmp,
+            metadata.Kinds & (OfficeImageMetadataKinds.Comments | OfficeImageMetadataKinds.Xmp));
+    }
+
+    [Fact]
+    public void PngXmpClassificationFeedsSelectiveCopyLossReporting() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.White));
+        byte[] withXmp = InsertPngChunkBefore(
+            png,
+            "IDAT",
+            "tEXt",
+            CreatePngTextPayload("tEXt", "XML:com.adobe.xmp", Encoding.ASCII.GetBytes("<x:xmpmeta/>")));
+
+        OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+            withXmp,
+            new OfficeImageOptimizationRequest(1, 1) {
+                OutputFormat = OfficeImageFormat.Png,
+                KeepOriginalWhenNotSmaller = false,
+                MetadataPolicy = OfficeImageMetadataPolicy.SelectiveCopy,
+                MetadataSelection = OfficeImageMetadataKinds.Xmp
+            });
+
+        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Source);
+        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Requested);
+        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Lost);
+    }
+
+    private static byte[] CreatePngTextPayload(string chunkType, string keyword, byte[] text) {
+        byte[] prefix = Encoding.ASCII.GetBytes(keyword).Concat(new byte[] { 0 }).ToArray();
+        if (chunkType == "tEXt") return prefix.Concat(text).ToArray();
+        if (chunkType == "zTXt") {
+            return prefix.Concat(new byte[] { 0 }).Concat(OfficeZlibCodec.Compress(text)).ToArray();
+        }
+        return prefix.Concat(new byte[] { 0, 0, 0, 0 }).Concat(text).ToArray();
+    }
+
+    [Fact]
     public void PngContainerRequiresOnePositiveGammaChunkBeforePaletteAndImageData() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] gamma = { 0, 0, 0xB1, 0x8F };
@@ -184,6 +256,33 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngMetadataInspectionDoesNotRetainLargeExifPayloads() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        var exif = new byte[4 * 1024 * 1024];
+        byte[] minimalTiff = {
+            (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
+            0, 0,
+            0, 0, 0, 0
+        };
+        Buffer.BlockCopy(minimalTiff, 0, exif, 0, minimalTiff.Length);
+        byte[] withExif = InsertPngChunkBefore(png, "IDAT", "eXIf", exif);
+
+#if NET8_0_OR_GREATER
+        long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
+        OfficeImageMetadataSnapshot metadata =
+            OfficeImageMetadataInspector.Inspect(withExif, OfficeImageFormat.Png);
+#if NET8_0_OR_GREATER
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.InRange(allocated, 0, 128 * 1024);
+#endif
+
+        Assert.True(OfficeImageReader.TryValidateContent(withExif, "large-exif.png", out _));
+        Assert.Equal(OfficeImageMetadataKinds.Exif, metadata.Kinds & OfficeImageMetadataKinds.Exif);
+        Assert.Null(metadata.Exif);
+    }
+
+    [Fact]
     public void PngContainerValidatesTextKeywordsAndCompressedTextStreams() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] compressed = OfficeZlibCodec.Compress(Encoding.UTF8.GetBytes("OfficeIMO"));
@@ -201,11 +300,20 @@ public partial class DrawingTests {
         invalidStream[invalidStream.Length - 1] ^= 0x01;
         byte[] invalidInternationalStream = (byte[])internationalText.Clone();
         invalidInternationalStream[invalidInternationalStream.Length - 1] ^= 0x01;
+        byte[] unicodeInternationalText = Encoding.ASCII.GetBytes("Description")
+            .Concat(new byte[] { 0, 0, 0, 0, 0 })
+            .Concat(Encoding.UTF8.GetBytes("Zażółć 😀"))
+            .ToArray();
+        byte[] invalidUtf8InternationalText = Encoding.ASCII.GetBytes("Description")
+            .Concat(new byte[] { 0, 0, 0, 0, 0, 0xC0, 0xAF })
+            .ToArray();
 
         Assert.True(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "zTXt", zText), "compressed-text.png", out _));
         Assert.True(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "iTXt", internationalText), "international-text.png", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iTXt", unicodeInternationalText), "unicode-text.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "zTXt", Array.Empty<byte>()), "empty-text.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
@@ -214,6 +322,8 @@ public partial class DrawingTests {
             InsertPngChunkBefore(png, "IDAT", "zTXt", invalidStream), "text-stream.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "iTXt", invalidInternationalStream), "international-stream.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iTXt", invalidUtf8InternationalText), "invalid-utf8.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "tEXt", new byte[] { (byte)' ', 0 }), "text-keyword.png", out _));
     }

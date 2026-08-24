@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -26,10 +27,18 @@ public enum OfficeImageOrientation {
 public static class OfficeImageOrientationNormalizer {
     /// <summary>Attempts to read an explicit non-default or default orientation from JPEG EXIF or classic TIFF bytes.</summary>
     public static bool TryRead(byte[]? imageBytes, out OfficeImageOrientation orientation) {
+        return TryRead(imageBytes, CancellationToken.None, out orientation);
+    }
+
+    internal static bool TryRead(
+        byte[]? imageBytes,
+        CancellationToken cancellationToken,
+        out OfficeImageOrientation orientation) {
         orientation = OfficeImageOrientation.Normal;
+        cancellationToken.ThrowIfCancellationRequested();
         if (imageBytes == null || imageBytes.Length < 8) return false;
         if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8) {
-            return TryReadJpeg(imageBytes, out orientation);
+            return TryReadJpeg(imageBytes, cancellationToken, out orientation);
         }
         return TryReadTiffOrientation(new OfficeByteView(imageBytes), out orientation);
     }
@@ -102,12 +111,22 @@ public static class OfficeImageOrientationNormalizer {
             return TryWriteTiffOrientation(data, 0, data.Length);
         }
         int offset = 2;
+        bool inScan = false;
+        bool rewrittenOrientation = false;
         while (offset < data.Length) {
+            if (inScan && data[offset] != 0xFF) {
+                offset++;
+                continue;
+            }
             if (data[offset] != 0xFF) return false;
             while (offset < data.Length && data[offset] == 0xFF) offset++;
             if (offset >= data.Length) return false;
             byte marker = data[offset++];
-            if (marker is 0xD9 or 0xDA) return false;
+            if (inScan) {
+                if (marker == 0x00 || marker is >= 0xD0 and <= 0xD7) continue;
+                inScan = false;
+            }
+            if (marker == 0xD9) return rewrittenOrientation;
             if (marker == 0x01 || marker is >= 0xD0 and <= 0xD7) continue;
             if (marker == 0x00 || offset > data.Length - 2) return false;
             int segmentLength = (data[offset] << 8) | data[offset + 1];
@@ -117,37 +136,101 @@ public static class OfficeImageOrientationNormalizer {
                 && data[offset + 2] == (byte)'E' && data[offset + 3] == (byte)'x'
                 && data[offset + 4] == (byte)'i' && data[offset + 5] == (byte)'f'
                 && data[offset + 6] == 0 && data[offset + 7] == 0) {
-                if (TryWriteTiffOrientation(data, offset + 8, segmentLength - 8)) {
-                    return true;
-                }
+                if (!OfficeTiffStructureValidator.TryValidateExif(
+                        data, offset + 8, segmentLength - 8)) return false;
+                bool rewritten = TryWriteTiffOrientation(
+                    data, offset + 8, segmentLength - 8, out bool foundOrientation);
+                if (foundOrientation && !rewritten) return false;
+                rewrittenOrientation |= rewritten;
             }
+            if (marker == 0xDA) inScan = true;
             offset += segmentLength;
         }
         return false;
     }
 
-    private static bool TryWriteTiffOrientation(byte[] data, int tiffOffset, int tiffLength) {
+    internal static bool TryNeutralizeExifOrientation(byte[] exif, out byte[] neutralized) {
+        if (exif == null) throw new ArgumentNullException(nameof(exif));
+        neutralized = (byte[])exif.Clone();
+        int offset = neutralized.Length >= 6 && neutralized[0] == (byte)'E' && neutralized[1] == (byte)'x' &&
+                     neutralized[2] == (byte)'i' && neutralized[3] == (byte)'f' && neutralized[4] == 0 && neutralized[5] == 0
+            ? 6
+            : 0;
+        if (!OfficeTiffStructureValidator.TryValidateExif(
+                neutralized, offset, neutralized.Length - offset)) {
+            neutralized = Array.Empty<byte>();
+            return false;
+        }
+        bool rewritten = TryWriteTiffOrientation(
+            neutralized, offset, neutralized.Length - offset, out bool foundOrientation);
+        if (foundOrientation && !rewritten) {
+            neutralized = Array.Empty<byte>();
+            return false;
+        }
+        return true;
+    }
+
+    internal static bool TryReadExifOrientationPayload(byte[] exif, out OfficeImageOrientation orientation) {
+        if (exif == null) {
+            orientation = OfficeImageOrientation.Normal;
+            return false;
+        }
+        return TryReadExifOrientationPayload(exif, 0, exif.Length, out orientation);
+    }
+
+    internal static bool TryReadExifOrientationPayload(
+        byte[] exif,
+        int offset,
+        int count,
+        out OfficeImageOrientation orientation) {
+        orientation = OfficeImageOrientation.Normal;
+        if (exif == null || offset < 0 || count < 0 || offset > exif.Length - count) return false;
+        int tiffOffset = count >= 6 && exif[offset] == (byte)'E' && exif[offset + 1] == (byte)'x' &&
+                         exif[offset + 2] == (byte)'i' && exif[offset + 3] == (byte)'f' &&
+                         exif[offset + 4] == 0 && exif[offset + 5] == 0
+            ? offset + 6
+            : offset;
+        return TryReadTiffOrientation(
+            new OfficeByteView(exif).Slice(tiffOffset, count - (tiffOffset - offset)), out orientation);
+    }
+
+    private static bool TryWriteTiffOrientation(byte[] data, int tiffOffset, int tiffLength) =>
+        TryWriteTiffOrientation(data, tiffOffset, tiffLength, out _);
+
+    private static bool TryWriteTiffOrientation(
+        byte[] data,
+        int tiffOffset,
+        int tiffLength,
+        out bool foundOrientation) {
+        foundOrientation = false;
         if (tiffOffset < 0 || tiffLength < 8 || tiffOffset > data.Length - tiffLength) return false;
         bool littleEndian = data[tiffOffset] == (byte)'I' && data[tiffOffset + 1] == (byte)'I';
         bool bigEndian = data[tiffOffset] == (byte)'M' && data[tiffOffset + 1] == (byte)'M';
         if ((!littleEndian && !bigEndian) || ReadUInt16(data, tiffOffset + 2, littleEndian) != 42) return false;
         uint relativeIfd = ReadUInt32(data, tiffOffset + 4, littleEndian);
-        if (relativeIfd > int.MaxValue) return false;
-        int ifdOffset = checked(tiffOffset + (int)relativeIfd);
         int tiffEnd = tiffOffset + tiffLength;
-        if (ifdOffset < tiffOffset + 8 || ifdOffset > tiffEnd - 2) return false;
+        if (relativeIfd < 8 || relativeIfd > (uint)(tiffLength - 2)) return false;
+        int ifdOffset = tiffOffset + (int)relativeIfd;
         int entryCount = ReadUInt16(data, ifdOffset, littleEndian);
         if ((long)ifdOffset + 2L + (entryCount * 12L) > tiffEnd) return false;
+        int orientationEntryOffset = -1;
         for (int index = 0; index < entryCount; index++) {
             int entryOffset = ifdOffset + 2 + (index * 12);
             if (ReadUInt16(data, entryOffset, littleEndian) != 274) continue;
+            foundOrientation = true;
+            if (orientationEntryOffset >= 0) return false;
             if (ReadUInt16(data, entryOffset + 2, littleEndian) != 3
-                || ReadUInt32(data, entryOffset + 4, littleEndian) != 1) return false;
-            data[entryOffset + 8] = littleEndian ? (byte)1 : (byte)0;
-            data[entryOffset + 9] = littleEndian ? (byte)0 : (byte)1;
-            return true;
+                || ReadUInt32(data, entryOffset + 4, littleEndian) != 1
+                || ReadUInt16(data, entryOffset + 8, littleEndian) is < 1 or > 8) return false;
+            orientationEntryOffset = entryOffset;
         }
-        return false;
+        if (orientationEntryOffset < 0 ||
+            !OfficeTiffStructureValidator.TryValidateExclusiveWritableRanges(
+                data, tiffOffset, tiffLength,
+                orientationEntryOffset + 8, 2, orientationEntryOffset)) return false;
+        data[orientationEntryOffset + 8] = littleEndian ? (byte)1 : (byte)0;
+        data[orientationEntryOffset + 9] = littleEndian ? (byte)0 : (byte)1;
+        return true;
     }
 
     internal static bool TryReadExifOrientation(OfficeByteView app1, out int orientation) {
@@ -163,15 +246,33 @@ public static class OfficeImageOrientationNormalizer {
         return true;
     }
 
-    private static bool TryReadJpeg(byte[] data, out OfficeImageOrientation orientation) {
+    private static bool TryReadJpeg(
+        byte[] data,
+        CancellationToken cancellationToken,
+        out OfficeImageOrientation orientation) {
         orientation = OfficeImageOrientation.Normal;
         int offset = 2;
+        bool inScan = false;
+        bool foundOrientation = false;
         while (offset < data.Length) {
+            if ((offset & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (inScan && data[offset] != 0xFF) {
+                offset++;
+                continue;
+            }
             if (data[offset] != 0xFF) return false;
-            while (offset < data.Length && data[offset] == 0xFF) offset++;
+            int fillBytes = 0;
+            while (offset < data.Length && data[offset] == 0xFF) {
+                if ((fillBytes++ & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+                offset++;
+            }
             if (offset >= data.Length) return false;
             byte marker = data[offset++];
-            if (marker is 0xD9 or 0xDA) return false;
+            if (inScan) {
+                if (marker == 0x00 || marker is >= 0xD0 and <= 0xD7) continue;
+                inScan = false;
+            }
+            if (marker == 0xD9) return foundOrientation;
             if (marker == 0x01 || marker is >= 0xD0 and <= 0xD7) continue;
             if (marker == 0x00 || offset > data.Length - 2) return false;
             int segmentLength = (data[offset] << 8) | data[offset + 1];
@@ -179,11 +280,12 @@ public static class OfficeImageOrientationNormalizer {
             if (marker == 0xE1
                 && TryReadExifOrientation(new OfficeByteView(data).Slice(offset + 2, segmentLength - 2), out int parsed)) {
                 orientation = (OfficeImageOrientation)parsed;
-                return true;
+                foundOrientation = true;
             }
+            if (marker == 0xDA) inScan = true;
             offset += segmentLength;
         }
-        return false;
+        return foundOrientation;
     }
 
     private static bool TryReadTiffOrientation(OfficeByteView tiff, out OfficeImageOrientation orientation) {

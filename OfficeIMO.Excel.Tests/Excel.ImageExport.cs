@@ -4613,7 +4613,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateSinglePixelGif() =>
-            Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
 
         private static byte[] CreateTruncatedPngHeader(int width, int height) {
             byte[] bytes = new byte[33];
