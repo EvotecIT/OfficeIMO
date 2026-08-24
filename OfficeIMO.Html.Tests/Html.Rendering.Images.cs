@@ -452,7 +452,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("image/bmp")]
     public void HtmlPdf_DirectRenderer_ConvertsDependencyFreeRasterFormatsToPng(string contentType) {
         byte[] bytes = contentType == "image/gif"
-            ? Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+            ? Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=")
             : CreateSinglePixelBmp(0x12, 0x34, 0x56);
         string html = "<img src='data:" + contentType + ";base64," + Convert.ToBase64String(bytes) + "' style='width:10px;height:10px'>";
 

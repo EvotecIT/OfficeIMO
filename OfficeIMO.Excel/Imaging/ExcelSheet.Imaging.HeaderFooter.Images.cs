@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -42,10 +43,11 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             OfficeTextZoneLayout zones,
             double scale,
-            IOfficeRasterImageCodec imageCodec) {
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, imageCodec);
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, imageCodec);
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, imageCodec);
+            IOfficeRasterImageCodec imageCodec,
+            CancellationToken cancellationToken) {
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, imageCodec, cancellationToken);
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, imageCodec, cancellationToken);
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, imageCodec, cancellationToken);
         }
 
         private static void DrawHeaderFooterRasterImage(
@@ -56,12 +58,19 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment,
-            IOfficeRasterImageCodec imageCodec) {
+            IOfficeRasterImageCodec imageCodec,
+            CancellationToken cancellationToken) {
             if (image == null) {
                 return;
             }
-            if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster) || raster == null) {
+            if (!OfficeRasterImageDecoder.TryDecode(
+                    image.Bytes,
+                    new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
+                    out OfficeRasterImage? raster,
+                    out _) || raster == null) {
+                cancellationToken.ThrowIfCancellationRequested();
                 imageCodec.TryDecode(image.Bytes, image.ContentType, out raster);
+                cancellationToken.ThrowIfCancellationRequested();
             }
             if (raster == null) return;
 
@@ -79,10 +88,11 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             OfficeTextZoneLayout zones,
             double scale,
-            IOfficeRasterImageCodec imageCodec) {
-            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, isHeader ? "header-left-image" : "footer-left-image", imageCodec);
-            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, isHeader ? "header-center-image" : "footer-center-image", imageCodec);
-            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, isHeader ? "header-right-image" : "footer-right-image", imageCodec);
+            IOfficeRasterImageCodec imageCodec,
+            CancellationToken cancellationToken) {
+            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, isHeader ? "header-left-image" : "footer-left-image", imageCodec, cancellationToken);
+            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, isHeader ? "header-center-image" : "footer-center-image", imageCodec, cancellationToken);
+            AppendHeaderFooterSvgImage(builder, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, isHeader ? "header-right-image" : "footer-right-image", imageCodec, cancellationToken);
         }
 
         private static void AppendHeaderFooterSvgImage(
@@ -94,10 +104,13 @@ namespace OfficeIMO.Excel {
             double scale,
             OfficeTextAlignment alignment,
             string clipSuffix,
-            IOfficeRasterImageCodec imageCodec) {
+            IOfficeRasterImageCodec imageCodec,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (image == null || !OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, null, imageCodec, out string dataUri)) {
                 return;
             }
+            cancellationToken.ThrowIfCancellationRequested();
 
             (double x, double y, double width, double height) = ResolveHeaderFooterImageBox(image, zone, bandTop, bandHeight, scale, alignment);
             string clipId = "xl-header-footer-" + clipSuffix;

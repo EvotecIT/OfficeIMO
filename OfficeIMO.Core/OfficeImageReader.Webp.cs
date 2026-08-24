@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -12,7 +13,8 @@ public static partial class OfficeImageReader {
         byte[] data,
         out OfficeImageInfo info,
         bool validateDecodedAlpha = false,
-        OfficeRasterImage? decodedImage = null) {
+        OfficeRasterImage? decodedImage = null,
+        CancellationToken cancellationToken = default) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 20 ||
             GetAscii(data, 0, 4) != "RIFF" ||
@@ -41,6 +43,7 @@ public static partial class OfficeImageReader {
         int exifLength = 0;
         int offset = 12;
         while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (offset > data.Length - 8) return false;
             string chunkType = GetAscii(data, offset, 4);
             uint declaredChunkSize = ReadUInt32LittleEndian(data, offset + 4);
@@ -115,7 +118,8 @@ public static partial class OfficeImageReader {
                         data, chunkDataOffset, chunkSize, width, height,
                         validateDecodedAlpha,
                         out bool frameHasAlpha,
-                        out bool frameAlphaSemanticsKnown)) {
+                        out bool frameAlphaSemanticsKnown,
+                        cancellationToken)) {
                     return false;
                 }
                 hasAlpha |= frameHasAlpha;
@@ -125,7 +129,7 @@ public static partial class OfficeImageReader {
                 hasAnimationFrame = true;
             } else if (chunkType == "EXIF") {
                 if (!extended || exifOffset != 0 || (!hasImage && !hasAnimationFrame) || seenXmp ||
-                    !HasValidWebpExif(data, chunkDataOffset, chunkSize)) {
+                    !HasValidWebpExif(data, chunkDataOffset, chunkSize, cancellationToken)) {
                     return false;
                 }
                 exifOffset = chunkDataOffset;
@@ -163,7 +167,10 @@ public static partial class OfficeImageReader {
         double dpiX = 96D;
         double dpiY = 96D;
         if (exifOffset != 0 &&
-            TryReadWebpExif(data, exifOffset, exifLength, width, height, out OfficeImageInfo exifInfo)) {
+            TryReadWebpExif(
+                data, exifOffset, exifLength, width, height,
+                out OfficeImageInfo exifInfo,
+                cancellationToken)) {
             dpiX = exifInfo.DpiX;
             dpiY = exifInfo.DpiY;
         }
@@ -180,7 +187,8 @@ public static partial class OfficeImageReader {
         int canvasHeight,
         bool validateDecodedAlpha,
         out bool hasAlpha,
-        out bool alphaSemanticsKnown) {
+        out bool alphaSemanticsKnown,
+        CancellationToken cancellationToken) {
         hasAlpha = false;
         alphaSemanticsKnown = false;
         if (length < 24) return false;
@@ -200,6 +208,7 @@ public static partial class OfficeImageReader {
         int frameEnd = checked(offset + length);
         int chunkOffset = offset + 16;
         while (chunkOffset < frameEnd) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (chunkOffset > frameEnd - 8) return false;
             string chunkType = GetAscii(data, chunkOffset, 4);
             uint declaredChunkSize = ReadUInt32LittleEndian(data, chunkOffset + 4);
@@ -276,7 +285,7 @@ public static partial class OfficeImageReader {
         return false;
     }
 
-    private static bool HasValidWebpAlphaHeader(byte[] data, int offset, int length) {
+    internal static bool HasValidWebpAlphaHeader(byte[] data, int offset, int length) {
         if (length < 2) return false;
         byte control = data[offset];
         // Compression method 0 is the only defined value, preprocessing values 2-3 are reserved,
@@ -284,7 +293,7 @@ public static partial class OfficeImageReader {
         return (control & 0xC3) == 0 && (control & 0x30) <= 0x10;
     }
 
-    private static bool TryReadWebpImageHeader(
+    internal static bool TryReadWebpImageHeader(
         byte[] data,
         int offset,
         int length,
@@ -320,7 +329,8 @@ public static partial class OfficeImageReader {
         int length,
         int expectedWidth,
         int expectedHeight,
-        out OfficeImageInfo info) {
+        out OfficeImageInfo info,
+        CancellationToken cancellationToken) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (length < 8 || length > MaximumWebpExifBytes) return false;
         if (length >= 14 &&
@@ -331,14 +341,19 @@ public static partial class OfficeImageReader {
             length -= 6;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] tiff = new byte[length];
         Buffer.BlockCopy(data, offset, tiff, 0, length);
-        return TryReadTiff(tiff, out info) &&
+        return TryReadTiff(tiff, cancellationToken, out info) &&
                info.Width == expectedWidth &&
                info.Height == expectedHeight;
     }
 
-    private static bool HasValidWebpExif(byte[] data, int offset, int length) {
+    private static bool HasValidWebpExif(
+        byte[] data,
+        int offset,
+        int length,
+        CancellationToken cancellationToken) {
         if (length < 8 || length > MaximumWebpExifBytes) return false;
         if (length >= 14 &&
             GetAscii(data, offset, 4) == "Exif" &&
@@ -348,7 +363,7 @@ public static partial class OfficeImageReader {
             length -= 6;
         }
 
-        return OfficeTiffStructureValidator.TryValidateExif(data, offset, length);
+        return OfficeTiffStructureValidator.TryValidateExif(data, offset, length, cancellationToken);
     }
 
     private static uint ReadUInt32LittleEndian(byte[] data, int offset) =>

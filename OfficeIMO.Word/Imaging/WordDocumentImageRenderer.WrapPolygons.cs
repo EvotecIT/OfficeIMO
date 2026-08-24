@@ -57,12 +57,14 @@ namespace OfficeIMO.Word {
         private static bool TryCreateTransparentImageWrapPolygon(
             byte[] bytes,
             OfficeImageProjection projection,
+            System.Threading.CancellationToken cancellationToken,
             out IReadOnlyList<OfficePoint> polygon) {
             polygon = Array.Empty<OfficePoint>();
+            var decodeOptions = new OfficeRasterDecodeOptions { CancellationToken = cancellationToken };
             if (projection.HasTransform ||
                 projection.Width <= 0D ||
                 projection.Height <= 0D ||
-                !OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? raster) ||
+                !OfficeRasterImageDecoder.TryDecode(bytes, decodeOptions, out OfficeRasterImage? raster, out _) ||
                 raster == null) {
                 return false;
             }
@@ -85,9 +87,11 @@ namespace OfficeIMO.Word {
             double previousBottom = 0D;
 
             for (int y = sourceTop; y < sourceBottom; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int rowLeft = int.MaxValue;
                 int rowRight = int.MinValue;
                 for (int x = sourceLeft; x < sourceRight; x++) {
+                    if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     if (raster.GetPixel(x, y).A > 0) {
                         rowLeft = Math.Min(rowLeft, x);
                         rowRight = Math.Max(rowRight, x + 1);

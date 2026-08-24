@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -74,16 +75,32 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void ExportResultAcceptsStructurallyValidAdam7PngWithoutManagedRasterDecode() {
+    public void ManagedPngReaderDecodesStructurallyValidAdam7Png() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         png[28] = 1;
         WritePngChunkCrc(png, 8, 13);
 
         Assert.True(OfficePngReader.TryGetFrameCount(png, out int frameCount));
         Assert.Equal(1, frameCount);
-        Assert.False(OfficePngReader.TryDecode(png, out _));
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? image));
+        Assert.Equal(OfficeColor.White, image!.GetPixel(0, 0));
         var result = new OfficeImageExportResult(OfficeImageExportFormat.Png, 1, 1, png);
         Assert.Equal(png, result.Bytes);
+    }
+
+    [Fact]
+    public void ManagedPngReaderMapsEveryAdam7PassToTheLogicalCanvas() {
+        var source = new OfficeRasterImage(9, 9);
+        for (int y = 0; y < source.Height; y++) {
+            for (int x = 0; x < source.Width; x++) {
+                source.SetPixel(x, y, OfficeColor.FromRgba(
+                    (byte)(x * 23), (byte)(y * 23), (byte)(x * 11 + y), (byte)(255 - x - y)));
+            }
+        }
+        byte[] png = CreateAdam7RgbaPng(source);
+
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? decoded));
+        Assert.Equal(source.GetPixels(), decoded!.GetPixels());
     }
 
     [Fact]
@@ -208,6 +225,7 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(truncatedGif, "truncated.gif", out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(corruptPng, "corrupt.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(corruptPng, "corrupt.png", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(corruptPng, out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(markerOnlyJpeg, "marker-only.jpg", out _));
         Assert.False(OfficeImageReader.TryValidateContent(markerOnlyJpeg, "marker-only.jpg", out _));
     }
@@ -225,6 +243,7 @@ public partial class DrawingTests {
         int frameDataLength = ReadBigEndianInt32(corruptApng, frameDataOffset);
         corruptApng[frameDataOffset + 8 + frameDataLength - 1] ^= 0x01;
         WritePngChunkCrc(corruptApng, frameDataOffset, frameDataLength);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(corruptApng, out _));
         Assert.False(OfficeImageReader.TryValidateContent(corruptApng, "animated.png", out _));
 
         byte[] jpegWithEmptyFinalScan = {
@@ -237,6 +256,74 @@ public partial class DrawingTests {
         };
         Assert.True(OfficeImageReader.TryIdentifyByContent(jpegWithEmptyFinalScan, "progressive.jpg", out _));
         Assert.False(OfficeImageReader.TryValidateContent(jpegWithEmptyFinalScan, "progressive.jpg", out _));
+    }
+
+    [Fact]
+    public void ApngSecondaryFrameValidationObservesCancellation() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] apng = CreateTwoFrameApng(png);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficePngAnimationValidator.TryValidateAdditionalFrames(apng, cancellation.Token));
+    }
+
+    [Fact]
+    public void WideSingleRowApngCompositionObservesCancellationInsideTheRow() {
+        const int width = 8 * 1024 * 1024;
+        var canvas = new OfficeRasterImage(width, 1, OfficeColor.Transparent);
+        var frameImage = new OfficeRasterImage(width, 1, OfficeColor.FromRgba(32, 96, 224, 128));
+        var frame = new OfficeRasterFrameInfo(
+            0,
+            OfficeRasterFrameKind.AnimationFrame,
+            width,
+            1,
+            0,
+            0,
+            TimeSpan.Zero,
+            OfficeRasterFrameDisposal.None,
+            OfficeRasterFrameBlend.Over,
+            isDefaultImage: false);
+        using var cancellation = new CancellationTokenSource();
+        Exception? workerException = null;
+        var worker = new Thread(() => {
+            try {
+                OfficeApngDecoder.Composite(canvas, frameImage, frame, cancellation.Token);
+            } catch (Exception exception) {
+                Volatile.Write(ref workerException, exception);
+            }
+        }) { IsBackground = true };
+        worker.Start();
+
+        try {
+            Assert.True(SpinWait.SpinUntil(
+                () => Volatile.Read(ref canvas.PixelBuffer[(32 * 4) + 3]) != 0,
+                TimeSpan.FromSeconds(5)),
+                "APNG composition did not begin within the bounded wait.");
+            cancellation.Cancel();
+        } finally {
+            Assert.True(worker.Join(TimeSpan.FromSeconds(5)));
+        }
+
+        Assert.IsType<OperationCanceledException>(Volatile.Read(ref workerException));
+    }
+
+    [Fact]
+    public void RasterDecoderComposesExplicitlySelectedApngFrames() {
+        OfficeColor expected = OfficeColor.FromRgba(32, 96, 224, 128);
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, expected));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        var options = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(apng, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
+        Assert.NotNull(image);
+        Assert.Equal(expected, image!.GetPixel(0, 0));
+        Assert.Equal(2, info.FrameCount);
+        Assert.Equal(1, info.SelectedFrameIndex);
+        Assert.True(info.IsAnimated);
+        Assert.True(info.FramesOrPagesDiscarded);
+        Assert.Equal(OfficeRasterFrameBlend.Source, info.SelectedFrame!.Blend);
     }
 
     [Fact]
@@ -262,8 +349,10 @@ public partial class DrawingTests {
         Assert.True(OfficeImageReader.TryIdentifyByContent(tiffWithoutCompleteStrip, "missing-strip.tiff", out _));
         Assert.True(OfficeImageReader.TryIdentifyByContent(webpHeaderOnly, "header-only.webp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(jpegWithoutTables, "missing-tables.jpg", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(jpegWithoutTables, out _));
         Assert.False(OfficeImageReader.TryValidateContent(bmpWithoutPixels, "missing-pixels.bmp", out _));
         Assert.False(OfficeImageReader.TryValidateContent(tiffWithoutCompleteStrip, "missing-strip.tiff", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(tiffWithoutCompleteStrip, out _));
         Assert.False(OfficeImageReader.TryValidateContent(webpHeaderOnly, "header-only.webp", out _));
     }
 
@@ -334,7 +423,7 @@ public partial class DrawingTests {
 
         byte[] invalidFirstDisposal = (byte[])apng.Clone();
         int disposalFrameControlOffset = FindPngChunk(invalidFirstDisposal, "fcTL");
-        invalidFirstDisposal[disposalFrameControlOffset + 8 + 24] = 2;
+        invalidFirstDisposal[disposalFrameControlOffset + 8 + 24] = 3;
         WritePngChunkCrc(
             invalidFirstDisposal,
             disposalFrameControlOffset,
@@ -403,6 +492,10 @@ public partial class DrawingTests {
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(extended, "metadata-only-exif.webp", out _));
         Assert.True(OfficeImageReader.TryValidateContent(extended, "metadata-only-exif.webp", out _));
+        OfficeImageMetadataSnapshot metadata =
+            OfficeImageMetadataInspector.Inspect(extended, OfficeImageFormat.Webp);
+        Assert.Equal(OfficeImageMetadataKinds.Exif, metadata.Kinds & OfficeImageMetadataKinds.Exif);
+        Assert.Null(metadata.Exif);
     }
 
     [Fact]
@@ -421,7 +514,31 @@ public partial class DrawingTests {
         WriteBigEndianInt32(apng, firstFrameControlOffset + 12, frameWidth);
         WriteBigEndianInt32(apng, secondFrameControlOffset + 12, frameWidth);
 
+        Assert.True(OfficePngAnimationValidator.TryValidateStructure(apng));
         Assert.False(OfficePngAnimationValidator.TryValidateAdditionalFrames(apng));
+    }
+
+    [Fact]
+    public void ApngEarlyFrameSelectionDoesNotChargeUnselectedFramePixels() {
+        byte[] staticPng = OfficePngWriter.Encode(
+            new OfficeRasterImage(1000, 1000, OfficeColor.White));
+        byte[] apng = CreateRepeatedFrameApng(staticPng, frameCount: 51);
+
+        Assert.False(OfficeRasterContainerInspector.TryInspect(apng, out _));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            apng,
+            new OfficeRasterDecodeOptions { FrameIndex = 0 },
+            out OfficeRasterImage? selected,
+            out OfficeRasterDecodeInfo info));
+
+        Assert.Equal((1000, 1000), (selected!.Width, selected.Height));
+        Assert.Equal(0, info.SelectedFrameIndex);
+        Assert.Equal(51, info.FrameCount);
+        Assert.False(OfficeRasterImageDecoder.TryDecode(
+            apng,
+            new OfficeRasterDecodeOptions { FrameIndex = 50 },
+            out _,
+            out _));
     }
 
     [Fact]
@@ -732,6 +849,416 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void BoundedRasterDecodeSupportsSeekableAndForwardOnlyStreams() {
+        OfficeColor expected = OfficeColor.FromRgba(12, 34, 56, 178);
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(3, 2, expected));
+        using var seekable = new MemoryStream(png, writable: false);
+        seekable.Position = 0;
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(seekable, out OfficeRasterImage? seekableImage));
+        Assert.Equal(0L, seekable.Position);
+        Assert.Equal(expected, seekableImage!.GetPixel(2, 1));
+
+        using var forwardOnly = new ForwardOnlyReadStream(png);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(forwardOnly, out OfficeRasterImage? forwardImage));
+        Assert.Equal(expected, forwardImage!.GetPixel(2, 1));
+    }
+
+    [Fact]
+    public void RasterStreamLimitsAndCancellationFailBeforeDecodeWork() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(64, 64, OfficeColor.SteelBlue));
+        var bounded = new OfficeRasterDecodeOptions { MaximumEncodedBytes = png.Length - 1 };
+        using var oversized = new MemoryStream(png, writable: false);
+        Assert.False(OfficeRasterImageDecoder.TryDecode(oversized, bounded, out _, out OfficeRasterDecodeInfo boundedInfo));
+        Assert.False(boundedInfo.Succeeded);
+        Assert.Equal(0L, oversized.Position);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var cancelled = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
+        using var cancelledStream = new ForwardOnlyReadStream(png);
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageDecoder.TryDecode(cancelledStream, cancelled, out _, out _));
+        Assert.Equal(0, cancelledStream.ReadCount);
+    }
+
+    [Fact]
+    public void BoundedForwardOnlyReadsConsumeAtMostOneByteBeyondTheLimit() {
+        using var stream = new ForwardOnlyReadStream(new byte[128]);
+
+        Assert.False(OfficeBoundedStreamReader.TryRead(
+            stream, maximumBytes: 7, CancellationToken.None, out _));
+
+        Assert.Equal(8L, stream.Position);
+    }
+
+    [Fact]
+    public void BoundedForwardOnlyReaderTransfersAnExactCapacityBufferWithoutAFullPayloadCopy() {
+        var source = new byte[64 * 1024];
+        for (int index = 0; index < source.Length; index++) source[index] = (byte)index;
+        using var stream = new ForwardOnlyReadStream(source);
+#if NET8_0_OR_GREATER
+        long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
+
+        bool success = OfficeBoundedStreamReader.TryRead(
+            stream, source.Length, CancellationToken.None, out byte[] result);
+#if NET8_0_OR_GREATER
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
+
+        Assert.True(success);
+        Assert.Equal(source, result);
+        Assert.True(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
+            OfficeRasterGuards.MaximumEncodedBytes,
+            OfficeRasterGuards.MaximumEncodedBytes - 48L));
+        Assert.False(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
+            OfficeRasterGuards.MaximumEncodedBytes,
+            OfficeRasterGuards.MaximumEncodedBytes - 47L));
+#if NET8_0_OR_GREATER
+        Assert.True(allocated < 100L * 1024L,
+            $"Exact-capacity stream materialization allocated {allocated:N0} bytes.");
+#endif
+    }
+
+    [Fact]
+    public void BoundedSeekableMemoryReaderBorrowsOnlyAnExposedExactBuffer() {
+        var source = new byte[64 * 1024];
+        for (int index = 0; index < source.Length; index++) source[index] = (byte)index;
+        using var stream = new MemoryStream(source, 0, source.Length, writable: false, publiclyVisible: true);
+
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            stream, source.Length, CancellationToken.None, out byte[] result));
+
+        Assert.Same(source, result);
+        Assert.Equal(stream.Length, stream.Position);
+        Assert.False(OfficeBoundedStreamReader.IsSeekableMemoryCopyWithinLimit(
+            OfficeRasterGuards.MaximumEncodedBytes,
+            OfficeRasterGuards.MaximumEncodedBytes));
+        Assert.True(OfficeBoundedStreamReader.IsSeekableMemoryCopyWithinLimit(
+            retainedStreamBytes: 64 * 1024,
+            payloadBytes: 64 * 1024));
+
+        using var hiddenCapacity = new MemoryStream(capacity: 80 * 1024);
+        hiddenCapacity.Write(source, 0, source.Length);
+        hiddenCapacity.Position = 0;
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            hiddenCapacity, source.Length, CancellationToken.None,
+            out byte[] copied, out long retainedHiddenCapacityBytes));
+        Assert.NotSame(hiddenCapacity.GetBuffer(), copied);
+        Assert.Equal(hiddenCapacity.GetBuffer().LongLength, retainedHiddenCapacityBytes);
+
+        var oversizedBacking = new byte[192 * 1024];
+        using var exposedSegment = new MemoryStream(
+            oversizedBacking, 64 * 1024, 64 * 1024, writable: false, publiclyVisible: true);
+        Assert.True(exposedSegment.Capacity < oversizedBacking.Length);
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            exposedSegment, 64 * 1024, CancellationToken.None, out byte[] segmentCopy));
+        Assert.Equal(64 * 1024, segmentCopy.Length);
+
+        using var hiddenSegment = new MemoryStream(
+            oversizedBacking, 64 * 1024, 64 * 1024, writable: false, publiclyVisible: false);
+        Assert.True(OfficeBoundedStreamReader.TryGetRetainedMemoryStreamBytes(
+            hiddenSegment, out long hiddenBackingBytes));
+        Assert.Equal(oversizedBacking.LongLength, hiddenBackingBytes);
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            hiddenSegment, 64 * 1024, CancellationToken.None,
+            out byte[] hiddenSegmentCopy, out long retainedHiddenSegmentBytes));
+        Assert.Equal(64 * 1024, hiddenSegmentCopy.Length);
+        Assert.Equal(oversizedBacking.LongLength, retainedHiddenSegmentBytes);
+    }
+
+    [Fact]
+    public void JpegFillByteTraversalObservesCancellation() {
+        var fillBytes = Enumerable.Repeat((byte)0xFF, 8192).ToArray();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => {
+            int offset = 0;
+            OfficeJpegReader.SkipFillBytes(
+                new OfficeByteView(fillBytes), ref offset, cancellation.Token);
+        });
+    }
+
+    [Fact]
+    public void ManagedJpegBmpAndGifCodecsPropagateCancellation() {
+        OfficeRasterImage source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
+        byte[] jpeg = OfficeJpegCodec.Encode(source);
+        byte[] bmp = new byte[58];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 2, bmp.Length);
+        WriteInt32LittleEndian(bmp, 10, 54);
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 1);
+        WriteInt32LittleEndian(bmp, 22, 1);
+        WriteUInt16LittleEndian(bmp, 26, 1);
+        WriteUInt16LittleEndian(bmp, 28, 24);
+        byte[] gif = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeJpegCodec.TryDecode(jpeg, cancellation.Token, out _));
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeBmpReader.TryDecode(bmp, cancellation.Token, out _));
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeGifReader.TryDecodeFrame(gif, 0, cancellation.Token, out _, out _));
+    }
+
+    [Fact]
+    public void ContainerInspectorReportsApngTimingAndSelectionSemantics() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(apng, out OfficeRasterContainerInfo? container));
+        Assert.NotNull(container);
+        Assert.Equal(2, container!.Count);
+        Assert.True(container.IsAnimated);
+        Assert.False(container.IsMultiPage);
+        Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
+        Assert.True(container.Frames[0].IsDefaultImage);
+        Assert.False(container.Frames[1].IsDefaultImage);
+    }
+
+    [Fact]
+    public void ContainerInspectorRejectsApngLoopCountsOutsideItsPublicContract() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int animationControl = FindPngChunk(apng, "acTL");
+        WriteBigEndianInt32(apng, animationControl + 12, int.MinValue);
+        WritePngChunkCrc(apng, animationControl, 8);
+
+        Assert.True(OfficePngReader.TryGetFrameCount(apng, out int frameCount));
+        Assert.Equal(2, frameCount);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(apng, out _));
+    }
+
+    [Fact]
+    public void ContainerInspectorRejectsInvalidApngFrameSequencing() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int frameData = FindPngChunk(apng, "fdAT");
+        WriteBigEndianInt32(apng, frameData + 8, 7);
+        WritePngChunkCrc(apng, frameData, ReadBigEndianInt32(apng, frameData));
+
+        Assert.True(OfficePngReader.TryGetFrameCount(apng, out int frameCount));
+        Assert.Equal(2, frameCount);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(apng, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(
+            apng,
+            new OfficeRasterDecodeOptions {
+                AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame,
+                FrameIndex = 1
+            },
+            out _,
+            out _));
+    }
+
+    [Fact]
+    public void ApngAcceptsFrameControlBeforeAnimationControl() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int animationControl = FindPngChunk(apng, "acTL");
+        int animationControlLength = ReadBigEndianInt32(apng, animationControl) + 12;
+        int firstFrameControl = FindPngChunk(apng, "fcTL");
+        int firstFrameControlLength = ReadBigEndianInt32(apng, firstFrameControl) + 12;
+        Assert.Equal(animationControl + animationControlLength, firstFrameControl);
+
+        byte[] reordered = (byte[])apng.Clone();
+        Buffer.BlockCopy(apng, firstFrameControl, reordered, animationControl, firstFrameControlLength);
+        Buffer.BlockCopy(apng, animationControl, reordered, animationControl + firstFrameControlLength,
+            animationControlLength);
+
+        Assert.True(OfficeImageReader.TryValidateContent(reordered, "reordered-animation-control.png", out _));
+        Assert.True(OfficeRasterContainerInspector.TryInspect(reordered, out OfficeRasterContainerInfo? container));
+        Assert.Equal(2, container!.Count);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            reordered,
+            new OfficeRasterDecodeOptions { FrameIndex = 1 },
+            out OfficeRasterImage? selected,
+            out _));
+        Assert.Equal(OfficeColor.Lime, selected!.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void ApngTreatsFirstFramePreviousDisposalAsBackground() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int firstFrameControl = FindPngChunk(apng, "fcTL");
+        apng[firstFrameControl + 8 + 24] = 2;
+        WritePngChunkCrc(apng, firstFrameControl, ReadBigEndianInt32(apng, firstFrameControl));
+
+        Assert.True(OfficeImageReader.TryValidateContent(apng, "first-previous-disposal.png", out _));
+        Assert.True(OfficeRasterContainerInspector.TryInspect(apng, out OfficeRasterContainerInfo? container));
+        Assert.Equal(OfficeRasterFrameDisposal.Background, container!.Frames[0].Disposal);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void ApngValidationCopiesEachSecondaryFramePayloadAtMostOnce() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(png);
+        int frameDataOffset = FindPngChunk(apng, "fdAT");
+        int frameDataLength = ReadBigEndianInt32(apng, frameDataOffset);
+        var largeFrameData = new byte[8 * 1024 * 1024 + 4];
+        Buffer.BlockCopy(apng, frameDataOffset + 8, largeFrameData, 0, 4);
+        byte[] replacement = CreatePngChunk("fdAT", largeFrameData);
+        byte[] expanded = new byte[apng.Length - frameDataLength - 12 + replacement.Length];
+        Buffer.BlockCopy(apng, 0, expanded, 0, frameDataOffset);
+        Buffer.BlockCopy(replacement, 0, expanded, frameDataOffset, replacement.Length);
+        Buffer.BlockCopy(apng, frameDataOffset + frameDataLength + 12, expanded,
+            frameDataOffset + replacement.Length,
+            apng.Length - frameDataOffset - frameDataLength - 12);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Assert.False(OfficePngAnimationValidator.TryValidateAdditionalFrames(expanded));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated < 12L * 1024L * 1024L,
+            $"APNG validation allocated {allocated:N0} bytes for an 8 MB secondary payload.");
+    }
+#endif
+
+    [Fact]
+    public void SelectedApngFrameDecodesAdam7Payload() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        png[28] = 1;
+        WritePngChunkCrc(png, 8, 13);
+        byte[] apng = CreateTwoFrameApng(png);
+        var options = new OfficeRasterDecodeOptions {
+            AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame,
+            FrameIndex = 1
+        };
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            apng, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
+        Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
+        Assert.True(info.IsAnimated);
+        Assert.True(info.AnimationDiscarded);
+    }
+
+    [Fact]
+    public void AnimatedWebpFramesDoNotClaimAStaticDefaultImage() {
+        byte[] animated = Convert.FromBase64String(
+            "UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=");
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(
+            animated, out OfficeRasterContainerInfo? container));
+        Assert.True(container!.IsAnimated);
+        Assert.All(container.Frames, frame => Assert.False(frame.IsDefaultImage));
+    }
+
+    [Fact]
+    public void AnimatedWebpInventoryValidatesNestedVp8lEntropy() {
+        byte[] simple = OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        int chunkOffset = FindWebpChunk(simple, "VP8L");
+        int payloadLength = simple[chunkOffset + 4] |
+                            simple[chunkOffset + 5] << 8 |
+                            simple[chunkOffset + 6] << 16 |
+                            simple[chunkOffset + 7] << 24;
+        byte[] payload = simple.Skip(chunkOffset + 8).Take(payloadLength).ToArray();
+        byte[] valid = CreateAnimatedVp8lWebp(payload);
+        byte[] truncated = CreateAnimatedVp8lWebp(payload.Take(5).ToArray());
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(valid, out OfficeRasterContainerInfo? container));
+        Assert.Single(container!.Frames);
+        Assert.True(OfficeImageReader.TryIdentifyByContent(truncated, "truncated-frame.webp", out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(truncated, out _));
+    }
+
+    [Fact]
+    public void AnimatedWebpInventoryAcceptsLossyFramesWithOptionalAlpha() {
+        byte[] lossy = Convert.FromBase64String(
+            "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
+        byte[] vp8Chunk = lossy.Skip(12).ToArray();
+        byte[] opaque = CreateAnimatedWebpFrame(vp8Chunk, hasAlpha: false);
+        byte[] alpha = CreateAnimatedWebpFrame(
+            CreateWebpChunk("ALPH", new byte[] { 0, 0xFF }).Concat(vp8Chunk).ToArray(),
+            hasAlpha: true);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(opaque, out OfficeRasterContainerInfo? opaqueContainer));
+        Assert.Single(opaqueContainer!.Frames);
+        Assert.True(OfficeRasterContainerInspector.TryInspect(alpha, out OfficeRasterContainerInfo? alphaContainer));
+        Assert.Single(alphaContainer!.Frames);
+    }
+
+    [Fact]
+    public void ContainerInspectorPreservesSingleFrameApngAfterFallbackImageData() {
+        byte[] fallback = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        byte[] animatedFrame = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateSingleFrameApngAfterFallback(fallback, animatedFrame);
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(apng, out OfficeRasterContainerInfo? container));
+        Assert.True(container!.IsAnimated);
+        Assert.Single(container.Frames);
+        Assert.False(container.Frames[0].IsDefaultImage);
+        Assert.True(OfficePngReader.TryValidateDecodedPayload(apng));
+
+        var options = new OfficeRasterDecodeOptions {
+            AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame
+        };
+        Assert.True(OfficeRasterImageDecoder.TryDecode(apng, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
+        Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
+        Assert.True(info.IsAnimated);
+        Assert.True(info.AnimationDiscarded);
+        Assert.False(info.FramesOrPagesDiscarded);
+        Assert.NotNull(info.Diagnostic);
+
+        var reject = new OfficeRasterDecodeOptions {
+            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+        };
+        Assert.False(OfficeRasterImageDecoder.TryDecode(apng, reject, out _, out _));
+    }
+
+    [Fact]
+    public void CompleteApngValidationChargesTheFallbackCanvasBeforeAnimationFrames() {
+        long decodedFramePixels = 0L;
+
+        Assert.False(OfficePngAnimationValidator.TryReserveDecodedFramePixels(
+            ref decodedFramePixels,
+            fallbackCanvasPixels: checked((int)OfficeRasterGuards.MaximumPixels),
+            framePixels: 1));
+        Assert.Equal(0L, decodedFramePixels);
+        Assert.True(OfficePngAnimationValidator.TryReserveDecodedFramePixels(
+            ref decodedFramePixels,
+            fallbackCanvasPixels: 0,
+            framePixels: 1));
+        Assert.Equal(1L, decodedFramePixels);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void SelectedApngDecodeDoesNotCopyUnselectedFramePayloads() {
+        byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
+        byte[] apng = CreateTwoFrameApng(staticPng);
+        int frameDataOffset = FindPngChunk(apng, "fdAT");
+        int frameDataLength = ReadBigEndianInt32(apng, frameDataOffset);
+        var largeFrameData = new byte[8 * 1024 * 1024 + 4];
+        Buffer.BlockCopy(apng, frameDataOffset + 8, largeFrameData, 0, 4);
+        byte[] replacement = CreatePngChunk("fdAT", largeFrameData);
+        byte[] expanded = new byte[apng.Length - frameDataLength - 12 + replacement.Length];
+        Buffer.BlockCopy(apng, 0, expanded, 0, frameDataOffset);
+        Buffer.BlockCopy(replacement, 0, expanded, frameDataOffset, replacement.Length);
+        Buffer.BlockCopy(apng, frameDataOffset + frameDataLength + 12, expanded,
+            frameDataOffset + replacement.Length,
+            apng.Length - frameDataOffset - frameDataLength - 12);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Assert.True(OfficeRasterImageDecoder.TryDecode(
+            expanded,
+            new OfficeRasterDecodeOptions { FrameIndex = 0 },
+            out OfficeRasterImage? selected,
+            out _));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(OfficeColor.Lime, selected!.GetPixel(0, 0));
+        Assert.True(allocated < 4L * 1024L * 1024L, $"Selected-frame decode allocated {allocated:N0} bytes.");
+    }
+#endif
+
+    [Fact]
     public void ContentValidationUsesTheCanonicalEncodedPayloadLimit() {
         Assert.True(OfficeRasterGuards.IsEncodedPayloadWithinLimits(OfficeRasterGuards.MaximumEncodedBytes));
         Assert.False(OfficeRasterGuards.IsEncodedPayloadWithinLimits(OfficeRasterGuards.MaximumEncodedBytes + 1));
@@ -774,6 +1301,43 @@ public partial class DrawingTests {
         return chunk;
     }
 
+    private static byte[] CreateAnimatedVp8lWebp(byte[] vp8lPayload) {
+        var frame = new List<byte>(16 + vp8lPayload.Length + 9);
+        frame.AddRange(new byte[16]);
+        frame.AddRange(CreateWebpChunk("VP8L", vp8lPayload));
+        var bytes = new List<byte>(64 + frame.Count) {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P'
+        };
+        bytes.AddRange(CreateWebpChunk("VP8X", new byte[] { 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0 }));
+        bytes.AddRange(CreateWebpChunk("ANIM", new byte[6]));
+        bytes.AddRange(CreateWebpChunk("ANMF", frame.ToArray()));
+        byte[] result = bytes.ToArray();
+        WriteInt32LittleEndian(result, 4, result.Length - 8);
+        return result;
+    }
+
+    private static byte[] CreateAnimatedWebpFrame(byte[] frameChunks, bool hasAlpha) {
+        var frame = new byte[16 + frameChunks.Length];
+        frame[6] = 1;
+        frame[9] = 1;
+        Buffer.BlockCopy(frameChunks, 0, frame, 16, frameChunks.Length);
+        var extendedHeader = new byte[10];
+        extendedHeader[0] = (byte)(0x02 | (hasAlpha ? 0x10 : 0));
+        extendedHeader[4] = 1;
+        extendedHeader[7] = 1;
+        var bytes = new List<byte>(64 + frame.Length) {
+            (byte)'R', (byte)'I', (byte)'F', (byte)'F', 0, 0, 0, 0,
+            (byte)'W', (byte)'E', (byte)'B', (byte)'P'
+        };
+        bytes.AddRange(CreateWebpChunk("VP8X", extendedHeader));
+        bytes.AddRange(CreateWebpChunk("ANIM", new byte[6]));
+        bytes.AddRange(CreateWebpChunk("ANMF", frame));
+        byte[] result = bytes.ToArray();
+        WriteInt32LittleEndian(result, 4, result.Length - 8);
+        return result;
+    }
+
     private static int FindWebpChunk(byte[] bytes, string expectedType) {
         int offset = 12;
         while (offset <= bytes.Length - 8) {
@@ -814,11 +1378,111 @@ public partial class DrawingTests {
         return result;
     }
 
-    private static byte[] CreateFrameControl(int sequence) {
+    private static byte[] CreateRepeatedFrameApng(byte[] png, int frameCount) {
+        if (frameCount < 1) throw new ArgumentOutOfRangeException(nameof(frameCount));
+        int ihdrOffset = FindPngChunk(png, "IHDR");
+        int width = ReadBigEndianInt32(png, ihdrOffset + 8);
+        int height = ReadBigEndianInt32(png, ihdrOffset + 12);
+        int idatOffset = FindPngChunk(png, "IDAT");
+        int idatLength = ReadBigEndianInt32(png, idatOffset);
+        int idatEnd = idatOffset + 12 + idatLength;
+        byte[] animationControl = new byte[8];
+        WriteBigEndianInt32(animationControl, 0, frameCount);
+        byte[] prefix = CreatePngChunk("acTL", animationControl)
+            .Concat(CreatePngChunk("fcTL", CreateFrameControl(0, width, height)))
+            .ToArray();
+        var suffix = new List<byte>();
+        for (int frame = 1; frame < frameCount; frame++) {
+            suffix.AddRange(CreatePngChunk(
+                "fcTL",
+                CreateFrameControl(checked(frame * 2 - 1), width, height)));
+            byte[] frameData = new byte[idatLength + 4];
+            WriteBigEndianInt32(frameData, 0, checked(frame * 2));
+            Buffer.BlockCopy(png, idatOffset + 8, frameData, 4, idatLength);
+            suffix.AddRange(CreatePngChunk("fdAT", frameData));
+        }
+
+        byte[] result = new byte[png.Length + prefix.Length + suffix.Count];
+        Buffer.BlockCopy(png, 0, result, 0, idatOffset);
+        Buffer.BlockCopy(prefix, 0, result, idatOffset, prefix.Length);
+        Buffer.BlockCopy(png, idatOffset, result, idatOffset + prefix.Length, idatEnd - idatOffset);
+        suffix.CopyTo(result, idatEnd + prefix.Length);
+        Buffer.BlockCopy(
+            png,
+            idatEnd,
+            result,
+            idatEnd + prefix.Length + suffix.Count,
+            png.Length - idatEnd);
+        return result;
+    }
+
+    private static byte[] CreateAdam7RgbaPng(OfficeRasterImage image) {
+        int[] startX = { 0, 4, 0, 2, 0, 1, 0 };
+        int[] startY = { 0, 0, 4, 0, 2, 0, 1 };
+        int[] stepX = { 8, 8, 4, 4, 2, 2, 1 };
+        int[] stepY = { 8, 8, 8, 4, 4, 2, 2 };
+        var scanlines = new List<byte>();
+        for (int pass = 0; pass < 7; pass++) {
+            for (int y = startY[pass]; y < image.Height; y += stepY[pass]) {
+                if (startX[pass] >= image.Width) continue;
+                scanlines.Add(0);
+                for (int x = startX[pass]; x < image.Width; x += stepX[pass]) {
+                    OfficeColor color = image.GetPixel(x, y);
+                    scanlines.Add(color.R);
+                    scanlines.Add(color.G);
+                    scanlines.Add(color.B);
+                    scanlines.Add(color.A);
+                }
+            }
+        }
+
+        byte[] png = OfficePngWriter.Encode(image);
+        png[28] = 1;
+        WritePngChunkCrc(png, 8, 13);
+        int idatOffset = FindPngChunk(png, "IDAT");
+        int idatLength = ReadBigEndianInt32(png, idatOffset);
+        int idatEnd = idatOffset + idatLength + 12;
+        byte[] replacement = CreatePngChunk("IDAT", OfficeZlibCodec.Compress(scanlines.ToArray()));
+        byte[] result = new byte[png.Length - idatLength - 12 + replacement.Length];
+        Buffer.BlockCopy(png, 0, result, 0, idatOffset);
+        Buffer.BlockCopy(replacement, 0, result, idatOffset, replacement.Length);
+        Buffer.BlockCopy(png, idatEnd, result, idatOffset + replacement.Length, png.Length - idatEnd);
+        return result;
+    }
+
+    private static byte[] CreateSingleFrameApngAfterFallback(byte[] fallback, byte[] animatedFrame) {
+        int fallbackIdat = FindPngChunk(fallback, "IDAT");
+        int fallbackIdatLength = ReadBigEndianInt32(fallback, fallbackIdat);
+        int fallbackIdatEnd = fallbackIdat + 12 + fallbackIdatLength;
+        int animatedIdat = FindPngChunk(animatedFrame, "IDAT");
+        int animatedIdatLength = ReadBigEndianInt32(animatedFrame, animatedIdat);
+
+        byte[] animationControl = new byte[8];
+        WriteBigEndianInt32(animationControl, 0, 1);
+        byte[] frameData = new byte[animatedIdatLength + 4];
+        WriteBigEndianInt32(frameData, 0, 1);
+        Buffer.BlockCopy(animatedFrame, animatedIdat + 8, frameData, 4, animatedIdatLength);
+
+        byte[] prefix = CreatePngChunk("acTL", animationControl);
+        byte[] suffix = CreatePngChunk("fcTL", CreateFrameControl(sequence: 0))
+            .Concat(CreatePngChunk("fdAT", frameData))
+            .ToArray();
+        byte[] result = new byte[fallback.Length + prefix.Length + suffix.Length];
+        Buffer.BlockCopy(fallback, 0, result, 0, fallbackIdat);
+        Buffer.BlockCopy(prefix, 0, result, fallbackIdat, prefix.Length);
+        Buffer.BlockCopy(fallback, fallbackIdat, result, fallbackIdat + prefix.Length,
+            fallbackIdatEnd - fallbackIdat);
+        Buffer.BlockCopy(suffix, 0, result, fallbackIdatEnd + prefix.Length, suffix.Length);
+        Buffer.BlockCopy(fallback, fallbackIdatEnd, result,
+            fallbackIdatEnd + prefix.Length + suffix.Length, fallback.Length - fallbackIdatEnd);
+        return result;
+    }
+
+    private static byte[] CreateFrameControl(int sequence, int width = 1, int height = 1) {
         byte[] data = new byte[26];
         WriteBigEndianInt32(data, 0, sequence);
-        WriteBigEndianInt32(data, 4, 1);
-        WriteBigEndianInt32(data, 8, 1);
+        WriteBigEndianInt32(data, 4, width);
+        WriteBigEndianInt32(data, 8, height);
         data[21] = 1;
         return data;
     }
@@ -974,6 +1638,33 @@ public partial class DrawingTests {
         public override void Flush() { }
         public override int Read(byte[] buffer, int offset, int count) { ReadCount++; return 0; }
         public override long Seek(long offset, SeekOrigin origin) => _position = offset;
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class ForwardOnlyReadStream : Stream {
+        private readonly byte[] _bytes;
+        private int _offset;
+
+        internal ForwardOnlyReadStream(byte[] bytes) => _bytes = bytes;
+
+        internal int ReadCount { get; private set; }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => _offset; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) {
+            ReadCount++;
+            int take = Math.Min(count, _bytes.Length - _offset);
+            if (take <= 0) return 0;
+            Buffer.BlockCopy(_bytes, _offset, buffer, offset, take);
+            _offset += take;
+            return take;
+        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }

@@ -27,7 +27,8 @@ namespace OfficeIMO.Excel {
                     options,
                     layout,
                     sourceImageBudget,
-                    out rasterState);
+                    out rasterState,
+                    cancellationToken);
             } else {
                 ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics, sourceImageBudget);
                 result = ExcelRangeImageRenderer.Render(
@@ -54,7 +55,8 @@ namespace OfficeIMO.Excel {
                     headerFooterSnapshot,
                     pageNumber,
                     pageCount,
-                    ref rasterState);
+                    ref rasterState,
+                    cancellationToken);
             }
 
             if (workingFormat == OfficeImageExportFormat.Svg) {
@@ -63,7 +65,11 @@ namespace OfficeIMO.Excel {
 
             if (format == workingFormat) return result;
             cancellationToken.ThrowIfCancellationRequested();
-            if (!OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? image) || image == null) {
+            if (!OfficeRasterImageDecoder.TryDecode(
+                    result.Bytes,
+                    new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
+                    out OfficeRasterImage? image,
+                    out _) || image == null) {
                 throw new InvalidOperationException("The worksheet raster composition could not be decoded for final image encoding.");
             }
 
@@ -116,7 +122,9 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions options,
             PrintTitleLayout layout,
             ExcelSourceImageBudget sourceImageBudget,
-            out ExcelRasterRenderState rasterState) {
+            out ExcelRasterRenderState rasterState,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var diagnostics = new List<OfficeImageExportDiagnostic>(range.Diagnostics);
             List<PrintTitleVisualComponent> visuals = CreatePrintTitleVisualComponents(layout, options, diagnostics, sourceImageBudget);
             double logicalWidth = visuals.Count == 0 ? 0D : visuals.Max(component => component.X + component.Snapshot.Width);
@@ -144,7 +152,8 @@ namespace OfficeIMO.Excel {
                 format,
                 options,
                 renderScale,
-                diagnostics);
+                diagnostics,
+                cancellationToken);
             int outputWidth = format == OfficeImageExportFormat.Svg
                 ? Math.Max(1, (int)Math.Ceiling(components.Max(component => component.X + component.Width)))
                 : rasterPlan!.Value.Limit.PixelWidth;
@@ -249,17 +258,20 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             ExcelWorksheetImageExportOptions options,
             double renderScale,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics,
+            CancellationToken cancellationToken) {
             ExcelWorksheetImageExportOptions renderOptions = options.CloneWorksheet();
             renderOptions.TargetDpi = null;
             renderOptions.Scale = renderScale;
             var components = new List<PrintTitleComponent>(visuals.Count);
             foreach (PrintTitleVisualComponent visual in visuals) {
+                cancellationToken.ThrowIfCancellationRequested();
                 components.Add(RenderPrintTitleComponent(
                     visual,
                     format,
                     renderOptions,
-                    diagnostics));
+                    diagnostics,
+                    cancellationToken));
             }
 
             return components;
@@ -269,15 +281,16 @@ namespace OfficeIMO.Excel {
             PrintTitleVisualComponent visual,
             OfficeImageExportFormat format,
             ExcelWorksheetImageExportOptions renderOptions,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics,
+            CancellationToken cancellationToken) {
             var componentDiagnostics = new List<OfficeImageExportDiagnostic>();
             OfficeRasterImage? raster = null;
             string svgInner = string.Empty;
             if (format == OfficeImageExportFormat.Svg) {
-                string svg = ExcelRangeImageRenderer.RenderSvg(visual.Snapshot, renderOptions, componentDiagnostics);
+                string svg = ExcelRangeImageRenderer.RenderSvg(visual.Snapshot, renderOptions, componentDiagnostics, cancellationToken);
                 svgInner = OfficeSvgFormatting.ExtractSvgInner(svg);
             } else {
-                raster = ExcelRangeImageRenderer.RenderRaster(visual.Snapshot, renderOptions, componentDiagnostics);
+                raster = ExcelRangeImageRenderer.RenderRaster(visual.Snapshot, renderOptions, componentDiagnostics, cancellationToken);
             }
 
             if (componentDiagnostics.Count > 0) {

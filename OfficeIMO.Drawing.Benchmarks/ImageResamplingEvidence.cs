@@ -2,16 +2,23 @@ namespace OfficeIMO.Drawing.Benchmarks;
 
 /// <summary>Reports deterministic visual differences against pixel-area downsampling.</summary>
 internal static class ImageResamplingEvidence {
-    private static readonly OfficeRasterResamplingMode[] Modes = {
-        OfficeRasterResamplingMode.Bilinear,
-        OfficeRasterResamplingMode.Area,
-        OfficeRasterResamplingMode.Lanczos3
+    private sealed record EvidenceMode(
+        string Label,
+        OfficeRasterResamplingMode Mode,
+        OfficeRasterResamplingColorSpace ColorSpace);
+
+    private static readonly EvidenceMode[] Modes = {
+        new("Bilinear", OfficeRasterResamplingMode.Bilinear, OfficeRasterResamplingColorSpace.EncodedSrgb),
+        new("Area", OfficeRasterResamplingMode.Area, OfficeRasterResamplingColorSpace.EncodedSrgb),
+        new("Lanczos3", OfficeRasterResamplingMode.Lanczos3, OfficeRasterResamplingColorSpace.EncodedSrgb),
+        new("AreaLinear", OfficeRasterResamplingMode.Area, OfficeRasterResamplingColorSpace.LinearLight),
+        new("LanczosLinear", OfficeRasterResamplingMode.Lanczos3, OfficeRasterResamplingColorSpace.LinearLight)
     };
 
     internal static void Validate(TextWriter writer) {
         writer.WriteLine();
         writer.WriteLine("Resampling fidelity matrix (pixel-area result is the antialiasing reference):");
-        writer.WriteLine("Fixture        Mode       Output    Premul MAE     PSNR  Alpha MAE  Fingerprint");
+        writer.WriteLine("Fixture        Mode          Output    Premul MAE     PSNR  Alpha MAE  Fingerprint");
         foreach (string scenarioId in ImageBenchmarkScenarios.ResamplingIds) {
             ImageBenchmarkScenario scenario = ImageBenchmarkScenarios.Get(scenarioId);
             OfficeRasterImage source = scenario.CreateImage();
@@ -23,18 +30,26 @@ internal static class ImageResamplingEvidence {
                 height,
                 OfficeRasterResamplingMode.Area);
             byte[] expected = reference.GetPixels();
-            foreach (OfficeRasterResamplingMode mode in Modes) {
-                OfficeRasterImage actual = OfficeRasterResampler.Resize(source, width, height, mode);
-                ImageResamplingExpectations.Validate(scenarioId, mode, actual, width, height);
-                byte[] pixels = actual.GetPixels();
-                OfficeRasterImage repeated = OfficeRasterResampler.Resize(source, width, height, mode);
-                if (!pixels.AsSpan().SequenceEqual(repeated.GetPixels())) {
-                    throw new InvalidOperationException($"{scenarioId} {mode} resampling was not deterministic.");
+            OfficeRasterImage linearReference = OfficeRasterResampler.Resize(
+                source, width, height, OfficeRasterResamplingMode.Area,
+                OfficeRasterResamplingColorSpace.LinearLight);
+            foreach (EvidenceMode mode in Modes) {
+                OfficeRasterImage actual = OfficeRasterResampler.Resize(source, width, height, mode.Mode, mode.ColorSpace);
+                if (mode.ColorSpace == OfficeRasterResamplingColorSpace.EncodedSrgb) {
+                    ImageResamplingExpectations.Validate(scenarioId, mode.Mode, actual, width, height);
                 }
-                (double mae, double psnr) = MeasurePremultipliedRgbFidelity(expected, pixels);
-                double alphaMae = MeasureAlphaError(expected, pixels);
+                byte[] pixels = actual.GetPixels();
+                OfficeRasterImage repeated = OfficeRasterResampler.Resize(source, width, height, mode.Mode, mode.ColorSpace);
+                if (!pixels.AsSpan().SequenceEqual(repeated.GetPixels())) {
+                    throw new InvalidOperationException($"{scenarioId} {mode.Label} resampling was not deterministic.");
+                }
+                byte[] comparison = mode.ColorSpace == OfficeRasterResamplingColorSpace.LinearLight
+                    ? linearReference.GetPixels()
+                    : expected;
+                (double mae, double psnr) = MeasurePremultipliedRgbFidelity(comparison, pixels);
+                double alphaMae = MeasureAlphaError(comparison, pixels);
                 writer.WriteLine(
-                    $"{scenarioId,-14} {mode,-10} {width,4}x{height,-4} " +
+                    $"{scenarioId,-14} {mode.Label,-13} {width,4}x{height,-4} " +
                     $"{mae,9:F3} {FormatPsnr(psnr),8} {alphaMae,10:F3}  {ImageBenchmarkScenarios.Fingerprint(actual)}");
             }
         }
@@ -51,9 +66,9 @@ internal static class ImageResamplingEvidence {
             OfficeRasterImage source = scenario.CreateImage();
             int width = Math.Max(1, source.Width / 4);
             int height = Math.Max(1, source.Height / 4);
-            foreach (OfficeRasterResamplingMode mode in Modes) {
-                OfficeRasterImage image = OfficeRasterResampler.Resize(source, width, height, mode);
-                string path = Path.Combine(fullPath, $"{scenarioId}-{mode}.png");
+            foreach (EvidenceMode mode in Modes) {
+                OfficeRasterImage image = OfficeRasterResampler.Resize(source, width, height, mode.Mode, mode.ColorSpace);
+                string path = Path.Combine(fullPath, $"{scenarioId}-{mode.Label}.png");
                 File.WriteAllBytes(path, OfficePngWriter.Encode(image));
                 writer.WriteLine(path);
             }

@@ -363,7 +363,7 @@ public class RtfPdfConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Emf, new byte[] { 1, 2, 3 });
         var options = new RtfPdfSaveOptions {
-            ImageConverter = _ => Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+            ImageConverter = _ => Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=")
         };
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);

@@ -18,6 +18,7 @@ public static partial class OfficeJpegCodec {
         OfficeJpegEncodeOptions effectiveOptions = options ?? new OfficeJpegEncodeOptions();
         byte[] rgba = image.PixelBuffer;
         if (HasTransparency(rgba)) {
+            effectiveOptions = effectiveOptions.WithAdditionalRetainedManagedBytes(rgba.LongLength + 24L);
             rgba = (byte[])rgba.Clone();
             FlattenAlpha(rgba, effectiveOptions.Background);
         }

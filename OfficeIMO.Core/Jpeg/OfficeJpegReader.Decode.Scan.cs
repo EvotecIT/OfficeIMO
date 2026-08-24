@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -12,7 +13,8 @@ internal static partial class OfficeJpegReader {
         HuffmanTable[] dcTables,
         HuffmanTable[] acTables,
         int restartInterval,
-        bool allowTruncated) {
+        bool allowTruncated,
+        CancellationToken cancellationToken) {
         ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
 
         var states = state.Components;
@@ -23,7 +25,7 @@ internal static partial class OfficeJpegReader {
             states[componentIndex].PrevDc = 0;
         }
 
-        var reader = new JpegBitReader(scanData, allowTruncated);
+        var reader = new JpegBitReader(scanData, allowTruncated, cancellationToken);
         var mcuIndex = 0;
         var isSingle = scan.ComponentIndices.Length == 1;
         var scanComponent = frame.Components[scan.ComponentIndices[0]];
@@ -31,6 +33,7 @@ internal static partial class OfficeJpegReader {
         var scanMcuRows = isSingle ? GetNonInterleavedBlockCount(frame.Height, scanComponent.V, frame.MaxV) : state.McuRows;
 
         for (var my = 0; my < scanMcuRows; my++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < scanMcuCols; mx++) {
                 if (restartInterval > 0 && mcuIndex > 0 && mcuIndex % restartInterval == 0) {
                     reader.ExpectRestartMarker();
@@ -131,10 +134,11 @@ internal static partial class OfficeJpegReader {
         HuffmanTable[] dcTables,
         HuffmanTable[] acTables,
         int restartInterval,
-        bool allowTruncated) {
+        bool allowTruncated,
+        CancellationToken cancellationToken) {
         ValidateProgressiveScan(scan, frame, quantTables, dcTables, acTables);
         // Progressive scans are lenient to match historical behavior.
-        var reader = new JpegBitReader(scanData, allowTruncated);
+        var reader = new JpegBitReader(scanData, allowTruncated, cancellationToken);
         var mcuIndex = 0;
         var eobRun = 0;
         var isSingle = scan.ComponentIndices.Length == 1;
@@ -151,6 +155,7 @@ internal static partial class OfficeJpegReader {
         }
 
         for (var my = 0; my < scanMcuRows; my++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < scanMcuCols; mx++) {
                 if (restartInterval > 0 && mcuIndex > 0 && mcuIndex % restartInterval == 0) {
                     reader.ExpectRestartMarker();

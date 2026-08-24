@@ -105,8 +105,8 @@ public static partial class OfficePngWriter {
             8,
             6,
             compressed,
-            options.DpiX,
-            options.DpiY);
+            options.WritePhysicalResolution ? options.DpiX : (double?)null,
+            options.WritePhysicalResolution ? options.DpiY : (double?)null);
     }
 
     /// <summary>

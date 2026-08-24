@@ -14,29 +14,62 @@ public enum OfficeRasterResamplingMode {
     Lanczos3
 }
 
+/// <summary>Color space in which raster color channels are filtered.</summary>
+public enum OfficeRasterResamplingColorSpace {
+    /// <summary>Filters encoded sRGB channel values for compatibility with existing output.</summary>
+    EncodedSrgb,
+    /// <summary>Converts sRGB channels to linear light before filtering and encodes the result back to sRGB.</summary>
+    LinearLight
+}
+
 /// <summary>Dependency-free RGBA image resampling shared by document renderers.</summary>
 public static partial class OfficeRasterResampler {
     /// <summary>Resizes an RGBA image to exact pixel dimensions.</summary>
-    public static OfficeRasterImage Resize(OfficeRasterImage source, int width, int height, OfficeRasterResamplingMode mode = OfficeRasterResamplingMode.Bilinear) {
+    public static OfficeRasterImage Resize(OfficeRasterImage source, int width, int height, OfficeRasterResamplingMode mode = OfficeRasterResamplingMode.Bilinear) =>
+        Resize(source, width, height, mode, OfficeRasterResamplingColorSpace.EncodedSrgb);
+
+    /// <summary>Resizes an RGBA image to exact pixel dimensions using an explicit filtering color space.</summary>
+    public static OfficeRasterImage Resize(
+        OfficeRasterImage source,
+        int width,
+        int height,
+        OfficeRasterResamplingMode mode,
+        OfficeRasterResamplingColorSpace colorSpace) =>
+        Resize(source, width, height, mode, colorSpace, retainedManagedBytes: 0L);
+
+    internal static OfficeRasterImage Resize(
+        OfficeRasterImage source,
+        int width,
+        int height,
+        OfficeRasterResamplingMode mode,
+        OfficeRasterResamplingColorSpace colorSpace,
+        long retainedManagedBytes) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
         if (mode != OfficeRasterResamplingMode.NearestNeighbor &&
             mode != OfficeRasterResamplingMode.Bilinear &&
             mode != OfficeRasterResamplingMode.Area &&
             mode != OfficeRasterResamplingMode.Lanczos3) {
             throw new ArgumentOutOfRangeException(nameof(mode));
         }
+        if (colorSpace != OfficeRasterResamplingColorSpace.EncodedSrgb &&
+            colorSpace != OfficeRasterResamplingColorSpace.LinearLight) {
+            throw new ArgumentOutOfRangeException(nameof(colorSpace));
+        }
         OfficeRasterGuards.EnsureOutputPixels(width, height, "Raster resize dimensions exceed the managed image limit.");
 
         if (source.Width == width && source.Height == height) {
+            EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes);
             return OfficeRasterImage.FromRgba32(width, height, source.PixelBuffer);
         }
 
         if (mode == OfficeRasterResamplingMode.Area || mode == OfficeRasterResamplingMode.Lanczos3) {
-            return ResizeSeparable(source, width, height, mode);
+            return ResizeSeparable(source, width, height, mode, colorSpace, retainedManagedBytes);
         }
 
+        EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes);
         var result = new OfficeRasterImage(width, height);
         byte[] input = source.PixelBuffer;
         byte[] output = result.PixelBuffer;
@@ -50,12 +83,46 @@ public static partial class OfficeRasterResampler {
                 if (mode == OfficeRasterResamplingMode.NearestNeighbor) {
                     CopyNearest(input, source.Width, source.Height, sourceX, sourceY, output, target);
                 } else {
-                    CopyBilinear(input, source.Width, source.Height, sourceX, sourceY, output, target);
+                    CopyBilinear(input, source.Width, source.Height, sourceX, sourceY, output, target, colorSpace);
                 }
             }
         }
 
         return result;
+    }
+
+    internal static bool TryGetSimpleWorkingSetBytes(
+        int sourceWidth,
+        int sourceHeight,
+        int width,
+        int height,
+        long retainedManagedBytes,
+        out long workingSetBytes) {
+        workingSetBytes = 0L;
+        if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0 || retainedManagedBytes < 0L) {
+            return false;
+        }
+        try {
+            workingSetBytes = checked(
+                (long)sourceWidth * sourceHeight * 4L + 24L +
+                (long)width * height * 4L + 24L +
+                retainedManagedBytes + 64L * 1024L);
+            return workingSetBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static void EnsureSimpleWorkingSet(
+        OfficeRasterImage source,
+        int width,
+        int height,
+        long retainedManagedBytes) {
+        if (!TryGetSimpleWorkingSetBytes(
+                source.Width, source.Height, width, height, retainedManagedBytes, out _)) {
+            throw new ArgumentException(
+                "Raster resampling working set exceeds the managed image limit.", nameof(source));
+        }
     }
 
     private static void CopyNearest(byte[] input, int width, int height, double x, double y, byte[] output, int target) {
@@ -68,7 +135,15 @@ public static partial class OfficeRasterResampler {
         output[target + 3] = input[source + 3];
     }
 
-    private static void CopyBilinear(byte[] input, int width, int height, double x, double y, byte[] output, int target) {
+    private static void CopyBilinear(
+        byte[] input,
+        int width,
+        int height,
+        double x,
+        double y,
+        byte[] output,
+        int target,
+        OfficeRasterResamplingColorSpace colorSpace) {
         double sampleX = Clamp(x, 0D, width - 1D);
         double sampleY = Clamp(y, 0D, height - 1D);
         int x0 = (int)Math.Floor(sampleX);
@@ -91,18 +166,49 @@ public static partial class OfficeRasterResampler {
             return;
         }
 
-        output[target] = InterpolateChannel(input, p00, p10, p01, p11, 0, w00, w10, w01, w11, alpha);
-        output[target + 1] = InterpolateChannel(input, p00, p10, p01, p11, 1, w00, w10, w01, w11, alpha);
-        output[target + 2] = InterpolateChannel(input, p00, p10, p01, p11, 2, w00, w10, w01, w11, alpha);
+        output[target] = InterpolateChannel(input, p00, p10, p01, p11, 0, w00, w10, w01, w11, alpha, colorSpace);
+        output[target + 1] = InterpolateChannel(input, p00, p10, p01, p11, 1, w00, w10, w01, w11, alpha, colorSpace);
+        output[target + 2] = InterpolateChannel(input, p00, p10, p01, p11, 2, w00, w10, w01, w11, alpha, colorSpace);
         output[target + 3] = (byte)Math.Round(Clamp(alpha, 0D, 255D));
     }
 
-    private static byte InterpolateChannel(byte[] pixels, int p00, int p10, int p01, int p11, int channel, double w00, double w10, double w01, double w11, double alpha) {
-        double value = (pixels[p00 + channel] * pixels[p00 + 3] * w00) +
-            (pixels[p10 + channel] * pixels[p10 + 3] * w10) +
-            (pixels[p01 + channel] * pixels[p01 + 3] * w01) +
-            (pixels[p11 + channel] * pixels[p11 + 3] * w11);
-        return (byte)Math.Round(Clamp(value / alpha, 0D, 255D));
+    private static byte InterpolateChannel(
+        byte[] pixels,
+        int p00,
+        int p10,
+        int p01,
+        int p11,
+        int channel,
+        double w00,
+        double w10,
+        double w01,
+        double w11,
+        double alpha,
+        OfficeRasterResamplingColorSpace colorSpace) {
+        double value = (DecodeChannel(pixels[p00 + channel], colorSpace) * pixels[p00 + 3] * w00) +
+            (DecodeChannel(pixels[p10 + channel], colorSpace) * pixels[p10 + 3] * w10) +
+            (DecodeChannel(pixels[p01 + channel], colorSpace) * pixels[p01 + 3] * w01) +
+            (DecodeChannel(pixels[p11 + channel], colorSpace) * pixels[p11 + 3] * w11);
+        return EncodeChannel(value / alpha, colorSpace);
+    }
+
+    private static double DecodeChannel(byte value, OfficeRasterResamplingColorSpace colorSpace) {
+        if (colorSpace == OfficeRasterResamplingColorSpace.EncodedSrgb) return value;
+        double encoded = value / 255D;
+        double linear = encoded <= 0.04045D
+            ? encoded / 12.92D
+            : Math.Pow((encoded + 0.055D) / 1.055D, 2.4D);
+        return linear * 255D;
+    }
+
+    private static byte EncodeChannel(double value, OfficeRasterResamplingColorSpace colorSpace) {
+        value = Clamp(value, 0D, 255D);
+        if (colorSpace == OfficeRasterResamplingColorSpace.EncodedSrgb) return (byte)Math.Round(value);
+        double linear = value / 255D;
+        double encoded = linear <= 0.0031308D
+            ? linear * 12.92D
+            : 1.055D * Math.Pow(linear, 1D / 2.4D) - 0.055D;
+        return (byte)Math.Round(Clamp(encoded * 255D, 0D, 255D));
     }
 
     private static int Clamp(int value, int minimum, int maximum) => value < minimum ? minimum : value > maximum ? maximum : value;

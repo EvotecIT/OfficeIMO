@@ -742,7 +742,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task NativeImporter_PreservesRotationAndReportsUnrepresentableShear() {
-            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
                     return Task.FromResult(Json("{\"id\":\"deck-transform\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
@@ -774,7 +774,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task NativeImporter_PreservesGifImages() {
-            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-gif\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
                 if (request.RequestUri.Host == "lh3.googleusercontent.com") {
@@ -833,7 +833,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task NativeImporter_EnforcesPerImageResponseLimit() {
             byte[] gif = Convert.FromBase64String(
-                "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+                "R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
                     return Task.FromResult(Json(

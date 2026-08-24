@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -10,7 +11,16 @@ internal static class OfficeIccProfileValidator {
     private const int MaximumTagCount = 65535;
 
     /// <summary>Checks the declared profile size, signature, reserved header, and every tag range.</summary>
-    internal static bool TryValidate(byte[] bytes, int offset, int count) {
+    internal static bool TryValidate(byte[] bytes, int offset, int count) =>
+        TryValidate(bytes, offset, count, CancellationToken.None);
+
+    /// <summary>Checks the declared profile size, signature, reserved header, and every tag range.</summary>
+    internal static bool TryValidate(
+        byte[] bytes,
+        int offset,
+        int count,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes == null || offset < 0 || count < HeaderLength + TagTableHeaderLength ||
             (count & 3) != 0 || offset > bytes.Length - count) {
             return false;
@@ -34,9 +44,10 @@ internal static class OfficeIccProfileValidator {
         if (tableEndLong > count) return false;
         int tableEnd = (int)tableEndLong;
         var signatures = new HashSet<uint>();
-        var ranges = new List<TagRange>(tagCount);
+        var ranges = new SortedSet<TagRange>(TagRangeComparer.Instance);
 
         for (int index = 0; index < tagCount; index++) {
+            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entry = offset + HeaderLength + TagTableHeaderLength + index * TagEntryLength;
             uint signature = ReadUInt32(bytes, entry);
             uint declaredTagOffset = ReadUInt32(bytes, entry + 4);
@@ -66,14 +77,16 @@ internal static class OfficeIccProfileValidator {
             ranges.Add(new TagRange(tagOffset, (int)tagEndLong));
         }
 
-        ranges.Sort((left, right) => left.Start.CompareTo(right.Start));
-        for (int index = 1; index < ranges.Count; index++) {
-            TagRange previous = ranges[index - 1];
-            TagRange current = ranges[index];
-            if (current.Start < previous.End &&
-                (current.Start != previous.Start || current.End != previous.End)) {
+        bool hasPrevious = false;
+        TagRange previous = default;
+        int rangeIndex = 0;
+        foreach (TagRange current in ranges) {
+            if ((rangeIndex++ & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (hasPrevious && current.Start < previous.End) {
                 return false;
             }
+            previous = current;
+            hasPrevious = true;
         }
         return true;
     }
@@ -92,5 +105,14 @@ internal static class OfficeIccProfileValidator {
 
         internal int Start { get; }
         internal int End { get; }
+    }
+
+    private sealed class TagRangeComparer : IComparer<TagRange> {
+        internal static readonly TagRangeComparer Instance = new();
+
+        public int Compare(TagRange left, TagRange right) {
+            int start = left.Start.CompareTo(right.Start);
+            return start != 0 ? start : left.End.CompareTo(right.End);
+        }
     }
 }

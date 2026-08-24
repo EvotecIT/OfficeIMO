@@ -155,6 +155,8 @@ if ($LASTEXITCODE -ne 0) { throw "Measured OfficeIMO artifact-evidence commit $o
 if ($LASTEXITCODE -ne 0) { throw "Measured OfficeIMO artifact-evidence commit $officeCommit is not an ancestor of HEAD." }
 
 $measuredPaths = @(
+    'OfficeIMO.Core',
+    'OfficeIMO.Html',
     'OfficeIMO.Html.Pdf',
     ':(glob)OfficeIMO.Html.Pdf.Browser/**/*.cs',
     'OfficeIMO.Pdf',

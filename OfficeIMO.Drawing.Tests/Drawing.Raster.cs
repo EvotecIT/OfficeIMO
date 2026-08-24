@@ -84,6 +84,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImagePngConverter_AppliesEncodedAndPixelLimitsToDibFallback() {
+            byte[] bmp = CreateBmp24(2, 1, new[] { OfficeColor.Red, OfficeColor.Blue });
+            byte[] dib = bmp.Skip(14).ToArray();
+
+            Assert.False(OfficeImagePngConverter.TryConvertToPng(
+                dib,
+                new OfficeRasterDecodeOptions { MaximumEncodedBytes = dib.Length - 1 },
+                out byte[] encodedLimitPng,
+                out OfficeRasterDecodeInfo encodedLimitInfo));
+            Assert.Empty(encodedLimitPng);
+            Assert.False(encodedLimitInfo.Succeeded);
+
+            Assert.False(OfficeImagePngConverter.TryConvertToPng(
+                dib,
+                new OfficeRasterDecodeOptions { MaximumDecodedPixels = 1 },
+                out byte[] pixelLimitPng,
+                out OfficeRasterDecodeInfo pixelLimitInfo));
+            Assert.Empty(pixelLimitPng);
+            Assert.False(pixelLimitInfo.Succeeded);
+        }
+
+        [Fact]
         public void OfficeRasterImageDecoder_DecodesTopDownBmp24RowsThroughSharedRasterPath() {
             byte[] bmp = CreateBmp24(
                 2,
