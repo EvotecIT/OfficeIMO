@@ -187,7 +187,7 @@ internal static partial class OfficeJpegReader {
 
                 if (!progressive) {
                     ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
-                    baselineState ??= BaselineState.Create(frame, orientation);
+                    baselineState ??= BaselineState.Create(frame, orientation, data.LongLength);
                     DecodeBaselineScan(
                         scanData,
                         scan,
@@ -204,7 +204,7 @@ internal static partial class OfficeJpegReader {
                 }
 
                 ValidateProgressiveScan(scan, frame, quantTables, dcTables, acTables);
-                progressiveState ??= ProgressiveState.Create(frame, quantTables, orientation);
+                progressiveState ??= ProgressiveState.Create(frame, quantTables, orientation, data.LongLength);
                 DecodeProgressiveScan(
                     scanData,
                     scan,
@@ -271,6 +271,7 @@ internal static partial class OfficeJpegReader {
                 var segLen = ReadUInt16BE(data, offset);
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
+                if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
                 frame = ParseFrameHeader(data.Slice(offset, segLen - 2));
                 hasFrame = true;
                 progressive = marker == 0xC2;
@@ -292,7 +293,13 @@ internal static partial class OfficeJpegReader {
                 offset += 2;
                 if (segLen < 2 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG APP1 segment.");
                 var app1 = data.Slice(offset, segLen - 2);
-                if (OfficeImageOrientationNormalizer.TryReadExifOrientation(app1, out var exifOrientation)) orientation = exifOrientation;
+                if (OfficeImageOrientationNormalizer.TryReadExifOrientation(app1, out var exifOrientation)) {
+                    if (exifOrientation > 1) {
+                        baselineState?.ReserveOrientationCanvas(frame);
+                        progressiveState?.ReserveOrientationCanvas(frame);
+                    }
+                    orientation = exifOrientation;
+                }
                 offset += segLen - 2;
                 continue;
             }

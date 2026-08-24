@@ -728,6 +728,58 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void JpegDecodeAccountsForTheRetainedEncodedPayload() {
+        Assert.False(OfficeJpegReader.TryInitializeDecodeWorkingSet(
+            retainedEncodedBytes: OfficeRasterGuards.MaximumEncodedBytes,
+            width: 8192,
+            height: 4096,
+            orientation: 1,
+            out _));
+        Assert.True(OfficeJpegReader.TryInitializeDecodeWorkingSet(
+            retainedEncodedBytes: 64 * 1024,
+            width: 1024,
+            height: 1024,
+            orientation: 1,
+            out long reservedBytes));
+        Assert.True(reservedBytes > 4L * 1024L * 1024L);
+    }
+
+    [Fact]
+    public void JpegDecodeChargesALateExifOrientationCanvasOnce() {
+        const int width = 1024;
+        const int height = 1024;
+        Assert.True(OfficeJpegReader.TryInitializeDecodeWorkingSet(
+            retainedEncodedBytes: 64 * 1024,
+            width,
+            height,
+            orientation: 1,
+            out long reservedBytes));
+        long initialReservation = reservedBytes;
+        bool orientationCanvasReserved = false;
+
+        Assert.True(OfficeJpegReader.TryReserveOrientationCanvas(
+            width, height, ref reservedBytes, ref orientationCanvasReserved));
+        Assert.Equal(initialReservation + (long)width * height * 4L, reservedBytes);
+        Assert.True(OfficeJpegReader.TryReserveOrientationCanvas(
+            width, height, ref reservedBytes, ref orientationCanvasReserved));
+        Assert.Equal(initialReservation + (long)width * height * 4L, reservedBytes);
+
+        reservedBytes = OfficeRasterGuards.MaximumDecodedBytes - (long)width * height * 4L + 1L;
+        orientationCanvasReserved = false;
+        Assert.False(OfficeJpegReader.TryReserveOrientationCanvas(
+            width, height, ref reservedBytes, ref orientationCanvasReserved));
+        Assert.False(orientationCanvasReserved);
+    }
+
+    [Fact]
+    public void JpegDecodeRejectsASecondFrameSegment() {
+        byte[] jpeg = OfficeJpegCodec.Encode(CreateSampleImage(), new OfficeJpegEncodeOptions());
+        byte[] duplicateFrame = DuplicateFirstJpegFrameSegment(jpeg);
+
+        Assert.False(OfficeJpegCodec.TryDecode(duplicateFrame, out _));
+    }
+
+    [Fact]
     public void PngSuggestedPaletteNamesHaveABoundedRetainedMetadataBudget() {
         long metadataBytes = 0L;
         Assert.True(OfficePngContainerValidator.TryReserveSuggestedPaletteName(
@@ -903,6 +955,26 @@ public sealed class DrawingRasterEncodingTests {
         WriteLittleEndian(icon, 18, 22);
         Buffer.BlockCopy(payload, 0, icon, 22, payload.Length);
         return icon;
+    }
+
+    private static byte[] DuplicateFirstJpegFrameSegment(byte[] jpeg) {
+        for (int offset = 2; offset + 3 < jpeg.Length; offset++) {
+            if (jpeg[offset] != 0xFF || (jpeg[offset + 1] != 0xC0 && jpeg[offset + 1] != 0xC2)) continue;
+            int segmentLength = jpeg[offset + 2] << 8 | jpeg[offset + 3];
+            int totalLength = segmentLength + 2;
+            if (segmentLength < 2 || offset + totalLength > jpeg.Length) break;
+            var result = new byte[jpeg.Length + totalLength];
+            Buffer.BlockCopy(jpeg, 0, result, 0, offset + totalLength);
+            Buffer.BlockCopy(jpeg, offset, result, offset + totalLength, totalLength);
+            Buffer.BlockCopy(
+                jpeg,
+                offset + totalLength,
+                result,
+                offset + totalLength * 2,
+                jpeg.Length - offset - totalLength);
+            return result;
+        }
+        throw new InvalidOperationException("JPEG frame segment was not found.");
     }
 
     private static void SetTiffLongTag(byte[] bytes, int ifdOffset, int expectedTag, int value) {

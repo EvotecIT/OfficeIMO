@@ -87,12 +87,17 @@ internal static class OfficePngAnimationValidator {
                         int x = ReadBigEndianInt32(bytes, dataOffset + 12);
                         int y = ReadBigEndianInt32(bytes, dataOffset + 16);
                         if (!HasValidFrameBounds(width, height, x, y, canvasWidth, canvasHeight, out int framePixels) ||
-                            (validateCompressedPayloads &&
-                             decodedFramePixels > OfficeRasterGuards.MaximumPixels - framePixels) ||
                             bytes[dataOffset + 24] > 2 || bytes[dataOffset + 25] > 1) {
                             return false;
                         }
-                        if (validateCompressedPayloads) decodedFramePixels += framePixels;
+                        if (validateCompressedPayloads) {
+                            int fallbackCanvasPixels = 0;
+                            if (frameControlCount == 0 && seenImageData &&
+                                !OfficeRasterGuards.TryEnsurePixelCount(
+                                    canvasWidth, canvasHeight, out fallbackCanvasPixels)) return false;
+                            if (!TryReserveDecodedFramePixels(
+                                    ref decodedFramePixels, fallbackCanvasPixels, framePixels)) return false;
+                        }
 
                         bool usesDefaultImageData = frameControlCount == 0 && !seenImageData;
                         if (usesDefaultImageData &&
@@ -231,6 +236,21 @@ internal static class OfficePngAnimationValidator {
                (long)x + width <= canvasWidth &&
                (long)y + height <= canvasHeight &&
                OfficeRasterGuards.TryEnsurePixelCount(width, height, out framePixels);
+    }
+
+    internal static bool TryReserveDecodedFramePixels(
+        ref long decodedFramePixels,
+        int fallbackCanvasPixels,
+        int framePixels) {
+        if (decodedFramePixels < 0L || fallbackCanvasPixels < 0 || framePixels < 1) return false;
+        try {
+            long additionalPixels = checked((long)fallbackCanvasPixels + framePixels);
+            if (decodedFramePixels > OfficeRasterGuards.MaximumPixels - additionalPixels) return false;
+            decodedFramePixels += additionalPixels;
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
     }
 
     private static int ReadBigEndianInt32(byte[] bytes, int offset) =>

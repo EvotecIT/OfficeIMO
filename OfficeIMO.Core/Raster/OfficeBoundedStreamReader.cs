@@ -33,11 +33,48 @@ internal static class OfficeBoundedStreamReader {
             int read = stream.Read(chunk, 0, Math.Min(chunk.Length, remaining + 1));
             if (read <= 0) break;
             if (read > remaining) return false;
+            int requiredCapacity = checked((int)buffer.Length + read);
+            if (requiredCapacity > buffer.Capacity) {
+                int doubledCapacity = checked(buffer.Capacity * 2);
+                buffer.Capacity = Math.Min(maximumBytes, Math.Max(requiredCapacity, doubledCapacity));
+            }
             buffer.Write(chunk, 0, read);
         }
         if (buffer.Length == 0L) return false;
-        bytes = buffer.ToArray();
+        byte[] retainedBuffer = buffer.GetBuffer();
+        int payloadLength = checked((int)buffer.Length);
+        if (payloadLength == retainedBuffer.Length) {
+            bytes = retainedBuffer;
+            return true;
+        }
+        if (!IsFinalCopyWithinLimit(retainedBuffer.LongLength, payloadLength)) return false;
+        bytes = new byte[payloadLength];
+        CopyWithCancellation(retainedBuffer, bytes, cancellationToken);
         return true;
+    }
+
+    internal static bool IsFinalCopyWithinLimit(long retainedBufferBytes, long payloadBytes) {
+        if (retainedBufferBytes < 0L || payloadBytes < 0L || payloadBytes > retainedBufferBytes) return false;
+        try {
+            return checked(retainedBufferBytes + payloadBytes) <=
+                   OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static void CopyWithCancellation(
+        byte[] source,
+        byte[] destination,
+        CancellationToken cancellationToken) {
+        const int copyChunkBytes = 64 * 1024;
+        int offset = 0;
+        while (offset < destination.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(copyChunkBytes, destination.Length - offset);
+            Buffer.BlockCopy(source, offset, destination, offset, count);
+            offset += count;
+        }
     }
 
     private static bool TryReadExact(Stream stream, byte[] bytes, CancellationToken cancellationToken) {

@@ -889,6 +889,35 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void BoundedForwardOnlyReaderTransfersAnExactCapacityBufferWithoutAFullPayloadCopy() {
+        var source = new byte[64 * 1024];
+        for (int index = 0; index < source.Length; index++) source[index] = (byte)index;
+        using var stream = new ForwardOnlyReadStream(source);
+#if NET8_0_OR_GREATER
+        long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
+
+        bool success = OfficeBoundedStreamReader.TryRead(
+            stream, source.Length, CancellationToken.None, out byte[] result);
+#if NET8_0_OR_GREATER
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
+
+        Assert.True(success);
+        Assert.Equal(source, result);
+        Assert.True(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
+            OfficeRasterGuards.MaximumEncodedBytes,
+            OfficeRasterGuards.MaximumEncodedBytes));
+        Assert.True(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
+            OfficeRasterGuards.MaximumEncodedBytes,
+            OfficeRasterGuards.MaximumEncodedBytes - 1L));
+#if NET8_0_OR_GREATER
+        Assert.True(allocated < 100L * 1024L,
+            $"Exact-capacity stream materialization allocated {allocated:N0} bytes.");
+#endif
+    }
+
+    [Fact]
     public void ManagedJpegBmpAndGifCodecsPropagateCancellation() {
         OfficeRasterImage source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
         byte[] jpeg = OfficeJpegCodec.Encode(source);
@@ -1067,6 +1096,7 @@ public partial class DrawingTests {
         Assert.True(container!.IsAnimated);
         Assert.Single(container.Frames);
         Assert.False(container.Frames[0].IsDefaultImage);
+        Assert.True(OfficePngReader.TryValidateDecodedPayload(apng));
 
         var options = new OfficeRasterDecodeOptions {
             AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame
@@ -1082,6 +1112,22 @@ public partial class DrawingTests {
             AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
         };
         Assert.False(OfficeRasterImageDecoder.TryDecode(apng, reject, out _, out _));
+    }
+
+    [Fact]
+    public void CompleteApngValidationChargesTheFallbackCanvasBeforeAnimationFrames() {
+        long decodedFramePixels = 0L;
+
+        Assert.False(OfficePngAnimationValidator.TryReserveDecodedFramePixels(
+            ref decodedFramePixels,
+            fallbackCanvasPixels: checked((int)OfficeRasterGuards.MaximumPixels),
+            framePixels: 1));
+        Assert.Equal(0L, decodedFramePixels);
+        Assert.True(OfficePngAnimationValidator.TryReserveDecodedFramePixels(
+            ref decodedFramePixels,
+            fallbackCanvasPixels: 0,
+            framePixels: 1));
+        Assert.Equal(1L, decodedFramePixels);
     }
 
 #if NET8_0_OR_GREATER

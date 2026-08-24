@@ -947,21 +947,62 @@ internal static partial class OfficeJpegReader {
         public byte Al;
     }
 
+    internal static bool TryInitializeDecodeWorkingSet(
+        long retainedEncodedBytes,
+        int width,
+        int height,
+        int orientation,
+        out long reservedBytes) {
+        reservedBytes = 0L;
+        if (retainedEncodedBytes < 0L || width < 1 || height < 1 || orientation < 1 || orientation > 8) {
+            return false;
+        }
+        try {
+            long rgbaBytes = checked((long)width * height * 4L);
+            reservedBytes = checked(
+                retainedEncodedBytes + rgbaBytes * (orientation > 1 ? 2L : 1L) + 64L * 1024L);
+            return reservedBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            reservedBytes = 0L;
+            return false;
+        }
+    }
+
+    internal static bool TryReserveOrientationCanvas(
+        int width,
+        int height,
+        ref long reservedBytes,
+        ref bool orientationCanvasReserved) {
+        if (orientationCanvasReserved) return true;
+        if (width < 1 || height < 1 || reservedBytes < 0L) return false;
+        try {
+            long rgbaBytes = checked((long)width * height * 4L);
+            long updatedBytes = checked(reservedBytes + rgbaBytes);
+            if (updatedBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
+            reservedBytes = updatedBytes;
+            orientationCanvasReserved = true;
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
     private sealed class BaselineState {
         public BaselineComponentState[] Components = Array.Empty<BaselineComponentState>();
         public bool[] DecodedComponents = Array.Empty<bool>();
         public int McuCols;
         public int McuRows;
+        private long _reservedBytes;
+        private bool _orientationCanvasReserved;
 
-        public static BaselineState Create(JpegFrame frame, int orientation) {
+        public static BaselineState Create(JpegFrame frame, int orientation, long retainedEncodedBytes) {
             var mcuWidth = frame.MaxH * 8;
             var mcuHeight = frame.MaxV * 8;
             var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
             var components = new BaselineComponentState[frame.ComponentCount];
-            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
-            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
-            if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+            if (!TryInitializeDecodeWorkingSet(
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes)) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
@@ -975,8 +1016,17 @@ internal static partial class OfficeJpegReader {
                 Components = components,
                 DecodedComponents = new bool[frame.ComponentCount],
                 McuCols = mcuCols,
-                McuRows = mcuRows
+                McuRows = mcuRows,
+                _reservedBytes = aggregateBytes,
+                _orientationCanvasReserved = orientation > 1
             };
+        }
+
+        public void ReserveOrientationCanvas(JpegFrame frame) {
+            if (!TryReserveOrientationCanvas(
+                    frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
         }
 
         public byte[] RenderRgba(
@@ -1069,8 +1119,14 @@ internal static partial class OfficeJpegReader {
         public ProgressiveComponentState[] Components = Array.Empty<ProgressiveComponentState>();
         public int McuCols;
         public int McuRows;
+        private long _reservedBytes;
+        private bool _orientationCanvasReserved;
 
-        public static ProgressiveState Create(JpegFrame frame, int[][] quantTables, int orientation) {
+        public static ProgressiveState Create(
+            JpegFrame frame,
+            int[][] quantTables,
+            int orientation,
+            long retainedEncodedBytes) {
             var maxH = frame.MaxH;
             var maxV = frame.MaxV;
             var mcuWidth = maxH * 8;
@@ -1079,9 +1135,8 @@ internal static partial class OfficeJpegReader {
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
 
             var components = new ProgressiveComponentState[frame.ComponentCount];
-            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
-            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
-            if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+            if (!TryInitializeDecodeWorkingSet(
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes)) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
@@ -1102,8 +1157,17 @@ internal static partial class OfficeJpegReader {
             return new ProgressiveState {
                 Components = components,
                 McuCols = mcuCols,
-                McuRows = mcuRows
+                McuRows = mcuRows,
+                _reservedBytes = aggregateBytes,
+                _orientationCanvasReserved = orientation > 1
             };
+        }
+
+        public void ReserveOrientationCanvas(JpegFrame frame) {
+            if (!TryReserveOrientationCanvas(
+                    frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
         }
 
         public byte[] RenderRgba(

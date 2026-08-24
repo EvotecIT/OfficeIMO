@@ -91,34 +91,11 @@ public static partial class OfficeImageReader {
     }
 
     private static bool TryReadBoundedPayload(Stream stream, out byte[] data) {
-        data = Array.Empty<byte>();
-        if (stream.CanSeek) {
-            long remaining = stream.Length - stream.Position;
-            if (remaining <= 0L || remaining > OfficeRasterGuards.MaximumEncodedBytes || remaining > int.MaxValue) {
-                return false;
-            }
-
-            data = new byte[(int)remaining];
-            int offset = 0;
-            while (offset < data.Length) {
-                int read = stream.Read(data, offset, data.Length - offset);
-                if (read <= 0) return false;
-                offset += read;
-            }
-            return true;
-        }
-
-        using var buffer = new MemoryStream();
-        byte[] chunk = new byte[8192];
-        while (true) {
-            int read = stream.Read(chunk, 0, chunk.Length);
-            if (read <= 0) break;
-            if (buffer.Length > OfficeRasterGuards.MaximumEncodedBytes - read) return false;
-            buffer.Write(chunk, 0, read);
-        }
-        if (buffer.Length == 0L) return false;
-        data = buffer.ToArray();
-        return true;
+        return OfficeBoundedStreamReader.TryRead(
+            stream,
+            OfficeRasterGuards.MaximumEncodedBytes,
+            CancellationToken.None,
+            out data);
     }
 
     /// <summary>
