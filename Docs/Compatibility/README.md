@@ -112,4 +112,6 @@ than only to historical corpus inputs.
 
 On Windows with desktop Office installed, add `-MicrosoftOffice` to the interoperability gate to exercise Word, Excel, and PowerPoint COM oracles. These external applications are validation oracles; they are not runtime conversion dependencies.
 
+The [real-world corpus evidence lane](../officeimo.real-world-corpus-evidence.md) complements these checked fixtures with a bounded, content-detected discovery sample. Its results are not a compatibility percentage or a release gate; actionable observations are minimized and promoted into the owning curated corpus before they become durable regression evidence.
+
 When coverage changes, update the owning family catalog and tests, regenerate `generated`, and keep the report honest about any approximation, rasterization, retained carrier, omission, or block.

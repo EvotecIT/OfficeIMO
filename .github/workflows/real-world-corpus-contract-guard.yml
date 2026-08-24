@@ -1,0 +1,19 @@
+name: Real-world corpus contract guard
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Corpus workflow trigger contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validate independent workflow contract
+        run: python3 ./Build/Test-RealWorldCorpusWorkflowContract.py

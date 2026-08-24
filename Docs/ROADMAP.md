@@ -15,6 +15,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
 - [ ] Promote conversion routes from Targeted to Established, Advanced, or ReferenceVerified only when the owning package adds the required reopen, realistic-fixture, visual or structural regression, and independent-producer evidence. Prioritize reverse PDF adapters, OpenDocument bridges, and OneNote, AsciiDoc, LaTeX, MHTML, and Visio routes that remain Targeted in the generated conversion catalog.
 - [ ] Link every conversion support assessment to either an open roadmap outcome or an explicit intentional boundary, and expose that linkage in the generated route matrix. Fail catalog verification when any route gains a non-intentional limitation without an owner.
+- [ ] Add handle-bound output creation and writing for report-producing tools so path authorization remains tied to the final file handles instead of a separate pre-write check. Cover symlink, junction, hard-link, and replacement races across supported operating systems in the shared path owner.
 
 ## Image engine
 
