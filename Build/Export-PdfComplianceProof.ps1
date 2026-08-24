@@ -769,7 +769,7 @@ try {
     $env:OFFICEIMO_PDFX_VALIDATOR_ARGS = $previousPdfXValidatorArgs
 }
 
-$commit = (& git -C $repoRoot rev-parse --short HEAD).Trim()
+$commit = (& git -C $repoRoot rev-parse HEAD).Trim()
 $statusLines = @(& git -C $repoRoot status --short)
 $status = ($statusLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join [Environment]::NewLine
 $generatedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)

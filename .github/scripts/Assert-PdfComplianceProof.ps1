@@ -126,6 +126,30 @@ $proof = Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
 $productProofContractFile = Get-Content -LiteralPath $productProofContractPath -Raw | ConvertFrom-Json
 
 Assert-Condition -Condition ($proof.schemaVersion -eq 4) -Message 'Unexpected proof schema version.'
+Assert-Condition -Condition ([string] $proof.commit -match '^[0-9a-fA-F]{40}$|^[0-9a-fA-F]{64}$') -Message 'PDF compliance proof must record the full source Git object ID.'
+Assert-Condition -Condition (@($proof.workingTreeStatus).Count -eq 0) -Message 'PDF compliance proof must be generated from a clean source worktree.'
+
+$repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
+$proofCommit = [string] $proof.commit
+& git -C $repositoryRoot cat-file -e "$proofCommit`^{commit}"
+Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message "PDF compliance proof source commit $proofCommit is unavailable."
+& git -C $repositoryRoot merge-base --is-ancestor $proofCommit HEAD
+Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message "PDF compliance proof source commit $proofCommit is not an ancestor of HEAD."
+
+$measuredPaths = @(
+    'OfficeIMO.Core',
+    'OfficeIMO.Pdf',
+    'OfficeIMO.Pdf.Tests',
+    'Build/Export-PdfComplianceProof.ps1',
+    'Build/Invoke-CallasPdfXValidator.ps1'
+)
+& git -C $repositoryRoot diff --quiet $proofCommit HEAD -- @measuredPaths
+Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof is stale relative to measured production, fixture, exporter, or validator-adapter sources.'
+& git -C $repositoryRoot diff --quiet -- @measuredPaths
+Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof measured sources have uncommitted changes.'
+& git -C $repositoryRoot diff --cached --quiet -- @measuredPaths
+Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message 'PDF compliance proof measured sources have staged changes.'
+
 Assert-Condition -Condition ($proof.testExitCode -eq 0) -Message "Expected testExitCode 0, got $($proof.testExitCode)."
 Assert-Condition -Condition ($null -ne $proof.strictValidatorMode) -Message 'Missing strictValidatorMode in proof.json.'
 Assert-Condition -Condition ($null -ne $proof.validatorConfiguration) -Message 'Missing validatorConfiguration in proof.json.'
