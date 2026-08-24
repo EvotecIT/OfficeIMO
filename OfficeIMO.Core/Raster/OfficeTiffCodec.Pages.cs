@@ -8,32 +8,40 @@ public static partial class OfficeTiffCodec {
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options,
         out OfficeRasterContainerInfo? container) =>
-        TryInspectPages(encodedBytes, options, validatePayloads: false,
+        TryInspectPages(encodedBytes, options, enforceAllPagePixelLimits: true, out container);
+
+    internal static bool TryInspectPages(
+        byte[] encodedBytes,
+        OfficeRasterDecodeOptions options,
+        bool enforceAllPagePixelLimits,
+        out OfficeRasterContainerInfo? container) =>
+        TryInspectPages(encodedBytes, options, validatePayloads: false, enforceAllPagePixelLimits,
             OfficeRasterGuards.MaximumDecodedBytes, out container);
 
     internal static bool TryValidateAllPages(byte[] encodedBytes) {
         var options = new OfficeRasterDecodeOptions();
-        return TryInspectPages(encodedBytes, options, validatePayloads: true,
+        return TryInspectPages(encodedBytes, options, validatePayloads: true, enforceAllPagePixelLimits: true,
             OfficeRasterGuards.MaximumDecodedBytes, out _);
     }
 
     internal static bool TryValidateAllPages(
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options) =>
-        TryInspectPages(encodedBytes, options, validatePayloads: true,
+        TryInspectPages(encodedBytes, options, validatePayloads: true, enforceAllPagePixelLimits: true,
             OfficeRasterGuards.MaximumDecodedBytes, out _);
 
     internal static bool TryValidateAllPages(
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options,
         long maximumValidationWorkBytes) =>
-        TryInspectPages(encodedBytes, options, validatePayloads: true,
+        TryInspectPages(encodedBytes, options, validatePayloads: true, enforceAllPagePixelLimits: true,
             maximumValidationWorkBytes, out _);
 
     private static bool TryInspectPages(
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options,
         bool validatePayloads,
+        bool enforceAllPagePixelLimits,
         long maximumValidationWorkBytes,
         out OfficeRasterContainerInfo? container) {
         container = null;
@@ -65,6 +73,8 @@ public static partial class OfficeTiffCodec {
                     !TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
                     !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
                     width < 1 || height < 1 ||
+                    enforceAllPagePixelLimits &&
+                    (long)width * height > options.MaximumDecodedPixels ||
                     (frames.Count == 0 &&
                      (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out firstOrientation) ||
                       firstOrientation < 1 || firstOrientation > 8)) ||

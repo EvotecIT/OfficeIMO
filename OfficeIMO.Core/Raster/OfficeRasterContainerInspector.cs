@@ -14,6 +14,19 @@ public static class OfficeRasterContainerInspector {
     public static bool TryInspect(
         byte[]? encodedBytes,
         OfficeRasterDecodeOptions? options,
+        out OfficeRasterContainerInfo? container) =>
+        TryInspectCore(encodedBytes, options, enforceAllTiffPagePixelLimits: true, out container);
+
+    internal static bool TryInspectForDecode(
+        byte[]? encodedBytes,
+        OfficeRasterDecodeOptions options,
+        out OfficeRasterContainerInfo? container) =>
+        TryInspectCore(encodedBytes, options, enforceAllTiffPagePixelLimits: false, out container);
+
+    private static bool TryInspectCore(
+        byte[]? encodedBytes,
+        OfficeRasterDecodeOptions? options,
+        bool enforceAllTiffPagePixelLimits,
         out OfficeRasterContainerInfo? container) {
         container = null;
         OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
@@ -33,7 +46,8 @@ public static class OfficeRasterContainerInspector {
             case OfficeImageFormat.Png:
                 return TryInspectPng(encodedBytes, imageInfo, effective, out container);
             case OfficeImageFormat.Tiff:
-                return OfficeTiffCodec.TryInspectPages(encodedBytes, effective, out container);
+                return OfficeTiffCodec.TryInspectPages(
+                    encodedBytes, effective, enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Webp:
                 return TryInspectWebp(encodedBytes, imageInfo, effective, out container);
             case OfficeImageFormat.Jpeg:

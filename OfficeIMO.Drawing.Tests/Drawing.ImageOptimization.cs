@@ -981,6 +981,75 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOrientationNormalizer_IgnoresEveryExifOrientationAcrossProgressiveScans() {
+            var source = new OfficeRasterImage(2, 1);
+            source.SetPixel(0, 0, OfficeColor.Red);
+            source.SetPixel(1, 0, OfficeColor.Blue);
+            byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeJpegSubsampling.Y444,
+                Progressive = true,
+                Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(3))
+            });
+            byte[] lateExif = System.Text.Encoding.ASCII.GetBytes("Exif\0\0")
+                .Concat(CreateExifOrientation(6))
+                .ToArray();
+            jpeg = InsertJpegSegmentBeforeSecondScan(jpeg, 0xE1, lateExif);
+
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(
+                jpeg, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Rotate90Clockwise, orientation);
+            Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(
+                jpeg, false, out byte[] rawPng, out OfficeImageInfo? rawInfo));
+            Assert.Equal((2, 1), (rawInfo!.Width, rawInfo.Height));
+            Assert.True(OfficePngReader.TryDecode(rawPng, out OfficeRasterImage? raw));
+            AssertColorNear(raw!.GetPixel(0, 0), OfficeColor.Red, 12);
+            AssertColorNear(raw.GetPixel(1, 0), OfficeColor.Blue, 12);
+        }
+
+        [Fact]
+        public void OfficeImageOrientationNormalizer_RejectsInvalidLateOrientationValue() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Progressive = true,
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+                });
+            byte[] lateExif = System.Text.Encoding.ASCII.GetBytes("Exif\0\0")
+                .Concat(CreateExifOrientation(9))
+                .ToArray();
+            jpeg = InsertJpegSegmentBeforeSecondScan(jpeg, 0xE1, lateExif);
+
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(
+                jpeg, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Rotate90Clockwise, orientation);
+            Assert.False(OfficeImageOrientationNormalizer.TryNormalizeToPng(
+                jpeg, false, out _, out _));
+        }
+
+        [Fact]
+        public void OfficeImageOrientationNormalizer_RejectsOutOfViewLateIfdOffsetWithoutThrowing() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Progressive = true,
+                    Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+                });
+            byte[] malformed = CreateExifOrientation(1);
+            WriteLittleEndianUInt32(malformed, 4, 0x7FFFFFFF);
+            byte[] lateExif = System.Text.Encoding.ASCII.GetBytes("Exif\0\0")
+                .Concat(malformed)
+                .ToArray();
+            jpeg = InsertJpegSegmentBeforeSecondScan(jpeg, 0xE1, lateExif);
+
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(
+                jpeg, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Rotate90Clockwise, orientation);
+            Assert.False(OfficeImageOrientationNormalizer.TryNormalizeToPng(
+                jpeg, false, out _, out _));
+        }
+
+        [Fact]
         public void OfficeJpegCodec_RejectsOrientedDecodeBeforeAllocatingSecondRgbaBuffer() {
             var source = new OfficeRasterImage(8, 8, OfficeColor.Red);
             byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {

@@ -572,6 +572,24 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void TiffContainerInspectionEnforcesPixelLimitForEveryPage() {
+        byte[] encoded = OfficeTiffCodec.EncodePages(new[] {
+            new OfficeRasterImage(1, 1, OfficeColor.Red),
+            new OfficeRasterImage(2, 2, OfficeColor.Blue)
+        });
+
+        Assert.True(OfficeRasterContainerInspector.TryInspect(
+            encoded,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 4 },
+            out OfficeRasterContainerInfo? container));
+        Assert.Equal(2, container!.Count);
+        Assert.False(OfficeRasterContainerInspector.TryInspect(
+            encoded,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 3 },
+            out _));
+    }
+
+    [Fact]
     public void CompleteTiffValidationChargesEveryVisitToAliasedPackBitsData() {
         byte[] encoded = OfficeTiffCodec.EncodePages(
             new[] {
