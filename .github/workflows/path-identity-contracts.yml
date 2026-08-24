@@ -7,7 +7,11 @@ on:
       - 'OfficeIMO.Core/IO/**'
       - 'OfficeIMO.Core/Internal/OfficeTemporaryFile.cs'
       - 'OfficeIMO.Core/OfficeIMO.Core.csproj'
+      - 'OfficeIMO.Email/OfficeIMO.Email.csproj'
+      - 'OfficeIMO.Email/Store/Mutation/**'
       - 'OfficeIMO.Email/Store/Reading/**'
+      - 'OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj'
+      - 'OfficeIMO.Email.Tests/Store/Pst/PstMutationTransactionTests.cs'
       - 'OfficeIMO.GoogleWorkspace.Drive/**'
       - 'OfficeIMO.Shared.Tests/PathIdentityContracts.cs'
       - 'OfficeIMO.Tool/OfficeImoToolPathSafety.cs'
@@ -19,7 +23,11 @@ on:
       - 'OfficeIMO.Core/IO/**'
       - 'OfficeIMO.Core/Internal/OfficeTemporaryFile.cs'
       - 'OfficeIMO.Core/OfficeIMO.Core.csproj'
+      - 'OfficeIMO.Email/OfficeIMO.Email.csproj'
+      - 'OfficeIMO.Email/Store/Mutation/**'
       - 'OfficeIMO.Email/Store/Reading/**'
+      - 'OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj'
+      - 'OfficeIMO.Email.Tests/Store/Pst/PstMutationTransactionTests.cs'
       - 'OfficeIMO.GoogleWorkspace.Drive/**'
       - 'OfficeIMO.Shared.Tests/PathIdentityContracts.cs'
       - 'OfficeIMO.Tool/OfficeImoToolPathSafety.cs'
@@ -88,8 +96,14 @@ jobs:
       - name: Restore focused contracts
         run: dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
 
+      - name: Restore PST mutation contracts
+        run: dotnet restore OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj
+
       - name: Build netstandard compatibility asset
         run: dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -f netstandard2.0 --no-restore --nologo
 
       - name: Run physical identity contracts
         run: dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter FullyQualifiedName~PathIdentityContracts --nologo
+
+      - name: Run PST mutation contracts
+        run: dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter FullyQualifiedName~PstMutationTransactionTests --nologo
