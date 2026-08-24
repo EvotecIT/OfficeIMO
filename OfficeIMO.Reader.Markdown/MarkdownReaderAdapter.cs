@@ -62,8 +62,9 @@ internal static class MarkdownReaderAdapter {
 
             string markdown = Normalize(block.RenderMarkdown()).TrimEnd();
             if (markdown.Length == 0) continue;
-            MarkdownSyntaxNode? syntax = parsed.FindFinalNodeForAssociatedObject(block);
-            MarkdownSourceSpan? span = syntax?.SourceSpan;
+            MarkdownSourceSpan? span = block is MarkdownObject markdownObject && markdownObject.SourceSpan.HasValue
+                ? markdownObject.SourceSpan
+                : parsed.FindFinalNodeForAssociatedObject(block)?.SourceSpan;
             string? headingPath = BuildHeadingPath(headingStack);
             string? hierarchyHeadingPath = ReaderHeadingPath.Combine(headingStack.Select(static item => item.Text));
             string? headingSlug = headingStack.Count == 0 ? null : headingStack[headingStack.Count - 1].Slug;
