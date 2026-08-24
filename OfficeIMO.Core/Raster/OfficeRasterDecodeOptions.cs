@@ -85,11 +85,26 @@ public sealed class OfficeRasterDecodeOptions {
     /// <summary>Cancellation observed while reading, parsing, or decoding the request.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
+    internal long RetainedManagedBytes { get; set; }
+
+    internal OfficeRasterDecodeOptions WithAdditionalRetainedManagedBytes(long bytes) {
+        if (bytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(bytes));
+        return new OfficeRasterDecodeOptions {
+            FrameIndex = FrameIndex,
+            FrameLossPolicy = FrameLossPolicy,
+            MaximumEncodedBytes = MaximumEncodedBytes,
+            MaximumDecodedPixels = MaximumDecodedPixels,
+            CancellationToken = CancellationToken,
+            RetainedManagedBytes = checked(RetainedManagedBytes + bytes)
+        };
+    }
+
     internal void Validate() {
         if (_frameLossPolicy != OfficeRasterFrameLossPolicy.UseSelectedFrame &&
             _frameLossPolicy != OfficeRasterFrameLossPolicy.RejectMultipleFrames) {
             throw new System.ArgumentOutOfRangeException(nameof(FrameLossPolicy));
         }
+        if (RetainedManagedBytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(RetainedManagedBytes));
     }
 }
 

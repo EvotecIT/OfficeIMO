@@ -17,13 +17,16 @@ internal static class OfficeApngDecoder {
         int frameIndex,
         long maximumPixels,
         CancellationToken cancellationToken,
+        long retainedManagedBytes,
         out OfficeRasterImage? image) {
         image = null;
         try {
             if (container.Format != OfficeImageFormat.Png || !container.IsAnimated ||
                 frameIndex < 0 || frameIndex >= container.Count ||
                 !OfficeRasterImageDecoder.IsWithinPixelLimit(container.CanvasWidth, container.CanvasHeight, maximumPixels) ||
-                !TryReadFrames(bytes, container, frameIndex, cancellationToken, out byte[] ihdr, out byte[]? palette,
+                retainedManagedBytes < 0L ||
+                !TryReadFrames(bytes, container, frameIndex, cancellationToken, retainedManagedBytes,
+                    out byte[] ihdr, out byte[]? palette,
                     out byte[]? transparency, out List<ApngFramePayload> framePayloads)) {
                 return false;
             }
@@ -43,7 +46,7 @@ internal static class OfficeApngDecoder {
                 selectedPrefixPixels += framePixels;
                 if (!IsFrameWithinMemoryBudget(bytes.Length, container, container.Frames[index], ihdr,
                         palette, transparency, framePayloads, selectedPrefixSegmentBytes,
-                        index, index < frameIndex)) return false;
+                        index, index < frameIndex, retainedManagedBytes)) return false;
             }
             var canvas = new OfficeRasterImage(container.CanvasWidth, container.CanvasHeight);
             for (int index = 0; index <= frameIndex; index++) {
@@ -85,6 +88,7 @@ internal static class OfficeApngDecoder {
         OfficeRasterContainerInfo container,
         int selectedFrameIndex,
         CancellationToken cancellationToken,
+        long retainedManagedBytes,
         out byte[] ihdr,
         out byte[]? palette,
         out byte[]? transparency,
@@ -127,11 +131,14 @@ internal static class OfficeApngDecoder {
             } else if (type == "IDAT") {
                 seenImageData = true;
                 if (current != null && currentUsesIdat &&
-                    !TryAddSegment(current, dataOffset, length, bytes.Length, container, ref segmentCount)) return false;
+                    !TryAddSegment(
+                        current, dataOffset, length, bytes.Length, container,
+                        retainedManagedBytes, ref segmentCount)) return false;
             } else if (type == "fdAT") {
                 if (current == null || currentUsesIdat || length < 4) return false;
-                if (!TryAddSegment(current, dataOffset + 4, length - 4, bytes.Length, container,
-                        ref segmentCount)) return false;
+                if (!TryAddSegment(
+                        current, dataOffset + 4, length - 4, bytes.Length, container,
+                        retainedManagedBytes, ref segmentCount)) return false;
             } else if (type == "IEND") {
                 if (current != null) framePayloads.Add(current);
                 return ihdr.Length == 13 && framePayloads.Count == selectedFrameIndex + 1;
@@ -147,9 +154,10 @@ internal static class OfficeApngDecoder {
         int length,
         int encodedLength,
         OfficeRasterContainerInfo container,
+        long retainedManagedBytes,
         ref int segmentCount) {
         long canvasBytes = checked((long)container.CanvasWidth * container.CanvasHeight * 4L);
-        long structuralBytes = checked(encodedLength + canvasBytes + container.Count * 128L +
+        long structuralBytes = checked(encodedLength + canvasBytes + retainedManagedBytes + container.Count * 128L +
             ((long)segmentCount + 1L) * 32L);
         if (length < 0 || structuralBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
         payload.Add(offset, length);
@@ -195,7 +203,8 @@ internal static class OfficeApngDecoder {
         List<ApngFramePayload> payloads,
         long selectedPrefixSegmentBytes,
         int frameIndex,
-        bool applyDisposal) {
+        bool applyDisposal,
+        long retainedManagedBytes) {
         int standaloneLength = GetStandalonePngLength(payloads[frameIndex], palette, transparency);
         long canvasBytes = checked((long)container.CanvasWidth * container.CanvasHeight * 4L);
         long framePixels = checked((long)frame.Width * frame.Height);
@@ -207,7 +216,7 @@ internal static class OfficeApngDecoder {
             container.Count * 128L + selectedPrefixSegmentBytes + canvasBytes +
             (applyDisposal && frame.Disposal == OfficeRasterFrameDisposal.Previous ? canvasBytes : 0L) +
             standaloneLength * 2L + compressedBytes * 3L + maximumScanlineBytes +
-            frameRgbaBytes + frame.Width * 16L);
+            frameRgbaBytes + frame.Width * 16L + retainedManagedBytes);
         return peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
     }
 

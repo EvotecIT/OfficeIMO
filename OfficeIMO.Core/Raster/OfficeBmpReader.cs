@@ -15,14 +15,23 @@ public static class OfficeBmpReader {
     /// Attempts to decode an uncompressed BMP image into an RGBA raster buffer.
     /// </summary>
     public static bool TryDecode(byte[]? bytes, out OfficeRasterImage? image) =>
-        TryDecode(bytes, CancellationToken.None, out image);
+        TryDecode(bytes, CancellationToken.None, retainedManagedBytes: 0L, out image);
 
     internal static bool TryDecode(byte[]? bytes, CancellationToken cancellationToken, out OfficeRasterImage? image) {
+        return TryDecode(bytes, cancellationToken, retainedManagedBytes: 0L, out image);
+    }
+
+    internal static bool TryDecode(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        out OfficeRasterImage? image) {
         image = null;
         try {
             if (!TryReadLayout(bytes, cancellationToken, out BmpLayout layout)) return false;
             byte[] source = bytes!;
-            if (!IsDecodeWorkingSetWithinLimit(source.LongLength, layout.Width, layout.Height)) return false;
+            if (!IsDecodeWorkingSetWithinLimit(
+                    source.LongLength, layout.Width, layout.Height, retainedManagedBytes)) return false;
 
             OfficeRasterImage result = new OfficeRasterImage(layout.Width, layout.Height);
             int bytesPerPixel = layout.BitsPerPixel / 8;
@@ -64,11 +73,16 @@ public static class OfficeBmpReader {
         }
     }
 
-    internal static bool IsDecodeWorkingSetWithinLimit(long encodedBytes, int width, int height) {
+    internal static bool IsDecodeWorkingSetWithinLimit(
+        long encodedBytes,
+        int width,
+        int height,
+        long retainedManagedBytes = 0L) {
         try {
             long rgbaBytes = checked((long)width * height * 4L);
-            long peakBytes = checked(encodedBytes + 24L + rgbaBytes + 24L);
-            return encodedBytes > 0L && width > 0 && height > 0 &&
+            long peakBytes = checked(
+                encodedBytes + 24L + rgbaBytes + 24L + retainedManagedBytes);
+            return encodedBytes > 0L && width > 0 && height > 0 && retainedManagedBytes >= 0L &&
                    peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
         } catch (OverflowException) {
             return false;

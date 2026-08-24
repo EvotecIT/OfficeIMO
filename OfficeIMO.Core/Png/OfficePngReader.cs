@@ -45,10 +45,19 @@ public static class OfficePngReader {
     internal static bool TryDecode(
         byte[] bytes,
         CancellationToken cancellationToken,
+        out OfficeRasterImage? image) =>
+        TryDecode(bytes, cancellationToken, retainedManagedBytes: 0L, out image);
+
+    internal static bool TryDecode(
+        byte[] bytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
         out OfficeRasterImage? image) {
         image = null;
         try {
-            if (!TryReadPayload(bytes, cancellationToken, includeRgbaOutput: true, out PngPayload payload)) {
+            if (!TryReadPayload(
+                    bytes, cancellationToken, includeRgbaOutput: true,
+                    retainedManagedBytes, out PngPayload payload)) {
                 return false;
             }
 
@@ -142,7 +151,9 @@ public static class OfficePngReader {
 
     internal static bool TryValidateDecodedPayload(byte[] bytes, CancellationToken cancellationToken) {
         try {
-            if (!TryReadPayload(bytes, cancellationToken, includeRgbaOutput: false, out PngPayload payload)) return false;
+            if (!TryReadPayload(
+                    bytes, cancellationToken, includeRgbaOutput: false,
+                    retainedManagedBytes: 0L, out PngPayload payload)) return false;
             if (!ValidatePayloadScanlines(payload, cancellationToken)) return false;
             long retainedPayloadBytes = checked(
                 payload.Scanlines.LongLength +
@@ -326,6 +337,7 @@ public static class OfficePngReader {
         byte[]? bytes,
         CancellationToken cancellationToken,
         bool includeRgbaOutput,
+        long retainedManagedBytes,
         out PngPayload payload) {
         payload = null!;
         if (bytes == null ||
@@ -397,7 +409,8 @@ public static class OfficePngReader {
                 expectedScanlineBytes,
                 palette?.LongLength ?? 0L,
                 transparency?.LongLength ?? 0L,
-                includeRgbaOutput)) return false;
+                includeRgbaOutput,
+                retainedManagedBytes)) return false;
         var compressed = new byte[compressedByteCount];
         int compressedOffset = 0;
         offset = Signature.Length;
@@ -440,17 +453,19 @@ public static class OfficePngReader {
         long scanlineBytes,
         long paletteBytes,
         long transparencyBytes,
-        bool includeRgbaOutput) {
+        bool includeRgbaOutput,
+        long retainedManagedBytes = 0L) {
         if (encodedBytes < 0L || compressedBufferBytes < 0L || compressedCopyBytes < 0L ||
             width < 1 || height < 1 || stride < 1 || scanlineBytes < 0L ||
-            paletteBytes < 0L || transparencyBytes < 0L) return false;
+            paletteBytes < 0L || transparencyBytes < 0L || retainedManagedBytes < 0L) return false;
         try {
             long metadataBytes = checked(paletteBytes + transparencyBytes + 64L * 1024L);
             long payloadPeakBytes = checked(
-                encodedBytes + compressedBufferBytes + compressedCopyBytes + scanlineBytes + metadataBytes);
+                encodedBytes + compressedBufferBytes + compressedCopyBytes + scanlineBytes + metadataBytes +
+                retainedManagedBytes);
             long outputBytes = includeRgbaOutput ? checked((long)width * height * 4L) : 0L;
             long decodePeakBytes = checked(
-                encodedBytes + scanlineBytes + outputBytes + stride * 2L + metadataBytes);
+                encodedBytes + scanlineBytes + outputBytes + stride * 2L + metadataBytes + retainedManagedBytes);
             return Math.Max(payloadPeakBytes, decodePeakBytes) <= OfficeRasterGuards.MaximumDecodedBytes;
         } catch (OverflowException) {
             return false;

@@ -37,6 +37,7 @@ internal static class ImageComparisonValidation {
         byte[] codecRgba = codecSource.GetPixels();
         using var codecMagick = ImageComparisonAdapters.CreateMagickImage(codecRgba, codecSource.Width, codecSource.Height);
         byte[] officeTiff = ImageComparisonAdapters.EncodeOfficeImoTiffLzw(codecSource);
+        ImageComparisonAdapters.ConfigureMagickTiffLzw(codecMagick);
         byte[] magickTiff = ImageComparisonAdapters.EncodeMagickTiffLzw(codecMagick);
         ValidateLosslessInterchange("TIFF LZW", codecSource, officeTiff, magickTiff, OfficeImageFormat.Tiff);
         writer.WriteLine($"TIFF LZW: OfficeIMO and Magick.NET encoded mutually decodable exact RGBA output; OfficeIMO {officeTiff.Length:N0}, Magick.NET {magickTiff.Length:N0} bytes.");
@@ -53,6 +54,7 @@ internal static class ImageComparisonValidation {
         writer.WriteLine("TIFF pages: OfficeIMO inspected and selected the second LZW page from a Magick.NET/libtiff multi-page container exactly.");
 
         byte[] officeWebp = ImageComparisonAdapters.EncodeOfficeImoWebpLossless(codecSource);
+        ImageComparisonAdapters.ConfigureMagickWebpLossless(codecMagick);
         byte[] magickWebp = ImageComparisonAdapters.EncodeMagickWebpLossless(codecMagick);
         ValidateLosslessInterchange("lossless WebP", codecSource, officeWebp, magickWebp, OfficeImageFormat.Webp);
         writer.WriteLine($"Lossless WebP: OfficeIMO and Magick.NET encoded mutually decodable exact RGBA output; OfficeIMO {officeWebp.Length:N0}, Magick.NET {magickWebp.Length:N0} bytes.");

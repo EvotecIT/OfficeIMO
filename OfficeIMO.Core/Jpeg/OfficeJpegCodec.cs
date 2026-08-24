@@ -18,12 +18,20 @@ public static partial class OfficeJpegCodec {
         byte[]? encodedBytes,
         CancellationToken cancellationToken,
         out OfficeRasterImage? image,
+        OfficeJpegDecodeOptions options = default) =>
+        TryDecode(encodedBytes, cancellationToken, retainedManagedBytes: 0L, out image, options);
+
+    internal static bool TryDecode(
+        byte[]? encodedBytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        out OfficeRasterImage? image,
         OfficeJpegDecodeOptions options = default) {
         image = null;
         if (!IsJpeg(encodedBytes)) return false;
         try {
             byte[] pixels = OfficeJpegReader.DecodeRgba32(
-                encodedBytes!, out int width, out int height, options, cancellationToken);
+                encodedBytes!, out int width, out int height, options, cancellationToken, retainedManagedBytes);
             image = OfficeRasterImage.FromOwnedRgba32(width, height, pixels);
             return true;
         } catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is IndexOutOfRangeException || ex is OverflowException) {

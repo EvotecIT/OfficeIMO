@@ -46,12 +46,12 @@ internal static class ImageComparisonAdapters {
     internal static byte[] EncodeOfficeImoTiffLzw(OfficeRasterImage image) =>
         OfficeTiffCodec.Encode(image, new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.Lzw });
 
-    internal static byte[] EncodeMagickTiffLzw(MagickImage image) {
-        using IMagickImage<byte> encoded = image.Clone();
-        encoded.Format = MagickFormat.Tiff;
-        encoded.Settings.Compression = CompressionMethod.LZW;
-        return encoded.ToByteArray();
+    internal static void ConfigureMagickTiffLzw(MagickImage image) {
+        image.Format = MagickFormat.Tiff;
+        image.Settings.Compression = CompressionMethod.LZW;
     }
+
+    internal static byte[] EncodeMagickTiffLzw(MagickImage image) => image.ToByteArray();
 
     internal static byte[] EncodeMagickMultiPageTiffLzw(params OfficeRasterImage[] images) {
         using var collection = new MagickImageCollection();
@@ -67,12 +67,12 @@ internal static class ImageComparisonAdapters {
     internal static byte[] EncodeOfficeImoWebpLossless(OfficeRasterImage image) =>
         OfficeWebpCodec.Encode(image);
 
-    internal static byte[] EncodeMagickWebpLossless(MagickImage image) {
-        using IMagickImage<byte> encoded = image.Clone();
-        encoded.Settings.SetDefine(MagickFormat.WebP, "lossless", true);
-        encoded.Format = MagickFormat.WebP;
-        return encoded.ToByteArray();
+    internal static void ConfigureMagickWebpLossless(MagickImage image) {
+        image.Settings.SetDefine(MagickFormat.WebP, "lossless", true);
+        image.Format = MagickFormat.WebP;
     }
+
+    internal static byte[] EncodeMagickWebpLossless(MagickImage image) => image.ToByteArray();
 
     internal static SKBitmap CreateSkiaBitmap(byte[] rgba, int width, int height) {
         var bitmap = new SKBitmap(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Unpremul));

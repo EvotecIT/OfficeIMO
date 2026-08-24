@@ -319,7 +319,9 @@ public static partial class OfficeTiffCodec {
                     alphaKind = extraSamples[0];
                 }
 
-                var decodeWorkBudget = new TiffValidationBudget(OfficeRasterGuards.MaximumDecodedBytes);
+                long maximumDecodeWorkBytes = OfficeRasterGuards.MaximumDecodedBytes - effective.RetainedManagedBytes;
+                if (maximumDecodeWorkBytes < 1L) return false;
+                var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
                 if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
                         compression, planarConfiguration, predictor, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source)) return false;

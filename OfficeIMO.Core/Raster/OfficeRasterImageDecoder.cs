@@ -37,13 +37,19 @@ public static class OfficeRasterImageDecoder {
         effective.Validate();
         long originalPosition = stream.CanSeek ? stream.Position : 0L;
         try {
-            if (!OfficeBoundedStreamReader.TryRead(stream, effective.MaximumEncodedBytes, effective.CancellationToken, out byte[] bytes)) {
+            if (!OfficeBoundedStreamReader.TryRead(
+                    stream, effective.MaximumEncodedBytes, effective.CancellationToken,
+                    out byte[] bytes, out long retainedManagedBytes)) {
                 image = null;
                 info = new OfficeRasterDecodeInfo(OfficeImageFormat.Unknown, 0, effective.FrameIndex, false,
                     "The raster stream is empty or exceeds the configured encoded-size limit.");
                 return false;
             }
-            return TryDecode(bytes, effective, out image, out info);
+            return TryDecode(
+                bytes,
+                effective.WithAdditionalRetainedManagedBytes(retainedManagedBytes),
+                out image,
+                out info);
         } finally {
             if (stream.CanSeek) stream.Position = originalPosition;
         }
@@ -109,7 +115,8 @@ public static class OfficeRasterImageDecoder {
 
         if (format == OfficeImageFormat.Gif) {
             bool decoded = OfficeGifReader.TryDecodeFrame(
-                bytes, effective.FrameIndex, effective.CancellationToken, out image, out int decodedFrameCount);
+                bytes, effective.FrameIndex, effective.CancellationToken, effective.RetainedManagedBytes,
+                out image, out int decodedFrameCount);
             string? diagnostic = decoded && container.IsAnimated
                 ? "The selected GIF frame was decoded; GIF playback semantics were not retained in the static raster result."
                 : decoded ? null : "The requested GIF frame could not be decoded.";
@@ -123,7 +130,8 @@ public static class OfficeRasterImageDecoder {
         if (format == OfficeImageFormat.Png) {
             if (container.IsAnimated) {
                 bool decoded = OfficeApngDecoder.TryDecodeFrame(bytes, container, effective.FrameIndex,
-                    effective.MaximumDecodedPixels, effective.CancellationToken, out image);
+                    effective.MaximumDecodedPixels, effective.CancellationToken,
+                    effective.RetainedManagedBytes, out image);
                 if (!decoded) image = null;
                 info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded,
                     decoded
@@ -151,11 +159,13 @@ public static class OfficeRasterImageDecoder {
         effective.CancellationToken.ThrowIfCancellationRequested();
         bool success = format switch {
             OfficeImageFormat.Png => OfficePngReader.TryDecode(
-                bytes, effective.CancellationToken, out image),
-            OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(bytes, effective.CancellationToken, out image),
-            OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(bytes, effective.CancellationToken, out image),
+                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+            OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(
+                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+            OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(
+                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
             OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
-                bytes, effective.CancellationToken, out image),
+                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
             _ => false
         };
         success = success && IsDecodedImageWithinLimit(image, effective.MaximumDecodedPixels);

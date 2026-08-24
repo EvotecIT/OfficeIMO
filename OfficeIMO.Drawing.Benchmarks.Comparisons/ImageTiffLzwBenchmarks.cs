@@ -3,21 +3,21 @@ using ImageMagick;
 
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
-/// <summary>Equivalent single-frame, lossless TIFF LZW encode and decode comparisons.</summary>
+/// <summary>Equivalent single-frame, lossless TIFF LZW encode comparisons.</summary>
 [MemoryDiagnoser]
-public class ImageTiffLzwBenchmarks {
+public class ImageTiffLzwEncodeBenchmarks {
     private OfficeRasterImage _image = null!;
     private MagickImage _magick = null!;
-    private byte[] _officeEncoded = null!;
-    private byte[] _magickEncoded = null!;
 
     [GlobalSetup]
     public void Setup() {
         _image = ImageBenchmarkCorpus.CreatePattern(512, 512);
         _magick = ImageComparisonAdapters.CreateMagickImage(_image.GetPixels(), _image.Width, _image.Height);
-        _officeEncoded = ImageComparisonAdapters.EncodeOfficeImoTiffLzw(_image);
-        _magickEncoded = ImageComparisonAdapters.EncodeMagickTiffLzw(_magick);
-        ImageComparisonValidation.ValidateLosslessInterchange("TIFF LZW benchmark", _image, _officeEncoded, _magickEncoded, OfficeImageFormat.Tiff);
+        ImageComparisonAdapters.ConfigureMagickTiffLzw(_magick);
+        byte[] officeEncoded = ImageComparisonAdapters.EncodeOfficeImoTiffLzw(_image);
+        byte[] magickEncoded = ImageComparisonAdapters.EncodeMagickTiffLzw(_magick);
+        ImageComparisonValidation.ValidateLosslessInterchange(
+            "TIFF LZW encode benchmark", _image, officeEncoded, magickEncoded, OfficeImageFormat.Tiff);
     }
 
     [GlobalCleanup]
@@ -28,8 +28,26 @@ public class ImageTiffLzwBenchmarks {
 
     [Benchmark]
     public byte[] MagickNETEncode() => ImageComparisonAdapters.EncodeMagickTiffLzw(_magick);
+}
 
-    [Benchmark]
+/// <summary>Equivalent single-frame, lossless TIFF LZW decode comparisons.</summary>
+[MemoryDiagnoser]
+public class ImageTiffLzwDecodeBenchmarks {
+    private byte[] _magickEncoded = null!;
+
+    [GlobalSetup]
+    public void Setup() {
+        OfficeRasterImage image = ImageBenchmarkCorpus.CreatePattern(512, 512);
+        using MagickImage magick = ImageComparisonAdapters.CreateMagickImage(
+            image.GetPixels(), image.Width, image.Height);
+        ImageComparisonAdapters.ConfigureMagickTiffLzw(magick);
+        byte[] officeEncoded = ImageComparisonAdapters.EncodeOfficeImoTiffLzw(image);
+        _magickEncoded = ImageComparisonAdapters.EncodeMagickTiffLzw(magick);
+        ImageComparisonValidation.ValidateLosslessInterchange(
+            "TIFF LZW decode benchmark", image, officeEncoded, _magickEncoded, OfficeImageFormat.Tiff);
+    }
+
+    [Benchmark(Baseline = true)]
     public byte[] OfficeIMODecodeExternal() => ImageComparisonAdapters.DecodeOfficeImoRgba(_magickEncoded);
 
     [Benchmark]

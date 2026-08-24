@@ -948,6 +948,18 @@ public sealed class DrawingRasterEncodingTests {
             paletteBytes: 0L,
             transparencyBytes: 0L,
             includeRgbaOutput: true));
+        Assert.False(OfficePngReader.IsDecodeWorkingSetWithinLimit(
+            encodedBytes: 64 * 1024,
+            compressedBufferBytes: 64 * 1024,
+            compressedCopyBytes: 0L,
+            width: 1024,
+            height: 1024,
+            stride: 4096,
+            scanlineBytes: 4L * 1024L * 1024L,
+            paletteBytes: 0L,
+            transparencyBytes: 0L,
+            includeRgbaOutput: true,
+            retainedManagedBytes: OfficeRasterGuards.MaximumDecodedBytes));
     }
 
     [Fact]
@@ -977,6 +989,11 @@ public sealed class DrawingRasterEncodingTests {
             encodedBytes: 64 * 1024,
             width: 1024,
             height: 1024));
+        Assert.False(OfficeBmpReader.IsDecodeWorkingSetWithinLimit(
+            encodedBytes: 80L * 1024L * 1024L,
+            width: 7000,
+            height: 4000,
+            retainedManagedBytes: 100L * 1024L * 1024L));
     }
 
     [Fact]

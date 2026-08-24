@@ -14,7 +14,15 @@ internal static class OfficeBoundedStreamReader {
         Stream stream,
         int maximumBytes,
         CancellationToken cancellationToken,
-        out byte[] bytes) {
+        out byte[] bytes) =>
+        TryRead(stream, maximumBytes, cancellationToken, out bytes, out _);
+
+    internal static bool TryRead(
+        Stream stream,
+        int maximumBytes,
+        CancellationToken cancellationToken,
+        out byte[] bytes,
+        out long retainedManagedBytes) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
         if (maximumBytes < 1 || maximumBytes > OfficeRasterGuards.MaximumEncodedBytes) {
@@ -22,6 +30,7 @@ internal static class OfficeBoundedStreamReader {
         }
 
         bytes = Array.Empty<byte>();
+        retainedManagedBytes = 0L;
         cancellationToken.ThrowIfCancellationRequested();
         if (stream.CanSeek) {
             long remaining = stream.Length - stream.Position;
@@ -30,6 +39,7 @@ internal static class OfficeBoundedStreamReader {
                 if (TryBorrowFullBuffer(memoryStream, remaining, out bytes)) return true;
                 if (!TryGetRetainedMemoryStreamBytes(memoryStream, out long retainedStreamBytes) ||
                     !IsSeekableMemoryCopyWithinLimit(retainedStreamBytes, remaining)) return false;
+                retainedManagedBytes = retainedStreamBytes;
             }
             bytes = new byte[(int)remaining];
             return TryReadExact(stream, bytes, cancellationToken);

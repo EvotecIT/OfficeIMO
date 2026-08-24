@@ -107,7 +107,17 @@ internal static partial class OfficeJpegReader {
         out int width,
         out int height,
         OfficeJpegDecodeOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) =>
+        DecodeRgba32(
+            data, out width, out height, options, cancellationToken, retainedManagedBytes: 0L);
+
+    internal static byte[] DecodeRgba32(
+        byte[] data,
+        out int width,
+        out int height,
+        OfficeJpegDecodeOptions options,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes) {
         return Decode(
             data,
             out width,
@@ -117,7 +127,8 @@ internal static partial class OfficeJpegReader {
             requestedColorTransform: null,
             usePdfColorTransformDefault: false,
             returnColorComponents: false,
-            cancellationToken);
+            cancellationToken,
+            retainedManagedBytes);
     }
 
     internal static byte[] DecodeColorComponents(
@@ -141,7 +152,8 @@ internal static partial class OfficeJpegReader {
             requestedColorTransform,
             usePdfColorTransformDefault,
             returnColorComponents: true,
-            CancellationToken.None);
+            CancellationToken.None,
+            retainedManagedBytes: 0L);
     }
 
     private static byte[] Decode(
@@ -153,8 +165,10 @@ internal static partial class OfficeJpegReader {
         int? requestedColorTransform,
         bool usePdfColorTransformDefault,
         bool returnColorComponents,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        long retainedManagedBytes) {
         componentCount = 0;
+        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsJpeg(data)) throw new FormatException("Invalid JPEG signature.");
         OfficeRasterGuards.EnsurePayloadWithinLimits(data.Length, "JPEG payload exceeds size limits.");
@@ -198,7 +212,8 @@ internal static partial class OfficeJpegReader {
 
                 if (!progressive) {
                     ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
-                    baselineState ??= BaselineState.Create(frame, orientation, data.LongLength);
+                    baselineState ??= BaselineState.Create(
+                        frame, orientation, checked(data.LongLength + retainedManagedBytes));
                     DecodeBaselineScan(
                         scanData,
                         scan,
@@ -215,7 +230,8 @@ internal static partial class OfficeJpegReader {
                 }
 
                 ValidateProgressiveScan(scan, frame, quantTables, dcTables, acTables);
-                progressiveState ??= ProgressiveState.Create(frame, quantTables, orientation, data.LongLength);
+                progressiveState ??= ProgressiveState.Create(
+                    frame, quantTables, orientation, checked(data.LongLength + retainedManagedBytes));
                 DecodeProgressiveScan(
                     scanData,
                     scan,

@@ -943,8 +943,10 @@ public partial class DrawingTests {
         hiddenCapacity.Write(source, 0, source.Length);
         hiddenCapacity.Position = 0;
         Assert.True(OfficeBoundedStreamReader.TryRead(
-            hiddenCapacity, source.Length, CancellationToken.None, out byte[] copied));
+            hiddenCapacity, source.Length, CancellationToken.None,
+            out byte[] copied, out long retainedHiddenCapacityBytes));
         Assert.NotSame(hiddenCapacity.GetBuffer(), copied);
+        Assert.Equal(hiddenCapacity.GetBuffer().LongLength, retainedHiddenCapacityBytes);
 
         var oversizedBacking = new byte[192 * 1024];
         using var exposedSegment = new MemoryStream(
@@ -960,8 +962,10 @@ public partial class DrawingTests {
             hiddenSegment, out long hiddenBackingBytes));
         Assert.Equal(oversizedBacking.LongLength, hiddenBackingBytes);
         Assert.True(OfficeBoundedStreamReader.TryRead(
-            hiddenSegment, 64 * 1024, CancellationToken.None, out byte[] hiddenSegmentCopy));
+            hiddenSegment, 64 * 1024, CancellationToken.None,
+            out byte[] hiddenSegmentCopy, out long retainedHiddenSegmentBytes));
         Assert.Equal(64 * 1024, hiddenSegmentCopy.Length);
+        Assert.Equal(oversizedBacking.LongLength, retainedHiddenSegmentBytes);
     }
 
     [Fact]

@@ -16,7 +16,7 @@ public static partial class OfficeTiffCodec {
         bool enforceAllPagePixelLimits,
         out OfficeRasterContainerInfo? container) =>
         TryInspectPages(encodedBytes, options, validatePayloads: false, enforceAllPagePixelLimits,
-            OfficeRasterGuards.MaximumDecodedBytes, out container);
+            OfficeRasterGuards.MaximumDecodedBytes - options.RetainedManagedBytes, out container);
 
     internal static bool TryValidateAllPages(byte[] encodedBytes) {
         var options = new OfficeRasterDecodeOptions();
@@ -28,7 +28,7 @@ public static partial class OfficeTiffCodec {
         byte[] encodedBytes,
         OfficeRasterDecodeOptions options) =>
         TryInspectPages(encodedBytes, options, validatePayloads: true, enforceAllPagePixelLimits: true,
-            OfficeRasterGuards.MaximumDecodedBytes, out _);
+            OfficeRasterGuards.MaximumDecodedBytes - options.RetainedManagedBytes, out _);
 
     internal static bool TryValidateAllPages(
         byte[] encodedBytes,
@@ -45,7 +45,8 @@ public static partial class OfficeTiffCodec {
         long maximumValidationWorkBytes,
         out OfficeRasterContainerInfo? container) {
         container = null;
-        if (!IsTiff(encodedBytes) || encodedBytes.Length > options.MaximumEncodedBytes ||
+        if (maximumValidationWorkBytes < 1L ||
+            !IsTiff(encodedBytes) || encodedBytes.Length > options.MaximumEncodedBytes ||
             !OfficeTiffStructureValidator.TryValidate(
                 encodedBytes, 0, encodedBytes.Length, options.CancellationToken)) {
             return false;
@@ -92,6 +93,9 @@ public static partial class OfficeTiffCodec {
                 if (frames.Count == 0) firstOrientation = orientation;
                 if (orientation >= 5) (dpiX, dpiY) = (dpiY, dpiX);
 
+                if (encodedBytes.LongLength + options.RetainedManagedBytes +
+                    checked((frames.Count + 1L) * 128L) + 64L * 1024L >
+                    OfficeRasterGuards.MaximumDecodedBytes) return false;
                 frames.Add(new OfficeRasterFrameInfo(
                     frames.Count,
                     OfficeRasterFrameKind.Page,

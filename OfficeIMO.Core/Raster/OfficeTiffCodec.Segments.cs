@@ -55,7 +55,8 @@ public static partial class OfficeTiffCodec {
                     retainPixels,
                     compression,
                     maximumCompressedSegmentLength: 0,
-                    maximumDecodedSegment)) return false;
+                    maximumDecodedSegment,
+                    options.RetainedManagedBytes)) return false;
             if (!TryReadValues(encodedBytes, entries, 273, littleEndian, segmentCount,
                     options.CancellationToken, out int[] offsets) ||
                 !TryReadValues(encodedBytes, entries, 279, littleEndian, segmentCount,
@@ -83,7 +84,8 @@ public static partial class OfficeTiffCodec {
                     retainPixels,
                     compression,
                     maximumCompressedSegment,
-                    maximumDecodedSegment)) return false;
+                    maximumDecodedSegment,
+                    options.RetainedManagedBytes)) return false;
             if (retainPixels) source = new byte[sourceLength];
             byte[]? scratch = scratchLength > 0 ? new byte[scratchLength] : null;
 
@@ -137,7 +139,8 @@ public static partial class OfficeTiffCodec {
                 retainPixels,
                 compression,
                 maximumCompressedSegmentLength: 0,
-                tileByteLength)) return false;
+                tileByteLength,
+                options.RetainedManagedBytes)) return false;
         if (!TryReadValues(encodedBytes, entries, 324, littleEndian, tileSegmentCount,
                 options.CancellationToken, out int[] tileOffsets) ||
             !TryReadValues(encodedBytes, entries, 325, littleEndian, tileSegmentCount,
@@ -160,7 +163,8 @@ public static partial class OfficeTiffCodec {
                 retainPixels,
                 compression,
                 maximumCompressedTile,
-                tileByteLength)) return false;
+                tileByteLength,
+                options.RetainedManagedBytes)) return false;
         if (retainPixels) source = new byte[sourceLength];
         var tileDecoded = new byte[tileByteLength];
         for (int segment = 0; segment < tileSegmentCount; segment++) {
@@ -190,10 +194,11 @@ public static partial class OfficeTiffCodec {
         bool retainPixels,
         int compression,
         int maximumCompressedSegmentLength,
-        int maximumDecodedSegmentLength) {
+        int maximumDecodedSegmentLength,
+        long retainedManagedBytes = 0L) {
         if (encodedLength < 0L || sourceLength < 0 || scratchLength < 0 || finalRgbaLength < 0 ||
             segmentMetadataBytes < 0L || maximumCompressedSegmentLength < 0 ||
-            maximumDecodedSegmentLength < 0) return false;
+            maximumDecodedSegmentLength < 0 || retainedManagedBytes < 0L) return false;
         try {
             long retainedSourceBytes = retainPixels ? sourceLength : 0L;
             bool usesDeflateTemporaries = compression == (int)OfficeTiffCompression.Deflate || compression == 32946;
@@ -202,9 +207,9 @@ public static partial class OfficeTiffCodec {
                 : 0L;
             long segmentPeak = checked(
                 encodedLength + retainedSourceBytes + scratchLength + segmentMetadataBytes +
-                codecTemporaryBytes + 64L * 1024L);
+                codecTemporaryBytes + retainedManagedBytes + 64L * 1024L);
             long conversionPeak = retainPixels
-                ? checked(encodedLength + sourceLength + finalRgbaLength + 64L * 1024L)
+                ? checked(encodedLength + sourceLength + finalRgbaLength + retainedManagedBytes + 64L * 1024L)
                 : 0L;
             return Math.Max(segmentPeak, conversionPeak) <= OfficeRasterGuards.MaximumDecodedBytes;
         } catch (OverflowException) {

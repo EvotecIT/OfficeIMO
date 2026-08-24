@@ -39,6 +39,7 @@ public static class OfficeRasterContainerInspector {
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (encodedBytes == null || encodedBytes.Length == 0 || encodedBytes.Length > effective.MaximumEncodedBytes ||
+            !IsInspectionWorkingSetWithinLimit(encodedBytes.LongLength, effective.RetainedManagedBytes, frameCount: 0) ||
             !OfficeImageReader.TryIdentifyByContent(
                 encodedBytes, fileName: null, effective.CancellationToken, out OfficeImageInfo imageInfo)) {
             return false;
@@ -80,11 +81,16 @@ public static class OfficeRasterContainerInspector {
         effective.Validate();
         long originalPosition = stream.CanSeek ? stream.Position : 0L;
         try {
-            if (!OfficeBoundedStreamReader.TryRead(stream, effective.MaximumEncodedBytes, effective.CancellationToken, out byte[] bytes)) {
+            if (!OfficeBoundedStreamReader.TryRead(
+                    stream, effective.MaximumEncodedBytes, effective.CancellationToken,
+                    out byte[] bytes, out long retainedManagedBytes)) {
                 container = null;
                 return false;
             }
-            return TryInspect(bytes, effective, out container);
+            return TryInspect(
+                bytes,
+                effective.WithAdditionalRetainedManagedBytes(retainedManagedBytes),
+                out container);
         } finally {
             if (stream.CanSeek) stream.Position = originalPosition;
         }
@@ -201,8 +207,11 @@ public static class OfficeRasterContainerInspector {
                     framePixels,
                     activeColorCount,
                     rejectTrailingLzwBytes: false,
-                    options.CancellationToken)) return false;
-            if (frames.Count >= 65535) return false;
+                    options.CancellationToken,
+                    checked(options.RetainedManagedBytes + frames.Count * 128L))) return false;
+            if (frames.Count >= 65535 ||
+                !IsInspectionWorkingSetWithinLimit(
+                    bytes.LongLength, options.RetainedManagedBytes, frames.Count + 1)) return false;
             if (frames.Count == 0 && globalColorTable != null &&
                 backgroundColorIndex >= 0 && backgroundColorIndex < globalColorTable.Length &&
                 backgroundColorIndex != transparentIndex) {
@@ -280,7 +289,9 @@ public static class OfficeRasterContainerInspector {
         container = null;
         if (!OfficePngReader.TryGetFrameCount(
                 bytes, options.CancellationToken, out int frameCount)) return false;
-        if (frameCount > 65535) return false;
+        if (frameCount > 65535 ||
+            !IsInspectionWorkingSetWithinLimit(
+                bytes.LongLength, options.RetainedManagedBytes, frameCount)) return false;
         int loopCount = 0;
         bool seenImageData = false;
         bool seenAnimationControl = false;
@@ -389,7 +400,7 @@ public static class OfficeRasterContainerInspector {
                 if (framePixels > options.MaximumDecodedPixels - validatedFramePixels ||
                     !TryValidateWebpAnimationFramePayload(
                         bytes, data + 16, length - 16, width, height,
-                        checked((frames.Count + 1L) * 128L),
+                        checked(options.RetainedManagedBytes + (frames.Count + 1L) * 128L),
                         options.CancellationToken)) return false;
                 validatedFramePixels += framePixels;
                 frames.Add(new OfficeRasterFrameInfo(
@@ -409,7 +420,9 @@ public static class OfficeRasterContainerInspector {
         if (cursor != bytes.Length) return false;
         if (frames.Count == 0) {
             if (!hasLosslessImage ||
-                !OfficeWebpCodec.TryDecode(bytes, options.CancellationToken, out OfficeRasterImage? decoded) ||
+                !OfficeWebpCodec.TryDecode(
+                    bytes, options.CancellationToken, options.RetainedManagedBytes,
+                    out OfficeRasterImage? decoded) ||
                 decoded == null || decoded.Width != imageInfo.Width || decoded.Height != imageInfo.Height) return false;
             container = CreateStatic(imageInfo);
             return true;
@@ -457,6 +470,20 @@ public static class OfficeRasterContainerInspector {
             cursor = (int)paddedEnd;
         }
         return cursor == end && seenImage;
+    }
+
+    private static bool IsInspectionWorkingSetWithinLimit(
+        long encodedBytes,
+        long retainedManagedBytes,
+        int frameCount) {
+        if (encodedBytes < 0L || retainedManagedBytes < 0L || frameCount < 0) return false;
+        try {
+            return checked(
+                encodedBytes + retainedManagedBytes + frameCount * 128L + 64L * 1024L) <=
+                OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
     }
 
     private static bool TryDecodeWebpAnimationFrame(
