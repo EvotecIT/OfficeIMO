@@ -178,5 +178,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Joined", first.Text);
             Assert.Equal(string.Empty, second.Text);
         }
+
+        [Fact]
+        public void FindAndReplace_RetainsOrdinalFallbackAcrossThreeRuns() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Alpha");
+            paragraph.AddText(string.Empty);
+            paragraph.AddText("Beta");
+
+            int replaced = document.FindAndReplace("AlphaBeta", "Joined", StringComparison.Ordinal);
+
+            Assert.Equal(1, replaced);
+            Assert.Equal("Joined", paragraph.Text);
+        }
     }
 }

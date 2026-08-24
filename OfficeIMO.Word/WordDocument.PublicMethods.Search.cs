@@ -96,20 +96,19 @@ namespace OfficeIMO.Word {
 
             MainDocumentPart? mainPart = _wordprocessingDocument?.MainDocumentPart;
             Body? body = mainPart?.Document?.Body;
-            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any() ||
-                body.ChildElements.Any(element => element is not Paragraph && element is not SectionProperties)) {
+            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any()) {
                 return false;
             }
 
             var nodes = new List<Text>();
-            foreach (Paragraph paragraph in body.Elements<Paragraph>()) {
-                if (paragraph.Descendants<OpenXmlLeafTextElement>().Any(element => element is not Text) ||
-                    paragraph.Descendants<Break>().Any() ||
-                    paragraph.Descendants<TabChar>().Any() ||
-                    paragraph.Descendants<CarriageReturn>().Any()) {
+            OpenXmlElement? bodyChild = body.FirstChild;
+            while (bodyChild != null) {
+                if (bodyChild is Paragraph paragraph) {
+                    if (!TryCollectSimpleTextNodes(paragraph, nodes)) return false;
+                } else if (bodyChild is not SectionProperties) {
                     return false;
                 }
-                nodes.AddRange(paragraph.Descendants<Text>());
+                bodyChild = bodyChild.NextSibling();
             }
             string[] values = new string[nodes.Count];
             for (int index = 0; index < nodes.Count; index++) values[index] = nodes[index].Text;
@@ -130,6 +129,24 @@ namespace OfficeIMO.Word {
                     nodes[index].Space = SpaceProcessingModeValues.Preserve;
                 }
                 count += localCount;
+            }
+            return true;
+        }
+
+        private static bool TryCollectSimpleTextNodes(OpenXmlElement parent, List<Text> nodes) {
+            OpenXmlElement? child = parent.FirstChild;
+            while (child != null) {
+                if (child is Text text) {
+                    nodes.Add(text);
+                } else if (child is OpenXmlLeafTextElement ||
+                           child is Break ||
+                           child is TabChar ||
+                           child is CarriageReturn) {
+                    return false;
+                } else if (child.HasChildren && !TryCollectSimpleTextNodes(child, nodes)) {
+                    return false;
+                }
+                child = child.NextSibling();
             }
             return true;
         }
@@ -249,6 +266,9 @@ namespace OfficeIMO.Word {
             string searched,
             StringComparison stringComparison) {
             if (searched.Length < 2 || paragraphTexts.Count < 2) return false;
+            if (stringComparison == StringComparison.Ordinal) {
+                return HasCrossParagraphOrdinalMatch(paragraphTexts, searched);
+            }
 
             int tailLength = searched.Length - 1;
             string tail = paragraphTexts[0].Length <= tailLength
@@ -270,6 +290,54 @@ namespace OfficeIMO.Word {
                 tail = combined.Length <= tailLength
                     ? combined
                     : combined.Substring(combined.Length - tailLength);
+            }
+            return false;
+        }
+
+        private static bool HasCrossParagraphOrdinalMatch(
+            IReadOnlyList<string> paragraphTexts,
+            string searched) {
+            int maximumTailLength = searched.Length - 1;
+            var tail = new char[maximumTailLength];
+            int tailCount = 0;
+            for (int index = 0; index < paragraphTexts.Count; index++) {
+                string current = paragraphTexts[index];
+                if (index > 0 && ContainsOrdinalMatchAcrossBoundary(tail, tailCount, current, searched)) {
+                    return true;
+                }
+
+                if (current.Length >= maximumTailLength) {
+                    current.CopyTo(current.Length - maximumTailLength, tail, 0, maximumTailLength);
+                    tailCount = maximumTailLength;
+                    continue;
+                }
+
+                int retained = Math.Min(tailCount, maximumTailLength - current.Length);
+                if (retained > 0) Array.Copy(tail, tailCount - retained, tail, 0, retained);
+                current.CopyTo(0, tail, retained, current.Length);
+                tailCount = retained + current.Length;
+            }
+            return false;
+        }
+
+        private static bool ContainsOrdinalMatchAcrossBoundary(
+            char[] tail,
+            int tailCount,
+            string current,
+            string searched) {
+            int combinedLength = tailCount + current.Length;
+            int firstStart = Math.Max(0, tailCount - searched.Length + 1);
+            for (int start = firstStart; start < tailCount && start + searched.Length <= combinedLength; start++) {
+                int matchIndex = 0;
+                while (matchIndex < searched.Length) {
+                    int combinedIndex = start + matchIndex;
+                    char value = combinedIndex < tailCount
+                        ? tail[combinedIndex]
+                        : current[combinedIndex - tailCount];
+                    if (value != searched[matchIndex]) break;
+                    matchIndex++;
+                }
+                if (matchIndex == searched.Length) return true;
             }
             return false;
         }
