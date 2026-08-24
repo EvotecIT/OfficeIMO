@@ -597,6 +597,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerReportsJpegMetadataFoundBetweenProgressiveScans() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(4, 4, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions { Progressive = true });
+            byte[] withComment = InsertJpegSegmentBeforeSecondScan(
+                jpeg,
+                marker: 0xFE,
+                System.Text.Encoding.ASCII.GetBytes("between scans"));
+
+            Assert.True(OfficeJpegCodec.TryDecode(withComment, out _));
+            Assert.Equal(
+                OfficeImageMetadataKinds.Comments,
+                OfficeImageMetadataInspector.Inspect(withComment, OfficeImageFormat.Jpeg).Kinds &
+                OfficeImageMetadataKinds.Comments);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                withComment,
+                new OfficeImageOptimizationRequest(2, 2) {
+                    OutputFormat = OfficeImageFormat.Png,
+                    KeepOriginalWhenNotSmaller = false,
+                    MetadataPolicy = OfficeImageMetadataPolicy.Preserve
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.Equal(OfficeImageMetadataKinds.Comments,
+                result.Metadata.Lost & OfficeImageMetadataKinds.Comments);
+        }
+
+        [Fact]
         public void OfficeImageOptimizerSwapsInheritedDensityAxesAfterExifRotation() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),
@@ -1309,6 +1338,30 @@ namespace OfficeIMO.Tests {
             Buffer.BlockCopy(jpeg, 0, combined, 0, 2);
             Buffer.BlockCopy(segment, 0, combined, 2, segment.Length);
             Buffer.BlockCopy(jpeg, 2, combined, 2 + segment.Length, jpeg.Length - 2);
+            return combined;
+        }
+
+        private static byte[] InsertJpegSegmentBeforeSecondScan(byte[] jpeg, byte marker, byte[] payload) {
+            int scanCount = 0;
+            int insertionOffset = -1;
+            for (int index = 0; index < jpeg.Length - 1; index++) {
+                if (jpeg[index] != 0xFF || jpeg[index + 1] != 0xDA) continue;
+                if (++scanCount == 2) {
+                    insertionOffset = index;
+                    break;
+                }
+            }
+            Assert.True(insertionOffset > 0);
+            int segmentLength = checked(payload.Length + 2);
+            var combined = new byte[jpeg.Length + payload.Length + 4];
+            Buffer.BlockCopy(jpeg, 0, combined, 0, insertionOffset);
+            combined[insertionOffset] = 0xFF;
+            combined[insertionOffset + 1] = marker;
+            combined[insertionOffset + 2] = (byte)(segmentLength >> 8);
+            combined[insertionOffset + 3] = (byte)segmentLength;
+            Buffer.BlockCopy(payload, 0, combined, insertionOffset + 4, payload.Length);
+            Buffer.BlockCopy(jpeg, insertionOffset, combined, insertionOffset + payload.Length + 4,
+                jpeg.Length - insertionOffset);
             return combined;
         }
 

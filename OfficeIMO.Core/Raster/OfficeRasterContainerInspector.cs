@@ -20,7 +20,8 @@ public static class OfficeRasterContainerInspector {
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (encodedBytes == null || encodedBytes.Length == 0 || encodedBytes.Length > effective.MaximumEncodedBytes ||
-            !OfficeImageReader.TryIdentifyByContent(encodedBytes, fileName: null, out OfficeImageInfo imageInfo) ||
+            !OfficeImageReader.TryIdentifyByContent(
+                encodedBytes, fileName: null, effective.CancellationToken, out OfficeImageInfo imageInfo) ||
             imageInfo.Format != OfficeImageFormat.Tiff &&
             !OfficeRasterImageDecoder.IsWithinPixelLimit(imageInfo.Width, imageInfo.Height, effective.MaximumDecodedPixels)) {
             return false;

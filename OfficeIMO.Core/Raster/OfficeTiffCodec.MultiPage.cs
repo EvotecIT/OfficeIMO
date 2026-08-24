@@ -15,22 +15,45 @@ public static partial class OfficeTiffCodec {
         OfficeTiffEncodeOptions effective = options ?? new OfficeTiffEncodeOptions();
         ValidateOptions(effective);
 
-        var strips = new byte[pages.Count][];
         long totalPixels = 0;
-        long stripBytes = 0;
         for (int index = 0; index < pages.Count; index++) {
             OfficeRasterImage page = pages[index] ?? throw new ArgumentException("TIFF pages cannot contain null images.", nameof(pages));
             totalPixels = checked(totalPixels + (long)page.Width * page.Height);
             if (totalPixels > OfficeRasterGuards.MaximumPixels) {
                 throw new ArgumentException("TIFF pages exceed the aggregate decoded-pixel limit.", nameof(pages));
             }
-            strips[index] = EncodeTiffStrip(page, effective);
-            stripBytes = checked(stripBytes + strips[index].Length);
         }
 
         int entryCount = BaseEntryCount - (effective.WriteResolution ? 0 : 3) + (UsesHorizontalPredictor(effective) ? 1 : 0);
         int ifdBlockLength = 2 + entryCount * 12 + 4 + 8 + (effective.WriteResolution ? 16 : 0);
         long headerLength = checked(8L + (long)pages.Count * ifdBlockLength);
+        long sourceBytes = checked(totalPixels * 4L);
+        var strips = new byte[pages.Count][];
+        long stripBytes = 0;
+        long retainedStripBytes = 0;
+        for (int index = 0; index < pages.Count; index++) {
+            OfficeRasterImage page = pages[index];
+            long pendingAllocationBytes = EstimateMultiPageStripEncodingPeak(page, effective);
+            if (!CanBeginMultiPageStripEncoding(sourceBytes, retainedStripBytes, pendingAllocationBytes)) {
+                throw new ArgumentException("The multi-page TIFF encoding working set exceeds the managed limit.", nameof(pages));
+            }
+            byte[] strip = EncodeTiffStrip(pages[index], effective);
+            strips[index] = strip;
+            stripBytes = checked(stripBytes + strip.Length);
+            if (headerLength + stripBytes > OfficeRasterGuards.MaximumEncodedBytes) {
+                throw new ArgumentException("The multi-page TIFF exceeds the encoded-size limit.", nameof(pages));
+            }
+            if (!ReferenceEquals(strip, pages[index].PixelBuffer)) {
+                retainedStripBytes = checked(retainedStripBytes + strip.Length);
+            }
+            if (!IsMultiPageTiffWorkingSetWithinLimit(
+                    sourceBytes,
+                    retainedStripBytes,
+                    checked(headerLength + stripBytes))) {
+                throw new ArgumentException("The multi-page TIFF encoding working set exceeds the managed limit.", nameof(pages));
+            }
+        }
+
         int fileLength = OfficeRasterGuards.EnsureOutputBytes(
             checked(headerLength + stripBytes),
             "The multi-page TIFF exceeds the encoded-size limit.");
@@ -54,6 +77,48 @@ public static partial class OfficeTiffCodec {
             stripOffset = checked(stripOffset + strips[index].Length);
         }
         return output;
+    }
+
+    internal static bool IsMultiPageTiffWorkingSetWithinLimit(
+        long sourceBytes,
+        long retainedStripBytes,
+        long outputBytes) {
+        if (sourceBytes < 0L || retainedStripBytes < 0L || outputBytes < 0L) return false;
+        try {
+            return checked(sourceBytes + retainedStripBytes + outputBytes + 64L * 1024L) <=
+                   OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    internal static bool CanBeginMultiPageStripEncoding(
+        long sourceBytes,
+        long retainedStripBytes,
+        long pendingAllocationBytes) {
+        if (sourceBytes < 0L || retainedStripBytes < 0L || pendingAllocationBytes < 0L) return false;
+        try {
+            return checked(sourceBytes + retainedStripBytes + pendingAllocationBytes + 64L * 1024L) <=
+                   OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static long EstimateMultiPageStripEncodingPeak(
+        OfficeRasterImage page,
+        OfficeTiffEncodeOptions options) {
+        long sourceLength = page.PixelBuffer.LongLength;
+        return options.Compression switch {
+            OfficeTiffCompression.None => 0L,
+            OfficeTiffCompression.PackBits => EncodePackBitsRows(
+                page.PixelBuffer, checked(page.Width * 4), page.Height, output: null, outputOffset: 0),
+            OfficeTiffCompression.Lzw => checked(sourceLength *
+                (UsesHorizontalPredictor(options) ? 6L : 5L)),
+            OfficeTiffCompression.Deflate => checked(sourceLength *
+                (UsesHorizontalPredictor(options) ? 5L : 4L)),
+            _ => throw new ArgumentOutOfRangeException(nameof(options.Compression))
+        };
     }
 
     /// <summary>Encodes one or more RGBA pages to a caller-owned writable stream.</summary>

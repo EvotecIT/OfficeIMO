@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Drawing;
@@ -81,7 +82,7 @@ public static partial class OfficeImageReader {
                 info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
                 return false;
             }
-            return TryIdentifyCore(data, fileName, allowExtensionFallback, out info);
+            return TryIdentifyCore(data, fileName, allowExtensionFallback, CancellationToken.None, out info);
         } finally {
             if (stream.CanSeek) {
                 stream.Position = originalPosition;
@@ -124,7 +125,7 @@ public static partial class OfficeImageReader {
     /// Tries to identify image metadata from a byte array.
     /// </summary>
     public static bool TryIdentify(byte[]? data, string? fileName, out OfficeImageInfo info) {
-        return TryIdentifyCore(data, fileName, allowExtensionFallback: true, out info);
+        return TryIdentifyCore(data, fileName, allowExtensionFallback: true, CancellationToken.None, out info);
     }
 
     /// <summary>
@@ -133,8 +134,15 @@ public static partial class OfficeImageReader {
     /// image by extension alone.
     /// </summary>
     public static bool TryIdentifyByContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
-        return TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info);
+        return TryIdentifyCore(data, fileName, allowExtensionFallback: false, CancellationToken.None, out info);
     }
+
+    internal static bool TryIdentifyByContent(
+        byte[]? data,
+        string? fileName,
+        CancellationToken cancellationToken,
+        out OfficeImageInfo info) =>
+        TryIdentifyCore(data, fileName, allowExtensionFallback: false, cancellationToken, out info);
 
     /// <summary>
     /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
@@ -146,7 +154,7 @@ public static partial class OfficeImageReader {
             info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
             return false;
         }
-        if (!TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info)) return false;
+        if (!TryIdentifyCore(data, fileName, allowExtensionFallback: false, CancellationToken.None, out info)) return false;
         switch (info.Format) {
             case OfficeImageFormat.Png:
                 return OfficePngReader.TryValidateDecodedPayload(data);
@@ -173,18 +181,20 @@ public static partial class OfficeImageReader {
         byte[]? data,
         string? fileName,
         bool allowExtensionFallback,
+        CancellationToken cancellationToken,
         out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data == null || data.Length == 0) {
             return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (TryReadPng(data, out info) ||
-            TryReadJpeg(data, out info) ||
+        if (TryReadPng(data, cancellationToken, out info) ||
+            TryReadJpeg(data, cancellationToken, out info) ||
             TryReadGif(data, out info) ||
             TryReadBmp(data, out info) ||
-            TryReadWebp(data, out info) ||
-            TryReadTiff(data, out info) ||
+            TryReadWebp(data, out info, cancellationToken: cancellationToken) ||
+            TryReadTiff(data, cancellationToken, out info) ||
             TryReadIcon(data, out info) ||
             TryReadPcx(data, out info) ||
             TryReadEmf(data, out info) ||
@@ -244,7 +254,10 @@ public static partial class OfficeImageReader {
     /// <returns><c>true</c> when the extension maps to a known image format.</returns>
     public static bool IsKnownImageExtension(string? fileName) => FromExtension(fileName) != OfficeImageFormat.Unknown;
 
-    private static bool TryReadPng(byte[] data, out OfficeImageInfo info) {
+    private static bool TryReadPng(byte[] data, out OfficeImageInfo info) =>
+        TryReadPng(data, CancellationToken.None, out info);
+
+    private static bool TryReadPng(byte[] data, CancellationToken cancellationToken, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         byte[] signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
         if (data.Length < 33 ||
@@ -258,7 +271,7 @@ public static partial class OfficeImageReader {
         int width = ReadInt32BigEndian(data, 16);
         int height = ReadInt32BigEndian(data, 20);
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _) ||
-            !OfficePngReader.TryGetFrameCount(data, out _)) {
+            !OfficePngReader.TryGetFrameCount(data, cancellationToken, out _)) {
             return false;
         }
         double dpiX = 96.0;
@@ -266,6 +279,7 @@ public static partial class OfficeImageReader {
 
         int offset = 8;
         while (offset + 12 <= data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int length = ReadInt32BigEndian(data, offset);
             long chunkEnd = (long)offset + 12L + length;
             if (length < 0 || chunkEnd > data.Length) {

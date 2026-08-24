@@ -82,6 +82,25 @@ public sealed class DrawingTiffSegmentTests {
         Assert.False(OfficeTiffCodec.TryDecode(tiff, out _));
     }
 
+    [Fact]
+    public void TiffMultiPageEncodeRejectsTheCombinedSourceStripAndOutputPeak() {
+        const int oneHundredTwentyFourMiB = 124 * 1024 * 1024;
+        const int oneHundredTwentyFiveMiB = 125 * 1024 * 1024;
+
+        Assert.False(OfficeTiffCodec.IsMultiPageTiffWorkingSetWithinLimit(
+            sourceBytes: oneHundredTwentyFourMiB,
+            retainedStripBytes: oneHundredTwentyFiveMiB,
+            outputBytes: oneHundredTwentyFiveMiB));
+        Assert.True(OfficeTiffCodec.IsMultiPageTiffWorkingSetWithinLimit(
+            sourceBytes: 1024,
+            retainedStripBytes: 512,
+            outputBytes: 768));
+        Assert.False(OfficeTiffCodec.CanBeginMultiPageStripEncoding(
+            sourceBytes: 200L * 1024L * 1024L,
+            retainedStripBytes: 0L,
+            pendingAllocationBytes: 200L * 1024L * 1024L));
+    }
+
     private static byte[] CreatePlanarRgbTiff() {
         const int entryCount = 10;
         const int ifdOffset = 8;

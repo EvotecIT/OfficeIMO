@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -9,7 +10,15 @@ internal static class OfficeTiffStructureValidator {
     private const int MaximumEntryCount = 65535;
 
     /// <summary>Checks byte order, typed value ranges, and all reachable IFD pointer chains.</summary>
-    internal static bool TryValidate(byte[] bytes, int offset, int count) {
+    internal static bool TryValidate(byte[] bytes, int offset, int count) =>
+        TryValidate(bytes, offset, count, CancellationToken.None);
+
+    internal static bool TryValidate(
+        byte[] bytes,
+        int offset,
+        int count,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes == null || offset < 0 || count < 8 || offset > bytes.Length - count) return false;
 
         bool littleEndian;
@@ -31,6 +40,7 @@ internal static class OfficeTiffStructureValidator {
         int totalEntries = 0;
 
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int ifdOffset = pending.Pop();
             if (!visited.Add(ifdOffset)) return false;
             if (visited.Count > MaximumIfdCount || ifdOffset < 8 || ifdOffset > count - 6) return false;
@@ -44,6 +54,7 @@ internal static class OfficeTiffStructureValidator {
 
             int entryOffset = absoluteIfd + 2;
             for (int index = 0; index < entryCount; index++, entryOffset += 12) {
+                if ((index & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 ushort tag = ReadUInt16(bytes, entryOffset, littleEndian);
                 ushort type = ReadUInt16(bytes, entryOffset + 2, littleEndian);
                 uint valueCount = ReadUInt32(bytes, entryOffset + 4, littleEndian);
@@ -73,6 +84,7 @@ internal static class OfficeTiffStructureValidator {
                         valuesOffset = offset + (int)ReadUInt32(bytes, entryOffset + 8, littleEndian);
                     }
                     for (uint valueIndex = 0; valueIndex < valueCount; valueIndex++) {
+                        if ((valueIndex & 0xFFU) == 0U) cancellationToken.ThrowIfCancellationRequested();
                         uint nestedIfd = ReadUInt32(bytes, valuesOffset + (int)valueIndex * 4, littleEndian);
                         if (nestedIfd != 0) {
                             if (nestedIfd > int.MaxValue) return false;
@@ -95,6 +107,13 @@ internal static class OfficeTiffStructureValidator {
     /// <summary>Checks the classic-TIFF structure carried by an Exif metadata payload.</summary>
     internal static bool TryValidateExif(byte[] bytes, int offset, int count) =>
         TryValidate(bytes, offset, count);
+
+    internal static bool TryValidateExif(
+        byte[] bytes,
+        int offset,
+        int count,
+        CancellationToken cancellationToken) =>
+        TryValidate(bytes, offset, count, cancellationToken);
 
     private static bool TryScheduleIfd(int offset, Stack<int> pending, HashSet<int> scheduled) {
         if (!scheduled.Add(offset) || scheduled.Count > MaximumIfdCount) return false;

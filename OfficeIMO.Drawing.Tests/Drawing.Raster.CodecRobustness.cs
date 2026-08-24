@@ -68,6 +68,42 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+    [Fact]
+    public void BoundedPngIdentificationObservesCancellationDuringChunkValidation() {
+        byte[] png = CreatePngWithLargeAncillaryPayload();
+        using var cancellation = new CancellationTokenSource();
+        var cancelThread = new Thread(() => {
+            Thread.Sleep(10);
+            cancellation.Cancel();
+        }) { IsBackground = true };
+        cancelThread.Start();
+
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                OfficeImageReader.TryIdentifyByContent(png, null, cancellation.Token, out _));
+        } finally {
+            Assert.True(cancelThread.Join(TimeSpan.FromSeconds(5)));
+        }
+    }
+
+    [Fact]
+    public void WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops() {
+        byte[] bmp = CreateWideBmp32(width: 8 * 1024 * 1024);
+        using var cancellation = new CancellationTokenSource();
+        var cancelThread = new Thread(() => {
+            Thread.Sleep(1);
+            cancellation.Cancel();
+        }) { IsBackground = true };
+        cancelThread.Start();
+
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                OfficeBmpReader.TryDecode(bmp, cancellation.Token, out _));
+        } finally {
+            Assert.True(cancelThread.Join(TimeSpan.FromSeconds(5)));
+        }
+    }
+
     private static byte[] CreatePngWithLargeAncillaryPayload() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int iendOffset = png.Length - 12;
@@ -86,6 +122,29 @@ public sealed class DrawingRasterCodecRobustnessTests {
         Buffer.BlockCopy(chunk, 0, result, iendOffset, chunk.Length);
         Buffer.BlockCopy(png, iendOffset, result, iendOffset + chunk.Length, 12);
         return result;
+    }
+
+    private static byte[] CreateWideBmp32(int width) {
+        const int pixelOffset = 54;
+        int pixelBytes = checked(width * 4);
+        var bmp = new byte[checked(pixelOffset + pixelBytes)];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteLittleEndianInt32(bmp, 2, bmp.Length);
+        WriteLittleEndianInt32(bmp, 10, pixelOffset);
+        WriteLittleEndianInt32(bmp, 14, 40);
+        WriteLittleEndianInt32(bmp, 18, width);
+        WriteLittleEndianInt32(bmp, 22, 1);
+        bmp[26] = 1;
+        bmp[28] = 32;
+        return bmp;
+    }
+
+    private static void WriteLittleEndianInt32(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 
     private static uint ComputeCrc(byte[] bytes, int offset, int count) {

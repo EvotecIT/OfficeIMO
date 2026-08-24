@@ -81,6 +81,7 @@ public static class OfficeBmpReader {
                 int sourceY = topDown ? y : height - 1 - y;
                 int rowOffset = pixelOffset + (sourceY * rowStride);
                 for (int x = 0; x < width; x++) {
+                    if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     int pixel = rowOffset + (x * bytesPerPixel);
                     byte blue = bytes[pixel];
                     byte green = bytes[pixel + 1];
@@ -121,6 +122,7 @@ public static class OfficeBmpReader {
             cancellationToken.ThrowIfCancellationRequested();
             int rowOffset = pixelOffset + (y * rowStride);
             for (int x = 0; x < width; x++) {
+                if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (bytes[rowOffset + (x * 4) + 3] != 0) {
                     return true;
                 }

@@ -80,17 +80,17 @@ public static class OfficeRasterImageDecoder {
         var effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();
-        OfficeImageFormat format = IdentifyFormat(bytes);
         if (bytes == null || bytes.Length == 0 || bytes.Length > effective.MaximumEncodedBytes) {
-            info = new OfficeRasterDecodeInfo(format, 0, effective.FrameIndex, succeeded: false, diagnostic: "Raster image bytes are empty.");
+            info = new OfficeRasterDecodeInfo(OfficeImageFormat.Unknown, 0, effective.FrameIndex, succeeded: false,
+                diagnostic: "Raster image bytes are empty or exceed the configured encoded-size limit.");
             return false;
         }
-
         if (!OfficeRasterContainerInspector.TryInspect(bytes, effective, out OfficeRasterContainerInfo? container) || container == null) {
-            info = new OfficeRasterDecodeInfo(format, 0, effective.FrameIndex, succeeded: false,
+            info = new OfficeRasterDecodeInfo(OfficeImageFormat.Unknown, 0, effective.FrameIndex, succeeded: false,
                 diagnostic: "The raster container is malformed, unsupported, or outside the configured limits.");
             return false;
         }
+        OfficeImageFormat format = container.Format;
         int frameCount = container.Count;
         if (effective.FrameIndex >= frameCount) {
             info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, false,

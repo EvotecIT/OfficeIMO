@@ -53,12 +53,21 @@ internal static class OfficeImageMetadataInspector {
         var icc = new SortedDictionary<int, byte[]>();
         int iccTotal = 0;
         int offset = 2;
+        bool inScan = false;
         while (offset < data.Length - 1) {
+            if (inScan && data[offset] != 0xFF) {
+                offset++;
+                continue;
+            }
             if (data[offset++] != 0xFF) break;
             while (offset < data.Length && data[offset] == 0xFF) offset++;
             if (offset >= data.Length) break;
             int marker = data[offset++];
-            if (marker == 0xDA || marker == 0xD9) break;
+            if (inScan) {
+                if (marker == 0x00 || marker >= 0xD0 && marker <= 0xD7) continue;
+                inScan = false;
+            }
+            if (marker == 0xD9) break;
             if (marker >= 0xD0 && marker <= 0xD7 || marker == 0x01) continue;
             if (offset > data.Length - 2) break;
             int length = data[offset] << 8 | data[offset + 1];
@@ -94,6 +103,7 @@ internal static class OfficeImageMetadataInspector {
             } else if (marker == 0xFE) {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             }
+            if (marker == 0xDA) inScan = true;
             offset += length;
         }
         if (iccTotal > 0 && icc.Count == iccTotal) {

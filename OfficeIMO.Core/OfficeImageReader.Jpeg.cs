@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -6,7 +7,10 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeImageReader {
     private const string JpegXmpIdentifier = "http://ns.adobe.com/xap/1.0/\0";
 
-    private static bool TryReadJpeg(byte[] data, out OfficeImageInfo info) {
+    private static bool TryReadJpeg(byte[] data, out OfficeImageInfo info) =>
+        TryReadJpeg(data, CancellationToken.None, out info);
+
+    private static bool TryReadJpeg(byte[] data, CancellationToken cancellationToken, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 4 || data[0] != 0xFF || data[1] != 0xD8) {
             return false;
@@ -17,6 +21,7 @@ public static partial class OfficeImageReader {
         int offset = 2;
 
         while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (data[offset] != 0xFF) {
                 return false;
             }
