@@ -22,7 +22,8 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | AsciiDoc | Validated BenchmarkDotNet lossless parse and parse-plus-preserve-write curves plus isolated evidence; source-backed syntax and inline text reduce managed allocation by about 32% at every scale | Allocation, retained heap, sampled managed peak, process peak, input bytes, and byte-identical preserve output are recorded and budgeted | No accepted comparison: AsciiDocNet documents unsupported tables and list continuations required by this corpus | The 558 KiB large source still allocates 32.31 MiB and retains 22.46 MiB; reduce syntax graph and collection overhead, add non-Windows evidence, and compare only equivalent public workflows |
 | Markup | Validated CommonMark-plus-tables semantic parse is 1.15-1.31x Markdig's mean time and 1.13-1.26x its allocation | Isolated allocation, retained heap, managed peak, process peak, input bytes, event count, and digest are recorded and budgeted; file size is not applicable to parsing | Markdig 1.3.2 after exact semantic-event validation | Move the remaining 1.25-1.31x margins toward parity and add Linux/macOS evidence |
 | Security | Detached RSA CMS signing is 0.70-0.94x platform time and 0.025-1.03x allocation; verification is 0.29-1.09x time and 0.029-2.11x allocation | Isolated retained heap, managed peak, process peak, content bytes, and CMS bytes are recorded; OfficeIMO CMS output is 1.105x platform size because it includes algorithm protection | .NET `SignedCms` for equivalent signature-only detached CMS workflows | Reduce the smallest platform-signature verification lane from 2.11x allocation and 2.07x managed peak to at most 2x; add Linux/macOS evidence |
-| Provenance and Visio | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | These are the next inventory gaps under the repository roadmap's performance-evidence item |
+| Provenance | Validated structural inspect/remove curves cover PNG, TIFF, SVG, ZIP, and text; the 1 MiB PNG lane is 16.0x faster to inspect and 13.7x faster to remove than the initial local baseline | Isolated retained heap, managed batch peak, process peak, input bytes, and exact removal-output bytes are recorded | No accepted managed .NET comparator exposes the same bounded inspect-and-selective-remove contract | Reduce large SVG, text, and ZIP allocation; profile the remaining PNG CRC/JUMBF cost; add Linux/macOS evidence |
+| Visio | Reader coverage reaches some inputs, but there is no complete owner-level performance suite | Incomplete | Add a competitor only where the same public workflow exists | This is the next inventory gap under the repository roadmap's performance-evidence item |
 
 This table describes measurement coverage, not a library ranking. A returned
 byte count is not yet durable size evidence unless the runner records it with
@@ -153,6 +154,29 @@ platform-produced CMS still costs 2.11x allocation and 2.07x isolated managed
 peak. That lane remains explicit remediation under the 2x contender rule.
 `System.Security.Cryptography.Pkcs` remains benchmark-only and outside the
 normal solution and runtime package graph.
+
+## Provenance structural carriers
+
+`OfficeIMO.Provenance.Benchmarks` measures bounded structural carrier
+inspection and selective removal across deterministic PNG, TIFF, SVG, ZIP, and
+structured-text fixtures. Preflight requires exactly one structurally valid
+C2PA carrier, one removal, no carrier afterward, and the exact expected output
+size.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Provenance.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Provenance.Benchmarks -- --filter '*ProvenanceBenchmarks*' --job Short --noOverwrite
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Provenance.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\provenance\evidence.json
+```
+
+The clean Windows evidence is recorded in
+[`officeimo.provenance-2026-08-24.md`](officeimo.provenance-2026-08-24.md).
+The 1 MiB PNG lane improved from 99.78 ms to 6.22 ms for inspection and from
+178.94 ms to 13.05 ms for removal; removal allocation fell from 1,046.05 KiB
+to 21.54 KiB. No contender ratio is claimed because no accepted managed .NET
+implementation exposes the same bounded structural contract. Large SVG, text,
+and ZIP allocation remains explicit remediation rather than being described as
+settled.
 
 ## HTML non-PDF layout
 
