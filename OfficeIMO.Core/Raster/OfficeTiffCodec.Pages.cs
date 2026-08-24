@@ -38,7 +38,8 @@ public static partial class OfficeTiffCodec {
         out OfficeRasterContainerInfo? container) {
         container = null;
         if (!IsTiff(encodedBytes) || encodedBytes.Length > options.MaximumEncodedBytes ||
-            !OfficeTiffStructureValidator.TryValidate(encodedBytes, 0, encodedBytes.Length)) {
+            !OfficeTiffStructureValidator.TryValidate(
+                encodedBytes, 0, encodedBytes.Length, options.CancellationToken)) {
             return false;
         }
 
@@ -57,7 +58,8 @@ public static partial class OfficeTiffCodec {
                     !HasBytes(encodedBytes, ifdOffset, 2)) return false;
                 int entryCount = ReadUInt16(encodedBytes, ifdOffset, littleEndian);
                 if (entryCount <= 0 || !HasBytes(encodedBytes, ifdOffset + 2, checked(entryCount * 12 + 4))) return false;
-                var entries = ReadEntries(encodedBytes, ifdOffset, entryCount, littleEndian);
+                var entries = ReadEntries(
+                    encodedBytes, ifdOffset, entryCount, littleEndian, options.CancellationToken);
                 if (entries == null ||
                     !TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
                     !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
@@ -103,10 +105,12 @@ public static partial class OfficeTiffCodec {
         byte[] encodedBytes,
         int ifdOffset,
         int entryCount,
-        bool littleEndian) {
+        bool littleEndian,
+        System.Threading.CancellationToken cancellationToken) {
         var entries = new Dictionary<int, TiffEntry>();
         int entryOffset = ifdOffset + 2;
         for (int index = 0; index < entryCount; index++, entryOffset += 12) {
+            if ((index & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int tag = ReadUInt16(encodedBytes, entryOffset, littleEndian);
             int type = ReadUInt16(encodedBytes, entryOffset + 2, littleEndian);
             uint count = ReadUInt32(encodedBytes, entryOffset + 4, littleEndian);

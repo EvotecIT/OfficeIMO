@@ -126,13 +126,13 @@ public static class OfficeRasterContainerInspector {
                         loopCount = bytes[cursor + 2] | bytes[cursor + 3] << 8;
                         hasLoopExtension = true;
                     }
-                    if (!SkipSubBlocks(bytes, ref cursor)) return false;
+                    if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) return false;
                 } else if (label == 0x01) {
-                    if (!SkipSubBlocks(bytes, ref cursor)) return false;
+                    if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) return false;
                     delayHundredths = 0;
                     disposal = OfficeRasterFrameDisposal.None;
                     transparentIndex = -1;
-                } else if (!SkipSubBlocks(bytes, ref cursor)) {
+                } else if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) {
                     return false;
                 }
                 continue;
@@ -151,8 +151,9 @@ public static class OfficeRasterContainerInspector {
                 cursor += localTableBytes;
             }
             if (cursor >= bytes.Length) return false;
-            cursor++; // LZW minimum code size
-            if (!SkipSubBlocks(bytes, ref cursor)) return false;
+            int minimumCodeSize = bytes[cursor++];
+            if (minimumCodeSize < 2 || minimumCodeSize > 8) return false;
+            if (!SkipSubBlocks(bytes, ref cursor, options.CancellationToken)) return false;
             if (frames.Count >= 65535) return false;
             if (frames.Count == 0 && globalColorTable != null &&
                 backgroundColorIndex >= 0 && backgroundColorIndex < globalColorTable.Length &&
@@ -358,8 +359,13 @@ public static class OfficeRasterContainerInspector {
             1,
             OfficeColor.Transparent);
 
-    private static bool SkipSubBlocks(byte[] bytes, ref int cursor) {
+    private static bool SkipSubBlocks(
+        byte[] bytes,
+        ref int cursor,
+        System.Threading.CancellationToken cancellationToken) {
+        int blockCount = 0;
         while (cursor < bytes.Length) {
+            if ((blockCount++ & 0x3FF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int length = bytes[cursor++];
             if (length == 0) return true;
             if (cursor > bytes.Length - length) return false;

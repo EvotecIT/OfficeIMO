@@ -104,6 +104,36 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+    [Fact]
+    public void TiffInspectionPassesCancellationIntoStructureValidation() {
+        byte[] tiff = CreateTiffWithMaximumEntryInventory();
+        using var cancellation = new CancellationTokenSource();
+        var options = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeTiffCodec.TryInspectPages(tiff, options, out _));
+    }
+
+    [Fact]
+    public void WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops() {
+        byte[] tiff = CreateWideGrayscaleTiff(width: 8 * 1024 * 1024);
+        using var cancellation = new CancellationTokenSource();
+        var options = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
+        var cancelThread = new Thread(() => {
+            Thread.Sleep(10);
+            cancellation.Cancel();
+        }) { IsBackground = true };
+        cancelThread.Start();
+
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                OfficeTiffCodec.TryDecodePage(tiff, 0, options, out _));
+        } finally {
+            Assert.True(cancelThread.Join(TimeSpan.FromSeconds(5)));
+        }
+    }
+
     private static byte[] CreatePngWithLargeAncillaryPayload() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         int iendOffset = png.Length - 12;
@@ -138,6 +168,66 @@ public sealed class DrawingRasterCodecRobustnessTests {
         bmp[26] = 1;
         bmp[28] = 32;
         return bmp;
+    }
+
+    private static byte[] CreateTiffWithMaximumEntryInventory() {
+        const int entryCount = ushort.MaxValue;
+        const int ifdOffset = 8;
+        var tiff = new byte[ifdOffset + 2 + entryCount * 12 + 4];
+        tiff[0] = (byte)'I';
+        tiff[1] = (byte)'I';
+        tiff[2] = 42;
+        WriteLittleEndianInt32(tiff, 4, ifdOffset);
+        WriteLittleEndianUInt16(tiff, ifdOffset, entryCount);
+        int entryOffset = ifdOffset + 2;
+        for (int tag = 0; tag < entryCount; tag++, entryOffset += 12) {
+            WriteLittleEndianUInt16(tiff, entryOffset, tag);
+            WriteLittleEndianUInt16(tiff, entryOffset + 2, tag is 256 or 257 ? 4 : 1);
+            WriteLittleEndianInt32(tiff, entryOffset + 4, 1);
+            WriteLittleEndianInt32(tiff, entryOffset + 8, tag is 256 or 257 ? 1 : 0);
+        }
+        return tiff;
+    }
+
+    private static byte[] CreateWideGrayscaleTiff(int width) {
+        const int entryCount = 9;
+        const int ifdOffset = 8;
+        int pixelOffset = ifdOffset + 2 + entryCount * 12 + 4;
+        var tiff = new byte[checked(pixelOffset + width)];
+        tiff[0] = (byte)'I';
+        tiff[1] = (byte)'I';
+        tiff[2] = 42;
+        WriteLittleEndianInt32(tiff, 4, ifdOffset);
+        WriteLittleEndianUInt16(tiff, ifdOffset, entryCount);
+        int entryOffset = ifdOffset + 2;
+        WriteTiffEntry(tiff, ref entryOffset, 256, 4, width);
+        WriteTiffEntry(tiff, ref entryOffset, 257, 4, 1);
+        WriteTiffEntry(tiff, ref entryOffset, 258, 3, 8);
+        WriteTiffEntry(tiff, ref entryOffset, 259, 3, 1);
+        WriteTiffEntry(tiff, ref entryOffset, 262, 3, 1);
+        WriteTiffEntry(tiff, ref entryOffset, 273, 4, pixelOffset);
+        WriteTiffEntry(tiff, ref entryOffset, 277, 3, 1);
+        WriteTiffEntry(tiff, ref entryOffset, 278, 4, 1);
+        WriteTiffEntry(tiff, ref entryOffset, 279, 4, width);
+        return tiff;
+    }
+
+    private static void WriteTiffEntry(
+        byte[] bytes,
+        ref int offset,
+        int tag,
+        int type,
+        int value) {
+        WriteLittleEndianUInt16(bytes, offset, tag);
+        WriteLittleEndianUInt16(bytes, offset + 2, type);
+        WriteLittleEndianInt32(bytes, offset + 4, 1);
+        WriteLittleEndianInt32(bytes, offset + 8, value);
+        offset += 12;
+    }
+
+    private static void WriteLittleEndianUInt16(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
     }
 
     private static void WriteLittleEndianInt32(byte[] bytes, int offset, int value) {

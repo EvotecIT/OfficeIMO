@@ -626,6 +626,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOptimizerSwapsDensityForExifOrientationBetweenProgressiveScans() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),
+                new OfficeJpegEncodeOptions {
+                    Progressive = true,
+                    DpiX = 72D,
+                    DpiY = 144D
+                });
+            byte[] exifPayload = System.Text.Encoding.ASCII.GetBytes("Exif\0\0")
+                .Concat(CreateExifOrientation(6))
+                .ToArray();
+            byte[] oriented = InsertJpegSegmentBeforeSecondScan(jpeg, 0xE1, exifPayload);
+
+            Assert.True(OfficeJpegCodec.TryDecode(oriented, out OfficeRasterImage? decoded));
+            Assert.Equal((1, 2), (decoded!.Width, decoded.Height));
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(oriented, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Rotate90Clockwise, orientation);
+
+            OfficeImageOptimizationResult result = OfficeImageOptimizer.Optimize(
+                oriented,
+                new OfficeImageOptimizationRequest(1, 1) {
+                    OutputFormat = OfficeImageFormat.Jpeg,
+                    KeepOriginalWhenNotSmaller = false
+                });
+
+            Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
+            Assert.InRange(result.Final.DpiX, 143.98D, 144.02D);
+            Assert.InRange(result.Final.DpiY, 71.98D, 72.02D);
+        }
+
+        [Fact]
+        public void OfficeImageOptimizerBoundsInputBeforeIdentificationAndMetadataInspection() {
+            OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes);
+            Assert.Throws<ArgumentException>(() =>
+                OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes + 1));
+        }
+
+        [Fact]
         public void OfficeImageOptimizerSwapsInheritedDensityAxesAfterExifRotation() {
             byte[] jpeg = OfficeJpegCodec.Encode(
                 new OfficeRasterImage(2, 1, OfficeColor.SteelBlue),

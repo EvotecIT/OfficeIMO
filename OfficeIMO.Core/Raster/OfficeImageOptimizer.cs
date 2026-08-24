@@ -177,10 +177,12 @@ public static class OfficeImageOptimizer {
     /// Resizes managed static raster input for a known placement and emits PNG, JPEG, TIFF, or WebP.
     /// Animated input is rejected so optimization never silently discards frames.
     /// </summary>
+    /// <exception cref="ArgumentException">The encoded input exceeds the managed size limit.</exception>
     public static OfficeImageOptimizationResult Optimize(byte[] encodedBytes, OfficeImageOptimizationRequest request, string? fileName = null) {
         if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
         if (request == null) throw new ArgumentNullException(nameof(request));
         ValidateRequest(request);
+        ValidateInputLength(encodedBytes.Length);
         if (!OfficeImageReader.TryIdentify(encodedBytes, fileName, out OfficeImageInfo original)) {
             return Result(encodedBytes, OfficeImageOptimizationStatus.UnsupportedFormat, new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0), new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0), EmptyMetadata(request.MetadataPolicy));
         }
@@ -271,6 +273,13 @@ public static class OfficeImageOptimizer {
         format == OfficeImageFormat.Bmp ||
         format == OfficeImageFormat.Tiff ||
         format == OfficeImageFormat.Webp;
+
+    internal static void ValidateInputLength(int length) {
+        if (length < 0 || length > OfficeRasterGuards.MaximumEncodedBytes) {
+            throw new ArgumentException(
+                "Encoded image input exceeds the managed size limit.", nameof(length));
+        }
+    }
 
     private static void ResolveDimensions(int sourceWidth, int sourceHeight, OfficeImageOptimizationRequest request, out int width, out int height) {
         if (!request.PreserveAspectRatio) {

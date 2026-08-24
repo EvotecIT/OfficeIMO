@@ -102,12 +102,21 @@ public static class OfficeImageOrientationNormalizer {
             return TryWriteTiffOrientation(data, 0, data.Length);
         }
         int offset = 2;
+        bool inScan = false;
         while (offset < data.Length) {
+            if (inScan && data[offset] != 0xFF) {
+                offset++;
+                continue;
+            }
             if (data[offset] != 0xFF) return false;
             while (offset < data.Length && data[offset] == 0xFF) offset++;
             if (offset >= data.Length) return false;
             byte marker = data[offset++];
-            if (marker is 0xD9 or 0xDA) return false;
+            if (inScan) {
+                if (marker == 0x00 || marker is >= 0xD0 and <= 0xD7) continue;
+                inScan = false;
+            }
+            if (marker == 0xD9) return false;
             if (marker == 0x01 || marker is >= 0xD0 and <= 0xD7) continue;
             if (marker == 0x00 || offset > data.Length - 2) return false;
             int segmentLength = (data[offset] << 8) | data[offset + 1];
@@ -121,6 +130,7 @@ public static class OfficeImageOrientationNormalizer {
                     return true;
                 }
             }
+            if (marker == 0xDA) inScan = true;
             offset += segmentLength;
         }
         return false;
@@ -187,12 +197,21 @@ public static class OfficeImageOrientationNormalizer {
     private static bool TryReadJpeg(byte[] data, out OfficeImageOrientation orientation) {
         orientation = OfficeImageOrientation.Normal;
         int offset = 2;
+        bool inScan = false;
         while (offset < data.Length) {
+            if (inScan && data[offset] != 0xFF) {
+                offset++;
+                continue;
+            }
             if (data[offset] != 0xFF) return false;
             while (offset < data.Length && data[offset] == 0xFF) offset++;
             if (offset >= data.Length) return false;
             byte marker = data[offset++];
-            if (marker is 0xD9 or 0xDA) return false;
+            if (inScan) {
+                if (marker == 0x00 || marker is >= 0xD0 and <= 0xD7) continue;
+                inScan = false;
+            }
+            if (marker == 0xD9) return false;
             if (marker == 0x01 || marker is >= 0xD0 and <= 0xD7) continue;
             if (marker == 0x00 || offset > data.Length - 2) return false;
             int segmentLength = (data[offset] << 8) | data[offset + 1];
@@ -202,6 +221,7 @@ public static class OfficeImageOrientationNormalizer {
                 orientation = (OfficeImageOrientation)parsed;
                 return true;
             }
+            if (marker == 0xDA) inScan = true;
             offset += segmentLength;
         }
         return false;

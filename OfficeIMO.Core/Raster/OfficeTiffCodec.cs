@@ -208,7 +208,8 @@ public static partial class OfficeTiffCodec {
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (!IsTiff(encodedBytes) || encodedBytes == null ||
             encodedBytes.Length > effective.MaximumEncodedBytes ||
-            !OfficeTiffStructureValidator.TryValidate(encodedBytes, 0, encodedBytes.Length)) {
+            !OfficeTiffStructureValidator.TryValidate(
+                encodedBytes, 0, encodedBytes.Length, effective.CancellationToken)) {
             return false;
         }
         try {
@@ -229,6 +230,7 @@ public static partial class OfficeTiffCodec {
                 var entries = new System.Collections.Generic.Dictionary<int, TiffEntry>();
                 int entryOffset = ifdOffset + 2;
                 for (int index = 0; index < entryCount; index++, entryOffset += 12) {
+                    if ((index & 0xFF) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
                     int tag = ReadUInt16(encodedBytes, entryOffset, littleEndian);
                     int type = ReadUInt16(encodedBytes, entryOffset + 2, littleEndian);
                     uint count = ReadUInt32(encodedBytes, entryOffset + 4, littleEndian);
@@ -319,6 +321,7 @@ public static partial class OfficeTiffCodec {
                 for (int y = 0; y < height; y++) {
                     if ((y & 31) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
                     for (int x = 0; x < width; x++) {
+                        if ((x & 0xFFF) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
                         int sourcePixel = ((y * width) + x) * samples;
                         ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
                         int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
@@ -592,10 +595,28 @@ public static partial class OfficeTiffCodec {
         int inputCount,
         byte[] output,
         int outputOffset,
-        int expectedCount) {
+        int expectedCount,
+        CancellationToken cancellationToken) {
         if (inputCount != expectedCount) return false;
-        Buffer.BlockCopy(input, inputOffset, output, outputOffset, expectedCount);
+        CopyWithCancellation(input, inputOffset, output, outputOffset, expectedCount, cancellationToken);
         return true;
+    }
+
+    private static void CopyWithCancellation(
+        byte[] input,
+        int inputOffset,
+        byte[] output,
+        int outputOffset,
+        int count,
+        CancellationToken cancellationToken) {
+        const int blockSize = 1024 * 1024;
+        int copied = 0;
+        while (copied < count) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int current = Math.Min(blockSize, count - copied);
+            Buffer.BlockCopy(input, inputOffset + copied, output, outputOffset + copied, current);
+            copied += current;
+        }
     }
 
     private static byte Unpremultiply(byte value, byte alpha) {
@@ -681,6 +702,7 @@ public static partial class OfficeTiffCodec {
             int rowOffset = checked(offset + row * rowBytes);
             int rowEnd = checked(rowOffset + rowBytes);
             for (int index = rowOffset + samples; index < rowEnd; index++) {
+                if (((index - rowOffset) & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 pixels[index] = unchecked((byte)(pixels[index] + pixels[index - samples]));
             }
         }
@@ -717,6 +739,17 @@ public static partial class OfficeTiffCodec {
         int tag,
         bool littleEndian,
         int expectedCount,
+        out int[] values) =>
+        TryReadValues(data, entries, tag, littleEndian, expectedCount,
+            CancellationToken.None, out values);
+
+    private static bool TryReadValues(
+        byte[] data,
+        System.Collections.Generic.IReadOnlyDictionary<int, TiffEntry> entries,
+        int tag,
+        bool littleEndian,
+        int expectedCount,
+        CancellationToken cancellationToken,
         out int[] values) {
         values = Array.Empty<int>();
         if (!entries.TryGetValue(tag, out TiffEntry entry) ||
@@ -732,6 +765,7 @@ public static partial class OfficeTiffCodec {
         if (!HasBytes(data, valueOffset, byteCount)) return false;
         values = new int[entry.Count];
         for (int index = 0; index < values.Length; index++) {
+            if ((index & 0x3FF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (entry.Type == 3) {
                 values[index] = ReadUInt16(data, valueOffset + index * 2, littleEndian);
             } else {

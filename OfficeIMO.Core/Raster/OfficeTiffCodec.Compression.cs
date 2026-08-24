@@ -44,7 +44,8 @@ public static partial class OfficeTiffCodec {
         cancellationToken.ThrowIfCancellationRequested();
         switch (compression) {
             case (int)OfficeTiffCompression.None:
-                return CopyExact(input, inputOffset, inputCount, output, outputOffset, expectedCount);
+                return CopyExact(
+                    input, inputOffset, inputCount, output, outputOffset, expectedCount, cancellationToken);
             case (int)OfficeTiffCompression.PackBits:
                 return TryDecodePackBits(input, inputOffset, inputCount, output, outputOffset,
                     expectedCount, cancellationToken);
@@ -72,14 +73,14 @@ public static partial class OfficeTiffCodec {
         bool allowRawDeflate,
         CancellationToken cancellationToken) {
         var compressed = new byte[inputCount];
-        Buffer.BlockCopy(input, inputOffset, compressed, 0, inputCount);
+        CopyWithCancellation(input, inputOffset, compressed, 0, inputCount, cancellationToken);
         try {
             byte[] inflated = OfficeZlibCodec.Decompress(
                 compressed,
                 expectedCount,
                 expectedCount,
                 cancellationToken);
-            Buffer.BlockCopy(inflated, 0, output, outputOffset, expectedCount);
+            CopyWithCancellation(inflated, 0, output, outputOffset, expectedCount, cancellationToken);
             return true;
         } catch (Exception exception) when (
             exception is InvalidDataException ||

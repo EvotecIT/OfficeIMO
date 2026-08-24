@@ -56,8 +56,10 @@ public static partial class OfficeTiffCodec {
                     compression,
                     maximumCompressedSegmentLength: 0,
                     maximumDecodedSegment)) return false;
-            if (!TryReadValues(encodedBytes, entries, 273, littleEndian, segmentCount, out int[] offsets) ||
-                !TryReadValues(encodedBytes, entries, 279, littleEndian, segmentCount, out int[] byteCounts)) return false;
+            if (!TryReadValues(encodedBytes, entries, 273, littleEndian, segmentCount,
+                    options.CancellationToken, out int[] offsets) ||
+                !TryReadValues(encodedBytes, entries, 279, littleEndian, segmentCount,
+                    options.CancellationToken, out int[] byteCounts)) return false;
 
             int maximumCompressedSegment = 0;
             for (int segment = 0; segment < segmentCount; segment++) {
@@ -136,8 +138,10 @@ public static partial class OfficeTiffCodec {
                 compression,
                 maximumCompressedSegmentLength: 0,
                 tileByteLength)) return false;
-        if (!TryReadValues(encodedBytes, entries, 324, littleEndian, tileSegmentCount, out int[] tileOffsets) ||
-            !TryReadValues(encodedBytes, entries, 325, littleEndian, tileSegmentCount, out int[] tileByteCounts)) return false;
+        if (!TryReadValues(encodedBytes, entries, 324, littleEndian, tileSegmentCount,
+                options.CancellationToken, out int[] tileOffsets) ||
+            !TryReadValues(encodedBytes, entries, 325, littleEndian, tileSegmentCount,
+                options.CancellationToken, out int[] tileByteCounts)) return false;
 
         int maximumCompressedTile = 0;
         for (int segment = 0; segment < tileSegmentCount; segment++) {
@@ -224,7 +228,10 @@ public static partial class OfficeTiffCodec {
             if ((row & 31) == 0) options.CancellationToken.ThrowIfCancellationRequested();
             int sourceRow = row * width;
             int targetRow = checked((rowStart + row) * width * samples + plane);
-            for (int x = 0; x < width; x++) interleaved[targetRow + x * samples] = planeBytes[sourceRow + x];
+            for (int x = 0; x < width; x++) {
+                if ((x & 0xFFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
+                interleaved[targetRow + x * samples] = planeBytes[sourceRow + x];
+            }
         }
     }
 
@@ -251,7 +258,10 @@ public static partial class OfficeTiffCodec {
             if (planarConfiguration == 1) {
                 Buffer.BlockCopy(tile, sourceRow, interleaved, targetRow, copyWidth * samples);
             } else {
-                for (int x = 0; x < copyWidth; x++) interleaved[targetRow + x * samples + plane] = tile[sourceRow + x];
+                for (int x = 0; x < copyWidth; x++) {
+                    if ((x & 0xFFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
+                    interleaved[targetRow + x * samples + plane] = tile[sourceRow + x];
+                }
             }
         }
     }

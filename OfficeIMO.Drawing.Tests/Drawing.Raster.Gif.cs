@@ -191,6 +191,18 @@ namespace OfficeIMO.Tests {
             Assert.False(OfficeRasterImageDecoder.TryDecode(truncated, out _));
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(9)]
+        public void GifInspectionRejectsInvalidLzwMinimumCodeSize(byte minimumCodeSize) {
+            byte[] malformed = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(malformed, (byte)0x2C);
+            malformed[imageDescriptorOffset + 10] = minimumCodeSize;
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+        }
+
         [Fact]
         public void OfficeGifReader_SkipsLzwExpansionForUnselectedTrailingFrames() {
             byte[] gif = CreateTwoFrameGif(out int secondFrameDescriptorOffset);
