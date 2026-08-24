@@ -360,13 +360,27 @@ public sealed class MarkdownParseResult {
     }
 
     private static IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> BuildGeneratedSyntaxDiagnostics(MarkdownSyntaxNode? syntaxTree) {
-        if (syntaxTree == null) {
+        if (syntaxTree == null || !ContainsGeneratedSyntax(syntaxTree)) {
             return Array.Empty<MarkdownGeneratedSyntaxDiagnostic>();
         }
 
         var diagnostics = new List<MarkdownGeneratedSyntaxDiagnostic>();
         AddGeneratedSyntaxDiagnostics(syntaxTree, FormatPathSegment(syntaxTree), "0", diagnostics);
         return diagnostics;
+    }
+
+    private static bool ContainsGeneratedSyntax(MarkdownSyntaxNode node) {
+        if (node.IsGenerated) {
+            return true;
+        }
+
+        for (var i = 0; i < node.Children.Count; i++) {
+            if (ContainsGeneratedSyntax(node.Children[i])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AddGeneratedSyntaxDiagnostics(

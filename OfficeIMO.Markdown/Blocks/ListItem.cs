@@ -54,7 +54,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
     public bool ForceLoose { get; set; }
-    internal List<MarkdownSyntaxNode> SyntaxChildren => _syntaxChildren ??= new List<MarkdownSyntaxNode>();
+    internal List<MarkdownSyntaxNode> SyntaxChildren => _syntaxChildren ??= new List<MarkdownSyntaxNode>(4);
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     /// <summary>Creates a plain list item.</summary>
@@ -326,11 +326,13 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             return BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(blockChildren);
         }
 
-        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(blockChildren).ToList();
+        var builtChildren = MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(blockChildren);
+        return builtChildren as List<MarkdownSyntaxNode> ?? builtChildren.ToList();
     }
 
     private List<MarkdownSyntaxNode> BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(IReadOnlyList<IMarkdownBlock> blockChildren) {
-        var canonicalChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, blockChildren).ToList();
+        var canonical = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, blockChildren);
+        var canonicalChildren = canonical as List<MarkdownSyntaxNode> ?? canonical.ToList();
         if (!HasSyntaxOnlyDefinitionChildren()) {
             return canonicalChildren;
         }

@@ -459,7 +459,7 @@ public static partial class MarkdownReader {
         stack.Pop();
         stack.Pop();
 
-        var italic = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, parent.OpenIndex);
+        var italic = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence(4) { AutoSpacing = false }, parent.OpenIndex);
         italic.Seq.AddRaw(new BoldSequenceInline(top.Seq));
         stack.Push(italic);
         consumed = 2;
@@ -486,14 +486,14 @@ public static partial class MarkdownReader {
         stack.Pop();
         stack.Pop();
 
-        var middle = new InlineSequence { AutoSpacing = false };
+        var middle = new InlineSequence(4) { AutoSpacing = false };
         foreach (var node in parent.Seq.Nodes) {
             middle.AddRaw(node);
         }
 
         middle.AddRaw(new ItalicSequenceInline(top.Seq));
 
-        var outer = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, parent.OpenIndex);
+        var outer = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence(4) { AutoSpacing = false }, parent.OpenIndex);
         outer.Seq.AddRaw(new ItalicSequenceInline(middle));
         stack.Push(outer);
         consumed = 2;

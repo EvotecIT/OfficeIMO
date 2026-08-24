@@ -642,16 +642,17 @@ public static partial class MarkdownReader {
         return AttachLeadingAbbreviationSyntax(mixedItem);
     }
 
-    private static bool TryCreateSingleLineSemanticListItem(
+    private static bool TryCreateSingleLineListItem(
         string line,
         bool isTask,
         bool done,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
+        int absoluteLine,
+        int startColumn,
         out ListItem item) {
         item = null!;
-        if (state.CaptureSyntaxTree
-            || string.IsNullOrEmpty(line)
+        if (string.IsNullOrEmpty(line)
             || options.Abbreviations
             || options.GenericAttributes
             || StartsListItemLeadWithStandaloneBlock(line, options)) {
@@ -660,13 +661,26 @@ public static partial class MarkdownReader {
 
         string paragraph = GetParagraphLineJoinInfo(
             line,
-            absoluteLine: 1,
-            startColumn: 1,
+            absoluteLine,
+            startColumn,
             options,
-            sourceTextMap: null,
+            state.SourceTextMap,
             hasFollowingLine: false).Text;
-        var content = ParseInlines(paragraph, options, state);
+        var sourceMap = state.CaptureSyntaxTree && state.SourceTextMap != null
+            ? new MarkdownInlineSourceMap(state.SourceTextMap, paragraph, absoluteLine, startColumn)
+            : null;
+        var content = ParseInlines(paragraph, options, state, sourceMap);
         item = isTask ? ListItem.TaskInlines(content, done) : new ListItem(content);
+        if (state.CaptureSyntaxTree) {
+            item.SyntaxChildren.Add(BuildSyntaxNode(
+                item.LeadParagraphBlock,
+                CreateSpan(
+                    state,
+                    absoluteLine,
+                    startColumn,
+                    absoluteLine,
+                    GetEndColumn(startColumn, paragraph))));
+        }
         return true;
     }
 
@@ -1216,6 +1230,26 @@ public static partial class MarkdownReader {
         MarkdownReaderState? state) {
         if (lines == null || lines.Count == 0) {
             return (string.Empty, null);
+        }
+
+        if (lines.Count == 1 && state?.SourceTextMap != null) {
+            var line = lines[0];
+            var joinInfo = GetParagraphLineJoinInfo(
+                line.Text,
+                line.AbsoluteLine,
+                line.StartColumn,
+                options,
+                state.SourceTextMap,
+                hasFollowingLine: false);
+            return (
+                joinInfo.Text,
+                string.IsNullOrEmpty(joinInfo.Text)
+                    ? null
+                    : new MarkdownInlineSourceMap(
+                        state.SourceTextMap,
+                        joinInfo.Text,
+                        line.AbsoluteLine,
+                        line.StartColumn));
         }
 
         var plainLines = new List<string>(lines.Count);

@@ -341,7 +341,7 @@ internal static class MarkdownInlineSyntaxBuilder {
         string? title,
         string? linkTarget,
         string? linkRel) {
-        var nodes = new List<MarkdownSyntaxNode>();
+        var nodes = new List<MarkdownSyntaxNode>(8);
         AddMarkerNode(
             nodes,
             MarkdownSyntaxKind.InlineOpeningMarker,

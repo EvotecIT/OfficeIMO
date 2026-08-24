@@ -3,7 +3,8 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Inline node rendered via a whitelisted HTML tag while preserving nested inline content as AST.
 /// </summary>
-public sealed class HtmlTagSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
+public sealed class HtmlTagSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Normalized lowercase tag name.</summary>
     public string TagName { get; }
 

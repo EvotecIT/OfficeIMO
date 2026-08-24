@@ -18,6 +18,39 @@ public static partial class MarkdownReader {
     /// </summary>
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new MarkdownReaderOptions();
+
+        // Without document transforms the syntax captured by ParseInternal already describes
+        // the returned object model. Avoid rebuilding and rebinding an identical final tree,
+        // while retaining the parse result needed by source-aware rendering.
+        if (BuildEffectiveDocumentTransforms(options).Count == 0) {
+            var state = new MarkdownReaderState();
+            var syntaxNodes = new List<MarkdownSyntaxNode>();
+            var document = ParseInternal(
+                markdown,
+                options,
+                state,
+                allowFrontMatter: true,
+                out var syntaxTree,
+                out var sourceMarkdown,
+                syntaxNodes,
+                lineOffset: 0,
+                transformDiagnostics: null,
+                applyDocumentTransforms: false);
+            var capturedSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
+            _ = new MarkdownParseResult(
+                document,
+                capturedSyntaxTree,
+                capturedSyntaxTree,
+                sourceMarkdown,
+                options.PreserveTrivia ? markdown : null,
+                options.PreserveTrivia,
+                transformDiagnostics: null,
+                referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
+                abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
+            return document;
+        }
+
         return ParseWithSyntaxTree(markdown, options).Document;
     }
 
@@ -184,7 +217,9 @@ public static partial class MarkdownReader {
                 : SplitMarkdownLines(text);
             int i = 0;
 
-            using (doc.DeferObjectTreeBinding(completeBindingOnDispose: state.CaptureSyntaxTree)) {
+            // Parsing with syntax capture binds the complete object and source trees together
+            // immediately below. Avoid an otherwise duplicate object-only traversal here.
+            using (doc.DeferObjectTreeBinding(completeBindingOnDispose: false)) {
                 // Front matter (YAML) only if it's the very first thing in the file
                 if (allowFrontMatter && options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
                     int start = i + 1;

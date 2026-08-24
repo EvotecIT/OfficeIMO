@@ -32,7 +32,15 @@ public static partial class MarkdownReader {
             List<string> firstLines = null!;
             ListItem first;
             if (IsImmediateListLeadBoundary(lines, j, firstContinuationIndent, options, options.ListExtras, state)
-                && TryCreateSingleLineSemanticListItem(firstContent, isTask, done, options, state, out var singleFirst)) {
+                && TryCreateSingleLineListItem(
+                    firstContent,
+                    isTask,
+                    done,
+                    options,
+                    state,
+                    state.SourceLineOffset + i + 1,
+                    firstStartColumn,
+                    out var singleFirst)) {
                 first = singleFirst;
             } else {
                 firstLines = ConsumeListContinuationLines(
@@ -107,7 +115,15 @@ public static partial class MarkdownReader {
                 List<string> itemLines = null!;
                 ListItem li;
                 if (IsImmediateListLeadBoundary(lines, next, continuationIndent, options, options.ListExtras, state)
-                    && TryCreateSingleLineSemanticListItem(content2, isTask2, done2, options, state, out var singleItem)) {
+                    && TryCreateSingleLineListItem(
+                        content2,
+                        isTask2,
+                        done2,
+                        options,
+                        state,
+                        state.SourceLineOffset + itemStart + 1,
+                        startColumn,
+                        out var singleItem)) {
                     li = singleItem;
                 } else {
                     itemLines = ConsumeListContinuationLines(

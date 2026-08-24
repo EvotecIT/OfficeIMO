@@ -6,6 +6,49 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_Reader_Semantic_Parse_Tests {
     [Fact]
+    public void ParseWithSyntaxTree_SingleLine_List_FastPath_Preserves_Inline_SourceSlices() {
+        const string markdown = "- prefix **bold 中** and [link](https://example.com).\n";
+        var result = MarkdownReader.ParseWithSyntaxTree(
+            markdown,
+            MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        var strong = Assert.Single(
+            result.FinalSyntaxTree.DescendantsAndSelf(),
+            node => node.Kind == MarkdownSyntaxKind.InlineStrong);
+        var target = Assert.Single(
+            result.FinalSyntaxTree.DescendantsAndSelf(),
+            node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+
+        Assert.True(result.TryCreateSourceSlice(strong, out var strongSlice));
+        Assert.Equal("**bold 中**", strongSlice.Text);
+        Assert.True(result.TryCreateSourceSlice(target, out var targetSlice));
+        Assert.Equal("https://example.com", targetSlice.Text);
+    }
+
+    [Fact]
+    public void Parse_CommonMark_NoTransforms_Reuses_Equivalent_Captured_Syntax() {
+        const string markdown =
+            "- first **strong** item\n" +
+            "  - nested [link](https://example.com)\n\n" +
+            "  trailing paragraph\n" +
+            "- second `code` item\n";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var explicitSyntax = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var attached = Assert.IsType<MarkdownParseResult>(document.ParseResult);
+
+        Assert.Same(attached.SyntaxTree, attached.FinalSyntaxTree);
+        Assert.Equal(explicitSyntax.Document.ToMarkdown(), document.ToMarkdown());
+        Assert.Equal(explicitSyntax.Document.ToHtmlFragment(), document.ToHtmlFragment());
+        Assert.Equal(
+            explicitSyntax.FinalSyntaxTree.DescendantsAndSelf().Select(NodeSignature),
+            attached.FinalSyntaxTree.DescendantsAndSelf().Select(NodeSignature));
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(attached.FinalSyntaxTree);
+    }
+
+    [Fact]
     public void Parse_CommonMark_NestedLists_Matches_SourceBacked_Contract() {
         const string markdown =
             "# Checklist\r\n" +
@@ -139,6 +182,9 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
     }
 
     private static string Escape(string value) => value.Replace("\r", "\\r").Replace("\n", "\\n");
+
+    private static string NodeSignature(MarkdownSyntaxNode node) =>
+        node.Kind + "|" + node.SourceSpan?.ToString() + "|" + node.Literal;
 
     private sealed class CompositeContainerInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline,
         IInlineContainerMarkdownInline, IChildMarkdownBlockContainer {

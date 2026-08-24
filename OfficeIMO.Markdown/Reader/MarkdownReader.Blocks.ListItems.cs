@@ -268,11 +268,26 @@ public static partial class MarkdownReader {
                 requiresSourceRemap = state.SourceLineAbsoluteNumbers != null ||
                     !IsDirectSourceBackedNestedList(lines, startIndex, idx, options);
                 if (!requiresSourceRemap) {
+                    var parsedObject = (MarkdownObject)parsed;
+                    var firstLine = lines[startIndex] ?? string.Empty;
+                    var lastLine = lines[Math.Max(startIndex, idx - 1)] ?? string.Empty;
+                    parsedObject.SourceSpan = CreateSpan(
+                        state,
+                        state.SourceLineOffset + startIndex + 1,
+                        CountLeadingIndentColumns(firstLine) + 1,
+                        state.SourceLineOffset + Math.Max(startIndex + 1, idx),
+                        Math.Max(1, lastLine.Length));
+
                     list = parsed;
                     endIndex = idx;
-                    syntaxNode = BuildSyntaxNode((IMarkdownBlock)parsed);
-                    SynchronizeOwnedSyntaxCaches(syntaxNode);
-                    MarkdownObjectTreeBinder.BindSourceSpans(syntaxNode);
+                    // Preserve the child-cache position with a lightweight source root. The
+                    // enclosing builder expands it once from the parsed list items instead of
+                    // building and recursively cloning an identical intermediate subtree here.
+                    syntaxNode = new MarkdownSyntaxNode(
+                        parsed.ListSyntaxKind,
+                        parsedObject.SourceSpan,
+                        parsed.ListLiteral,
+                        associatedObject: parsed);
                     return true;
                 }
             }

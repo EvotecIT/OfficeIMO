@@ -100,3 +100,17 @@ public abstract class MarkdownBlock : MarkdownObject { }
 /// Base type for markdown inlines that participate in the object tree.
 /// </summary>
 public abstract class MarkdownInline : MarkdownObject, IMarkdownInline { }
+
+internal interface IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? AuxiliarySyntaxMetadata { get; set; }
+}
+
+internal sealed class MarkdownInlineAuxiliarySyntaxMetadata {
+    internal string? AutolinkLiteral;
+    internal string OpeningMarker = string.Empty;
+    internal MarkdownSourceSpan? OpeningMarkerSpan;
+    internal string SeparatorMarker = string.Empty;
+    internal MarkdownSourceSpan? SeparatorMarkerSpan;
+    internal string ClosingMarker = string.Empty;
+    internal MarkdownSourceSpan? ClosingMarkerSpan;
+}
