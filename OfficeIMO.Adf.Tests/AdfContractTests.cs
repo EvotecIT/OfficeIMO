@@ -9,6 +9,25 @@ namespace OfficeIMO.Adf.Tests;
 
 public sealed class AdfContractTests {
     [Fact]
+    public void ParsedSparseModel_CollectionsRemainMutable() {
+        AdfDocument document = AdfDocument.Parse("{\"version\":1,\"type\":\"doc\",\"content\":[]}");
+
+        document.ExtensionData["vendorRoot"] = JsonSerializer.SerializeToElement(true);
+        var paragraph = new AdfNode("paragraph");
+        paragraph.Attributes["localId"] = JsonSerializer.SerializeToElement("paragraph-1");
+        paragraph.ExtensionData["vendorNode"] = JsonSerializer.SerializeToElement(17);
+        paragraph.Content.Add(AdfNode.TextNode("Ready"));
+        document.Content.Add(paragraph);
+
+        using JsonDocument output = JsonDocument.Parse(document.ToJson());
+        Assert.True(output.RootElement.GetProperty("vendorRoot").GetBoolean());
+        JsonElement writtenParagraph = output.RootElement.GetProperty("content")[0];
+        Assert.Equal("paragraph-1", writtenParagraph.GetProperty("attrs").GetProperty("localId").GetString());
+        Assert.Equal(17, writtenParagraph.GetProperty("vendorNode").GetInt32());
+        Assert.Equal("Ready", writtenParagraph.GetProperty("content")[0].GetProperty("text").GetString());
+    }
+
+    [Fact]
     public void SetAttribute_PreservesCustomJsonValuesOnDynamicRuntimes() {
         var node = new AdfNode("extension").SetAttribute("parameters", new {
             html = "<strong>Ready</strong>",

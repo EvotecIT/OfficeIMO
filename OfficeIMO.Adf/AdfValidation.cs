@@ -86,8 +86,8 @@ internal static class AdfValidator {
         var issues = new List<AdfValidationIssue>();
         if (document.Version != 1) issues.Add(Error("ADF_VERSION", "$.version", "Only ADF version 1 is supported."));
         if (!string.Equals(document.Type, "doc", StringComparison.Ordinal)) issues.Add(Error("ADF_ROOT_TYPE", "$.type", "ADF root type must be 'doc'."));
-        for (int i = 0; i < document.Content.Count; i++) {
-            AdfNode node = document.Content[i];
+        for (int i = 0; i < document.ContentItems.Count; i++) {
+            AdfNode node = document.ContentItems[i];
             string path = "$.content[" + i + "]";
             if (node != null && KnownNodes.Contains(node.Type) && !RootBlockNodes.Contains(node.Type)) {
                 issues.Add(Error("ADF_ROOT_CHILD", path, "ADF document content may contain only block nodes."));
@@ -111,10 +111,10 @@ internal static class AdfValidator {
         } else if (isKnownNode && !isTextNode && node.Text != null) {
             issues.Add(Error("ADF_TEXT_NOT_ALLOWED", path + ".text", "ADF text payloads are allowed only on text nodes."));
         }
-        if (isKnownNode && !isTextNode && node.Marks.Count > 0) {
+        if (isKnownNode && !isTextNode && node.MarkItems.Count > 0) {
             issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "ADF marks are allowed only on text nodes."));
         }
-        if (isTextNode && string.Equals(parentType, "codeBlock", StringComparison.Ordinal) && node.Marks.Count > 0) {
+        if (isTextNode && string.Equals(parentType, "codeBlock", StringComparison.Ordinal) && node.MarkItems.Count > 0) {
             issues.Add(Error("ADF_CODE_MARKS_NOT_ALLOWED", path + ".marks", "ADF code-block text cannot contain marks."));
         }
         if (string.Equals(node.Type, "listItem", StringComparison.Ordinal) &&
@@ -122,7 +122,7 @@ internal static class AdfValidator {
             !string.Equals(parentType, "orderedList", StringComparison.Ordinal)) {
             issues.Add(Error("ADF_LIST_ITEM_PARENT", path, "ADF listItem nodes require a bulletList or orderedList parent."));
         }
-        if (string.Equals(node.Type, "listItem", StringComparison.Ordinal) && node.Content.Count == 0) {
+        if (string.Equals(node.Type, "listItem", StringComparison.Ordinal) && node.ContentItems.Count == 0) {
             issues.Add(Error("ADF_LIST_ITEM_CONTENT_REQUIRED", path + ".content", "ADF listItem nodes require at least one content node."));
         }
         if (string.Equals(node.Type, "taskItem", StringComparison.Ordinal) && !string.Equals(parentType, "taskList", StringComparison.Ordinal)) {
@@ -151,16 +151,16 @@ internal static class AdfValidator {
         if (string.Equals(node.Type, "inlineCard", StringComparison.Ordinal)) {
             ValidateInlineCardAttributes(node, path, issues);
         }
-        for (int i = 0; i < node.Marks.Count; i++) {
-            AdfMark mark = node.Marks[i];
+        for (int i = 0; i < node.MarkItems.Count; i++) {
+            AdfMark mark = node.MarkItems[i];
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));
             else if (!KnownMarks.Contains(mark.Type)) issues.Add(Warning("ADF_UNKNOWN_MARK", path + ".marks[" + i + "]", "Unknown ADF mark '" + mark.Type + "' is retained but may be projected with reduced fidelity."));
             if (mark != null && string.Equals(mark.Type, "link", StringComparison.Ordinal) && string.IsNullOrWhiteSpace(mark.GetStringAttribute("href"))) {
                 issues.Add(Error("ADF_LINK_HREF_REQUIRED", path + ".marks[" + i + "].attrs.href", "ADF link marks require a non-empty string href attribute."));
             }
         }
-        for (int i = 0; i < node.Content.Count; i++) {
-            AdfNode? child = node.Content[i];
+        for (int i = 0; i < node.ContentItems.Count; i++) {
+            AdfNode? child = node.ContentItems[i];
             string childPath = path + ".content[" + i + "]";
             if (child != null) ValidateKnownChild(node, child, childPath, issues);
             ValidateNode(child, childPath, node.Type, issues);
@@ -205,8 +205,8 @@ internal static class AdfValidator {
     }
 
     private static void ValidateInlineCardAttributes(AdfNode node, string path, List<AdfValidationIssue> issues) {
-        bool hasUrl = node.Attributes.TryGetValue("url", out System.Text.Json.JsonElement url);
-        bool hasData = node.Attributes.TryGetValue("data", out System.Text.Json.JsonElement data);
+        bool hasUrl = node.AttributeItems.TryGetValue("url", out System.Text.Json.JsonElement url);
+        bool hasData = node.AttributeItems.TryGetValue("data", out System.Text.Json.JsonElement data);
         bool hasValidUrl = hasUrl && url.ValueKind == System.Text.Json.JsonValueKind.String && !string.IsNullOrWhiteSpace(url.GetString());
         bool hasValidData = hasData && data.ValueKind == System.Text.Json.JsonValueKind.Object;
 
