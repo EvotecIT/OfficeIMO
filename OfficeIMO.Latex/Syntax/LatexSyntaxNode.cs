@@ -33,18 +33,22 @@ public enum LatexSyntaxKind {
 /// <summary>Immutable node in the lossless LaTeX syntax tree.</summary>
 public sealed class LatexSyntaxNode {
     private readonly LatexSourceText _source;
+    private readonly int _startOffset;
+    private readonly int _endOffset;
     private string? _originalText;
     private int _indexInParent = -1;
 
     internal LatexSyntaxNode(
         LatexSyntaxKind kind,
         LatexSourceText source,
-        LatexSourceSpan span,
+        int startOffset,
+        int endOffset,
         string? value,
         IReadOnlyList<LatexSyntaxNode>? children = null) {
         Kind = kind;
         _source = source;
-        Span = span;
+        _startOffset = startOffset;
+        _endOffset = endOffset;
         Value = value;
         Children = children ?? Array.Empty<LatexSyntaxNode>();
         for (int index = 0; index < Children.Count; index++) {
@@ -56,9 +60,9 @@ public sealed class LatexSyntaxNode {
     /// <summary>Syntax kind.</summary>
     public LatexSyntaxKind Kind { get; }
     /// <summary>Exact source span.</summary>
-    public LatexSourceSpan Span { get; }
+    public LatexSourceSpan Span => _source.CreateSpan(_startOffset, _endOffset);
     /// <summary>Exact source slice.</summary>
-    public string OriginalText => _originalText ??= Span.Slice(_source.Text);
+    public string OriginalText => _originalText ??= _source.Text.Substring(_startOffset, _endOffset - _startOffset);
     /// <summary>Command or environment name when applicable.</summary>
     public string? Value { get; }
     /// <summary>Parent node.</summary>
@@ -67,6 +71,9 @@ public sealed class LatexSyntaxNode {
     public int IndexInParent => _indexInParent;
     /// <summary>Child nodes in source order.</summary>
     public IReadOnlyList<LatexSyntaxNode> Children { get; }
+
+    internal int StartOffset => _startOffset;
+    internal int EndOffset => _endOffset;
 
     /// <summary>Enumerates this node and descendants.</summary>
     public IEnumerable<LatexSyntaxNode> DescendantsAndSelf() {
@@ -114,12 +121,12 @@ public sealed class LatexSyntaxTree {
     private static bool Validate(LatexSyntaxNode node, LatexSourceText source) {
         if (!node.HasSource(source)) return false;
         if (node.Children.Count == 0) return true;
-        int expected = node.Span.Start.Offset;
+        int expected = node.StartOffset;
         for (int index = 0; index < node.Children.Count; index++) {
             LatexSyntaxNode child = node.Children[index];
-            if (child.Span.Start.Offset != expected || !Validate(child, source)) return false;
-            expected = child.Span.End.Offset;
+            if (child.StartOffset != expected || !Validate(child, source)) return false;
+            expected = child.EndOffset;
         }
-        return expected == node.Span.End.Offset;
+        return expected == node.EndOffset;
     }
 }

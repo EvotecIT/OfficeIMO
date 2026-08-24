@@ -39,29 +39,36 @@ public enum LatexTokenKind {
 /// <summary>Exact token from decoded LaTeX source.</summary>
 public sealed class LatexToken {
     private readonly LatexSourceText _source;
+    private readonly int _startOffset;
+    private readonly int _endOffset;
     private string? _text;
 
     internal LatexToken(
         LatexTokenKind kind,
         LatexSourceText source,
         string? value,
-        LatexSourceSpan span,
+        int startOffset,
+        int endOffset,
         bool isTerminated = true) {
         Kind = kind;
         _source = source;
+        _startOffset = startOffset;
+        _endOffset = endOffset;
         Value = value;
-        Span = span;
         IsTerminated = isTerminated;
     }
 
     /// <summary>Token kind.</summary>
     public LatexTokenKind Kind { get; }
     /// <summary>Exact token source.</summary>
-    public string Text => _text ??= Span.Slice(_source.Text);
+    public string Text => _text ??= _source.Text.Substring(_startOffset, _endOffset - _startOffset);
     /// <summary>Command name without backslash, or null.</summary>
     public string? Value { get; }
     /// <summary>Exact source span.</summary>
-    public LatexSourceSpan Span { get; }
+    public LatexSourceSpan Span => _source.CreateSpan(_startOffset, _endOffset);
     /// <summary>Whether an opaque verbatim region contained its expected closing delimiter.</summary>
     public bool IsTerminated { get; }
+
+    internal int StartOffset => _startOffset;
+    internal int EndOffset => _endOffset;
 }

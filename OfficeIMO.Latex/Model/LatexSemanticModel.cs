@@ -15,8 +15,8 @@ public sealed class LatexArgument : ILatexSourceEdit {
         Syntax = syntax;
         IsOptional = syntax.Kind == LatexSyntaxKind.OptionalGroup;
         bool closed = syntax.Children.Count >= 2 && syntax.Children[syntax.Children.Count - 1].Kind == LatexSyntaxKind.GroupDelimiter;
-        int start = syntax.Children.Count == 0 ? syntax.Span.Start.Offset : syntax.Children[0].Span.End.Offset;
-        int end = closed ? syntax.Children[syntax.Children.Count - 1].Span.Start.Offset : syntax.Span.End.Offset;
+        int start = syntax.Children.Count == 0 ? syntax.StartOffset : syntax.Children[0].EndOffset;
+        int end = closed ? syntax.Children[syntax.Children.Count - 1].StartOffset : syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
         _content = source.Text.Substring(start, end - start);
         IsTerminated = closed;
@@ -107,8 +107,8 @@ public sealed class LatexEnvironment : ILatexSourceEdit {
         Name = syntax.Value ?? string.Empty;
         BeginCommand = beginCommand;
         EndCommand = endCommand;
-        int start = beginCommand.Syntax.Span.End.Offset;
-        int end = endCommand?.Syntax.Span.Start.Offset ?? syntax.Span.End.Offset;
+        int start = beginCommand.Syntax.EndOffset;
+        int end = endCommand?.Syntax.StartOffset ?? syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
         _content = source.Text.Substring(start, end - start);
     }
@@ -171,9 +171,9 @@ public sealed class LatexMath : ILatexSourceEdit {
             : Delimiter == "$$" ? LatexMathKind.DisplayDollar
             : Delimiter == "\\(" ? LatexMathKind.InlineParentheses
             : LatexMathKind.DisplayBrackets;
-        int start = syntax.Children.Count == 0 ? syntax.Span.Start.Offset : syntax.Children[0].Span.End.Offset;
+        int start = syntax.Children.Count == 0 ? syntax.StartOffset : syntax.Children[0].EndOffset;
         bool closed = syntax.Children.Count >= 2 && syntax.Children[syntax.Children.Count - 1].Kind == LatexSyntaxKind.MathDelimiter;
-        int end = closed ? syntax.Children[syntax.Children.Count - 1].Span.Start.Offset : syntax.Span.End.Offset;
+        int end = closed ? syntax.Children[syntax.Children.Count - 1].StartOffset : syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
         _content = source.Text.Substring(start, end - start);
         IsTerminated = closed;
