@@ -6,23 +6,11 @@ namespace OfficeIMO.Visio {
     public partial class VisioPage {
 
         private string NextId(VisioConnector? ignoredConnector = null) {
-            HashSet<int> usedIds = new();
-
-            void Reserve(string? id) {
-                if (int.TryParse(id, out int numericId) && numericId > 0) {
-                    usedIds.Add(numericId);
-                }
-            }
-
-            void VisitShape(VisioShape shape) {
-                Reserve(shape.Id);
-                foreach (VisioShape child in shape.Children) {
-                    VisitShape(child);
-                }
-            }
+            HashSet<int> usedIds = _automaticObjectIdScratch;
+            usedIds.Clear();
 
             foreach (VisioShape shape in _shapes) {
-                VisitShape(shape);
+                ReserveShapeTreeIds(shape, usedIds);
             }
 
             foreach (VisioConnector connector in _connectors) {
@@ -30,11 +18,11 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                Reserve(connector.Id);
+                ReserveNumericId(connector.Id, usedIds);
             }
 
             foreach (string reservedId in _reservedAutomaticObjectIds) {
-                Reserve(reservedId);
+                ReserveNumericId(reservedId, usedIds);
             }
 
             int nextId = 1;
@@ -43,6 +31,19 @@ namespace OfficeIMO.Visio {
             }
 
             return nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static void ReserveShapeTreeIds(VisioShape shape, HashSet<int> usedIds) {
+            ReserveNumericId(shape.Id, usedIds);
+            foreach (VisioShape child in shape.Children) {
+                ReserveShapeTreeIds(child, usedIds);
+            }
+        }
+
+        private static void ReserveNumericId(string? id, HashSet<int> usedIds) {
+            if (int.TryParse(id, out int numericId) && numericId > 0) {
+                usedIds.Add(numericId);
+            }
         }
 
         internal void ReserveAutomaticObjectId(string id) {
@@ -86,6 +87,14 @@ namespace OfficeIMO.Visio {
         }
 
         private void EnsureShapeTreeIdsAvailable(VisioShape shape, VisioShape? ignoredShape) {
+            if (shape.Children.Count == 0) {
+                if (string.IsNullOrWhiteSpace(shape.Id)) {
+                    throw new InvalidOperationException("Shape id cannot be null or whitespace.");
+                }
+                EnsurePageObjectIdAvailable(shape.Id, "Shape", ignoredShape: ignoredShape);
+                return;
+            }
+
             HashSet<string> newIds = new(StringComparer.Ordinal);
 
             void Visit(VisioShape current) {
