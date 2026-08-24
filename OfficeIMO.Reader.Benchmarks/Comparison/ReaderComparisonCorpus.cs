@@ -21,6 +21,7 @@ internal static class ReaderComparisonCorpus {
         CreatePowerPoint(),
         CreatePdf(),
         CreateHtml(),
+        CreateMarkdown(),
         CreateCsv(),
         CreateJson(),
         CreateXml(),
@@ -158,6 +159,17 @@ internal static class ReaderComparisonCorpus {
                 "data:image/png;base64,"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
             Probe("rich-link", ReaderComparisonProbeKind.RichLink));
+    }
+
+    private static ReaderComparisonCase CreateMarkdown() {
+        ReaderBenchmarkInput input = ReaderBenchmarkCorpus.Get("Markdown");
+        return Case("markdown", input.SourceName, input.Bytes,
+            Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "Reader benchmark handbook"),
+            Probe("last-section", ReaderComparisonProbeKind.ContainsText, "Section 80"),
+            Probe("table", ReaderComparisonProbeKind.MarkdownTable, "Item 5"),
+            Probe("rich-table", ReaderComparisonProbeKind.RichTable),
+            Probe("heading-location", ReaderComparisonProbeKind.LocationHeading, "Reader benchmark handbook"),
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, input.SourceName));
     }
 
     private static ReaderComparisonCase CreateCsv() {

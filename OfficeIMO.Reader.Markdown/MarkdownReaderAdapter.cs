@@ -47,15 +47,24 @@ internal static class MarkdownReaderAdapter {
 
     private static ReaderChunk[] Project(string text, string sourceName, ReaderOptions readerOptions, ReaderMarkdownOptions options, CancellationToken cancellationToken) {
         MarkdownReaderOptions parserOptions = (options.ParserOptions ?? new MarkdownReaderOptions()).Clone();
-        MarkdownParseResult parsed = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(text ?? string.Empty, parserOptions);
+        MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.ParseProjectionWithBlockSpans(
+            text ?? string.Empty,
+            parserOptions);
+        MarkdownParseResult? fullParse = null;
+        if (document.Blocks.Any(static block => block is not MarkdownObject)) {
+            fullParse = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(
+                text ?? string.Empty,
+                parserOptions);
+            document = fullParse.Document;
+        }
         var projected = new List<ProjectedBlock>();
         var headingStack = new List<HeadingState>();
         var headingSlugs = new Dictionary<string, int>(StringComparer.Ordinal);
         int tableIndex = 0;
 
-        for (int blockIndex = 0; blockIndex < parsed.Document.Blocks.Count; blockIndex++) {
+        for (int blockIndex = 0; blockIndex < document.Blocks.Count; blockIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            IMarkdownBlock block = parsed.Document.Blocks[blockIndex];
+            IMarkdownBlock block = document.Blocks[blockIndex];
             if (block is HeadingBlock heading) {
                 UpdateHeadingStack(headingStack, heading.Level, heading.Text, BuildHeadingSlug(heading.Text, headingSlugs));
             }
@@ -64,7 +73,7 @@ internal static class MarkdownReaderAdapter {
             if (markdown.Length == 0) continue;
             MarkdownSourceSpan? span = block is MarkdownObject markdownObject && markdownObject.SourceSpan.HasValue
                 ? markdownObject.SourceSpan
-                : parsed.FindFinalNodeForAssociatedObject(block)?.SourceSpan;
+                : fullParse?.FindFinalNodeForAssociatedObject(block)?.SourceSpan;
             string? headingPath = BuildHeadingPath(headingStack);
             string? hierarchyHeadingPath = ReaderHeadingPath.Combine(headingStack.Select(static item => item.Text));
             string? headingSlug = headingStack.Count == 0 ? null : headingStack[headingStack.Count - 1].Slug;

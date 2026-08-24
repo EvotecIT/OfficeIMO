@@ -100,6 +100,41 @@ public static partial class MarkdownReader {
     }
 
     /// <summary>
+    /// Parses a transient projection document while retaining top-level block source spans.
+    /// Rich table-cell models and object-tree navigation are omitted because the owning
+    /// projection layer consumes the simple table values and block locations directly.
+    /// </summary>
+    internal static MarkdownDoc ParseProjectionWithBlockSpans(
+        string markdown,
+        MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new MarkdownReaderOptions();
+
+        if (BuildEffectiveDocumentTransforms(
+                options,
+                markdown,
+                skipAbsentRegisteredFenceTransform: true).Count > 0) {
+            return ParseWithSyntaxTreeAndDiagnostics(markdown, options).Document;
+        }
+
+        var state = new MarkdownReaderState {
+            BuildTableCellModels = false,
+            CaptureBlockSourceSpans = true
+        };
+        return ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out _,
+            out _,
+            syntaxNodes: null,
+            lineOffset: 0,
+            transformDiagnostics: null,
+            applyDocumentTransforms: false);
+    }
+
+    /// <summary>
     /// Parses Markdown text into both the object model and a lightweight syntax tree with source spans.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTree(string markdown, MarkdownReaderOptions? options = null) {
@@ -228,12 +263,13 @@ public static partial class MarkdownReader {
         state.SourceLineOffset = lineOffset;
 
         try {
-            var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: state.CaptureSyntaxTree);
+            bool captureSourceSpans = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans;
+            var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
             normalizedSourceText = text;
-            if (state.CaptureSyntaxTree && (lineOffset == 0 || state.SourceTextMap == null)) {
+            if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
                 state.SourceTextMap = new MarkdownSourceTextMap(text);
             }
-            var lines = state.CaptureSyntaxTree
+            var lines = captureSourceSpans
                 ? text.Split('\n')
                 : SplitMarkdownLines(text, reuseRepeatedLines: state.BuildTableCellModels);
             int i = 0;
@@ -283,6 +319,8 @@ public static partial class MarkdownReader {
 
                             if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
                                 CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
+                            } else if (state.CaptureBlockSourceSpans && doc.Blocks.Count > previousBlockCount) {
+                                AssignBlockSourceSpans(doc, previousBlockCount, startLine, lineOffset + i, state);
                             } else if (syntaxNodes != null) {
                                 CaptureConsumedSyntaxNodes(parsers[p], lines, startIndex, options, syntaxNodes, state);
                             }
@@ -315,6 +353,23 @@ public static partial class MarkdownReader {
         } finally {
             state.SourceLineOffset = previousLineOffset;
             state.SourceTextMap = previousSourceTextMap;
+        }
+    }
+
+    private static void AssignBlockSourceSpans(
+        MarkdownDoc document,
+        int previousBlockCount,
+        int startLine,
+        int endExclusiveLine,
+        MarkdownReaderState state) {
+        MarkdownSourceSpan span = CreateLineSpan(
+            state,
+            startLine + 1,
+            Math.Max(startLine + 1, endExclusiveLine));
+        for (int blockIndex = previousBlockCount; blockIndex < document.Blocks.Count; blockIndex++) {
+            if (document.Blocks[blockIndex] is MarkdownObject markdownObject) {
+                markdownObject.SourceSpan = span;
+            }
         }
     }
 
