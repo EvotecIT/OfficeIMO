@@ -9,7 +9,8 @@ This is a Windows baseline for the public Reader facade after removing repeated 
 - .NET SDK 10.0.111
 - .NET 8.0.30 x64 runtime
 - BenchmarkDotNet 0.15.8 `ShortRun`: one launch, three warmups, three measured iterations
-- routing and Markdown source commit `9c3677821fa5a4f5de7f519daf0a2d7c897738df`
+- routing and first Markdown indexing source commit `9c3677821fa5a4f5de7f519daf0a2d7c897738df`
+- final Markdown bound-span projection source commit `5215409a568d68aa7a2efef290c96c5f64fca90d`, clean worktree for the final Markdown and ZIP benchmark run
 - final structured-format source commit `18fc5f2b045a4b6272d5cff1743b3edb1a4d407f`, clean worktree for final isolated extraction evidence
 - deterministic benchmark corpus; source creation is outside measured operations; source hashing is disabled
 
@@ -24,14 +25,14 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Reader.Benchmarks -- evide
 
 ## Public extraction improvement
 
-The initial full matrix found repeated format detection when a rich document fallback called the public chunk API again. The table-heavy Markdown adapter then called `FindFinalNodeForAssociatedObject` once per block; each call enumerated the complete final syntax tree from its root. Indexing those reference-equality associations once removes the O(n²) traversal while preserving the first matching syntax node.
+The initial full matrix found repeated format detection when a rich document fallback called the public chunk API again. The table-heavy Markdown adapter then called `FindFinalNodeForAssociatedObject` once per block; each call enumerated the complete final syntax tree from its root. Indexing those reference-equality associations once removed the O(n²) traversal. The final adapter now reads the `SourceSpan` already bound to built-in Markdown objects and retains the syntax-tree lookup only for custom blocks outside that object model, avoiding even the one complete lookup-index construction.
 
-| Public `ReadDocument` lane | Before mean / allocation | After mean / allocation | Change |
-| --- | ---: | ---: | ---: |
-| Markdown, 80 sections and 80 five-row tables | 32.822 ms / 47.68 MB | 15.825 ms / 13.32 MB | 51.8% less time / 72.1% less allocation |
-| ZIP, 20 copies of the Markdown corpus | 862.923 ms / 961.96 MB | 441.272 ms / 271.99 MB | 48.9% less time / 71.7% less allocation |
+| Public `ReadDocument` lane | Initial | Indexed syntax lookup | Bound-span current | Total change |
+| --- | ---: | ---: | ---: | ---: |
+| Markdown, 80 sections and 80 five-row tables | 32.822 ms / 47.68 MB | 15.825 ms / 13.32 MB | 4.839 ms / 12.60 MB | 85.3% less time / 73.6% less allocation |
+| ZIP, 20 copies of the Markdown corpus | 862.923 ms / 961.96 MB | 441.272 ms / 271.99 MB | 163.287 ms / 257.47 MB | 81.1% less time / 73.2% less allocation |
 
-The isolated Markdown pipeline now allocates 13.09-13.18 MB instead of 47.68 MB. Parsing with the required syntax tree and tables accounts for 11.01 MB, so the remaining chunk projection overhead is roughly 2.1 MB rather than a second parser-sized traversal. The aggregate ZIP lane remains an optimization target; its cost is approximately 20 complete Markdown results and is not contender evidence against raw archive traversal.
+The heading/table projection lane moved from 15.378 ms / 13.18 MB to 5.980 ms / 12.45 MB. Parsing with the required syntax tree and tables still accounts for 11.01 MB, so the remaining absolute cost is primarily the rich public parse model rather than navigation. The aggregate ZIP lane remains an optimization target: its 257.47 MB is approximately 20 complete Markdown results and is not contender evidence against raw archive traversal. Its three-operation `ShortRun` timing also has a wide confidence interval; allocation and contract validation are the more stable gates for that lane.
 
 Short-run timings for other routed formats are intentionally not promoted as release claims because the samples are narrow and some confidence intervals are wide. Their allocation remained stable while EPUB, HTML, Word, XML, YAML, Excel, and ZIP no longer repeat the same detection route.
 
