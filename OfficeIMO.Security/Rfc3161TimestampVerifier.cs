@@ -24,7 +24,7 @@ public static class Rfc3161TimestampVerifier {
         ArgumentNullException.ThrowIfNull(timestampedData);
 #endif
         SecurityLimits.EnsureBufferWithinLimit(encodedToken, maxEncodedBytes, nameof(encodedToken));
-        var findings = new List<SecurityFinding>();
+        var findings = new SecurityFindingCollection();
         CertificateValidationResult emptyValidation = EmptyCertificateValidation();
 
         try {
@@ -59,7 +59,7 @@ public static class Rfc3161TimestampVerifier {
                     info,
                     null,
                     emptyValidation,
-                    findings);
+                    findings.Items);
             }
 
             bool signatureValid;
@@ -84,7 +84,7 @@ public static class Rfc3161TimestampVerifier {
                     platformTsa,
                     platformEmbedded,
                     effectiveCertificateValidation,
-                    findings,
+                    ref findings,
                     "TSA",
                     CertificateUsagePurpose.TimestampAuthority);
                 SecurityValidationStatus status = ResolveTimestampStatus(
@@ -92,7 +92,7 @@ public static class Rfc3161TimestampVerifier {
                     imprintValid,
                     chain.ChainStatus,
                     chain.RevocationStatus);
-                return CreateResult(status, info, tsaCertificate.GetEncoded(), chain, findings);
+                return CreateResult(status, info, tsaCertificate.GetEncoded(), chain, findings.Items);
             } finally {
                 foreach (X509Certificate2 certificate in platformEmbedded) certificate.Dispose();
             }
@@ -108,7 +108,7 @@ public static class Rfc3161TimestampVerifier {
                 null,
                 null,
                 emptyValidation,
-                findings);
+                findings.Items);
         }
     }
 

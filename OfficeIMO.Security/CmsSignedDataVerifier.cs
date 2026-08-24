@@ -103,7 +103,19 @@ public static class CmsSignedDataVerifier {
             SecurityLimits.EnsureBufferWithinLimit(detachedContent, options.MaxContentBytes, nameof(detachedContent));
         }
 
-        var containerFindings = new List<SecurityFinding>();
+#if NET8_0_OR_GREATER
+        if (detachedContentSupplied && detachedContent != null &&
+            PlatformCmsSignedDataVerifier.TryVerifyDetached(
+                encodedCms,
+                detachedContent,
+                options,
+                signerCertificatePurpose,
+                out CmsVerificationResult platformResult)) {
+            return platformResult;
+        }
+#endif
+
+        var containerFindings = new SecurityFindingCollection();
         try {
             var decoded = new CmsSignedData(encodedCms);
             bool isDetached = decoded.SignedContent == null;
@@ -131,7 +143,7 @@ public static class CmsSignedDataVerifier {
                         encapsulatedContent: null,
                         authenticodeIndirectData: null,
                         Array.Empty<CmsSignerVerificationResult>(),
-                        containerFindings);
+                        containerFindings.Items);
                 }
                 if (detachedContentSupplied) {
                     containerFindings.Add(new SecurityFinding(
@@ -141,14 +153,22 @@ public static class CmsSignedDataVerifier {
                 }
             }
 
-            List<BcX509Certificate> embedded = decoded.GetCertificates().EnumerateMatches(null).ToList();
-            SecurityLimits.EnsureCountWithinLimit(embedded.Count, options.MaxCertificates, nameof(options.MaxCertificates));
+            BcX509Certificate[] embedded = decoded.GetCertificates().EnumerateMatches(null).ToArray();
+            SecurityLimits.EnsureCountWithinLimit(embedded.Length, options.MaxCertificates, nameof(options.MaxCertificates));
             IList<SignerInformation> signers = decoded.GetSignerInfos().GetSigners();
-            bool allSignersUseRsaFastPath = signers.All(static signer => CanUseRsaFastPath(signer));
+            AttributeTable? singleSignerSignedAttributes = signers.Count == 1
+                ? signers[0].SignedAttributes
+                : null;
+            bool allSignersUseRsaFastPath = signers.Count == 1
+                ? CanUseRsaFastPath(signers[0], singleSignerSignedAttributes)
+                : AllSignersUseRsaFastPath(signers);
             if (isDetached && detachedContentSupplied && !allSignersUseRsaFastPath) {
                 signers = new CmsSignedData(new CmsProcessableByteArray(detachedContent!), encodedCms)
                     .GetSignerInfos()
                     .GetSigners();
+                singleSignerSignedAttributes = signers.Count == 1
+                    ? signers[0].SignedAttributes
+                    : null;
             }
             SecurityLimits.EnsureCountWithinLimit(signers.Count, options.MaxSigners, nameof(options.MaxSigners));
             if (signers.Count == 0) {
@@ -158,28 +178,34 @@ public static class CmsSignedDataVerifier {
                     "The CMS SignedData object contains no signers."));
             }
 
-            var platformEmbedded = CreatePlatformCertificates(embedded, containerFindings, out List<byte[]> embeddedEncodings);
+            X509Certificate2[] platformEmbedded = CreatePlatformCertificates(
+                embedded,
+                ref containerFindings,
+                out byte[][] embeddedEncodings);
             try {
-                var signerResults = new List<CmsSignerVerificationResult>(signers.Count);
+                var signerResults = new CmsSignerVerificationResult[signers.Count];
                 TimestampVerificationBudget? effectiveTimestampBudget = options.ValidateTimestamps
                     ? timestampBudget ?? new TimestampVerificationBudget(options)
                     : null;
                 for (int index = 0; index < signers.Count; index++) {
-                    signerResults.Add(VerifySigner(
+                    AttributeTable? signedAttributes = signers.Count == 1
+                        ? singleSignerSignedAttributes
+                        : signers[index].SignedAttributes;
+                    signerResults[index] = VerifySigner(
                         signers[index],
                         index,
                         content,
-                        allSignersUseRsaFastPath || CanUseRsaFastPath(signers[index]),
+                        signedAttributes,
+                        allSignersUseRsaFastPath || CanUseRsaFastPath(signers[index], signedAttributes),
                         embedded,
                         embeddedEncodings,
                         platformEmbedded,
                         options,
                         effectiveTimestampBudget,
-                        signerCertificatePurpose));
+                        signerCertificatePurpose);
                 }
-
                 AuthenticodeIndirectDataInfo? authenticode = TryReadAuthenticodeIndirectData(
-                    decoded.SignedContentType?.Id, content, containerFindings);
+                    decoded.SignedContentType?.Id, content, ref containerFindings);
                 return new CmsVerificationResult(
                     parsed: true,
                     isDetached,
@@ -187,7 +213,7 @@ public static class CmsSignedDataVerifier {
                     isDetached ? null : content,
                     authenticode,
                     signerResults,
-                    containerFindings);
+                    containerFindings.Items);
             } finally {
                 foreach (X509Certificate2 certificate in platformEmbedded) certificate.Dispose();
             }
@@ -203,7 +229,7 @@ public static class CmsSignedDataVerifier {
                 encapsulatedContent: null,
                 authenticodeIndirectData: null,
                 Array.Empty<CmsSignerVerificationResult>(),
-                containerFindings);
+                containerFindings.Items);
         }
     }
 
@@ -211,17 +237,18 @@ public static class CmsSignedDataVerifier {
         SignerInformation signer,
         int signerIndex,
         byte[]? content,
+        AttributeTable? signedAttributes,
         bool useRsaFastPath,
-        List<BcX509Certificate> embedded,
-        List<byte[]> embeddedEncodings,
-        List<X509Certificate2> platformEmbedded,
+        BcX509Certificate[] embedded,
+        byte[][] embeddedEncodings,
+        X509Certificate2[] platformEmbedded,
         CmsVerificationOptions options,
         TimestampVerificationBudget? timestampBudget,
         CertificateUsagePurpose signerCertificatePurpose) {
-        var findings = new List<SecurityFinding>();
+        var findings = new SecurityFindingCollection();
         int embeddedSignerIndex = -1;
         BcX509Certificate? bcSigner = null;
-        for (int index = 0; index < embedded.Count; index++) {
+        for (int index = 0; index < embedded.Length; index++) {
             if (!signer.SignerID.Match(embedded[index])) continue;
             embeddedSignerIndex = index;
             bcSigner = embedded[index];
@@ -235,7 +262,7 @@ public static class CmsSignedDataVerifier {
                 "SignerCertificateMissing",
                 "No certificate matching the CMS signer identifier was supplied or embedded.",
                 signerIndex));
-            return CreateMissingCertificateResult(signer, signerIndex, findings);
+            return CreateMissingCertificateResult(signer, signerIndex, findings.Items);
         }
 
         byte[] encodedSigner = embeddedSignerIndex >= 0
@@ -246,13 +273,24 @@ public static class CmsSignedDataVerifier {
             ? platformEmbedded[embeddedSignerIndex]
             : ownedPlatformSigner = PlatformCertificateLoader.Load(encodedSigner);
         try {
-            SecurityValidationStatus digestStatus = ValidateDigest(signer, content, signerIndex, findings);
+            SecurityValidationStatus digestStatus = ValidateDigest(
+                signer,
+                signedAttributes,
+                content,
+                signerIndex,
+                ref findings);
             SecurityValidationStatus signatureStatus;
             if (content == null) {
                 signatureStatus = SecurityValidationStatus.Indeterminate;
             } else {
                 try {
-                    signatureStatus = VerifySignature(signer, bcSigner, platformSigner, content, useRsaFastPath)
+                    signatureStatus = VerifySignature(
+                        signer,
+                        signedAttributes,
+                        bcSigner,
+                        platformSigner,
+                        content,
+                        useRsaFastPath)
                         ? SecurityValidationStatus.Valid
                         : SecurityValidationStatus.Invalid;
                     if (signatureStatus == SecurityValidationStatus.Invalid) {
@@ -272,9 +310,9 @@ public static class CmsSignedDataVerifier {
                 }
             }
 
-            DateTimeOffset? signingTime = ReadSigningTime(signer.SignedAttributes, signerIndex, findings);
+            DateTimeOffset? signingTime = ReadSigningTime(signedAttributes, signerIndex, ref findings);
             IReadOnlyList<Rfc3161TimestampVerificationResult> timestamps = options.ValidateTimestamps
-                ? VerifyTimestamps(signer, options, timestampBudget!, signerIndex, findings)
+                ? VerifyTimestamps(signer, options, timestampBudget!, signerIndex, ref findings)
                 : Array.Empty<Rfc3161TimestampVerificationResult>();
             SecurityValidationStatus timestampStatus = options.ValidateTimestamps
                 ? AggregateTimestampStatus(timestamps)
@@ -288,11 +326,10 @@ public static class CmsSignedDataVerifier {
                 platformSigner,
                 platformEmbedded,
                 signerOptions,
-                findings,
+                ref findings,
                 "CMS signer",
                 signerCertificatePurpose,
                 signerIndex);
-
             return new CmsSignerVerificationResult(
                 signerIndex,
                 signatureStatus,
@@ -309,7 +346,7 @@ public static class CmsSignedDataVerifier {
                 signingTime,
                 timestampTime,
                 timestamps,
-                findings);
+                findings.Items);
         } finally {
             ownedPlatformSigner?.Dispose();
         }
@@ -352,7 +389,7 @@ public static class CmsSignedDataVerifier {
     private static AuthenticodeIndirectDataInfo? TryReadAuthenticodeIndirectData(
         string? contentTypeOid,
         byte[]? content,
-        List<SecurityFinding> findings) {
+        ref SecurityFindingCollection findings) {
         const string SpcIndirectDataContentOid = "1.3.6.1.4.1.311.2.1.4";
         if (!string.Equals(contentTypeOid, SpcIndirectDataContentOid, StringComparison.Ordinal) || content == null) {
             return null;
@@ -420,11 +457,11 @@ public static class CmsSignedDataVerifier {
 
     private static SecurityValidationStatus ValidateDigest(
         SignerInformation signer,
+        AttributeTable? signedAttributes,
         byte[]? content,
         int signerIndex,
-        List<SecurityFinding> findings) {
+        ref SecurityFindingCollection findings) {
         if (content == null) return SecurityValidationStatus.Indeterminate;
-        AttributeTable? signedAttributes = signer.SignedAttributes;
         if (signedAttributes == null) return SecurityValidationStatus.Valid;
 
         Org.BouncyCastle.Asn1.Cms.Attribute? digestAttribute = null;
@@ -472,16 +509,26 @@ public static class CmsSignedDataVerifier {
 
     private static bool VerifySignature(
         SignerInformation signer,
+        AttributeTable? signedAttributes,
         BcX509Certificate bcSigner,
         X509Certificate2 platformSigner,
         byte[] content,
         bool useRsaFastPath) {
-        if (TryVerifyRsaSignature(signer, platformSigner, content, useRsaFastPath, out bool valid)) return valid;
+        if (TryVerifyRsaSignature(
+                signer,
+                signedAttributes,
+                platformSigner,
+                content,
+                useRsaFastPath,
+                out bool valid)) {
+            return valid;
+        }
         return signer.Verify(bcSigner);
     }
 
     private static bool TryVerifyRsaSignature(
         SignerInformation signer,
+        AttributeTable? signedAttributes,
         X509Certificate2 certificate,
         byte[] content,
         bool useRsaFastPath,
@@ -494,24 +541,53 @@ public static class CmsSignedDataVerifier {
 
         using RSA? rsa = certificate.GetRSAPublicKey();
         if (rsa == null) return true;
-        byte[] signedBytes = signer.SignedAttributes == null
-            ? content
-            : signer.GetEncodedSignedAttributes();
+        byte[] signedBytes = signedAttributes == null ? content : signer.GetEncodedSignedAttributes();
+#if NET8_0_OR_GREATER
+        valid = VerifyRsaSignature(rsa, signedBytes, signer, digestAlgorithm);
+#else
         valid = rsa.VerifyData(
             signedBytes,
             signer.GetSignature(),
             digestAlgorithm,
             RSASignaturePadding.Pkcs1);
+#endif
         return true;
     }
 
-    private static bool CanUseRsaFastPath(SignerInformation signer) =>
+#if NET8_0_OR_GREATER
+    private static bool VerifyRsaSignature(
+        RSA rsa,
+        ReadOnlySpan<byte> signedBytes,
+        SignerInformation signer,
+        HashAlgorithmName digestAlgorithm) {
+        const int MaximumStackSignatureBytes = 1024;
+        int signatureLength = signer.SignerInfo.Signature.GetOctetsLength();
+        if (signatureLength <= MaximumStackSignatureBytes) {
+            Span<byte> signature = stackalloc byte[signatureLength];
+            using Stream signatureStream = signer.SignerInfo.Signature.GetOctetStream();
+            int offset = 0;
+            while (offset < signature.Length) {
+                int read = signatureStream.Read(signature[offset..]);
+                if (read == 0) return false;
+                offset += read;
+            }
+            if (signatureStream.ReadByte() >= 0) return false;
+            return rsa.VerifyData(signedBytes, signature, digestAlgorithm, RSASignaturePadding.Pkcs1);
+        }
+        return rsa.VerifyData(
+            signedBytes,
+            signer.GetSignature(),
+            digestAlgorithm,
+            RSASignaturePadding.Pkcs1);
+    }
+#endif
+
+    private static bool CanUseRsaFastPath(SignerInformation signer, AttributeTable? signedAttributes) =>
         TryGetHashAlgorithm(signer.DigestAlgorithmID.Algorithm.Id, out HashAlgorithmName digestAlgorithm) &&
         IsRsaPkcs1SignatureAlgorithm(signer.SignatureAlgorithm.Algorithm.Id, digestAlgorithm) &&
-        HasStandardSignedAttributes(signer);
+        HasStandardSignedAttributes(signer, signedAttributes);
 
-    private static bool HasStandardSignedAttributes(SignerInformation signer) {
-        AttributeTable? attributes = signer.SignedAttributes;
+    private static bool HasStandardSignedAttributes(SignerInformation signer, AttributeTable? attributes) {
         if (attributes == null) return true;
         if (signer.IsCounterSignature) return false;
 
@@ -555,6 +631,14 @@ public static class CmsSignedDataVerifier {
         } catch (Exception exception) when (IsValidationException(exception)) {
             return false;
         }
+    }
+
+    private static bool AllSignersUseRsaFastPath(IList<SignerInformation> signers) {
+        for (int index = 0; index < signers.Count; index++) {
+            SignerInformation signer = signers[index];
+            if (!CanUseRsaFastPath(signer, signer.SignedAttributes)) return false;
+        }
+        return true;
     }
 
     private static byte[] CalculateDigest(string digestAlgorithmOid, byte[] content) {
@@ -608,7 +692,7 @@ public static class CmsSignedDataVerifier {
         CmsVerificationOptions options,
         TimestampVerificationBudget budget,
         int signerIndex,
-        List<SecurityFinding> findings) {
+        ref SecurityFindingCollection findings) {
         AttributeTable? unsignedAttributes = signer.UnsignedAttributes;
         if (unsignedAttributes == null) return Array.Empty<Rfc3161TimestampVerificationResult>();
         var results = new List<Rfc3161TimestampVerificationResult>();
@@ -616,12 +700,12 @@ public static class CmsSignedDataVerifier {
             if (!attribute.AttrType.Equals(PkcsObjectIdentifiers.IdAASignatureTimeStampToken)) continue;
             for (int index = 0; index < attribute.AttrValues.Count; index++) {
                 if (!budget.TryReserveToken(out string? limitCode, out string? limitMessage)) {
-                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, ref findings));
                     return results;
                 }
                 long encodingLimit = budget.GetRemainingEncodingLimit(out limitCode, out limitMessage);
                 if (encodingLimit <= 0) {
-                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, ref findings));
                     return results;
                 }
                 byte[] encoded;
@@ -630,11 +714,11 @@ public static class CmsSignedDataVerifier {
                     attribute.AttrValues[index].EncodeTo(encodedToken);
                     encoded = encodedToken.ToArray();
                 } catch (SecurityContentLimitExceededException) {
-                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, ref findings));
                     return results;
                 }
                 if (!budget.TryReserveBytes(encoded.LongLength, out limitCode, out limitMessage)) {
-                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, findings));
+                    results.Add(CreateTimestampLimitResult(limitCode!, limitMessage!, signerIndex, ref findings));
                     return results;
                 }
                 Rfc3161TimestampVerificationResult result = Rfc3161TimestampVerifier.Verify(
@@ -676,7 +760,7 @@ public static class CmsSignedDataVerifier {
         string code,
         string message,
         int signerIndex,
-        List<SecurityFinding> signerFindings) {
+        ref SecurityFindingCollection signerFindings) {
         var finding = new SecurityFinding(SecurityFindingSeverity.Error, code, message, signerIndex);
         signerFindings.Add(finding);
         return new Rfc3161TimestampVerificationResult(
@@ -751,7 +835,7 @@ public static class CmsSignedDataVerifier {
     private static DateTimeOffset? ReadSigningTime(
         AttributeTable? signedAttributes,
         int signerIndex,
-        List<SecurityFinding> findings) {
+        ref SecurityFindingCollection findings) {
         if (signedAttributes == null) return null;
         Org.BouncyCastle.Asn1.Cms.Attribute? signingTimeAttribute = null;
         foreach (Org.BouncyCastle.Asn1.Cms.Attribute attribute in signedAttributes) {
@@ -800,22 +884,25 @@ public static class CmsSignedDataVerifier {
         return null;
     }
 
-    private static List<X509Certificate2> CreatePlatformCertificates(
-        List<BcX509Certificate> certificates,
-        List<SecurityFinding> findings,
-        out List<byte[]> encodings) {
-        var result = new List<X509Certificate2>(certificates.Count);
-        encodings = new List<byte[]>(certificates.Count);
+    private static X509Certificate2[] CreatePlatformCertificates(
+        BcX509Certificate[] certificates,
+        ref SecurityFindingCollection findings,
+        out byte[][] encodings) {
+        var result = new X509Certificate2[certificates.Length];
+        encodings = new byte[certificates.Length][];
+        int loaded = 0;
         try {
-            foreach (BcX509Certificate certificate in certificates) {
+            for (int index = 0; index < certificates.Length; index++) {
+                BcX509Certificate certificate = certificates[index];
                 byte[] encoded = certificate.GetEncoded();
-                encodings.Add(encoded);
-                result.Add(PlatformCertificateLoader.Load(encoded));
+                encodings[index] = encoded;
+                result[index] = PlatformCertificateLoader.Load(encoded);
+                loaded++;
             }
             return result;
         } catch (Exception exception) when (IsValidationException(exception)) {
-            foreach (X509Certificate2 certificate in result) certificate.Dispose();
-            encodings.Clear();
+            for (int index = 0; index < loaded; index++) result[index].Dispose();
+            Array.Clear(encodings, 0, encodings.Length);
             findings.Add(new SecurityFinding(
                 SecurityFindingSeverity.Error,
                 "CmsCertificateMalformed",
