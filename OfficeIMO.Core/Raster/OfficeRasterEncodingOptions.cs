@@ -68,7 +68,8 @@ public sealed class OfficeRasterEncodingOptions {
                 WriteJfifHeader = jpeg.WriteJfifHeader,
                 Background = jpeg.Background,
                 DpiX = jpeg.DpiX,
-                DpiY = jpeg.DpiY
+                DpiY = jpeg.DpiY,
+                RetainedManagedBytes = jpeg.RetainedManagedBytes
             },
             Tiff = new OfficeTiffEncodeOptions {
                 Compression = tiff.Compression,

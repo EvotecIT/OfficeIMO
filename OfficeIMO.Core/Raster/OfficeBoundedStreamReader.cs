@@ -1,10 +1,15 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeBoundedStreamReader {
+    private static readonly FieldInfo? MemoryStreamBufferField =
+        typeof(MemoryStream).GetField("_buffer", BindingFlags.Instance | BindingFlags.NonPublic) ??
+        typeof(MemoryStream).GetField("m_buffer", BindingFlags.Instance | BindingFlags.NonPublic);
+
     internal static bool TryRead(
         Stream stream,
         int maximumBytes,
@@ -23,7 +28,8 @@ internal static class OfficeBoundedStreamReader {
             if (remaining <= 0L || remaining > maximumBytes || remaining > int.MaxValue) return false;
             if (stream is MemoryStream memoryStream) {
                 if (TryBorrowFullBuffer(memoryStream, remaining, out bytes)) return true;
-                if (!IsSeekableMemoryCopyWithinLimit(memoryStream.Length, remaining)) return false;
+                if (!TryGetRetainedMemoryStreamBytes(memoryStream, out long retainedStreamBytes) ||
+                    !IsSeekableMemoryCopyWithinLimit(retainedStreamBytes, remaining)) return false;
             }
             bytes = new byte[(int)remaining];
             return TryReadExact(stream, bytes, cancellationToken);
@@ -75,6 +81,21 @@ internal static class OfficeBoundedStreamReader {
         } catch (OverflowException) {
             return false;
         }
+    }
+
+    internal static bool TryGetRetainedMemoryStreamBytes(
+        MemoryStream stream,
+        out long retainedStreamBytes) {
+        if (stream.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array != null) {
+            retainedStreamBytes = segment.Array.LongLength;
+            return true;
+        }
+        if (MemoryStreamBufferField?.GetValue(stream) is byte[] hiddenBuffer) {
+            retainedStreamBytes = hiddenBuffer.LongLength;
+            return true;
+        }
+        retainedStreamBytes = 0L;
+        return stream.Capacity == 0;
     }
 
     private static bool TryBorrowFullBuffer(

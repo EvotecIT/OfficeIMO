@@ -23,8 +23,8 @@ public static partial class OfficeWebpCodec {
             lengths[first] = 1;
             if (symbolCount == 2) {
                 int second = (int)reader.ReadBits(8);
-                if (second >= alphabetSize) return false;
-                if (second != first) lengths[second] = 1;
+                if (second >= alphabetSize || second == first) return false;
+                lengths[second] = 1;
             }
             return Vp8lHuffmanTree.TryCreate(lengths, allocationBudget, out tree);
         }

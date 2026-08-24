@@ -895,15 +895,34 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void OfficeImageOptimizerBoundsInputBeforeIdentificationAndMetadataInspection() {
-            OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes - 24);
+            int maximumInput = checked((int)((OfficeRasterGuards.MaximumDecodedBytes - 72L) / 3L));
+            OfficeImageOptimizer.ValidateInputLength(maximumInput);
             Assert.Throws<ArgumentException>(() =>
-                OfficeImageOptimizer.ValidateInputLength(OfficeRasterGuards.MaximumEncodedBytes - 23));
+                OfficeImageOptimizer.ValidateInputLength(maximumInput + 1));
             Assert.False(OfficeImageOptimizer.IsUnchangedResultWorkingSetWithinLimit(
                 OfficeRasterGuards.MaximumEncodedBytes,
                 retainedManagedBytes: 0L));
             Assert.True(OfficeImageOptimizer.IsUnchangedResultWorkingSetWithinLimit(
                 encodedBytes: 64 * 1024,
                 retainedManagedBytes: 4L * 1024L * 1024L));
+            Assert.False(OfficeImageOptimizer.IsChangedResultWorkingSetWithinLimit(
+                originalEncodedBytes: 85L * 1024L * 1024L,
+                finalEncodedBytes: 86L * 1024L * 1024L));
+            Assert.True(OfficeImageOptimizer.IsChangedResultWorkingSetWithinLimit(
+                originalEncodedBytes: 64L * 1024L,
+                finalEncodedBytes: 4L * 1024L * 1024L));
+        }
+
+        [Fact]
+        public void OfficeImageMetadataInspectorBudgetsJpegIccAssemblyWithRetainedRaster() {
+            Assert.False(OfficeImageMetadataInspector.IsJpegIccAssemblyWithinLimit(
+                encodedBytes: 128L * 1024L * 1024L,
+                iccBytes: 16L * 1024L * 1024L,
+                retainedManagedBytes: 113L * 1024L * 1024L));
+            Assert.True(OfficeImageMetadataInspector.IsJpegIccAssemblyWithinLimit(
+                encodedBytes: 64L * 1024L,
+                iccBytes: 4L * 1024L * 1024L,
+                retainedManagedBytes: 32L * 1024L * 1024L));
         }
 
         [Fact]
@@ -1264,6 +1283,10 @@ namespace OfficeIMO.Tests {
                 result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
                 result.Metadata.Lost & OfficeImageMetadataKinds.Resolution);
+            OfficeImageMetadataSnapshot outputMetadata = OfficeImageMetadataInspector.Inspect(
+                result.Bytes, OfficeImageFormat.Png);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                outputMetadata.Kinds & OfficeImageMetadataKinds.Resolution);
         }
 
         [Fact]
@@ -1288,6 +1311,10 @@ namespace OfficeIMO.Tests {
                 result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
                 result.Metadata.Lost & OfficeImageMetadataKinds.Resolution);
+            OfficeImageMetadataSnapshot outputMetadata = OfficeImageMetadataInspector.Inspect(
+                result.Bytes, OfficeImageFormat.Tiff);
+            Assert.Equal(OfficeImageMetadataKinds.None,
+                outputMetadata.Kinds & OfficeImageMetadataKinds.Resolution);
         }
 
         [Fact]

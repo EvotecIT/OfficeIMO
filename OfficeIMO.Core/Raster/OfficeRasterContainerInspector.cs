@@ -400,7 +400,9 @@ public static class OfficeRasterContainerInspector {
         }
         if (cursor != bytes.Length) return false;
         if (frames.Count == 0) {
-            if (!hasLosslessImage) return false;
+            if (!hasLosslessImage ||
+                !OfficeWebpCodec.TryDecode(bytes, options.CancellationToken, out OfficeRasterImage? decoded) ||
+                decoded == null || decoded.Width != imageInfo.Width || decoded.Height != imageInfo.Height) return false;
             container = CreateStatic(imageInfo);
             return true;
         }

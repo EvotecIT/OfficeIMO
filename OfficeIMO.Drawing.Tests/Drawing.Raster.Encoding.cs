@@ -488,17 +488,56 @@ public sealed class DrawingRasterEncodingTests {
             pixels: 1024L * 1024L));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void OfficeWebpCodecDecodesShortenedAndDuplicateSymbolHuffmanTrees(
-        bool duplicateSimpleTree) {
-        byte[] webp = CreateVp8lHuffmanEdgeFixture(duplicateSimpleTree);
+    [Fact]
+    public void OfficeJpegWriterBoundsCoefficientAndOutputWorkingSets() {
+        Assert.False(OfficeJpegWriter.IsEncodingWorkingSetWithinLimit(
+            fixedManagedBytes: 224L * 1024L * 1024L,
+            outputBackingBytes: 33L * 1024L * 1024L));
+        Assert.True(OfficeJpegWriter.IsEncodingWorkingSetWithinLimit(
+            fixedManagedBytes: 224L * 1024L * 1024L,
+            outputBackingBytes: 31L * 1024L * 1024L));
+        Assert.False(OfficeJpegWriter.IsEncodingWorkingSetWithinLimit(
+            fixedManagedBytes: 128L * 1024L * 1024L,
+            outputBackingBytes: 64L * 1024L * 1024L,
+            additionalOutputBytes: 65L * 1024L * 1024L));
+        Assert.False(OfficeJpegWriter.IsEncodingGrowthWorkingSetWithinLimit(
+            fixedManagedBytes: 192L * 1024L * 1024L,
+            currentOutputBackingBytes: 32L * 1024L * 1024L,
+            newOutputBackingBytes: 64L * 1024L * 1024L));
+        Assert.True(OfficeJpegWriter.IsEncodingGrowthWorkingSetWithinLimit(
+            fixedManagedBytes: 96L * 1024L * 1024L,
+            currentOutputBackingBytes: 32L * 1024L * 1024L,
+            newOutputBackingBytes: 64L * 1024L * 1024L));
+
+        var options = new OfficeRasterEncodingOptions {
+            Jpeg = new OfficeJpegEncodeOptions {
+                RetainedManagedBytes = 4096L
+            }
+        };
+        OfficeRasterEncodingOptions resolved = options.Resolve(OfficeImageExportFormat.Jpeg);
+        Assert.Equal(4096L, resolved.Jpeg.RetainedManagedBytes);
+
+        OfficeJpegEncodeOptions transparent = resolved.Jpeg.WithAdditionalRetainedManagedBytes(8192L);
+        Assert.Equal(4096L, resolved.Jpeg.RetainedManagedBytes);
+        Assert.Equal(12_288L, transparent.RetainedManagedBytes);
+    }
+
+    [Fact]
+    public void OfficeWebpCodecDecodesShortenedHuffmanTrees() {
+        byte[] webp = CreateVp8lHuffmanEdgeFixture(duplicateSimpleTree: false);
 
         Assert.True(OfficeWebpCodec.TryDecode(webp, out OfficeRasterImage? image));
         Assert.NotNull(image);
         Assert.Equal((1, 1), (image!.Width, image.Height));
         Assert.Equal(OfficeColor.FromRgba(11, 0, 22, 255), image.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void OfficeWebpCodecRejectsDuplicateSymbolsInSimpleHuffmanTrees() {
+        byte[] webp = CreateVp8lHuffmanEdgeFixture(duplicateSimpleTree: true);
+
+        Assert.False(OfficeWebpCodec.TryDecode(webp, out _));
+        Assert.False(OfficeRasterContainerInspector.TryInspect(webp, out _));
     }
 
     [Fact]

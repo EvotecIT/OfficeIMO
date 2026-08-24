@@ -22,13 +22,17 @@ internal static class OfficeImageMetadataInspector {
     private static readonly byte[] ExtendedXmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xmp/extension/\0");
     private static readonly byte[] IccPrefix = System.Text.Encoding.ASCII.GetBytes("ICC_PROFILE\0");
 
-    internal static OfficeImageMetadataSnapshot Inspect(byte[] data, OfficeImageFormat format) {
+    internal static OfficeImageMetadataSnapshot Inspect(
+        byte[] data,
+        OfficeImageFormat format,
+        long retainedManagedBytes = 0L) {
+        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
         var snapshot = new OfficeImageMetadataSnapshot();
         if (OfficeImageOrientationNormalizer.TryRead(data, out OfficeImageOrientation orientation) &&
             orientation != OfficeImageOrientation.Normal) snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
         switch (format) {
             case OfficeImageFormat.Jpeg:
-                InspectJpeg(data, snapshot);
+                InspectJpeg(data, snapshot, retainedManagedBytes);
                 break;
             case OfficeImageFormat.Png:
                 InspectPng(data, snapshot);
@@ -49,7 +53,10 @@ internal static class OfficeImageMetadataInspector {
         return snapshot;
     }
 
-    private static void InspectJpeg(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+    private static void InspectJpeg(
+        byte[] data,
+        OfficeImageMetadataSnapshot snapshot,
+        long retainedManagedBytes) {
         JpegIccPart?[]? iccParts = null;
         bool invalidIccSequence = false;
         int offset = 2;
@@ -128,6 +135,17 @@ internal static class OfficeImageMetadataInspector {
                 if (part.Length > OfficeRasterGuards.MaximumEncodedBytes - length) return;
                 length += part.Length;
             }
+            long inspectorRetainedBytes;
+            try {
+                inspectorRetainedBytes = checked(
+                    retainedManagedBytes +
+                    (snapshot.Exif == null ? 0L : snapshot.Exif.LongLength + 24L) +
+                    (snapshot.Xmp == null ? 0L : snapshot.Xmp.LongLength + 24L) +
+                    24L + iccParts.LongLength * 24L);
+            } catch (OverflowException) {
+                return;
+            }
+            if (!IsJpegIccAssemblyWithinLimit(data.LongLength, length, inspectorRetainedBytes)) return;
             snapshot.Icc = new byte[length];
             int target = 0;
             for (int index = 0; index < iccParts.Length; index++) {
@@ -220,6 +238,20 @@ internal static class OfficeImageMetadataInspector {
                 double scale = resolutionUnit == 3 ? 2.54D : 1D;
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: true);
             }
+        }
+    }
+
+    internal static bool IsJpegIccAssemblyWithinLimit(
+        long encodedBytes,
+        long iccBytes,
+        long retainedManagedBytes) {
+        if (encodedBytes < 0L || iccBytes < 0L || retainedManagedBytes < 0L) return false;
+        try {
+            long peakBytes = checked(
+                encodedBytes + 24L + iccBytes + 24L + retainedManagedBytes);
+            return peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
         }
     }
 

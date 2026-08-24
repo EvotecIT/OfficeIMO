@@ -938,6 +938,30 @@ public partial class DrawingTests {
         Assert.True(OfficeBoundedStreamReader.IsSeekableMemoryCopyWithinLimit(
             retainedStreamBytes: 64 * 1024,
             payloadBytes: 64 * 1024));
+
+        using var hiddenCapacity = new MemoryStream(capacity: 80 * 1024);
+        hiddenCapacity.Write(source, 0, source.Length);
+        hiddenCapacity.Position = 0;
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            hiddenCapacity, source.Length, CancellationToken.None, out byte[] copied));
+        Assert.NotSame(hiddenCapacity.GetBuffer(), copied);
+
+        var oversizedBacking = new byte[192 * 1024];
+        using var exposedSegment = new MemoryStream(
+            oversizedBacking, 64 * 1024, 64 * 1024, writable: false, publiclyVisible: true);
+        Assert.True(exposedSegment.Capacity < oversizedBacking.Length);
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            exposedSegment, 64 * 1024, CancellationToken.None, out byte[] segmentCopy));
+        Assert.Equal(64 * 1024, segmentCopy.Length);
+
+        using var hiddenSegment = new MemoryStream(
+            oversizedBacking, 64 * 1024, 64 * 1024, writable: false, publiclyVisible: false);
+        Assert.True(OfficeBoundedStreamReader.TryGetRetainedMemoryStreamBytes(
+            hiddenSegment, out long hiddenBackingBytes));
+        Assert.Equal(oversizedBacking.LongLength, hiddenBackingBytes);
+        Assert.True(OfficeBoundedStreamReader.TryRead(
+            hiddenSegment, 64 * 1024, CancellationToken.None, out byte[] hiddenSegmentCopy));
+        Assert.Equal(64 * 1024, hiddenSegmentCopy.Length);
     }
 
     [Fact]
