@@ -4,26 +4,33 @@ namespace OfficeIMO.Markdown;
 /// A lightweight syntax-tree node built from the parsed markdown document.
 /// </summary>
 public sealed class MarkdownSyntaxNode {
-    private int _indexInParent = -1;
-    private readonly MarkdownSyntaxNodeMetadata? _metadata;
+    private const int IndexShift = 8;
+    private const uint KindMask = (1u << IndexShift) - 1u;
+    private const uint DetachedIndex = (1u << (32 - IndexShift)) - 1u;
+
+    private uint _kindAndIndex;
+    private readonly object? _literalOrMetadata;
 
     /// <summary>Node kind.</summary>
-    public MarkdownSyntaxKind Kind { get; }
+    public MarkdownSyntaxKind Kind => (MarkdownSyntaxKind)(_kindAndIndex & KindMask);
     /// <summary>Optional source span from the original markdown.</summary>
     public MarkdownSourceSpan? SourceSpan { get; }
     /// <summary>Optional literal payload for leaf-like nodes.</summary>
-    public string? Literal { get; }
+    public string? Literal => _literalOrMetadata is string literal
+        ? literal
+        : (_literalOrMetadata as MarkdownSyntaxNodeMetadata)?.Literal;
     /// <summary>Optional custom extension kind for nodes emitted by syntax-aware extensions.</summary>
-    public string? CustomKind => _metadata?.CustomKind;
+    public string? CustomKind => (_literalOrMetadata as MarkdownSyntaxNodeMetadata)?.CustomKind;
     /// <summary>Optional originating model object (document/block/inline) for AST-aware consumers.</summary>
     public object? AssociatedObject { get; }
     /// <summary>Generic Markdown attributes associated with this syntax node.</summary>
-    public MarkdownAttributeSet Attributes => _metadata?.Attributes ?? MarkdownAttributeSet.Empty;
+    public MarkdownAttributeSet Attributes =>
+        (_literalOrMetadata as MarkdownSyntaxNodeMetadata)?.Attributes ?? MarkdownAttributeSet.Empty;
     /// <summary>
     /// Gets a value indicating whether this node was generated while rebuilding syntax from the semantic AST
     /// rather than directly parsed from matching source text.
     /// </summary>
-    public bool IsGenerated => _metadata?.IsGenerated == true;
+    public bool IsGenerated => (_literalOrMetadata as MarkdownSyntaxNodeMetadata)?.IsGenerated == true;
     /// <summary>Parent syntax node when this node belongs to a larger syntax tree.</summary>
     public MarkdownSyntaxNode? Parent { get; private set; }
     /// <summary>Child syntax nodes.</summary>
@@ -31,7 +38,12 @@ public sealed class MarkdownSyntaxNode {
     /// <summary>Whether this node behaves like a block/container boundary for navigation.</summary>
     public bool IsBlockLike => IsBlockLikeKind(Kind);
     /// <summary>Zero-based child index within <see cref="Parent"/> when available.</summary>
-    public int IndexInParent => _indexInParent;
+    public int IndexInParent {
+        get {
+            uint storedIndex = _kindAndIndex >> IndexShift;
+            return storedIndex == DetachedIndex ? -1 : (int)storedIndex;
+        }
+    }
     /// <summary>Nearest previous sibling node when present.</summary>
     public MarkdownSyntaxNode? PreviousSibling => Parent == null ? null : Parent.GetChildOrNull(IndexInParent - 1);
     /// <summary>Nearest next sibling node when present.</summary>
@@ -49,15 +61,21 @@ public sealed class MarkdownSyntaxNode {
         string? customKind = null,
         MarkdownAttributeSet? attributes = null,
         bool isGenerated = false) {
-        Kind = kind;
+        if ((uint)kind > KindMask) {
+            throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+
+        _kindAndIndex = (DetachedIndex << IndexShift) | (uint)kind;
         SourceSpan = sourceSpan;
-        Literal = literal;
         AssociatedObject = associatedObject;
         if (customKind != null || (attributes != null && !attributes.IsEmpty) || isGenerated) {
-            _metadata = new MarkdownSyntaxNodeMetadata(
+            _literalOrMetadata = new MarkdownSyntaxNodeMetadata(
+                literal,
                 customKind,
                 attributes == null || attributes.IsEmpty ? MarkdownAttributeSet.Empty : attributes,
                 isGenerated);
+        } else {
+            _literalOrMetadata = literal;
         }
         Children = children ?? Array.Empty<MarkdownSyntaxNode>();
         for (int i = 0; i < Children.Count; i++) {
@@ -371,8 +389,12 @@ public sealed class MarkdownSyntaxNode {
     }
 
     private void AttachToParent(MarkdownSyntaxNode parent, int index) {
+        if ((uint)index >= DetachedIndex) {
+            throw new InvalidOperationException("A syntax node cannot contain more than 16,777,215 children.");
+        }
+
         Parent = parent;
-        _indexInParent = index;
+        _kindAndIndex = ((uint)index << IndexShift) | (_kindAndIndex & KindMask);
     }
 
     private MarkdownSyntaxNode? GetChildOrNull(int index) =>
@@ -381,14 +403,17 @@ public sealed class MarkdownSyntaxNode {
 
 internal sealed class MarkdownSyntaxNodeMetadata {
     internal MarkdownSyntaxNodeMetadata(
+        string? literal,
         string? customKind,
         MarkdownAttributeSet attributes,
         bool isGenerated) {
+        Literal = literal;
         CustomKind = customKind;
         Attributes = attributes;
         IsGenerated = isGenerated;
     }
 
+    internal string? Literal { get; }
     internal string? CustomKind { get; }
     internal MarkdownAttributeSet Attributes { get; }
     internal bool IsGenerated { get; }

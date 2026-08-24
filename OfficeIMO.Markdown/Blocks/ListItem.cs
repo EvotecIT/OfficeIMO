@@ -309,15 +309,26 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
-        var children = BuildListMarkerSyntaxNodes();
-        children.AddRange(MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
+        var markerChildren = BuildListMarkerSyntaxNodes();
+        var contentChildren = MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this);
         var attributeNode = MarkdownGenericAttributeSyntaxNodes.Create(this);
-        if (attributeNode != null) {
-            children.Add(attributeNode);
+        int childCount = markerChildren.Count
+            + contentChildren.Count
+            + (attributeNode == null ? 0 : 1)
+            + (nestedList == null ? 0 : 1);
+        var children = new MarkdownSyntaxNode[childCount];
+        int childIndex = 0;
+        for (int i = 0; i < markerChildren.Count; i++) {
+            children[childIndex++] = markerChildren[i];
         }
-
+        for (int i = 0; i < contentChildren.Count; i++) {
+            children[childIndex++] = contentChildren[i];
+        }
+        if (attributeNode != null) {
+            children[childIndex++] = attributeNode;
+        }
         if (nestedList != null) {
-            children.Add(nestedList);
+            children[childIndex] = nestedList;
         }
 
         string? literal = IsTask
@@ -333,14 +344,21 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             attributes: Attributes);
     }
 
-    private List<MarkdownSyntaxNode> BuildListMarkerSyntaxNodes() {
-        var children = new List<MarkdownSyntaxNode>(2);
+    private IReadOnlyList<MarkdownSyntaxNode> BuildListMarkerSyntaxNodes() {
+        int markerCount = (MarkerSourceSpan.HasValue ? 1 : 0)
+            + (TaskMarkerSourceSpan.HasValue ? 1 : 0);
+        if (markerCount == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var children = new MarkdownSyntaxNode[markerCount];
+        int markerIndex = 0;
         if (MarkerSourceSpan.HasValue) {
-            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ListMarker, MarkerSourceSpan.Value, MarkerText));
+            children[markerIndex++] = new MarkdownSyntaxNode(MarkdownSyntaxKind.ListMarker, MarkerSourceSpan.Value, MarkerText);
         }
 
         if (TaskMarkerSourceSpan.HasValue) {
-            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.TaskListMarker, TaskMarkerSourceSpan.Value, TaskMarkerText));
+            children[markerIndex] = new MarkdownSyntaxNode(MarkdownSyntaxKind.TaskListMarker, TaskMarkerSourceSpan.Value, TaskMarkerText);
         }
 
         return children;
@@ -348,24 +366,22 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() => BuildOwnedSyntaxChildren();
 
-    private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
+    private IReadOnlyList<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
         if (_syntaxChildren?.Count > 0) {
             return BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes();
         }
 
-        var builtChildren = MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(this);
-        return builtChildren as List<MarkdownSyntaxNode> ?? builtChildren.ToList();
+        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(this);
     }
 
-    private List<MarkdownSyntaxNode> BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes() {
+    private IReadOnlyList<MarkdownSyntaxNode> BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes() {
         var canonical = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(_syntaxChildren, this);
-        var canonicalChildren = canonical as List<MarkdownSyntaxNode> ?? canonical.ToList();
         if (!HasSyntaxOnlyDefinitionChildren()) {
-            return canonicalChildren;
+            return canonical;
         }
 
-        var usedCanonicalChildren = new bool[canonicalChildren.Count];
-        var children = new List<MarkdownSyntaxNode>(canonicalChildren.Count + SyntaxChildren.Count);
+        var usedCanonicalChildren = new bool[canonical.Count];
+        var children = new List<MarkdownSyntaxNode>(canonical.Count + SyntaxChildren.Count);
         for (int i = 0; i < SyntaxChildren.Count; i++) {
             var syntaxChild = SyntaxChildren[i];
             if (IsSyntaxOnlyDefinitionChild(syntaxChild)) {
@@ -373,16 +389,16 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
                 continue;
             }
 
-            var canonicalIndex = FindCanonicalChildForCachedSyntax(canonicalChildren, usedCanonicalChildren, syntaxChild);
+            var canonicalIndex = FindCanonicalChildForCachedSyntax(canonical, usedCanonicalChildren, syntaxChild);
             if (canonicalIndex >= 0) {
-                children.Add(canonicalChildren[canonicalIndex]);
+                children.Add(canonical[canonicalIndex]);
                 usedCanonicalChildren[canonicalIndex] = true;
             }
         }
 
-        for (int i = 0; i < canonicalChildren.Count; i++) {
+        for (int i = 0; i < canonical.Count; i++) {
             if (!usedCanonicalChildren[i]) {
-                children.Add(canonicalChildren[i]);
+                children.Add(canonical[i]);
             }
         }
 

@@ -31,13 +31,20 @@ public abstract class MarkdownObject {
         get => _metadata switch {
             MarkdownSyntaxNode syntaxNode => syntaxNode.SourceSpan,
             MarkdownObjectMetadata metadata => metadata.SourceSpan,
+            MarkdownSourceSpan sourceSpan => sourceSpan,
             _ => null
         };
         internal set {
             if (value.HasValue) {
-                WritableMetadata.SourceSpan = value;
+                if (_metadata == null || _metadata is MarkdownSourceSpan) {
+                    _metadata = value.Value;
+                } else {
+                    WritableMetadata.SourceSpan = value;
+                }
             } else if (_metadata is MarkdownObjectMetadata metadata) {
                 metadata.SourceSpan = null;
+            } else if (_metadata is MarkdownSourceSpan) {
+                _metadata = null;
             } else if (_metadata is MarkdownSyntaxNode syntaxNode) {
                 _metadata = syntaxNode.Attributes.IsEmpty
                     ? null
@@ -140,18 +147,24 @@ public abstract class MarkdownObject {
             : syntaxNode;
     }
 
+    internal MarkdownSyntaxNode? BoundSyntaxNode => _metadata as MarkdownSyntaxNode;
+
     private MarkdownObjectMetadata WritableMetadata {
         get {
             if (_metadata is MarkdownObjectMetadata metadata) {
                 return metadata;
             }
 
-            var created = _metadata is MarkdownSyntaxNode syntaxNode
-                ? new MarkdownObjectMetadata {
+            var created = _metadata switch {
+                MarkdownSyntaxNode syntaxNode => new MarkdownObjectMetadata {
                     SourceSpan = syntaxNode.SourceSpan,
                     Attributes = syntaxNode.Attributes
-                }
-                : new MarkdownObjectMetadata();
+                },
+                MarkdownSourceSpan sourceSpan => new MarkdownObjectMetadata {
+                    SourceSpan = sourceSpan
+                },
+                _ => new MarkdownObjectMetadata()
+            };
             _metadata = created;
             return created;
         }
@@ -178,11 +191,62 @@ internal interface IMarkdownInlineAuxiliarySyntaxMetadataOwner {
 }
 
 internal sealed class MarkdownInlineAuxiliarySyntaxMetadata {
-    internal string? AutolinkLiteral;
+    private MarkdownSourceSpan _openingMarkerSpan;
+    private MarkdownSourceSpan _closingMarkerSpan;
+    private MarkdownInlineAuxiliarySyntaxRareMetadata? _rare;
+
     internal string OpeningMarker = string.Empty;
-    internal MarkdownSourceSpan? OpeningMarkerSpan;
-    internal string SeparatorMarker = string.Empty;
-    internal MarkdownSourceSpan? SeparatorMarkerSpan;
     internal string ClosingMarker = string.Empty;
-    internal MarkdownSourceSpan? ClosingMarkerSpan;
+
+    internal string? AutolinkLiteral {
+        get => _rare?.AutolinkLiteral;
+        set {
+            if (string.IsNullOrEmpty(value) && _rare == null) {
+                return;
+            }
+
+            (_rare ??= new MarkdownInlineAuxiliarySyntaxRareMetadata()).AutolinkLiteral = value;
+        }
+    }
+
+    internal MarkdownSourceSpan? OpeningMarkerSpan {
+        get => _openingMarkerSpan.StartLine == 0 ? null : _openingMarkerSpan;
+        set => _openingMarkerSpan = value.GetValueOrDefault();
+    }
+
+    internal string SeparatorMarker {
+        get => _rare?.SeparatorMarker ?? string.Empty;
+        set {
+            if (string.IsNullOrEmpty(value) && _rare == null) {
+                return;
+            }
+
+            (_rare ??= new MarkdownInlineAuxiliarySyntaxRareMetadata()).SeparatorMarker = value ?? string.Empty;
+        }
+    }
+
+    internal MarkdownSourceSpan? SeparatorMarkerSpan {
+        get {
+            MarkdownSourceSpan span = _rare?.SeparatorMarkerSpan ?? default;
+            return span.StartLine == 0 ? null : span;
+        }
+        set {
+            if (!value.HasValue && _rare == null) {
+                return;
+            }
+
+            (_rare ??= new MarkdownInlineAuxiliarySyntaxRareMetadata()).SeparatorMarkerSpan = value.GetValueOrDefault();
+        }
+    }
+
+    internal MarkdownSourceSpan? ClosingMarkerSpan {
+        get => _closingMarkerSpan.StartLine == 0 ? null : _closingMarkerSpan;
+        set => _closingMarkerSpan = value.GetValueOrDefault();
+    }
+}
+
+internal sealed class MarkdownInlineAuxiliarySyntaxRareMetadata {
+    internal string? AutolinkLiteral;
+    internal string SeparatorMarker = string.Empty;
+    internal MarkdownSourceSpan SeparatorMarkerSpan;
 }

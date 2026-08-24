@@ -335,6 +335,9 @@ internal static class MarkdownObjectTreeBinder {
     private static void MapSourceSpans(MarkdownSyntaxNode syntaxNode) {
         if (syntaxNode.AssociatedObject is MarkdownObject markdownObject) {
             markdownObject.BindSyntaxNode(syntaxNode);
+            if (markdownObject is MarkdownInline inline) {
+                MarkdownInlineMetadataSourceSpans.ReleaseRedundantFormattingMetadata(inline);
+            }
         }
 
         for (int i = 0; i < syntaxNode.Children.Count; i++) {

@@ -67,9 +67,13 @@ internal static class MarkdownBlockSyntaxBuilder {
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(ListItem item) {
         int blockCount = item.SyntaxBlockChildCount;
-        var nodes = new List<MarkdownSyntaxNode>(blockCount);
+        if (blockCount == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var nodes = new MarkdownSyntaxNode[blockCount];
         for (int i = 0; i < blockCount; i++) {
-            nodes.Add(BuildBlock(item.GetSyntaxBlockChild(i)));
+            nodes[i] = BuildBlock(item.GetSyntaxBlockChild(i));
         }
         return nodes;
     }
@@ -146,7 +150,7 @@ internal static class MarkdownBlockSyntaxBuilder {
             return Array.Empty<MarkdownSyntaxNode>();
         }
 
-        var children = new List<MarkdownSyntaxNode>(blockCount);
+        var children = new MarkdownSyntaxNode[blockCount];
         for (int i = 0; i < blockCount; i++) {
             var block = item.GetSyntaxBlockChild(i);
             var cachedSyntax = FindCanonicalSyntaxChild(syntaxChildren, block, i);
@@ -154,25 +158,25 @@ internal static class MarkdownBlockSyntaxBuilder {
                 if (cachedSyntax.Children.Count == 0
                     && block is IMarkdownListBlock sourceList
                     && sourceList.ListItems.Count > 0) {
-                    children.Add(BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false));
+                    children[i] = BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false);
                     continue;
                 }
 
-                children.Add(cachedSyntax.Parent == null
+                children[i] = cachedSyntax.Parent == null
                     ? cachedSyntax
-                    : CloneSyntaxNode(cachedSyntax));
+                    : CloneSyntaxNode(cachedSyntax);
                 continue;
             }
 
             if (cachedSyntax != null && CanBuildSourceBackedCompatibleSyntax(cachedSyntax, block)) {
-                children.Add(BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false));
+                children[i] = BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false);
                 continue;
             }
 
-            children.Add(BuildBlock(
+            children[i] = BuildBlock(
                 block,
                 cachedSyntax?.SourceSpan,
-                isGenerated: block is not MarkdownObject sourceObject || !sourceObject.SourceSpan.HasValue));
+                isGenerated: block is not MarkdownObject sourceObject || !sourceObject.SourceSpan.HasValue);
         }
 
         return children;

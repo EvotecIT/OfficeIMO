@@ -8,12 +8,21 @@ internal static class MarkdownInlineSyntaxBuilder {
             return Array.Empty<MarkdownSyntaxNode>();
         }
 
-        var nodes = new List<MarkdownSyntaxNode>(sequence.Nodes.Count);
+        var nodes = new MarkdownSyntaxNode[sequence.Nodes.Count];
+        int nodeCount = 0;
         for (int i = 0; i < sequence.Nodes.Count; i++) {
             var node = BuildNode(sequence.Nodes[i]);
             if (node != null) {
-                nodes.Add(node);
+                nodes[nodeCount++] = node;
             }
+        }
+
+        if (nodeCount == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        if (nodeCount != nodes.Length) {
+            Array.Resize(ref nodes, nodeCount);
         }
 
         return nodes;
@@ -203,27 +212,34 @@ internal static class MarkdownInlineSyntaxBuilder {
             return contentChildren;
         }
 
-        var nodes = new List<MarkdownSyntaxNode>(contentChildren.Count + 3);
-        AddMarkerNode(
-            nodes,
-            MarkdownSyntaxKind.InlineOpeningMarker,
-            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(owner),
-            openingMarkerSpan);
-
-        for (int i = 0; i < contentChildren.Count; i++) {
-            nodes.Add(contentChildren[i]);
+        int markerCount = (openingMarkerSpan.HasValue ? 1 : 0)
+            + (separatorMarkerSpan.HasValue ? 1 : 0)
+            + (closingMarkerSpan.HasValue ? 1 : 0);
+        var nodes = new MarkdownSyntaxNode[contentChildren.Count + markerCount];
+        int nodeIndex = 0;
+        if (openingMarkerSpan.HasValue) {
+            nodes[nodeIndex++] = CreateMarkerNode(
+                MarkdownSyntaxKind.InlineOpeningMarker,
+                MarkdownInlineMetadataSourceSpans.GetOpeningMarker(owner),
+                openingMarkerSpan.Value);
         }
 
-        AddMarkerNode(
-            nodes,
-            MarkdownSyntaxKind.InlineSeparatorMarker,
-            MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(owner),
-            separatorMarkerSpan);
-        AddMarkerNode(
-            nodes,
-            MarkdownSyntaxKind.InlineClosingMarker,
-            MarkdownInlineMetadataSourceSpans.GetClosingMarker(owner),
-            closingMarkerSpan);
+        for (int i = 0; i < contentChildren.Count; i++) {
+            nodes[nodeIndex++] = contentChildren[i];
+        }
+
+        if (separatorMarkerSpan.HasValue) {
+            nodes[nodeIndex++] = CreateMarkerNode(
+                MarkdownSyntaxKind.InlineSeparatorMarker,
+                MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(owner),
+                separatorMarkerSpan.Value);
+        }
+        if (closingMarkerSpan.HasValue) {
+            nodes[nodeIndex] = CreateMarkerNode(
+                MarkdownSyntaxKind.InlineClosingMarker,
+                MarkdownInlineMetadataSourceSpans.GetClosingMarker(owner),
+                closingMarkerSpan.Value);
+        }
 
         return nodes;
     }
@@ -274,25 +290,31 @@ internal static class MarkdownInlineSyntaxBuilder {
             return Array.Empty<MarkdownSyntaxNode>();
         }
 
-        var nodes = new List<MarkdownSyntaxNode>(3);
-        AddMarkerNode(
-            nodes,
-            MarkdownSyntaxKind.InlineOpeningMarker,
-            MarkdownInlineMetadataSourceSpans.GetOpeningMarker(code),
-            openingMarkerSpan);
-
-        if (contentSpan.HasValue) {
-            nodes.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.InlineCodeSpanContent,
-                contentSpan,
-                literal: code.Text));
+        int childCount = (openingMarkerSpan.HasValue ? 1 : 0)
+            + (contentSpan.HasValue ? 1 : 0)
+            + (closingMarkerSpan.HasValue ? 1 : 0);
+        var nodes = new MarkdownSyntaxNode[childCount];
+        int childIndex = 0;
+        if (openingMarkerSpan.HasValue) {
+            nodes[childIndex++] = CreateMarkerNode(
+                MarkdownSyntaxKind.InlineOpeningMarker,
+                MarkdownInlineMetadataSourceSpans.GetOpeningMarker(code),
+                openingMarkerSpan.Value);
         }
 
-        AddMarkerNode(
-            nodes,
-            MarkdownSyntaxKind.InlineClosingMarker,
-            MarkdownInlineMetadataSourceSpans.GetClosingMarker(code),
-            closingMarkerSpan);
+        if (contentSpan.HasValue) {
+            nodes[childIndex++] = new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.InlineCodeSpanContent,
+                contentSpan,
+                literal: code.Text);
+        }
+
+        if (closingMarkerSpan.HasValue) {
+            nodes[childIndex] = CreateMarkerNode(
+                MarkdownSyntaxKind.InlineClosingMarker,
+                MarkdownInlineMetadataSourceSpans.GetClosingMarker(code),
+                closingMarkerSpan.Value);
+        }
 
         return nodes;
     }
@@ -316,8 +338,14 @@ internal static class MarkdownInlineSyntaxBuilder {
             return;
         }
 
-        nodes.Add(new MarkdownSyntaxNode(kind, span, literal: marker ?? string.Empty));
+        nodes.Add(CreateMarkerNode(kind, marker, span.Value));
     }
+
+    private static MarkdownSyntaxNode CreateMarkerNode(
+        MarkdownSyntaxKind kind,
+        string? marker,
+        MarkdownSourceSpan span) =>
+        new MarkdownSyntaxNode(kind, span, literal: marker ?? string.Empty);
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildInlineLabelChildren(InlineSequence? labelInlines, string fallbackText) {
         if (labelInlines != null && labelInlines.Nodes.Count > 0) {

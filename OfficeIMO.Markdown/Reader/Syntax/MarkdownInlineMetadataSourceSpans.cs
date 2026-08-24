@@ -21,6 +21,48 @@ internal static class MarkdownInlineMetadataSourceSpans {
         return inline != null && _auxiliaryMetadata.TryGetValue(inline, out var metadata) ? metadata : null;
     }
 
+    internal static void ReleaseRedundantFormattingMetadata(MarkdownInline inline) {
+        if (inline.BoundSyntaxNode == null) {
+            return;
+        }
+
+        MarkdownInlineAuxiliarySyntaxMetadata? metadata = GetAuxiliaryMetadata(inline);
+        if (metadata == null) {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(metadata.AutolinkLiteral)) {
+            metadata.OpeningMarker = string.Empty;
+            metadata.OpeningMarkerSpan = null;
+            metadata.SeparatorMarker = string.Empty;
+            metadata.SeparatorMarkerSpan = null;
+            metadata.ClosingMarker = string.Empty;
+            metadata.ClosingMarkerSpan = null;
+            return;
+        }
+
+        if (inline is IMarkdownInlineAuxiliarySyntaxMetadataOwner owner) {
+            owner.AuxiliarySyntaxMetadata = null;
+        } else {
+            _auxiliaryMetadata.Remove(inline);
+        }
+    }
+
+    private static MarkdownSyntaxNode? GetBoundChild(MarkdownInline? inline, MarkdownSyntaxKind kind) {
+        MarkdownSyntaxNode? syntaxNode = inline?.BoundSyntaxNode;
+        if (syntaxNode == null) {
+            return null;
+        }
+
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == kind) {
+                return syntaxNode.Children[i];
+            }
+        }
+
+        return null;
+    }
+
     internal static void SetLinkParts(
         LinkInline? inline,
         MarkdownSourceSpan? targetSpan,
@@ -150,22 +192,31 @@ internal static class MarkdownInlineMetadataSourceSpans {
     }
 
     internal static string? GetOpeningMarker(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.OpeningMarker;
+        GetAuxiliaryMetadata(inline)?.OpeningMarker is { Length: > 0 } marker
+            ? marker
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineOpeningMarker)?.Literal;
 
     internal static MarkdownSourceSpan? GetOpeningMarkerSpan(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.OpeningMarkerSpan;
+        GetAuxiliaryMetadata(inline)?.OpeningMarkerSpan
+            ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineOpeningMarker)?.SourceSpan;
 
     internal static string? GetSeparatorMarker(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.SeparatorMarker;
+        GetAuxiliaryMetadata(inline)?.SeparatorMarker is { Length: > 0 } marker
+            ? marker
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineSeparatorMarker)?.Literal;
 
     internal static MarkdownSourceSpan? GetSeparatorMarkerSpan(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.SeparatorMarkerSpan;
+        GetAuxiliaryMetadata(inline)?.SeparatorMarkerSpan
+            ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineSeparatorMarker)?.SourceSpan;
 
     internal static string? GetClosingMarker(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.ClosingMarker;
+        GetAuxiliaryMetadata(inline)?.ClosingMarker is { Length: > 0 } marker
+            ? marker
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineClosingMarker)?.Literal;
 
     internal static MarkdownSourceSpan? GetClosingMarkerSpan(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.ClosingMarkerSpan;
+        GetAuxiliaryMetadata(inline)?.ClosingMarkerSpan
+            ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineClosingMarker)?.SourceSpan;
 
     internal static void SetCodeSpanContent(
         CodeSpanInline? inline,
