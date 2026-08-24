@@ -68,8 +68,8 @@ public sealed partial class EmailStorePstMutationTransaction : IDisposable {
         FileStream? input = null;
         PstMutationTransactionLock? transactionLock = null;
         try {
-            // The separate mutation-lock handle denies writers after acquisition while allowing the
-            // reader and the final atomic replacement to coexist with that lock handle.
+            // The separate physical-file lock coordinates participating writers while allowing
+            // ordinary readers and the final atomic replacement to coexist with that lock handle.
             try {
                 input = new FileStream(sourcePath, FileMode.Open, FileAccess.Read,
                     FileShare.ReadWrite | FileShare.Delete,
