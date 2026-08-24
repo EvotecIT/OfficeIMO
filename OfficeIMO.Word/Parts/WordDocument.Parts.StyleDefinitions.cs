@@ -361,15 +361,14 @@ namespace OfficeIMO.Word {
                 if (current != null) styles.Append(current);
             }
 
-            var existingIds = new HashSet<string>(
-                styles.OfType<Style>()
-                    .Select(style => style.StyleId?.Value)
-                    .Where(styleId => styleId != null)!
-                    .Cast<string>(),
-                StringComparer.OrdinalIgnoreCase);
             foreach (Style custom in WordParagraphStyle.CustomStyles) {
                 string? styleId = custom.StyleId?.Value;
-                if (styleId == null || !existingIds.Add(styleId)) continue;
+                if (styleId == null) continue;
+                foreach (Style existing in styles.Elements<Style>()
+                    .Where(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))
+                    .ToArray()) {
+                    existing.Remove();
+                }
                 styles.Append((Style)custom.CloneNode(true));
             }
             styles.Save();
