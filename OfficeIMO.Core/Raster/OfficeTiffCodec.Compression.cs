@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -16,7 +17,8 @@ public static partial class OfficeTiffCodec {
             inputOffset > input.Length - inputCount) return false;
         try {
             var output = new byte[expectedCount];
-            return TryDecodeStrip(input, inputOffset, inputCount, compression, output, 0, expectedCount);
+            return TryDecodeStrip(input, inputOffset, inputCount, compression, output, 0,
+                expectedCount, CancellationToken.None);
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is InvalidDataException ||
@@ -32,16 +34,30 @@ public static partial class OfficeTiffCodec {
         int compression,
         byte[] output,
         int outputOffset,
-        int expectedCount) {
+        int expectedCount,
+        CancellationToken cancellationToken) {
+        if (input == null || output == null || inputOffset < 0 || inputCount < 0 ||
+            outputOffset < 0 || expectedCount < 0 ||
+            inputOffset > input.Length - inputCount || outputOffset > output.Length - expectedCount) {
+            return false;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         switch (compression) {
             case (int)OfficeTiffCompression.None:
-                return CopyExact(input, inputOffset, inputCount, output, outputOffset, expectedCount);
+                return CopyExact(
+                    input, inputOffset, inputCount, output, outputOffset, expectedCount, cancellationToken);
             case (int)OfficeTiffCompression.PackBits:
-                return TryDecodePackBits(input, inputOffset, inputCount, output, outputOffset, expectedCount);
+                return TryDecodePackBits(input, inputOffset, inputCount, output, outputOffset,
+                    expectedCount, cancellationToken);
+            case (int)OfficeTiffCompression.Lzw:
+                return TryDecodeLzw(input, inputOffset, inputCount, output, outputOffset,
+                    expectedCount, cancellationToken);
             case (int)OfficeTiffCompression.Deflate:
-                return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset, expectedCount, allowRawDeflate: false);
+                return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset,
+                    expectedCount, allowRawDeflate: false, cancellationToken);
             case 32946:
-                return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset, expectedCount, allowRawDeflate: true);
+                return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset,
+                    expectedCount, allowRawDeflate: true, cancellationToken);
             default:
                 return false;
         }
@@ -54,15 +70,17 @@ public static partial class OfficeTiffCodec {
         byte[] output,
         int outputOffset,
         int expectedCount,
-        bool allowRawDeflate) {
+        bool allowRawDeflate,
+        CancellationToken cancellationToken) {
         var compressed = new byte[inputCount];
-        Buffer.BlockCopy(input, inputOffset, compressed, 0, inputCount);
+        CopyWithCancellation(input, inputOffset, compressed, 0, inputCount, cancellationToken);
         try {
             byte[] inflated = OfficeZlibCodec.Decompress(
                 compressed,
                 expectedCount,
-                expectedCount);
-            Buffer.BlockCopy(inflated, 0, output, outputOffset, expectedCount);
+                expectedCount,
+                cancellationToken);
+            CopyWithCancellation(inflated, 0, output, outputOffset, expectedCount, cancellationToken);
             return true;
         } catch (Exception exception) when (
             exception is InvalidDataException ||
@@ -76,7 +94,8 @@ public static partial class OfficeTiffCodec {
             return false;
         }
 
-        if (!OfficeDeflateStreamValidator.TryValidateExact(compressed, 0, compressed.Length)) {
+        if (!OfficeDeflateStreamValidator.TryValidateExact(
+                compressed, 0, compressed.Length, expectedCount, cancellationToken)) {
             return false;
         }
 
@@ -85,6 +104,7 @@ public static partial class OfficeTiffCodec {
             using var deflate = new DeflateStream(source, CompressionMode.Decompress);
             int total = 0;
             while (total < expectedCount) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int read = deflate.Read(output, outputOffset + total, expectedCount - total);
                 if (read == 0) return false;
                 total += read;

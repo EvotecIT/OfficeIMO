@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -36,7 +37,12 @@ internal static partial class OfficeJpegReader {
         }
     }
 
-    private static byte[] ComposeRgba(JpegFrame frame, BaselineComponentState[] states, int? adobeTransform, bool highQualityChroma) {
+    private static byte[] ComposeRgba(
+        JpegFrame frame,
+        BaselineComponentState[] states,
+        int? adobeTransform,
+        bool highQualityChroma,
+        CancellationToken cancellationToken) {
         return ComposeColorComponents(
             frame,
             states,
@@ -45,6 +51,7 @@ internal static partial class OfficeJpegReader {
             usePdfColorTransformDefault: false,
             highQualityChroma,
             outputRgba: true,
+            cancellationToken,
             out _);
     }
 
@@ -56,6 +63,7 @@ internal static partial class OfficeJpegReader {
         bool usePdfColorTransformDefault,
         bool highQualityChroma,
         bool outputRgba,
+        CancellationToken cancellationToken,
         out int componentCount) {
         componentCount = frame.ComponentCount;
         if (componentCount < 1 || componentCount > 4) {
@@ -103,6 +111,7 @@ internal static partial class OfficeJpegReader {
             }
 
             for (var y = 0; y < frame.Height; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (var x = 0; x < frame.Width; x++) {
                     byte c;
                     byte m;
@@ -147,6 +156,7 @@ internal static partial class OfficeJpegReader {
             var grayIndex = FindComponentIndex(frame.Components, 1);
             if (grayIndex < 0) grayIndex = 0;
             for (var y = 0; y < frame.Height; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (var x = 0; x < frame.Width; x++) {
                     var v = SampleComponent(states, grayIndex, x, y, maxH, maxV, 0, highQualityChroma);
                     WriteGrayPixel(components, y * frame.Width + x, (byte)v, outputRgba);
@@ -190,12 +200,14 @@ internal static partial class OfficeJpegReader {
                     maxH,
                     maxV,
                     transformToRgb,
-                    outputRgba);
+                    outputRgba,
+                    cancellationToken);
                 return components;
             }
         }
 
         for (var y = 0; y < frame.Height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var x = 0; x < frame.Width; x++) {
                 if (frame.ComponentCount == 3 && !transformToRgb) {
                     int firstIndex = hasRgbComponentIds ? rIndex : 0;
@@ -247,7 +259,8 @@ internal static partial class OfficeJpegReader {
         int maximumHorizontalSampling,
         int maximumVerticalSampling,
         bool transformYccToRgb,
-        bool outputRgba) {
+        bool outputRgba,
+        CancellationToken cancellationToken) {
         int firstY = 0;
         int secondY = 0;
         int thirdY = 0;
@@ -257,6 +270,7 @@ internal static partial class OfficeJpegReader {
         int target = 0;
 
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int firstRow = firstY * first.Stride;
             int secondRow = secondY * second.Stride;
             int thirdRow = thirdY * third.Stride;
@@ -750,6 +764,16 @@ internal static partial class OfficeJpegReader {
         return frame;
     }
 
+    internal static bool IsSupportedRgbaFrameHeader(byte[] data, int offset, int length) {
+        try {
+            JpegFrame frame = ParseFrameHeader(new OfficeByteView(data).Slice(offset, length));
+            return frame.ComponentCount is 1 or 3 or 4;
+        } catch (Exception ex) when (ex is FormatException || ex is ArgumentException ||
+                                     ex is IndexOutOfRangeException || ex is OverflowException) {
+            return false;
+        }
+    }
+
     private static ScanHeader ParseScanHeader(OfficeByteView data, ref JpegFrame frame) {
         var components = data[0];
         if (components == 0 || components > frame.ComponentCount) throw new FormatException("Invalid JPEG scan component count.");
@@ -792,12 +816,13 @@ internal static partial class OfficeJpegReader {
         return -1;
     }
 
-    private static int FindScanEnd(OfficeByteView data, int start) {
+    private static int FindScanEnd(OfficeByteView data, int start, CancellationToken cancellationToken) {
         var i = start;
         while (i + 1 < data.Length) {
+            if ((i & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (data[i] == 0xFF) {
                 var j = i + 1;
-                while (j < data.Length && data[j] == 0xFF) j++;
+                SkipFillBytes(data, ref j, cancellationToken);
                 if (j >= data.Length) return data.Length;
                 var marker = data[j];
                 if (marker == 0x00) {
@@ -825,7 +850,12 @@ internal static partial class OfficeJpegReader {
         return true;
     }
 
-    private static byte[] ApplyOrientation(byte[] rgba, ref int width, ref int height, int orientation) {
+    private static byte[] ApplyOrientation(
+        byte[] rgba,
+        ref int width,
+        ref int height,
+        int orientation,
+        CancellationToken cancellationToken) {
         if (orientation <= 1) return rgba;
         var srcWidth = width;
         var srcHeight = height;
@@ -834,6 +864,7 @@ internal static partial class OfficeJpegReader {
         var result = OfficeRasterGuards.AllocateRgba32(destWidth, destHeight, JpegDimensionsLimitMessage);
 
         for (var y = 0; y < destHeight; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var x = 0; x < destWidth; x++) {
                 int sx;
                 int sy;
@@ -926,21 +957,62 @@ internal static partial class OfficeJpegReader {
         public byte Al;
     }
 
+    internal static bool TryInitializeDecodeWorkingSet(
+        long retainedEncodedBytes,
+        int width,
+        int height,
+        int orientation,
+        out long reservedBytes) {
+        reservedBytes = 0L;
+        if (retainedEncodedBytes < 0L || width < 1 || height < 1 || orientation < 1 || orientation > 8) {
+            return false;
+        }
+        try {
+            long rgbaBytes = checked((long)width * height * 4L);
+            reservedBytes = checked(
+                retainedEncodedBytes + rgbaBytes * (orientation > 1 ? 2L : 1L) + 64L * 1024L);
+            return reservedBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            reservedBytes = 0L;
+            return false;
+        }
+    }
+
+    internal static bool TryReserveOrientationCanvas(
+        int width,
+        int height,
+        ref long reservedBytes,
+        ref bool orientationCanvasReserved) {
+        if (orientationCanvasReserved) return true;
+        if (width < 1 || height < 1 || reservedBytes < 0L) return false;
+        try {
+            long rgbaBytes = checked((long)width * height * 4L);
+            long updatedBytes = checked(reservedBytes + rgbaBytes);
+            if (updatedBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
+            reservedBytes = updatedBytes;
+            orientationCanvasReserved = true;
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
     private sealed class BaselineState {
         public BaselineComponentState[] Components = Array.Empty<BaselineComponentState>();
         public bool[] DecodedComponents = Array.Empty<bool>();
         public int McuCols;
         public int McuRows;
+        private long _reservedBytes;
+        private bool _orientationCanvasReserved;
 
-        public static BaselineState Create(JpegFrame frame, int orientation) {
+        public static BaselineState Create(JpegFrame frame, int orientation, long retainedEncodedBytes) {
             var mcuWidth = frame.MaxH * 8;
             var mcuHeight = frame.MaxV * 8;
             var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
             var components = new BaselineComponentState[frame.ComponentCount];
-            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
-            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
-            if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+            if (!TryInitializeDecodeWorkingSet(
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes)) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
@@ -954,16 +1026,29 @@ internal static partial class OfficeJpegReader {
                 Components = components,
                 DecodedComponents = new bool[frame.ComponentCount],
                 McuCols = mcuCols,
-                McuRows = mcuRows
+                McuRows = mcuRows,
+                _reservedBytes = aggregateBytes,
+                _orientationCanvasReserved = orientation > 1
             };
         }
 
-        public byte[] RenderRgba(JpegFrame frame, int? adobeTransform, bool highQualityChroma) {
+        public void ReserveOrientationCanvas(JpegFrame frame) {
+            if (!TryReserveOrientationCanvas(
+                    frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
+        }
+
+        public byte[] RenderRgba(
+            JpegFrame frame,
+            int? adobeTransform,
+            bool highQualityChroma,
+            CancellationToken cancellationToken) {
             for (var i = 0; i < DecodedComponents.Length; i++) {
                 if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
             }
 
-            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma);
+            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -985,6 +1070,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                CancellationToken.None,
                 out componentCount);
         }
     }
@@ -1043,8 +1129,14 @@ internal static partial class OfficeJpegReader {
         public ProgressiveComponentState[] Components = Array.Empty<ProgressiveComponentState>();
         public int McuCols;
         public int McuRows;
+        private long _reservedBytes;
+        private bool _orientationCanvasReserved;
 
-        public static ProgressiveState Create(JpegFrame frame, int[][] quantTables, int orientation) {
+        public static ProgressiveState Create(
+            JpegFrame frame,
+            int[][] quantTables,
+            int orientation,
+            long retainedEncodedBytes) {
             var maxH = frame.MaxH;
             var maxV = frame.MaxV;
             var mcuWidth = maxH * 8;
@@ -1053,9 +1145,8 @@ internal static partial class OfficeJpegReader {
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
 
             var components = new ProgressiveComponentState[frame.ComponentCount];
-            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
-            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
-            if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+            if (!TryInitializeDecodeWorkingSet(
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes)) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
@@ -1076,13 +1167,26 @@ internal static partial class OfficeJpegReader {
             return new ProgressiveState {
                 Components = components,
                 McuCols = mcuCols,
-                McuRows = mcuRows
+                McuRows = mcuRows,
+                _reservedBytes = aggregateBytes,
+                _orientationCanvasReserved = orientation > 1
             };
         }
 
-        public byte[] RenderRgba(JpegFrame frame, int? adobeTransform, bool highQualityChroma) {
-            BaselineComponentState[] baselineStates = CreateBaselineStates();
-            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma);
+        public void ReserveOrientationCanvas(JpegFrame frame) {
+            if (!TryReserveOrientationCanvas(
+                    frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
+        }
+
+        public byte[] RenderRgba(
+            JpegFrame frame,
+            int? adobeTransform,
+            bool highQualityChroma,
+            CancellationToken cancellationToken) {
+            BaselineComponentState[] baselineStates = CreateBaselineStates(cancellationToken);
+            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -1092,7 +1196,7 @@ internal static partial class OfficeJpegReader {
             bool usePdfColorTransformDefault,
             bool highQualityChroma,
             out int componentCount) {
-            BaselineComponentState[] baselineStates = CreateBaselineStates();
+            BaselineComponentState[] baselineStates = CreateBaselineStates(CancellationToken.None);
             return ComposeColorComponents(
                 frame,
                 baselineStates,
@@ -1101,13 +1205,15 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                CancellationToken.None,
                 out componentCount);
         }
 
-        private BaselineComponentState[] CreateBaselineStates() {
+        private BaselineComponentState[] CreateBaselineStates(CancellationToken cancellationToken) {
             for (var i = 0; i < Components.Length; i++) {
                 var compState = Components[i];
                 for (var by = 0; by < compState.BlocksPerCol; by++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     for (var bx = 0; bx < compState.BlocksPerRow; bx++) {
                         var baseIndex = (by * compState.BlocksPerRow + bx) * 64;
                         for (int coefficient = 0; coefficient < 64; coefficient++) {
@@ -1244,15 +1350,20 @@ internal static partial class OfficeJpegReader {
     private ref struct JpegBitReader {
         private readonly OfficeByteView _data;
         private readonly bool _allowTruncated;
+        private readonly CancellationToken _cancellationToken;
         private int _pos;
         private int _bitBuffer;
         private int _bitCount;
 
         public bool RestartMarkerSeen;
 
-        public JpegBitReader(OfficeByteView data, bool allowTruncated = false) {
+        public JpegBitReader(
+            OfficeByteView data,
+            bool allowTruncated,
+            CancellationToken cancellationToken) {
             _data = data;
             _allowTruncated = allowTruncated;
+            _cancellationToken = cancellationToken;
             _pos = 0;
             _bitBuffer = 0;
             _bitCount = 0;
@@ -1334,7 +1445,7 @@ internal static partial class OfficeJpegReader {
             while (_pos < _data.Length) {
                 var b = _data[_pos++];
                 if (b != 0xFF) continue;
-                while (_pos < _data.Length && _data[_pos] == 0xFF) _pos++;
+                SkipFillBytes(_data, ref _pos, _cancellationToken);
                 if (_pos >= _data.Length) throw new FormatException("Unexpected JPEG end.");
                 var marker = _data[_pos++];
                 if (marker >= 0xD0 && marker <= 0xD7) {
@@ -1367,7 +1478,7 @@ internal static partial class OfficeJpegReader {
                     value = b;
                     return true;
                 }
-                while (_pos < _data.Length && _data[_pos] == 0xFF) _pos++;
+                SkipFillBytes(_data, ref _pos, _cancellationToken);
                 if (_pos >= _data.Length) {
                     if (_allowTruncated) {
                         value = 0;

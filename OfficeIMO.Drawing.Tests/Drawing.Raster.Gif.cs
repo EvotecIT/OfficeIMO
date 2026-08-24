@@ -21,6 +21,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterContainerInspectorClassifiesUntimedSingleFrameGifAsStatic() {
+            byte[] gif = CreateSinglePixelGif();
+
+            Assert.True(OfficeRasterContainerInspector.TryInspect(gif, out OfficeRasterContainerInfo? container));
+            Assert.False(container!.IsAnimated);
+            Assert.Equal(OfficeRasterFrameKind.Image, container.Frames[0].Kind);
+        }
+
+        [Fact]
+        public void OfficeRasterContainerInspectorRetainsSingleFrameGifTimingSemantics() {
+            byte[] gif = CreateSinglePixelGif();
+            int descriptor = Array.IndexOf(gif, (byte)0x2C);
+            byte[] timed = gif.Take(descriptor)
+                .Concat(new byte[] { 0x21, 0xF9, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00 })
+                .Concat(gif.Skip(descriptor))
+                .ToArray();
+
+            Assert.True(OfficeRasterContainerInspector.TryInspect(timed, out OfficeRasterContainerInfo? container));
+            Assert.True(container!.IsAnimated);
+            Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
+            Assert.True(OfficeRasterImageDecoder.TryDecode(
+                timed,
+                new OfficeRasterDecodeOptions { AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame },
+                out _,
+                out OfficeRasterDecodeInfo info));
+            Assert.True(info.AnimationDiscarded);
+            Assert.False(info.FramesOrPagesDiscarded);
+            Assert.NotNull(info.Diagnostic);
+            Assert.False(OfficeRasterImageDecoder.TryDecode(
+                timed,
+                new OfficeRasterDecodeOptions { AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated },
+                out _,
+                out _));
+        }
+
+        [Fact]
+        public void OfficeRasterContainerInspectorRetainsSingleFrameGifLoopSemantics() {
+            byte[] gif = CreateSinglePixelGif();
+            int descriptor = Array.IndexOf(gif, (byte)0x2C);
+            byte[] loopExtension = {
+                0x21, 0xFF, 0x0B,
+                (byte)'N', (byte)'E', (byte)'T', (byte)'S', (byte)'C', (byte)'A',
+                (byte)'P', (byte)'E', (byte)'2', (byte)'.', (byte)'0',
+                0x03, 0x01, 0x00, 0x00, 0x00
+            };
+            byte[] looping = gif.Take(descriptor)
+                .Concat(loopExtension)
+                .Concat(gif.Skip(descriptor))
+                .ToArray();
+
+            Assert.True(OfficeRasterContainerInspector.TryInspect(looping, out OfficeRasterContainerInfo? container));
+            Assert.True(container!.IsAnimated);
+            Assert.Equal(0, container.LoopCount);
+        }
+
+        [Fact]
         public void OfficeRasterImageDecoder_DecodesInterlacedGifRowsThroughSharedRasterPath() {
             byte[] gif = CreateIndexedGif(
                 1,
@@ -52,8 +108,19 @@ namespace OfficeIMO.Tests {
                 backgroundColorIndex: 1);
 
             Assert.True(OfficeRasterImageDecoder.TryDecode(gif, out OfficeRasterImage? image));
+            Assert.True(OfficeRasterContainerInspector.TryInspect(gif, out OfficeRasterContainerInfo? container));
             Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
             Assert.Equal(OfficeColor.Red, image.GetPixel(1, 1));
+            Assert.Equal(OfficeColor.Lime, container!.Background);
+
+            const int imageDescriptorOffset = 25;
+            byte[] transparentBackground = gif.Take(imageDescriptorOffset)
+                .Concat(new byte[] { 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x01, 0x00 })
+                .Concat(gif.Skip(imageDescriptorOffset))
+                .ToArray();
+            Assert.True(OfficeRasterContainerInspector.TryInspect(
+                transparentBackground, out OfficeRasterContainerInfo? transparentContainer));
+            Assert.Equal(OfficeColor.Transparent, transparentContainer!.Background);
         }
 
         [Fact]
@@ -115,6 +182,75 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GifInspectionAndDecodeRequireTheTerminalTrailer() {
+            byte[] valid = CreateSinglePixelGif();
+            byte[] truncated = valid.Take(valid.Length - 1).ToArray();
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(truncated, out _));
+            Assert.False(OfficeGifReader.TryDecodeFrame(truncated, 0, out _, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(truncated, out _));
+        }
+
+        [Fact]
+        public void GifInspectionRejectsFramesWithoutAnActiveColorTable() {
+            byte[] valid = CreateSinglePixelGif();
+            int globalTableBytes = 3 << ((valid[10] & 7) + 1);
+            byte[] malformed = valid.Take(13)
+                .Concat(valid.Skip(13 + globalTableBytes))
+                .ToArray();
+            malformed[10] &= 0x7F;
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(9)]
+        public void GifInspectionRejectsInvalidLzwMinimumCodeSize(byte minimumCodeSize) {
+            byte[] malformed = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(malformed, (byte)0x2C);
+            malformed[imageDescriptorOffset + 10] = minimumCodeSize;
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(
+                malformed,
+                options: null,
+                out _,
+                out OfficeRasterDecodeInfo decodeInfo));
+            Assert.Equal(OfficeImageFormat.Gif, decodeInfo.Format);
+        }
+
+        [Fact]
+        public void GifInspectionRejectsAFrameWithEmptyLzwImageData() {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            int firstSubBlockOffset = imageDescriptorOffset + 11;
+            byte[] malformed = valid.Take(firstSubBlockOffset)
+                .Concat(new byte[] { 0x00, 0x3B })
+                .ToArray();
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeGifReader.TryValidateAllFrames(malformed));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+        }
+
+        [Fact]
+        public void GifInspectionRejectsLzwImageDataWithoutAnInitialClearCode() {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            int firstSubBlockOffset = imageDescriptorOffset + 11;
+            byte[] malformed = valid.Take(firstSubBlockOffset)
+                .Concat(new byte[] { 0x01, 0x28, 0x00, 0x3B })
+                .ToArray();
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeGifReader.TryValidateAllFrames(malformed));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+        }
+
+        [Fact]
         public void OfficeGifReader_SkipsLzwExpansionForUnselectedTrailingFrames() {
             byte[] gif = CreateTwoFrameGif(out int secondFrameDescriptorOffset);
             gif[secondFrameDescriptorOffset + 12] = 0x07;
@@ -125,6 +261,41 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(selected);
             Assert.Equal(2, frameCount);
             Assert.Null(malformed);
+        }
+
+        [Fact]
+        public void OfficeGifReaderTransfersSelectedCanvasWithoutFullCanvasSnapshots() {
+            byte[] source = CreateIndexedGif(
+                2048,
+                2048,
+                new[] { OfficeColor.Red, OfficeColor.Black },
+                new byte[] { 0 },
+                imageWidth: 1,
+                imageHeight: 1);
+            int descriptorOffset = Array.IndexOf(source, (byte)0x2C);
+            byte[] previousDisposal = { 0x21, 0xF9, 0x04, 0x0C, 0, 0, 0, 0 };
+            byte[] gif = source.Take(descriptorOffset)
+                .Concat(previousDisposal)
+                .Concat(source.Skip(descriptorOffset))
+                .ToArray();
+            OfficeGifReader.TryDecodeFrame(CreateSinglePixelGif(), 0, out _, out _);
+
+#if NET8_0_OR_GREATER
+            long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
+            Assert.True(OfficeGifReader.TryDecodeFrame(
+                gif, 0, out OfficeRasterImage? selected, out int frameCount));
+#if NET8_0_OR_GREATER
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
+
+            Assert.Equal(1, frameCount);
+            Assert.Equal((2048, 2048), (selected!.Width, selected.Height));
+            Assert.Equal(OfficeColor.Red, selected.GetPixel(0, 0));
+#if NET8_0_OR_GREATER
+            Assert.True(allocated < 24L * 1024L * 1024L,
+                $"Selected GIF frame allocated {allocated:N0} bytes.");
+#endif
         }
 
         [Fact]
@@ -162,33 +333,42 @@ namespace OfficeIMO.Tests {
             malformed.Insert(insertOffset, 0x00);
             malformed[blockLengthOffset]++;
 
+            Assert.True(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "trailing-lzw.gif", out _));
         }
 
         [Theory]
-        [InlineData(0xFF)]
-        [InlineData(0x01)]
-        public void CompleteContentValidationRejectsMalformedKnownGifExtensionHeaders(byte extensionLabel) {
+        [InlineData(0xFF, true)]
+        [InlineData(0x01, false)]
+        public void CompleteContentValidationRejectsMalformedKnownGifExtensionHeaders(
+            byte extensionLabel,
+            bool directDecoderCanSkipExtension) {
             byte[] valid = CreateSinglePixelGif();
             int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
             var malformed = valid.ToList();
             malformed.InsertRange(imageDescriptorOffset, new byte[] { 0x21, extensionLabel, 0x01, 0x41, 0x00 });
 
-            Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
+            Assert.Equal(directDecoderCanSkipExtension,
+                OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "extension.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
-        [Fact]
-        public void CompleteContentValidationRejectsReservedGraphicControlBits() {
+        [Theory]
+        [InlineData(0x80)]
+        [InlineData(0x10)]
+        [InlineData(0x1C)]
+        public void GifInspectionAndContentValidationRejectReservedGraphicControlValues(byte packed) {
             byte[] valid = CreateSinglePixelGif();
             int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
             var malformed = valid.ToList();
             malformed.InsertRange(
                 imageDescriptorOffset,
-                new byte[] { 0x21, 0xF9, 0x04, 0x80, 0x00, 0x00, 0x00, 0x00 });
+                new byte[] { 0x21, 0xF9, 0x04, packed, 0x00, 0x00, 0x00, 0x00 });
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "reserved-gce.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
         [Fact]
@@ -209,12 +389,14 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(dangling, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(dangling, "dangling-control.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(dangling, out _));
             Assert.True(OfficeGifReader.TryDecodeFrame(repeated, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(repeated, "repeated-control.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(repeated, out _));
         }
 
         [Fact]
-        public void PlainTextExtensionsConsumePendingGraphicControlState() {
+        public void ManagedGifDecodersRejectUnsupportedPlainTextGraphics() {
             byte[] valid = CreateIndexedGif(
                 1,
                 1,
@@ -231,9 +413,11 @@ namespace OfficeIMO.Tests {
                     0x00
                 });
 
-            Assert.True(OfficeGifReader.TryDecodeFrame(withPlainText.ToArray(), 0, out OfficeRasterImage? image, out _));
-            Assert.Equal(OfficeColor.Red, Assert.IsType<OfficeRasterImage>(image).GetPixel(0, 0));
-            Assert.True(OfficeImageReader.TryValidateContent(withPlainText.ToArray(), "plain-text.gif", out _));
+            byte[] encoded = withPlainText.ToArray();
+            Assert.False(OfficeGifReader.TryDecodeFrame(encoded, 0, out _, out _));
+            Assert.False(OfficeImageReader.TryValidateContent(encoded, "plain-text.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(encoded, out _));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(encoded, out _));
         }
 
         [Fact]
@@ -254,8 +438,9 @@ namespace OfficeIMO.Tests {
                     0x00
                 });
 
-            Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
+            Assert.False(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "plain-text-transparency.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
         [Fact]
@@ -269,6 +454,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed.ToArray(), 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed.ToArray(), "transparency-index.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed.ToArray(), out _));
         }
 
         [Theory]
@@ -281,6 +467,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed, "reserved-descriptor.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
         }
 
         [Fact]
@@ -294,6 +481,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed, "background-index.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
         }
 
         [Fact]
@@ -302,10 +490,15 @@ namespace OfficeIMO.Tests {
 
             Assert.True(OfficeGifReader.TryDecodeFrame(malformed, 0, out _, out _));
             Assert.False(OfficeImageReader.TryValidateContent(malformed, "local-palette.gif", out _));
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
         }
 
         private static byte[] CreateSinglePixelGif() =>
-            Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            CreateIndexedGif(
+                1,
+                1,
+                new[] { OfficeColor.Black, OfficeColor.White },
+                new byte[] { 1 });
 
         private static byte[] CreateGifWithOnlyALocalColorTable(byte backgroundColorIndex) {
             byte[] source = CreateSinglePixelGif();

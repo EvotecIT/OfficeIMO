@@ -37,5 +37,18 @@ public readonly struct OfficeJpegMetadata {
         _icc = Clone(icc);
     }
 
+    private OfficeJpegMetadata(byte[]? exif, byte[]? xmp, byte[]? icc, bool takeOwnership) {
+        _exif = takeOwnership ? exif : Clone(exif);
+        _xmp = takeOwnership ? xmp : Clone(xmp);
+        _icc = takeOwnership ? icc : Clone(icc);
+    }
+
+    internal static OfficeJpegMetadata FromOwned(byte[]? exif, byte[]? xmp, byte[]? icc) =>
+        new OfficeJpegMetadata(exif, xmp, icc, takeOwnership: true);
+
+    internal byte[]? ExifBuffer => _exif;
+    internal byte[]? XmpBuffer => _xmp;
+    internal byte[]? IccBuffer => _icc;
+
     private static byte[]? Clone(byte[]? value) => value == null ? null : (byte[])value.Clone();
 }

@@ -6337,7 +6337,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreateSinglePixelGif() =>
-            Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
 
         private static void WriteInt32LittleEndian(byte[] bytes, int offset, int value) {
             bytes[offset] = (byte)value;

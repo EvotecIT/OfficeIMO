@@ -10,7 +10,7 @@ using Rich = DocumentFormat.OpenXml.Office2019.Excel.RichData;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         private static readonly byte[] TinyGif = Convert.FromBase64String(
-            "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            "R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=");
 
         [Fact]
         public void Test_AutoFilterCriteria_PreserveEquivalentImportedRangeState() {

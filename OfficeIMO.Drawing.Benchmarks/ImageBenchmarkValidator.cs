@@ -50,5 +50,6 @@ internal static class ImageBenchmarkValidator {
         ImageResamplingEvidence.Validate(writer);
         ImageEncodingEvidence.Validate(writer);
         ImageConversionEvidence.Validate(writer);
+        ImageCancellationEvidence.Validate(writer);
     }
 }

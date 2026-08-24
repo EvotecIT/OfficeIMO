@@ -109,7 +109,7 @@ public sealed class ReaderHtmlModularTests {
     [InlineData(HtmlBase64ImageHandling.Skip)]
     [InlineData(HtmlBase64ImageHandling.SaveToFile)]
     public void DocumentReaderHtml_RichDispatch_RespectsBase64ImageHandling(HtmlBase64ImageHandling handling) {
-        const string html = "<img alt=\"Inline\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\"/>";
+        const string html = "<img alt=\"Inline\" src=\"data:image/gif;base64,R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=\"/>";
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-html-images-" + Guid.NewGuid().ToString("N"));
         try {
             var options = new ReaderHtmlOptions {

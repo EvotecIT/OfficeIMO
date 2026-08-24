@@ -63,14 +63,14 @@ public sealed partial class ReaderEpubModularTests {
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local One</title></head><body><h1>One</h1><p>First chapter text.</p>" +
             "<p><a href=\"chapter2.xhtml#details\">next chapter</a></p>" +
-            "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/></body></html>");
+            "<img src=\"data:image/gif;base64,R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=\" alt=\"Inline\"/></body></html>");
 
         WriteTextEntry(archive, "OEBPS/chapter2.xhtml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local Two</title></head><body><h1>Two</h1><p>Second chapter text. <a href=\"https://example.test/chapter-two\">details</a></p>" +
             "<ul><li>EPUB list item</li></ul>" +
             "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Chapter</td><td>2</td></tr></table>" +
-            "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
+            "<img src=\"data:image/gif;base64,R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=\" alt=\"Inline\"/>" +
             "<img src=\"images/cover.png\" alt=\"Cover\"/></body></html>");
 
         WriteBinaryEntry(archive, "OEBPS/images/cover.png", new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });

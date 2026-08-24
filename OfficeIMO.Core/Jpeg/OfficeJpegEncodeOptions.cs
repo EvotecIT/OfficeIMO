@@ -42,4 +42,22 @@ public sealed class OfficeJpegEncodeOptions {
 
     /// <summary>Vertical resolution written to the JFIF header.</summary>
     public double DpiY { get; set; } = 96D;
+
+    internal long RetainedManagedBytes { get; set; }
+
+    internal OfficeJpegEncodeOptions WithAdditionalRetainedManagedBytes(long bytes) {
+        if (bytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(bytes));
+        return new OfficeJpegEncodeOptions {
+            Quality = Quality,
+            Subsampling = Subsampling,
+            Progressive = Progressive,
+            OptimizeHuffman = OptimizeHuffman,
+            Metadata = Metadata,
+            WriteJfifHeader = WriteJfifHeader,
+            Background = Background,
+            DpiX = DpiX,
+            DpiY = DpiY,
+            RetainedManagedBytes = checked(RetainedManagedBytes + bytes)
+        };
+    }
 }

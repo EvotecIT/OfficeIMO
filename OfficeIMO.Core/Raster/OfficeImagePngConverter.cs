@@ -10,9 +10,11 @@ public static class OfficeImagePngConverter {
     /// <summary>Attempts to convert a selected static raster frame to PNG with typed loss evidence.</summary>
     public static bool TryConvertToPng(byte[]? imageBytes, OfficeRasterDecodeOptions? options, out byte[] pngBytes, out OfficeRasterDecodeInfo decodeInfo) {
         pngBytes = System.Array.Empty<byte>();
-        if (!OfficeRasterImageDecoder.TryDecode(imageBytes, options, out OfficeRasterImage? image, out decodeInfo)) {
-            if ((options?.FrameIndex ?? 0) != 0) return false;
-            if (!OfficeDibReader.TryDecode(imageBytes, out image)) return false;
+        var effective = options ?? new OfficeRasterDecodeOptions();
+        effective.Validate();
+        if (!OfficeRasterImageDecoder.TryDecode(imageBytes, effective, out OfficeRasterImage? image, out decodeInfo)) {
+            if (effective.FrameIndex != 0) return false;
+            if (!OfficeDibReader.TryDecode(imageBytes, effective, out image)) return false;
             decodeInfo = new OfficeRasterDecodeInfo(OfficeImageFormat.Unknown, 1, 0, succeeded: true, diagnostic: null);
         }
 
@@ -23,12 +25,27 @@ public static class OfficeImagePngConverter {
             sourceInfo = identified;
         }
 
-        pngBytes = sourceInfo == null
-            ? OfficePngWriter.Encode(image)
-            : OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
-                DpiX = sourceInfo.DpiX,
-                DpiY = sourceInfo.DpiY
-            });
+        double? selectedDpiX = decodeInfo.Format == OfficeImageFormat.Tiff
+            ? decodeInfo.SelectedFrame?.DpiX
+            : null;
+        double? selectedDpiY = decodeInfo.Format == OfficeImageFormat.Tiff
+            ? decodeInfo.SelectedFrame?.DpiY
+            : null;
+        if (decodeInfo.Format == OfficeImageFormat.Tiff) {
+            pngBytes = selectedDpiX.HasValue && selectedDpiY.HasValue
+                ? OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
+                    DpiX = selectedDpiX.Value,
+                    DpiY = selectedDpiY.Value
+                })
+                : OfficePngWriter.Encode(image);
+        } else {
+            pngBytes = sourceInfo == null
+                ? OfficePngWriter.Encode(image)
+                : OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
+                    DpiX = sourceInfo.DpiX,
+                    DpiY = sourceInfo.DpiY
+                });
+        }
         return true;
     }
 

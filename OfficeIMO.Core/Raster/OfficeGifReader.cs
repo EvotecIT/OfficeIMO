@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -17,24 +18,54 @@ public static class OfficeGifReader {
     /// Attempts to decode one zero-based composited GIF frame and reports the total frame count.
     /// </summary>
     public static bool TryDecodeFrame(byte[]? bytes, int frameIndex, out OfficeRasterImage? image, out int frameCount) {
-        bool success = TryDecodeFrameCore(bytes, frameIndex, validateAllFrames: false, out image, out frameCount);
+        return TryDecodeFrame(bytes, frameIndex, CancellationToken.None, out image, out frameCount);
+    }
+
+    internal static bool TryDecodeFrame(
+        byte[]? bytes,
+        int frameIndex,
+        CancellationToken cancellationToken,
+        out OfficeRasterImage? image,
+        out int frameCount) =>
+        TryDecodeFrame(
+            bytes, frameIndex, cancellationToken, retainedManagedBytes: 0L, out image, out frameCount);
+
+    internal static bool TryDecodeFrame(
+        byte[]? bytes,
+        int frameIndex,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        out OfficeRasterImage? image,
+        out int frameCount) {
+        bool success = TryDecodeFrameCore(
+            bytes, frameIndex, validateAllFrames: false, cancellationToken,
+            retainedManagedBytes, out image, out frameCount);
         if (!success) image = null;
         return success;
     }
 
     /// <summary>Validates every GIF frame payload while avoiding persistent frame output.</summary>
     internal static bool TryValidateAllFrames(byte[]? bytes) =>
-        TryDecodeFrameCore(bytes, frameIndex: 0, validateAllFrames: true, out _, out _);
+        TryValidateAllFrames(bytes, CancellationToken.None);
+
+    /// <summary>Validates every GIF frame payload while avoiding persistent frame output.</summary>
+    internal static bool TryValidateAllFrames(byte[]? bytes, CancellationToken cancellationToken) =>
+        TryDecodeFrameCore(
+            bytes, frameIndex: 0, validateAllFrames: true, cancellationToken,
+            retainedManagedBytes: 0L, out _, out _);
 
     private static bool TryDecodeFrameCore(
         byte[]? bytes,
         int frameIndex,
         bool validateAllFrames,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
         out OfficeRasterImage? image,
         out int frameCount) {
         image = null;
         frameCount = 0;
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             if (frameIndex < 0) return false;
             if (bytes == null || bytes.Length < 13 ||
                 bytes[0] != (byte)'G' || bytes[1] != (byte)'I' || bytes[2] != (byte)'F') {
@@ -81,11 +112,12 @@ public static class OfficeGifReader {
             OfficeRasterImage? restoreCanvas = null;
             long decodedFramePixels = 0;
             while (offset < bytes.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 byte marker = bytes[offset++];
                 if (marker == 0x3B) {
-                    return validateAllFrames
+                    return offset == bytes.Length && (validateAllFrames
                         ? frameCount > 0 && !hasPendingGraphicControl && offset == bytes.Length
-                        : image != null;
+                        : image != null);
                 }
 
                 if (marker == 0x21) {
@@ -110,24 +142,13 @@ public static class OfficeGifReader {
                         if (validateAllFrames && hasPendingGraphicControl) return false;
                         hasPendingGraphicControl = true;
                     } else if (validateAllFrames && label == 0xFF) {
-                        if (!TryReadFixedHeaderExtension(bytes, ref offset, expectedHeaderLength: 11)) return false;
+                        if (!TryReadFixedHeaderExtension(
+                                bytes, ref offset, expectedHeaderLength: 11, cancellationToken)) return false;
                     } else if (label == 0x01) {
-                        if (validateAllFrames) {
-                            if (transparentIndex >= 0 &&
-                                (globalColorTable == null || transparentIndex >= globalColorTable.Length)) return false;
-                            if (!TryReadPlainTextExtension(
-                                bytes,
-                                ref offset,
-                                width,
-                                height,
-                                globalColorTable)) return false;
-                        } else if (!SkipSubBlocks(bytes, ref offset)) {
-                            return false;
-                        }
-                        transparentIndex = -1;
-                        disposalMethod = 0;
-                        hasPendingGraphicControl = false;
-                    } else if (!SkipSubBlocks(bytes, ref offset)) {
+                        // Plain Text Extensions are rendering blocks. This decoder does not render them,
+                        // so accepting the container would silently discard visible or timed content.
+                        return false;
+                    } else if (!SkipSubBlocks(bytes, ref offset, cancellationToken)) {
                         return false;
                     }
 
@@ -146,18 +167,33 @@ public static class OfficeGifReader {
                         height,
                         globalColorTable,
                         transparentIndex,
-                        ref decodedFramePixels)) {
+                        ref decodedFramePixels,
+                        cancellationToken)) {
                         return false;
                     }
                 } else if (frameCount <= frameIndex) {
                     if (canvas == null) {
                         backgroundColor = ResolveCanvasBackground(globalColorTable, backgroundColorIndex, transparentIndex);
+                        long canvasBytes = checked((long)width * height * 4L);
+                        if (bytes.LongLength + canvasBytes + retainedManagedBytes + 64L * 1024L >
+                            OfficeRasterGuards.MaximumDecodedBytes) {
+                            return false;
+                        }
+                        cancellationToken.ThrowIfCancellationRequested();
                         canvas = new OfficeRasterImage(width, height, backgroundColor);
+                        cancellationToken.ThrowIfCancellationRequested();
                     }
-                    ApplyDisposal(canvas, previousFrame, previousDisposalMethod, backgroundColor, restoreCanvas);
-                    restoreCanvas = disposalMethod == 3
+                    ApplyDisposal(
+                        canvas, previousFrame, previousDisposalMethod, backgroundColor, restoreCanvas, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    bool requiresRestore = disposalMethod == 3 && frameCount < frameIndex;
+                    long retainedCanvasBytes = canvas.PixelBuffer.LongLength * (requiresRestore ? 2L : 1L);
+                    if (bytes.LongLength + retainedCanvasBytes + retainedManagedBytes + 64L * 1024L >
+                        OfficeRasterGuards.MaximumDecodedBytes) return false;
+                    restoreCanvas = requiresRestore
                         ? OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.PixelBuffer)
                         : null;
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!TryReadImageFrame(
                         bytes,
                         ref offset,
@@ -166,13 +202,17 @@ public static class OfficeGifReader {
                         globalColorTable,
                         transparentIndex,
                         canvas,
+                        restoreCanvas,
                         ref decodedFramePixels,
+                        cancellationToken,
+                        retainedManagedBytes,
                         out FrameRectangle frame)) {
                         return false;
                     }
 
                     if (frameCount == frameIndex) {
-                        image = OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.PixelBuffer);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        image = canvas;
                     }
                     previousFrame = frame;
                     previousDisposalMethod = disposalMethod;
@@ -181,7 +221,8 @@ public static class OfficeGifReader {
                     ref offset,
                     width,
                     height,
-                    globalColorTable != null)) {
+                    globalColorTable != null,
+                    cancellationToken)) {
                     return false;
                 }
                 frameCount++;
@@ -190,7 +231,11 @@ public static class OfficeGifReader {
                 hasPendingGraphicControl = false;
             }
 
-            return !validateAllFrames && image != null;
+            return false;
+        } catch (OperationCanceledException) {
+            image = null;
+            frameCount = 0;
+            throw;
         } catch {
             image = null;
             frameCount = 0;
@@ -198,45 +243,18 @@ public static class OfficeGifReader {
         }
     }
 
-    private static bool TryReadFixedHeaderExtension(byte[] bytes, ref int offset, int expectedHeaderLength) {
+    private static bool TryReadFixedHeaderExtension(
+        byte[] bytes,
+        ref int offset,
+        int expectedHeaderLength,
+        CancellationToken cancellationToken) {
         if (offset >= bytes.Length || bytes[offset++] != expectedHeaderLength ||
             offset > bytes.Length - expectedHeaderLength) {
             return false;
         }
 
         offset += expectedHeaderLength;
-        return SkipSubBlocks(bytes, ref offset);
-    }
-
-    private static bool TryReadPlainTextExtension(
-        byte[] bytes,
-        ref int offset,
-        int canvasWidth,
-        int canvasHeight,
-        OfficeColor[]? globalColorTable) {
-        const int headerLength = 12;
-        if (globalColorTable == null || globalColorTable.Length == 0 ||
-            offset >= bytes.Length || bytes[offset++] != headerLength ||
-            offset > bytes.Length - headerLength) {
-            return false;
-        }
-
-        int left = ReadUInt16LittleEndian(bytes, offset);
-        int top = ReadUInt16LittleEndian(bytes, offset + 2);
-        int width = ReadUInt16LittleEndian(bytes, offset + 4);
-        int height = ReadUInt16LittleEndian(bytes, offset + 6);
-        int cellWidth = bytes[offset + 8];
-        int cellHeight = bytes[offset + 9];
-        int foregroundIndex = bytes[offset + 10];
-        int backgroundIndex = bytes[offset + 11];
-        if (width <= 0 || height <= 0 || cellWidth <= 0 || cellHeight <= 0 ||
-            (long)left + width > canvasWidth || (long)top + height > canvasHeight ||
-            foregroundIndex >= globalColorTable.Length || backgroundIndex >= globalColorTable.Length) {
-            return false;
-        }
-
-        offset += headerLength;
-        return SkipSubBlocks(bytes, ref offset);
+        return SkipSubBlocks(bytes, ref offset, cancellationToken);
     }
 
     private static bool TryReadImageFrame(
@@ -247,7 +265,10 @@ public static class OfficeGifReader {
         OfficeColor[]? globalColorTable,
         int transparentIndex,
         OfficeRasterImage canvas,
+        OfficeRasterImage? restoreCanvas,
         ref long decodedFramePixels,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
         out FrameRectangle frame) {
         frame = default;
         if (offset + 9 > bytes.Length) {
@@ -285,14 +306,28 @@ public static class OfficeGifReader {
             return false;
         }
 
-        if (!TryReadSubBlockBytes(bytes, ref offset, out byte[] lzwBytes) ||
-            !TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: false, colorTable.Length, out byte[] indices)) {
+        if (!TryMeasureSubBlockBytes(bytes, offset, cancellationToken, out int lzwLength, out _) ||
+            !IsDecodeWorkingSetWithinLimit(
+                bytes.LongLength,
+                canvas.PixelBuffer.LongLength,
+                restoreCanvas?.PixelBuffer.LongLength ?? 0L,
+                lzwLength,
+                framePixels,
+                colorTable.Length,
+                retainedManagedBytes)) {
+            return false;
+        }
+
+        if (!TryReadSubBlockBytes(bytes, ref offset, cancellationToken, out byte[] lzwBytes) ||
+            !TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: false,
+                rejectTrailingBytes: false, colorTable.Length, cancellationToken, out byte[] indices)) {
             return false;
         }
 
         bool interlaced = (packed & 0x40) != 0;
         int sourceIndex = 0;
         foreach (int row in EnumerateRows(height, interlaced)) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
                 if (sourceIndex >= indices.Length) {
                     return false;
@@ -323,7 +358,8 @@ public static class OfficeGifReader {
         int canvasHeight,
         OfficeColor[]? globalColorTable,
         int transparentIndex,
-        ref long decodedFramePixels) {
+        ref long decodedFramePixels,
+        CancellationToken cancellationToken) {
         if (offset + 9 > bytes.Length) return false;
 
         int left = ReadUInt16LittleEndian(bytes, offset);
@@ -350,9 +386,37 @@ public static class OfficeGifReader {
         if (colorCount == 0 || transparentIndex >= colorCount || offset >= bytes.Length) return false;
 
         int minimumCodeSize = bytes[offset++];
-        return minimumCodeSize >= 2 && minimumCodeSize <= 8 &&
-               TryReadSubBlockBytes(bytes, ref offset, out byte[] lzwBytes) &&
-               TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: true, colorCount, out _);
+        return TryValidateImageData(
+            bytes,
+            ref offset,
+            minimumCodeSize,
+            framePixels,
+            colorCount,
+            rejectTrailingLzwBytes: true,
+            cancellationToken);
+    }
+
+    /// <summary>Validates one GIF image-data payload and advances past its sub-block terminator.</summary>
+    internal static bool TryValidateImageData(
+        byte[] bytes,
+        ref int offset,
+        int minimumCodeSize,
+        int framePixels,
+        int colorCount,
+        bool rejectTrailingLzwBytes,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes = 0L) {
+        if (minimumCodeSize < 2 || minimumCodeSize > 8 || framePixels < 1 || colorCount < 1 ||
+            !TryMeasureSubBlockBytes(bytes, offset, cancellationToken, out int lzwLength, out _) ||
+            !IsDecodeWorkingSetWithinLimit(
+                bytes.LongLength, 0L, 0L, lzwLength, framePixels, colorCount,
+                retainedManagedBytes)) {
+            return false;
+        }
+
+        return TryReadSubBlockBytes(bytes, ref offset, cancellationToken, out byte[] lzwBytes) &&
+               TryDecodeLzw(lzwBytes, minimumCodeSize, framePixels, requireCompleteStream: true,
+                   rejectTrailingLzwBytes, colorCount, cancellationToken, out _);
     }
 
     private static bool TrySkipImageFrame(
@@ -360,7 +424,8 @@ public static class OfficeGifReader {
         ref int offset,
         int canvasWidth,
         int canvasHeight,
-        bool hasGlobalColorTable) {
+        bool hasGlobalColorTable,
+        CancellationToken cancellationToken) {
         if (offset + 9 > bytes.Length) return false;
 
         int left = ReadUInt16LittleEndian(bytes, offset);
@@ -385,13 +450,21 @@ public static class OfficeGifReader {
 
         if (!hasColorTable || offset >= bytes.Length) return false;
         int minimumCodeSize = bytes[offset++];
-        return minimumCodeSize >= 2 && minimumCodeSize <= 8 && SkipSubBlocks(bytes, ref offset);
+        return minimumCodeSize >= 2 && minimumCodeSize <= 8 &&
+               SkipSubBlocks(bytes, ref offset, cancellationToken);
     }
 
-    private static void ApplyDisposal(OfficeRasterImage canvas, FrameRectangle frame, int disposalMethod, OfficeColor backgroundColor, OfficeRasterImage? restoreCanvas) {
+    private static void ApplyDisposal(
+        OfficeRasterImage canvas,
+        FrameRectangle frame,
+        int disposalMethod,
+        OfficeColor backgroundColor,
+        OfficeRasterImage? restoreCanvas,
+        CancellationToken cancellationToken) {
         if (frame.Width <= 0 || frame.Height <= 0) return;
         if (disposalMethod == 2) {
             for (int y = frame.Top; y < frame.Top + frame.Height; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (int x = frame.Left; x < frame.Left + frame.Width; x++) {
                     canvas.SetPixel(x, y, backgroundColor);
                 }
@@ -417,7 +490,9 @@ public static class OfficeGifReader {
         int minimumCodeSize,
         int expectedPixelCount,
         bool requireCompleteStream,
+        bool rejectTrailingBytes,
         int colorCount,
+        CancellationToken cancellationToken,
         out byte[] indices) {
         indices = Array.Empty<byte>();
         int clearCode = 1 << minimumCodeSize;
@@ -444,10 +519,18 @@ public static class OfficeGifReader {
 
         ResetDictionary();
         bool sawEndCode = false;
+        bool requiresInitialClearCode = true;
+        int codeCount = 0;
         while (requireCompleteStream || outputCount < expectedPixelCount) {
+            if ((codeCount++ & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int code = reader.ReadBits(codeSize);
             if (code < 0) {
                 return false;
+            }
+
+            if (requiresInitialClearCode) {
+                if (code != clearCode) return false;
+                requiresInitialClearCode = false;
             }
 
             if (code == clearCode) {
@@ -502,7 +585,9 @@ public static class OfficeGifReader {
             previousCode = originalCode;
         }
 
-        if (requireCompleteStream && (!sawEndCode || outputCount != expectedPixelCount || !reader.HasNoTrailingBytes) ||
+        if (requireCompleteStream &&
+                (!sawEndCode || outputCount != expectedPixelCount ||
+                 rejectTrailingBytes && !reader.HasNoTrailingBytes) ||
             !requireCompleteStream && outputCount < expectedPixelCount) {
             return false;
         }
@@ -561,32 +646,79 @@ public static class OfficeGifReader {
         return true;
     }
 
-    private static bool TryReadSubBlockBytes(byte[] bytes, ref int offset, out byte[] data) {
+    private static bool TryReadSubBlockBytes(byte[] bytes, ref int offset, out byte[] data) =>
+        TryReadSubBlockBytes(bytes, ref offset, CancellationToken.None, out data);
+
+    private static bool TryReadSubBlockBytes(
+        byte[] bytes,
+        ref int offset,
+        CancellationToken cancellationToken,
+        out byte[] data) {
         data = Array.Empty<byte>();
-        var buffer = new List<byte>();
-        while (offset < bytes.Length) {
-            int count = bytes[offset++];
+        if (!TryMeasureSubBlockBytes(
+                bytes, offset, cancellationToken, out int length, out int endOffset)) return false;
+        data = new byte[length];
+        int sourceOffset = offset;
+        int destinationOffset = 0;
+        while (sourceOffset < endOffset) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = bytes[sourceOffset++];
             if (count == 0) {
-                data = buffer.ToArray();
+                offset = sourceOffset;
                 return true;
             }
-
-            if (offset + count > bytes.Length) {
-                return false;
-            }
-
-            for (int i = 0; i < count; i++) {
-                buffer.Add(bytes[offset + i]);
-            }
-
-            offset += count;
+            Buffer.BlockCopy(bytes, sourceOffset, data, destinationOffset, count);
+            sourceOffset += count;
+            destinationOffset += count;
         }
-
         return false;
     }
 
-    private static bool SkipSubBlocks(byte[] bytes, ref int offset) {
+    private static bool TryMeasureSubBlockBytes(
+        byte[] bytes,
+        int offset,
+        CancellationToken cancellationToken,
+        out int length,
+        out int endOffset) {
+        length = 0;
+        endOffset = offset;
+        int blockCount = 0;
+        while (endOffset < bytes.Length) {
+            if ((blockCount++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int count = bytes[endOffset++];
+            if (count == 0) return true;
+            if (endOffset > bytes.Length - count || length > int.MaxValue - count) return false;
+            length += count;
+            endOffset += count;
+        }
+        return false;
+    }
+
+    private static bool IsDecodeWorkingSetWithinLimit(
+        long encodedBytes,
+        long canvasBytes,
+        long restoreBytes,
+        int lzwBytes,
+        int framePixels,
+        int colorCount,
+        long retainedManagedBytes = 0L) {
+        if (retainedManagedBytes < 0L) return false;
+        const long dictionaryBytes = 4096L * (sizeof(int) + sizeof(byte) + sizeof(byte));
+        long peakBytes = checked(
+            encodedBytes + canvasBytes + restoreBytes + lzwBytes + framePixels +
+            colorCount * 4L + dictionaryBytes + retainedManagedBytes + 64L * 1024L);
+        return peakBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+    }
+
+    private static bool SkipSubBlocks(byte[] bytes, ref int offset) =>
+        SkipSubBlocks(bytes, ref offset, CancellationToken.None);
+
+    private static bool SkipSubBlocks(
+        byte[] bytes,
+        ref int offset,
+        CancellationToken cancellationToken) {
         while (offset < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int count = bytes[offset++];
             if (count == 0) {
                 return true;

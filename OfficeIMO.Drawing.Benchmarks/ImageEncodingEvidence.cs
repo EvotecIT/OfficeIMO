@@ -28,10 +28,13 @@ internal static class ImageEncodingEvidence {
             WriteLossless(writer, size, source, "TIFF PackBits", OfficeTiffCodec.Encode(source, new OfficeTiffEncodeOptions {
                 Compression = OfficeTiffCompression.PackBits
             }));
+            WriteLossless(writer, size, source, "TIFF LZW", OfficeTiffCodec.Encode(source, new OfficeTiffEncodeOptions {
+                Compression = OfficeTiffCompression.Lzw
+            }));
             WriteLossless(writer, size, source, "TIFF Deflate", OfficeTiffCodec.Encode(source, new OfficeTiffEncodeOptions {
                 Compression = OfficeTiffCompression.Deflate
             }));
-            WriteLossless(writer, size, source, "WebP literal lossless", OfficeWebpCodec.Encode(source));
+            WriteLossless(writer, size, source, "WebP lossless", OfficeWebpCodec.Encode(source));
         }
     }
 
