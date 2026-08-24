@@ -10,13 +10,13 @@
       "comparisonId": "csv-25k-datareader-write-net10.0",
       "platform": "macos",
       "runMode": "quick",
-      "generatedUtc": "2026-07-31T10:57:12.894909+00:00",
+      "generatedUtc": "2026-07-31T12:57:12.894909+02:00",
       "publish": false,
-      "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-macos-quick.json",
+      "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-macos-quick.cce2373fa79d57c955df4d9ac71cf72fcaa5a1db177723bd941b18de935bff71.json",
       "resultSha256": "cce2373fa79d57c955df4d9ac71cf72fcaa5a1db177723bd941b18de935bff71",
-      "artifactDestinationSha256": "c9d378189c832a2961f3a6ff716d23ba9fb25f6be52aa0e4c40f04d12235f38c",
-      "artifactFileName": "csv-25k-datareader-write-net10.0-macos-quick.json",
-      "artifactRelativePath": "csv-25k-datareader-write-net10.0-macos-quick.json",
+      "artifactDestinationSha256": "f54f703b963efc2b0c90074be046085090cc93eed506817539d830f01610d868",
+      "artifactFileName": "csv-25k-datareader-write-net10.0-macos-quick.cce2373fa79d57c955df4d9ac71cf72fcaa5a1db177723bd941b18de935bff71.json",
+      "artifactRelativePath": "csv-25k-datareader-write-net10.0-macos-quick.cce2373fa79d57c955df4d9ac71cf72fcaa5a1db177723bd941b18de935bff71.json",
       "suite": "OfficeIMO.CSV.DataReaderWrite25K",
       "environment": {
         "osFamily": "macOS",
@@ -57,13 +57,13 @@
       "comparisonId": "csv-25k-datareader-write-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T08:51:57.8134281+00:00",
+      "generatedUtc": "2026-08-16T10:51:57.8134281+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-windows-full.f8d8460e827f2e5dd9f9842fc3180c66f4452dc6cabc9c454e29d0c1322f26ef.json",
       "resultSha256": "f8d8460e827f2e5dd9f9842fc3180c66f4452dc6cabc9c454e29d0c1322f26ef",
-      "artifactDestinationSha256": "28bb7ed771d14f2c43d45be08ca3455e89139c93144820fcaff6b4f833f73fc5",
-      "artifactFileName": "csv-25k-datareader-write-net10.0-windows-full.json",
-      "artifactRelativePath": "csv-25k-datareader-write-net10.0-windows-full.json",
+      "artifactDestinationSha256": "3f9835c95429c208af79df5600bd181ab8620190f557814486833e87a11eb7e7",
+      "artifactFileName": "csv-25k-datareader-write-net10.0-windows-full.f8d8460e827f2e5dd9f9842fc3180c66f4452dc6cabc9c454e29d0c1322f26ef.json",
+      "artifactRelativePath": "csv-25k-datareader-write-net10.0-windows-full.f8d8460e827f2e5dd9f9842fc3180c66f4452dc6cabc9c454e29d0c1322f26ef.json",
       "suite": "OfficeIMO.CSV.DataReaderWrite25K",
       "environment": {
         "osFamily": "Windows",
@@ -156,13 +156,13 @@
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T08:46:10.5871415+00:00",
+      "generatedUtc": "2026-08-16T10:46:10.5871415+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-windows-full.6eed0be2646a57e510337d43031e1605233ad24e2b278e2e766e9b05eae34169.json",
       "resultSha256": "6eed0be2646a57e510337d43031e1605233ad24e2b278e2e766e9b05eae34169",
-      "artifactDestinationSha256": "a91b632a74c1c1cc117c9e6681fe398bbb05e9e8b07d9930ab5cf3e9a58f527a",
-      "artifactFileName": "markpflug-65k-csv-decoded-net10.0-windows-full.json",
-      "artifactRelativePath": "markpflug-65k-csv-decoded-net10.0-windows-full.json",
+      "artifactDestinationSha256": "1b172170376a189e65974cb0a5aa983513a49a9c7d79b16dd82696f12ac098bd",
+      "artifactFileName": "markpflug-65k-csv-decoded-net10.0-windows-full.6eed0be2646a57e510337d43031e1605233ad24e2b278e2e766e9b05eae34169.json",
+      "artifactRelativePath": "markpflug-65k-csv-decoded-net10.0-windows-full.6eed0be2646a57e510337d43031e1605233ad24e2b278e2e766e9b05eae34169.json",
       "suite": "OfficeIMO.CSV.MarkPflug65K",
       "environment": {
         "osFamily": "Windows",
@@ -255,13 +255,13 @@
       "comparisonId": "markpflug-65k-xls-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T08:53:25.5645046+00:00",
+      "generatedUtc": "2026-08-16T10:53:25.5645046+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xls-typed-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xls-typed-net10.0-windows-full.8f17bfd5210d80e0715b615bc82e39ca4391e5d95b57672633d434dc6d5cd519.json",
       "resultSha256": "8f17bfd5210d80e0715b615bc82e39ca4391e5d95b57672633d434dc6d5cd519",
-      "artifactDestinationSha256": "30bfb5a166f5f6fd871bbe1719f70f5baea40ed38d9a0c67e6d71cadbfbbd7da",
-      "artifactFileName": "markpflug-65k-xls-typed-net10.0-windows-full.json",
-      "artifactRelativePath": "markpflug-65k-xls-typed-net10.0-windows-full.json",
+      "artifactDestinationSha256": "3d8f6ebbb42f6f62f41c6991eed5c340ce0c3e124763908c202d553c291f9e59",
+      "artifactFileName": "markpflug-65k-xls-typed-net10.0-windows-full.8f17bfd5210d80e0715b615bc82e39ca4391e5d95b57672633d434dc6d5cd519.json",
+      "artifactRelativePath": "markpflug-65k-xls-typed-net10.0-windows-full.8f17bfd5210d80e0715b615bc82e39ca4391e5d95b57672633d434dc6d5cd519.json",
       "suite": "OfficeIMO.Excel.Xls.MarkPflug65K",
       "environment": {
         "osFamily": "Windows",
@@ -354,13 +354,13 @@
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T09:04:20.1090395+00:00",
+      "generatedUtc": "2026-08-16T11:04:20.1090395+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-windows-full.76abe31b2f9c358c4dfd3bbfa95028e392b1329eed68940df9c7316add1cc22f.json",
       "resultSha256": "76abe31b2f9c358c4dfd3bbfa95028e392b1329eed68940df9c7316add1cc22f",
-      "artifactDestinationSha256": "46e216d564dab0a52b2155978dcb69cffffe71fc036b2a8cba4fe5e0c4b2cbc6",
-      "artifactFileName": "markpflug-65k-xlsb-typed-net10.0-windows-full.json",
-      "artifactRelativePath": "markpflug-65k-xlsb-typed-net10.0-windows-full.json",
+      "artifactDestinationSha256": "3d32ac6d0d06b7784f8fe6d14f430652a1b478e9c17ad73db78b072b8a133ea7",
+      "artifactFileName": "markpflug-65k-xlsb-typed-net10.0-windows-full.76abe31b2f9c358c4dfd3bbfa95028e392b1329eed68940df9c7316add1cc22f.json",
+      "artifactRelativePath": "markpflug-65k-xlsb-typed-net10.0-windows-full.76abe31b2f9c358c4dfd3bbfa95028e392b1329eed68940df9c7316add1cc22f.json",
       "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
       "environment": {
         "osFamily": "Windows",
@@ -505,13 +505,13 @@
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "platform": "macos",
       "runMode": "quick",
-      "generatedUtc": "2026-07-31T10:49:02.003238+00:00",
+      "generatedUtc": "2026-07-31T12:49:02.003238+02:00",
       "publish": false,
-      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-macos-quick.json",
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-macos-quick.adcad90d397dfabafe911095f960b2f173d79f556500b2b0f4b8bbac480840b2.json",
       "resultSha256": "adcad90d397dfabafe911095f960b2f173d79f556500b2b0f4b8bbac480840b2",
-      "artifactDestinationSha256": "f03a65119a53472f7caaad1392f4e427e86df9033851ceca966763a8910d2c1d",
-      "artifactFileName": "markpflug-65k-xlsx-typed-net10.0-macos-quick.json",
-      "artifactRelativePath": "markpflug-65k-xlsx-typed-net10.0-macos-quick.json",
+      "artifactDestinationSha256": "27ee55cd845481ea650e30bb833bc727c5dde6b11f3ed5de54eddd25edf819df",
+      "artifactFileName": "markpflug-65k-xlsx-typed-net10.0-macos-quick.adcad90d397dfabafe911095f960b2f173d79f556500b2b0f4b8bbac480840b2.json",
+      "artifactRelativePath": "markpflug-65k-xlsx-typed-net10.0-macos-quick.adcad90d397dfabafe911095f960b2f173d79f556500b2b0f4b8bbac480840b2.json",
       "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
       "environment": {
         "osFamily": "macOS",
@@ -562,13 +562,13 @@
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T08:57:22.5678827+00:00",
+      "generatedUtc": "2026-08-16T10:57:22.5678827+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-windows-full.8a1af97ca01d48a1d93cca856d0dc50dc8136fb95784b642e2cc5cb7dafbb024.json",
       "resultSha256": "8a1af97ca01d48a1d93cca856d0dc50dc8136fb95784b642e2cc5cb7dafbb024",
-      "artifactDestinationSha256": "d2e69503f78fe284ccf8e30527650af5cdf65266d44c738145e906cfcb453a42",
-      "artifactFileName": "markpflug-65k-xlsx-typed-net10.0-windows-full.json",
-      "artifactRelativePath": "markpflug-65k-xlsx-typed-net10.0-windows-full.json",
+      "artifactDestinationSha256": "8de70b2699384128dcf8a6ededfa6037acf666e9fb595fbcff51e36041c0555e",
+      "artifactFileName": "markpflug-65k-xlsx-typed-net10.0-windows-full.8a1af97ca01d48a1d93cca856d0dc50dc8136fb95784b642e2cc5cb7dafbb024.json",
+      "artifactRelativePath": "markpflug-65k-xlsx-typed-net10.0-windows-full.8a1af97ca01d48a1d93cca856d0dc50dc8136fb95784b642e2cc5cb7dafbb024.json",
       "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
       "environment": {
         "osFamily": "Windows",
@@ -671,13 +671,13 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-08-24T11:48:35.7661685+00:00",
+      "generatedUtc": "2026-08-24T13:48:35.7661685+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.89de9460576902404f9a898062d847e7ef5be37de4a13df6554720d2fa559750.json",
       "resultSha256": "89de9460576902404f9a898062d847e7ef5be37de4a13df6554720d2fa559750",
-      "artifactDestinationSha256": "5f8176805cb41dac1888f69619e22de6373d169380fbcfcea8345b3207ce53f1",
-      "artifactFileName": "pdf-html-generation-net10.0-linux-full.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.json",
+      "artifactDestinationSha256": "bcb7be97d4b70abbd1ae6f7256b0efcfe9e6f4b37881d64f9d535850f0e249aa",
+      "artifactFileName": "pdf-html-generation-net10.0-linux-full.89de9460576902404f9a898062d847e7ef5be37de4a13df6554720d2fa559750.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.89de9460576902404f9a898062d847e7ef5be37de4a13df6554720d2fa559750.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Linux",
@@ -711,23 +711,20 @@
         "gitSha": "f2483b6b35c1b75905355401cff30c01dcb9c834",
         "runMode": "full"
       },
-      "comparable": false,
-      "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027).",
-        "gitSha: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027)."
-      ]
+      "comparable": true,
+      "compatibilityIssues": []
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "linux",
       "runMode": "quick",
-      "generatedUtc": "2026-08-23T15:29:33.5014744+00:00",
+      "generatedUtc": "2026-08-23T17:29:33.5014744+02:00",
       "publish": false,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-quick.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-quick.fe9770f3ff66431dfe025cacff000e050cca7968dd566c361ecf384bc9824421.json",
       "resultSha256": "fe9770f3ff66431dfe025cacff000e050cca7968dd566c361ecf384bc9824421",
-      "artifactDestinationSha256": "a62f80351f38154a3c7f1d689c7dedcf6efcbe4dd41a08ea8ff09720ef5ebcc1",
-      "artifactFileName": "pdf-html-generation-net10.0-linux-quick.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-linux-quick.json",
+      "artifactDestinationSha256": "a0e0b251c650162aa7093f4249da9e2115a4709a6f7dfbcf54d5da51059e5170",
+      "artifactFileName": "pdf-html-generation-net10.0-linux-quick.fe9770f3ff66431dfe025cacff000e050cca7968dd566c361ecf384bc9824421.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-linux-quick.fe9770f3ff66431dfe025cacff000e050cca7968dd566c361ecf384bc9824421.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Linux",
@@ -771,13 +768,13 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-23T23:50:23.818911+00:00",
+      "generatedUtc": "2026-08-24T14:24:31.5273338+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.json",
-      "resultSha256": "f1161847c536dbac067f112a5be0a31cd977a77d8e5af4b02b66e6660e524833",
-      "artifactDestinationSha256": "458dd48975fd71568139bfe12ca4e4126085c5ecebaaf613ae893faff67c4e0b",
-      "artifactFileName": "pdf-html-generation-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.3e989702cb561946cf299306d464f5afab528c4394b2b8a6178a95010cd08034.json",
+      "resultSha256": "3e989702cb561946cf299306d464f5afab528c4394b2b8a6178a95010cd08034",
+      "artifactDestinationSha256": "9c5d3d8c9eeb6662d78a0f21e7577842d0a559fecc5fa707abc9fe5aae80a584",
+      "artifactFileName": "pdf-html-generation-net10.0-windows-full.3e989702cb561946cf299306d464f5afab528c4394b2b8a6178a95010cd08034.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.3e989702cb561946cf299306d464f5afab528c4394b2b8a6178a95010cd08034.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Windows",
@@ -807,27 +804,24 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "443178dab63f83a6f83fc33f9e7ca15bbebbde6e",
-        "gitSha": "443178dab63f83a6f83fc33f9e7ca15bbebbde6e",
+        "benchmark.workload.sourceCommit": "f2483b6b35c1b75905355401cff30c01dcb9c834",
+        "gitSha": "f2483b6b35c1b75905355401cff30c01dcb9c834",
         "runMode": "full"
       },
-      "comparable": false,
-      "compatibilityIssues": [
-        "benchmark.workload.sourceCommit: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027).",
-        "gitSha: lanes contain incompatible values (\u0027443178dab63f83a6f83fc33f9e7ca15bbebbde6e\u0027, \u0027f2483b6b35c1b75905355401cff30c01dcb9c834\u0027)."
-      ]
+      "comparable": true,
+      "compatibilityIssues": []
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "windows",
       "runMode": "quick",
-      "generatedUtc": "2026-08-23T15:08:52.4492183+00:00",
+      "generatedUtc": "2026-08-23T17:08:52.4492183+02:00",
       "publish": false,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-quick.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-quick.ce516006e3eba2635c0ad3155d21b5e3b985ca4341fc4fc8d772263963e21930.json",
       "resultSha256": "ce516006e3eba2635c0ad3155d21b5e3b985ca4341fc4fc8d772263963e21930",
-      "artifactDestinationSha256": "f2c5c6d4baf7941615da7fef1be178cdff25440f114bb018c628d91e17d51009",
-      "artifactFileName": "pdf-html-generation-net10.0-windows-quick.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-windows-quick.json",
+      "artifactDestinationSha256": "8cd5261ac7c294f8f1699ea0ee0cb3f19918d377c3214a82a3d8e8835f6f55c0",
+      "artifactFileName": "pdf-html-generation-net10.0-windows-quick.ce516006e3eba2635c0ad3155d21b5e3b985ca4341fc4fc8d772263963e21930.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-windows-quick.ce516006e3eba2635c0ad3155d21b5e3b985ca4341fc4fc8d772263963e21930.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Windows",
@@ -871,13 +865,13 @@
       "comparisonId": "pdf-merge-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T10:16:12.4029791+00:00",
+      "generatedUtc": "2026-08-16T12:16:12.4029791+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-merge-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-merge-net10.0-windows-full.64aeccc73a2116fdc7228b6043b625bf3b3ce3a170480959ca1d0eb8615bd229.json",
       "resultSha256": "64aeccc73a2116fdc7228b6043b625bf3b3ce3a170480959ca1d0eb8615bd229",
-      "artifactDestinationSha256": "a21337ee6c920024b89a297ab4e2b09bab5adcf86bcb43c9562248de8d9875db",
-      "artifactFileName": "pdf-merge-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-merge-net10.0-windows-full.json",
+      "artifactDestinationSha256": "97247ef50fadd55223ead8e68c8753c292b4ead250281104f549aa3da3960d26",
+      "artifactFileName": "pdf-merge-net10.0-windows-full.64aeccc73a2116fdc7228b6043b625bf3b3ce3a170480959ca1d0eb8615bd229.json",
+      "artifactRelativePath": "pdf-merge-net10.0-windows-full.64aeccc73a2116fdc7228b6043b625bf3b3ce3a170480959ca1d0eb8615bd229.json",
       "suite": "OfficeIMO.Pdf.Merge",
       "environment": {
         "osFamily": "Windows",
@@ -918,13 +912,13 @@
       "comparisonId": "pdf-page-selection-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T10:24:08.5364279+00:00",
+      "generatedUtc": "2026-08-16T12:24:08.5364279+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-page-selection-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-page-selection-net10.0-windows-full.ea0a5ed969113e770769a202316059e50639811a58061ef9ef435f409391d30f.json",
       "resultSha256": "ea0a5ed969113e770769a202316059e50639811a58061ef9ef435f409391d30f",
-      "artifactDestinationSha256": "cd40475c6c6756599d41ee7eeec15e0666a5461b712770373a2f04e45303e0b7",
-      "artifactFileName": "pdf-page-selection-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-page-selection-net10.0-windows-full.json",
+      "artifactDestinationSha256": "2980c680ffa58b60f2eeb56d97a50da9637bb4db809d5de82f5003f5b248571c",
+      "artifactFileName": "pdf-page-selection-net10.0-windows-full.ea0a5ed969113e770769a202316059e50639811a58061ef9ef435f409391d30f.json",
+      "artifactRelativePath": "pdf-page-selection-net10.0-windows-full.ea0a5ed969113e770769a202316059e50639811a58061ef9ef435f409391d30f.json",
       "suite": "OfficeIMO.Pdf.PageSelection",
       "environment": {
         "osFamily": "Windows",
@@ -965,13 +959,13 @@
       "comparisonId": "pdf-split-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T10:05:37.2179955+00:00",
+      "generatedUtc": "2026-08-16T12:05:37.2179955+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-split-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-split-net10.0-windows-full.d1cebe56c548357b80d93a24f36c4894826ff8b9282717e823a1b0c9ff38dad4.json",
       "resultSha256": "d1cebe56c548357b80d93a24f36c4894826ff8b9282717e823a1b0c9ff38dad4",
-      "artifactDestinationSha256": "5275b36bcdfb7fe3c446ea66248e2928b5f694ab149e9710a725708badd371a3",
-      "artifactFileName": "pdf-split-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-split-net10.0-windows-full.json",
+      "artifactDestinationSha256": "c923bd3aaff839d8049948318e44d5b44c9a13e6beebe6bd69ced522358e540d",
+      "artifactFileName": "pdf-split-net10.0-windows-full.d1cebe56c548357b80d93a24f36c4894826ff8b9282717e823a1b0c9ff38dad4.json",
+      "artifactRelativePath": "pdf-split-net10.0-windows-full.d1cebe56c548357b80d93a24f36c4894826ff8b9282717e823a1b0c9ff38dad4.json",
       "suite": "OfficeIMO.Pdf.Split",
       "environment": {
         "osFamily": "Windows",
@@ -1012,13 +1006,13 @@
       "comparisonId": "pdf-structured-generation-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T09:11:31.4319075+00:00",
+      "generatedUtc": "2026-08-16T11:11:31.4319075+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-windows-full.7398443c025523935d81e8d468a144d4cc456090d735b42b71041cf53672f7d5.json",
       "resultSha256": "7398443c025523935d81e8d468a144d4cc456090d735b42b71041cf53672f7d5",
-      "artifactDestinationSha256": "fb333c910824e167a889826e0e83e9681f51c84494e33a54c37aa95efb51aa5e",
-      "artifactFileName": "pdf-structured-generation-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-structured-generation-net10.0-windows-full.json",
+      "artifactDestinationSha256": "4270bb94f65e6e8098400658ad415582c15f37a020aa7771d2cb88c5d31c80ad",
+      "artifactFileName": "pdf-structured-generation-net10.0-windows-full.7398443c025523935d81e8d468a144d4cc456090d735b42b71041cf53672f7d5.json",
+      "artifactRelativePath": "pdf-structured-generation-net10.0-windows-full.7398443c025523935d81e8d468a144d4cc456090d735b42b71041cf53672f7d5.json",
       "suite": "OfficeIMO.Pdf.StructuredGeneration",
       "environment": {
         "osFamily": "Windows",
@@ -1059,13 +1053,13 @@
       "comparisonId": "pdf-text-extraction-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T09:44:43.9912518+00:00",
+      "generatedUtc": "2026-08-16T11:44:43.9912518+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-text-extraction-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-text-extraction-net10.0-windows-full.ec7c26cc6d985a6f36cb9da9ab384c8baee94a66d8abc0abee60d4b85269c581.json",
       "resultSha256": "ec7c26cc6d985a6f36cb9da9ab384c8baee94a66d8abc0abee60d4b85269c581",
-      "artifactDestinationSha256": "407825cac3f012ed313460c8d1304adb3d9a1804fb98289f2d86d5ce9ab99ab2",
-      "artifactFileName": "pdf-text-extraction-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-text-extraction-net10.0-windows-full.json",
+      "artifactDestinationSha256": "d854eec20de91732872b021ce313b1eafa5cf1b0e65f888711e89be995318a99",
+      "artifactFileName": "pdf-text-extraction-net10.0-windows-full.ec7c26cc6d985a6f36cb9da9ab384c8baee94a66d8abc0abee60d4b85269c581.json",
+      "artifactRelativePath": "pdf-text-extraction-net10.0-windows-full.ec7c26cc6d985a6f36cb9da9ab384c8baee94a66d8abc0abee60d4b85269c581.json",
       "suite": "OfficeIMO.Pdf.TextExtraction",
       "environment": {
         "osFamily": "Windows",
@@ -1106,13 +1100,13 @@
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
       "platform": "macos",
       "runMode": "quick",
-      "generatedUtc": "2026-07-31T10:28:47.27305+00:00",
+      "generatedUtc": "2026-07-31T12:28:47.27305+02:00",
       "publish": false,
-      "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-macos-quick.d87d17385db5f54833d388f9b69a85b9114ebdd6d04930b4410375c2a8942cae.json",
       "resultSha256": "d87d17385db5f54833d388f9b69a85b9114ebdd6d04930b4410375c2a8942cae",
-      "artifactDestinationSha256": "6ec8fe449cdd2d06b4e43dafb43aa97226aeffc7f5e26b74320009953d25e4a5",
-      "artifactFileName": "xlsx-25k-datareader-write-net10.0-macos-quick.json",
-      "artifactRelativePath": "xlsx-25k-datareader-write-net10.0-macos-quick.json",
+      "artifactDestinationSha256": "2733f4ea777f6c735417ebd6a2cdf31190ed9e4b481856d1b1243ee1a078c6cc",
+      "artifactFileName": "xlsx-25k-datareader-write-net10.0-macos-quick.d87d17385db5f54833d388f9b69a85b9114ebdd6d04930b4410375c2a8942cae.json",
+      "artifactRelativePath": "xlsx-25k-datareader-write-net10.0-macos-quick.d87d17385db5f54833d388f9b69a85b9114ebdd6d04930b4410375c2a8942cae.json",
       "suite": "OfficeIMO.Excel.DataReaderWrite25K",
       "environment": {
         "osFamily": "macOS",
@@ -1153,13 +1147,13 @@
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T09:00:53.6363585+00:00",
+      "generatedUtc": "2026-08-16T11:00:53.6363585+02:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-windows-full.f916d0b9c2617d90f2a510b86020533bf232d20bd4374e3fc81a6d275b6ce0a3.json",
       "resultSha256": "f916d0b9c2617d90f2a510b86020533bf232d20bd4374e3fc81a6d275b6ce0a3",
-      "artifactDestinationSha256": "d3d3d566c1732ece7670b964400f9f47a698d1b94bc68820146cb2e6063d7f47",
-      "artifactFileName": "xlsx-25k-datareader-write-net10.0-windows-full.json",
-      "artifactRelativePath": "xlsx-25k-datareader-write-net10.0-windows-full.json",
+      "artifactDestinationSha256": "4af03db7e34a1bf1cd52fd98923896c82b787969e4da2dc2816de879a673cdcb",
+      "artifactFileName": "xlsx-25k-datareader-write-net10.0-windows-full.f916d0b9c2617d90f2a510b86020533bf232d20bd4374e3fc81a6d275b6ce0a3.json",
+      "artifactRelativePath": "xlsx-25k-datareader-write-net10.0-windows-full.f916d0b9c2617d90f2a510b86020533bf232d20bd4374e3fc81a6d275b6ce0a3.json",
       "suite": "OfficeIMO.Excel.DataReaderWrite25K",
       "environment": {
         "osFamily": "Windows",
@@ -1206,7 +1200,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T08:51:57.8134281+00:00"
+      "latestUtc": "2026-08-16T10:51:57.8134281+02:00"
     },
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
@@ -1248,7 +1242,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-07-31T10:57:12.894909+00:00"
+      "latestUtc": "2026-07-31T12:57:12.894909+02:00"
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -1258,7 +1252,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T08:46:10.5871415+00:00"
+      "latestUtc": "2026-08-16T10:46:10.5871415+02:00"
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -1312,7 +1306,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T08:53:25.5645046+00:00"
+      "latestUtc": "2026-08-16T10:53:25.5645046+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xls-typed-net10.0",
@@ -1338,7 +1332,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T09:04:20.1090395+00:00"
+      "latestUtc": "2026-08-16T11:04:20.1090395+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -1392,7 +1386,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T08:57:22.5678827+00:00"
+      "latestUtc": "2026-08-16T10:57:22.5678827+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
@@ -1438,7 +1432,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-07-31T10:49:02.003238+00:00"
+      "latestUtc": "2026-07-31T12:49:02.003238+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1448,7 +1442,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-23T23:50:23.818911+00:00"
+      "latestUtc": "2026-08-24T14:24:31.5273338+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1458,7 +1452,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-24T11:48:35.7661685+00:00"
+      "latestUtc": "2026-08-24T13:48:35.7661685+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1476,7 +1470,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-08-23T15:08:52.4492183+00:00"
+      "latestUtc": "2026-08-23T17:08:52.4492183+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1486,7 +1480,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-08-23T15:29:33.5014744+00:00"
+      "latestUtc": "2026-08-23T17:29:33.5014744+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1504,7 +1498,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T10:16:12.4029791+00:00"
+      "latestUtc": "2026-08-16T12:16:12.4029791+02:00"
     },
     {
       "comparisonId": "pdf-merge-net10.0",
@@ -1530,7 +1524,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T10:24:08.5364279+00:00"
+      "latestUtc": "2026-08-16T12:24:08.5364279+02:00"
     },
     {
       "comparisonId": "pdf-page-selection-net10.0",
@@ -1556,7 +1550,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T10:05:37.2179955+00:00"
+      "latestUtc": "2026-08-16T12:05:37.2179955+02:00"
     },
     {
       "comparisonId": "pdf-split-net10.0",
@@ -1582,7 +1576,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T09:11:31.4319075+00:00"
+      "latestUtc": "2026-08-16T11:11:31.4319075+02:00"
     },
     {
       "comparisonId": "pdf-structured-generation-net10.0",
@@ -1608,7 +1602,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T09:44:43.9912518+00:00"
+      "latestUtc": "2026-08-16T11:44:43.9912518+02:00"
     },
     {
       "comparisonId": "pdf-text-extraction-net10.0",
@@ -1634,7 +1628,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T09:00:53.6363585+00:00"
+      "latestUtc": "2026-08-16T11:00:53.6363585+02:00"
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
@@ -1676,7 +1670,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-07-31T10:28:47.27305+00:00"
+      "latestUtc": "2026-07-31T12:28:47.27305+02:00"
     }
   ]
 }
