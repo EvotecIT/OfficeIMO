@@ -10,9 +10,17 @@ public static class LatexTokenizer {
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
+        return Tokenize(new LatexSourceText(source), options, cancellationToken);
+    }
+
+    internal static IReadOnlyList<LatexToken> Tokenize(
+        LatexSourceText sourceText,
+        LatexParseOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (sourceText == null) throw new ArgumentNullException(nameof(sourceText));
+        string source = sourceText.Text;
         options ??= new LatexParseOptions();
         Validate(source, options);
-        var sourceText = new LatexSourceText(source);
         var tokens = new List<LatexToken>();
         int index = 0;
         while (index < source.Length) {
