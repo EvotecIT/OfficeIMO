@@ -166,7 +166,7 @@ internal static partial class HtmlPdfRenderedConverter {
         double drawingHeight = Math.Max(0.01D, Math.Max(visual.Height, maximumY + outlineOffsetY));
         var path = OfficeShape.Path(drawingWidth, drawingHeight, commands);
         path.FillColor = visual.Color;
-        path.FillRule = OfficeFillRule.EvenOdd;
+        path.FillRule = OfficeFillRule.NonZero;
         path.StrokeColor = null;
         var drawing = new OfficeDrawing(drawingWidth, drawingHeight)
             .AddShape(path, 0D, 0D);

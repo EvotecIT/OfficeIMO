@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
@@ -105,18 +106,27 @@ internal interface IOfficeVariableFontProgram {
 /// <summary>Request passed to an optional font-program provider.</summary>
 public sealed class OfficeFontProgramLoadRequest {
     private readonly byte[] _data;
+    private readonly IReadOnlyDictionary<string, float> _variationCoordinates;
 
     internal OfficeFontProgramLoadRequest(
         string familyName,
         byte[] data,
         OfficeFontStyle style,
         OfficeFontContainerFormat containerFormat,
-        int maximumDecodedBytes) {
+        int maximumDecodedBytes,
+        IReadOnlyDictionary<string, float>? variationCoordinates = null) {
         FamilyName = familyName;
         _data = (byte[])data.Clone();
         Style = style;
         ContainerFormat = containerFormat;
         MaximumDecodedBytes = maximumDecodedBytes;
+        var variationSnapshot = new Dictionary<string, float>(StringComparer.Ordinal);
+        if (variationCoordinates != null) {
+            foreach (KeyValuePair<string, float> coordinate in variationCoordinates) {
+                variationSnapshot[coordinate.Key] = coordinate.Value;
+            }
+        }
+        _variationCoordinates = new ReadOnlyDictionary<string, float>(variationSnapshot);
     }
 
     /// <summary>CSS/Office family requested by the caller.</summary>
@@ -130,6 +140,12 @@ public sealed class OfficeFontProgramLoadRequest {
 
     /// <summary>Maximum decoded bytes the provider may retain for this face.</summary>
     public int MaximumDecodedBytes { get; }
+
+    /// <summary>
+    /// Resolved design-space coordinates for the selected variable-font instance. The collection
+    /// is an immutable request snapshot and is empty when no axes were selected.
+    /// </summary>
+    public IReadOnlyDictionary<string, float> VariationCoordinates => _variationCoordinates;
 
     /// <summary>Returns an independent copy of the bounded source bytes.</summary>
     public byte[] Data => (byte[])_data.Clone();

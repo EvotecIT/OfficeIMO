@@ -30,7 +30,7 @@ public sealed partial class OfficeTrueTypeFont {
         return mapped != 0;
     }
 
-    byte[] IOfficeFontProgram.GetFontDataForShaping() => FontDataForShaping;
+    byte[] IOfficeFontProgram.GetFontDataForShaping() => (byte[])FontDataForShaping.Clone();
 
     bool IOfficeFontProgram.HasGlyphs(string text) => HasGlyphs(text);
 

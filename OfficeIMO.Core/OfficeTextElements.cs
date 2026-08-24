@@ -103,7 +103,7 @@ public static class OfficeTextElements {
     /// standalone glyph during font fallback coverage checks.
     /// </summary>
     public static bool IsIgnorableFontCoverageScalar(int scalar) =>
-        scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
+        scalar == 0x061C || scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
         || scalar >= 0x200E && scalar <= 0x200F
         || scalar >= 0x202A && scalar <= 0x202E
         || scalar >= 0x2066 && scalar <= 0x2069

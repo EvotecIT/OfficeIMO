@@ -22,6 +22,19 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void CffScalarRenderingSkipsIgnorableShapingControls() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Source Sans Pro CFF", data).Faces);
+        const string visible = "AAA";
+        const string withControls = "A\u061C\u200D\uFE0FAA";
+
+        Assert.Equal(face.Program.Measure(visible, 24D), face.Program.Measure(withControls, 24D), 6);
+        Assert.Equal(
+            Serialize(face.Program.GetTextContours(visible, 0D, 0D, 24D)),
+            Serialize(face.Program.GetTextContours(withControls, 0D, 0D, 24D)));
+    }
+
+    [Fact]
     public void Cff2VariationAxesProduceDeterministicDistinctContours() {
         byte[] data = ReadAsset("AdobeVFPrototype-Subset.otf");
         var defaultFont = new OfficeFontFaceCollection();

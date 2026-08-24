@@ -80,7 +80,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         double scale = Scale(fontSize);
         long width = 0;
         for (int index = 0; index < text.Length;) {
-            int glyphId = _reader.MapGlyph(ReadScalar(text, ref index));
+            int scalar = ReadScalar(text, ref index);
+            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
+            int glyphId = _reader.MapGlyph(scalar);
             width = checked(width + AdvanceWidth(glyphId));
         }
         return width * scale;
@@ -119,7 +121,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         int pointCount = 0;
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            int glyphId = _reader.MapGlyph(ReadScalar(text, ref index));
+            int scalar = ReadScalar(text, ref index);
+            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
+            int glyphId = _reader.MapGlyph(scalar);
             RenderGlyph(glyphId, cursor, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken);
             cursor += AdvanceWidth(glyphId) * scale;
         }

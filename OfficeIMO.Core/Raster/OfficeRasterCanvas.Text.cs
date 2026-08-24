@@ -159,10 +159,10 @@ public sealed partial class OfficeRasterCanvas {
                 SlantContours(contours, top, size);
             }
 
-            FillContours(contours, color, OfficeFillRule.EvenOdd);
+            FillContours(contours, color, OfficeFillRule.NonZero);
             if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
                 OffsetContours(contours, 0.45D, 0D);
-                FillContours(contours, color, OfficeFillRule.EvenOdd);
+                FillContours(contours, color, OfficeFillRule.NonZero);
             }
 
             if ((style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline) {
@@ -268,7 +268,7 @@ public sealed partial class OfficeRasterCanvas {
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
-            FillContours(contours, color, OfficeFillRule.EvenOdd);
+            FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
                     GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
@@ -279,7 +279,7 @@ public sealed partial class OfficeRasterCanvas {
                     rotationCenterY,
                     flipHorizontal,
                     flipVertical);
-                FillContours(contours, color, OfficeFillRule.EvenOdd);
+                FillContours(contours, color, OfficeFillRule.NonZero);
             }
 
             DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
@@ -352,14 +352,14 @@ public sealed partial class OfficeRasterCanvas {
                 top + fontHeight,
                 simulateItalic,
                 transform);
-            FillContours(contours, color, OfficeFillRule.EvenOdd);
+            FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
                     GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
                     top + fontHeight,
                     simulateItalic,
                     transform);
-                FillContours(contours, color, OfficeFillRule.EvenOdd);
+                FillContours(contours, color, OfficeFillRule.NonZero);
             }
 
             DrawAffineTextLineDecorations(x, width, top, fontHeight, color, transform, underline, strikethrough);

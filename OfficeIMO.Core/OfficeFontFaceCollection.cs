@@ -295,6 +295,9 @@ public sealed class OfficeFontFaceCollection {
         bool providerPreferred = decoded;
         if ((parsed == null || providerPreferred) && FontProgramProvider != null) {
             int providerLimit = maximumDecodedBytes ?? OfficeFontContainerDecoder.DefaultMaximumDecodedBytes;
+            IReadOnlyDictionary<string, float>? providerVariationValues =
+                (builtInProgram as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping
+                ?? variationValues;
             // The request's container must describe the bytes handed to the provider. WOFF inputs
             // are normalized by the core before this point. Keeping the original WOFF label with
             // sfnt bytes makes a provider interpret the table directory as a web-font header.
@@ -308,7 +311,8 @@ public sealed class OfficeFontFaceCollection {
                     decoded ? openTypeData : data,
                     OfficeFontFace.NormalizeStyle(style),
                     providerInputFormat,
-                    providerLimit));
+                    providerLimit,
+                    providerVariationValues));
             } catch (Exception exception) when (!(exception is OutOfMemoryException)) {
                 error = "The configured font-program provider failed: " + exception.Message;
                 return false;

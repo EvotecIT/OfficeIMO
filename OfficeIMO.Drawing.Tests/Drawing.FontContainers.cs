@@ -119,6 +119,20 @@ public sealed class DrawingFontContainerTests {
         Assert.Empty(fonts.Faces);
     }
 
+    [Fact]
+    public void TrueTypeShapingDataReturnsIndependentSnapshots() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Snapshot Demo", source).Faces);
+
+        byte[] first = face.Program.GetFontDataForShaping();
+        byte original = first[0];
+        first[0] ^= 0xFF;
+        byte[] second = face.Program.GetFontDataForShaping();
+
+        Assert.NotSame(first, second);
+        Assert.Equal(original, second[0]);
+    }
+
     private sealed class TestFontProgramProvider : IOfficeFontProgramProvider {
         private readonly int _decodedByteCount;
 

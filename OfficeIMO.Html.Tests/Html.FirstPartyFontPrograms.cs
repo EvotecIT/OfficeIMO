@@ -79,7 +79,9 @@ public sealed class HtmlFirstPartyFontProgramTests {
         Assert.False(first.HasLoss, FormatWarnings(first));
         HtmlPdfAccessibilityValidationResult validation = HtmlPdfAccessibilityValidator.Validate(source, firstPdf);
         Assert.True(validation.IsValid, string.Join(" | ", validation.Issues.Select(issue => issue.Code + ": " + issue.Message)));
-        Assert.NotEmpty(PdfCore.PdfDocument.Open(firstPdf).Read.Drawing(1).Shapes);
+        var outlineShapes = PdfCore.PdfDocument.Open(firstPdf).Read.Drawing(1).Shapes;
+        Assert.NotEmpty(outlineShapes);
+        Assert.All(outlineShapes, shape => Assert.Equal(OfficeFillRule.NonZero, shape.Shape.FillRule));
     }
 
     [Fact]

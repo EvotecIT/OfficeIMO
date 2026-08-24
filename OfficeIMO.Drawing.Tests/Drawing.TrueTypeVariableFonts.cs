@@ -75,6 +75,38 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void ProviderReceivesTheResolvedVariableFontCoordinates() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        var provider = new CapturingFontProgramProvider();
+        var requested = new Dictionary<string, float> { ["wght"] = 725F, ["wdth"] = 112F };
+        var fonts = new OfficeFontFaceCollection {
+            FontVariationResolver = _ => requested,
+            FontProgramProvider = provider
+        };
+
+        Assert.True(fonts.TryAdd("Roboto Flex", data));
+        Assert.NotNull(provider.LastRequest);
+        Assert.Equal(725F, provider.LastRequest!.VariationCoordinates["wght"]);
+        Assert.Equal(112F, provider.LastRequest.VariationCoordinates["wdth"]);
+        requested["wght"] = 200F;
+        Assert.Equal(725F, provider.LastRequest.VariationCoordinates["wght"]);
+    }
+
+    [Fact]
+    public void TrueTypeScalarRenderingSkipsIgnorableShapingControls() {
+        OfficeFontFace face = Load(
+            ReadAsset("RobotoFlex.ttf"),
+            new Dictionary<string, float> { ["wght"] = 700F });
+        const string visible = "AA";
+        const string withControls = "A\u061C\u200D\uFE0FAA";
+
+        Assert.Equal(face.Program.Measure(visible + "A", 24D), face.Program.Measure(withControls, 24D), 6);
+        Assert.Equal(
+            Serialize(face.Program.GetTextContours(visible + "A", 0D, 0D, 24D)),
+            Serialize(face.Program.GetTextContours(withControls, 0D, 0D, 24D)));
+    }
+
+    [Fact]
     public void GvarPhantomPointsSupplyAdvanceWidthsWhenHvarIsAbsent() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         RenameTable(data, "HVAR", "HVAX");
@@ -157,6 +189,15 @@ public sealed class DrawingTrueTypeVariableFontTests {
             out _,
             out string? error), error);
         return Assert.Single(fonts.Faces);
+    }
+
+    private sealed class CapturingFontProgramProvider : IOfficeFontProgramProvider {
+        internal OfficeFontProgramLoadRequest? LastRequest { get; private set; }
+
+        public OfficeFontProgramLoadResult? TryLoad(OfficeFontProgramLoadRequest request) {
+            LastRequest = request;
+            return null;
+        }
     }
 
     private static byte[] ReadAsset(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", name));
