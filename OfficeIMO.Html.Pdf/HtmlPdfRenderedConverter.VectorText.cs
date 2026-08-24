@@ -243,7 +243,9 @@ internal static partial class HtmlPdfRenderedConverter {
             webFonts.TextShapingLanguage,
             cancellationToken,
             program.CollectionIndex,
-            run.Face.VariationCoordinatesForShaping));
+            run.Face.VariationCoordinatesForShaping,
+            cloneFontData: false,
+            fontProgramCacheKey: program));
         if (shapingResult == null) shapedText = null;
         return shapingResult;
     }

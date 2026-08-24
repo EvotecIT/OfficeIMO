@@ -16,7 +16,7 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// packages remain independent of HarfBuzz and its native assets.
 /// </remarks>
 public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider {
-    private readonly ConditionalWeakTable<byte[], CachedFontCollection> _fontCache = new();
+    private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
 
     /// <summary>Shared provider instance with a weak cache of parsed font faces.</summary>
     public static OfficeHarfBuzzTextShapingProvider Instance { get; } = new();
@@ -31,9 +31,10 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         if (request.Text.Length == 0) return null;
 
         byte[] fontData = request.FontDataForShaping;
+        object fontCacheKey = request.FontProgramCacheKeyForShaping ?? fontData;
         CachedFontCollection fontCollection = _fontCache.GetValue(
-            fontData,
-            static data => new CachedFontCollection(data));
+            fontCacheKey,
+            _ => new CachedFontCollection(fontData));
         fontCollection.Shape(request, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
         if (glyphCount <= 1) return null;
         GC.KeepAlive(fontData);

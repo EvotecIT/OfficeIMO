@@ -24,9 +24,9 @@ internal static class PdfPageDictionaryBuilder {
         sb.Append("<< /Type /Page /Parent ")
             .Append(PdfSyntaxEscaper.IndirectReference(parentPagesId))
             .Append(" /MediaBox [0 0 ")
-            .Append(FormatWholeNumber(pageWidth))
+            .Append(FormatNumber(pageWidth))
             .Append(' ')
-            .Append(FormatWholeNumber(pageHeight))
+            .Append(FormatNumber(pageHeight))
             .Append(']');
 
         if (printProductionPageBoxes != null) {
@@ -115,9 +115,6 @@ internal static class PdfPageDictionaryBuilder {
         Guard.NotNullOrWhiteSpace(name, nameof(resourceName));
         sb.Append('/').Append(PdfSyntaxEscaper.Name(name));
     }
-
-    private static string FormatWholeNumber(double value) =>
-        value.ToString("0", CultureInfo.InvariantCulture);
 
     private static void AppendBox(StringBuilder sb, string name, double left, double bottom, double right, double top) {
         sb.Append(" /").Append(name).Append(" [")

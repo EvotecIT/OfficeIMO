@@ -19,4 +19,10 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Html.Pdf.Workbench\OfficeIMO.Html.Pdf.Workbench.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\OfficeIMO.Html.Pdf.Workbench\Properties\launchSettings.json"
+          Link="launchSettings.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

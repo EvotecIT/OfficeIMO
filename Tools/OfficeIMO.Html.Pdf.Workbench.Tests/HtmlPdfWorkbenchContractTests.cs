@@ -58,6 +58,20 @@ public sealed class HtmlPdfWorkbenchContractTests {
     }
 
     [Fact]
+    public void LaunchProfiles_MatchTheEnforcedLoopbackEndpoint() {
+        using JsonDocument settings = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "launchSettings.json")));
+        JsonElement root = settings.RootElement;
+
+        Assert.Equal(
+            "http://127.0.0.1:5105",
+            root.GetProperty("iisSettings").GetProperty("iisExpress").GetProperty("applicationUrl").GetString());
+        Assert.Equal(
+            "http://127.0.0.1:5105",
+            root.GetProperty("profiles").GetProperty("http").GetProperty("applicationUrl").GetString());
+    }
+
+    [Fact]
     public async Task ManagedConversion_ProducesInspectablePdfAndMatchingEvidence() {
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(networkPolicy: HtmlBrowserNetworkPolicy.Offline));
         var service = new HtmlPdfWorkbenchConversionService(renderer);

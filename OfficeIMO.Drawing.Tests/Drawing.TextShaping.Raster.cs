@@ -39,6 +39,31 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void RasterCanvas_ProvidesAStableFontProgramCacheKeyAcrossCanvases() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap('A'));
+        var fonts = new OfficeFontFaceCollection().Add("Shaping Cache", fontData);
+        OfficeFontFace face = Assert.Single(fonts.Faces);
+        var provider = new RasterMappingTextShapingProvider(
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 800));
+        var first = new OfficeRasterCanvas(
+            new OfficeRasterImage(40, 20),
+            font: null,
+            fonts: fonts,
+            textShapingProvider: provider);
+        var second = new OfficeRasterCanvas(
+            new OfficeRasterImage(40, 20),
+            font: null,
+            fonts: fonts,
+            textShapingProvider: provider);
+
+        first.MeasureText("A", 12D, "Shaping Cache");
+        second.MeasureText("A", 12D, "Shaping Cache");
+
+        Assert.Equal(2, provider.Requests.Count);
+        Assert.All(provider.Requests, request => Assert.Same(face.Program, request.FontProgramCacheKeyForShaping));
+    }
+
+    [Fact]
     public void RasterCanvas_NormalizesNegativeProviderAdvanceForLeftBasedLayout() {
         var fonts = new OfficeFontFaceCollection()
             .Add("RTL Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x05D0)));

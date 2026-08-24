@@ -219,6 +219,31 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PrintProductionPageBoxesUseTheMediaBoxPrecision() {
+        var options = new PdfOptions {
+            PageWidth = 595.276D,
+            PageHeight = 841.89D
+        }.ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            "FOGRA51");
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Fractional print page."))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(pdf);
+        PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf)
+            .InspectPrintProductionStructure();
+
+        Assert.Contains(
+            "/MediaBox [0 0 595.276 841.89] /TrimBox [0 0 595.276 841.89] /BleedBox [0 0 595.276 841.89]",
+            raw,
+            StringComparison.Ordinal);
+        Assert.Equal(1, structure.ValidProductionPageBoxCount);
+        Assert.Equal(0, structure.InvalidProductionPageBoxCount);
+    }
+
+    [Fact]
     public void PdfX1AGroundworkFlattensRasterAlphaAndExactReadbackFindsNoRgbOrTransparency() {
         var raster = new OfficeRasterImage(1, 1);
         raster.SetPixel(0, 0, OfficeColor.FromRgba(20, 40, 60, 96));
@@ -355,6 +380,17 @@ public class PdfXGroundworkTests {
         Assert.True(evidence.HasDeviceRgbUsage);
         Assert.Equal(4, evidence.DeviceRgbOperatorCount);
         Assert.Equal(1, evidence.DeviceRgbImageCount);
+    }
+
+    [Fact]
+    public void PrintProductionInspectorScopesAliasesToEachPageAndFormResourceDictionary() {
+        byte[] pdf = BuildScopedColorSpaceInspectionPdf();
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.True(evidence.HasDeviceRgbUsage);
+        Assert.Equal(4, evidence.DeviceRgbOperatorCount);
     }
 
     [Fact]
@@ -860,6 +896,43 @@ public class PdfXGroundworkTests {
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n" + extraObjects + "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static byte[] BuildScopedColorSpaceInspectionPdf() {
+        const string rgbContent = "/CS1 cs 0.1 0.2 0.3 scn";
+        const string cmykContent = "/CS1 cs 0.1 0.2 0.3 0.4 scn";
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CS1 /DeviceRGB >> >> /Contents 5 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CS1 /DeviceCMYK >> >> /Contents 6 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 5, string.Empty, rgbContent);
+        WriteInspectionStream(output, 6, string.Empty, cmykContent);
+        WriteInspectionStream(
+            output,
+            7,
+            "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /ColorSpace << /CS1 /DeviceRGB >> >>",
+            rgbContent);
+        WriteInspectionStream(
+            output,
+            8,
+            "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /ColorSpace << /CS1 /DeviceCMYK >> >>",
+            cmykContent);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static void WriteInspectionStream(MemoryStream output, int objectNumber, string entries, string content) {
+        byte[] contentBytes = Encoding.ASCII.GetBytes(content);
+        WriteAscii(
+            output,
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< " + entries + " /Length " +
+            contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
     }
 
     private static void WriteAscii(Stream stream, string value) {

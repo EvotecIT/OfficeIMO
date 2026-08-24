@@ -22,6 +22,7 @@ public interface IOfficeTextShapingProvider {
 /// <summary>Describes a Unicode text run and font passed to a shared shaping provider.</summary>
 public sealed class OfficeTextShapingRequest {
     private readonly byte[] _fontData;
+    private readonly object? _fontProgramCacheKey;
     private readonly IReadOnlyDictionary<string, float> _variationCoordinates;
 
     /// <summary>Creates an immutable text-shaping request.</summary>
@@ -140,7 +141,8 @@ public sealed class OfficeTextShapingRequest {
         System.Threading.CancellationToken cancellationToken,
         int? fontCollectionIndex,
         IReadOnlyDictionary<string, float>? variationCoordinates,
-        bool cloneFontData) {
+        bool cloneFontData,
+        object? fontProgramCacheKey = null) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         if (fontData == null) {
             throw new ArgumentNullException(nameof(fontData));
@@ -159,6 +161,7 @@ public sealed class OfficeTextShapingRequest {
 
         FontName = fontName ?? string.Empty;
         _fontData = cloneFontData ? (byte[])fontData.Clone() : fontData;
+        _fontProgramCacheKey = fontProgramCacheKey;
         IsOpenTypeCff = isOpenTypeCff;
         UnitsPerEm = unitsPerEm;
         FontCollectionIndex = fontCollectionIndex;
@@ -178,6 +181,8 @@ public sealed class OfficeTextShapingRequest {
     public byte[] FontData => (byte[])_fontData.Clone();
 
     internal byte[] FontDataForShaping => _fontData;
+
+    internal object? FontProgramCacheKeyForShaping => _fontProgramCacheKey;
 
     /// <summary>True for OpenType/CFF outlines; false for TrueType outlines.</summary>
     public bool IsOpenTypeCff { get; }

@@ -40,7 +40,8 @@ public sealed partial class OfficeRasterCanvas {
             _cancellationToken,
             font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping,
-            cloneFontData: false));
+            cloneFontData: false,
+            fontProgramCacheKey: font));
         OfficeTextShapingResult? resolved = result;
         if (cache.Count >= MaxShapedTextCacheEntries) cache.Clear();
         cache[key] = resolved;

@@ -6,9 +6,7 @@ internal static class PdfPrintProductionColorInspector {
     internal static PdfPrintProductionColorEvidence Inspect(PdfReadDocument document) {
         Guard.NotNull(document, nameof(document));
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
-        var contentStreams = new HashSet<PdfStream>();
-        var rgbColorSpaceAliases = new HashSet<string>(StringComparer.Ordinal);
-        var deviceIndependentColorSpaceAliases = new HashSet<string>(StringComparer.Ordinal);
+        var contentStreams = new List<ContentStreamContext>();
         var graphicsStateDictionaries = new HashSet<PdfDictionary>();
         var inspectedDictionaries = new HashSet<PdfDictionary>();
         int rgbImages = 0;
@@ -33,19 +31,24 @@ internal static class PdfPrintProductionColorInspector {
             if (indirect.Value is PdfStream candidate &&
                 (string.Equals(subtype, "Form", StringComparison.Ordinal) ||
                  dictionary.Items.ContainsKey("PatternType"))) {
-                contentStreams.Add(candidate);
+                AddContentStream(
+                    candidate,
+                    ResolveColorSpaceAliases(dictionary, objects, inheritResources: false),
+                    contentStreams);
             }
 
             if (string.Equals(type, "Page", StringComparison.Ordinal) &&
                 dictionary.Items.TryGetValue("Contents", out PdfObject? contents)) {
-                CollectStreams(contents, objects, contentStreams);
+                CollectStreams(
+                    contents,
+                    objects,
+                    ResolveColorSpaceAliases(dictionary, objects, inheritResources: true),
+                    contentStreams);
             }
 
             CollectNestedDictionaryEvidence(
                 dictionary,
                 objects,
-                rgbColorSpaceAliases,
-                deviceIndependentColorSpaceAliases,
                 graphicsStateDictionaries,
                 inspectedDictionaries,
                 ref transparencyGroups);
@@ -78,7 +81,9 @@ internal static class PdfPrintProductionColorInspector {
         int rgbOperators = 0;
         int cmykOperators = 0;
         int uninspectable = 0;
-        foreach (PdfStream stream in contentStreams) {
+        foreach (ContentStreamContext context in contentStreams) {
+            PdfStream stream = context.Stream;
+            ColorSpaceAliases aliases = context.Aliases;
             if (!StreamDecoder.TryDecode(
                     stream.Dictionary,
                     stream.Data,
@@ -149,18 +154,18 @@ internal static class PdfPrintProductionColorInspector {
                                 strokeUsesDeviceIndependentColor = false;
                                 break;
                             case "cs":
-                                fillUsesDeviceRgb = UsesDeviceRgbColorSpace(operation, rgbColorSpaceAliases);
+                                fillUsesDeviceRgb = UsesDeviceRgbColorSpace(operation, aliases.Rgb);
                                 fillUsesDeviceIndependentColor = UsesDeviceIndependentColorSpace(
                                     operation,
-                                    deviceIndependentColorSpaceAliases);
+                                    aliases.DeviceIndependent);
                                 if (fillUsesDeviceRgb) rgbOperators++;
                                 if (fillUsesDeviceIndependentColor) deviceIndependentColorUses++;
                                 break;
                             case "CS":
-                                strokeUsesDeviceRgb = UsesDeviceRgbColorSpace(operation, rgbColorSpaceAliases);
+                                strokeUsesDeviceRgb = UsesDeviceRgbColorSpace(operation, aliases.Rgb);
                                 strokeUsesDeviceIndependentColor = UsesDeviceIndependentColorSpace(
                                     operation,
-                                    deviceIndependentColorSpaceAliases);
+                                    aliases.DeviceIndependent);
                                 if (strokeUsesDeviceRgb) rgbOperators++;
                                 if (strokeUsesDeviceIndependentColor) deviceIndependentColorUses++;
                                 break;
@@ -178,9 +183,9 @@ internal static class PdfPrintProductionColorInspector {
 
                         if (operation.InlineImage != null &&
                             operation.InlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColorSpace)) {
-                            if (ContainsColorSpace(inlineColorSpace, "DeviceRGB", objects, rgbColorSpaceAliases)) rgbImages++;
+                            if (ContainsColorSpace(inlineColorSpace, "DeviceRGB", objects, aliases.Rgb)) rgbImages++;
                             if (ContainsColorSpace(inlineColorSpace, "DeviceCMYK", objects)) cmykImages++;
-                            if (ContainsDeviceIndependentColorSpace(inlineColorSpace, objects, deviceIndependentColorSpaceAliases)) {
+                            if (ContainsDeviceIndependentColorSpace(inlineColorSpace, objects, aliases.DeviceIndependent)) {
                                 deviceIndependentColorUses++;
                             }
                         }
@@ -212,15 +217,54 @@ internal static class PdfPrintProductionColorInspector {
     private static void CollectStreams(
         PdfObject value,
         Dictionary<int, PdfIndirectObject> objects,
-        HashSet<PdfStream> streams) {
+        ColorSpaceAliases aliases,
+        List<ContentStreamContext> streams) {
         PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, value);
         if (resolved is PdfStream stream) {
-            streams.Add(stream);
+            AddContentStream(stream, aliases, streams);
         } else if (resolved is PdfArray array) {
             for (int index = 0; index < array.Items.Count; index++) {
-                CollectStreams(array.Items[index], objects, streams);
+                CollectStreams(array.Items[index], objects, aliases, streams);
             }
         }
+    }
+
+    private static void AddContentStream(
+        PdfStream stream,
+        ColorSpaceAliases aliases,
+        List<ContentStreamContext> streams) {
+        for (int index = 0; index < streams.Count; index++) {
+            ContentStreamContext existing = streams[index];
+            if (ReferenceEquals(existing.Stream, stream) && existing.Aliases.SetEquals(aliases)) return;
+        }
+
+        streams.Add(new ContentStreamContext(stream, aliases));
+    }
+
+    private static ColorSpaceAliases ResolveColorSpaceAliases(
+        PdfDictionary owner,
+        Dictionary<int, PdfIndirectObject> objects,
+        bool inheritResources) {
+        var aliases = new ColorSpaceAliases();
+        var visited = new HashSet<PdfDictionary>();
+        PdfDictionary? current = owner;
+        while (current != null && visited.Add(current)) {
+            if (current.Items.TryGetValue("Resources", out PdfObject? resourcesObject) &&
+                PdfObjectLookup.ResolveChain(objects, resourcesObject) is PdfDictionary resources) {
+                CollectResourceColorSpaces(resources, objects, aliases.Rgb, aliases.DeviceIndependent);
+                break;
+            }
+
+            if (!inheritResources ||
+                !current.Items.TryGetValue("Parent", out PdfObject? parentObject) ||
+                PdfObjectLookup.ResolveChain(objects, parentObject) is not PdfDictionary parent) {
+                break;
+            }
+
+            current = parent;
+        }
+
+        return aliases;
     }
 
     private static void CollectResourceColorSpaces(
@@ -240,14 +284,11 @@ internal static class PdfPrintProductionColorInspector {
     private static void CollectNestedDictionaryEvidence(
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects,
-        HashSet<string> rgbAliases,
-        HashSet<string> deviceIndependentAliases,
         HashSet<PdfDictionary> graphicsStates,
         HashSet<PdfDictionary> inspected,
         ref int transparencyGroups) {
         if (!inspected.Add(dictionary)) return;
 
-        CollectResourceColorSpaces(dictionary, objects, rgbAliases, deviceIndependentAliases);
         CollectGraphicsStates(dictionary, objects, graphicsStates);
         if (string.Equals(
                 ResolveName(dictionary.Items.TryGetValue("Type", out PdfObject? type) ? type : null, objects),
@@ -266,8 +307,6 @@ internal static class PdfPrintProductionColorInspector {
             CollectNestedDictionaryValue(
                 value,
                 objects,
-                rgbAliases,
-                deviceIndependentAliases,
                 graphicsStates,
                 inspected,
                 ref transparencyGroups);
@@ -277,8 +316,6 @@ internal static class PdfPrintProductionColorInspector {
     private static void CollectNestedDictionaryValue(
         PdfObject value,
         Dictionary<int, PdfIndirectObject> objects,
-        HashSet<string> rgbAliases,
-        HashSet<string> deviceIndependentAliases,
         HashSet<PdfDictionary> graphicsStates,
         HashSet<PdfDictionary> inspected,
         ref int transparencyGroups) {
@@ -287,8 +324,6 @@ internal static class PdfPrintProductionColorInspector {
             CollectNestedDictionaryEvidence(
                 dictionary,
                 objects,
-                rgbAliases,
-                deviceIndependentAliases,
                 graphicsStates,
                 inspected,
                 ref transparencyGroups);
@@ -296,8 +331,6 @@ internal static class PdfPrintProductionColorInspector {
             CollectNestedDictionaryEvidence(
                 stream.Dictionary,
                 objects,
-                rgbAliases,
-                deviceIndependentAliases,
                 graphicsStates,
                 inspected,
                 ref transparencyGroups);
@@ -306,8 +339,6 @@ internal static class PdfPrintProductionColorInspector {
                 CollectNestedDictionaryValue(
                     array.Items[index],
                     objects,
-                    rgbAliases,
-                    deviceIndependentAliases,
                     graphicsStates,
                     inspected,
                     ref transparencyGroups);
@@ -431,4 +462,14 @@ internal static class PdfPrintProductionColorInspector {
         value = number.Value;
         return true;
     }
+
+    private sealed class ColorSpaceAliases {
+        internal HashSet<string> Rgb { get; } = new(StringComparer.Ordinal);
+        internal HashSet<string> DeviceIndependent { get; } = new(StringComparer.Ordinal);
+
+        internal bool SetEquals(ColorSpaceAliases other) =>
+            Rgb.SetEquals(other.Rgb) && DeviceIndependent.SetEquals(other.DeviceIndependent);
+    }
+
+    private sealed record ContentStreamContext(PdfStream Stream, ColorSpaceAliases Aliases);
 }
