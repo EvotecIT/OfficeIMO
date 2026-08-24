@@ -2,11 +2,11 @@
   "version": 1,
   "description": "Regression ceilings for deterministic PowerPoint package workflows. Allocation, managed-heap growth, and output size are hard gates. Elapsed and process-peak ceilings catch gross regressions but are not throughput claims.",
   "budgets": [
-    { "operation": "CreateSave", "scale": "Small",  "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 13631488, "maxPeakManagedHeapGrowthBytes": 33554432,  "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 45056 },
-    { "operation": "CreateSave", "scale": "Normal", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 29360128, "maxPeakManagedHeapGrowthBytes": 67108864,  "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 131072 },
-    { "operation": "CreateSave", "scale": "Large",  "maxElapsedMilliseconds": 2000, "maxAllocatedBytes": 83886080, "maxPeakManagedHeapGrowthBytes": 134217728, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 393216 },
-    { "operation": "OpenEditSave", "scale": "Small",  "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 10485760, "maxPeakManagedHeapGrowthBytes": 33554432,  "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 45056 },
-    { "operation": "OpenEditSave", "scale": "Normal", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 25165824, "maxPeakManagedHeapGrowthBytes": 67108864,  "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 131072 },
-    { "operation": "OpenEditSave", "scale": "Large",  "maxElapsedMilliseconds": 2000, "maxAllocatedBytes": 78643200, "maxPeakManagedHeapGrowthBytes": 134217728, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 393216 }
+    { "operation": "CreateSave", "scale": "Small",  "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 11534336, "maxPeakManagedHeapGrowthBytes": 16777216, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 45056 },
+    { "operation": "CreateSave", "scale": "Normal", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 23068672, "maxPeakManagedHeapGrowthBytes": 33554432, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 131072 },
+    { "operation": "CreateSave", "scale": "Large",  "maxElapsedMilliseconds": 2000, "maxAllocatedBytes": 65011712, "maxPeakManagedHeapGrowthBytes": 67108864, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 393216 },
+    { "operation": "OpenEditSave", "scale": "Small",  "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 8388608, "maxPeakManagedHeapGrowthBytes": 16777216, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 45056 },
+    { "operation": "OpenEditSave", "scale": "Normal", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 18874368, "maxPeakManagedHeapGrowthBytes": 33554432, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 131072 },
+    { "operation": "OpenEditSave", "scale": "Large",  "maxElapsedMilliseconds": 2000, "maxAllocatedBytes": 58720256, "maxPeakManagedHeapGrowthBytes": 67108864, "maxPeakWorkingSetBytes": 268435456, "maxOutputBytes": 393216 }
   ]
 }
