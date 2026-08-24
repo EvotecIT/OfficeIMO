@@ -34,6 +34,16 @@ Results are comparative evidence for regressions, not universal machine-independ
 
 BenchmarkDotNet's allocation totals measure work performed, not maximum live heap. The paged-table lane therefore exposes scaling regressions while the PDF serialization report remains the authoritative evidence for completed page/object payload limits. Whole-document HTML layout is intentionally reported separately and is not described as forward-only.
 
+Capture process-isolated whole-document layout memory without PDF work:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Html.Benchmarks -- --layout-evidence --repeat 3 --json .benchmark-artifacts\html\layout-evidence.json
+```
+
+Each child validates the expected page and text-marker contract, then records
+allocation, retained managed heap, sampled managed-heap peak, process peak,
+input bytes, page count, and rendered text characters.
+
 ## Review budgets
 
 Use these allocation ceilings as regression-review budgets for the deterministic corpus. They deliberately leave headroom above the July 2026 net8 reference run; timing should be compared against the same machine's previous healthy commit and reviewed when a lane exceeds 2x its baseline mean.
