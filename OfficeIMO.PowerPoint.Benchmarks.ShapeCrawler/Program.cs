@@ -24,8 +24,10 @@ internal static class ShapeCrawlerBaselineRunner {
         }
 
         string? scaleFilter = GetOption(args, "--scale");
+        string? operationFilter = GetOption(args, "--operation");
         string? jsonPath = GetOption(args, "--json");
         string? corpusDirectory = GetOption(args, "--corpus-dir");
+        int repeat = GetPositiveIntOption(args, "--repeat", 1);
         if (string.IsNullOrWhiteSpace(corpusDirectory)) {
             Console.Error.WriteLine(
                 "--corpus-dir is required so OpenEditSave uses the exact same prebuilt input as the OfficeIMO lane.");
@@ -35,6 +37,7 @@ internal static class ShapeCrawlerBaselineRunner {
         IReadOnlyList<BenchmarkFixture> fixtures = string.IsNullOrWhiteSpace(scaleFilter)
             ? Scales.Select(GetFixture).ToArray()
             : new[] { GetFixture(scaleFilter!) };
+        IReadOnlyList<string> operations = SelectOperations(operationFilter);
         var measurements = new List<BaselineMeasurement>();
         foreach (BenchmarkFixture fixture in fixtures) {
             string sourcePath = Path.Combine(fullCorpusDirectory,
@@ -44,16 +47,18 @@ internal static class ShapeCrawlerBaselineRunner {
                     + sourcePath);
                 return 2;
             }
-            foreach (string operation in Operations) {
-                BaselineMeasurement measurement = RunChildProbe(operation,
-                    fixture.Scale, sourcePath);
-                measurements.Add(measurement);
-                Console.WriteLine(
-                    $"{operation,-12} {fixture.Scale,-6} " +
-                    $"{measurement.ElapsedMilliseconds,10:F1} ms " +
-                    $"{measurement.AllocatedBytes / 1048576D,10:F1} MiB alloc " +
-                    $"{measurement.PeakWorkingSetBytes / 1048576D,10:F1} MiB peak " +
-                    $"{measurement.OutputBytes / 1048576D,10:F1} MiB output");
+            foreach (string operation in operations) {
+                for (var iteration = 1; iteration <= repeat; iteration++) {
+                    BaselineMeasurement measurement = RunChildProbe(operation,
+                        fixture.Scale, sourcePath) with { Iteration = iteration };
+                    measurements.Add(measurement);
+                    Console.WriteLine(
+                        $"{operation,-12} {fixture.Scale,-6} #{iteration,-2} " +
+                        $"{measurement.ElapsedMilliseconds,10:F1} ms " +
+                        $"{measurement.AllocatedBytes / 1048576D,10:F1} MiB alloc " +
+                        $"{measurement.PeakWorkingSetBytes / 1048576D,10:F1} MiB peak " +
+                        $"{measurement.OutputBytes / 1048576D,10:F1} MiB output");
+                }
             }
         }
 
@@ -116,6 +121,7 @@ internal static class ShapeCrawlerBaselineRunner {
         return new BaselineMeasurement(
             operation,
             fixture.Scale,
+            1,
             fixture.SlideCount,
             shapeCount,
             inputBytes,
@@ -343,6 +349,24 @@ internal static class ShapeCrawlerBaselineRunner {
             item => string.Equals(item, name, StringComparison.OrdinalIgnoreCase));
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
+
+    private static IReadOnlyList<string> SelectOperations(string? filter) {
+        if (string.IsNullOrWhiteSpace(filter)) return Operations;
+        string? operation = Operations.FirstOrDefault(item =>
+            string.Equals(item, filter, StringComparison.OrdinalIgnoreCase));
+        return operation == null
+            ? throw new ArgumentException("Unknown ShapeCrawler benchmark operation: " + filter)
+            : new[] { operation };
+    }
+
+    private static int GetPositiveIntOption(string[] args, string name,
+        int defaultValue) {
+        string? value = GetOption(args, name);
+        if (value == null) return defaultValue;
+        return int.TryParse(value, out int parsed) && parsed > 0
+            ? parsed
+            : throw new ArgumentException(name + " must be a positive integer.");
+    }
 }
 
 internal sealed record BenchmarkFixture(string Scale, int SlideCount, int ExpectedMinimumShapeCount);
@@ -350,6 +374,7 @@ internal sealed record BenchmarkFixture(string Scale, int SlideCount, int Expect
 internal sealed record BaselineMeasurement(
     string Operation,
     string Scale,
+    int Iteration,
     int SlideCount,
     int ShapeCount,
     long InputBytes,

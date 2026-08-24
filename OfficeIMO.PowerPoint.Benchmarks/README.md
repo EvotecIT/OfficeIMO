@@ -1,6 +1,6 @@
 # OfficeIMO.PowerPoint workflow baselines
 
-This project measures complete PowerPoint workflows against a deterministic editable deck corpus. It records elapsed time, total managed allocations, process peak working set, input/output size, slide count, and shape count. It does not enforce regression budgets yet; the checked-in evidence must first establish stable results across representative machines and runtimes.
+This project measures complete PowerPoint workflows against a deterministic editable deck corpus. It records elapsed time, total managed allocations, sampled managed-heap growth, process peak working set, input/output size, slide count, and shape count. Package create/save and open/edit/save have checked-in Windows- and Linux-informed regression budgets.
 
 ## Run the baseline
 
@@ -11,6 +11,18 @@ dotnet run --project OfficeIMO.PowerPoint.Benchmarks/OfficeIMO.PowerPoint.Benchm
 ```
 
 Use `--scale Small`, `--scale Normal`, or `--scale Large` for a shorter run. Each operation runs in a separate child process so process memory from another workflow does not leak into its peak-working-set result. For open workflows, the parent creates the source fixture before starting the probe; the probe includes reading that source from disk in the measured workflow without including fixture authoring in its process-lifetime peak.
+
+Use `--operation CreateSave|OpenEditSave|OpenImageExport|OpenPdfExport` to
+isolate one contract and `--repeat 3` (or more) before interpreting a cold-probe
+trend. Repeats keep the same shared corpus but start a fresh child process for
+every sample.
+
+Verify the deterministic package workflows against allocation, managed-heap,
+process-peak, output-size, and gross elapsed-time ceilings:
+
+```powershell
+dotnet run --project OfficeIMO.PowerPoint.Benchmarks/OfficeIMO.PowerPoint.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
+```
 
 For a ShapeCrawler comparison, add `--corpus-dir <path>` to this command,
 then pass that same directory to the ShapeCrawler runner. This writes one
@@ -40,6 +52,6 @@ The scales contain 3, 30, and 120 slides. Slides use editable text, vector shape
 
 Compare like with like: the same runtime, architecture, build configuration, scale, and operation. Treat elapsed time from a busy workstation as directional. Managed allocations are usually more stable and should expose accidental buffering or repeated model construction. Peak working set includes the runtime and native rendering dependencies, so compare it only against another isolated probe with the same environment.
 
-Do not add budgets from a single run. Capture repeatable baselines on Windows and at least one non-Windows environment, inspect variance, then set headroom that catches regressions without failing on normal machine noise.
+Do not add or tighten budgets from a single run. Capture repeatable baselines on Windows and at least one non-Windows environment, inspect variance, then set headroom that catches regressions without failing on normal machine noise. The current manifest covers package workflows only; image and PDF lanes remain outside it.
 
 The current evidence and interpretation are recorded in [BASELINE.md](BASELINE.md). `OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler` is an opt-in comparison project outside the normal solution. Its open/edit/save lane requires the same prebuilt corpus used by OfficeIMO; its create/save lane mirrors the editable slide dimensions, styling, text/vector/table/two-series-chart mix, and edit cadence. Both producers compile the same semantic validator, while the third-party dependency remains isolated from product and routine benchmark builds.

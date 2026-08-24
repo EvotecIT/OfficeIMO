@@ -8,7 +8,7 @@ This folder stores small, committed benchmark summaries and artifacts. Raw Bench
 | --- | --- | --- | --- | --- |
 | CSV | BenchmarkDotNet read/write suites | Output is validated; size is not a shared comparison metric | CsvHelper, Sep, Sylvan, Dataplat.Dbatools.Csv, and LumenWorks | Extend size evidence for file-producing lanes |
 | Word | Validated BenchmarkDotNet create, read, report, and replace suites | DOCX payloads are validated; size is not exported by the shared runner | DocX, NPOI, and Open XML SDK | Add environment-qualified output-size evidence without publishing license-restricted numbers |
-| PowerPoint | Isolated workflow runner records elapsed time and allocations | Peak working set and output bytes are recorded | ShapeCrawler for create/save and open/edit/save | Refresh Windows evidence and add a non-Windows baseline before setting budgets |
+| PowerPoint | Repeated isolated package workflows are within the 2× contender ceiling for both time and allocation on Windows and Linux | Sampled managed-heap growth, process peak, and output bytes are recorded and budgeted | ShapeCrawler for validated create/save and open/edit/save | Large open/edit/save remains close to the ceiling at 1.70-1.82× on Windows and should be improved further |
 | Reader | BenchmarkDotNet extraction, detection, transport, and chunking suites | External processes record peak working set; creation size is not applicable | Optional direct-process runners for equivalent extraction | Add representative application corpora and release baselines |
 | Markdown | BenchmarkDotNet parse, HTML render, transform, and HTML-to-Markdown suites | Managed allocations are recorded; text output bytes are not yet a shared metric | Markdig and ReverseMarkdown after semantic equivalence checks | Semantic parsing and HTML-to-Markdown are within 2x in their validated lanes; source-backed parsing remains outside the contender boundary and needs further optimization |
 | HTML | BenchmarkDotNet stage, pagination, Drawing, and PDF projection suites | Managed allocations are recorded; several output methods return byte counts | No general renderer is equivalent across the complete OfficeIMO contract | Add bounded peak-memory evidence for large non-PDF rendering workflows |
@@ -23,6 +23,31 @@ This table describes measurement coverage, not a library ranking. A returned
 byte count is not yet durable size evidence unless the runner records it with
 the source commit and environment. Open work belongs in
 [`Docs/ROADMAP.md`](../ROADMAP.md), rather than a second benchmark backlog.
+
+For equivalent competitor lanes, the working classification is: at most 2× in
+both elapsed time and allocation is contender-level but may still warrant
+improvement; above 2× through 5× is a material remediation gap; more than 5× is
+unacceptable unless the contracts differ. A 40× ratio is an incident threshold,
+never a success boundary.
+
+## PowerPoint package workflows
+
+`OfficeIMO.PowerPoint.Benchmarks` measures deterministic create/save and
+open/edit/save workflows in fresh processes. The ShapeCrawler comparison uses
+the same semantic validator and, for editing, the exact same source package.
+The checked-in runner records allocation, sampled managed-heap growth, process
+peak, input/output size, source commit, dirty-tree state, and environment.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks -- --verify-budgets
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks -- --operation OpenEditSave --repeat 5 --corpus-dir .benchmark-artifacts\powerpoint\corpus --json .benchmark-artifacts\powerpoint\officeimo.json
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler -- --operation OpenEditSave --repeat 5 --corpus-dir .benchmark-artifacts\powerpoint\corpus --json .benchmark-artifacts\powerpoint\shapecrawler.json
+```
+
+The Windows and Ubuntu 24.04 evidence is recorded in
+[`OfficeIMO.PowerPoint.Benchmarks/BASELINE.md`](../../OfficeIMO.PowerPoint.Benchmarks/BASELINE.md).
+Every package lane is within the 2× contender ceiling for time and allocation,
+but the large edit lane remains an explicit optimization target.
 
 ## Reader baselines
 
