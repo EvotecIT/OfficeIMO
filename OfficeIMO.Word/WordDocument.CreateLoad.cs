@@ -169,7 +169,8 @@ namespace OfficeIMO.Word {
                     ?? throw new InvalidOperationException("Default Word package is missing its main document."),
                 _normalizeOpenOfficeRelationshipsOnSave = false,
                 _persistenceMode = persistenceMode,
-                _styleDefinitionsInitialized = true
+                _styleDefinitionsInitialized = true,
+                _tableNormalizationRequired = false
             };
             word.InitializeSdtIdState();
             ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);

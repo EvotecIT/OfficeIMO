@@ -21,6 +21,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         private void MoveSectionProperties() {
             var body = BodyRoot;
+            if (body.LastChild is SectionProperties) {
+                return;
+            }
+
             var sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
             if (sectionProperties != null) {
                 body.RemoveChild(sectionProperties);

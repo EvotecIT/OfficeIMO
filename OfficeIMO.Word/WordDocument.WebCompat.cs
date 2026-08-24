@@ -11,6 +11,8 @@ namespace OfficeIMO.Word {
         /// so online viewers render them consistently.
         /// </summary>
         public void NormalizeTablesForOnline() {
+            if (!_tableNormalizationRequired) return;
+
             try {
                 var main = _wordprocessingDocument.MainDocumentPart;
                 if (main == null) return;
@@ -48,6 +50,8 @@ namespace OfficeIMO.Word {
 
             } catch { }
         }
+
+        internal void MarkTableNormalizationRequired() => _tableNormalizationRequired = true;
 
         private static bool IsCanonicalDefaultTable(Table table) {
             if (table.Parent is TableCell ||

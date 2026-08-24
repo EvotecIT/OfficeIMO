@@ -358,6 +358,7 @@ namespace OfficeIMO.Word {
 
 
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
+            document.MarkTableNormalizationRequired();
             document.EnsureStyleDefinitionsInitialized();
             Table table = new Table();
 
@@ -408,6 +409,7 @@ namespace OfficeIMO.Word {
         }
 
         internal WordTable(WordDocument document, Table table, bool initializeChildren) {
+            document.MarkTableNormalizationRequired();
             _table = table;
             _document = document;
             _rowElements = table.Elements<TableRow>().ToList();

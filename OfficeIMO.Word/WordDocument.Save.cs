@@ -470,7 +470,6 @@ namespace OfficeIMO.Word {
 #pragma warning disable OOXML0001
         private byte[] CreateOwnedPackageSnapshot(string? filePath) {
             _wordprocessingDocument.Save();
-            _wordprocessingDocument.GetPackage().Save();
             _ownedPackageStream!.Flush();
             byte[] packageBytes = _ownedPackageStream.ToArray();
             if (!_normalizeOpenOfficeRelationshipsOnSave && string.IsNullOrEmpty(filePath)) {
