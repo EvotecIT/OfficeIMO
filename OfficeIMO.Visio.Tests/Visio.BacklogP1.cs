@@ -107,6 +107,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PageRejectsShapeAlreadyOwnedByAnotherPage() {
+            VisioPage firstPage = new("First");
+            VisioPage secondPage = new("Second");
+            firstPage.Shapes.Add(new VisioShape("existing", 1, 1, 1, 1, "Existing"));
+            VisioShape shared = new("shared", 3, 1, 1, 1, "Shared");
+            firstPage.Shapes.Add(shared);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                secondPage.Shapes.Add(shared));
+
+            Assert.Contains("another page", exception.Message);
+            Assert.Contains(shared, firstPage.Shapes);
+            Assert.Empty(secondPage.Shapes);
+            Assert.Throws<InvalidOperationException>(() =>
+                shared.Children.Add(new VisioShape("existing", 0, 0, 1, 1, "Collision")));
+
+            VisioShape nestedCandidate = new("nested", 5, 1, 1, 1, "Nested");
+            firstPage.Shapes.Add(nestedCandidate);
+            VisioShape destinationParent = new("destination", 1, 1, 1, 1, "Destination");
+            secondPage.Shapes.Add(destinationParent);
+
+            InvalidOperationException nestedException = Assert.Throws<InvalidOperationException>(() =>
+                destinationParent.Children.Add(nestedCandidate));
+
+            Assert.Contains("another page", nestedException.Message);
+            Assert.Contains(nestedCandidate, firstPage.Shapes);
+            Assert.Empty(destinationParent.Children);
+        }
+
+        [Fact]
         public void GeneratedConnectorIdsSkipExistingShapeAndConnectorIds() {
             VisioPage page = new("Page-1");
             VisioShape left = new("1", 1, 1, 1, 1, "Left");

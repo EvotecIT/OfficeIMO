@@ -124,6 +124,7 @@ namespace OfficeIMO.Visio {
         }
 
         internal void PrepareNestedShapeForPage(VisioShape shape, VisioShape? ignoredShape = null) {
+            EnsureShapeNotOwnedByAnotherPage(shape);
             EnsureShapeTreeIdsAvailable(shape, ignoredShape);
         }
 
@@ -156,6 +157,8 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(shape));
             }
 
+            EnsureShapeNotOwnedByAnotherPage(shape);
+
             if (_shapes.Contains(shape) && !ReferenceEquals(shape, ignoredShape)) {
                 throw new InvalidOperationException("The shape is already part of this page.");
             }
@@ -167,6 +170,12 @@ namespace OfficeIMO.Visio {
             EnsureShapeTreeIdsAvailable(shape, ignoredShape);
             shape.Parent = null;
             shape.NormalizeDescendantParentLinks();
+        }
+
+        private void EnsureShapeNotOwnedByAnotherPage(VisioShape shape) {
+            if (shape.OwnerPage != null && !ReferenceEquals(shape.OwnerPage, this)) {
+                throw new InvalidOperationException("The shape already belongs to another page. Remove it from that page before reusing it.");
+            }
         }
 
         private void EnsureShapeTreeIdsAvailable(VisioShape shape, VisioShape? ignoredShape) {
