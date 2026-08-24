@@ -27,9 +27,21 @@ public class PdfHtmlBenchmarks {
     }
 
     [GlobalSetup(Target = nameof(Chromium))]
-    public async Task SetupChromium() {
+    public void SetupChromium() {
         InitializeScenario();
-        _browserSession = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
+    }
+
+    [IterationSetup(Target = nameof(Chromium))]
+    public void SetupChromiumIteration() {
+        // Keep browser startup outside the measured operation while isolating
+        // each iteration from stale DevTools PDF stream state.
+        DisposeChromiumSession();
+        _browserSession = HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().GetAwaiter().GetResult();
+    }
+
+    [IterationCleanup(Target = nameof(Chromium))]
+    public void CleanupChromiumIteration() {
+        DisposeChromiumSession();
     }
 
     private void InitializeScenario() {
@@ -67,15 +79,21 @@ public class PdfHtmlBenchmarks {
     public void ValidateITextPdfHtml() => Validate(nameof(ITextPdfHtml), _iTextPdfHtmlResult);
 
     [GlobalCleanup(Target = nameof(Chromium))]
-    public async Task ValidateChromium() {
+    public void ValidateChromium() {
         try {
             Validate(nameof(Chromium), _chromiumResult);
         } finally {
-            if (_browserSession != null) {
-                await _browserSession.DisposeAsync().ConfigureAwait(false);
-                _browserSession = null;
-            }
+            DisposeChromiumSession();
         }
+    }
+
+    private void DisposeChromiumSession() {
+        if (_browserSession == null) {
+            return;
+        }
+
+        _browserSession.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        _browserSession = null;
     }
 
     private void Validate(string engine, byte[]? bytes) {
