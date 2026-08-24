@@ -37,7 +37,7 @@ public sealed class AsciiDocSyntaxNode {
         get {
             if (_sourceOrOriginalText is string originalText) return originalText;
             var source = (AsciiDocSourceText)_sourceOrOriginalText;
-            if (Parent == null) return source.Text;
+            if (_startOffset == 0 && _endOffset == source.Text.Length) return source.Text;
             originalText = source.Text.Substring(_startOffset, _endOffset - _startOffset);
             _sourceOrOriginalText = originalText;
             return originalText;

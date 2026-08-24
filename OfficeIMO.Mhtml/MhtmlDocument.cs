@@ -22,7 +22,7 @@ public sealed class MhtmlDocument {
         RootContentId = NormalizeContentId(rootContentId);
         Subject = NormalizeOptional(subject);
         BaseUri = ResolveBaseUri(ContentLocation, null);
-        _mimeDiagnostics = BuildResourceDiagnostics(_resources, BaseUri);
+        _mimeDiagnostics = BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation);
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
         _mimeDocument = CreateMimeDocument(html, _resources, ContentLocation, RootContentId, Subject);
     }
@@ -45,10 +45,12 @@ public sealed class MhtmlDocument {
         Subject = NormalizeOptional(_mimeDocument.Subject);
         BaseUri = ResolveBaseUri(ContentLocation, sourceBaseUri);
         _resources = _mimeDocument.Attachments
-            .Where(attachment => attachment.IsMimeRelated && !IsSelectedHtmlRoot(attachment, _mimeDocument.Body))
+            .Where(static attachment => attachment.IsMimeRelated)
             .Select(MhtmlResource.FromEmailAttachment)
             .ToArray();
-        _mimeDiagnostics = readResult.Diagnostics.Concat(BuildResourceDiagnostics(_resources, BaseUri)).ToArray();
+        _mimeDiagnostics = readResult.Diagnostics
+            .Concat(BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation))
+            .ToArray();
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
     }
 
@@ -318,10 +320,17 @@ public sealed class MhtmlDocument {
 
     private static IReadOnlyList<EmailDiagnostic> BuildResourceDiagnostics(
         IReadOnlyList<MhtmlResource> resources,
-        Uri baseUri) {
+        Uri baseUri,
+        string? rootContentId,
+        string? rootContentLocation) {
         var diagnostics = new List<EmailDiagnostic>();
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var contentLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
+        if (!string.IsNullOrWhiteSpace(rootContentLocation)
+            && Uri.TryCreate(baseUri, rootContentLocation, out _)) {
+            contentLocations.Add(baseUri.AbsoluteUri);
+        }
         for (int index = 0; index < resources.Count; index++) {
             MhtmlResource resource = resources[index];
             if (!string.IsNullOrWhiteSpace(resource.ContentId) && !contentIds.Add(resource.ContentId!)) {
@@ -370,25 +379,6 @@ public sealed class MhtmlDocument {
         string? contentType = GetHeaderValue(headers, "Content-Type");
         return contentType != null && contentType.TrimStart()
             .StartsWith("multipart/related", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsSelectedHtmlRoot(EmailAttachment attachment, EmailBody body) {
-        if (attachment == null || body == null
-            || string.IsNullOrWhiteSpace(attachment.ContentType)
-            || !attachment.ContentType!.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)) {
-            return false;
-        }
-
-        string? attachmentContentId = NormalizeContentId(attachment.ContentId);
-        string? rootContentId = NormalizeContentId(body.HtmlContentId);
-        if (rootContentId != null) {
-            return string.Equals(attachmentContentId, rootContentId, StringComparison.OrdinalIgnoreCase);
-        }
-
-        string? attachmentLocation = NormalizeOptional(attachment.ContentLocation);
-        string? rootLocation = NormalizeOptional(body.HtmlContentLocation);
-        return rootLocation != null
-            && string.Equals(attachmentLocation, rootLocation, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetHeaderValue(IEnumerable<EmailHeader> headers, string name) =>

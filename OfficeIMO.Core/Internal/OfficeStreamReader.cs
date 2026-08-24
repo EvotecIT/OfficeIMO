@@ -134,7 +134,7 @@ namespace OfficeIMO.Core.Internal {
         private static byte[] ReadToEnd(Stream source, CancellationToken cancellationToken, long? maxBytes) {
             cancellationToken.ThrowIfCancellationRequested();
             if (source.CanSeek) {
-                long remaining = source.Length - source.Position;
+                long remaining = Math.Max(0, source.Length - source.Position);
                 EnsureWithinLimit(remaining, maxBytes);
                 if (remaining > int.MaxValue) {
                     throw new InvalidDataException($"Stream length {remaining} exceeds the supported in-memory size.");
