@@ -121,9 +121,15 @@ internal static class CertificateChainValidator {
         IList<SecurityFinding> findings,
         string role,
         int? signerIndex) {
-        X509KeyUsageExtension? keyUsage = certificate.Extensions
-            .OfType<X509KeyUsageExtension>()
-            .FirstOrDefault();
+        X509KeyUsageExtension? keyUsage = null;
+        X509EnhancedKeyUsageExtension? enhancedKeyUsage = null;
+        foreach (X509Extension extension in certificate.Extensions) {
+            if (keyUsage == null && extension is X509KeyUsageExtension candidateKeyUsage) {
+                keyUsage = candidateKeyUsage;
+            } else if (enhancedKeyUsage == null && extension is X509EnhancedKeyUsageExtension candidateEnhancedKeyUsage) {
+                enhancedKeyUsage = candidateEnhancedKeyUsage;
+            }
+        }
         if (keyUsage != null &&
             (keyUsage.KeyUsages & (X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation)) == 0) {
             findings.Add(new SecurityFinding(
@@ -134,9 +140,6 @@ internal static class CertificateChainValidator {
             return false;
         }
 
-        X509EnhancedKeyUsageExtension? enhancedKeyUsage = certificate.Extensions
-            .OfType<X509EnhancedKeyUsageExtension>()
-            .FirstOrDefault();
         if (enhancedKeyUsage == null) {
             if (purpose == CertificateUsagePurpose.TimestampAuthority) {
                 findings.Add(new SecurityFinding(
@@ -159,9 +162,12 @@ internal static class CertificateChainValidator {
             return false;
         }
 
-        bool permitted = enhancedKeyUsage.EnhancedKeyUsages
-            .Cast<Oid>()
-            .Any(oid => IsPermittedEnhancedKeyUsage(oid.Value, purpose));
+        bool permitted = false;
+        foreach (Oid oid in enhancedKeyUsage.EnhancedKeyUsages) {
+            if (!IsPermittedEnhancedKeyUsage(oid.Value, purpose)) continue;
+            permitted = true;
+            break;
+        }
         if (!permitted) {
             findings.Add(new SecurityFinding(
                 SecurityFindingSeverity.Error,

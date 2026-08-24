@@ -30,6 +30,34 @@ public sealed class CmsSecurityTests {
         Assert.Contains(tampered.Signers[0].Findings, finding => finding.Code == "CmsContentDigestMismatch");
     }
 
+    [Theory]
+    [InlineData("SHA1", "1.3.14.3.2.26")]
+    [InlineData("SHA256", "2.16.840.1.101.3.4.2.1")]
+    [InlineData("SHA384", "2.16.840.1.101.3.4.2.2")]
+    [InlineData("SHA512", "2.16.840.1.101.3.4.2.3")]
+    public void DetachedRsaSignature_FastPathPreservesSupportedDigestContracts(
+        string digestName,
+        string expectedDigestOid) {
+        byte[] content = Encoding.UTF8.GetBytes("OfficeIMO RSA digest contract\r\n");
+        using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Digest " + digestName);
+        byte[] encoded = CmsSignedDataSigner.SignDetached(
+            content,
+            certificate,
+            new CmsSigningOptions {
+                DigestAlgorithm = new HashAlgorithmName(digestName),
+                IncludeSigningTime = false,
+                IncludeCertificateChain = false
+            });
+
+        CmsVerificationResult result = CmsSignedDataVerifier.VerifyDetached(encoded, content, TrustSelfSigned());
+
+        CmsSignerVerificationResult signer = Assert.Single(result.Signers);
+        Assert.True(result.IsCryptographicallyValid);
+        Assert.Equal(SecurityValidationStatus.Valid, signer.SignatureStatus);
+        Assert.Equal(SecurityValidationStatus.Valid, signer.DigestStatus);
+        Assert.Equal(expectedDigestOid, signer.DigestAlgorithmOid);
+    }
+
     [Fact]
     public void EncapsulatedSignature_ReturnsTheExactContent() {
         byte[] content = { 0, 1, 2, 3, 254, 255 };
