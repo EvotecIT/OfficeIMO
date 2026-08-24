@@ -139,6 +139,7 @@ namespace OfficeIMO.Internal {
         }
 
         private static string GetWindowsAuthority(string path) {
+            if (path.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase)) return string.Empty;
             if (!path.StartsWith(@"\\", StringComparison.Ordinal)) return string.Empty;
             int separator = path.IndexOf('\u005c', 2);
             if (separator < 0) return path.Substring(2).ToUpperInvariant();
@@ -154,15 +155,19 @@ namespace OfficeIMO.Internal {
             string.Equals(server, "[::1]", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(server, Environment.MachineName, StringComparison.OrdinalIgnoreCase);
 
-        private static string NormalizeWindowsFinalPath(string path) {
+        internal static string NormalizeWindowsFinalPath(string path) {
             const string uncPrefix = @"\\?\UNC\";
             const string devicePrefix = @"\\?\";
             if (path.StartsWith(uncPrefix, StringComparison.OrdinalIgnoreCase)) {
                 return @"\\" + path.Substring(uncPrefix.Length);
             }
-            return path.StartsWith(devicePrefix, StringComparison.OrdinalIgnoreCase)
-                ? path.Substring(devicePrefix.Length)
-                : path;
+            if (path.StartsWith(devicePrefix, StringComparison.OrdinalIgnoreCase) &&
+                path.Length >= devicePrefix.Length + 3 &&
+                path[devicePrefix.Length + 1] == ':' &&
+                path[devicePrefix.Length + 2] == '\\') {
+                return path.Substring(devicePrefix.Length);
+            }
+            return path;
         }
 
         private static IOException WindowsIdentityError(string path, string operation) =>

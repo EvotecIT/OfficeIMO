@@ -254,8 +254,9 @@ namespace OfficeIMO.Internal {
             if (descriptor < 0) return false;
             try {
                 ulong request = IntPtr.Size == 8 ? LinuxGetFileFlags64 : LinuxGetFileFlags32;
-                if (LinuxIoctl(descriptor, request, out int flags) == 0 &&
-                    (flags & LinuxCaseFoldFlag) != 0) {
+                int flagsResult = LinuxIoctl(descriptor, request, out int flags);
+                if (!CanClassifyLinuxCaseBehavior(flagsResult)) return false;
+                if ((flags & LinuxCaseFoldFlag) != 0) {
                     caseInsensitive = true;
                     return true;
                 }
@@ -264,6 +265,8 @@ namespace OfficeIMO.Internal {
                 LinuxClose(descriptor);
             }
         }
+
+        internal static bool CanClassifyLinuxCaseBehavior(int fileFlagsResult) => fileFlagsResult == 0;
 
         private static bool TryGetLinuxFileSystemCaseBehavior(string directory, out bool caseInsensitive) {
             caseInsensitive = true;

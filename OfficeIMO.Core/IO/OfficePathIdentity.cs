@@ -244,7 +244,7 @@ namespace OfficeIMO.Internal {
         private static bool AreIdentitiesEquivalent(OfficePhysicalFileIdentity left,
             OfficePhysicalFileIdentity right) {
             if (!left.HasSameNumericIdentity(right)) return false;
-            if (left.Equals(right)) return true;
+            if (left.HasSameAuthority(right)) return true;
             throw new IOException("Matching filesystem identifiers came from different authorities and cannot be compared safely.");
         }
 

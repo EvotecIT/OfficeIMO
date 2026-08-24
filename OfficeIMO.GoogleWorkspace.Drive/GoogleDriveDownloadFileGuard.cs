@@ -114,15 +114,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     throw new IOException("The guarded download destination path could not be resolved.");
                 }
             }
-            string value = buffer.ToString();
-            const string uncPrefix = @"\\?\UNC\";
-            const string devicePrefix = @"\\?\";
-            if (value.StartsWith(uncPrefix, StringComparison.OrdinalIgnoreCase)) {
-                return @"\\" + value.Substring(uncPrefix.Length);
-            }
-            return value.StartsWith(devicePrefix, StringComparison.OrdinalIgnoreCase)
-                ? value.Substring(devicePrefix.Length)
-                : value;
+            return OfficePathIdentity.NormalizeWindowsFinalPath(buffer.ToString());
         }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

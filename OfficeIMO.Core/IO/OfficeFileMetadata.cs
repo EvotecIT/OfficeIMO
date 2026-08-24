@@ -75,18 +75,27 @@ namespace OfficeIMO.Internal {
             return FileLow == other.FileLow && FileHigh == other.FileHigh;
         }
 
+        internal bool HasSameAuthority(OfficePhysicalFileIdentity other) =>
+            string.Equals(Authority, other.Authority, StringComparison.OrdinalIgnoreCase);
+
         internal string ToStableKey() {
-            if (Kind != IdentityKind.Native) {
-                return "W|" + Authority.ToUpperInvariant() + "|" + Volume.ToString("X16") + "|" +
+            if (Kind == IdentityKind.WindowsExtended) {
+                return "W128|" + Authority.ToUpperInvariant() + "|" + Volume.ToString("X16") + "|" +
+                    FileHigh.ToString("X16") + "|" + FileLow.ToString("X16");
+            }
+            if (Kind == IdentityKind.WindowsLegacy) {
+                return "W64|" + Authority.ToUpperInvariant() + "|" + Volume.ToString("X16") + "|" +
                     LegacyFileLow.ToString("X16");
             }
             return "N|" + Authority.ToUpperInvariant() + "|" + Volume.ToString("X16") + "|" +
                 FileHigh.ToString("X16") + "|" + FileLow.ToString("X16");
         }
 
-        public bool Equals(OfficePhysicalFileIdentity other) =>
-            HasSameNumericIdentity(other) &&
-            string.Equals(Authority, other.Authority, StringComparison.OrdinalIgnoreCase);
+        public bool Equals(OfficePhysicalFileIdentity other) {
+            if (Kind != other.Kind || Volume != other.Volume || !HasSameAuthority(other)) return false;
+            if (Kind == IdentityKind.WindowsLegacy) return LegacyFileLow == other.LegacyFileLow;
+            return FileLow == other.FileLow && FileHigh == other.FileHigh;
+        }
 
         public override bool Equals(object? obj) => obj is OfficePhysicalFileIdentity other && Equals(other);
 
@@ -94,7 +103,8 @@ namespace OfficeIMO.Internal {
             unchecked {
                 int hash = StringComparer.OrdinalIgnoreCase.GetHashCode(Authority);
                 hash = (hash * 397) ^ Volume.GetHashCode();
-                if (Kind != IdentityKind.Native) return (hash * 397) ^ LegacyFileLow.GetHashCode();
+                hash = (hash * 397) ^ Kind.GetHashCode();
+                if (Kind == IdentityKind.WindowsLegacy) return (hash * 397) ^ LegacyFileLow.GetHashCode();
                 hash = (hash * 397) ^ FileLow.GetHashCode();
                 return (hash * 397) ^ FileHigh.GetHashCode();
             }

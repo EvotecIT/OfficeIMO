@@ -6,6 +6,7 @@ namespace OfficeIMO.Email.Store;
 internal static class EmailStorePathIdentity {
     internal static string Normalize(string path) => OfficePathIdentity.Normalize(path);
     internal static string ResolvePhysicalPath(string path) => OfficePathIdentity.ResolvePhysicalPath(path);
+    internal static string NormalizeWindowsFinalPath(string path) => OfficePathIdentity.NormalizeWindowsFinalPath(path);
     internal static string GetPhysicalIdentityKey(string path) => OfficePathIdentity.GetPhysicalIdentityKey(path);
     internal static string GetPhysicalIdentityKey(string path, SafeFileHandle handle) =>
         OfficePathIdentity.GetPhysicalIdentityKey(path, handle);

@@ -96,19 +96,32 @@ public class PathIdentityContracts {
     }
 
     [Fact]
-    public void LegacyAndExtendedWindowsIdentitiesUseTheirSharedFileIndex() {
+    public void WindowsIdentityKeysPreserveTheStrongestAvailableFileId() {
         var extended = OfficePhysicalFileIdentity.CreateWindowsExtended(string.Empty, 7, 101, 202, 11);
+        var extendedCollision = OfficePhysicalFileIdentity.CreateWindowsExtended(string.Empty, 7, 102, 203, 11);
         var legacy = OfficePhysicalFileIdentity.CreateWindowsLegacy(string.Empty, 7, 11);
         var other = OfficePhysicalFileIdentity.CreateWindowsLegacy(string.Empty, 7, 12);
 
-        Assert.Equal(extended, legacy);
+        Assert.NotEqual(extended, legacy);
         Assert.True(extended.HasSameNumericIdentity(legacy));
-        Assert.Equal(extended.ToStableKey(), legacy.ToStableKey());
+        Assert.NotEqual(extended.ToStableKey(), legacy.ToStableKey());
+        Assert.NotEqual(extended.ToStableKey(), extendedCollision.ToStableKey());
         Assert.NotEqual(extended, other);
     }
 
     [Fact]
+    public void WindowsFinalPathNormalizationPreservesNonDosExtendedRoots() {
+        Assert.Equal(@"C:\folder\file.docx", OfficePathIdentity.NormalizeWindowsFinalPath(@"\\?\C:\folder\file.docx"));
+        Assert.Equal(@"\\server\share\file.docx", OfficePathIdentity.NormalizeWindowsFinalPath(@"\\?\UNC\server\share\file.docx"));
+        Assert.Equal(@"\\?\Volume{01234567-89ab-cdef-0123-456789abcdef}\file.docx",
+            OfficePathIdentity.NormalizeWindowsFinalPath(@"\\?\Volume{01234567-89ab-cdef-0123-456789abcdef}\file.docx"));
+    }
+
+    [Fact]
     public void LinuxFilesystemClassificationDoesNotGuessForNtfsOrUnknownDrivers() {
+        Assert.True(OfficePathIdentity.CanClassifyLinuxCaseBehavior(0));
+        Assert.False(OfficePathIdentity.CanClassifyLinuxCaseBehavior(-1));
+
         Assert.True(OfficePathIdentity.TryClassifyLinuxFileSystemCaseBehavior(0x2011bab0, out bool exFat));
         Assert.True(exFat);
         Assert.True(OfficePathIdentity.TryClassifyLinuxFileSystemCaseBehavior(0x0000ef53, out bool ext));
