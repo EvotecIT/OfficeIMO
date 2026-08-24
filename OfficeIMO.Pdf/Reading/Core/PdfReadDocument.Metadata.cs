@@ -38,7 +38,11 @@ public sealed partial class PdfReadDocument {
             Author = GetStr("Author"),
             Subject = GetStr("Subject"),
             Keywords = GetStr("Keywords"),
-            TrappingStatus = ParseTrappingStatus(dict.Get<PdfName>("Trapped")?.Name)
+            TrappingStatus = ParseTrappingStatus(dict.Get<PdfName>("Trapped")?.Name),
+            CreationDate = PdfDateCodec.TryParse(GetStr("CreationDate")),
+            ModificationDate = PdfDateCodec.TryParse(GetStr("ModDate")),
+            PdfXVersion = GetStr("GTS_PDFXVersion"),
+            PdfXConformance = GetStr("GTS_PDFXConformance")
         };
     }
 

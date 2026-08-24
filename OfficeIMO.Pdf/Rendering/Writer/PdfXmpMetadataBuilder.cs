@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static class PdfXmpMetadataBuilder {
     private static readonly char[] KeywordSeparators = { ',', ';' };
 
-    internal static byte[] Build(string? title, string? author, string? subject, string? keywords, PdfAIdentification? pdfAIdentification = null, PdfUaIdentification? pdfUaIdentification = null, PdfElectronicInvoiceMetadata? electronicInvoiceMetadata = null, PdfXIdentification? pdfXIdentification = null) {
+    internal static byte[] Build(string? title, string? author, string? subject, string? keywords, PdfAIdentification? pdfAIdentification = null, PdfUaIdentification? pdfUaIdentification = null, PdfElectronicInvoiceMetadata? electronicInvoiceMetadata = null, PdfXIdentification? pdfXIdentification = null, PdfXProductionMetadata? pdfXProductionMetadata = null, PdfTrappingStatus? trappingStatus = null) {
         var sb = new StringBuilder();
         sb.Append("<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n");
         sb.Append("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n");
@@ -25,6 +25,10 @@ internal static class PdfXmpMetadataBuilder {
                 .Append('"');
         }
 
+        if (pdfXProductionMetadata != null) {
+            sb.Append(" xmlns:xmpMM=\"http://ns.adobe.com/xap/1.0/mm/\"");
+        }
+
         if (electronicInvoiceMetadata != null) {
             sb.Append(" xmlns:fx=\"")
                 .Append(PdfElectronicInvoiceMetadata.FacturXNamespaceUri)
@@ -36,11 +40,13 @@ internal static class PdfXmpMetadataBuilder {
         AppendSeqText(sb, "dc:creator", author);
         AppendAltText(sb, "dc:description", subject);
         AppendSubjectBag(sb, keywords);
+        sb.Append("<dc:format>application/pdf</dc:format>\n");
         sb.Append("<pdf:Producer>OfficeIMO.Pdf</pdf:Producer>\n");
         AppendElement(sb, "pdf:Keywords", keywords);
         AppendPdfAIdentification(sb, pdfAIdentification);
         AppendPdfUaIdentification(sb, pdfUaIdentification);
         AppendPdfXIdentification(sb, pdfXIdentification);
+        AppendPdfXProductionMetadata(sb, pdfXProductionMetadata, trappingStatus);
         AppendElectronicInvoiceMetadata(sb, electronicInvoiceMetadata);
         sb.Append("</rdf:Description>\n");
         sb.Append("</rdf:RDF>\n");
@@ -136,6 +142,32 @@ internal static class PdfXmpMetadataBuilder {
         AppendElement(sb, "pdfxid:GTS_PDFXVersion", identification.Version);
         AppendElement(sb, "pdfxid:GTS_PDFXConformance", identification.Conformance);
     }
+
+    private static void AppendPdfXProductionMetadata(
+        StringBuilder sb,
+        PdfXProductionMetadata? metadata,
+        PdfTrappingStatus? trappingStatus) {
+        if (metadata == null) {
+            return;
+        }
+
+        AppendElement(sb, "xmp:CreateDate", FormatXmpDate(metadata.CreationDate));
+        AppendElement(sb, "xmp:ModifyDate", FormatXmpDate(metadata.ModificationDate));
+        AppendElement(sb, "xmp:MetadataDate", FormatXmpDate(metadata.ModificationDate));
+        AppendElement(sb, "xmp:CreatorTool", "OfficeIMO.Pdf");
+        AppendElement(sb, "xmpMM:DocumentID", FormatUuid(metadata.DocumentId));
+        AppendElement(sb, "xmpMM:InstanceID", FormatUuid(metadata.InstanceId));
+        AppendElement(sb, "xmpMM:VersionID", metadata.VersionId);
+        AppendElement(sb, "xmpMM:RenditionClass", metadata.RenditionClass);
+        if (trappingStatus == PdfTrappingStatus.True || trappingStatus == PdfTrappingStatus.False) {
+            AppendElement(sb, "pdf:Trapped", trappingStatus == PdfTrappingStatus.True ? "True" : "False");
+        }
+    }
+
+    private static string FormatXmpDate(DateTimeOffset value) =>
+        value.ToString("yyyy-MM-dd'T'HH:mm:sszzz", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string FormatUuid(Guid value) => "uuid:" + value.ToString("D");
 
     private static void AppendElectronicInvoiceMetadata(StringBuilder sb, PdfElectronicInvoiceMetadata? metadata) {
         if (metadata == null) {

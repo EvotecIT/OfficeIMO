@@ -441,6 +441,132 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PdfXProductionMetadataIsReconciledAcrossInfoAndXmp() {
+        DateTimeOffset created = new DateTimeOffset(2026, 8, 24, 10, 15, 30, TimeSpan.FromHours(2));
+        DateTimeOffset modified = created.AddMinutes(12);
+        var production = new PdfXProductionMetadata(
+            created,
+            modified,
+            new Guid("0a955277-5974-43da-aade-163749241dc3"),
+            new Guid("afe6603d-0855-4439-a63d-f1674da0a866"),
+            "7",
+            "proof");
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False)
+            .SetPdfXProductionMetadata(production)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X metadata font");
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Reconciled production metadata."))
+            .ToBytes();
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        Assert.Equal(created, info.Metadata.CreationDate);
+        Assert.Equal(modified, info.Metadata.ModificationDate);
+        Assert.Equal("PDF/X-4", info.Metadata.PdfXVersion);
+        Assert.Equal(PdfTrappingStatus.False, info.Metadata.TrappingStatus);
+        Assert.Equal(created, info.XmpMetadata!.CreationDate);
+        Assert.Equal(modified, info.XmpMetadata.ModificationDate);
+        Assert.Equal(modified, info.XmpMetadata.MetadataDate);
+        Assert.Equal("uuid:0a955277-5974-43da-aade-163749241dc3", info.XmpMetadata.DocumentId);
+        Assert.Equal("uuid:afe6603d-0855-4439-a63d-f1674da0a866", info.XmpMetadata.InstanceId);
+        Assert.Equal("7", info.XmpMetadata.VersionId);
+        Assert.Equal("proof", info.XmpMetadata.RenditionClass);
+        Assert.Equal(PdfTrappingStatus.False, info.XmpMetadata.TrappingStatus);
+    }
+
+    [Fact]
+    public void PdfXAutomaticProductionIdentityIsScopedToEachDocument() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X identity font");
+
+        PdfXmpMetadataInfo first = PdfInspector.Inspect(PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("First resource."))
+            .ToBytes()).XmpMetadata!;
+        PdfXmpMetadataInfo second = PdfInspector.Inspect(PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Second resource."))
+            .ToBytes()).XmpMetadata!;
+
+        Assert.NotEqual(first.DocumentId, second.DocumentId);
+        Assert.NotEqual(first.InstanceId, second.InstanceId);
+    }
+
+    [Fact]
+    public void ExplicitProductionMetadataIndependentlyCreatesWellFormedXmp() {
+        var metadata = new PdfXProductionMetadata(
+            new DateTimeOffset(2026, 8, 24, 12, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 8, 24, 12, 1, 0, TimeSpan.Zero),
+            new Guid("6ad44c01-cdb5-4a3e-a310-2346af838ba5"),
+            new Guid("1a814373-f8ca-4b2b-b9e0-0b6553485b03"));
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetPdfXProductionMetadata(metadata)).ToBytes();
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        Assert.True(info.XmpMetadata!.IsWellFormedXml);
+        Assert.Equal("uuid:6ad44c01-cdb5-4a3e-a310-2346af838ba5", info.XmpMetadata.DocumentId);
+        Assert.Equal(metadata.CreationDate, info.Metadata.CreationDate);
+    }
+
+    [Fact]
+    public void PdfXMetadataOnlyEditsPreserveProductionMetadata() {
+        byte[] source = CreatePdfXMetadataEditFixture();
+        var updatedArtifacts = new[] {
+            PdfMetadataEditor.UpdateMetadata(source, title: "Full rewrite title"),
+            PdfMetadataEditor.SynchronizeMetadata(source, title: "Synchronized title"),
+            PdfIncrementalUpdater.UpdateMetadata(source, title: "Append-only title")
+        };
+
+        foreach (byte[] updated in updatedArtifacts) {
+            PdfDocumentInfo info = PdfInspector.Inspect(updated);
+            Assert.Equal(new DateTimeOffset(2026, 8, 24, 13, 0, 0, TimeSpan.Zero), info.Metadata.CreationDate);
+            Assert.Equal(new DateTimeOffset(2026, 8, 24, 13, 5, 0, TimeSpan.Zero), info.Metadata.ModificationDate);
+            Assert.Equal("PDF/X-4", info.Metadata.PdfXVersion);
+            Assert.Equal(PdfTrappingStatus.False, info.Metadata.TrappingStatus);
+            Assert.Equal(info.Metadata.CreationDate, info.XmpMetadata!.CreationDate);
+            Assert.Equal(info.Metadata.ModificationDate, info.XmpMetadata.ModificationDate);
+            Assert.Equal(PdfTrappingStatus.False, info.XmpMetadata.TrappingStatus);
+            Assert.Equal("uuid:f16a3ee3-645f-4114-b478-210d114f5265", info.XmpMetadata.DocumentId);
+        }
+    }
+
+    [Theory]
+    [InlineData("D:2026AB")]
+    [InlineData("D:20260824130000+02'XX'")]
+    [InlineData("D:20260824130000+00'60'")]
+    [InlineData("D:20260824130000+14'01'")]
+    [InlineData("D:20260824130000Zjunk")]
+    public void PdfDateCodecRejectsMalformedOptionalComponents(string value) {
+        Assert.Null(PdfDateCodec.TryParse(value));
+    }
+
+    [Fact]
+    public void PdfXReadbackRejectsCreationAfterModification() {
+        byte[] pdf = CreatePdfXMetadataEditFixture();
+        ReplaceAsciiAll(
+            pdf,
+            PdfSyntaxEscaper.TextString("D:20260824130000+00'00'"),
+            PdfSyntaxEscaper.TextString("D:20260824131000+00'00'"));
+        ReplaceAsciiAll(pdf, "2026-08-24T13:00:00+00:00", "2026-08-24T13:10:00+00:00");
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, report.FindRequirement("readback-pdfx-production-dates")!.Status);
+    }
+
+    [Fact]
     public void PdfXFormalStreamFailureDoesNotOverwriteTheDestination() {
         var options = new PdfOptions()
             .ConfigurePdfX(
@@ -599,6 +725,50 @@ public class PdfXGroundworkTests {
         profile[38] = (byte)'s';
         profile[39] = (byte)'p';
         return profile;
+    }
+
+    private static byte[] CreatePdfXMetadataEditFixture() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        var metadata = new PdfXProductionMetadata(
+            new DateTimeOffset(2026, 8, 24, 13, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 8, 24, 13, 5, 0, TimeSpan.Zero),
+            new Guid("f16a3ee3-645f-4114-b478-210d114f5265"),
+            new Guid("1dd6877b-87c6-4949-adde-49795d8e3c22"));
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False)
+            .SetPdfXProductionMetadata(metadata)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X edit font");
+        return PdfDocument.Create(options)
+            .Meta(title: "Original production metadata")
+            .Paragraph(paragraph => paragraph.Text("Metadata editing must retain the PDF/X production contract."))
+            .ToBytes();
+    }
+
+    private static void ReplaceAsciiAll(byte[] bytes, string oldValue, string newValue) {
+        Assert.Equal(oldValue.Length, newValue.Length);
+        byte[] needle = Encoding.ASCII.GetBytes(oldValue);
+        int replacements = 0;
+        for (int index = 0; index <= bytes.Length - needle.Length; index++) {
+            bool match = true;
+            for (int needleIndex = 0; needleIndex < needle.Length; needleIndex++) {
+                if (bytes[index + needleIndex] != needle[needleIndex]) {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (!match) continue;
+            WriteAscii(bytes, index, newValue);
+            replacements++;
+            index += needle.Length - 1;
+        }
+
+        Assert.True(replacements > 0, "Expected metadata value was not found in the generated PDF.");
     }
 
     private static int FindAscii(byte[] bytes, string text) {

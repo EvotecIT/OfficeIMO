@@ -24,6 +24,14 @@ public sealed class PdfXmpMetadataInfo {
         int? pdfUaPart,
         string? pdfXVersion,
         string? pdfXConformance,
+        DateTimeOffset? creationDate,
+        DateTimeOffset? modificationDate,
+        DateTimeOffset? metadataDate,
+        string? documentId,
+        string? instanceId,
+        string? versionId,
+        string? renditionClass,
+        PdfTrappingStatus? trappingStatus,
         string? electronicInvoiceDocumentType,
         string? electronicInvoiceDocumentFileName,
         string? electronicInvoiceVersion,
@@ -47,6 +55,14 @@ public sealed class PdfXmpMetadataInfo {
         PdfUaPart = pdfUaPart;
         PdfXVersion = pdfXVersion;
         PdfXConformance = pdfXConformance;
+        CreationDate = creationDate;
+        ModificationDate = modificationDate;
+        MetadataDate = metadataDate;
+        DocumentId = documentId;
+        InstanceId = instanceId;
+        VersionId = versionId;
+        RenditionClass = renditionClass;
+        TrappingStatus = trappingStatus;
         ElectronicInvoiceDocumentType = electronicInvoiceDocumentType;
         ElectronicInvoiceDocumentFileName = electronicInvoiceDocumentFileName;
         ElectronicInvoiceVersion = electronicInvoiceVersion;
@@ -122,6 +138,30 @@ public sealed class PdfXmpMetadataInfo {
     /// <summary>True when PDF/X identification metadata was found.</summary>
     public bool HasPdfXIdentification =>
         !string.IsNullOrEmpty(PdfXVersion) || !string.IsNullOrEmpty(PdfXConformance);
+
+    /// <summary>Resource creation date from <c>xmp:CreateDate</c>.</summary>
+    public DateTimeOffset? CreationDate { get; }
+
+    /// <summary>Resource modification date from <c>xmp:ModifyDate</c>.</summary>
+    public DateTimeOffset? ModificationDate { get; }
+
+    /// <summary>XMP packet modification date from <c>xmp:MetadataDate</c>.</summary>
+    public DateTimeOffset? MetadataDate { get; }
+
+    /// <summary>Document identity from <c>xmpMM:DocumentID</c>.</summary>
+    public string? DocumentId { get; }
+
+    /// <summary>Saved-instance identity from <c>xmpMM:InstanceID</c>.</summary>
+    public string? InstanceId { get; }
+
+    /// <summary>Document version from <c>xmpMM:VersionID</c>.</summary>
+    public string? VersionId { get; }
+
+    /// <summary>Resource rendition class from <c>xmpMM:RenditionClass</c>.</summary>
+    public string? RenditionClass { get; }
+
+    /// <summary>Print trapping status from <c>pdf:Trapped</c>.</summary>
+    public PdfTrappingStatus? TrappingStatus { get; }
 
     /// <summary>Factur-X/ZUGFeRD document type from the XMP extension metadata.</summary>
     public string? ElectronicInvoiceDocumentType { get; }

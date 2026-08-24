@@ -19,6 +19,27 @@ public sealed partial class PdfOptions {
 
     internal PdfXIdentification? PdfXIdentificationSnapshot => _pdfXIdentification?.Clone();
 
+    /// <summary>Production timestamps and identity reconciled between the PDF Info dictionary and XMP packet.</summary>
+    public PdfXProductionMetadata? PdfXProductionMetadata {
+        get => _pdfXProductionMetadata?.Clone();
+        set {
+            _pdfXProductionMetadata = value?.Clone();
+            _useAutomaticPdfXProductionMetadata = false;
+        }
+    }
+
+    internal PdfXProductionMetadata? PdfXProductionMetadataSnapshot => _pdfXProductionMetadata?.Clone();
+    internal bool HasPdfXProductionMetadataConfiguration => _useAutomaticPdfXProductionMetadata || _pdfXProductionMetadata != null;
+
+    internal void MaterializeAutomaticPdfXProductionMetadata() {
+        if (!_useAutomaticPdfXProductionMetadata) {
+            return;
+        }
+
+        _pdfXProductionMetadata = OfficeIMO.Pdf.PdfXProductionMetadata.CreateNow();
+        _useAutomaticPdfXProductionMetadata = false;
+    }
+
     /// <summary>Optional print trapping status written to the document information dictionary.</summary>
     public PdfTrappingStatus? TrappingStatus {
         get => _trappingStatus;
@@ -90,6 +111,12 @@ public sealed partial class PdfOptions {
         return this;
     }
 
+    /// <summary>Sets explicit PDF/X production timestamps and identity for reproducible generation.</summary>
+    public PdfOptions SetPdfXProductionMetadata(PdfXProductionMetadata? metadata) {
+        PdfXProductionMetadata = metadata;
+        return this;
+    }
+
     /// <summary>Sets the print trapping status written to the document information dictionary.</summary>
     public PdfOptions SetTrappingStatus(PdfTrappingStatus? status) {
         TrappingStatus = status;
@@ -129,6 +156,10 @@ public sealed partial class PdfOptions {
         PdfXIdentification = profile == PdfComplianceProfile.PdfX1A2003
             ? OfficeIMO.Pdf.PdfXIdentification.PdfX1A2003()
             : OfficeIMO.Pdf.PdfXIdentification.PdfX4();
+        if (_pdfXProductionMetadata == null) {
+            _pdfXProductionMetadata = OfficeIMO.Pdf.PdfXProductionMetadata.CreateNow();
+            _useAutomaticPdfXProductionMetadata = true;
+        }
         SetPdfXOutputIntent(cmykIccProfile, outputConditionIdentifier);
         TrappingStatus = trappingStatus;
         ConvertVectorColorsToPdfXPrintCondition = true;

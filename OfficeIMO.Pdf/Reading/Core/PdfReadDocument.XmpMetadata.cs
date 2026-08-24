@@ -7,6 +7,9 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadDocument {
     private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
     private const string PdfAIdentificationNamespaceUri = "http://www.aiim.org/pdfa/ns/id/";
+    private const string PdfNamespaceUri = "http://ns.adobe.com/pdf/1.3/";
+    private const string XmpNamespaceUri = "http://ns.adobe.com/xap/1.0/";
+    private const string XmpMediaManagementNamespaceUri = "http://ns.adobe.com/xap/1.0/mm/";
     /// <summary>Maximum decoded XMP metadata size parsed as XML.</summary>
     public const int MaxXmpMetadataBytes = 4_000_000;
 
@@ -64,6 +67,14 @@ public sealed partial class PdfReadDocument {
             document is null ? null : ReadIntegerElementByNamespace(document, "part", PdfUaIdentification.NamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "GTS_PDFXVersion", PdfXIdentification.NamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "GTS_PDFXConformance", PdfXIdentification.NamespaceUri),
+            document is null ? null : ReadDateElementByNamespace(document, "CreateDate", XmpNamespaceUri),
+            document is null ? null : ReadDateElementByNamespace(document, "ModifyDate", XmpNamespaceUri),
+            document is null ? null : ReadDateElementByNamespace(document, "MetadataDate", XmpNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "DocumentID", XmpMediaManagementNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "InstanceID", XmpMediaManagementNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "VersionID", XmpMediaManagementNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "RenditionClass", XmpMediaManagementNamespaceUri),
+            document is null ? null : ParseTrappingStatus(ReadElementTextByNamespace(document, "Trapped", PdfNamespaceUri)),
             document is null ? null : ReadElementTextByNamespace(document, "DocumentType", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "DocumentFileName", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
             document is null ? null : ReadElementTextByNamespace(document, "Version", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
@@ -164,6 +175,17 @@ public sealed partial class PdfReadDocument {
     private static int? ReadIntegerElementByNamespace(XDocument document, string localName, string namespaceUri) {
         string? value = ReadElementTextByNamespace(document, localName, namespaceUri);
         return int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int result)
+            ? result
+            : null;
+    }
+
+    private static DateTimeOffset? ReadDateElementByNamespace(XDocument document, string localName, string namespaceUri) {
+        string? value = ReadElementTextByNamespace(document, localName, namespaceUri);
+        return DateTimeOffset.TryParse(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AllowWhiteSpaces | System.Globalization.DateTimeStyles.RoundtripKind,
+            out DateTimeOffset result)
             ? result
             : null;
     }

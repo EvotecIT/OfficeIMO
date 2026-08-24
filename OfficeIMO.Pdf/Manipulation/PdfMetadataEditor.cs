@@ -33,7 +33,11 @@ internal static partial class PdfMetadataEditor {
             Author = author ?? document.UncheckedMetadata.Author,
             Subject = subject ?? document.UncheckedMetadata.Subject,
             Keywords = keywords ?? document.UncheckedMetadata.Keywords,
-            TrappingStatus = document.UncheckedMetadata.TrappingStatus
+            TrappingStatus = document.UncheckedMetadata.TrappingStatus,
+            CreationDate = document.UncheckedMetadata.CreationDate,
+            ModificationDate = document.UncheckedMetadata.ModificationDate,
+            PdfXVersion = document.UncheckedMetadata.PdfXVersion,
+            PdfXConformance = document.UncheckedMetadata.PdfXConformance
         };
 
         return RewriteWithMetadata(pdf, metadata, readOptions);

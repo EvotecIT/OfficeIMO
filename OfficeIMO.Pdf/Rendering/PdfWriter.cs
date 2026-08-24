@@ -1007,9 +1007,10 @@ internal static partial class PdfWriter {
         PdfAIdentification? pdfAIdentification = opts.PdfAIdentificationSnapshot;
         PdfUaIdentification? pdfUaIdentification = opts.PdfUaIdentificationSnapshot;
         PdfXIdentification? pdfXIdentification = opts.PdfXIdentificationSnapshot;
+        PdfXProductionMetadata? pdfXProductionMetadata = opts.PdfXProductionMetadataSnapshot;
         PdfElectronicInvoiceMetadata? electronicInvoiceMetadata = opts.ElectronicInvoiceMetadataSnapshot;
-        if (opts.IncludeXmpMetadata || pdfAIdentification != null || pdfUaIdentification != null || electronicInvoiceMetadata != null || pdfXIdentification != null) {
-            byte[] xmpMetadata = PdfXmpMetadataBuilder.Build(title, author, subject, keywords, pdfAIdentification, pdfUaIdentification, electronicInvoiceMetadata, pdfXIdentification);
+        if (opts.IncludeXmpMetadata || pdfAIdentification != null || pdfUaIdentification != null || electronicInvoiceMetadata != null || pdfXIdentification != null || pdfXProductionMetadata != null) {
+            byte[] xmpMetadata = PdfXmpMetadataBuilder.Build(title, author, subject, keywords, pdfAIdentification, pdfUaIdentification, electronicInvoiceMetadata, pdfXIdentification, pdfXProductionMetadata, opts.TrappingStatus);
             metadataId = AddStreamObject(
                 objects,
                 "<< /Type /Metadata /Subtype /XML /Length " + xmpMetadata.Length.ToString(CultureInfo.InvariantCulture) + " >>",
@@ -1113,7 +1114,7 @@ internal static partial class PdfWriter {
             portfolioId,
             optionalContentPropertiesId));
 
-        infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords, opts.TrappingStatus));
+        infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords, opts.TrappingStatus, pdfXIdentification, pdfXProductionMetadata));
         MaterializePendingFontObjects();
 
         PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion

@@ -436,7 +436,10 @@ $definitions = [ordered]@{
 $selected = if ($Workload -eq 'all') {
     @(
         $definitions.GetEnumerator() |
-            Where-Object { $_.Key -notlike 'word*' -and $_.Value.Default -ne $false } |
+            Where-Object {
+                $_.Key -notlike 'word*' -and
+                ($null -eq $_.Value.PSObject.Properties['Default'] -or $_.Value.Default -ne $false)
+            } |
             ForEach-Object { $_.Key }
     )
 } elseif ($Workload -eq 'word') {

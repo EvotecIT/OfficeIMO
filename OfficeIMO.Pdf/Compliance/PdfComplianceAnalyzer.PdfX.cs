@@ -23,6 +23,18 @@ internal static partial class PdfComplianceAnalyzer {
             "PDF/X identification metadata matches " + GetDisplayName(profile) + ".",
             "Set PdfOptions.PdfXIdentification to matching " + GetDisplayName(profile) + " identification metadata.");
 
+        PdfXProductionMetadata? productionMetadata = options.PdfXProductionMetadata;
+        Add(requirements, "pdfx-production-metadata", "PDF/X production metadata",
+            options.HasPdfXProductionMetadataConfiguration &&
+            (productionMetadata == null ||
+                productionMetadata.CreationDate <= productionMetadata.ModificationDate &&
+                productionMetadata.DocumentId != Guid.Empty &&
+                productionMetadata.InstanceId != Guid.Empty &&
+                !string.IsNullOrWhiteSpace(productionMetadata.VersionId) &&
+                !string.IsNullOrWhiteSpace(productionMetadata.RenditionClass)),
+            "Reconciled Info/XMP dates, UUIDs, version, and rendition metadata are configured.",
+            "Set PdfOptions.PdfXProductionMetadata with creation/modification dates, document and instance UUIDs, version, and rendition metadata.");
+
         Add(requirements, "pdfx-no-encryption", "PDF/X encryption policy",
             options.EncryptionSnapshot == null,
             "No Standard security encryption is configured.",

@@ -1,13 +1,42 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfInfoDictionaryBuilder {
-    internal static string Build(string? title, string? author, string? subject, string? keywords, PdfTrappingStatus? trappingStatus = null) {
+    internal static string Build(
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        PdfTrappingStatus? trappingStatus = null,
+        PdfXIdentification? pdfXIdentification = null,
+        PdfXProductionMetadata? pdfXProductionMetadata = null) =>
+        BuildCore(
+            title,
+            author,
+            subject,
+            keywords,
+            trappingStatus,
+            pdfXProductionMetadata?.CreationDate,
+            pdfXProductionMetadata?.ModificationDate,
+            pdfXIdentification?.Version,
+            pdfXIdentification?.Conformance);
+
+    private static string BuildCore(
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        PdfTrappingStatus? trappingStatus,
+        DateTimeOffset? creationDate,
+        DateTimeOffset? modificationDate,
+        string? pdfXVersion,
+        string? pdfXConformance) {
         var sb = new StringBuilder("<< ");
         AppendInfoString(sb, "Title", title);
         AppendInfoString(sb, "Author", author);
         AppendInfoString(sb, "Subject", subject);
         AppendInfoString(sb, "Keywords", keywords);
         sb.Append("/Producer (OfficeIMO.Pdf) ");
+        AppendProductionMetadata(sb, creationDate, modificationDate, pdfXVersion, pdfXConformance);
         AppendTrappingStatus(sb, trappingStatus);
         sb.Append(">>\n");
         return sb.ToString();
@@ -15,7 +44,16 @@ internal static class PdfInfoDictionaryBuilder {
 
     internal static string Build(PdfMetadata metadata) {
         Guard.NotNull(metadata, nameof(metadata));
-        return Build(metadata.Title, metadata.Author, metadata.Subject, metadata.Keywords, metadata.TrappingStatus);
+        return BuildCore(
+            metadata.Title,
+            metadata.Author,
+            metadata.Subject,
+            metadata.Keywords,
+            metadata.TrappingStatus,
+            metadata.CreationDate,
+            metadata.ModificationDate,
+            metadata.PdfXVersion,
+            metadata.PdfXConformance);
     }
 
     internal static PdfDictionary BuildDictionary(PdfMetadata metadata) {
@@ -26,6 +64,10 @@ internal static class PdfInfoDictionaryBuilder {
         AddInfoString(dictionary, "Subject", metadata.Subject);
         AddInfoString(dictionary, "Keywords", metadata.Keywords);
         dictionary.Items["Producer"] = new PdfStringObj("OfficeIMO.Pdf");
+        AddInfoString(dictionary, "CreationDate", metadata.CreationDate.HasValue ? PdfDateCodec.Format(metadata.CreationDate.Value) : null);
+        AddInfoString(dictionary, "ModDate", metadata.ModificationDate.HasValue ? PdfDateCodec.Format(metadata.ModificationDate.Value) : null);
+        AddInfoString(dictionary, "GTS_PDFXVersion", metadata.PdfXVersion);
+        AddInfoString(dictionary, "GTS_PDFXConformance", metadata.PdfXConformance);
         if (metadata.TrappingStatus.HasValue) {
             Guard.TrappingStatus(metadata.TrappingStatus.Value, nameof(metadata.TrappingStatus));
             dictionary.Items["Trapped"] = new PdfName(metadata.TrappingStatus.Value switch {
@@ -69,4 +111,17 @@ internal static class PdfInfoDictionaryBuilder {
             })
             .Append(' ');
     }
+
+    private static void AppendProductionMetadata(
+        StringBuilder sb,
+        DateTimeOffset? creationDate,
+        DateTimeOffset? modificationDate,
+        string? pdfXVersion,
+        string? pdfXConformance) {
+        AppendInfoString(sb, "CreationDate", creationDate.HasValue ? PdfDateCodec.Format(creationDate.Value) : null);
+        AppendInfoString(sb, "ModDate", modificationDate.HasValue ? PdfDateCodec.Format(modificationDate.Value) : null);
+        AppendInfoString(sb, "GTS_PDFXVersion", pdfXVersion);
+        AppendInfoString(sb, "GTS_PDFXConformance", pdfXConformance);
+    }
+
 }

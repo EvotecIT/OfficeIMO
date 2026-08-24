@@ -77,6 +77,8 @@ public sealed partial class PdfOptions {
     private PdfAIdentification? _pdfAIdentification;
     private PdfUaIdentification? _pdfUaIdentification;
     private PdfXIdentification? _pdfXIdentification;
+    private PdfXProductionMetadata? _pdfXProductionMetadata;
+    private bool _useAutomaticPdfXProductionMetadata;
     private PdfElectronicInvoiceMetadata? _electronicInvoiceMetadata;
     private PdfOutputIntent? _outputIntent;
     private PdfTrappingStatus? _trappingStatus;

@@ -41,6 +41,7 @@ public sealed partial class PdfOptions {
             PdfAIdentification = _pdfAIdentification?.Clone(),
             PdfUaIdentification = _pdfUaIdentification?.Clone(),
             PdfXIdentification = _pdfXIdentification?.Clone(),
+            PdfXProductionMetadata = _pdfXProductionMetadata?.Clone(),
             ElectronicInvoiceMetadata = _electronicInvoiceMetadata?.Clone(),
             OutputIntent = _outputIntent?.Clone(),
             TrappingStatus = _trappingStatus,
@@ -162,6 +163,7 @@ public sealed partial class PdfOptions {
             _firstPageFooterShapes = CloneHeaderFooterShapes(_firstPageFooterShapes),
             _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
         };
+        clone._useAutomaticPdfXProductionMetadata = _useAutomaticPdfXProductionMetadata;
         clone._defaultTableStyle = _defaultTableStyle?.Clone();
         clone._hasExplicitDefaultTableStyle = _hasExplicitDefaultTableStyle;
         clone._hasExplicitDefaultFont = _hasExplicitDefaultFont;

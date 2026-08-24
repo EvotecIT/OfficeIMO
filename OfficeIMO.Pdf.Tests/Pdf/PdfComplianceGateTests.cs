@@ -465,6 +465,13 @@ public class PdfComplianceGateTests {
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 outputCondition,
                 PdfTrappingStatus.False)
+            .SetPdfXProductionMetadata(new PdfXProductionMetadata(
+                new DateTimeOffset(2026, 8, 24, 8, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 8, 24, 8, 15, 0, TimeSpan.Zero),
+                new Guid("3a8a4ff7-e129-46ec-b6f4-caf6579a2375"),
+                profile == PdfComplianceProfile.PdfX1A2003
+                    ? new Guid("a4492a42-e424-4659-9d59-f0eb1730892f")
+                    : new Guid("9d8cbf49-32b0-48f9-8fd1-8d7041c738a9")))
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, fontData, "OfficeIMO Source Serif");
         return PdfDocument.Create(options)

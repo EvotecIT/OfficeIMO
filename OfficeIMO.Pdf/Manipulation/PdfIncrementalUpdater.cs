@@ -125,7 +125,11 @@ internal static partial class PdfIncrementalUpdater {
             Author = author ?? existing.Author ?? existingXmp?.Creator,
             Subject = subject ?? existing.Subject ?? existingXmp?.Description,
             Keywords = keywords ?? existing.Keywords ?? existingXmp?.Keywords,
-            TrappingStatus = existing.TrappingStatus
+            TrappingStatus = existing.TrappingStatus,
+            CreationDate = existing.CreationDate,
+            ModificationDate = existing.ModificationDate,
+            PdfXVersion = existing.PdfXVersion,
+            PdfXConformance = existing.PdfXConformance
         };
 
         int newInfoObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;

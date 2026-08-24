@@ -197,6 +197,34 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF contains matching " + GetDisplayName(profile) + " identification metadata.",
             "The saved PDF XMP metadata must contain matching pdfxid identification for " + GetDisplayName(profile) + ".");
 
+        bool hasReconciledDates = info.Metadata.CreationDate.HasValue &&
+            info.Metadata.ModificationDate.HasValue &&
+            xmp?.CreationDate.HasValue == true &&
+            xmp.ModificationDate.HasValue &&
+            xmp.MetadataDate.HasValue &&
+            info.Metadata.CreationDate.Value <= info.Metadata.ModificationDate.Value &&
+            info.Metadata.CreationDate.Value.Equals(xmp.CreationDate.Value) &&
+            info.Metadata.ModificationDate.Value.Equals(xmp.ModificationDate.Value) &&
+            xmp.ModificationDate.Value.Equals(xmp.MetadataDate.Value);
+        Add(requirements, "readback-pdfx-production-dates", "Readback PDF/X production dates",
+            hasReconciledDates,
+            "The saved PDF contains synchronized Info and XMP creation, modification, and metadata dates.",
+            "The saved PDF must contain CreationDate and ModDate in Info synchronized with xmp:CreateDate, xmp:ModifyDate, and xmp:MetadataDate.");
+
+        Add(requirements, "readback-pdfx-production-identity", "Readback PDF/X production identity",
+            IsXmpUuid(xmp?.DocumentId) &&
+            IsXmpUuid(xmp?.InstanceId) &&
+            !string.IsNullOrWhiteSpace(xmp?.VersionId) &&
+            !string.IsNullOrWhiteSpace(xmp?.RenditionClass),
+            "The saved PDF contains document and instance UUIDs, a version identifier, and a rendition class.",
+            "The saved PDF XMP must contain valid xmpMM:DocumentID, xmpMM:InstanceID, xmpMM:VersionID, and xmpMM:RenditionClass values.");
+
+        Add(requirements, "readback-pdfx-info-identification", "Readback PDF/X Info identification",
+            string.Equals(info.Metadata.PdfXVersion, expectedVersion, StringComparison.Ordinal) &&
+            (expectedConformance == null || string.Equals(info.Metadata.PdfXConformance, expectedConformance, StringComparison.Ordinal)),
+            "The saved PDF Info dictionary contains matching PDF/X identification.",
+            "The saved PDF Info dictionary must contain matching GTS_PDFXVersion and, where required, GTS_PDFXConformance values.");
+
         PdfOutputIntentInfo? outputIntent = info.OutputIntents.FirstOrDefault(static intent =>
             string.Equals(intent.Subtype, "GTS_PDFX", StringComparison.Ordinal));
         bool hasMatchingProfileSize = outputIntent?.DestinationOutputProfileSizeBytes is int actualProfileSize &&
@@ -216,9 +244,10 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF must contain a named /GTS_PDFX output intent backed by a size-consistent, parseable CMYK output-device ICC profile with a supported output transform and matching /N value.");
 
         Add(requirements, "readback-pdfx-trapping-status", "Readback PDF/X trapping status",
-            info.Metadata.TrappingStatus == PdfTrappingStatus.False || info.Metadata.TrappingStatus == PdfTrappingStatus.True,
-            "The saved PDF Info dictionary declares a boolean trapping status.",
-            "The saved PDF Info dictionary must contain /Trapped /True or /False; /Unknown is not valid for a formal PDF/X claim.");
+            (info.Metadata.TrappingStatus == PdfTrappingStatus.False || info.Metadata.TrappingStatus == PdfTrappingStatus.True) &&
+            xmp?.TrappingStatus == info.Metadata.TrappingStatus,
+            "The saved PDF Info dictionary and XMP packet declare the same boolean trapping status.",
+            "The saved PDF must contain matching /Trapped and pdf:Trapped True or False values; Unknown is not valid for a formal PDF/X claim.");
 
         Add(requirements, "readback-pdfx-no-encryption", "Readback PDF/X encryption policy",
             !info.Security.HasEncryption,
@@ -490,5 +519,20 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostics.Add(ex.Message);
             return false;
         }
+    }
+
+    private static bool IsXmpUuid(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        string candidate = value!.Trim();
+        if (candidate.StartsWith("urn:uuid:", StringComparison.OrdinalIgnoreCase)) {
+            candidate = candidate.Substring("urn:uuid:".Length);
+        } else if (candidate.StartsWith("uuid:", StringComparison.OrdinalIgnoreCase)) {
+            candidate = candidate.Substring("uuid:".Length);
+        }
+
+        return Guid.TryParse(candidate, out Guid identifier) && identifier != Guid.Empty;
     }
 }
