@@ -22,6 +22,11 @@ on:
         required: true
         default: '000'
         type: string
+      archive_sha256:
+        description: 'Expected archive SHA-256; required for chunks other than the pinned 000 baseline'
+        required: false
+        default: ''
+        type: string
       max_per_format:
         description: 'Maximum unique files sampled per format'
         required: true
@@ -60,6 +65,9 @@ jobs:
         shell: pwsh
         run: ./Build/Test-RealWorldCorpusContract.ps1
 
+      - name: Validate corpus workflow bounds and provenance
+        run: python3 ./Build/Test-RealWorldCorpusWorkflowContract.py
+
   corpus-evidence:
     name: Govdocs1 corpus evidence (non-gating)
     if: github.event_name != 'pull_request'
@@ -67,8 +75,14 @@ jobs:
     timeout-minutes: 360
     env:
       CORPUS_CHUNK: ${{ inputs.chunk || '000' }}
+      REQUESTED_ARCHIVE_SHA256: ${{ inputs.archive_sha256 || '' }}
       MAX_PER_FORMAT: ${{ inputs.max_per_format || '100' }}
       FILE_TIMEOUT_SECONDS: ${{ inputs.timeout_seconds || '30' }}
+      MAX_FILE_TIMEOUT_SECONDS: '30'
+      DOWNLOAD_TIMEOUT_SECONDS: '1800'
+      MAX_TRAVERSAL_ENTRIES: '1000'
+      MAX_TOTAL: '600'
+      CORPUS_PARALLELISM: '4'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -87,6 +101,10 @@ jobs:
             echo "Chunk must contain exactly three digits."
             exit 2
           fi
+          if [[ ! "$FILE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || (( FILE_TIMEOUT_SECONDS < 1 || FILE_TIMEOUT_SECONDS > MAX_FILE_TIMEOUT_SECONDS )); then
+            echo "Per-file timeout must be an integer from 1 through $MAX_FILE_TIMEOUT_SECONDS seconds."
+            exit 2
+          fi
           corpus_url="https://downloads.digitalcorpora.org/corpora/files/govdocs1/zipfiles/${CORPUS_CHUNK}.zip"
           archive="${RUNNER_TEMP}/govdocs1-${CORPUS_CHUNK}.zip"
           input="${RUNNER_TEMP}/govdocs1-${CORPUS_CHUNK}"
@@ -95,8 +113,37 @@ jobs:
           echo "source_uri=$corpus_url" >> "$GITHUB_OUTPUT"
           echo "input_directory=$input" >> "$GITHUB_OUTPUT"
           echo "report_directory=$reports" >> "$GITHUB_OUTPUT"
-          if ! curl --fail --location --retry 3 --retry-all-errors --connect-timeout 30 --max-time 1800 --max-filesize 2147483648 --output "$archive" "$corpus_url"; then
-            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"corpus-download-failed","sourceUri":"%s"}\n' "$corpus_url" > "$reports/download-status.json"
+          pinned_chunk="000"
+          pinned_sha256="7fb4673ac1905a3ed16a9c5780a70c729c3abc575b06c155b7042b91fa5946aa"
+          requested_sha256="${REQUESTED_ARCHIVE_SHA256,,}"
+          if [[ -n "$requested_sha256" && ! "$requested_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"expected-archive-sha256-invalid","sourceUri":"%s"}\n' "$corpus_url" > "$reports/download-status.json"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$CORPUS_CHUNK" == "$pinned_chunk" ]]; then
+            expected_sha256="$pinned_sha256"
+            if [[ -n "$requested_sha256" && "$requested_sha256" != "$expected_sha256" ]]; then
+              printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"pinned-archive-sha256-conflict","sourceUri":"%s","expectedArchiveSha256":"%s","requestedArchiveSha256":"%s"}\n' "$corpus_url" "$expected_sha256" "$requested_sha256" > "$reports/download-status.json"
+              echo "available=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            expected_sha256="$requested_sha256"
+            if [[ -z "$expected_sha256" ]]; then
+              printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"expected-archive-sha256-required","sourceUri":"%s"}\n' "$corpus_url" > "$reports/download-status.json"
+              echo "available=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          if ! timeout --signal=TERM --kill-after=30s "$DOWNLOAD_TIMEOUT_SECONDS" curl --fail --location --retry 3 --retry-all-errors --connect-timeout 30 --max-time "$DOWNLOAD_TIMEOUT_SECONDS" --max-filesize 2147483648 --output "$archive" "$corpus_url"; then
+            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"corpus-download-failed","sourceUri":"%s","expectedArchiveSha256":"%s"}\n' "$corpus_url" "$expected_sha256" > "$reports/download-status.json"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          archive_sha256="$(sha256sum "$archive" | awk '{print $1}')"
+          if [[ "$archive_sha256" != "$expected_sha256" ]]; then
+            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"archive-sha256-mismatch","sourceUri":"%s","expectedArchiveSha256":"%s","observedArchiveSha256":"%s"}\n' "$corpus_url" "$expected_sha256" "$archive_sha256" > "$reports/download-status.json"
             echo "available=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -131,11 +178,10 @@ jobs:
               package.extractall(output)
           PY
           then
-            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"archive-validation-failed","sourceUri":"%s"}\n' "$corpus_url" > "$reports/download-status.json"
+            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"archive-validation-failed","sourceUri":"%s","archiveSha256":"%s"}\n' "$corpus_url" "$archive_sha256" > "$reports/download-status.json"
             echo "available=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          archive_sha256="$(sha256sum "$archive" | awk '{print $1}')"
           echo "archive_sha256=$archive_sha256" >> "$GITHUB_OUTPUT"
           echo "available=true" >> "$GITHUB_OUTPUT"
 
@@ -152,11 +198,11 @@ jobs:
             --source-uri "${{ steps.download.outputs.source_uri }}" \
             --archive-sha256 "${{ steps.download.outputs.archive_sha256 }}" \
             --max-per-format "$MAX_PER_FORMAT" \
-            --max-total 600 \
+            --max-total "$MAX_TOTAL" \
             --max-file-bytes 52428800 \
-            --max-traversal-entries 5000 \
+            --max-traversal-entries "$MAX_TRAVERSAL_ENTRIES" \
             --timeout-seconds "$FILE_TIMEOUT_SECONDS" \
-            --parallelism 4 \
+            --parallelism "$CORPUS_PARALLELISM" \
             --include-source-names
 
       - name: Publish the evidence summary

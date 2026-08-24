@@ -12,6 +12,7 @@ internal static class CorpusProgram {
         try {
             return args[0].ToLowerInvariant() switch {
                 "run" => await RunCorpusAsync(CorpusCommandLine.ParseRun(args[1..])).ConfigureAwait(false),
+                "verify-markdown-contract" => CorpusMarkdownContract.Run(),
                 "classify-file" => RunWorker(args[1..], CorpusWorker.Classify),
                 "probe-file" => RunWorker(args[1..], CorpusWorker.Probe),
                 _ => throw new ArgumentException($"Unknown command '{args[0]}'.")

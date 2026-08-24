@@ -6,7 +6,7 @@ This is discovery evidence, not a compatibility percentage. The source corpus is
 
 ## Evidence source and provenance
 
-The scheduled lane uses one fixed [Govdocs1 ZIP chunk](https://digitalcorpora.org/corpora/file-corpora/files/) as a repeatable baseline. Govdocs1 contains files collected from public `.gov` web servers and explicitly warns that file extensions are only suggestions. The runner therefore requires medium- or high-confidence content evidence before assigning a format stratum; an extension alone cannot make a file eligible.
+The scheduled lane uses one checksum-pinned [Govdocs1 ZIP chunk](https://digitalcorpora.org/corpora/file-corpora/files/) as a repeatable baseline. Govdocs1 contains files collected from public `.gov` web servers and explicitly warns that file extensions are only suggestions. The runner therefore requires medium- or high-confidence content evidence before assigning a format stratum; an extension alone cannot make a file eligible.
 
 Each report records:
 
@@ -26,11 +26,11 @@ The monthly target is up to 100 unique files in each available format stratum, c
 
 One hundred observations is a practical defect-discovery budget. If observations were independent and randomly sampled, zero failures would put the familiar approximate 95% upper bound near 3% under the rule of three. Govdocs1 does not satisfy those assumptions, so the calculation explains the budget rather than proving a reliability rate. Reports show underfilled strata instead of padding denominators or borrowing files from another format.
 
-The fixed chunk keeps the monthly input population stable; code, runtime, and runner changes still matter when comparing results. Manual runs can select another three-digit chunk for broader discovery, but results from different chunks must not be presented as a trend without accounting for the changed population.
+The fixed chunk and its expected SHA-256 keep the monthly input population stable; code, runtime, and runner changes still matter when comparing results. Manual runs can select another three-digit chunk for broader discovery only when its expected SHA-256 is supplied. Results from different chunks must not be presented as a trend without accounting for the changed population.
 
 ## Isolation and outcomes
 
-Classification and normalized reading each run in a separate child process per file. The coordinator applies a 50 MiB input cap, a 30-second timeout per stage, a bounded traversal count, and limited parallelism. A timeout kills the worker process tree so one malformed input cannot stall the complete measurement.
+Classification and normalized reading each run in a separate child process per file. The coordinator applies a 50 MiB input cap, a 30-second timeout per stage, a bounded traversal count, and limited parallelism. The maintained workflow limits traversal to 1,000 entries and selection to 600 files: at four workers, the worst-case classification and read deadlines consume 3 hours 20 minutes. The complete download, including retries, has a 30-minute wall-clock limit, leaving more than two hours of the six-hour job budget for checkout, build, hashing, extraction, process overhead, reporting, and upload. A timeout kills the worker process tree so one malformed input cannot stall the complete measurement.
 
 The report keeps outcomes factual:
 
@@ -52,7 +52,7 @@ The workflow is intentionally non-gating: its successful status means measuremen
 
 ## Running the evidence lane
 
-Use the **Real-world corpus evidence** workflow for the maintained download, provenance, extraction, reporting, and artifact-retention path. It runs monthly and accepts manual chunk, sample-size, and timeout inputs.
+Use the **Real-world corpus evidence** workflow for the maintained download, provenance, extraction, reporting, and artifact-retention path. It runs monthly and accepts manual chunk, expected-checksum, sample-size, and timeout inputs. Chunk `000` is always checked against the maintained baseline checksum; another chunk is recorded as not measured unless its expected SHA-256 is supplied.
 
 To measure an already extracted local corpus:
 

@@ -11,7 +11,7 @@ internal static class CorpusReportWriter {
         File.WriteAllText(markdownPath, RenderMarkdown(report), new UTF8Encoding(false));
     }
 
-    private static string RenderMarkdown(CorpusReport report) {
+    internal static string RenderMarkdown(CorpusReport report) {
         var text = new StringBuilder();
         text.AppendLine("# Real-world corpus evidence").AppendLine();
         text.AppendLine("> This is bounded discovery evidence, not a claim that every document, producer, or feature works. " +
@@ -73,11 +73,17 @@ internal static class CorpusReportWriter {
     }
 
     private static string ShortHash(string? value) => string.IsNullOrEmpty(value) ? "unavailable" : value[..Math.Min(16, value.Length)];
-    private static string E(string value) => value
-        .Replace("&", "&amp;")
-        .Replace("<", "&lt;")
-        .Replace(">", "&gt;")
-        .Replace("|", "\\|")
-        .Replace("\r", " ")
-        .Replace("\n", " ");
+    private static string E(string value) {
+        var escaped = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (char.IsControl(character)) {
+                escaped.Append(' ');
+            } else if (char.IsPunctuation(character) || char.IsSymbol(character)) {
+                escaped.Append("&#").Append((int)character).Append(';');
+            } else {
+                escaped.Append(character);
+            }
+        }
+        return escaped.ToString();
+    }
 }

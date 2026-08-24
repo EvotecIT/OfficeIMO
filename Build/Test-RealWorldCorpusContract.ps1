@@ -29,11 +29,13 @@ try {
     $deepRtf = '{\rtf1\ansi ' + ('{}' * 250001) + '}'
     $deepHtml = '<!doctype html><html><body>' + ('<b>' * 300) + 'limit' + ('</b>' * 300) + '</body></html>'
     [System.IO.File]::WriteAllText((Join-Path $policyInputDirectory 'deep.rtf'), $deepRtf)
-    [System.IO.File]::WriteAllText((Join-Path $policyInputDirectory 'deep.html'), $deepHtml)
+    [System.IO.File]::WriteAllText((Join-Path $policyInputDirectory '![image](target).html'), $deepHtml)
 
     $common = @(
         'run', '--input', $inputDirectory,
-        '--corpus-id', 'synthetic-contract',
+        '--corpus-id', '![corpus](target)',
+        '--source-uri', '![source](target)',
+        '--archive-sha256', ('a' * 64),
         '--formats', 'Html,Rtf',
         '--max-per-format', '2',
         '--max-total', '3',
@@ -68,19 +70,37 @@ try {
     $markdown = Get-Content -LiteralPath $firstMarkdown -Raw
     if ($markdown.Contains($scratch, [StringComparison]::OrdinalIgnoreCase) -or $markdown.Contains($inputDirectory, [StringComparison]::OrdinalIgnoreCase)) { throw 'A full input path leaked into the Markdown evidence.' }
     if ($markdown -notmatch 'not a reliability guarantee' -or $markdown -notmatch 'does not assess visual fidelity') { throw 'The generated evidence omitted its interpretation boundaries.' }
+    if ($markdown.Contains('![corpus](target)', [StringComparison]::Ordinal) -or $markdown.Contains('![source](target)', [StringComparison]::Ordinal)) {
+        throw 'Provenance values were able to inject Markdown content into the evidence report.'
+    }
+    if (-not $markdown.Contains('&#33;&#91;corpus&#93;&#40;target&#41;', [StringComparison]::Ordinal) -or
+        -not $markdown.Contains('&#33;&#91;source&#93;&#40;target&#41;', [StringComparison]::Ordinal) -or
+        -not $markdown.Contains(('a' * 64), [StringComparison]::Ordinal)) {
+        throw 'Inert provenance values were not retained in the Markdown evidence.'
+    }
 
     $policyJson = Join-Path $scratch 'policy/report.json'
     $policyMarkdown = Join-Path $scratch 'policy/report.md'
     & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
         --input $policyInputDirectory --json $policyJson --markdown $policyMarkdown `
         --corpus-id synthetic-policy-contract --formats Html,Rtf --max-per-format 2 --max-total 2 `
-        --max-file-bytes 1048576 --max-traversal-entries 10 --timeout-seconds 30 --parallelism 2
+        --max-file-bytes 1048576 --max-traversal-entries 10 --timeout-seconds 30 --parallelism 2 --include-source-names
     if ($LASTEXITCODE -ne 0) { throw "Policy corpus contract run failed with exit code $LASTEXITCODE." }
     $policy = Get-Content -LiteralPath $policyJson -Raw | ConvertFrom-Json -Depth 100
     if ($policy.totals.rejectedByPolicy -ne 2 -or $policy.totals.failed -ne 0) {
         $observed = @($policy.files | Where-Object selected | Select-Object contentKind, outcome, exceptionType) | ConvertTo-Json -Compress
         throw "HTML and RTF resource limits were not classified as policy rejections: $observed"
     }
+    $policyMarkdownText = Get-Content -LiteralPath $policyMarkdown -Raw
+    if ($policyMarkdownText.Contains('![image](target).html', [StringComparison]::Ordinal)) {
+        throw 'A source name was able to inject Markdown content into the evidence report.'
+    }
+    if (-not $policyMarkdownText.Contains('&#33;&#91;image&#93;&#40;target&#41;&#46;html', [StringComparison]::Ordinal)) {
+        throw 'The inert source name was not retained as readable Markdown evidence.'
+    }
+
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- verify-markdown-contract
+    if ($LASTEXITCODE -ne 0) { throw "Dynamic Markdown contract failed with exit code $LASTEXITCODE." }
 
     & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
         --input $inputDirectory --json (Join-Path $scratch 'unknown/report.json') --markdown (Join-Path $scratch 'unknown/report.md') `
