@@ -519,12 +519,18 @@ public static class OfficeGifReader {
 
         ResetDictionary();
         bool sawEndCode = false;
+        bool requiresInitialClearCode = true;
         int codeCount = 0;
         while (requireCompleteStream || outputCount < expectedPixelCount) {
             if ((codeCount++ & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             int code = reader.ReadBits(codeSize);
             if (code < 0) {
                 return false;
+            }
+
+            if (requiresInitialClearCode) {
+                if (code != clearCode) return false;
+                requiresInitialClearCode = false;
             }
 
             if (code == clearCode) {

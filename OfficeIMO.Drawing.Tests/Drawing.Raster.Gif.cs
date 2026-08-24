@@ -237,6 +237,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GifInspectionRejectsLzwImageDataWithoutAnInitialClearCode() {
+            byte[] valid = CreateSinglePixelGif();
+            int imageDescriptorOffset = Array.IndexOf(valid, (byte)0x2C);
+            int firstSubBlockOffset = imageDescriptorOffset + 11;
+            byte[] malformed = valid.Take(firstSubBlockOffset)
+                .Concat(new byte[] { 0x01, 0x28, 0x00, 0x3B })
+                .ToArray();
+
+            Assert.False(OfficeRasterContainerInspector.TryInspect(malformed, out _));
+            Assert.False(OfficeGifReader.TryValidateAllFrames(malformed));
+            Assert.False(OfficeRasterImageDecoder.TryDecode(malformed, out _));
+        }
+
+        [Fact]
         public void OfficeGifReader_SkipsLzwExpansionForUnselectedTrailingFrames() {
             byte[] gif = CreateTwoFrameGif(out int secondFrameDescriptorOffset);
             gif[secondFrameDescriptorOffset + 12] = 0x07;
