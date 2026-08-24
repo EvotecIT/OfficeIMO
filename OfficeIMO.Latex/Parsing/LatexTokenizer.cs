@@ -61,8 +61,7 @@ public static class LatexTokenizer {
                 while (index < source.Length && !IsSpecial(source[index])) index++;
                 kind = LatexTokenKind.Text;
             }
-            string text = source.Substring(start, index - start);
-            tokens.Add(new LatexToken(kind, text, value, sourceText.CreateSpan(start, index), isTerminated));
+            tokens.Add(new LatexToken(kind, sourceText, value, sourceText.CreateSpan(start, index), isTerminated));
         }
         return tokens;
     }

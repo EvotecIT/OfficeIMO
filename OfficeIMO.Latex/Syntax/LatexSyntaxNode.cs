@@ -32,17 +32,19 @@ public enum LatexSyntaxKind {
 
 /// <summary>Immutable node in the lossless LaTeX syntax tree.</summary>
 public sealed class LatexSyntaxNode {
+    private readonly LatexSourceText _source;
+    private string? _originalText;
     private int _indexInParent = -1;
 
     internal LatexSyntaxNode(
         LatexSyntaxKind kind,
+        LatexSourceText source,
         LatexSourceSpan span,
-        string originalText,
         string? value,
         IReadOnlyList<LatexSyntaxNode>? children = null) {
         Kind = kind;
+        _source = source;
         Span = span;
-        OriginalText = originalText;
         Value = value;
         Children = children ?? Array.Empty<LatexSyntaxNode>();
         for (int index = 0; index < Children.Count; index++) {
@@ -56,7 +58,7 @@ public sealed class LatexSyntaxNode {
     /// <summary>Exact source span.</summary>
     public LatexSourceSpan Span { get; }
     /// <summary>Exact source slice.</summary>
-    public string OriginalText { get; }
+    public string OriginalText => _originalText ??= Span.Slice(_source.Text);
     /// <summary>Command or environment name when applicable.</summary>
     public string? Value { get; }
     /// <summary>Parent node.</summary>
@@ -68,11 +70,30 @@ public sealed class LatexSyntaxNode {
 
     /// <summary>Enumerates this node and descendants.</summary>
     public IEnumerable<LatexSyntaxNode> DescendantsAndSelf() {
-        yield return this;
-        for (int index = 0; index < Children.Count; index++) {
-            foreach (LatexSyntaxNode child in Children[index].DescendantsAndSelf()) yield return child;
+        LatexSyntaxNode current = this;
+        var parents = new Stack<(LatexSyntaxNode Node, int NextChildIndex)>();
+        while (true) {
+            yield return current;
+            if (current.Children.Count > 0) {
+                parents.Push((current, 1));
+                current = current.Children[0];
+                continue;
+            }
+            while (parents.Count > 0) {
+                (LatexSyntaxNode parent, int nextChildIndex) = parents.Pop();
+                if (nextChildIndex >= parent.Children.Count) continue;
+                parents.Push((parent, nextChildIndex + 1));
+                current = parent.Children[nextChildIndex];
+                goto NextNode;
+            }
+            yield break;
+
+        NextNode:
+            continue;
         }
     }
+
+    internal bool HasSource(LatexSourceText source) => ReferenceEquals(_source, source);
 }
 
 /// <summary>Lossless syntax tree and coverage status.</summary>
@@ -80,7 +101,7 @@ public sealed class LatexSyntaxTree {
     internal LatexSyntaxTree(LatexSourceText source, LatexSyntaxNode root) {
         Source = source;
         Root = root;
-        IsLossless = Validate(root, source.Text);
+        IsLossless = Validate(root, source);
     }
 
     /// <summary>Original source.</summary>
@@ -90,8 +111,8 @@ public sealed class LatexSyntaxTree {
     /// <summary>True when every parent is exactly covered by its children.</summary>
     public bool IsLossless { get; }
 
-    private static bool Validate(LatexSyntaxNode node, string source) {
-        if (!string.Equals(node.OriginalText, node.Span.Slice(source), StringComparison.Ordinal)) return false;
+    private static bool Validate(LatexSyntaxNode node, LatexSourceText source) {
+        if (!node.HasSource(source)) return false;
         if (node.Children.Count == 0) return true;
         int expected = node.Span.Start.Offset;
         for (int index = 0; index < node.Children.Count; index++) {

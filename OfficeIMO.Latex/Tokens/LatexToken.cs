@@ -38,9 +38,17 @@ public enum LatexTokenKind {
 
 /// <summary>Exact token from decoded LaTeX source.</summary>
 public sealed class LatexToken {
-    internal LatexToken(LatexTokenKind kind, string text, string? value, LatexSourceSpan span, bool isTerminated = true) {
+    private readonly LatexSourceText _source;
+    private string? _text;
+
+    internal LatexToken(
+        LatexTokenKind kind,
+        LatexSourceText source,
+        string? value,
+        LatexSourceSpan span,
+        bool isTerminated = true) {
         Kind = kind;
-        Text = text;
+        _source = source;
         Value = value;
         Span = span;
         IsTerminated = isTerminated;
@@ -49,7 +57,7 @@ public sealed class LatexToken {
     /// <summary>Token kind.</summary>
     public LatexTokenKind Kind { get; }
     /// <summary>Exact token source.</summary>
-    public string Text { get; }
+    public string Text => _text ??= Span.Slice(_source.Text);
     /// <summary>Command name without backslash, or null.</summary>
     public string? Value { get; }
     /// <summary>Exact source span.</summary>

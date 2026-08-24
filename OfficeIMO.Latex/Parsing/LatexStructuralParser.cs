@@ -298,16 +298,31 @@ internal sealed class LatexStructuralParser {
         string? value,
         IReadOnlyList<LatexSyntaxNode>? children = null) {
         IReadOnlyList<LatexSyntaxNode>? completed = CompleteCoverage(start, end, children);
-        return new LatexSyntaxNode(kind, _source.CreateSpan(start, end), _source.Text.Substring(start, end - start), value, completed);
+        return new LatexSyntaxNode(kind, _source, _source.CreateSpan(start, end), value, completed);
     }
 
     private IReadOnlyList<LatexSyntaxNode>? CompleteCoverage(int start, int end, IReadOnlyList<LatexSyntaxNode>? children) {
         if (children == null || children.Count == 0) return children;
+        int expected = start;
+        for (int index = 0; index < children.Count; index++) {
+            LatexSyntaxNode child = children[index];
+            if (child.Span.Start.Offset > expected) return CompleteCoverageWithGaps(start, end, children);
+            expected = child.Span.End.Offset;
+        }
+        return expected == end ? children : CompleteCoverageWithGaps(start, end, children);
+    }
+
+    private IReadOnlyList<LatexSyntaxNode> CompleteCoverageWithGaps(
+        int start,
+        int end,
+        IReadOnlyList<LatexSyntaxNode> children) {
         var result = new List<LatexSyntaxNode>(children.Count + 2);
         int expected = start;
         for (int index = 0; index < children.Count; index++) {
             LatexSyntaxNode child = children[index];
-            if (child.Span.Start.Offset > expected) result.Add(Node(LatexSyntaxKind.Trivia, expected, child.Span.Start.Offset, null));
+            if (child.Span.Start.Offset > expected) {
+                result.Add(Node(LatexSyntaxKind.Trivia, expected, child.Span.Start.Offset, null));
+            }
             result.Add(child);
             expected = child.Span.End.Offset;
         }
