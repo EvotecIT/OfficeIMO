@@ -56,6 +56,10 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Reduce AsciiDoc's lossless syntax graph and collection overhead beyond the current validated large baseline of 32.31 MiB allocated and 22.46 MiB retained for a 558 KiB source. Preserve exact spans, parent navigation, semantic editing, bounded nesting, and byte-identical writing; add Linux/macOS evidence and an elapsed/allocation comparison only when another library supports the same table and list-continuation contract.
 - [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
 
+## Google Workspace
+
+- [ ] Extend the shared transport evidence to Linux/macOS and large unknown-length responses, then measure Drive resumable upload/download and checkpoint persistence separately from network latency. Reduce any remaining unknown-length copy amplification while preserving response limits, cancellation, retry, safety policy, diagnostics, mutation ambiguity, and exact payload bytes; accept a competitor only when it performs those same contracts.
+
 ## Security and protected content
 
 - [ ] Improve detached CMS beyond the current Windows contender evidence: platform-produced 1 KiB verification is 1.87x platform time, OfficeIMO-produced 1 KiB verification is 1.79x allocation, and the isolated managed-peak margins are 1.68x and 1.08x respectively. Preserve typed findings, certificate policy, richer-structure fallback, and exact output-size evidence; add Linux/macOS measurements before treating the lane as settled.
