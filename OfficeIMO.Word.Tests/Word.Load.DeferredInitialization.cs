@@ -137,6 +137,30 @@ public sealed class WordLoadDeferredInitializationTests {
     }
 
     [Fact]
+    public void CompleteCatalogCacheDoesNotMaskASeparateIncompleteCatalog() {
+        byte[] complete;
+        using (WordDocument created = WordDocument.Create()) {
+            created.AddParagraph("Complete catalog");
+            complete = created.ToBytes();
+        }
+
+        for (int iteration = 0; iteration < 2; iteration++) {
+            using var completeStream = new MemoryStream(complete, writable: false);
+            using WordDocument completeDocument = WordDocument.Load(completeStream);
+            complete = completeDocument.ToBytes();
+        }
+
+        using var minimalStream = CreateMinimalDocument();
+        using WordDocument minimalDocument = WordDocument.Load(minimalStream);
+        byte[] savedMinimal = minimalDocument.ToBytes();
+        using var savedStream = new MemoryStream(savedMinimal, writable: false);
+        using WordprocessingDocument savedPackage = WordprocessingDocument.Open(savedStream, false);
+
+        Assert.Contains("TableGrid", GetStyleIds(savedPackage.MainDocumentPart!));
+        Assert.Contains("Header", GetStyleIds(savedPackage.MainDocumentPart!));
+    }
+
+    [Fact]
     public void SavingStylelessDocumentUsesAvailableRelationshipId() {
         using var stream = CreateMinimalDocument(includeStyles: false, settingsUsesFirstRelationshipId: true);
         using WordDocument document = WordDocument.Load(stream);

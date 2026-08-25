@@ -21,7 +21,7 @@ public enum MarkdownOrderedListMarkerStyle {
 /// </summary>
 public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock {
     /// <summary>Items within the ordered list.</summary>
-    public List<ListItem> Items { get; } = new List<ListItem>();
+    public List<ListItem> Items { get; } = new List<ListItem>(4);
     /// <summary>Starting number (default 1).</summary>
     public int Start { get; set; } = 1;
     /// <summary>Whether top-level item numbering descends from <see cref="Start"/>.</summary>

@@ -17,7 +17,7 @@ internal static class MarkdownListSyntax {
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind, ref int index, int level) {
-        var nodes = new List<MarkdownSyntaxNode>();
+        var nodes = new List<MarkdownSyntaxNode>(4);
         while (index < items.Count) {
             var item = items[index];
             if (item.Level < level) break;

@@ -78,10 +78,30 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         HeaderScope = headerScope;
-        _visuals = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
-            .OrderBy(item => item.PaintOrder)
-            .ToList()
-            .AsReadOnly();
+        _visuals = OrderVisuals(visuals);
+    }
+
+    private HtmlRenderSemanticGroup(
+        HtmlRenderSemanticGroupRole role,
+        double x,
+        double y,
+        double width,
+        double height,
+        List<HtmlRenderVisual> orderedVisuals,
+        int paintOrder,
+        string? source,
+        int columnSpan,
+        int rowSpan,
+        HtmlRenderTableHeaderScope? headerScope,
+        double layoutY,
+        string? structureElementKey)
+        : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY) {
+        Role = role;
+        StructureElementKey = structureElementKey;
+        ColumnSpan = columnSpan;
+        RowSpan = rowSpan;
+        HeaderScope = headerScope;
+        _visuals = orderedVisuals.AsReadOnly();
     }
 
     /// <summary>Semantic role of this group.</summary>
@@ -102,8 +122,32 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey);
+
+    private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
+        if (visuals == null) throw new ArgumentNullException(nameof(visuals));
+        var materialized = new List<HtmlRenderVisual>(visuals);
+        bool ordered = true;
+        for (int index = 1; index < materialized.Count; index++) {
+            if (materialized[index - 1].PaintOrder <= materialized[index].PaintOrder) continue;
+            ordered = false;
+            break;
+        }
+        return (ordered
+            ? materialized
+            : materialized.OrderBy(item => item.PaintOrder).ToList()).AsReadOnly();
+    }
+
+    private List<HtmlRenderVisual> TranslateVisuals(double offsetX, double offsetY, bool translatePaint) {
+        var translated = new List<HtmlRenderVisual>(_visuals.Count);
+        for (int index = 0; index < _visuals.Count; index++) {
+            translated.Add(translatePaint
+                ? _visuals[index].TranslatePaint(offsetX, offsetY, index)
+                : _visuals[index].Translate(offsetX, offsetY, index));
+        }
+        return translated;
+    }
 }

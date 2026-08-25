@@ -9,6 +9,25 @@ namespace OfficeIMO.Adf.Tests;
 
 public sealed class AdfContractTests {
     [Fact]
+    public void ParsedSparseModel_CollectionsRemainMutable() {
+        AdfDocument document = AdfDocument.Parse("{\"version\":1,\"type\":\"doc\",\"content\":[]}");
+
+        document.ExtensionData["vendorRoot"] = JsonSerializer.SerializeToElement(true);
+        var paragraph = new AdfNode("paragraph");
+        paragraph.Attributes["localId"] = JsonSerializer.SerializeToElement("paragraph-1");
+        paragraph.ExtensionData["vendorNode"] = JsonSerializer.SerializeToElement(17);
+        paragraph.Content.Add(AdfNode.TextNode("Ready"));
+        document.Content.Add(paragraph);
+
+        using JsonDocument output = JsonDocument.Parse(document.ToJson());
+        Assert.True(output.RootElement.GetProperty("vendorRoot").GetBoolean());
+        JsonElement writtenParagraph = output.RootElement.GetProperty("content")[0];
+        Assert.Equal("paragraph-1", writtenParagraph.GetProperty("attrs").GetProperty("localId").GetString());
+        Assert.Equal(17, writtenParagraph.GetProperty("vendorNode").GetInt32());
+        Assert.Equal("Ready", writtenParagraph.GetProperty("content")[0].GetProperty("text").GetString());
+    }
+
+    [Fact]
     public void SetAttribute_PreservesCustomJsonValuesOnDynamicRuntimes() {
         var node = new AdfNode("extension").SetAttribute("parameters", new {
             html = "<strong>Ready</strong>",
@@ -54,6 +73,35 @@ public sealed class AdfContractTests {
         Assert.Equal(17, node.GetProperty("vendorNode").GetInt32());
         Assert.Equal("blue", node.GetProperty("attrs").GetProperty("tone").GetString());
         Assert.Equal("kept", node.GetProperty("content")[0].GetProperty("marks")[0].GetProperty("vendorMarkProperty").GetString());
+    }
+
+    [Fact]
+    public void Parse_DuplicateKnownPropertiesUseTheLastValue() {
+        const string json = "{\"version\":1,\"type\":\"doc\",\"content\":[{" +
+            "\"type\":17,\"type\":\"paragraph\"," +
+            "\"attrs\":[],\"attrs\":{\"source\":\"last\"}," +
+            "\"content\":{},\"content\":[{" +
+                "\"type\":false,\"type\":\"text\"," +
+                "\"text\":17,\"text\":\"Last text\"," +
+                "\"marks\":{},\"marks\":[{" +
+                    "\"type\":null,\"type\":\"link\"," +
+                    "\"attrs\":[],\"attrs\":{\"href\":\"https://example.com/last\"}" +
+                "}]" +
+            "}]," +
+            "\"marks\":{},\"marks\":[{\"type\":\"strong\"}]" +
+        "}]}";
+
+        AdfDocument document = AdfDocument.Parse(json);
+
+        AdfNode paragraph = Assert.Single(document.Content);
+        Assert.Equal("paragraph", paragraph.Type);
+        Assert.Equal("last", paragraph.GetStringAttribute("source"));
+        Assert.Equal("strong", Assert.Single(paragraph.Marks).Type);
+        AdfNode text = Assert.Single(paragraph.Content);
+        Assert.Equal("Last text", text.Text);
+        AdfMark link = Assert.Single(text.Marks);
+        Assert.Equal("link", link.Type);
+        Assert.Equal("https://example.com/last", link.Attributes["href"].GetString());
     }
 
     [Fact]

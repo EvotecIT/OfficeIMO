@@ -135,6 +135,30 @@ public sealed class EmailMimeWriterTests {
     }
 
     [Fact]
+    public void WritesDefaultBase64AttachmentLinesAndRoundTripsPayload() {
+        byte[] payload = Enumerable.Range(0, 4096).Select(index => (byte)(index * 31)).ToArray();
+        var document = new EmailDocument { Subject = "base64 attachment" };
+        document.Body.Text = "body";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "payload.bin",
+            ContentType = "application/octet-stream",
+            Content = payload,
+            Length = payload.Length
+        });
+
+        byte[] bytes = new EmailDocumentWriter().ToBytes(document);
+        string[] lines = Encoding.ASCII.GetString(bytes).Split(new[] { "\r\n" }, StringSplitOptions.None);
+        int encodingHeader = Array.LastIndexOf(lines, "Content-Transfer-Encoding: base64");
+        string[] payloadLines = lines.Skip(encodingHeader + 2).TakeWhile(line => !line.StartsWith("--", StringComparison.Ordinal))
+            .Where(line => line.Length > 0).ToArray();
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.NotEmpty(payloadLines);
+        Assert.All(payloadLines, line => Assert.InRange(line.Length, 1, 76));
+        Assert.Equal(payload, Assert.Single(roundTrip.Attachments).Content);
+    }
+
+    [Fact]
     public void QuotesAddressSpecialsAndPreventsMessageIdHeaderInjection() {
         var document = new EmailDocument {
             From = new EmailAddress("john@example.com", "Doe, John"),

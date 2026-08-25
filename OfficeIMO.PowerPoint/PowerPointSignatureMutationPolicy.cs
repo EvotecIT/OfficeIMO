@@ -126,6 +126,39 @@ namespace OfficeIMO.PowerPoint {
             // preservation fingerprint, so its original binary signature carriers are inspected
             // directly below without serializing the projection.
             if (_document != null && _legacyPptPackage == null) {
+                bool hasLiveSignatureCarrier =
+                    _document.DigitalSignatureOriginPart != null
+                    || _document.ExtendedFilePropertiesPart?.Properties?
+                        .DigitalSignature != null;
+
+                // Ordinary unsigned saves should not need to clone and serialize
+                // the complete package merely to prove the absence of signature
+                // metadata. Inspect the current package bytes first so malformed
+                // or relationship-only carriers remain fail-closed. A live carrier
+                // still takes the full snapshot path below because unsaved Open XML
+                // mutations may not yet be reflected in the package stream.
+                if (!hasLiveSignatureCarrier
+                    && _packageStream is MemoryStream currentPackage) {
+                    try {
+                        shared = OfficePackageSignatureService.Inspect(
+                            currentPackage.ToArray(),
+                            new OfficePackageSignatureInspectionOptions {
+                                VerifyDigests = false
+                            });
+                        if (!shared.HasSignatures) {
+                            return CreateSignatureReport(shared, action);
+                        }
+                    } catch (InvalidDataException) {
+                        // A package that cannot be inspected from its current
+                        // stream state is handled by the existing clone path.
+                    } catch (IOException) {
+                        // Preserve the fail-closed snapshot fallback.
+                    } catch (System.Xml.XmlException) {
+                        // Some package implementations expose a structurally
+                        // open stream before all XML parts are finalized.
+                    }
+                }
+
                 using var snapshot = new MemoryStream();
                 using (_document.Clone(snapshot)) { }
                 shared = OfficePackageSignatureService.Inspect(
@@ -134,11 +167,22 @@ namespace OfficeIMO.PowerPoint {
             }
             bool legacyBinarySignature = _legacyPptPackage?.HasBinarySignatureStream == true;
             bool legacyXmlSignature = _legacyPptPackage?.HasXmlSignatureStorage == true;
-            return new PowerPointSignatureReport(shared?.HasDigitalSignatureOriginPart == true,
+            return CreateSignatureReport(shared, action,
+                legacyBinarySignature, legacyXmlSignature);
+        }
+
+        private PowerPointSignatureReport CreateSignatureReport(
+            OfficePackageSignatureInfo? shared,
+            PowerPointSignatureMutationAction action,
+            bool? hasLegacyBinarySignature = null,
+            bool? hasLegacyXmlSignature = null) =>
+            new PowerPointSignatureReport(shared?.HasDigitalSignatureOriginPart == true,
                 shared?.SignatureParts.Count ?? 0,
                 shared?.HasApplicationSignatureMetadata == true,
-                legacyBinarySignature, legacyXmlSignature,
+                hasLegacyBinarySignature
+                    ?? _legacyPptPackage?.HasBinarySignatureStream == true,
+                hasLegacyXmlSignature
+                    ?? _legacyPptPackage?.HasXmlSignatureStorage == true,
                 SignatureMutationPolicy, action);
-        }
     }
 }

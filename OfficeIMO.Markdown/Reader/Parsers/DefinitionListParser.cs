@@ -358,7 +358,7 @@ public static partial class MarkdownReader {
         if (IsQuoteStarter(trimmed)) return false;
         if (HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(trimmed, options)) return false;
         if (StartsTable(lines, index, options, state)) return false;
-        if (options.UnorderedLists && IsUnorderedListLine(trimmed, out _, out _, out _)) return false;
+        if (options.UnorderedLists && IsUnorderedListLine(trimmed)) return false;
         if (options.OrderedLists && IsOrderedListLine(trimmed, options, out _, out _)) return false;
         if (StartsWithReferenceDefinitionLikeLabel(trimmed)) return false;
         return true;
@@ -511,7 +511,7 @@ public static partial class MarkdownReader {
         public MarkdownSourceSpan? AttributeSpan { get; }
         public string ConsumedWhitespace { get; }
         public InlineSequence Inlines { get; private set; } = new InlineSequence();
-        public MarkdownSourceSpan Span { get; private set; }
+        public MarkdownSourceSpan? Span { get; private set; }
         public DefinitionListTerm TermObject { get; private set; } = new DefinitionListTerm();
 
         public void Bind(MarkdownReaderOptions options, MarkdownReaderState state) {
@@ -608,12 +608,15 @@ public static partial class MarkdownReader {
 
             int startColumn = GetStartColumnAfterStrippingIndent(line, effectiveContinuationIndent);
             if (startColumn > 1) {
-                continuationIndentSourceSpans?.Add(CreateSpan(
+                var continuationSpan = CreateSpan(
                     state,
                     absoluteLineOffset + index + 1,
                     1,
                     absoluteLineOffset + index + 1,
-                    startColumn - 1));
+                    startColumn - 1);
+                if (continuationSpan.HasValue) {
+                    continuationIndentSourceSpans?.Add(continuationSpan.Value);
+                }
             }
 
             var stripped = StripLeadingIndentColumns(line, effectiveContinuationIndent);
@@ -783,7 +786,7 @@ public static partial class MarkdownReader {
         }
 
         var trimmed = line.TrimStart();
-        return (options.UnorderedLists && IsUnorderedListLine(trimmed, out _, out _, out _)) ||
+        return (options.UnorderedLists && IsUnorderedListLine(trimmed)) ||
             (options.OrderedLists && IsOrderedListLine(trimmed, options, out _, out _));
     }
 
@@ -887,12 +890,15 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            spans.Add(CreateSpan(
+            var span = CreateSpan(
                 state,
                 sourceLine.AbsoluteLine,
                 sourceLine.StartColumn,
                 sourceLine.AbsoluteLine,
-                sourceLine.StartColumn));
+                sourceLine.StartColumn);
+            if (span.HasValue) {
+                spans.Add(span.Value);
+            }
         }
 
         return spans;

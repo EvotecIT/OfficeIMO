@@ -6,6 +6,11 @@ public sealed class OdsSheet {
     public const long DefaultMaximumMergeCells = 100_000;
 
     private readonly OdsDocument _document;
+    private XElement? _lastEditedRow;
+    private long _lastEditedRowStart;
+    private XElement? _lastEditedCellRow;
+    private XElement? _lastEditedCell;
+    private long _lastEditedCellStart;
 
     internal OdsSheet(OdsDocument document, XElement element) { _document = document; Element = element; }
 
@@ -197,10 +202,27 @@ public sealed class OdsSheet {
 
     private XElement GetRowForEdit(long rowIndex) {
         long start = 0;
-        foreach (XElement element in RowElements().ToList()) {
+        IEnumerable<XElement> candidates = RowElements();
+        if (_lastEditedRow?.Parent != null && rowIndex >= _lastEditedRowStart) {
+            long cachedCount = OdsRepeatModel.Read(_lastEditedRow, OdfNamespaces.Table + "number-rows-repeated");
+            if (rowIndex < checked(_lastEditedRowStart + cachedCount)) {
+                XElement cachedTarget = OdsRepeatModel.Split(
+                    _lastEditedRow,
+                    OdfNamespaces.Table + "number-rows-repeated",
+                    rowIndex - _lastEditedRowStart);
+                CacheRow(cachedTarget, rowIndex);
+                Dirty();
+                return cachedTarget;
+            }
+            start = checked(_lastEditedRowStart + cachedCount);
+            candidates = OdfTableRowElements.EnumerateAfter(Element, _lastEditedRow);
+        }
+
+        foreach (XElement element in candidates) {
             long count = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-rows-repeated");
             if (rowIndex < checked(start + count)) {
                 XElement target = OdsRepeatModel.Split(element, OdfNamespaces.Table + "number-rows-repeated", rowIndex - start);
+                CacheRow(target, rowIndex);
                 Dirty();
                 return target;
             }
@@ -211,6 +233,7 @@ public sealed class OdsSheet {
         OdsRepeatModel.Set(added, OdfNamespaces.Table + "number-rows-repeated", required);
         Element.Add(added);
         XElement result = OdsRepeatModel.Split(added, OdfNamespaces.Table + "number-rows-repeated", required - 1);
+        CacheRow(result, rowIndex);
         Dirty();
         return result;
     }
@@ -227,10 +250,30 @@ public sealed class OdsSheet {
 
     private XElement GetCellForEdit(XElement row, long columnIndex) {
         long start = 0;
-        foreach (XElement element in CellElements(row).ToList()) {
+        IEnumerable<XElement> candidates = CellElements(row);
+        if (ReferenceEquals(_lastEditedCellRow, row)
+            && _lastEditedCell?.Parent != null
+            && columnIndex >= _lastEditedCellStart) {
+            long cachedCount = OdsRepeatModel.Read(_lastEditedCell, OdfNamespaces.Table + "number-columns-repeated");
+            if (columnIndex < checked(_lastEditedCellStart + cachedCount)) {
+                XElement cachedTarget = OdsRepeatModel.Split(
+                    _lastEditedCell,
+                    OdfNamespaces.Table + "number-columns-repeated",
+                    columnIndex - _lastEditedCellStart);
+                CacheCell(row, cachedTarget, columnIndex);
+                Dirty();
+                return cachedTarget;
+            }
+            start = checked(_lastEditedCellStart + cachedCount);
+            candidates = _lastEditedCell.ElementsAfterSelf()
+                .Where(IsCellElement);
+        }
+
+        foreach (XElement element in candidates) {
             long count = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
             if (columnIndex < checked(start + count)) {
                 XElement target = OdsRepeatModel.Split(element, OdfNamespaces.Table + "number-columns-repeated", columnIndex - start);
+                CacheCell(row, target, columnIndex);
                 Dirty();
                 return target;
             }
@@ -241,12 +284,30 @@ public sealed class OdsSheet {
         OdsRepeatModel.Set(added, OdfNamespaces.Table + "number-columns-repeated", required);
         row.Add(added);
         XElement result = OdsRepeatModel.Split(added, OdfNamespaces.Table + "number-columns-repeated", required - 1);
+        CacheCell(row, result, columnIndex);
         Dirty();
         return result;
     }
 
+    private void CacheRow(XElement row, long rowIndex) {
+        _lastEditedRow = row;
+        _lastEditedRowStart = rowIndex;
+        if (!ReferenceEquals(_lastEditedCellRow, row)) {
+            _lastEditedCellRow = null;
+            _lastEditedCell = null;
+            _lastEditedCellStart = 0;
+        }
+    }
+
+    private void CacheCell(XElement row, XElement cell, long columnIndex) {
+        _lastEditedCellRow = row;
+        _lastEditedCell = cell;
+        _lastEditedCellStart = columnIndex;
+    }
+
     private IEnumerable<XElement> RowElements() => OdfTableRowElements.Enumerate(Element);
-    internal static IEnumerable<XElement> CellElements(XElement row) => row.Elements()
-        .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell");
+    internal static IEnumerable<XElement> CellElements(XElement row) => row.Elements().Where(IsCellElement);
+    private static bool IsCellElement(XElement element) =>
+        element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell";
     private void Dirty() => _document.MarkPartDirty("content.xml");
 }

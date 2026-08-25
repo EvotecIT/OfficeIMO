@@ -6,6 +6,21 @@ namespace OfficeIMO.Tests.Rtf;
 
 public partial class RtfHtmlConverterTests {
     [Fact]
+    public void RtfDocument_ToHtml_Coalesces_Equivalent_Adjacent_Runs_For_Semantic_Output() {
+        RtfDocument document = RtfDocument.Create();
+        int fontId = document.AddFont("Calibri");
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("Za").SetFontSize(11).FontId = fontId;
+        paragraph.AddText("żółć").SetFontSize(11).FontId = fontId;
+
+        string semanticHtml = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
+        string roundTripHtml = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+
+        Assert.Equal("<p><span style=\"font-family:&quot;Calibri&quot;;font-size:11pt;\">Zaż&#243;łć</span></p>", semanticHtml);
+        Assert.Equal(2, roundTripHtml.Split(new[] { "<span" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void RtfDocument_ToHtml_Renders_Text_Formatting_Links_And_Escaping() {
         RtfDocument document = RtfDocument.Create();
         document.Info.Title = "Clinical note";

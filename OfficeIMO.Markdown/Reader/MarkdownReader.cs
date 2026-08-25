@@ -19,72 +19,138 @@ public static partial class MarkdownReader {
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new MarkdownReaderOptions();
+
+        // Without document transforms the syntax captured by ParseInternal already describes
+        // the returned object model. Avoid rebuilding and rebinding an identical final tree,
+        // while retaining the parse result needed by source-aware rendering.
+        if (BuildEffectiveDocumentTransforms(options).Count == 0) {
+            var state = new MarkdownReaderState();
+            var syntaxNodes = new List<MarkdownSyntaxNode>();
+            var document = ParseInternal(
+                markdown,
+                options,
+                state,
+                allowFrontMatter: true,
+                out var syntaxTree,
+                out var sourceMarkdown,
+                syntaxNodes,
+                lineOffset: 0,
+                transformDiagnostics: null,
+                applyDocumentTransforms: false);
+            var capturedSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
+            _ = new MarkdownParseResult(
+                document,
+                capturedSyntaxTree,
+                capturedSyntaxTree,
+                sourceMarkdown,
+                options.PreserveTrivia ? markdown : null,
+                options.PreserveTrivia,
+                transformDiagnostics: null,
+                referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
+                abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
+            return document;
+        }
+
+        return ParseWithSyntaxTree(markdown, options).Document;
+    }
+
+    /// <summary>
+    /// Parses Markdown into the typed semantic document without capturing source spans or a syntax tree.
+    /// Use <see cref="Parse(string, MarkdownReaderOptions?)"/> or
+    /// <see cref="ParseWithSyntaxTree(string, MarkdownReaderOptions?)"/> when source-aware writing,
+    /// source spans, or trivia are required.
+    /// </summary>
+    public static MarkdownDoc ParseSemantic(string markdown, MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
-        var syntaxNodes = new List<MarkdownSyntaxNode>();
-        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
         var document = ParseInternal(
             markdown,
             options,
             state,
             allowFrontMatter: true,
-            out var syntaxTree,
-            out var sourceMarkdown,
-            syntaxNodes,
+            out _,
+            out _,
+            syntaxNodes: null,
             lineOffset: 0,
-            transformDiagnostics: diagnostics);
-        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
-        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
-            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
+            transformDiagnostics: null);
+        MarkdownObjectTreeBinder.BindDocument(document);
+        return document;
+    }
+
+    /// <summary>
+    /// Parses a transient semantic document for an owning projection layer. The returned model keeps
+    /// block and inline values needed for projection, but omits table cell navigation models and
+    /// object-tree binding that the caller will discard.
+    /// </summary>
+    internal static MarkdownDoc ParseSemanticProjection(string markdown, MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new MarkdownReaderOptions();
+        var state = new MarkdownReaderState { BuildTableCellModels = false };
+        return ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out _,
+            out _,
+            syntaxNodes: null,
+            lineOffset: 0,
+            transformDiagnostics: null);
+    }
+
+    /// <summary>
+    /// Parses a transient projection document while retaining top-level block source spans.
+    /// Rich table-cell models and object-tree navigation are omitted because the owning
+    /// projection layer consumes the simple table values and block locations directly.
+    /// </summary>
+    internal static MarkdownDoc ParseProjectionWithBlockSpans(
+        string markdown,
+        MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new MarkdownReaderOptions();
+
+        if (BuildEffectiveDocumentTransforms(
+                options,
+                markdown,
+                skipAbsentRegisteredFenceTransform: true).Count > 0) {
+            return ParseWithSyntaxTreeAndDiagnostics(markdown, options).Document;
         }
 
-        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
-        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        _ = new MarkdownParseResult(
-            document,
-            originalSyntaxTree,
-            finalSyntaxTree,
-            sourceMarkdown,
-            options.PreserveTrivia ? markdown : null,
-            options.PreserveTrivia,
-            diagnostics,
-            SnapshotReferenceLinkDefinitions(state),
-            SnapshotAbbreviationDefinitions(state));
-        return document;
+        var state = new MarkdownReaderState {
+            BuildTableCellModels = false,
+            CaptureBlockSourceSpans = true
+        };
+        return ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out _,
+            out _,
+            syntaxNodes: null,
+            lineOffset: 0,
+            transformDiagnostics: null,
+            applyDocumentTransforms: false);
     }
 
     /// <summary>
     /// Parses Markdown text into both the object model and a lightweight syntax tree with source spans.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTree(string markdown, MarkdownReaderOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        options ??= new MarkdownReaderOptions();
-        var state = new MarkdownReaderState();
-        var syntaxNodes = new List<MarkdownSyntaxNode>();
-        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
-        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, out var sourceMarkdown, syntaxNodes, lineOffset: 0, transformDiagnostics: diagnostics);
-        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
-        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
-            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
-        }
-
-        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
-        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(
-            document,
-            originalSyntaxTree,
-            finalSyntaxTree,
-            sourceMarkdown,
-            options.PreserveTrivia ? markdown : null,
-            options.PreserveTrivia,
-            diagnostics,
-            referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
-            abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
+        return ParseWithSyntaxTreeCore(markdown, options);
     }
 
     /// <summary>
     /// Parses Markdown text into the object model, original syntax tree, and document-transform diagnostics.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTreeAndDiagnostics(string markdown, MarkdownReaderOptions? options = null) {
+        return ParseWithSyntaxTreeCore(markdown, options);
+    }
+
+    private static MarkdownParseResult ParseWithSyntaxTreeCore(
+        string markdown,
+        MarkdownReaderOptions? options) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
@@ -172,6 +238,7 @@ public static partial class MarkdownReader {
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
         bool applyDocumentTransforms = true) {
         var doc = MarkdownDoc.Create();
+        state.CaptureSyntaxTree = syntaxNodes != null;
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         normalizedSourceText = string.Empty;
         if (string.IsNullOrEmpty(markdown)) return doc;
@@ -180,15 +247,20 @@ public static partial class MarkdownReader {
         state.SourceLineOffset = lineOffset;
 
         try {
-            var text = PrepareMarkdownForParsing(markdown, options);
+            bool captureSourceSpans = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans;
+            var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
             normalizedSourceText = text;
-            if (lineOffset == 0 || state.SourceTextMap == null) {
+            if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
                 state.SourceTextMap = new MarkdownSourceTextMap(text);
             }
-            var lines = text.Split('\n');
+            var lines = captureSourceSpans
+                ? text.Split('\n')
+                : SplitMarkdownLines(text, reuseRepeatedLines: state.BuildTableCellModels);
             int i = 0;
 
-            using (doc.DeferObjectTreeBinding()) {
+            // Parsing with syntax capture binds the complete object and source trees together
+            // immediately below. Avoid an otherwise duplicate object-only traversal here.
+            using (doc.DeferObjectTreeBinding(completeBindingOnDispose: false)) {
                 // Front matter (YAML) only if it's the very first thing in the file
                 if (allowFrontMatter && options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
                     int start = i + 1;
@@ -231,6 +303,8 @@ public static partial class MarkdownReader {
 
                             if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
                                 CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
+                            } else if (state.CaptureBlockSourceSpans && doc.Blocks.Count > previousBlockCount) {
+                                AssignBlockSourceSpans(doc, previousBlockCount, startLine, lineOffset + i, state);
                             } else if (syntaxNodes != null) {
                                 CaptureConsumedSyntaxNodes(parsers[p], lines, startIndex, options, syntaxNodes, state);
                             }
@@ -257,7 +331,8 @@ public static partial class MarkdownReader {
                 syntaxTree,
                 normalizedSourceText,
                 options.PreserveTrivia ? markdown : null,
-                options.PreserveTrivia);
+                options.PreserveTrivia,
+                skipAbsentRegisteredFenceTransform: !state.BuildTableCellModels);
             return transformed;
         } finally {
             state.SourceLineOffset = previousLineOffset;
@@ -265,7 +340,27 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static string PrepareMarkdownForParsing(string markdown, MarkdownReaderOptions options) {
+    private static void AssignBlockSourceSpans(
+        MarkdownDoc document,
+        int previousBlockCount,
+        int startLine,
+        int endExclusiveLine,
+        MarkdownReaderState state) {
+        MarkdownSourceSpan span = CreateLineSpan(
+            state,
+            startLine + 1,
+            Math.Max(startLine + 1, endExclusiveLine));
+        for (int blockIndex = previousBlockCount; blockIndex < document.Blocks.Count; blockIndex++) {
+            if (document.Blocks[blockIndex] is MarkdownObject markdownObject) {
+                markdownObject.SourceSpan = span;
+            }
+        }
+    }
+
+    private static string PrepareMarkdownForParsing(
+        string markdown,
+        MarkdownReaderOptions options,
+        bool normalizeLineEndings = true) {
         markdown ??= string.Empty;
         if (options.MaxNestingDepth < 1) {
             throw new ArgumentOutOfRangeException(
@@ -295,7 +390,282 @@ public static partial class MarkdownReader {
             markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
         }
 
-        return markdown.Replace("\r\n", "\n").Replace('\r', '\n');
+        return normalizeLineEndings
+            ? markdown.Replace("\r\n", "\n").Replace('\r', '\n')
+            : ExpandLeadingTabsForSemanticParsing(markdown);
+    }
+
+    private static string ExpandLeadingTabsForSemanticParsing(string markdown) {
+        int firstTab = markdown.IndexOf('\t');
+        if (firstTab < 0) {
+            return markdown;
+        }
+
+        var builder = new StringBuilder(markdown.Length + 16);
+        bool inFencedCode = false;
+        char fenceCharacter = '\0';
+        int fenceLength = 0;
+        int lineStart = 0;
+        while (lineStart < markdown.Length) {
+            int lineEnd = lineStart;
+            while (lineEnd < markdown.Length && markdown[lineEnd] is not ('\r' or '\n')) {
+                lineEnd++;
+            }
+
+            if (inFencedCode) {
+                builder.Append(markdown, lineStart, lineEnd - lineStart);
+                if (IsClosingFence(markdown, lineStart, lineEnd, fenceCharacter, fenceLength)) {
+                    inFencedCode = false;
+                }
+            } else if (TryGetOpeningFence(markdown, lineStart, lineEnd, out fenceCharacter, out fenceLength)) {
+                builder.Append(markdown, lineStart, lineEnd - lineStart);
+                inFencedCode = true;
+            } else {
+                AppendLineWithLeadingTabsExpanded(builder, markdown, lineStart, lineEnd);
+            }
+
+            if (lineEnd < markdown.Length) {
+                builder.Append(markdown[lineEnd++]);
+                if (lineEnd < markdown.Length && markdown[lineEnd - 1] == '\r' && markdown[lineEnd] == '\n') {
+                    builder.Append(markdown[lineEnd++]);
+                }
+            }
+            lineStart = lineEnd;
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AppendLineWithLeadingTabsExpanded(
+        StringBuilder builder,
+        string markdown,
+        int lineStart,
+        int lineEnd) {
+        int column = 0;
+        int current = lineStart;
+        while (current < lineEnd && markdown[current] is ' ' or '\t') {
+            if (markdown[current] == '\t') {
+                int spaces = 4 - column % 4;
+                builder.Append(' ', spaces);
+                column += spaces;
+            } else {
+                builder.Append(' ');
+                column++;
+            }
+            current++;
+        }
+        builder.Append(markdown, current, lineEnd - current);
+    }
+
+    private static bool TryGetOpeningFence(
+        string markdown,
+        int lineStart,
+        int lineEnd,
+        out char fenceCharacter,
+        out int fenceLength) {
+        fenceCharacter = '\0';
+        fenceLength = 0;
+        int current = lineStart;
+        while (current < lineEnd && current - lineStart < 3 && markdown[current] == ' ') {
+            current++;
+        }
+        if (current >= lineEnd || markdown[current] is not ('`' or '~')) {
+            return false;
+        }
+
+        fenceCharacter = markdown[current];
+        while (current + fenceLength < lineEnd && markdown[current + fenceLength] == fenceCharacter) {
+            fenceLength++;
+        }
+        return fenceLength >= 3;
+    }
+
+    private static bool IsClosingFence(
+        string markdown,
+        int lineStart,
+        int lineEnd,
+        char fenceCharacter,
+        int openingFenceLength) {
+        int current = lineStart;
+        while (current < lineEnd && current - lineStart < 3 && markdown[current] == ' ') {
+            current++;
+        }
+        int closingFenceLength = 0;
+        while (current + closingFenceLength < lineEnd &&
+               markdown[current + closingFenceLength] == fenceCharacter) {
+            closingFenceLength++;
+        }
+        if (closingFenceLength < openingFenceLength) {
+            return false;
+        }
+
+        current += closingFenceLength;
+        while (current < lineEnd && markdown[current] == ' ') {
+            current++;
+        }
+        return current == lineEnd;
+    }
+
+    private static string[] SplitMarkdownLines(string markdown, bool reuseRepeatedLines = true) {
+        int carriageReturn = markdown.IndexOf('\r');
+        bool shouldReuseRepeatedLines = reuseRepeatedLines && ShouldReuseRepeatedMarkdownLines(markdown);
+        if (carriageReturn < 0 && !shouldReuseRepeatedLines) {
+            return markdown.Split('\n');
+        }
+
+        int lineCount = 1;
+        for (int i = 0; i < markdown.Length; i++) {
+            if (markdown[i] == '\r') {
+                lineCount++;
+                if (i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+                    i++;
+                }
+            } else if (markdown[i] == '\n') {
+                lineCount++;
+            }
+        }
+
+        Dictionary<MarkdownLineKey, string>? repeatedLines = shouldReuseRepeatedLines
+            ? new Dictionary<MarkdownLineKey, string>(MarkdownLineKeyComparer.Instance)
+            : null;
+        var lines = new string[lineCount];
+        int lineIndex = 0;
+        int lineStart = 0;
+        for (int i = 0; i < markdown.Length; i++) {
+            char value = markdown[i];
+            if (value != '\r' && value != '\n') {
+                continue;
+            }
+
+            lines[lineIndex++] = GetMarkdownLine(markdown, lineStart, i - lineStart, repeatedLines);
+            if (value == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+                i++;
+            }
+
+            lineStart = i + 1;
+        }
+
+        lines[lineIndex] = GetMarkdownLine(markdown, lineStart, markdown.Length - lineStart, repeatedLines);
+        return lines;
+    }
+
+    private static string GetMarkdownLine(
+        string markdown,
+        int start,
+        int length,
+        Dictionary<MarkdownLineKey, string>? repeatedLines) {
+        if (length == 0) {
+            return string.Empty;
+        }
+        if (repeatedLines == null) {
+            return markdown.Substring(start, length);
+        }
+
+        var key = new MarkdownLineKey(markdown, start, length);
+        if (repeatedLines.TryGetValue(key, out string? existing)) {
+            return existing;
+        }
+
+        string line = markdown.Substring(start, length);
+        repeatedLines.Add(key, line);
+        return line;
+    }
+
+    private static bool ShouldReuseRepeatedMarkdownLines(string markdown) {
+        const int maximumSampleLines = 64;
+        const int requiredRepeatedLines = 4;
+        if (markdown.Length < 4096) {
+            return false;
+        }
+
+#if NET8_0_OR_GREATER
+        Span<int> starts = stackalloc int[maximumSampleLines];
+        Span<int> lengths = stackalloc int[maximumSampleLines];
+#else
+        var starts = new int[maximumSampleLines];
+        var lengths = new int[maximumSampleLines];
+#endif
+        int lineCount = 0;
+        int repeatedLineCount = 0;
+        int lineStart = 0;
+        for (int index = 0; index <= markdown.Length && lineCount < maximumSampleLines; index++) {
+            bool atEnd = index == markdown.Length;
+            if (!atEnd && markdown[index] is not ('\r' or '\n')) {
+                continue;
+            }
+
+            int length = index - lineStart;
+            if (length > 0) {
+                for (int prior = 0; prior < lineCount; prior++) {
+                    if (lengths[prior] == length
+                        && MarkdownLineRegionsEqual(markdown, starts[prior], lineStart, length)) {
+                        repeatedLineCount++;
+                        break;
+                    }
+                }
+            }
+
+            starts[lineCount] = lineStart;
+            lengths[lineCount] = length;
+            lineCount++;
+            if (repeatedLineCount >= requiredRepeatedLines) {
+                return true;
+            }
+
+            if (!atEnd && markdown[index] == '\r' && index + 1 < markdown.Length && markdown[index + 1] == '\n') {
+                index++;
+            }
+            lineStart = index + 1;
+        }
+
+        return false;
+    }
+
+    private static bool MarkdownLineRegionsEqual(string markdown, int leftStart, int rightStart, int length) {
+        for (int offset = 0; offset < length; offset++) {
+            if (markdown[leftStart + offset] != markdown[rightStart + offset]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private readonly struct MarkdownLineKey {
+        internal MarkdownLineKey(string source, int start, int length) {
+            Source = source;
+            Start = start;
+            Length = length;
+        }
+
+        internal string Source { get; }
+        internal int Start { get; }
+        internal int Length { get; }
+    }
+
+    private sealed class MarkdownLineKeyComparer : IEqualityComparer<MarkdownLineKey> {
+        internal static readonly MarkdownLineKeyComparer Instance = new MarkdownLineKeyComparer();
+
+        public bool Equals(MarkdownLineKey left, MarkdownLineKey right) {
+            if (left.Length != right.Length) {
+                return false;
+            }
+            return string.CompareOrdinal(
+                left.Source,
+                left.Start,
+                right.Source,
+                right.Start,
+                left.Length) == 0;
+        }
+
+        public int GetHashCode(MarkdownLineKey key) {
+            unchecked {
+                int hash = 17;
+                for (int offset = 0; offset < key.Length; offset++) {
+                    hash = hash * 31 + key.Source[key.Start + offset];
+                }
+                return hash;
+            }
+        }
     }
 
     private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {

@@ -210,6 +210,10 @@ public static partial class MarkdownReader {
         clone.SourceTextMap = state.SourceTextMap;
         clone.SourceLineAbsoluteNumbers = state.SourceLineAbsoluteNumbers;
         clone.ListMarkerIndentOffset = state.ListMarkerIndentOffset;
+        clone.CaptureSyntaxTree = state.CaptureSyntaxTree;
+        clone.BuildTableCellModels = state.BuildTableCellModels;
+        clone.IsListBoundaryProbe = state.IsListBoundaryProbe;
+        clone.UseRelativeListMarkerIndent = state.UseRelativeListMarkerIndent;
         clone.SuppressBlockGenericAttributes = state.SuppressBlockGenericAttributes;
         clone.SuppressHeadingGenericAttributes = state.SuppressHeadingGenericAttributes;
         clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;

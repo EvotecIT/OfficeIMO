@@ -60,7 +60,7 @@ namespace OfficeIMO.Visio {
                 _preservedVbaParts.Values);
 
             packageStream.Seek(0, SeekOrigin.Begin);
-            OfficeStreamWriter.WriteAllBytes(destination, packageStream.ToArray());
+            OfficeStreamWriter.Write(destination, output => packageStream.CopyTo(output));
         }
 
         private int WritePackage(

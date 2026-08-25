@@ -153,6 +153,14 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static void AppendInlineElementChildren(InlineSequence sequence, IElement element, ConversionContext? context) {
+        if (element.ChildNodes is INodeList nodeList) {
+            for (int i = 0; i < nodeList.Length; i++) {
+                bool trimEnd = NextVisibleInlineNodeIsBoundary(nodeList, i + 1, context);
+                AppendInlineNode(sequence, nodeList[i], context, trimEnd);
+            }
+            return;
+        }
+
         var childNodes = element.ChildNodes as IList<INode> ?? element.ChildNodes.ToList();
         for (int i = 0; i < childNodes.Count; i++) {
             bool trimEnd = NextVisibleInlineNodeIsBoundary(childNodes, i + 1, context);

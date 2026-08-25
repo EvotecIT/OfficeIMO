@@ -1,11 +1,9 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using Markdig;
 
 namespace OfficeIMO.Markdown.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class MarkdownParseBenchmarks {
     private MarkdownReaderOptions _commonMarkOptions = null!;
     private MarkdownReaderOptions _portableOptions = null!;
@@ -28,11 +26,14 @@ public class MarkdownParseBenchmarks {
             MarkdownBenchmarkValidation.CreateOfficeCommonMarkHtmlOptions());
     }
 
-    [Benchmark(Baseline = true)]
-    public MarkdownDoc OfficeIMO_Parse_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions);
+    [Benchmark(Baseline = true, Description = "OfficeIMO-Semantic")]
+    public MarkdownDoc OfficeIMO_ParseSemantic_CommonMark() => MarkdownReader.ParseSemantic(_markdown, _commonMarkOptions);
 
-    [Benchmark]
-    public Markdig.Syntax.MarkdownDocument Markdig_Parse_CommonMark() => Markdig.Markdown.Parse(_markdown);
+    [Benchmark(Description = "OfficeIMO source-backed")]
+    public MarkdownDoc OfficeIMO_Parse_SourceBacked_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions);
+
+    [Benchmark(Description = "Markdig")]
+    public Markdig.Syntax.MarkdownDocument Markdig_ParseSemanticComparison_CommonMark() => Markdig.Markdown.Parse(_markdown);
 
     [Benchmark]
     public MarkdownDoc OfficeIMO_Parse_Default() => MarkdownReader.Parse(_markdown);
@@ -51,7 +52,6 @@ public class MarkdownParseBenchmarks {
 }
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class MarkdownHtmlBenchmarks {
     private static readonly MarkdownPipeline MarkdigCommonMarkPipeline = new MarkdownPipelineBuilder().Build();
 
@@ -74,10 +74,10 @@ public class MarkdownHtmlBenchmarks {
         MarkdownBenchmarkValidation.AssertCommonMarkEquivalent(CorpusName, _markdown, _commonMarkOptions, _commonMarkHtmlOptions);
     }
 
-    [Benchmark(Baseline = true)]
+    [Benchmark(Baseline = true, Description = "OfficeIMO")]
     public string OfficeIMO_ToHtml_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions).ToHtmlFragment(_commonMarkHtmlOptions);
 
-    [Benchmark]
+    [Benchmark(Description = "Markdig")]
     public string Markdig_ToHtml_CommonMark() => Markdig.Markdown.ToHtml(_markdown, MarkdigCommonMarkPipeline);
 
     [Benchmark]
@@ -88,7 +88,6 @@ public class MarkdownHtmlBenchmarks {
 }
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class MarkdownTransformBenchmarks {
     private MarkdownReaderOptions _baselineOptions = null!;
     private MarkdownReaderOptions _transformOptions = null!;

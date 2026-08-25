@@ -12,7 +12,7 @@ public sealed class ReaderComparisonEvidenceTests {
         IReadOnlyList<ReaderComparisonCase> cases = ReaderComparisonCorpus.Create();
 
         Assert.Equal(
-            new[] { "csv", "docx", "epub", "html", "malformed-pdf", "msg", "pdf", "pptx", "xlsx", "zip" },
+            new[] { "csv", "docx", "epub", "html", "json", "malformed-pdf", "markdown", "msg", "pdf", "pptx", "xlsx", "xml", "yaml", "zip" },
             cases.Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal).ToArray());
         Assert.All(cases, item => Assert.NotEmpty(item.Bytes));
         Assert.Contains(cases.SelectMany(item => item.Probes), probe => probe.Kind == ReaderComparisonProbeKind.RichTable);
@@ -28,6 +28,10 @@ public sealed class ReaderComparisonEvidenceTests {
         Assert.All(
             cases.Where(item => item.Id is "docx" or "pptx" or "xlsx" or "epub" or "zip"),
             item => Assert.Equal(item.Bytes, repeatedPackages[item.Id]));
+
+        ReaderComparisonCase markdown = Assert.Single(cases, item => item.Id == "markdown");
+        Assert.Equal("handbook.md", markdown.SourceName);
+        Assert.Equal(24_986, markdown.Bytes.Length);
 
         foreach (ReaderComparisonCase item in cases.Where(item => item.Id is "epub" or "zip")) {
             using var stream = new MemoryStream(item.Bytes);
@@ -525,9 +529,14 @@ public sealed class ReaderComparisonEvidenceTests {
         string markdown = ReaderComparisonCommand.BuildMarkdownReport(report);
 
         Assert.Contains("# Reader extraction evidence", markdown, StringComparison.Ordinal);
+        Assert.Contains("Source commit:", markdown, StringComparison.Ordinal);
+        Assert.Contains("Source tree dirty:", markdown, StringComparison.Ordinal);
         Assert.Contains("## OfficeIMO.Reader", markdown, StringComparison.Ordinal);
         Assert.Contains("Execution mode: in-process", markdown, StringComparison.Ordinal);
         Assert.Contains("Allocated bytes", markdown, StringComparison.Ordinal);
+        Assert.Contains("Retained bytes", markdown, StringComparison.Ordinal);
+        Assert.Contains("Managed peak growth", markdown, StringComparison.Ordinal);
+        Assert.Contains("Output bytes", markdown, StringComparison.Ordinal);
         Assert.Contains("## External Markdown CLI", markdown, StringComparison.Ordinal);
         Assert.Contains("Execution mode: external-process", markdown, StringComparison.Ordinal);
         Assert.Contains("Peak working set bytes", markdown, StringComparison.Ordinal);
@@ -547,6 +556,8 @@ public sealed class ReaderComparisonEvidenceTests {
             Assert.All(result.Cases, item => Assert.Equal("success", item.Status));
             Assert.All(result.Cases, item => Assert.True(item.Deterministic));
             Assert.All(result.Cases, item => Assert.True(item.AppliedProbes > 0));
+            Assert.All(result.Cases, item => Assert.True(item.InputBytes > 0));
+            Assert.All(result.Cases.Where(item => item.CaseId != "malformed"), item => Assert.True(item.OutputBytes > 0));
             ReaderComparisonCaseResult msg = Assert.Single(result.Cases, item => item.CaseId == "msg");
             Assert.True(Assert.Single(msg.Probes, probe => probe.Id == "attachment-content").Passed);
         } finally {

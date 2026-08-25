@@ -88,7 +88,12 @@ internal sealed class ReaderComparisonCaseResult {
     public string MarkdownSha256 { get; set; } = string.Empty;
     public bool Deterministic { get; set; }
     public double DurationMilliseconds { get; set; }
+    public long InputBytes { get; set; }
+    public long OutputBytes { get; set; }
     public long? AllocatedBytes { get; set; }
+    public long? RetainedManagedHeapGrowthBytes { get; set; }
+    public long? PeakManagedHeapGrowthBytes { get; set; }
+    public long? PeakWorkingSetGrowthBytes { get; set; }
     public long? PeakWorkingSetBytes { get; set; }
     public int PassedProbes { get; set; }
     public int AppliedProbes { get; set; }
@@ -104,9 +109,25 @@ internal sealed class ReaderComparisonToolResult {
 }
 
 internal sealed class ReaderComparisonReport {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public DateTimeOffset CreatedUtc { get; set; }
+    public string SourceCommit { get; set; } = string.Empty;
+    public bool SourceTreeDirty { get; set; }
     public string Runtime { get; set; } = string.Empty;
     public string OperatingSystem { get; set; } = string.Empty;
     public IReadOnlyList<ReaderComparisonToolResult> Tools { get; set; } = Array.Empty<ReaderComparisonToolResult>();
 }
+
+internal sealed record ReaderOfficeProbeMeasurement(
+    string CaseId,
+    long InputBytes,
+    long OutputBytes,
+    double DurationMilliseconds,
+    long AllocatedBytes,
+    long RetainedManagedHeapGrowthBytes,
+    long PeakManagedHeapGrowthBytes,
+    long PeakWorkingSetGrowthBytes,
+    long AbsoluteProcessPeakWorkingSetBytes,
+    string MarkdownSha256);
+
+internal readonly record struct ReaderMemoryPeak(long ManagedHeapBytes, long WorkingSetBytes);

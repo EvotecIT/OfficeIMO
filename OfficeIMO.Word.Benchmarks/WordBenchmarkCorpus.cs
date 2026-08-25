@@ -81,7 +81,8 @@ internal static class WordBenchmarkCorpus {
     internal static void ValidateReportDocument(
         byte[] payload,
         int rowCount,
-        bool requireOpenXmlSdkConformance = true) {
+        bool requireOpenXmlSdkConformance = true,
+        bool requireOfficeCompatibleDefaults = false) {
         using ZipArchive package = OpenPackage(payload);
         XElement body = LoadMainBody(package);
         XElement[] reportElements = body.Elements()
@@ -106,6 +107,7 @@ internal static class WordBenchmarkCorpus {
         EnsureEqual("report summary", ReportSummary, ReadText(reportElements[1]));
 
         XElement table = reportElements[2];
+        if (requireOfficeCompatibleDefaults) ValidateOfficeCompatibleTableDefaults(table);
         EnsureEqual("report table count", 1, body.Elements(WordNamespace + "tbl").Count());
         XElement[] rows = table.Elements(WordNamespace + "tr").ToArray();
         EnsureEqual("report table row count", rowCount + 1, rows.Length);
@@ -137,6 +139,41 @@ internal static class WordBenchmarkCorpus {
         if (requireOpenXmlSdkConformance) EnsureOpenXmlSdkConformance(payload);
     }
 
+    private static void ValidateOfficeCompatibleTableDefaults(XElement table) {
+        XElement properties = table.Element(WordNamespace + "tblPr")
+            ?? throw new InvalidDataException("The report table has no properties.");
+        EnsureEqual(
+            "report table style",
+            "TableGrid",
+            (string?)properties.Element(WordNamespace + "tblStyle")?.Attribute(WordNamespace + "val") ?? string.Empty);
+        XElement width = properties.Element(WordNamespace + "tblW")
+            ?? throw new InvalidDataException("The report table has no preferred width.");
+        EnsureEqual("report table width type", "auto", (string?)width.Attribute(WordNamespace + "type") ?? string.Empty);
+        EnsureEqual("report table width", "0", (string?)width.Attribute(WordNamespace + "w") ?? string.Empty);
+        EnsureEqual(
+            "report table look",
+            "04A0",
+            (string?)properties.Element(WordNamespace + "tblLook")?.Attribute(WordNamespace + "val") ?? string.Empty);
+
+        XElement[] gridColumns = table.Element(WordNamespace + "tblGrid")?
+            .Elements(WordNamespace + "gridCol")
+            .ToArray() ?? [];
+        EnsureEqual("report table grid column count", 2, gridColumns.Length);
+        foreach (XElement column in gridColumns) {
+            EnsureEqual("report table grid column width", "2400", (string?)column.Attribute(WordNamespace + "w") ?? string.Empty);
+        }
+
+        foreach (XElement cell in table.Elements(WordNamespace + "tr").SelectMany(row => row.Elements(WordNamespace + "tc"))) {
+            XElement cellWidth = cell.Element(WordNamespace + "tcPr")?.Element(WordNamespace + "tcW")
+                ?? throw new InvalidDataException("A report table cell has no preferred width.");
+            EnsureEqual("report cell width type", "dxa", (string?)cellWidth.Attribute(WordNamespace + "type") ?? string.Empty);
+            EnsureEqual("report cell width", "2400", (string?)cellWidth.Attribute(WordNamespace + "w") ?? string.Empty);
+            if (cell.Element(WordNamespace + "p")?.Element(WordNamespace + "pPr") == null) {
+                throw new InvalidDataException("A report table cell has no editable paragraph properties.");
+            }
+        }
+    }
+
     internal static void ValidateReplacedDocument(
         byte[] payload,
         int itemCount,
@@ -150,6 +187,13 @@ internal static class WordBenchmarkCorpus {
             EnsureEqual("replaced paragraph " + index, expected, ReadText(paragraphs[index]));
         }
         if (requireOpenXmlSdkConformance) EnsureOpenXmlSdkConformance(payload);
+    }
+
+    internal static int CountStyleDefinitions(byte[] payload) {
+        using ZipArchive package = OpenPackage(payload);
+        ZipArchiveEntry stylesEntry = package.GetEntry("word/styles.xml")
+            ?? throw new InvalidDataException("The DOCX package has no style definitions part.");
+        return LoadXml(stylesEntry).Root?.Elements(WordNamespace + "style").Count() ?? 0;
     }
 
     internal static MemoryStream CreateEditableStream(byte[] payload) {

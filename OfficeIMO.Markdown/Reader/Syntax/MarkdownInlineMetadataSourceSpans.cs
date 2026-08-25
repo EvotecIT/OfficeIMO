@@ -3,107 +3,65 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownInlineMetadataSourceSpans {
-    private sealed class LinkState {
-        public MarkdownSourceSpan? TargetSpan;
-        public MarkdownSourceSpan? TitleSpan;
-        public MarkdownSourceSpan? HtmlTargetSpan;
-        public MarkdownSourceSpan? HtmlRelSpan;
-        public string? AutolinkLiteral;
+    private static readonly ConditionalWeakTable<MarkdownInline, MarkdownInlineAuxiliarySyntaxMetadata> _auxiliaryMetadata = new();
+
+    private static MarkdownInlineAuxiliarySyntaxMetadata GetOrCreateAuxiliaryMetadata(MarkdownInline inline) {
+        if (inline is IMarkdownInlineAuxiliarySyntaxMetadataOwner owner) {
+            return owner.AuxiliarySyntaxMetadata ??= new MarkdownInlineAuxiliarySyntaxMetadata();
+        }
+
+        return _auxiliaryMetadata.GetValue(inline, static _ => new MarkdownInlineAuxiliarySyntaxMetadata());
     }
 
-    private sealed class LinkHolder {
-        public LinkState? State;
+    private static MarkdownInlineAuxiliarySyntaxMetadata? GetAuxiliaryMetadata(MarkdownInline? inline) {
+        if (inline is IMarkdownInlineAuxiliarySyntaxMetadataOwner owner) {
+            return owner.AuxiliarySyntaxMetadata;
+        }
+
+        return inline != null && _auxiliaryMetadata.TryGetValue(inline, out var metadata) ? metadata : null;
     }
 
-    private class ImageState {
-        public MarkdownSourceSpan? AltSpan;
-        public MarkdownSourceSpan? SourceSpan;
-        public MarkdownSourceSpan? TitleSpan;
+    internal static void ReleaseRedundantFormattingMetadata(MarkdownInline inline) {
+        if (inline.BoundSyntaxNode == null) {
+            return;
+        }
+
+        MarkdownInlineAuxiliarySyntaxMetadata? metadata = GetAuxiliaryMetadata(inline);
+        if (metadata == null) {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(metadata.AutolinkLiteral)) {
+            metadata.OpeningMarker = string.Empty;
+            metadata.OpeningMarkerSpan = null;
+            metadata.SeparatorMarker = string.Empty;
+            metadata.SeparatorMarkerSpan = null;
+            metadata.ClosingMarker = string.Empty;
+            metadata.ClosingMarkerSpan = null;
+            return;
+        }
+
+        if (inline is IMarkdownInlineAuxiliarySyntaxMetadataOwner owner) {
+            owner.AuxiliarySyntaxMetadata = null;
+        } else {
+            _auxiliaryMetadata.Remove(inline);
+        }
     }
 
-    private class ImageHolder {
-        public ImageState? State;
-    }
+    private static MarkdownSyntaxNode? GetBoundChild(MarkdownInline? inline, MarkdownSyntaxKind kind) {
+        MarkdownSyntaxNode? syntaxNode = inline?.BoundSyntaxNode;
+        if (syntaxNode == null) {
+            return null;
+        }
 
-    private sealed class ImageLinkState : ImageState {
-        public MarkdownSourceSpan? LinkTargetSpan;
-        public MarkdownSourceSpan? LinkTitleSpan;
-    }
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == kind) {
+                return syntaxNode.Children[i];
+            }
+        }
 
-    private sealed class ImageLinkHolder : ImageHolder {
-        public new ImageLinkState? State;
+        return null;
     }
-
-    private sealed class FormattingMarkerState {
-        public string OpeningMarker = string.Empty;
-        public MarkdownSourceSpan? OpeningMarkerSpan;
-        public string SeparatorMarker = string.Empty;
-        public MarkdownSourceSpan? SeparatorMarkerSpan;
-        public string ClosingMarker = string.Empty;
-        public MarkdownSourceSpan? ClosingMarkerSpan;
-    }
-
-    private sealed class FormattingMarkerHolder {
-        public FormattingMarkerState? State;
-    }
-
-    private sealed class CodeSpanState {
-        public MarkdownSourceSpan? ContentSpan;
-    }
-
-    private sealed class CodeSpanHolder {
-        public CodeSpanState? State;
-    }
-
-    private sealed class EscapedTextState {
-        public string EscapeMarker = string.Empty;
-        public MarkdownSourceSpan? EscapeMarkerSpan;
-        public string EscapedCharacter = string.Empty;
-        public MarkdownSourceSpan? EscapedCharacterSpan;
-    }
-
-    private sealed class EscapedTextHolder {
-        public EscapedTextState? State;
-    }
-
-    private sealed class DecodedEntityState {
-        public string SourceText = string.Empty;
-        public MarkdownSourceSpan? SourceTextSpan;
-    }
-
-    private sealed class DecodedEntityHolder {
-        public DecodedEntityState? State;
-    }
-
-    private sealed class HardBreakMarkerState {
-        public string Marker = string.Empty;
-        public MarkdownSourceSpan? MarkerSpan;
-    }
-
-    private sealed class HardBreakMarkerHolder {
-        public HardBreakMarkerState? State;
-    }
-
-    private sealed class AbbreviationState {
-        public MarkdownSourceSpan? TextSpan;
-        public MarkdownSourceSpan? TitleSpan;
-    }
-
-    private sealed class AbbreviationHolder {
-        public AbbreviationState? State;
-    }
-
-    // These tables hold weak references to markdown inline keys, so entries disappear when the
-    // owning inline objects are no longer referenced by the parse result or callers.
-    private static readonly ConditionalWeakTable<LinkInline, LinkHolder> _linkSpans = new();
-    private static readonly ConditionalWeakTable<ImageInline, ImageHolder> _imageSpans = new();
-    private static readonly ConditionalWeakTable<ImageLinkInline, ImageLinkHolder> _imageLinkSpans = new();
-    private static readonly ConditionalWeakTable<MarkdownInline, FormattingMarkerHolder> _formattingMarkerSpans = new();
-    private static readonly ConditionalWeakTable<CodeSpanInline, CodeSpanHolder> _codeSpanSpans = new();
-    private static readonly ConditionalWeakTable<MarkdownTextRun, EscapedTextHolder> _escapedTextSpans = new();
-    private static readonly ConditionalWeakTable<DecodedHtmlEntityTextRun, DecodedEntityHolder> _decodedEntitySpans = new();
-    private static readonly ConditionalWeakTable<HardBreakInline, HardBreakMarkerHolder> _hardBreakMarkerSpans = new();
-    private static readonly ConditionalWeakTable<AbbreviationInline, AbbreviationHolder> _abbreviationSpans = new();
 
     internal static void SetLinkParts(
         LinkInline? inline,
@@ -120,35 +78,26 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _linkSpans.GetValue(inline, static _ => new LinkHolder());
-        holder.State = new LinkState {
-            TargetSpan = targetSpan,
-            TitleSpan = titleSpan,
-            HtmlTargetSpan = htmlTargetSpan,
-            HtmlRelSpan = htmlRelSpan,
-            AutolinkLiteral = autolinkLiteral
-        };
+        if (!string.IsNullOrEmpty(autolinkLiteral)) {
+            GetOrCreateAuxiliaryMetadata(inline).AutolinkLiteral = autolinkLiteral;
+        }
         inline.SetMarkdownSyntaxMetadataSpans(targetSpan, titleSpan, htmlTargetSpan, htmlRelSpan);
     }
 
     internal static MarkdownSourceSpan? GetLinkTargetSpan(LinkInline? inline) =>
-        inline?.UrlSourceSpan
-        ?? (inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.TargetSpan : null);
+        inline?.UrlSourceSpan;
 
     internal static MarkdownSourceSpan? GetLinkTitleSpan(LinkInline? inline) =>
-        inline?.TitleSourceSpan
-        ?? (inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null);
+        inline?.TitleSourceSpan;
 
     internal static MarkdownSourceSpan? GetLinkHtmlTargetSpan(LinkInline? inline) =>
-        inline?.HtmlTargetSourceSpan
-        ?? (inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.HtmlTargetSpan : null);
+        inline?.HtmlTargetSourceSpan;
 
     internal static MarkdownSourceSpan? GetLinkHtmlRelSpan(LinkInline? inline) =>
-        inline?.HtmlRelSourceSpan
-        ?? (inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.HtmlRelSpan : null);
+        inline?.HtmlRelSourceSpan;
 
     internal static string? GetAutolinkLiteral(LinkInline? inline) =>
-        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.AutolinkLiteral : null;
+        GetAuxiliaryMetadata(inline)?.AutolinkLiteral;
 
     internal static void SetImageParts(
         ImageInline? inline,
@@ -163,12 +112,6 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _imageSpans.GetValue(inline, static _ => new ImageHolder());
-        holder.State = new ImageState {
-            AltSpan = altSpan,
-            SourceSpan = sourceSpan,
-            TitleSpan = titleSpan
-        };
         inline.SetMarkdownSyntaxMetadataSpans(altSpan, sourceSpan, titleSpan);
     }
 
@@ -191,48 +134,32 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _imageLinkSpans.GetValue(inline, static _ => new ImageLinkHolder());
-        holder.State = new ImageLinkState {
-            AltSpan = altSpan,
-            SourceSpan = sourceSpan,
-            TitleSpan = imageTitleSpan,
-            LinkTargetSpan = linkTargetSpan,
-            LinkTitleSpan = linkTitleSpan
-        };
         inline.SetMarkdownSyntaxMetadataSpans(altSpan, sourceSpan, imageTitleSpan, linkTargetSpan, linkTitleSpan);
     }
 
     internal static MarkdownSourceSpan? GetImageAltSpan(ImageInline? inline) =>
-        inline?.AltSourceSpan
-        ?? (inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.State?.AltSpan : null);
+        inline?.AltSourceSpan;
 
     internal static MarkdownSourceSpan? GetImageSourceSpan(ImageInline? inline) =>
-        inline?.SrcSourceSpan
-        ?? (inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.State?.SourceSpan : null);
+        inline?.SrcSourceSpan;
 
     internal static MarkdownSourceSpan? GetImageTitleSpan(ImageInline? inline) =>
-        inline?.TitleSourceSpan
-        ?? (inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null);
+        inline?.TitleSourceSpan;
 
     internal static MarkdownSourceSpan? GetImageAltSpan(ImageLinkInline? inline) =>
-        inline?.AltSourceSpan
-        ?? (inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.AltSpan : null);
+        inline?.AltSourceSpan;
 
     internal static MarkdownSourceSpan? GetImageSourceSpan(ImageLinkInline? inline) =>
-        inline?.ImageUrlSourceSpan
-        ?? (inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.SourceSpan : null);
+        inline?.ImageUrlSourceSpan;
 
     internal static MarkdownSourceSpan? GetImageTitleSpan(ImageLinkInline? inline) =>
-        inline?.TitleSourceSpan
-        ?? (inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null);
+        inline?.TitleSourceSpan;
 
     internal static MarkdownSourceSpan? GetImageLinkTargetSpan(ImageLinkInline? inline) =>
-        inline?.LinkUrlSourceSpan
-        ?? (inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.LinkTargetSpan : null);
+        inline?.LinkUrlSourceSpan;
 
     internal static MarkdownSourceSpan? GetImageLinkTitleSpan(ImageLinkInline? inline) =>
-        inline?.LinkTitleSourceSpan
-        ?? (inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.LinkTitleSpan : null);
+        inline?.LinkTitleSourceSpan;
 
     internal static void SetFormattingMarkers(
         MarkdownInline? inline,
@@ -255,34 +182,41 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _formattingMarkerSpans.GetValue(inline, static _ => new FormattingMarkerHolder());
-        holder.State = new FormattingMarkerState {
-            OpeningMarker = openingMarker ?? string.Empty,
-            OpeningMarkerSpan = openingMarkerSpan,
-            SeparatorMarker = separatorMarker ?? string.Empty,
-            SeparatorMarkerSpan = separatorMarkerSpan,
-            ClosingMarker = closingMarker ?? string.Empty,
-            ClosingMarkerSpan = closingMarkerSpan
-        };
+        var metadata = GetOrCreateAuxiliaryMetadata(inline);
+        metadata.OpeningMarker = openingMarker ?? string.Empty;
+        metadata.OpeningMarkerSpan = openingMarkerSpan;
+        metadata.SeparatorMarker = separatorMarker ?? string.Empty;
+        metadata.SeparatorMarkerSpan = separatorMarkerSpan;
+        metadata.ClosingMarker = closingMarker ?? string.Empty;
+        metadata.ClosingMarkerSpan = closingMarkerSpan;
     }
 
     internal static string? GetOpeningMarker(MarkdownInline? inline) =>
-        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.OpeningMarker : null;
+        GetAuxiliaryMetadata(inline)?.OpeningMarker is { Length: > 0 } marker
+            ? marker
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineOpeningMarker)?.Literal;
 
     internal static MarkdownSourceSpan? GetOpeningMarkerSpan(MarkdownInline? inline) =>
-        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.OpeningMarkerSpan : null;
+        GetAuxiliaryMetadata(inline)?.OpeningMarkerSpan
+            ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineOpeningMarker)?.SourceSpan;
 
     internal static string? GetSeparatorMarker(MarkdownInline? inline) =>
-        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.SeparatorMarker : null;
+        GetAuxiliaryMetadata(inline)?.SeparatorMarker is { Length: > 0 } marker
+            ? marker
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineSeparatorMarker)?.Literal;
 
     internal static MarkdownSourceSpan? GetSeparatorMarkerSpan(MarkdownInline? inline) =>
-        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.SeparatorMarkerSpan : null;
+        GetAuxiliaryMetadata(inline)?.SeparatorMarkerSpan
+            ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineSeparatorMarker)?.SourceSpan;
 
     internal static string? GetClosingMarker(MarkdownInline? inline) =>
-        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.ClosingMarker : null;
+        GetAuxiliaryMetadata(inline)?.ClosingMarker is { Length: > 0 } marker
+            ? marker
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineClosingMarker)?.Literal;
 
     internal static MarkdownSourceSpan? GetClosingMarkerSpan(MarkdownInline? inline) =>
-        inline != null && _formattingMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.ClosingMarkerSpan : null;
+        GetAuxiliaryMetadata(inline)?.ClosingMarkerSpan
+            ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineClosingMarker)?.SourceSpan;
 
     internal static void SetCodeSpanContent(
         CodeSpanInline? inline,
@@ -291,16 +225,11 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _codeSpanSpans.GetValue(inline, static _ => new CodeSpanHolder());
-        holder.State = new CodeSpanState {
-            ContentSpan = contentSpan
-        };
         inline.SetMarkdownSyntaxMetadataSpans(contentSpan);
     }
 
     internal static MarkdownSourceSpan? GetCodeSpanContentSpan(CodeSpanInline? inline) =>
-        inline?.ContentSourceSpan
-        ?? (inline != null && _codeSpanSpans.TryGetValue(inline, out var holder) ? holder.State?.ContentSpan : null);
+        inline?.ContentSourceSpan;
 
     internal static void SetEscapedText(
         MarkdownTextRun? inline,
@@ -319,31 +248,20 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _escapedTextSpans.GetValue(inline, static _ => new EscapedTextHolder());
-        holder.State = new EscapedTextState {
-            EscapeMarker = escapeMarker ?? string.Empty,
-            EscapeMarkerSpan = escapeMarkerSpan,
-            EscapedCharacter = escapedCharacter ?? string.Empty,
-            EscapedCharacterSpan = escapedCharacterSpan
-        };
         inline.SetMarkdownSyntaxMetadataSpans(escapeMarker, escapeMarkerSpan, escapedCharacter, escapedCharacterSpan);
     }
 
     internal static string? GetEscapeMarker(MarkdownTextRun? inline) =>
-        inline?.EscapeMarker
-        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarker : null);
+        inline?.EscapeMarker;
 
     internal static MarkdownSourceSpan? GetEscapeMarkerSpan(MarkdownTextRun? inline) =>
-        inline?.EscapeMarkerSourceSpan
-        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarkerSpan : null);
+        inline?.EscapeMarkerSourceSpan;
 
     internal static string? GetEscapedCharacter(MarkdownTextRun? inline) =>
-        inline?.EscapedCharacter
-        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacter : null);
+        inline?.EscapedCharacter;
 
     internal static MarkdownSourceSpan? GetEscapedCharacterSpan(MarkdownTextRun? inline) =>
-        inline?.EscapedCharacterSourceSpan
-        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacterSpan : null);
+        inline?.EscapedCharacterSourceSpan;
 
     internal static void SetDecodedEntity(
         DecodedHtmlEntityTextRun? inline,
@@ -357,21 +275,14 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _decodedEntitySpans.GetValue(inline, static _ => new DecodedEntityHolder());
-        holder.State = new DecodedEntityState {
-            SourceText = sourceText ?? string.Empty,
-            SourceTextSpan = sourceTextSpan
-        };
         inline.SetMarkdownSyntaxMetadataSpans(sourceText, sourceTextSpan);
     }
 
     internal static string? GetDecodedEntitySourceText(DecodedHtmlEntityTextRun? inline) =>
-        inline?.SourceText
-        ?? (inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceText : null);
+        inline?.SourceText;
 
     internal static MarkdownSourceSpan? GetDecodedEntitySourceTextSpan(DecodedHtmlEntityTextRun? inline) =>
-        inline?.SourceTextSourceSpan
-        ?? (inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceTextSpan : null);
+        inline?.SourceTextSourceSpan;
 
     internal static void SetHardBreakMarker(
         HardBreakInline? inline,
@@ -385,21 +296,14 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _hardBreakMarkerSpans.GetValue(inline, static _ => new HardBreakMarkerHolder());
-        holder.State = new HardBreakMarkerState {
-            Marker = marker ?? string.Empty,
-            MarkerSpan = markerSpan
-        };
         inline.SetMarkdownSyntaxMetadataSpans(marker, markerSpan);
     }
 
     internal static string? GetHardBreakMarker(HardBreakInline? inline) =>
-        inline?.Marker
-        ?? (inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.Marker : null);
+        inline?.Marker;
 
     internal static MarkdownSourceSpan? GetHardBreakMarkerSpan(HardBreakInline? inline) =>
-        inline?.MarkerSourceSpan
-        ?? (inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.MarkerSpan : null);
+        inline?.MarkerSourceSpan;
 
     internal static void SetAbbreviationParts(
         AbbreviationInline? inline,
@@ -409,19 +313,12 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        var holder = _abbreviationSpans.GetValue(inline, static _ => new AbbreviationHolder());
-        holder.State = new AbbreviationState {
-            TextSpan = textSpan,
-            TitleSpan = titleSpan
-        };
         inline.SetMarkdownSyntaxMetadataSpans(textSpan, titleSpan);
     }
 
     internal static MarkdownSourceSpan? GetAbbreviationTextSpan(AbbreviationInline? inline) =>
-        inline?.TextSourceSpan
-        ?? (inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TextSpan : null);
+        inline?.TextSourceSpan;
 
     internal static MarkdownSourceSpan? GetAbbreviationTitleSpan(AbbreviationInline? inline) =>
-        inline?.TitleSourceSpan
-        ?? (inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null);
+        inline?.TitleSourceSpan;
 }

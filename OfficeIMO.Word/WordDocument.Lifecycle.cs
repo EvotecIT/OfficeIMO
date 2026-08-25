@@ -21,6 +21,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         private void MoveSectionProperties() {
             var body = BodyRoot;
+            if (body.LastChild is SectionProperties) {
+                return;
+            }
+
             var sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
             if (sectionProperties != null) {
                 body.RemoveChild(sectionProperties);
@@ -162,7 +166,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {
+        private static void InitialiseStyleDefinitions(
+            WordprocessingDocument wordDocument,
+            bool readOnly,
+            bool overrideStyles,
+            WordStyleCatalogFingerprint? styleCatalogFingerprint = null) {
             // In read-only mode we don't touch styles.
             if (readOnly) return;
 
@@ -177,6 +185,9 @@ namespace OfficeIMO.Word {
                 .GetPartsOfType<StyleDefinitionsPart>()
                 .FirstOrDefault();
             if (styleDefinitionsPart != null) {
+                if (!overrideStyles && HasCompleteStyleCatalog(styleDefinitionsPart, styleCatalogFingerprint)) {
+                    return;
+                }
                 // Safe-guard missing Styles root element.
                 styleDefinitionsPart.Styles ??= new Styles();
                 AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
@@ -192,7 +203,11 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            InitialiseStyleDefinitions(_wordprocessingDocument, readOnly: false, overrideStyles: false);
+            InitialiseStyleDefinitions(
+                _wordprocessingDocument,
+                readOnly: false,
+                overrideStyles: false,
+                _styleCatalogFingerprint);
             _styleDefinitionsInitialized = true;
         }
 

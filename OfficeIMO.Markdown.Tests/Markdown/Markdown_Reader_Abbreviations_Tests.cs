@@ -40,6 +40,21 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void SemanticProjection_Preserves_Registered_Abbreviations_On_Plain_Text() {
+        const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML works";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseSemanticProjection(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var abbreviation = Assert.IsType<AbbreviationInline>(paragraph.Inlines.Nodes[0]);
+        Assert.Equal("HTML", abbreviation.Text);
+        Assert.Equal("Hyper Text Markup Language", abbreviation.Title);
+        Assert.Equal(" works", Assert.IsType<MarkdownTextRun>(paragraph.Inlines.Nodes[1]).Text);
+    }
+
+    [Fact]
     public void Abbreviation_Definitions_Are_Written_For_Reparse_Stability() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML and HTML.";
         var options = MarkdownReaderOptions.CreatePortableProfile();

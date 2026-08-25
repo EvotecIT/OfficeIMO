@@ -10,7 +10,7 @@
       "comparisonId": "csv-25k-datareader-write-net10.0",
       "platform": "macos",
       "runMode": "quick",
-      "generatedUtc": "2026-07-31T12:57:12.894909+02:00",
+      "generatedUtc": "2026-07-31T10:57:12.894909+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-macos-quick.json",
       "resultSha256": "cce2373fa79d57c955df4d9ac71cf72fcaa5a1db177723bd941b18de935bff71",
@@ -57,7 +57,7 @@
       "comparisonId": "csv-25k-datareader-write-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T10:51:57.8134281+02:00",
+      "generatedUtc": "2026-08-16T08:51:57.8134281+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/csv-25k-datareader-write-net10.0-windows-full.json",
       "resultSha256": "f8d8460e827f2e5dd9f9842fc3180c66f4452dc6cabc9c454e29d0c1322f26ef",
@@ -179,6 +179,44 @@
       "compatibilityIssues": []
     },
     {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-08-23T20:46:35.3302154+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/markdown-commonmark-parse-net10.0-windows-quick.json",
+      "resultSha256": "14b34124a973004dc3a521d65e089722b1f2b48826cd78ebab7fa4ec59e0d3cb",
+      "artifactDestinationSha256": "c206c9e3e24203bf7661442b7e2fd42d82f24f8ac6bd6d4815af8ee1bbf90f09",
+      "artifactFileName": "markdown-commonmark-parse-net10.0-windows-quick.json",
+      "artifactRelativePath": "markdown-commonmark-parse-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.Markdown.CommonMarkParse",
+      "environment": {
+        "osFamily": "",
+        "osDescription": "",
+        "osArchitecture": "",
+        "processArchitecture": "",
+        "processorName": "",
+        "physicalProcessorCount": null,
+        "physicalCoreCount": null,
+        "logicalCoreCount": null,
+        "runtimeVersion": "",
+        "dotNetSdkVersion": "",
+        "runner": "",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Markdown.CommonMarkParse",
+        "benchmark.workload.shape.sha256": "9fd624cd9e8b3c5bd43a6d145d37b043ddbc18cac3b8e9cf6f281ac554526179",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markdown-commonmark-parse-net10.0",
+        "benchmark.workload.sourceCommit": "b15ea4ac5f59c2b911e95e89f9ee2ec69d61da26",
+        "gitSha": "b15ea4ac5f59c2b911e95e89f9ee2ec69d61da26",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "linux",
       "runMode": "full",
@@ -234,7 +272,7 @@
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T10:46:10.5871415+02:00",
+      "generatedUtc": "2026-08-16T08:46:10.5871415+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-windows-full.json",
       "resultSha256": "6eed0be2646a57e510337d43031e1605233ad24e2b278e2e766e9b05eae34169",
@@ -333,7 +371,7 @@
       "comparisonId": "markpflug-65k-xls-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T10:53:25.5645046+02:00",
+      "generatedUtc": "2026-08-16T08:53:25.5645046+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xls-typed-net10.0-windows-full.json",
       "resultSha256": "8f17bfd5210d80e0715b615bc82e39ca4391e5d95b57672633d434dc6d5cd519",
@@ -432,7 +470,7 @@
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T11:04:20.1090395+02:00",
+      "generatedUtc": "2026-08-16T09:04:20.1090395+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-windows-full.json",
       "resultSha256": "76abe31b2f9c358c4dfd3bbfa95028e392b1329eed68940df9c7316add1cc22f",
@@ -583,7 +621,7 @@
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "platform": "macos",
       "runMode": "quick",
-      "generatedUtc": "2026-07-31T12:49:02.003238+02:00",
+      "generatedUtc": "2026-07-31T10:49:02.003238+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-macos-quick.json",
       "resultSha256": "adcad90d397dfabafe911095f960b2f173d79f556500b2b0f4b8bbac480840b2",
@@ -640,7 +678,7 @@
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T10:57:22.5678827+02:00",
+      "generatedUtc": "2026-08-16T08:57:22.5678827+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-windows-full.json",
       "resultSha256": "8a1af97ca01d48a1d93cca856d0dc50dc8136fb95784b642e2cc5cb7dafbb024",
@@ -749,7 +787,7 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T11:18:25.3543117+02:00",
+      "generatedUtc": "2026-08-16T09:18:25.3543117+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.json",
       "resultSha256": "4cbfadf4624fa6218603f827e1f5b05526b829b5b480cfe3fb18ffb79eed5501",
@@ -796,7 +834,7 @@
       "comparisonId": "pdf-merge-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T12:16:12.4029791+02:00",
+      "generatedUtc": "2026-08-16T10:16:12.4029791+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-merge-net10.0-windows-full.json",
       "resultSha256": "64aeccc73a2116fdc7228b6043b625bf3b3ce3a170480959ca1d0eb8615bd229",
@@ -843,7 +881,7 @@
       "comparisonId": "pdf-page-selection-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T12:24:08.5364279+02:00",
+      "generatedUtc": "2026-08-16T10:24:08.5364279+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-page-selection-net10.0-windows-full.json",
       "resultSha256": "ea0a5ed969113e770769a202316059e50639811a58061ef9ef435f409391d30f",
@@ -890,7 +928,7 @@
       "comparisonId": "pdf-split-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T12:05:37.2179955+02:00",
+      "generatedUtc": "2026-08-16T10:05:37.2179955+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-split-net10.0-windows-full.json",
       "resultSha256": "d1cebe56c548357b80d93a24f36c4894826ff8b9282717e823a1b0c9ff38dad4",
@@ -937,7 +975,7 @@
       "comparisonId": "pdf-structured-generation-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T11:11:31.4319075+02:00",
+      "generatedUtc": "2026-08-16T09:11:31.4319075+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-structured-generation-net10.0-windows-full.json",
       "resultSha256": "7398443c025523935d81e8d468a144d4cc456090d735b42b71041cf53672f7d5",
@@ -984,7 +1022,7 @@
       "comparisonId": "pdf-text-extraction-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T11:44:43.9912518+02:00",
+      "generatedUtc": "2026-08-16T09:44:43.9912518+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-text-extraction-net10.0-windows-full.json",
       "resultSha256": "ec7c26cc6d985a6f36cb9da9ab384c8baee94a66d8abc0abee60d4b85269c581",
@@ -1028,10 +1066,49 @@
       "compatibilityIssues": []
     },
     {
+      "comparisonId": "rtf-to-html-net8.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-08-23T17:04:34.7973563+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/rtf-to-html-net8.0-windows-quick.json",
+      "resultSha256": "56ebd2f18d89e49997d8c0a5d9e5b3d0b11cc806939788de65d2cd91bc62e1ad",
+      "artifactDestinationSha256": "144b65f074bb76e88b04b8b639de84e5dc79239ce9db1b1a08df63d68b506657",
+      "artifactFileName": "rtf-to-html-net8.0-windows-quick.json",
+      "artifactRelativePath": "rtf-to-html-net8.0-windows-quick.json",
+      "suite": "OfficeIMO.Rtf.HtmlComparison",
+      "environment": {
+        "osFamily": "",
+        "osDescription": "",
+        "osArchitecture": "",
+        "processArchitecture": "",
+        "processorName": "",
+        "physicalProcessorCount": null,
+        "physicalCoreCount": null,
+        "logicalCoreCount": null,
+        "runtimeVersion": "",
+        "dotNetSdkVersion": "",
+        "runner": "",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Rtf.HtmlComparison",
+        "benchmark.workload.shape.sha256": "036e5219360c3415de2199a94fc27e9334fc80869fc2809296f1c2d49de0ec25",
+        "benchmark.workload.framework": "net8.0",
+        "benchmark.workload.id": "rtf-to-html-net8.0",
+        "benchmark.workload.sizeEvidencePath": "validated-size-evidence.json",
+        "benchmark.workload.sourceCommit": "3c9addee17e98005acbf4dc37bc52a25a8197180",
+        "gitSha": "3c9addee17e98005acbf4dc37bc52a25a8197180",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
       "platform": "macos",
       "runMode": "quick",
-      "generatedUtc": "2026-07-31T12:28:47.27305+02:00",
+      "generatedUtc": "2026-07-31T10:28:47.27305+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-macos-quick.json",
       "resultSha256": "d87d17385db5f54833d388f9b69a85b9114ebdd6d04930b4410375c2a8942cae",
@@ -1078,7 +1155,7 @@
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-16T11:00:53.6363585+02:00",
+      "generatedUtc": "2026-08-16T09:00:53.6363585+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/xlsx-25k-datareader-write-net10.0-windows-full.json",
       "resultSha256": "f916d0b9c2617d90f2a510b86020533bf232d20bd4374e3fc81a6d275b6ce0a3",
@@ -1131,7 +1208,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T10:51:57.8134281+02:00"
+      "latestUtc": "2026-08-16T08:51:57.8134281+00:00"
     },
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
@@ -1173,7 +1250,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-07-31T12:57:12.894909+02:00"
+      "latestUtc": "2026-07-31T10:57:12.894909+00:00"
     },
     {
       "comparisonId": "image-tiff-lzw-net10.0",
@@ -1228,6 +1305,32 @@
       "latestUtc": null
     },
     {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T20:46:35.3302154+00:00"
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "runMode": "full",
       "platform": "windows",
@@ -1235,7 +1338,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T10:46:10.5871415+02:00"
+      "latestUtc": "2026-08-16T08:46:10.5871415+00:00"
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -1289,7 +1392,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T10:53:25.5645046+02:00"
+      "latestUtc": "2026-08-16T08:53:25.5645046+00:00"
     },
     {
       "comparisonId": "markpflug-65k-xls-typed-net10.0",
@@ -1315,7 +1418,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T11:04:20.1090395+02:00"
+      "latestUtc": "2026-08-16T09:04:20.1090395+00:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -1369,7 +1472,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T10:57:22.5678827+02:00"
+      "latestUtc": "2026-08-16T08:57:22.5678827+00:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
@@ -1415,7 +1518,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-07-31T12:49:02.003238+02:00"
+      "latestUtc": "2026-07-31T10:49:02.003238+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1425,7 +1528,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T11:18:25.3543117+02:00"
+      "latestUtc": "2026-08-16T09:18:25.3543117+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1451,7 +1554,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T12:16:12.4029791+02:00"
+      "latestUtc": "2026-08-16T10:16:12.4029791+00:00"
     },
     {
       "comparisonId": "pdf-merge-net10.0",
@@ -1477,7 +1580,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T12:24:08.5364279+02:00"
+      "latestUtc": "2026-08-16T10:24:08.5364279+00:00"
     },
     {
       "comparisonId": "pdf-page-selection-net10.0",
@@ -1503,7 +1606,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T12:05:37.2179955+02:00"
+      "latestUtc": "2026-08-16T10:05:37.2179955+00:00"
     },
     {
       "comparisonId": "pdf-split-net10.0",
@@ -1529,7 +1632,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T11:11:31.4319075+02:00"
+      "latestUtc": "2026-08-16T09:11:31.4319075+00:00"
     },
     {
       "comparisonId": "pdf-structured-generation-net10.0",
@@ -1555,7 +1658,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T11:44:43.9912518+02:00"
+      "latestUtc": "2026-08-16T09:44:43.9912518+00:00"
     },
     {
       "comparisonId": "pdf-text-extraction-net10.0",
@@ -1568,6 +1671,32 @@
     {
       "comparisonId": "pdf-text-extraction-net10.0",
       "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T17:04:34.7973563+00:00"
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
       "platform": "macos",
       "available": false,
       "runModes": [],
@@ -1581,7 +1710,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-16T11:00:53.6363585+02:00"
+      "latestUtc": "2026-08-16T09:00:53.6363585+00:00"
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
@@ -1623,7 +1752,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-07-31T12:28:47.27305+02:00"
+      "latestUtc": "2026-07-31T10:28:47.27305+00:00"
     }
   ]
 }

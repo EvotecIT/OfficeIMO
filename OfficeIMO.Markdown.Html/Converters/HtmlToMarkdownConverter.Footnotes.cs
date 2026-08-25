@@ -135,9 +135,22 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         private static IEnumerable<IElement> EnumerateElements(INode root) {
-            foreach (INode child in root.ChildNodes) {
-                if (child is IElement element) yield return element;
-                foreach (IElement descendant in EnumerateElements(child)) yield return descendant;
+            var pending = new Stack<INode>();
+            INodeList rootChildren = root.ChildNodes;
+            for (int i = rootChildren.Length - 1; i >= 0; i--) {
+                pending.Push(rootChildren[i]);
+            }
+
+            while (pending.Count > 0) {
+                INode node = pending.Pop();
+                if (node is IElement element) {
+                    yield return element;
+                }
+
+                INodeList children = node.ChildNodes;
+                for (int i = children.Length - 1; i >= 0; i--) {
+                    pending.Push(children[i]);
+                }
             }
         }
 

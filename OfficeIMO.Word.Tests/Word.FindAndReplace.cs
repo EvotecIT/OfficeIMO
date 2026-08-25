@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -147,6 +148,48 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(run.Break);
                 Assert.True(paragraph.Bold);
             }
+        }
+
+        [Fact]
+        public void FindAndReplace_PreservesRunsOnContainedMatches() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Before ");
+            paragraph.AddText("KEY").SetBold();
+            paragraph.AddText(" after");
+
+            int replaced = document.FindAndReplace("KEY", "VALUE", StringComparison.Ordinal);
+
+            Assert.Equal(1, replaced);
+            Assert.Equal("Before VALUE after", string.Concat(paragraph._paragraph.Descendants<Text>().Select(text => text.Text)));
+            var runs = paragraph._paragraph.Elements<Run>().ToList();
+            Assert.Equal(3, runs.Count);
+            Assert.NotNull(runs[1].RunProperties?.Bold);
+        }
+
+        [Fact]
+        public void FindAndReplace_RetainsCrossParagraphFallback() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph first = document.AddParagraph("Alpha");
+            WordParagraph second = document.AddParagraph("Beta");
+
+            int replaced = document.FindAndReplace("AlphaBeta", "Joined", StringComparison.Ordinal);
+
+            Assert.Equal(1, replaced);
+            Assert.Equal("Joined", first.Text);
+            Assert.Equal(string.Empty, second.Text);
+        }
+
+        [Fact]
+        public void FindAndReplace_RetainsOrdinalFallbackAcrossThreeRuns() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Alpha");
+            paragraph.AddText(string.Empty);
+            paragraph.AddText("Beta");
+
+            int replaced = document.FindAndReplace("AlphaBeta", "Joined", StringComparison.Ordinal);
+
+            Assert.Equal(1, replaced);
+            Assert.Equal("Joined", paragraph.Text);
         }
     }
 }

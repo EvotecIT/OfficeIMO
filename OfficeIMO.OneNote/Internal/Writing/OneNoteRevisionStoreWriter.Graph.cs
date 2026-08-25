@@ -318,7 +318,7 @@ internal sealed class OneNoteDesktopWritePlan {
     }
 
     private static IReadOnlyDictionary<Guid, uint> BuildGlobalIds(IEnumerable<OneNoteWriteObject> objects) {
-        var identifiers = new List<Guid>();
+        var identifiers = new Dictionary<Guid, uint>();
         foreach (OneNoteWriteObject item in objects) {
             AddIdentifier(identifiers, item.Id.Identifier);
             foreach (OneNoteExtendedGuid reference in OneNotePropertySetWriter.EnumerateProperties(item.Properties).SelectMany(property => property.References)) {
@@ -326,7 +326,7 @@ internal sealed class OneNoteDesktopWritePlan {
             }
         }
         if (identifiers.Count >= 0xFFFFFF) throw new OneNoteFormatException("ONENOTE_WRITE_GLOBAL_ID_LIMIT", "A desktop OneNote global-identification table exceeds the CompactID index range.");
-        return identifiers.Select((identifier, index) => new { identifier, index }).ToDictionary(item => item.identifier, item => (uint)item.index);
+        return identifiers;
     }
 
     private static void AddGlobalIdEntries(OneNoteDesktopFileNodeList list, IReadOnlyDictionary<Guid, uint> globalIds) {
@@ -340,9 +340,9 @@ internal sealed class OneNoteDesktopWritePlan {
         }
     }
 
-    private static void AddIdentifier(ICollection<Guid> identifiers, Guid value) {
+    private static void AddIdentifier(IDictionary<Guid, uint> identifiers, Guid value) {
         if (value == Guid.Empty) throw new OneNoteFormatException("ONENOTE_WRITE_GLOBAL_ID_GUID", "A desktop OneNote CompactID cannot use an empty GUID.");
-        if (!identifiers.Contains(value)) identifiers.Add(value);
+        if (!identifiers.ContainsKey(value)) identifiers.Add(value, checked((uint)identifiers.Count));
     }
 
     private static void WriteStorageString(Stream stream, string value) {

@@ -29,7 +29,12 @@ internal static class OneNoteRevisionStoreWriter {
 
         var output = new byte[(int)expectedLength];
         WriteHeader(output, plan, transactionOffset, transactionLength, expectedLength);
-        foreach (OneNoteDesktopFileNodeList list in plan.Lists) Copy(output, list.Offset, list.Encode());
+        using (var stream = new MemoryStream(output, true)) {
+            foreach (OneNoteDesktopFileNodeList list in plan.Lists) {
+                stream.Position = checked((long)list.Offset);
+                list.Write(stream);
+            }
+        }
         foreach (OneNoteDesktopDataChunk data in plan.Data) Copy(output, data.Offset, data.Data);
         WriteTransactionLog(output, transactionOffset, transactionLength, plan.Lists, graph.FileKind);
         return output;

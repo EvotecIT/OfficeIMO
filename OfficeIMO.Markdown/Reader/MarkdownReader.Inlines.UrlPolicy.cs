@@ -30,14 +30,14 @@ public static partial class MarkdownReader {
             return url;
         }
 
-        if (url.StartsWith("//")) {
+        if (url.StartsWith("//", StringComparison.Ordinal)) {
             if (options?.AllowProtocolRelativeUrls != false) {
                 if (options?.RestrictUrlSchemes == true && !IsAllowedScheme("http", options.AllowedUrlSchemes) && !IsAllowedScheme("https", options.AllowedUrlSchemes)) return null;
                 return url;
             }
             return null;
         }
-        if (url.StartsWith("#")) return url;
+        if (url.StartsWith("#", StringComparison.Ordinal)) return url;
 
         var baseUri = options?.BaseUri;
         if (!string.IsNullOrWhiteSpace(baseUri)) {

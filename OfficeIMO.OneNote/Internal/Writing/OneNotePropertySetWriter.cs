@@ -14,14 +14,15 @@ internal static class OneNotePropertySetWriter {
         IReadOnlyList<OneNoteWriteProperty> properties,
         OneNoteExtendedGuid currentObjectSpaceId,
         OneNoteExtendedGuid currentContextId) {
-        OneNoteWriteProperty[] flattened = EnumerateProperties(properties).ToArray();
-        var objectReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.Object).SelectMany(item => item.References).ToArray();
-        var objectSpaceReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.ObjectSpace).SelectMany(item => item.References).ToArray();
-        var contextReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.Context).SelectMany(item => item.References).ToArray();
-        var cellReferences = objectSpaceReferences.Select(id => new FssHttpCellId(currentContextId, id))
-            .Concat(contextReferences.Select(id => new FssHttpCellId(id, currentObjectSpaceId)))
-            .ToArray();
-        using (var stream = new MemoryStream()) {
+        var (objectReferences, objectSpaceReferences, contextReferences) = CollectReferences(properties);
+        var cellReferences = new FssHttpCellId[objectSpaceReferences.Length + contextReferences.Length];
+        for (int index = 0; index < objectSpaceReferences.Length; index++) {
+            cellReferences[index] = new FssHttpCellId(currentContextId, objectSpaceReferences[index]);
+        }
+        for (int index = 0; index < contextReferences.Length; index++) {
+            cellReferences[objectSpaceReferences.Length + index] = new FssHttpCellId(contextReferences[index], currentObjectSpaceId);
+        }
+        using (var stream = new MemoryStream(128)) {
             bool hasObjectSpaceStream = objectSpaceReferences.Length > 0 || contextReferences.Length > 0;
             WriteReferenceStream(stream, objectReferences, 0, false, !hasObjectSpaceStream);
             if (hasObjectSpaceStream) {
@@ -37,11 +38,8 @@ internal static class OneNotePropertySetWriter {
 
     internal static byte[] WriteDesktop(IReadOnlyList<OneNoteWriteProperty> properties, IReadOnlyDictionary<Guid, uint> globalIds) {
         if (globalIds == null) throw new ArgumentNullException(nameof(globalIds));
-        OneNoteWriteProperty[] flattened = EnumerateProperties(properties).ToArray();
-        OneNoteExtendedGuid[] objectReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.Object).SelectMany(item => item.References).ToArray();
-        OneNoteExtendedGuid[] objectSpaceReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.ObjectSpace).SelectMany(item => item.References).ToArray();
-        OneNoteExtendedGuid[] contextReferences = flattened.Where(item => item.ReferenceKind == OneNoteWriteReferenceKind.Context).SelectMany(item => item.References).ToArray();
-        using (var stream = new MemoryStream()) {
+        var (objectReferences, objectSpaceReferences, contextReferences) = CollectReferences(properties);
+        using (var stream = new MemoryStream(128)) {
             bool hasObjectSpaceStream = objectSpaceReferences.Length > 0 || contextReferences.Length > 0;
             WriteDesktopReferenceStream(stream, objectReferences, globalIds, false, !hasObjectSpaceStream);
             if (hasObjectSpaceStream) {
@@ -160,5 +158,28 @@ internal static class OneNotePropertySetWriter {
                 foreach (OneNoteWriteProperty nested in EnumerateProperties(child)) yield return nested;
             }
         }
+    }
+
+    private static (
+        OneNoteExtendedGuid[] ObjectReferences,
+        OneNoteExtendedGuid[] ObjectSpaceReferences,
+        OneNoteExtendedGuid[] ContextReferences) CollectReferences(
+            IReadOnlyList<OneNoteWriteProperty> properties) {
+        var objectReferences = new List<OneNoteExtendedGuid>();
+        var objectSpaceReferences = new List<OneNoteExtendedGuid>();
+        var contextReferences = new List<OneNoteExtendedGuid>();
+        foreach (OneNoteWriteProperty property in EnumerateProperties(properties)) {
+            List<OneNoteExtendedGuid>? destination = property.ReferenceKind switch {
+                OneNoteWriteReferenceKind.Object => objectReferences,
+                OneNoteWriteReferenceKind.ObjectSpace => objectSpaceReferences,
+                OneNoteWriteReferenceKind.Context => contextReferences,
+                _ => null
+            };
+            if (destination == null) continue;
+            for (int index = 0; index < property.References.Count; index++) {
+                destination.Add(property.References[index]);
+            }
+        }
+        return (objectReferences.ToArray(), objectSpaceReferences.ToArray(), contextReferences.ToArray());
     }
 }

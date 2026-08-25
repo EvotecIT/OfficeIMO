@@ -8,7 +8,6 @@ namespace OfficeIMO.Core.Internal;
 /// Centralizes archive-entry safety rules shared by ZIP-backed OfficeIMO format owners.
 /// </summary>
 internal static class OfficeArchiveSafety {
-    private static readonly char[] PathSeparators = { '/' };
     private const uint CentralDirectoryFileHeaderSignature = 0x02014b50U;
     private const uint CentralDirectoryDigitalSignature = 0x05054b50U;
     private const uint EndOfCentralDirectorySignature = 0x06054b50U;
@@ -35,9 +34,18 @@ internal static class OfficeArchiveSafety {
         if (ContainsNull(fullName)) return true;
         if (fullName.Length >= 2 && char.IsLetter(fullName[0]) && fullName[1] == ':') return true;
 
-        string[] segments = fullName.Split(PathSeparators, StringSplitOptions.RemoveEmptyEntries);
-        foreach (string segment in segments) {
-            if (segment == "." || segment == "..") return true;
+        int segmentStart = 0;
+        for (int index = 0; index <= fullName.Length; index++) {
+            if (index < fullName.Length && fullName[index] != '/') continue;
+
+            int segmentLength = index - segmentStart;
+            if (segmentLength == 1 && fullName[segmentStart] == '.') return true;
+            if (segmentLength == 2
+                && fullName[segmentStart] == '.'
+                && fullName[segmentStart + 1] == '.') {
+                return true;
+            }
+            segmentStart = index + 1;
         }
 
         return false;

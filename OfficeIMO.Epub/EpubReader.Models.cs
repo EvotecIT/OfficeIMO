@@ -59,4 +59,13 @@ internal static partial class EpubReader {
         public bool CountLimitReported { get; set; }
         public bool DepthLimitReported { get; set; }
     }
+
+    private sealed record ChapterMarkupInfo(
+        string Text,
+        string? Title,
+        string? Heading,
+        string? BaseHref,
+        bool HasStructuredContent) {
+        internal static readonly ChapterMarkupInfo Empty = new(string.Empty, null, null, null, false);
+    }
 }

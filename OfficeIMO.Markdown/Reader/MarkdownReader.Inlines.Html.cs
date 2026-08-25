@@ -5,6 +5,9 @@ public static partial class MarkdownReader {
     private const int MaximumInlineHtmlWrapperDepth = 32;
 
     private sealed class InlineHtmlWrapperMatchIndex {
+        internal static readonly InlineHtmlWrapperMatchIndex Empty =
+            new(new Dictionary<int, (string TagName, int ClosingStart)>());
+
         private readonly Dictionary<int, (string TagName, int ClosingStart)> _matches;
         private readonly int _baseOffset;
 
@@ -14,7 +17,9 @@ public static partial class MarkdownReader {
         }
 
         internal InlineHtmlWrapperMatchIndex Slice(int relativeOffset) =>
-            new(_matches, checked(_baseOffset + relativeOffset));
+            _matches.Count == 0
+                ? this
+                : new InlineHtmlWrapperMatchIndex(_matches, checked(_baseOffset + relativeOffset));
 
         internal bool TryGet(int relativeStart, out string tagName, out int closingStart) {
             if (_matches.TryGetValue(checked(_baseOffset + relativeStart), out var match)) {
@@ -30,11 +35,11 @@ public static partial class MarkdownReader {
     }
 
     private static InlineHtmlWrapperMatchIndex BuildInlineHtmlWrapperMatchIndex(string text) {
-        var matches = new Dictionary<int, (string TagName, int ClosingStart)>();
-        if (string.IsNullOrEmpty(text)) {
-            return new InlineHtmlWrapperMatchIndex(matches);
+        if (string.IsNullOrEmpty(text) || text.IndexOf('<') < 0) {
+            return InlineHtmlWrapperMatchIndex.Empty;
         }
 
+        var matches = new Dictionary<int, (string TagName, int ClosingStart)>();
         var openingsByTag = new Dictionary<string, Stack<int>>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < SupportedInlineHtmlWrapperTags.Length; i++) {
             openingsByTag[SupportedInlineHtmlWrapperTags[i]] = new Stack<int>();

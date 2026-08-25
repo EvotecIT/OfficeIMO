@@ -85,7 +85,16 @@ public static partial class MarkdownReader {
     private static MarkdownSourceSpan CreateLineSpan(MarkdownReaderState? state, int startLine, int endLine) =>
         state?.SourceTextMap?.CreateLineSpan(startLine, endLine) ?? new MarkdownSourceSpan(startLine, endLine);
 
-    private static MarkdownSourceSpan CreateSpan(MarkdownReaderState? state, int startLine, int startColumn, int endLine, int endColumn) =>
+    private static MarkdownSourceSpan? CreateSpan(MarkdownReaderState? state, int startLine, int startColumn, int endLine, int endColumn) {
+        if (state != null && !state.CaptureSyntaxTree) {
+            return null;
+        }
+
+        return state?.SourceTextMap?.CreateSpan(startLine, startColumn, endLine, endColumn)
+            ?? new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
+    }
+
+    private static MarkdownSourceSpan CreateRequiredSpan(MarkdownReaderState? state, int startLine, int startColumn, int endLine, int endColumn) =>
         state?.SourceTextMap?.CreateSpan(startLine, startColumn, endLine, endColumn)
         ?? new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
 

@@ -437,32 +437,69 @@ public static partial class HtmlComputedStyleEngine {
     private static bool IsInheritedProperty(string propertyName) =>
         InheritedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal);
 
-    private static IDictionary<string, string> ResolveComputedProperties(
+    private static Dictionary<string, string> ResolveComputedProperties(
         IReadOnlyDictionary<string, CascadedProperty> properties,
         IReadOnlyDictionary<string, string>? parentProperties,
-        out IReadOnlyCollection<string> inheritedProperties,
-        out IReadOnlyCollection<string> resetProperties,
-        out IReadOnlyCollection<string> specifiedProperties) {
+        out HashSet<string> inheritedProperties,
+        out HashSet<string> resetProperties,
+        out HashSet<string> specifiedProperties) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        if (parentProperties != null) {
+            foreach (KeyValuePair<string, string> pair in parentProperties) {
+                if (!IsInheritedProperty(pair.Key)) continue;
+                raw[pair.Key] = pair.Value;
+                inherited.Add(pair.Key);
+            }
+        }
         foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
             CascadedProperty? effective = ResolveLayerRevert(pair.Value);
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
-                if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) inherited.Add(pair.Key);
-                else specified.Add(pair.Key);
-            } else if (effective?.RevertsLayer == true
+                reset.Remove(pair.Key);
+                if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
+                    inherited.Add(pair.Key);
+                    specified.Remove(pair.Key);
+                } else {
+                    specified.Add(pair.Key);
+                    inherited.Remove(pair.Key);
+                }
+            } else if ((effective?.RevertsLayer == true || effective == null && pair.Value.RevertsLayer)
                   && IsInheritedProperty(pair.Key)
                   && parentProperties != null
                   && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
                 raw[pair.Key] = inheritedValue;
                 inherited.Add(pair.Key);
+                reset.Remove(pair.Key);
+                specified.Remove(pair.Key);
             } else {
+                raw.Remove(pair.Key);
+                inherited.Remove(pair.Key);
+                specified.Remove(pair.Key);
                 reset.Add(pair.Key);
             }
         }
+        bool requiresCustomPropertyResolution = raw.Any(pair =>
+            !pair.Key.StartsWith("--", StringComparison.Ordinal)
+            && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
+        Dictionary<string, string> resolved = requiresCustomPropertyResolution
+            ? ResolveCustomPropertyValues(raw, parentProperties)
+            : raw;
+
+        inherited.IntersectWith(resolved.Keys);
+        inheritedProperties = inherited;
+        reset.ExceptWith(resolved.Keys);
+        resetProperties = reset;
+        specified.IntersectWith(resolved.Keys);
+        specifiedProperties = specified;
+        return resolved;
+    }
+
+    private static Dictionary<string, string> ResolveCustomPropertyValues(
+        IReadOnlyDictionary<string, string> raw,
+        IReadOnlyDictionary<string, string>? parentProperties) {
         var resolved = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> pair in raw) {
             if (pair.Key.StartsWith("--", StringComparison.Ordinal)) {
@@ -481,12 +518,6 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
-        inherited.IntersectWith(resolved.Keys);
-        inheritedProperties = inherited;
-        reset.ExceptWith(resolved.Keys);
-        resetProperties = reset;
-        specified.IntersectWith(resolved.Keys);
-        specifiedProperties = specified;
         return resolved;
     }
 

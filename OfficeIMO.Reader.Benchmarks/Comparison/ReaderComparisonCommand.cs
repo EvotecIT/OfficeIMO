@@ -3,12 +3,16 @@ using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Excel;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Word;
+using OfficeIMO.Reader.Xml;
+using OfficeIMO.Reader.Yaml;
 using OfficeIMO.Reader.Zip;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -52,9 +56,9 @@ internal static class ReaderComparisonCommand {
                 .ConfigureAwait(false);
         }
 
-        var tools = new List<ReaderComparisonToolResult> {
-            RunOfficeIMO(cases, outputsDirectory)
-        };
+        ReaderComparisonToolResult officeIMO = RunOfficeIMO(cases, outputsDirectory);
+        PopulateOfficeProcessMeasurements(officeIMO);
+        var tools = new List<ReaderComparisonToolResult> { officeIMO };
         if (!string.IsNullOrWhiteSpace(options.RunnerConfigPath)) {
             ReaderComparisonConfiguration configuration = await LoadConfigurationAsync(
                 options.RunnerConfigPath!,
@@ -71,6 +75,8 @@ internal static class ReaderComparisonCommand {
 
         var report = new ReaderComparisonReport {
             CreatedUtc = DateTimeOffset.UtcNow,
+            SourceCommit = ResolveCommit(),
+            SourceTreeDirty = ResolveSourceTreeDirty(),
             Runtime = RuntimeInformation.FrameworkDescription,
             OperatingSystem = RuntimeInformation.OSDescription,
             Tools = tools
@@ -100,6 +106,23 @@ internal static class ReaderComparisonCommand {
             Status = "success",
             Cases = results
         };
+    }
+
+    internal static int RunOfficeProbe(string[] args) {
+        if (args.Length != 1) {
+            Console.Error.WriteLine("Usage: office-evidence-probe <case-id>");
+            return 2;
+        }
+
+        try {
+            ReaderComparisonCase item = ReaderComparisonCorpus.Create().Single(candidate =>
+                string.Equals(candidate.Id, args[0], StringComparison.Ordinal));
+            Console.WriteLine(JsonSerializer.Serialize(MeasureOfficeProbe(item), JsonOptions));
+            return 0;
+        } catch (Exception exception) {
+            Console.Error.WriteLine(exception);
+            return 1;
+        }
     }
 
     private static ReaderComparisonCaseResult RunOfficeCase(
@@ -134,6 +157,87 @@ internal static class ReaderComparisonCommand {
             first.AllocatedBytes,
             null,
             probes);
+    }
+
+    private static ReaderOfficeProbeMeasurement MeasureOfficeProbe(ReaderComparisonCase item) {
+        OfficeDocumentReader reader = CreateReader();
+        for (int index = 0; index < 2; index++) {
+            OfficeComparisonAttempt warmup = RunOfficeAttempt(reader, item);
+            GC.KeepAlive(warmup);
+        }
+
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        long heapBefore = GC.GetTotalMemory(forceFullCollection: false);
+        long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
+        using Process process = Process.GetCurrentProcess();
+        process.Refresh();
+        long workingSetBefore = process.WorkingSet64;
+        OfficeComparisonAttempt attempt;
+        ReaderMemoryPeak peak;
+        using (var sampler = new ReaderMemorySampler(process)) {
+            attempt = RunOfficeAttempt(reader, item);
+            peak = sampler.Stop();
+        }
+        long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        long retained = Math.Max(0, GC.GetTotalMemory(forceFullCollection: false) - heapBefore);
+        process.Refresh();
+        long absoluteProcessPeak = process.PeakWorkingSet64;
+        GC.KeepAlive(attempt);
+
+        return new ReaderOfficeProbeMeasurement(
+            item.Id,
+            item.Bytes.LongLength,
+            Encoding.UTF8.GetByteCount(attempt.Markdown),
+            attempt.DurationMilliseconds,
+            allocated,
+            retained,
+            Math.Max(0, peak.ManagedHeapBytes - heapBefore),
+            Math.Max(0, peak.WorkingSetBytes - workingSetBefore),
+            absoluteProcessPeak,
+            Hash(attempt.Markdown));
+    }
+
+    private static void PopulateOfficeProcessMeasurements(ReaderComparisonToolResult tool) {
+        foreach (ReaderComparisonCaseResult item in tool.Cases) {
+            ReaderOfficeProbeMeasurement measurement = RunOfficeChildProbe(item.CaseId);
+            if (!string.Equals(item.MarkdownSha256, measurement.MarkdownSha256, StringComparison.Ordinal)) {
+                item.Status = "failed";
+                item.Error = AppendError(item.Error, "The isolated memory probe produced different normalized output.");
+            }
+            item.RetainedManagedHeapGrowthBytes = measurement.RetainedManagedHeapGrowthBytes;
+            item.PeakManagedHeapGrowthBytes = measurement.PeakManagedHeapGrowthBytes;
+            item.PeakWorkingSetGrowthBytes = measurement.PeakWorkingSetGrowthBytes;
+            item.PeakWorkingSetBytes = measurement.AbsoluteProcessPeakWorkingSetBytes;
+        }
+    }
+
+    private static ReaderOfficeProbeMeasurement RunOfficeChildProbe(string caseId) {
+        string processPath = Environment.ProcessPath
+            ?? throw new InvalidOperationException("Unable to resolve the Reader benchmark process path.");
+        var startInfo = new ProcessStartInfo {
+            FileName = processPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase)) {
+            startInfo.ArgumentList.Add(Assembly.GetEntryAssembly()!.Location);
+        }
+        startInfo.ArgumentList.Add("office-evidence-probe");
+        startInfo.ArgumentList.Add(caseId);
+
+        using Process child = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Unable to start the Reader memory probe.");
+        string output = child.StandardOutput.ReadToEnd();
+        string error = child.StandardError.ReadToEnd();
+        child.WaitForExit();
+        if (child.ExitCode != 0) {
+            throw new InvalidOperationException($"Reader memory probe '{caseId}' failed: {error}");
+        }
+        return JsonSerializer.Deserialize<ReaderOfficeProbeMeasurement>(output, JsonOptions)
+            ?? throw new InvalidOperationException($"Reader memory probe '{caseId}' returned no measurement.");
     }
 
     private static OfficeComparisonAttempt RunOfficeAttempt(
@@ -264,10 +368,13 @@ internal static class ReaderComparisonCommand {
         .AddEpubHandler()
         .AddExcelHandler()
         .AddHtmlHandler()
+        .AddJsonHandler()
         .AddMarkdownHandler()
         .AddPdfHandler()
         .AddPowerPointHandler()
         .AddWordHandler()
+        .AddXmlHandler()
+        .AddYamlHandler()
         .AddZipHandler()
         .Build();
 
@@ -311,6 +418,8 @@ internal static class ReaderComparisonCommand {
             MarkdownSha256 = Hash(markdown),
             Deterministic = deterministic,
             DurationMilliseconds = durationMilliseconds,
+            InputBytes = item.Bytes.LongLength,
+            OutputBytes = Encoding.UTF8.GetByteCount(markdown),
             AllocatedBytes = allocatedBytes,
             PeakWorkingSetBytes = peakWorkingSetBytes,
             AppliedProbes = applied,
@@ -334,6 +443,8 @@ internal static class ReaderComparisonCommand {
         var builder = new StringBuilder();
         builder.AppendLine("# Reader extraction evidence").AppendLine();
         builder.Append("Generated: ").Append(report.CreatedUtc.ToString("O")).AppendLine("  ");
+        builder.Append("Source commit: ").Append(report.SourceCommit).AppendLine("  ");
+        builder.Append("Source tree dirty: ").Append(report.SourceTreeDirty ? "yes" : "no").AppendLine("  ");
         builder.Append("Runtime: ").Append(report.Runtime).AppendLine("  ");
         builder.Append("Operating system: ").Append(report.OperatingSystem).AppendLine().AppendLine();
         builder.AppendLine("Each runner is reported independently. Probe denominators are runner-specific: OfficeIMO-native tables, links, assets, and source locations do not apply to external Markdown runners. These sections are extraction evidence, not a performance leaderboard.").AppendLine();
@@ -342,10 +453,13 @@ internal static class ReaderComparisonCommand {
             builder.Append("## ").AppendLine(tool.Tool).AppendLine();
             builder.Append("Execution mode: ").Append(tool.ExecutionMode).AppendLine("  ");
             builder.Append("Runner status: ").Append(tool.Status).AppendLine().AppendLine();
-            builder.Append("| Case | Status | Passed / applicable probes | Deterministic | Diagnostic mean ms | ")
-                .Append(inProcess ? "Allocated bytes" : "Peak working set bytes")
-                .AppendLine(" |");
-            builder.AppendLine("| --- | --- | ---: | :---: | ---: | ---: |");
+            if (inProcess) {
+                builder.AppendLine("| Case | Status | Passed / applicable probes | Deterministic | Diagnostic mean ms | Allocated bytes | Retained bytes | Managed peak growth | Process peak growth | Input bytes | Output bytes |");
+                builder.AppendLine("| --- | --- | ---: | :---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+            } else {
+                builder.AppendLine("| Case | Status | Passed / applicable probes | Deterministic | Diagnostic mean ms | Peak working set bytes | Input bytes | Output bytes |");
+                builder.AppendLine("| --- | --- | ---: | :---: | ---: | ---: | ---: | ---: |");
+            }
             foreach (ReaderComparisonCaseResult item in tool.Cases) {
                 long? memory = inProcess ? item.AllocatedBytes : item.PeakWorkingSetBytes;
                 builder.Append("| ").Append(Escape(item.CaseId))
@@ -353,16 +467,44 @@ internal static class ReaderComparisonCommand {
                     .Append(item.PassedProbes).Append('/').Append(item.AppliedProbes)
                     .Append(" | ").Append(item.Deterministic ? "yes" : "no")
                     .Append(" | ").Append(item.DurationMilliseconds.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))
-                    .Append(" | ").Append(memory?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "n/a")
+                    .Append(" | ").Append(memory?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "n/a");
+                if (inProcess) {
+                    builder.Append(" | ").Append(item.RetainedManagedHeapGrowthBytes?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "n/a")
+                        .Append(" | ").Append(item.PeakManagedHeapGrowthBytes?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "n/a")
+                        .Append(" | ").Append(item.PeakWorkingSetGrowthBytes?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "n/a");
+                }
+                builder.Append(" | ").Append(item.InputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    .Append(" | ").Append(item.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture))
                     .AppendLine(" |");
             }
             builder.AppendLine();
         }
-        builder.AppendLine("Duration and memory values describe each execution mode on this machine. In-process allocation and external-process peak working set are different measurements and must not be compared. Use BenchmarkDotNet lanes for release performance decisions.");
+        builder.AppendLine("Duration and memory values describe each execution mode on this machine. OfficeIMO allocation is measured in process; its retained, managed-peak, and working-set-growth values come from an isolated child process per case. External-process peak working set is a different measurement and must not be compared with managed allocation. Output bytes measure normalized extracted Markdown, not a source-format round trip. Use BenchmarkDotNet lanes for release performance decisions.");
         return builder.ToString();
     }
 
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+
+    private static string ResolveCommit() => RunGit("rev-parse", "HEAD") ?? "unknown";
+
+    private static bool ResolveSourceTreeDirty() =>
+        !string.IsNullOrWhiteSpace(RunGit("status", "--porcelain", "--untracked-files=no"));
+
+    private static string? RunGit(params string[] arguments) {
+        var startInfo = new ProcessStartInfo {
+            FileName = "git",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        foreach (string argument in arguments) startInfo.ArgumentList.Add(argument);
+        using Process? process = Process.Start(startInfo);
+        if (process == null) return null;
+        string output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return process.ExitCode == 0 ? output.Trim() : null;
+    }
 
     private static string SafeName(string value) {
         string safe = new string(value.ToLowerInvariant().Select(character =>

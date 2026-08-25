@@ -6,21 +6,24 @@ public static partial class MarkdownReader {
             var t = lines[i];
             // Exclude callouts (handled earlier): they start with "> [!"
             if (CountLeadingIndentColumns(t) > 3) return false;
-            var trimmed = t.TrimStart();
-            if (!trimmed.StartsWith(">")) return false;
+            var quoteMarkerIndex = GetFirstNonWhitespaceIndex(t);
+            if (quoteMarkerIndex >= t.Length || t[quoteMarkerIndex] != '>') return false;
+            var trimmed = quoteMarkerIndex == 0 ? t : t.Substring(quoteMarkerIndex);
             if (options.Callouts &&
                 IsCalloutHeader(trimmed, options, out _, out _)) return false;
 
             // Collect contiguous quote lines and un-prefix one ">" level
             var inner = new System.Collections.Generic.List<string>();
             var innerSourceLines = new System.Collections.Generic.List<MarkdownSourceLineSlice>();
-            var markerSourceSpans = new System.Collections.Generic.List<MarkdownSourceSpan>();
+            var markerSourceSpans = state.CaptureSyntaxTree
+                ? new System.Collections.Generic.List<MarkdownSourceSpan>()
+                : null;
             int j = i;
             bool sawQuotedLine = false;
             while (j < lines.Length) {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();
-                if (ltrim.StartsWith(">")) {
+                if (ltrim.StartsWith(">", StringComparison.Ordinal)) {
                     if (CountLeadingIndentColumns(ln) > 3) break;
 
                     if (sawQuotedLine
@@ -52,7 +55,10 @@ public static partial class MarkdownReader {
                         state.SourceLineOffset + j + 1,
                         GetQuoteContentStartColumn(ln),
                         isQuoteContainerLine: true));
-                    markerSourceSpans.Add(CreateQuoteMarkerSourceSpan(ln, state.SourceLineOffset + j + 1, state));
+                    var markerSourceSpan = CreateQuoteMarkerSourceSpan(ln, state.SourceLineOffset + j + 1, state);
+                    if (markerSourceSpan.HasValue && markerSourceSpans != null) {
+                        markerSourceSpans.Add(markerSourceSpan.Value);
+                    }
                     sawQuotedLine = true;
                     j++;
                     continue;
@@ -113,18 +119,65 @@ public static partial class MarkdownReader {
                 break;
             }
             // Recursively parse inner content as a separate document
-            var quoteState = CloneState(state);
-            quoteState.SuppressBlockGenericAttributes = true;
-            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, quoteState);
             var qb = new QuoteBlock();
-            foreach (var b in childBlocks) qb.ChildBlocks.Add(b);
-            qb.ReplaceMarkerSourceSpans(markerSourceSpans);
-            qb.SyntaxChildren = syntaxChildren;
+            IReadOnlyList<MarkdownSyntaxNode> syntaxChildren = Array.Empty<MarkdownSyntaxNode>();
+            if (CanParseSemanticQuoteAsSingleParagraph(inner, options, state)) {
+                qb.ChildBlocks.Add(new ParagraphBlock(ParseInlines(JoinParagraphLines(inner, options), options, state)));
+            } else {
+                var parsed = ParseNestedMarkdownBlocks(
+                    innerSourceLines,
+                    options,
+                    state,
+                    suppressBlockGenericAttributes: true);
+                foreach (var b in parsed.Blocks) qb.ChildBlocks.Add(b);
+                syntaxChildren = parsed.SyntaxChildren;
+            }
+            if (markerSourceSpans != null) {
+                qb.ReplaceMarkerSourceSpans(markerSourceSpans);
+                qb.SyntaxChildren = syntaxChildren;
+            }
             doc.Add(qb); i = j; return true;
+        }
+
+        private static bool CanParseSemanticQuoteAsSingleParagraph(
+            IReadOnlyList<string> lines,
+            MarkdownReaderOptions options,
+            MarkdownReaderState state) {
+            if (state.CaptureSyntaxTree
+                || options.GenericAttributes
+                || options.BlockParserExtensions.Count != 0
+                || lines == null
+                || lines.Count == 0) {
+                return false;
+            }
+
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                string line = lines[lineIndex] ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(line)
+                    || (options.IndentedCodeBlocks && CountLeadingIndentColumns(line) >= 4)
+                    || IsQuoteStarter(line)
+                    || IsAtxHeading(line, out _, out _)
+                    || IsCodeFenceOpen(line, out _, out _, out _)
+                    || LooksLikeHr(line)
+                    || IsUnorderedListLine(line)
+                    || IsOrderedListLine(line, options, out _, out _)
+                    || HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options)
+                    || TryGetSetextHeadingUnderlineLevel(line, out _)
+                    || LooksLikeReferenceDefinition(line)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool LooksLikeReferenceDefinition(string line) {
+            int separator = line.IndexOf("]:", StringComparison.Ordinal);
+            return separator > 0 && line.LastIndexOf('[', separator) >= 0;
         }
     }
 
-    private static MarkdownSourceSpan CreateQuoteMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderState state) {
+    private static MarkdownSourceSpan? CreateQuoteMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderState state) {
         int markerColumn = GetQuoteMarkerStartColumn(line);
         return CreateSpan(state, absoluteLineNumber, markerColumn, absoluteLineNumber, markerColumn);
     }
@@ -165,12 +218,12 @@ public static partial class MarkdownReader {
         var t = line.TrimStart();
 
         // Block starters we do not want to lazily continue after.
-        if (t.StartsWith(">")) return false;
+        if (t.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(t, out _, out _)) return false;
         if (LooksLikeHr(t)) return false;
         if (IsCodeFenceOpen(t, out _, out _, out _)) return false;
         if (LooksLikeTableRow(t)) return false;
-        if (IsUnorderedListLine(t, out _, out _, out _)) return false;
+        if (IsUnorderedListLine(t)) return false;
         if (IsParagraphInterruptingOrderedListLine(t, options)) return false;
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + t, options, out _, out _)) return false; // callout marker is quote-prefixed in source
@@ -227,7 +280,7 @@ public static partial class MarkdownReader {
 
         var trimmed = source.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
@@ -235,7 +288,7 @@ public static partial class MarkdownReader {
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
 
-        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed, options)) {
+        if (IsUnorderedListLine(trimmed) || IsParagraphInterruptingOrderedListLine(trimmed, options)) {
             normalized = "\\" + trimmed;
             return true;
         }
@@ -250,7 +303,7 @@ public static partial class MarkdownReader {
         if (!TryNormalizeQuoteLazyContinuationLine(lines, index, options, out var normalizedLazyLine)) return false;
 
         var previous = previousLine!;
-        if (!IsUnorderedListLine(previous, out _, out _, out _) &&
+        if (!IsUnorderedListLine(previous) &&
             !IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
             return false;
         }
@@ -265,7 +318,7 @@ public static partial class MarkdownReader {
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 
         var previous = previousLine!;
-        if (!IsUnorderedListLine(previous, out _, out _, out _) &&
+        if (!IsUnorderedListLine(previous) &&
             !IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
             return false;
         }
@@ -273,14 +326,14 @@ public static partial class MarkdownReader {
         int currentIndent = CountLeadingIndentColumns(currentLine!);
         var trimmed = currentLine!.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
-        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed, options)) return false;
+        if (IsUnorderedListLine(trimmed) || IsParagraphInterruptingOrderedListLine(trimmed, options)) return false;
 
         int continuationIndent = GetListContinuationIndent(previous, options);
         if (currentIndent == 0 &&
@@ -303,7 +356,7 @@ public static partial class MarkdownReader {
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 
         var previous = previousLine!;
-        if (IsUnorderedListLine(previous, out _, out _, out _) ||
+        if (IsUnorderedListLine(previous) ||
             IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
             return false;
         }
@@ -315,14 +368,14 @@ public static partial class MarkdownReader {
 
         var trimmed = currentLine!.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
-        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed, options)) return false;
+        if (IsUnorderedListLine(trimmed) || IsParagraphInterruptingOrderedListLine(trimmed, options)) return false;
 
         normalized = trimmed;
         return true;

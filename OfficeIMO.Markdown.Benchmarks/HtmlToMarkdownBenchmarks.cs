@@ -1,12 +1,10 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 
 namespace OfficeIMO.Markdown.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class HtmlToMarkdownBenchmarks {
     private HtmlToMarkdownOptions _officeOptions = null!;
     private ReverseMarkdown.Converter _reverseDefault = null!;
@@ -28,15 +26,14 @@ public class HtmlToMarkdownBenchmarks {
             ReverseMarkdown_Default_Profile());
     }
 
-    [Benchmark(Baseline = true)]
+    [Benchmark(Baseline = true, Description = "OfficeIMO")]
     public string OfficeIMO_Default_Profile() => HtmlConversionDocument.Parse(_html).ToMarkdown(_officeOptions);
 
-    [Benchmark]
+    [Benchmark(Description = "ReverseMarkdown")]
     public string ReverseMarkdown_Default_Profile() => _reverseDefault.Convert(_html);
 }
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class HtmlToMarkdownOfficeProfileBenchmarks {
     private HtmlConversionDocument _document = null!;
     private HtmlToMarkdownOptions _officeOptions = null!;
@@ -79,4 +76,32 @@ public class HtmlToMarkdownOfficeProfileBenchmarks {
                 $"{laneName} did not preserve expected benchmark content '{expectedFragment}'.");
         }
     }
+}
+
+[MemoryDiagnoser]
+public class HtmlToMarkdownLargeArticleStageBenchmarks {
+    private string _html = string.Empty;
+    private HtmlConversionDocument _document = null!;
+    private MarkdownDoc _markdownDocument = null!;
+    private HtmlToMarkdownOptions _options = null!;
+
+    [GlobalSetup]
+    public void Setup() {
+        _html = HtmlToMarkdownBenchmarkCorpus.Get("LargeArticle");
+        _options = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        _document = HtmlConversionDocument.Parse(_html);
+        _markdownDocument = _document.ToMarkdownDocument(_options);
+    }
+
+    [Benchmark]
+    public HtmlConversionDocument ParseHtml() => HtmlConversionDocument.Parse(_html);
+
+    [Benchmark]
+    public MarkdownDoc ConvertModel() => _document.ToMarkdownDocument(_options);
+
+    [Benchmark]
+    public string RenderModel() => _markdownDocument.ToMarkdown(_options.MarkdownWriteOptions);
+
+    [Benchmark]
+    public string FullConversion() => HtmlConversionDocument.Parse(_html).ToMarkdown(_options);
 }

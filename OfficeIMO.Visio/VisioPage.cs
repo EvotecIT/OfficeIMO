@@ -66,8 +66,12 @@ namespace OfficeIMO.Visio {
         private readonly List<VisioLayer> _layers = new();
         private readonly List<VisioComment> _comments = new();
         private readonly HashSet<string> _reservedAutomaticObjectIds = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<int> _automaticObjectIdScratch = new();
+        private readonly HashSet<string> _pageObjectIds = new(StringComparer.Ordinal);
         private readonly IList<VisioShape> _shapeCollection;
         private readonly IList<VisioConnector> _connectorCollection;
+        private bool _pageObjectIdIndexCurrent = true;
+        private int _nextAutomaticObjectId = 1;
         private double _width = 8.26771653543307; // A4 width in inches
         private double _height = 11.69291338582677; // A4 height in inches
         private bool _gridVisible;

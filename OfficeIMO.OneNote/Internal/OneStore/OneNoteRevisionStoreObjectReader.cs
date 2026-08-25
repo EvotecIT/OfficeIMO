@@ -248,7 +248,7 @@ internal static class OneNoteRevisionStoreObjectReader {
             };
             if (!revision?.IsEncrypted ?? true) {
                 byte[] objectData = ReadReferencedBytes(node.ChunkReference, "object property set");
-                record.RawPropertyData = OneNoteBinaryPayload.FromBytes(objectData);
+                record.RawPropertyData = OneNoteBinaryPayload.FromOwnedBytes(objectData);
                 record.PropertySet = OneNotePropertySetReader.Read(objectData, globalIds, _options, node.ChunkReference.Offset);
             }
             Result.Objects.Add(record);
@@ -312,7 +312,7 @@ internal static class OneNoteRevisionStoreObjectReader {
 
             byte[] payload = ReadReferencedRange(node.ChunkReference, 36, (int)length, "file-data store object payload");
             _totalAssetBytes += payload.Length;
-            Result.FileDataObjects.Add(new OneNoteFileDataStoreObject(referenceId, OneNoteBinaryPayload.FromBytes(payload)));
+            Result.FileDataObjects.Add(new OneNoteFileDataStoreObject(referenceId, OneNoteBinaryPayload.FromOwnedBytes(payload)));
         }
 
         private byte[] ReadReferencedBytes(OneNoteFileNodeChunkReference reference, string name) {

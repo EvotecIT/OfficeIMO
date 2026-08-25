@@ -379,20 +379,22 @@ internal sealed partial class OdfPackage {
     private static byte[] ReadEntryBytes(ZipArchiveEntry entry, long length, long maxBytes) {
         if (length > int.MaxValue) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' is too large for the in-memory package store.");
         using Stream source = entry.Open();
-        int initialCapacity = length > 0 && maxBytes > 0 ? (int)Math.Min(length, maxBytes) : 0;
-        using var output = new MemoryStream(initialCapacity);
-        var buffer = new byte[81920];
-        long total = 0;
-        int read;
-        while ((read = source.Read(buffer, 0, buffer.Length)) > 0) {
-            total = checked(total + read);
-            if (total > maxBytes) {
+        var data = length == 0 ? Array.Empty<byte>() : new byte[(int)length];
+        int offset = 0;
+        while (offset < data.Length) {
+            int read = source.Read(data, offset, data.Length - offset);
+            if (read == 0) {
+                throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' length changed while reading.");
+            }
+            offset = checked(offset + read);
+        }
+        if (source.ReadByte() != -1) {
+            if (length >= maxBytes) {
                 throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' exceeds its configured uncompressed read budget ({maxBytes}).");
             }
-            output.Write(buffer, 0, read);
+            throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' length changed while reading.");
         }
-        if (output.Length != length) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' length changed while reading.");
-        return output.ToArray();
+        return data;
     }
 
     internal static bool IsSignaturePath(string path) {

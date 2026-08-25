@@ -216,14 +216,50 @@ public sealed class OfficeProvenanceRemovalResult {
         OfficeProvenanceReport after,
         IReadOnlyList<OfficeProvenanceChange> changes,
         bool wasReserialized,
-        bool wereInvalidatedSignaturesRemoved) {
-        _data = (byte[])(data ?? throw new ArgumentNullException(nameof(data))).Clone();
+        bool wereInvalidatedSignaturesRemoved)
+        : this(
+            data,
+            before,
+            after,
+            changes,
+            wasReserialized,
+            wereInvalidatedSignaturesRemoved,
+            takeOwnership: false) {
+    }
+
+    private OfficeProvenanceRemovalResult(
+        byte[] data,
+        OfficeProvenanceReport before,
+        OfficeProvenanceReport after,
+        IReadOnlyList<OfficeProvenanceChange> changes,
+        bool wasReserialized,
+        bool wereInvalidatedSignaturesRemoved,
+        bool takeOwnership) {
+        _data = takeOwnership
+            ? data ?? throw new ArgumentNullException(nameof(data))
+            : (byte[])(data ?? throw new ArgumentNullException(nameof(data))).Clone();
         Before = before ?? throw new ArgumentNullException(nameof(before));
         After = after ?? throw new ArgumentNullException(nameof(after));
         Changes = new List<OfficeProvenanceChange>(changes ?? throw new ArgumentNullException(nameof(changes))).AsReadOnly();
         WasReserialized = wasReserialized;
         WereInvalidatedSignaturesRemoved = wereInvalidatedSignaturesRemoved;
     }
+
+    internal static OfficeProvenanceRemovalResult CreateOwned(
+        byte[] data,
+        OfficeProvenanceReport before,
+        OfficeProvenanceReport after,
+        IReadOnlyList<OfficeProvenanceChange> changes,
+        bool wasReserialized,
+        bool wereInvalidatedSignaturesRemoved = false) =>
+        new OfficeProvenanceRemovalResult(
+            data,
+            before,
+            after,
+            changes,
+            wasReserialized,
+            wereInvalidatedSignaturesRemoved,
+            takeOwnership: true);
 
     /// <summary>Gets the inspection before removal.</summary>
     public OfficeProvenanceReport Before { get; }

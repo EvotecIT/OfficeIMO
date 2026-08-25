@@ -24,7 +24,10 @@ namespace OfficeIMO.Word {
         // Retain the validated load-time bytes until validation detaches that live stream.
         private byte[]? _legacyValidationEncodedPackageBytes;
         private bool _tableOfContentUpdateQueued;
+        private bool _tableNormalizationRequired = true;
         private bool _styleDefinitionsInitialized;
+        private bool _normalizeOpenOfficeRelationshipsOnSave = true;
+        private WordStyleCatalogFingerprint? _styleCatalogFingerprint;
         private bool _disposed;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
     }

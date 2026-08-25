@@ -25,7 +25,6 @@ public enum OfficePngCompression {
 /// </summary>
 public static partial class OfficePngWriter {
     private static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
-    private static readonly uint[] CrcTable = CreateCrcTable();
 
     /// <summary>
     /// Encodes an RGBA image as PNG bytes.
@@ -483,32 +482,9 @@ public static partial class OfficePngWriter {
     }
 
     private static uint Crc32(byte[] type, byte[] data) {
-        uint crc = 0xFFFFFFFF;
-        for (int i = 0; i < type.Length; i++) {
-            crc = UpdateCrc(crc, type[i]);
-        }
-
-        for (int i = 0; i < data.Length; i++) {
-            crc = UpdateCrc(crc, data[i]);
-        }
-
-        return crc ^ 0xFFFFFFFF;
-    }
-
-    private static uint UpdateCrc(uint crc, byte value) {
-        return CrcTable[(crc ^ value) & 0xFF] ^ (crc >> 8);
-    }
-
-    private static uint[] CreateCrcTable() {
-        var table = new uint[256];
-        for (uint index = 0; index < table.Length; index++) {
-            uint value = index;
-            for (int bit = 0; bit < 8; bit++) {
-                value = (value & 1) != 0 ? 0xEDB88320 ^ (value >> 1) : value >> 1;
-            }
-            table[index] = value;
-        }
-        return table;
+        uint crc = OfficePngCrc32.Append(OfficePngCrc32.Begin(), type, 0, type.Length);
+        crc = OfficePngCrc32.Append(crc, data, 0, data.Length);
+        return OfficePngCrc32.Complete(crc);
     }
 
     private static void WriteBigEndianInt32(byte[] bytes, int offset, int value) {

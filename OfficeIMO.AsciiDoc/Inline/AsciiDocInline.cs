@@ -33,6 +33,8 @@ public abstract class AsciiDocInline {
         _isModified = true;
         return true;
     }
+
+    internal void MarkModified() => _isModified = true;
 }
 
 /// <summary>Ordered inline content within a heading, paragraph, list item, or formatted span.</summary>
@@ -66,16 +68,19 @@ public sealed class AsciiDocInlineSequence {
 
 /// <summary>Literal inline text not assigned another semantic kind.</summary>
 public sealed class AsciiDocTextInline : AsciiDocInline {
-    private string _text;
+    private string? _text;
 
-    internal AsciiDocTextInline(AsciiDocSyntaxNode syntax, string text) : base(syntax) {
-        _text = text;
-    }
+    internal AsciiDocTextInline(AsciiDocSyntaxNode syntax) : base(syntax) { }
 
     /// <summary>Current text.</summary>
     public string Text {
-        get => _text;
-        set => SetValue(ref _text, value ?? string.Empty);
+        get => _text ?? OriginalText;
+        set {
+            string normalized = value ?? string.Empty;
+            if (string.Equals(Text, normalized, StringComparison.Ordinal)) return;
+            _text = normalized;
+            MarkModified();
+        }
     }
 
     internal override string WriteCore(AsciiDocWriterContext context) =>

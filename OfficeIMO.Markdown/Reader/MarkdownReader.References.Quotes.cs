@@ -40,9 +40,19 @@ public static partial class MarkdownReader {
             return false;
         }
 
+        if (!TryStripQuotedPreScanLine(lines[index], out var indexedContent, out var indexedContentStartColumn)) {
+            return false;
+        }
+
         var strippedLines = new string[lines.Length];
         var contentStartColumns = new int[lines.Length];
         for (int i = Math.Max(0, index - 1); i < lines.Length; i++) {
+            if (i == index) {
+                strippedLines[i] = indexedContent;
+                contentStartColumns[i] = indexedContentStartColumn;
+                continue;
+            }
+
             if (TryStripQuotedPreScanLine(lines[i], out var content, out var contentStartColumn)) {
                 strippedLines[i] = content;
                 contentStartColumns[i] = contentStartColumn;
@@ -137,8 +147,12 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        var trimmed = line.TrimStart();
-        if (trimmed.Length == 0 || trimmed[0] != '>') {
+        var markerIndex = 0;
+        while (markerIndex < line.Length && char.IsWhiteSpace(line[markerIndex])) {
+            markerIndex++;
+        }
+
+        if (markerIndex == line.Length || line[markerIndex] != '>') {
             return false;
         }
 

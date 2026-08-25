@@ -22,7 +22,7 @@ public sealed class MhtmlDocument {
         RootContentId = NormalizeContentId(rootContentId);
         Subject = NormalizeOptional(subject);
         BaseUri = ResolveBaseUri(ContentLocation, null);
-        _mimeDiagnostics = BuildResourceDiagnostics(_resources, BaseUri);
+        _mimeDiagnostics = BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation);
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
         _mimeDocument = CreateMimeDocument(html, _resources, ContentLocation, RootContentId, Subject);
     }
@@ -44,10 +44,13 @@ public sealed class MhtmlDocument {
         RootContentId = NormalizeContentId(_mimeDocument.Body.HtmlContentId);
         Subject = NormalizeOptional(_mimeDocument.Subject);
         BaseUri = ResolveBaseUri(ContentLocation, sourceBaseUri);
-        _resources = _mimeDocument.Attachments.Where(static attachment => attachment.IsMimeRelated)
+        _resources = _mimeDocument.Attachments
+            .Where(static attachment => attachment.IsMimeRelated)
             .Select(MhtmlResource.FromEmailAttachment)
             .ToArray();
-        _mimeDiagnostics = readResult.Diagnostics.Concat(BuildResourceDiagnostics(_resources, BaseUri)).ToArray();
+        _mimeDiagnostics = readResult.Diagnostics
+            .Concat(BuildResourceDiagnostics(_resources, BaseUri, RootContentId, ContentLocation))
+            .ToArray();
         HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
     }
 
@@ -317,10 +320,17 @@ public sealed class MhtmlDocument {
 
     private static IReadOnlyList<EmailDiagnostic> BuildResourceDiagnostics(
         IReadOnlyList<MhtmlResource> resources,
-        Uri baseUri) {
+        Uri baseUri,
+        string? rootContentId,
+        string? rootContentLocation) {
         var diagnostics = new List<EmailDiagnostic>();
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var contentLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(rootContentId)) contentIds.Add(rootContentId!);
+        if (!string.IsNullOrWhiteSpace(rootContentLocation)
+            && Uri.TryCreate(baseUri, rootContentLocation, out _)) {
+            contentLocations.Add(baseUri.AbsoluteUri);
+        }
         for (int index = 0; index < resources.Count; index++) {
             MhtmlResource resource = resources[index];
             if (!string.IsNullOrWhiteSpace(resource.ContentId) && !contentIds.Add(resource.ContentId!)) {

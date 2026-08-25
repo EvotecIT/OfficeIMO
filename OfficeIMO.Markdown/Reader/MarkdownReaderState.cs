@@ -117,6 +117,15 @@ public sealed class MarkdownReaderState {
     internal int SourceLineOffset { get; set; }
     internal MarkdownSourceTextMap? SourceTextMap { get; set; }
     internal int ListMarkerIndentOffset { get; set; }
+    internal bool UseRelativeListMarkerIndent { get; set; }
+    /// <summary>Whether this parse is producing the source-backed syntax representation.</summary>
+    internal bool CaptureSyntaxTree { get; set; }
+    /// <summary>Whether a projection parse should retain only top-level block source spans.</summary>
+    internal bool CaptureBlockSourceSpans { get; set; }
+    /// <summary>Whether table parsing should build the rich inline and structured cell model.</summary>
+    internal bool BuildTableCellModels { get; set; } = true;
+    /// <summary>Enables a lightweight semantic pass used only to locate an exact nested-list boundary.</summary>
+    internal bool IsListBoundaryProbe { get; set; }
     internal bool SuppressBlockGenericAttributes { get; set; }
     internal bool SuppressHeadingGenericAttributes { get; set; }
     internal bool IsMarkdigDefinitionListBody { get; set; }
@@ -133,7 +142,7 @@ internal sealed class MarkdownPendingGenericAttributeBlock {
     internal MarkdownPendingGenericAttributeBlock(
         MarkdownAttributeSet attributes,
         string sourceText,
-        MarkdownSourceSpan sourceSpan) {
+        MarkdownSourceSpan? sourceSpan) {
         Attributes = attributes ?? MarkdownAttributeSet.Empty;
         SourceText = sourceText ?? string.Empty;
         SourceSpan = sourceSpan;
@@ -141,5 +150,5 @@ internal sealed class MarkdownPendingGenericAttributeBlock {
 
     internal MarkdownAttributeSet Attributes { get; }
     internal string SourceText { get; }
-    internal MarkdownSourceSpan SourceSpan { get; }
+    internal MarkdownSourceSpan? SourceSpan { get; }
 }

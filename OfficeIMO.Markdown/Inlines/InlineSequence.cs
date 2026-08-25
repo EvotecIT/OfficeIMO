@@ -4,10 +4,16 @@ namespace OfficeIMO.Markdown;
 /// Sequence of inline nodes used in paragraphs and list items.
 /// </summary>
 public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
-    private readonly List<IMarkdownInline> _inlines = new List<IMarkdownInline>();
+    private readonly List<IMarkdownInline> _inlines;
 
     /// <summary>Creates an empty inline sequence.</summary>
-    public InlineSequence() { }
+    public InlineSequence() {
+        _inlines = new List<IMarkdownInline>();
+    }
+
+    internal InlineSequence(int capacity) {
+        _inlines = new List<IMarkdownInline>(Math.Max(0, capacity));
+    }
 
     // When composing via the fluent/builder APIs, auto-spacing between adjacent inline nodes is convenient.
     // When parsing Markdown source, spacing is already present in MarkdownTextRun nodes, so auto-spacing would double spaces.

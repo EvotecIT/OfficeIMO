@@ -37,6 +37,16 @@ internal static class MarkdownInvariantAssert {
             .ToList();
         Assert.NotEmpty(mappedNodes);
 
+        for (int index = 0; index < mappedNodes.Count; index++) {
+            var markdownObject = (MarkdownObject)mappedNodes[index].AssociatedObject!;
+            if (mappedNodes.Take(index).Any(node => ReferenceEquals(node.AssociatedObject, markdownObject))) {
+                continue;
+            }
+            var expected = mappedNodes.First(node => ReferenceEquals(node.AssociatedObject, markdownObject));
+            Assert.Same(expected, result.FindFinalNodeForAssociatedObject(markdownObject));
+            Assert.Same(expected, result.FindFinalNodeForAssociatedObject(markdownObject));
+        }
+
         foreach (var syntaxNode in mappedNodes) {
             var markdownObject = Assert.IsAssignableFrom<MarkdownObject>(syntaxNode.AssociatedObject);
             Assert.Same(result.Document, markdownObject.Document);

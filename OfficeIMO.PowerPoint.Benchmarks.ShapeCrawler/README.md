@@ -32,6 +32,10 @@ Then run ShapeCrawler against the same corpus directory:
 dotnet run --project OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler -c Release -- --scale Normal --corpus-dir artifacts/powerpoint-shared-corpus --json artifacts/shapecrawler-normal.json
 ```
 
+Use `--operation CreateSave|OpenEditSave` to isolate one contract and
+`--repeat 3` (or more) to collect repeated cold probes over the same shared
+corpus.
+
 Compare elapsed time, managed allocation, peak working set, package size, and
 the validated slide/shape counts. These are baselines, not regression budgets.
 Collect several runs on a quiet machine before defining thresholds, and compare

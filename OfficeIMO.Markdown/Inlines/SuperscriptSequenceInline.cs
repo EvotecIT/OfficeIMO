@@ -4,7 +4,8 @@ namespace OfficeIMO.Markdown;
 /// Superscript inline content that can contain nested inline nodes.
 /// Used by Markdig-style emphasis extras so nested markup can be represented without flattening formatting.
 /// </summary>
-public sealed class SuperscriptSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
+public sealed class SuperscriptSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Inline content.</summary>
     public InlineSequence Inlines { get; }
 

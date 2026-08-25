@@ -14,11 +14,20 @@ internal static class MarkdownInlineSourceSpans {
             return null;
         }
 
+        if (inline is MarkdownInline builtInInline) {
+            return builtInInline.SourceSpan;
+        }
+
         return _spans.TryGetValue(inline, out var holder) ? holder.Span : null;
     }
 
     internal static void Set(IMarkdownInline? inline, MarkdownSourceSpan? span) {
         if (inline == null || span == null) {
+            return;
+        }
+
+        if (inline is MarkdownInline builtInInline) {
+            builtInInline.SourceSpan = span;
             return;
         }
 

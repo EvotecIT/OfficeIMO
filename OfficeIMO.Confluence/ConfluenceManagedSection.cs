@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -31,7 +32,28 @@ public sealed class ConfluenceManagedSectionResult {
 
     private static string ComputeHash(string value) {
         using SHA256 sha = SHA256.Create();
-        byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(value ?? string.Empty));
+        value ??= string.Empty;
+        const int charactersPerChunk = 4096;
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Encoding.UTF8.GetMaxByteCount(charactersPerChunk));
+        byte[] hash;
+        try {
+            int offset = 0;
+            while (offset < value.Length) {
+                int characterCount = Math.Min(charactersPerChunk, value.Length - offset);
+                if (offset + characterCount < value.Length
+                    && char.IsHighSurrogate(value[offset + characterCount - 1])
+                    && char.IsLowSurrogate(value[offset + characterCount])) {
+                    characterCount--;
+                }
+                int byteCount = Encoding.UTF8.GetBytes(value, offset, characterCount, buffer, 0);
+                sha.TransformBlock(buffer, 0, byteCount, buffer, 0);
+                offset += characterCount;
+            }
+            sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            hash = sha.Hash ?? throw new CryptographicException("SHA-256 did not produce a hash.");
+        } finally {
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+        }
         var builder = new StringBuilder(hash.Length * 2);
         foreach (byte item in hash) builder.Append(item.ToString("x2", System.Globalization.CultureInfo.InvariantCulture));
         return builder.ToString();
@@ -71,7 +93,7 @@ public static class ConfluenceManagedSection {
         }
 
         int contentStart = startIndex + start.Length;
-        string updated = existingBody.Substring(0, contentStart) + "\n" + replacement + "\n" + existingBody.Substring(endIndex);
+        string updated = CreateUpdatedBody(existingBody, replacement, contentStart, endIndex);
         return new ConfluenceManagedSectionResult(sectionId, existingBody, updated, created: false);
     }
 
@@ -81,4 +103,40 @@ public static class ConfluenceManagedSection {
     private static void ValidateSectionId(string sectionId) {
         if (string.IsNullOrWhiteSpace(sectionId) || !SectionIdPattern.IsMatch(sectionId)) throw new ArgumentException("Section id must contain 1-100 letters, digits, dots, underscores, or hyphens.", nameof(sectionId));
     }
+
+    private static string CreateUpdatedBody(string existingBody, string replacement, int contentStart, int endIndex) {
+#if NETSTANDARD2_0 || NETFRAMEWORK
+        return existingBody.Substring(0, contentStart) + "\n" + replacement + "\n" + existingBody.Substring(endIndex);
+#else
+        int suffixLength = existingBody.Length - endIndex;
+        int length = checked(contentStart + 1 + replacement.Length + 1 + suffixLength);
+        var state = new SectionReplacementState(existingBody, replacement, contentStart, endIndex);
+        return string.Create(length, state, static (destination, replacementState) => {
+            int offset = 0;
+            replacementState.ExistingBody.AsSpan(0, replacementState.ContentStart).CopyTo(destination);
+            offset += replacementState.ContentStart;
+            destination[offset++] = '\n';
+            replacementState.Replacement.AsSpan().CopyTo(destination.Slice(offset));
+            offset += replacementState.Replacement.Length;
+            destination[offset++] = '\n';
+            replacementState.ExistingBody.AsSpan(replacementState.EndIndex).CopyTo(destination.Slice(offset));
+        });
+#endif
+    }
+
+#if !NETSTANDARD2_0 && !NETFRAMEWORK
+    private readonly struct SectionReplacementState {
+        internal SectionReplacementState(string existingBody, string replacement, int contentStart, int endIndex) {
+            ExistingBody = existingBody;
+            Replacement = replacement;
+            ContentStart = contentStart;
+            EndIndex = endIndex;
+        }
+
+        internal string ExistingBody { get; }
+        internal string Replacement { get; }
+        internal int ContentStart { get; }
+        internal int EndIndex { get; }
+    }
+#endif
 }

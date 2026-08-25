@@ -3,7 +3,8 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Inline code span.
 /// </summary>
-public sealed class CodeSpanInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class CodeSpanInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Code content.</summary>
     public string Text { get; }
     /// <summary>Source span for the code content token when parsed from markdown.</summary>

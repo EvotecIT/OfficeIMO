@@ -4,7 +4,8 @@ namespace OfficeIMO.Markdown;
 /// Bold+italic emphasis that contains nested inline nodes.
 /// Used by the reader so nested markup can be represented without changing the fluent builder API.
 /// </summary>
-public sealed class BoldItalicSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
+public sealed class BoldItalicSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Inline content.</summary>
     public InlineSequence Inlines { get; }
 

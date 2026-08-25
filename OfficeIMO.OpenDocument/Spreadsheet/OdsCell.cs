@@ -97,7 +97,9 @@ public sealed class OdsCell {
         string text = value ?? string.Empty;
         ClearValueAttributes();
         _element.SetAttributeValue(OdfNamespaces.Office + "value-type", "string");
-        _element.SetAttributeValue(OdfNamespaces.Office + "string-value", text);
+        if (_element.Attribute(OdfNamespaces.Table + "formula") != null) {
+            _element.SetAttributeValue(OdfNamespaces.Office + "string-value", text);
+        }
         ReplaceDisplayText(text);
         Dirty();
     }
@@ -239,7 +241,21 @@ public sealed class OdsCell {
         _element.ReplaceWith(covered); _element = covered; Dirty();
     }
 
-    private static string ReadDisplayText(XElement element) => string.Join("\n", element.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
+    private static string ReadDisplayText(XElement element) {
+        string? firstText = null;
+        StringBuilder? builder = null;
+        for (XNode? node = element.FirstNode; node != null; node = node.NextNode) {
+            if (!(node is XElement paragraph) || paragraph.Name != OdfNamespaces.Text + "p") continue;
+            string text = OdfTextCodec.Read(paragraph);
+            if (firstText == null) {
+                firstText = text;
+                continue;
+            }
+            if (builder == null) builder = new StringBuilder(firstText);
+            builder.Append('\n').Append(text);
+        }
+        return builder?.ToString() ?? firstText ?? string.Empty;
+    }
 
     private void SetNumeric(string valueType, string lexical, string display) {
         EnsureEditable(); ClearValueAttributes();

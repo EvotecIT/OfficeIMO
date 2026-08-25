@@ -1010,7 +1010,7 @@ public sealed class PackageDependencyGuardrailTests {
             ["../OfficeIMO.Core/OfficeIMO.Core.csproj"],
             GetProjectReferences(projectPath));
         Assert.Equal(
-            ["BouncyCastle.Cryptography", "System.Security.Cryptography.Xml"],
+            ["BouncyCastle.Cryptography", "System.Security.Cryptography.Xml", "System.Security.Cryptography.Pkcs"],
             GetPackageReferences(projectPath));
         Assert.False(File.Exists(GetRepositoryPath(
             "OfficeIMO.Pdf.Cryptography.Pkcs/OfficeIMO.Pdf.Cryptography.Pkcs.csproj")));

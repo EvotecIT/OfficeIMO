@@ -10,9 +10,17 @@ public static class LatexTokenizer {
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
+        return Tokenize(new LatexSourceText(source), options, cancellationToken);
+    }
+
+    internal static IReadOnlyList<LatexToken> Tokenize(
+        LatexSourceText sourceText,
+        LatexParseOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (sourceText == null) throw new ArgumentNullException(nameof(sourceText));
+        string source = sourceText.Text;
         options ??= new LatexParseOptions();
         Validate(source, options);
-        var sourceText = new LatexSourceText(source);
         var tokens = new List<LatexToken>();
         int index = 0;
         while (index < source.Length) {
@@ -61,8 +69,7 @@ public static class LatexTokenizer {
                 while (index < source.Length && !IsSpecial(source[index])) index++;
                 kind = LatexTokenKind.Text;
             }
-            string text = source.Substring(start, index - start);
-            tokens.Add(new LatexToken(kind, text, value, sourceText.CreateSpan(start, index), isTerminated));
+            tokens.Add(new LatexToken(kind, sourceText, value, start, index, isTerminated));
         }
         return tokens;
     }

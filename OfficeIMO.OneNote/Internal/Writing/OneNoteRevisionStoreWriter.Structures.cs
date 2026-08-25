@@ -31,25 +31,27 @@ internal sealed class OneNoteDesktopFileNodeList : IOneNoteDesktopReferenceTarge
 
     public uint Length {
         get {
-            long nodeBytes = Nodes.Sum(node => (long)node.Length);
+            long nodeBytes = 0;
+            for (int index = 0; index < Nodes.Count; index++) {
+                nodeBytes = checked(nodeBytes + Nodes[index].Length);
+            }
             long length = OneNoteDesktopBinary.Align8(HeaderLength + nodeBytes + TrailerLength);
             if (length > uint.MaxValue) throw new OneNoteFormatException("ONENOTE_WRITE_FILE_NODE_LIST_SIZE", "A desktop OneNote file-node list exceeds the 32-bit reference range.");
             return (uint)length;
         }
     }
 
-    internal byte[] Encode() {
-        var data = new byte[checked((int)Length)];
-        using (var stream = new MemoryStream(data, true)) {
-            FssHttpStreamObjectWriter.WriteUInt64(stream, 0xA4567AB1F5F7F4C4UL);
-            FssHttpStreamObjectWriter.WriteUInt32(stream, Id);
-            FssHttpStreamObjectWriter.WriteUInt32(stream, 0);
-            foreach (OneNoteDesktopFileNode node in Nodes) node.Write(stream);
-            stream.Position = data.Length - TrailerLength;
-            OneNoteDesktopBinary.WriteNilReference(stream);
-            FssHttpStreamObjectWriter.WriteUInt64(stream, 0x8BC215C38233BA4BUL);
-        }
-        return data;
+    internal void Write(Stream stream) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        long start = stream.Position;
+        long end = checked(start + Length);
+        FssHttpStreamObjectWriter.WriteUInt64(stream, 0xA4567AB1F5F7F4C4UL);
+        FssHttpStreamObjectWriter.WriteUInt32(stream, Id);
+        FssHttpStreamObjectWriter.WriteUInt32(stream, 0);
+        foreach (OneNoteDesktopFileNode node in Nodes) node.Write(stream);
+        stream.Position = end - TrailerLength;
+        OneNoteDesktopBinary.WriteNilReference(stream);
+        FssHttpStreamObjectWriter.WriteUInt64(stream, 0x8BC215C38233BA4BUL);
     }
 }
 
@@ -93,7 +95,7 @@ internal static class OneNoteDesktopBinary {
     internal static long Align8(long value) => checked((value + 7L) & ~7L);
 
     internal static byte[] Data(Action<Stream> writer) {
-        using (var stream = new MemoryStream()) {
+        using (var stream = new MemoryStream(128)) {
             writer(stream);
             return stream.ToArray();
         }

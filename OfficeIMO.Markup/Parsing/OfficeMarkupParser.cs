@@ -25,6 +25,7 @@ public static partial class OfficeMarkupParser {
         "officeimo-chart",
         "officeimo-format"
     };
+    private static readonly string[] MermaidLanguages = { "mermaid" };
 
     public static OfficeMarkupParseResult Parse(string markup, OfficeMarkupParserOptions? options = null) {
         options ??= new OfficeMarkupParserOptions();
@@ -37,7 +38,7 @@ public static partial class OfficeMarkupParser {
 
         if (!TryMapOfficeSyntax(source, document, profile, diagnostics)) {
             var markdownOptions = CreateMarkdownOptions(options);
-            var markdownDocument = MarkdownReader.Parse(source, markdownOptions);
+            var markdownDocument = MarkdownReader.ParseSemanticProjection(source, markdownOptions);
             MapMarkdownBlocks(markdownDocument.Blocks, document.Blocks, profile, diagnostics);
         }
 

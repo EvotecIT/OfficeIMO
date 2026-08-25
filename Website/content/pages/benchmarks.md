@@ -27,7 +27,7 @@ meta.raw_html: true
     <div class="imo-benchmark-evidence-model__grid">
       <article>
         <span class="imo-benchmark-evidence-model__index">01</span>
-        <strong>18 source suites</strong>
+        <strong>33 source suites</strong>
         <h3>What can be measured</h3>
         <p>Benchmark projects in the current repository define runnable workloads, validation, and reproduction commands. Their existence is coverage—not a performance claim.</p>
       </article>

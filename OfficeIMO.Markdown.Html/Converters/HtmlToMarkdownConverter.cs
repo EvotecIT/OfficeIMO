@@ -41,6 +41,34 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     /// <summary>
+    /// Converts an independently owned DOM after applying operation filters in place. The caller
+    /// supplies the original input length so bounded conversion does not have to serialize the DOM.
+    /// </summary>
+    internal MarkdownDoc ConvertPreparedDocumentToDocument(
+        IHtmlDocument document,
+        HtmlToMarkdownOptions effectiveOptions,
+        int sourceLength) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
+        ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
+        ApplyHtmlFilters(document.DocumentElement, effectiveOptions);
+        return ConvertFilteredDocument(document, effectiveOptions);
+    }
+
+    /// <summary>
+    /// Converts a caller-owned read-only DOM when no operation requires source mutation.
+    /// </summary>
+    internal MarkdownDoc ConvertReadOnlyDocumentToDocument(
+        IHtmlDocument document,
+        HtmlToMarkdownOptions effectiveOptions,
+        int sourceLength) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
+        ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
+        return ConvertFilteredDocument(document, effectiveOptions);
+    }
+
+    /// <summary>
     /// Creates the filtered, caller-independent DOM used by the converter and internal
     /// projection consumers without introducing a second HTML parsing path.
     /// </summary>
@@ -48,8 +76,8 @@ internal sealed partial class HtmlToMarkdownConverter {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
         IHtmlDocument filteredDocument = HtmlDocumentParser.CloneDocument(document);
-        string source = filteredDocument.DocumentElement?.OuterHtml ?? string.Empty;
-        ValidateInputLength(source, effectiveOptions.MaxInputCharacters, nameof(document));
+        int sourceLength = (filteredDocument.DocumentElement?.OuterHtml ?? string.Empty).Length;
+        ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
         ApplyHtmlFilters(filteredDocument.DocumentElement, effectiveOptions);
         return filteredDocument;
     }
@@ -62,9 +90,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         context.Footnotes = HtmlFootnoteConversionState.Create(root);
 
         var markdown = MarkdownDoc.Create();
-        foreach (var block in ConvertNodesToBlocks(root.ChildNodes, context)) {
-            markdown.Add(block);
-        }
+        markdown.AddRange(ConvertNodesToBlocks(root.ChildNodes, context));
 
         return MarkdownDocumentTransformPipeline.Apply(
             markdown,
@@ -260,7 +286,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return CollapseWhitespace(value!).Trim();
     }
 
-    private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {
+    private static void ValidateInputLength(int inputLength, int? maxInputCharacters, string paramName) {
         if (!maxInputCharacters.HasValue) {
             return;
         }
@@ -269,8 +295,8 @@ internal sealed partial class HtmlToMarkdownConverter {
             throw new ArgumentOutOfRangeException(nameof(maxInputCharacters), maxInputCharacters.Value, "MaxInputCharacters must be greater than zero.");
         }
 
-        if (input.Length > maxInputCharacters.Value) {
-            throw new ArgumentOutOfRangeException(paramName, input.Length, $"Input exceeds MaxInputCharacters ({maxInputCharacters.Value}).");
+        if (inputLength > maxInputCharacters.Value) {
+            throw new ArgumentOutOfRangeException(paramName, inputLength, $"Input exceeds MaxInputCharacters ({maxInputCharacters.Value}).");
         }
     }
 

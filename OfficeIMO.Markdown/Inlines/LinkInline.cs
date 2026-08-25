@@ -3,7 +3,8 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Hyperlink inline.
 /// </summary>
-public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
+public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Link text.</summary>
     public string Text { get; }
     /// <summary>Destination URL.</summary>

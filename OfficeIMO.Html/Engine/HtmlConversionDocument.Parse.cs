@@ -11,7 +11,7 @@ public sealed partial class HtmlConversionDocument {
             throw new ArgumentNullException(nameof(html));
         }
 
-        HtmlConversionDocumentOptions resolved = (options ?? new HtmlConversionDocumentOptions()).Clone();
+        HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
         resolved.Validate();
         HtmlConversionInputGuard.ValidateSource(html, resolved.Limits);
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);

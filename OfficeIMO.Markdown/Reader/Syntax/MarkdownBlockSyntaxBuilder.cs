@@ -65,6 +65,19 @@ internal static class MarkdownBlockSyntaxBuilder {
         return nodes;
     }
 
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(ListItem item) {
+        int blockCount = item.SyntaxBlockChildCount;
+        if (blockCount == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var nodes = new MarkdownSyntaxNode[blockCount];
+        for (int i = 0; i < blockCount; i++) {
+            nodes[i] = BuildBlock(item.GetSyntaxBlockChild(i));
+        }
+        return nodes;
+    }
+
     internal static bool ChildSyntaxNodesMatchBlocks(
         IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren,
         IReadOnlyList<IMarkdownBlock> blocks) {
@@ -98,7 +111,19 @@ internal static class MarkdownBlockSyntaxBuilder {
             var cachedSyntax = FindCanonicalSyntaxChild(syntaxChildren, block, i);
             if (cachedSyntax != null &&
                 IsSyntaxChildForBlock(cachedSyntax, block)) {
-                children.Add(CloneSyntaxNode(cachedSyntax));
+                if (cachedSyntax.Children.Count == 0
+                    && block is IMarkdownListBlock sourceList
+                    && sourceList.ListItems.Count > 0) {
+                    children.Add(BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false));
+                    continue;
+                }
+
+                // Parser-owned nodes are assembled bottom-up. A root that has not yet been
+                // parented can become part of the original tree directly; later rebuilds
+                // still clone it so the original and final trees keep independent navigation.
+                children.Add(cachedSyntax.Parent == null
+                    ? cachedSyntax
+                    : CloneSyntaxNode(cachedSyntax));
                 continue;
             }
 
@@ -108,7 +133,50 @@ internal static class MarkdownBlockSyntaxBuilder {
                 continue;
             }
 
-            children.Add(BuildBlock(block, cachedSyntax?.SourceSpan, isGenerated: true));
+            children.Add(BuildBlock(
+                block,
+                cachedSyntax?.SourceSpan,
+                isGenerated: block is not MarkdownObject sourceObject || !sourceObject.SourceSpan.HasValue));
+        }
+
+        return children;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildCanonicalChildSyntaxNodes(
+        IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren,
+        ListItem item) {
+        int blockCount = item.SyntaxBlockChildCount;
+        if (blockCount == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var children = new MarkdownSyntaxNode[blockCount];
+        for (int i = 0; i < blockCount; i++) {
+            var block = item.GetSyntaxBlockChild(i);
+            var cachedSyntax = FindCanonicalSyntaxChild(syntaxChildren, block, i);
+            if (cachedSyntax != null && IsSyntaxChildForBlock(cachedSyntax, block)) {
+                if (cachedSyntax.Children.Count == 0
+                    && block is IMarkdownListBlock sourceList
+                    && sourceList.ListItems.Count > 0) {
+                    children[i] = BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false);
+                    continue;
+                }
+
+                children[i] = cachedSyntax.Parent == null
+                    ? cachedSyntax
+                    : CloneSyntaxNode(cachedSyntax);
+                continue;
+            }
+
+            if (cachedSyntax != null && CanBuildSourceBackedCompatibleSyntax(cachedSyntax, block)) {
+                children[i] = BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false);
+                continue;
+            }
+
+            children[i] = BuildBlock(
+                block,
+                cachedSyntax?.SourceSpan,
+                isGenerated: block is not MarkdownObject sourceObject || !sourceObject.SourceSpan.HasValue);
         }
 
         return children;

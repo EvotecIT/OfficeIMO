@@ -23,6 +23,10 @@ public static partial class MarkdownReader {
     }
 
     private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownReaderOptions options) {
+        if (!ContainsPotentialReferenceLinkDefinition(lines)) {
+            return;
+        }
+
         bool inFence = false;
         char fenceChar = '\0';
         int fenceLen = 0;
@@ -64,7 +68,8 @@ public static partial class MarkdownReader {
             if (leading >= 4) continue;
             if (leading < line.Length && line[leading] == '\t') continue;
 
-            if (TryParseReferenceLinkDefinition(
+            bool containsPotentialDefinition = ContainsPotentialReferenceLinkDefinition(line);
+            if (containsPotentialDefinition && TryParseReferenceLinkDefinition(
                 lines,
                 idx,
                 options,
@@ -109,7 +114,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (!inQuotedFence && TryParseQuotedReferenceLinkDefinition(
+            if (containsPotentialDefinition && !inQuotedFence && TryParseQuotedReferenceLinkDefinition(
                 lines,
                 idx,
                 options,
@@ -127,6 +132,29 @@ public static partial class MarkdownReader {
 
             openParagraph = IsReferenceDefinitionParagraphContinuationLine(lines, idx, options);
         }
+    }
+
+    private static bool ContainsPotentialReferenceLinkDefinition(string[]? lines) {
+        if (lines == null || lines.Length == 0) {
+            return false;
+        }
+
+        for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
+            if (ContainsPotentialReferenceLinkDefinition(lines[lineIndex] ?? string.Empty)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsPotentialReferenceLinkDefinition(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return false;
+        }
+
+        int separator = line.IndexOf("]:", StringComparison.Ordinal);
+        return separator > 0 && line.LastIndexOf('[', separator) >= 0;
     }
 
     private static bool CanReferenceDefinitionResolveOpenShortcutParagraph(string[] lines, int definitionIndex) {
@@ -551,14 +579,12 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        var trimmed = line.Substring(leading).TrimEnd();
-        if (trimmed.Length < 1 || trimmed[0] != '[') {
+        if (leading >= line.Length || line[leading] != '[' ||
+            (leading + 1 < line.Length && line[leading + 1] == '^')) {
             return false;
         }
 
-        if (trimmed.Length > 1 && trimmed[1] == '^') {
-            return false;
-        }
+        var trimmed = line.Substring(leading).TrimEnd();
 
         int rb = FindReferenceLabelEnd(trimmed, 0);
         if (rb > 1 && rb + 1 < trimmed.Length && trimmed[rb + 1] == ':') {

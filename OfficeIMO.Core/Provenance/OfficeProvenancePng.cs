@@ -15,10 +15,31 @@ internal static class OfficeProvenancePng {
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes, out bool reserialized) {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
-        using var output = new MemoryStream(data.Length);
+        using var output = new MemoryStream(EstimateRemovalOutputCapacity(data, options));
         output.Write(data, 0, SignatureLength);
         reserialized = Walk(data, options.Limits, context: null, output, options, changes);
         return output.ToArray();
+    }
+
+    private static int EstimateRemovalOutputCapacity(byte[] data, OfficeProvenanceRemovalOptions options) {
+        if (!options.RemoveC2paManifests || data.Length <= SignatureLength) return data.Length;
+        int offset = SignatureLength;
+        int c2paCount = 0;
+        int c2paBytes = 0;
+        while (offset <= data.Length - 12) {
+            uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false);
+            if (payloadValue > int.MaxValue) return data.Length;
+            long totalValue = 12L + payloadValue;
+            if (totalValue > data.Length - offset) return data.Length;
+            int total = (int)totalValue;
+            if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) {
+                c2paCount++;
+                c2paBytes = total;
+            }
+            offset += total;
+            if (OfficeProvenanceBinary.MatchesAscii(data, offset - total + 4, "IEND")) break;
+        }
+        return c2paCount == 1 ? Math.Max(0, data.Length - c2paBytes) : data.Length;
     }
 
     private static bool Walk(
@@ -289,22 +310,13 @@ internal static class OfficeProvenancePng {
     }
 
     private static uint ComputeCrc(byte[] header, int offset, int count, byte[] payload) {
-        uint crc = 0xFFFFFFFF;
-        for (int index = 0; index < count; index++) crc = UpdateCrc(crc, header[offset + index]);
-        for (int index = 0; index < payload.Length; index++) crc = UpdateCrc(crc, payload[index]);
-        return crc ^ 0xFFFFFFFF;
+        uint crc = OfficePngCrc32.Append(OfficePngCrc32.Begin(), header, offset, count);
+        crc = OfficePngCrc32.Append(crc, payload, 0, payload.Length);
+        return OfficePngCrc32.Complete(crc);
     }
 
     private static bool HasValidCrc(byte[] data, int chunkOffset, int payloadLength) {
         uint expected = OfficeProvenanceBinary.ReadUInt32(data, chunkOffset + 8 + payloadLength, littleEndian: false);
-        uint crc = 0xFFFFFFFF;
-        for (int index = chunkOffset + 4; index < chunkOffset + 8 + payloadLength; index++) crc = UpdateCrc(crc, data[index]);
-        return (crc ^ 0xFFFFFFFF) == expected;
-    }
-
-    private static uint UpdateCrc(uint crc, byte value) {
-        crc ^= value;
-        for (int bit = 0; bit < 8; bit++) crc = (crc & 1) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
-        return crc;
+        return OfficePngCrc32.Compute(data, chunkOffset + 4, payloadLength + 4) == expected;
     }
 }

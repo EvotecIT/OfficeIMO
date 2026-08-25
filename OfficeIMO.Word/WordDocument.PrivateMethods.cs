@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Xml.Linq;
 
@@ -9,7 +10,7 @@ namespace OfficeIMO.Word;
 public partial class WordDocument {
     private void SaveNumbering() {
         var numbering = GetNumbering();
-        if (numbering == null) {
+        if (numbering == null || HasCanonicalNumberingOrder(numbering)) {
             return;
         }
 
@@ -32,6 +33,23 @@ public partial class WordDocument {
         foreach (var numberingInstance in listNumberingInstance) {
             numbering.Append(numberingInstance);
         }
+    }
+
+    private static bool HasCanonicalNumberingOrder(Numbering numbering) {
+        int previousGroup = 0;
+        foreach (OpenXmlElement child in numbering.ChildElements) {
+            int currentGroup = child switch {
+                NumberingPictureBullet => 0,
+                AbstractNum => 1,
+                NumberingInstance => 2,
+                _ => -1
+            };
+            if (currentGroup < previousGroup) {
+                return false;
+            }
+            previousGroup = currentGroup;
+        }
+        return true;
     }
 
     private Numbering? GetNumbering() {

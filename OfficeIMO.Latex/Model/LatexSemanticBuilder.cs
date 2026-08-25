@@ -54,20 +54,24 @@ internal static class LatexSemanticBuilder {
         LatexDocumentProfile profile,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        LatexSyntaxNode[] commandSyntax = syntaxTree.Root.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Command)
-            .ToArray();
+        var commandSyntax = new List<LatexSyntaxNode>();
+        var environmentSyntax = new List<LatexSyntaxNode>();
+        var mathSyntax = new List<LatexSyntaxNode>();
+        foreach (LatexSyntaxNode node in syntaxTree.Root.DescendantsAndSelf()) {
+            switch (node.Kind) {
+                case LatexSyntaxKind.Command: commandSyntax.Add(node); break;
+                case LatexSyntaxKind.Environment: environmentSyntax.Add(node); break;
+                case LatexSyntaxKind.Math: mathSyntax.Add(node); break;
+            }
+        }
         var commandMap = new Dictionary<LatexSyntaxNode, LatexCommand>();
-        for (int index = 0; index < commandSyntax.Length; index++) {
+        for (int index = 0; index < commandSyntax.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             commandMap[commandSyntax[index]] = new LatexCommand(commandSyntax[index], source);
         }
 
-        LatexSyntaxNode[] environmentSyntax = syntaxTree.Root.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Environment)
-            .ToArray();
-        var environments = new List<LatexEnvironment>(environmentSyntax.Length);
-        for (int index = 0; index < environmentSyntax.Length; index++) {
+        var environments = new List<LatexEnvironment>(environmentSyntax.Count);
+        for (int index = 0; index < environmentSyntax.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             LatexSyntaxNode syntax = environmentSyntax[index];
             LatexSyntaxNode beginSyntax = syntax.Children.First(static child => child.Kind == LatexSyntaxKind.Command);
@@ -80,15 +84,13 @@ internal static class LatexSemanticBuilder {
                 source));
         }
 
-        var math = syntaxTree.Root.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Math)
-            .Select(node => new LatexMath(node, source))
-            .ToList();
+        var math = new List<LatexMath>(mathSyntax.Count);
+        for (int index = 0; index < mathSyntax.Count; index++) math.Add(new LatexMath(mathSyntax[index], source));
         math.AddRange(environments.Where(static environment => environment.IsMath).Select(static environment => new LatexMath(environment)));
 
-        LatexCommand[] commands = commandMap.Values.OrderBy(static command => command.Syntax.Span.Start.Offset).ToArray();
-        LatexEnvironment[] orderedEnvironments = environments.OrderBy(static environment => environment.Syntax.Span.Start.Offset).ToArray();
-        LatexMath[] orderedMath = math.OrderBy(static item => item.Syntax.Span.Start.Offset).ToArray();
+        LatexCommand[] commands = commandMap.Values.OrderBy(static command => command.Syntax.StartOffset).ToArray();
+        LatexEnvironment[] orderedEnvironments = environments.OrderBy(static environment => environment.Syntax.StartOffset).ToArray();
+        LatexMath[] orderedMath = math.OrderBy(static item => item.Syntax.StartOffset).ToArray();
         if (profile == LatexDocumentProfile.PreserveOnly) {
             return new LatexSemanticModel(
                 commands,
@@ -152,6 +154,20 @@ internal static class LatexSemanticBuilder {
         LatexSourceText source,
         IReadOnlyList<LatexEnvironment> environments,
         IReadOnlyList<LatexCommand> commands) {
+        var itemsByEnvironment = new Dictionary<LatexSyntaxNode, List<LatexCommand>>();
+        for (int commandIndex = 0; commandIndex < commands.Count; commandIndex++) {
+            LatexCommand command = commands[commandIndex];
+            if (!string.Equals(command.Name, "item", StringComparison.Ordinal)) continue;
+            LatexSyntaxNode? parent = command.Syntax.Parent;
+            while (parent != null && parent.Kind != LatexSyntaxKind.Environment) parent = parent.Parent;
+            if (parent == null) continue;
+            if (!itemsByEnvironment.TryGetValue(parent, out List<LatexCommand>? items)) {
+                items = new List<LatexCommand>();
+                itemsByEnvironment[parent] = items;
+            }
+            items.Add(command);
+        }
+
         var lists = new List<LatexList>();
         for (int environmentIndex = 0; environmentIndex < environments.Count; environmentIndex++) {
             LatexEnvironment environment = environments[environmentIndex];
@@ -161,23 +177,24 @@ internal static class LatexSemanticBuilder {
             else if (string.Equals(environment.Name, "description", StringComparison.Ordinal)) kind = LatexListKind.Description;
             else continue;
 
-            LatexCommand[] itemCommands = commands.Where(command => string.Equals(command.Name, "item", StringComparison.Ordinal) &&
-                    IsDirectlyInside(command.Syntax, environment.Syntax))
-                .OrderBy(static command => command.Syntax.Span.Start.Offset)
-                .ToArray();
-            var items = new List<LatexListItem>();
-            for (int index = 0; index < itemCommands.Length; index++) {
-                int start = itemCommands[index].Syntax.Span.End.Offset;
-                int end = index + 1 < itemCommands.Length
-                    ? itemCommands[index + 1].Syntax.Span.Start.Offset
+            IReadOnlyList<LatexCommand> itemCommands = itemsByEnvironment.TryGetValue(
+                environment.Syntax,
+                out List<LatexCommand>? itemCommandsForEnvironment)
+                ? itemCommandsForEnvironment
+                : Array.Empty<LatexCommand>();
+            var listItems = new List<LatexListItem>();
+            for (int index = 0; index < itemCommands.Count; index++) {
+                int start = itemCommands[index].Syntax.EndOffset;
+                int end = index + 1 < itemCommands.Count
+                    ? itemCommands[index + 1].Syntax.StartOffset
                     : environment.ContentSpan.End.Offset;
                 TrimWhitespace(source.Text, ref start, ref end);
-                items.Add(new LatexListItem(
+                listItems.Add(new LatexListItem(
                     itemCommands[index],
                     source.CreateSpan(start, end),
                     source.Text.Substring(start, end - start)));
             }
-            lists.Add(new LatexList(environment, kind, items));
+            lists.Add(new LatexList(environment, kind, listItems));
         }
         return lists;
     }
@@ -214,13 +231,13 @@ internal static class LatexSemanticBuilder {
         int cellStart = environment.ContentSpan.Start.Offset;
         int ignoreUntil = cellStart;
         foreach (LatexSyntaxNode node in environment.Syntax.Children) {
-            int nodeStart = node.Span.Start.Offset;
+            int nodeStart = node.StartOffset;
             if (nodeStart < environment.ContentSpan.Start.Offset || nodeStart >= environment.ContentSpan.End.Offset ||
                 nodeStart < ignoreUntil) continue;
 
             if (node.Kind == LatexSyntaxKind.Text && string.Equals(node.OriginalText, "&", StringComparison.Ordinal)) {
                 AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells);
-                cellStart = node.Span.End.Offset;
+                cellStart = node.EndOffset;
                 continue;
             }
 
@@ -230,7 +247,7 @@ internal static class LatexSemanticBuilder {
                     rows.Add(new LatexTableRow(rows.Count, currentCells.ToArray()));
                 }
                 currentCells = new List<LatexTableCell>();
-                int rowContentStart = node.Span.End.Offset;
+                int rowContentStart = node.EndOffset;
                 while (rowContentStart < environment.ContentSpan.End.Offset && source.Text[rowContentStart] == '*') rowContentStart++;
                 if (rowContentStart < environment.ContentSpan.End.Offset && source.Text[rowContentStart] == '[') {
                     SkipBalanced(source.Text, ref rowContentStart, '[', ']', environment.ContentSpan.End.Offset);
@@ -480,13 +497,16 @@ internal static class LatexSemanticBuilder {
         IReadOnlyList<LatexCommand> commands) {
         var blocked = new List<LatexSourceSpan>();
         blocked.AddRange(headings.Select(static heading => heading.Command.Syntax.Span));
+        LatexCommand[] labels = commands.Where(static command => string.Equals(command.Name, "label", StringComparison.Ordinal)).ToArray();
+        int labelIndex = 0;
         for (int index = 0; index < headings.Count; index++) {
             LatexSourceSpan headingSpan = headings[index].Command.Syntax.Span;
-            LatexCommand? label = commands.FirstOrDefault(command =>
-                string.Equals(command.Name, "label", StringComparison.Ordinal) &&
-                command.Syntax.Span.Start.Offset >= headingSpan.End.Offset &&
-                command.Syntax.Span.End.Offset <= body.ContentSpan.End.Offset &&
-                IsWhitespaceOnly(source.Text, headingSpan.End.Offset, command.Syntax.Span.Start.Offset));
+            while (labelIndex < labels.Length && labels[labelIndex].Syntax.StartOffset < headingSpan.End.Offset) labelIndex++;
+            LatexCommand? label = labelIndex < labels.Length
+                && labels[labelIndex].Syntax.EndOffset <= body.ContentSpan.End.Offset
+                && IsWhitespaceOnly(source.Text, headingSpan.End.Offset, labels[labelIndex].Syntax.StartOffset)
+                    ? labels[labelIndex]
+                    : null;
             if (label != null) blocked.Add(label.Syntax.Span);
         }
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
@@ -497,8 +517,8 @@ internal static class LatexSemanticBuilder {
                 !string.Equals(node.Value, "verb", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(environments.Where(environment => !ReferenceEquals(environment, body) &&
-            environment.Syntax.Span.Start.Offset >= body.ContentSpan.Start.Offset &&
-            environment.Syntax.Span.End.Offset <= body.ContentSpan.End.Offset).Select(static environment => environment.Syntax.Span));
+            environment.Syntax.StartOffset >= body.ContentSpan.Start.Offset &&
+            environment.Syntax.EndOffset <= body.ContentSpan.End.Offset).Select(static environment => environment.Syntax.Span));
         blocked.AddRange(math.Where(static item => item.Kind != LatexMathKind.InlineDollar && item.Kind != LatexMathKind.InlineParentheses && item.Kind != LatexMathKind.Environment)
             .Select(static item => item.Syntax.Span));
         blocked = Merge(blocked.OrderBy(static span => span.Start.Offset).ToList());

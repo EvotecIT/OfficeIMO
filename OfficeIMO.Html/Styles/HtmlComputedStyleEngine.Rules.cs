@@ -153,6 +153,7 @@ public static partial class HtmlComputedStyleEngine {
             if (!string.IsNullOrWhiteSpace(propertyName)
                 && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 declarations[propertyName] = new StyleDeclaration(
+                    propertyName,
                     RestoreProtectedDeclarationValue(styleRule.Style.GetPropertyValue(propertyName)),
                     string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
             }
@@ -166,6 +167,7 @@ public static partial class HtmlComputedStyleEngine {
             string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
             if (string.IsNullOrWhiteSpace(propertyValue)) continue;
             declarations[propertyName] = new StyleDeclaration(
+                propertyName,
                 RestoreProtectedDeclarationValue(propertyValue),
                 string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
         }
@@ -718,6 +720,6 @@ public static partial class HtmlComputedStyleEngine {
             && !important) {
             return;
         }
-        declarations[propertyName] = new StyleDeclaration(value, important);
+        declarations[propertyName] = new StyleDeclaration(propertyName, value, important);
     }
 }

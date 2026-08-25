@@ -122,6 +122,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PageObjectIdsTrackNestedShapeMutationsAndReleasedSlots() {
+            VisioPage page = new("Page-1");
+            VisioShape group = new("1") { Type = "Group" };
+            VisioShape topLevel = new("2", 1, 1, 1, 1, "Top level");
+            page.Shapes.Add(group);
+            page.Shapes.Add(topLevel);
+
+            VisioShape duplicateChild = new("2", 2, 1, 1, 1, "Duplicate");
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => group.Children.Add(duplicateChild));
+            Assert.Contains("already used", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Null(duplicateChild.Parent);
+
+            VisioShape child = new("3", 3, 1, 1, 1, "Child");
+            group.Children.Add(child);
+            page.Shapes.Remove(topLevel);
+            VisioShape reusedTopLevelSlot = page.AddRectangle(4, 1, 1, 1, "Reused top-level slot");
+            Assert.Equal("2", reusedTopLevelSlot.Id);
+
+            group.Children.Remove(child);
+            VisioShape reusedNestedSlot = page.AddRectangle(5, 1, 1, 1, "Reused nested slot");
+            Assert.Equal("3", reusedNestedSlot.Id);
+        }
+
+        [Fact]
         public void ConnectorIndexerRejectsDuplicateConnectorInstancesAndAllowsSelfAssignment() {
             VisioPage page = new("Page-1");
             VisioShape start = new("1", 1, 1, 1, 1, "Start");

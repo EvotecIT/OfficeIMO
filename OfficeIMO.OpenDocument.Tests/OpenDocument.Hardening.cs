@@ -12,6 +12,13 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentHardeningTests {
     [Fact]
+    public void PlainTextFastPathPreservesTheDecodedCharacterLimit() {
+        var paragraph = new XElement(OdfNamespaces.Text + "p", new string('x', (16 * 1024 * 1024) + 1));
+
+        Assert.Throws<InvalidDataException>(() => OdfTextCodec.Read(paragraph));
+    }
+
+    [Fact]
     public void RejectsDuplicateAndCaseAmbiguousArchiveEntries() {
         OdtDocument created = OdtDocument.Create();
         byte[] valid = created.ToBytes();
