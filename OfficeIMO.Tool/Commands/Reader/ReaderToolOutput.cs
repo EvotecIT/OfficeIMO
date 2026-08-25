@@ -26,6 +26,7 @@ internal static class ReaderToolOutput {
         string content,
         string? outputPath,
         TextWriter standardOutput,
+        bool overwrite,
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(outputPath) || outputPath == "-") {
             await standardOutput.WriteAsync(content.AsMemory(), cancellationToken).ConfigureAwait(false);
@@ -35,7 +36,7 @@ internal static class ReaderToolOutput {
             return;
         }
 
-        await WriteFileAsync(outputPath!, content, overwrite: true, cancellationToken).ConfigureAwait(false);
+        await WriteFileAsync(outputPath!, content, overwrite, cancellationToken).ConfigureAwait(false);
     }
 
     internal static async Task WriteFolderAsync(

@@ -52,6 +52,8 @@ The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversio
 
 Markdown and JSON destinations are semantic Reader projections rather than fixed-layout renderings. They use the same handlers as `officeimo reader read` and support every input format reported by `officeimo reader capabilities`.
 
+All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing PDF, Markdown, or JSON file should be replaced.
+
 ## Command areas
 
 - `officeimo convert` routes PDF destinations to the first-party Word, Excel, or PowerPoint PDF adapter and Markdown/JSON destinations to OfficeIMO.Reader.

@@ -22,7 +22,8 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         Stream standardInput,
         TextWriter standardOutput,
         TextWriter standardError,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        bool overwriteSingleOutput = true) {
         if (standardInput == null) throw new ArgumentNullException(nameof(standardInput));
         if (standardOutput == null) throw new ArgumentNullException(nameof(standardOutput));
         if (standardError == null) throw new ArgumentNullException(nameof(standardError));
@@ -49,7 +50,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
 
             return parsed.Command switch {
                 ReaderToolCommand.Read => await RunReadAsync(
-                    parsed, reader, standardInput, standardOutput, cancellationToken).ConfigureAwait(false),
+                    parsed, reader, standardInput, standardOutput, overwriteSingleOutput, cancellationToken).ConfigureAwait(false),
                 ReaderToolCommand.Folder => await RunFolderAsync(
                     parsed, reader, standardError, cancellationToken).ConfigureAwait(false),
                 ReaderToolCommand.Capabilities => await RunCapabilitiesAsync(
@@ -83,6 +84,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         OfficeDocumentReader reader,
         Stream standardInput,
         TextWriter standardOutput,
+        bool overwriteOutput,
         CancellationToken cancellationToken) {
         var readerOptions = new ReaderOptions { MaxInputBytes = options.MaxInputBytes };
         OfficeDocumentReadResult document;
@@ -108,6 +110,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             ReaderToolOutput.FormatDocument(document, options.Format),
             options.OutputPath,
             standardOutput,
+            overwriteOutput,
             cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(options.AssetsPath)) {
             ReaderToolOutput.WriteAssets(document, options.AssetsPath!, cancellationToken);

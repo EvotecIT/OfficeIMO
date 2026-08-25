@@ -12,7 +12,7 @@ Usage:
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
   officeimo convert <input> <output.md|output.markdown|output.json>
-                    [--assets <directory>] [--max-input-bytes <bytes>]
+                    [--assets <directory>] [--max-input-bytes <bytes>] [--force]
 
 PDF output uses the first-party Word, Excel, or PowerPoint PDF adapter.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
@@ -47,6 +47,12 @@ The default destination for DOCX, XLSX, and PPTX input is a sibling PDF file.
                 cancellationToken).ConfigureAwait(false);
         }
 
+        if (!route.Force && File.Exists(route.OutputPath)) {
+            await standardError.WriteLineAsync(
+                "Output already exists. Use --force to replace it: " + route.OutputPath).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OutputFailed;
+        }
+
         using var readerOutput = new StreamWriter(
             standardOutput,
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
@@ -57,7 +63,8 @@ The default destination for DOCX, XLSX, and PPTX input is a sibling PDF file.
             standardInput,
             readerOutput,
             standardError,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            overwriteSingleOutput: route.Force).ConfigureAwait(false);
     }
 
     private static async Task WriteUtf8Async(Stream output, string value, CancellationToken cancellationToken) {
@@ -77,6 +84,8 @@ internal sealed class ConvertRoute {
 
     internal bool Help { get; private init; }
     internal ConvertOutputFormat Format { get; private init; }
+    internal string? OutputPath { get; private init; }
+    internal bool Force { get; private init; }
     internal string[] ReaderArguments { get; private init; } = [];
 
     internal static ConvertRoute Parse(string[] args) {
@@ -90,6 +99,7 @@ internal sealed class ConvertRoute {
         string? optionOutputPath = null;
         string? assetsPath = null;
         string? maxInputBytes = null;
+        bool force = false;
         bool hasPdfOnlyOption = false;
 
         for (int index = 0; index < args.Length; index++) {
@@ -114,7 +124,7 @@ internal sealed class ConvertRoute {
                     hasPdfOnlyOption = true;
                     break;
                 case "--force":
-                    hasPdfOnlyOption = true;
+                    force = true;
                     break;
                 default:
                     if (token.StartsWith("-", StringComparison.Ordinal)) {
@@ -149,7 +159,7 @@ internal sealed class ConvertRoute {
 
         if (hasPdfOnlyOption) {
             throw new ConvertUsageException(
-                "--force, --max-output-bytes, and --max-characters-in-part are only valid for PDF output.");
+                "--max-output-bytes and --max-characters-in-part are only valid for PDF output.");
         }
 
         var readerArguments = new List<string> {
@@ -171,6 +181,8 @@ internal sealed class ConvertRoute {
 
         return new ConvertRoute {
             Format = format,
+            OutputPath = outputPath,
+            Force = force,
             ReaderArguments = readerArguments.ToArray()
         };
     }

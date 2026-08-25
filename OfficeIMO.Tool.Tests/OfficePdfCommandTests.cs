@@ -81,6 +81,44 @@ public sealed class OfficePdfCommandTests {
         Assert.Contains(".pdf, .md, .markdown, or .json", error.ToString(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".json")]
+    public async Task ConvertRequiresForceToReplaceReaderDestinations(string outputExtension) {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "source.xlsx");
+        string outputPath = Path.Combine(directory, "result" + outputExtension);
+        CreateSource(inputPath, ".xlsx");
+        await File.WriteAllTextAsync(outputPath, "original content");
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int refusedExitCode = await OfficeImoToolApp.RunAsync(
+                ["convert", inputPath, outputPath],
+                Stream.Null,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, refusedExitCode);
+            Assert.Equal("original content", await File.ReadAllTextAsync(outputPath));
+            Assert.Contains("--force", error.ToString(), StringComparison.Ordinal);
+
+            error.GetStringBuilder().Clear();
+            int forcedExitCode = await OfficeImoToolApp.RunAsync(
+                ["convert", inputPath, outputPath, "--force"],
+                Stream.Null,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, forcedExitCode);
+            Assert.Contains("Tool Excel conversion", await File.ReadAllTextAsync(outputPath), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task ConvertRefusesToReplaceAnExistingOutputWithoutForce() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tool.Tests", Guid.NewGuid().ToString("N"));

@@ -1,12 +1,33 @@
 ---
 title: Installation
-description: How to install OfficeIMO packages via NuGet, Package Manager Console, or PowerShell Gallery. Includes examples and API links.
+description: How to install the OfficeIMO command-line tool, .NET packages, or PowerShell module from their public package feeds.
 order: 1
 ---
 
 Released OfficeIMO .NET packages are distributed through [NuGet.org](https://www.nuget.org/profiles/EvotecIT). The PowerShell module is distributed through the [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice).
 
 Install only the packages an application needs and keep coordinated OfficeIMO package references on the same version. The commands below select the current stable release from NuGet.
+
+## OfficeIMO.Tool
+
+Install the command-line tool globally when `officeimo` should be available from any directory:
+
+```powershell
+dotnet tool install --global OfficeIMO.Tool
+officeimo --version
+```
+
+For a repository-local installation, create or reuse a .NET tool manifest:
+
+```powershell
+dotnet new tool-manifest
+dotnet tool install OfficeIMO.Tool
+dotnet tool run officeimo help
+# The SDK also resolves the local tool through this shorthand:
+dotnet officeimo help
+```
+
+The [OfficeIMO.Tool guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Tool) covers conversion, extraction, inspection, and MCP workflows.
 
 ## .NET Packages
 
