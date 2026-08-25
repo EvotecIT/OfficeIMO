@@ -6,8 +6,7 @@
     <AssemblyName>OfficeIMO.Tool</AssemblyName>
     <AssemblyTitle>OfficeIMO.Tool</AssemblyTitle>
     <VersionPrefix>3.2.5</VersionPrefix>
-    <PackageVersion Condition="'$(PackageVersion)' == ''">$(VersionPrefix)</PackageVersion>
-    <InformationalVersion>$(PackageVersion)</InformationalVersion>
+    <InformationalVersion Condition="'$(PackageVersion)' != ''">$(PackageVersion)</InformationalVersion>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Tool</PackageId>

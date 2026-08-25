@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: How to install the OfficeIMO command-line tool, .NET packages, or PowerShell module from their public package feeds.
+description: How to install the OfficeIMO command-line tool, .NET packages, or PowerShell module from public NuGet and PowerShell Gallery feeds.
 order: 1
 ---
 
