@@ -121,6 +121,43 @@ public class PdfAnnotationReviewWorkflowTests {
     }
 
     [Fact]
+    public void Build_SeparatesGroupedAnnotationsFromReplyThreads() {
+        PdfAnnotation parent = CreateReviewAnnotation(1, review: null);
+        PdfAnnotation grouped = CreateReviewAnnotation(2, new PdfAnnotationReviewInfo(1, "Group", null, null, null, null));
+        PdfAnnotation reply = CreateReviewAnnotation(3, new PdfAnnotationReviewInfo(1, null, null, null, null, null));
+        PdfAnnotation unknown = CreateReviewAnnotation(4, new PdfAnnotationReviewInfo(1, "Other", null, null, null, null));
+
+        PdfAnnotationReviewCatalog catalog = PdfAnnotationReviewCatalog.Build(new[] { parent, grouped, reply, unknown });
+
+        PdfAnnotationReviewThread parentThread = Assert.Single(catalog.Threads, thread => thread.Root.Annotation.ObjectNumber == 1);
+        Assert.Equal(3, Assert.Single(parentThread.Root.Replies).Annotation.ObjectNumber);
+        PdfAnnotationReviewThread groupThread = Assert.Single(catalog.Threads, thread => thread.Root.Annotation.ObjectNumber == 2);
+        Assert.False(groupThread.IsOrphanedReply);
+        PdfAnnotationReviewThread unknownThread = Assert.Single(catalog.Threads, thread => thread.Root.Annotation.ObjectNumber == 4);
+        Assert.False(unknownThread.IsOrphanedReply);
+        Assert.True(grouped.Review!.IsGroup);
+        Assert.False(grouped.Review.IsReply);
+        Assert.True(reply.Review!.IsReply);
+        Assert.False(unknown.Review!.IsReply);
+        Assert.False(unknown.Review.IsGroup);
+        Assert.Equal(1, catalog.ReplyCount);
+        Assert.Equal(0, catalog.OrphanedReplyCount);
+    }
+
+    [Fact]
+    public void Build_EnforcesRelationshipLimitWhileScanningAnnotations() {
+        var annotations = new[] {
+            CreateReviewAnnotation(1, review: null),
+            CreateReviewAnnotation(2, new PdfAnnotationReviewInfo(1, "Group", null, null, null, null)),
+            CreateReviewAnnotation(3, new PdfAnnotationReviewInfo(1, "R", null, null, null, null))
+        };
+
+        Assert.Throws<InvalidOperationException>(() => PdfAnnotationReviewCatalog.Build(
+            annotations,
+            new PdfAnnotationReviewCatalogOptions { MaximumRelationships = 1 }));
+    }
+
+    [Fact]
     public void ReviewState_RejectsNonTextAnnotationsAcrossCreateUpdateAndWorkflowSurfaces() {
         byte[] source = PdfDocument.Create()
             .HighlightAnnotation("Highlighted", 120, 14)
@@ -176,4 +213,16 @@ public class PdfAnnotationReviewWorkflowTests {
         "20 0 obj\n<< /Type /Annot /Subtype /Text /Rect [36 36 54 54] /Contents (Sparse parent) /P 10 0 R >>\nendobj\n" +
         "30 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
         "trailer\n<< /Root 1 0 R /Size 31 >>\nstartxref\n0\n%%EOF\n");
+
+    private static PdfAnnotation CreateReviewAnnotation(int objectNumber, PdfAnnotationReviewInfo? review) => new PdfAnnotation(
+        objectNumber,
+        pageNumber: 1,
+        subtype: "Text",
+        contents: "annotation-" + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        x1: 0,
+        y1: 0,
+        x2: 18,
+        y2: 18,
+        hasNormalAppearance: false,
+        review: review);
 }

@@ -148,7 +148,10 @@ internal static class PdfDocumentObjectGraphRewriter {
         }
 
         using FileStream output = PdfTemporaryFile.Create(".rewrite", FileOptions.RandomAccess, out _);
-        using var boundedOutput = new PdfBoundedWriteStream(output, maximumOutputBytes);
+        using var boundedOutput = new PdfBoundedWriteStream(
+            output,
+            maximumOutputBytes,
+            "The rewritten PDF exceeds the configured expanded container limit.");
         if (permanentFileId == null) {
             PdfFileAssembler.Assemble(
                 boundedOutput,
@@ -252,38 +255,4 @@ internal static class PdfDocumentObjectGraphRewriter {
             : null;
     }
 
-    private sealed class PdfBoundedWriteStream : Stream {
-        private readonly Stream _inner;
-        private readonly long? _maximumBytes;
-
-        internal PdfBoundedWriteStream(Stream inner, long? maximumBytes) {
-            _inner = inner;
-            _maximumBytes = maximumBytes;
-        }
-
-        public override bool CanRead => false;
-        public override bool CanSeek => false;
-        public override bool CanWrite => true;
-        public override long Length => _inner.Length;
-        public override long Position { get => _inner.Position; set => throw new NotSupportedException(); }
-        public override void Flush() => _inner.Flush();
-        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-        public override void SetLength(long value) => throw new NotSupportedException();
-
-        public override void Write(byte[] buffer, int offset, int count) {
-            AddWithinOutputLimit(_inner.Position, count, _maximumBytes);
-            _inner.Write(buffer, offset, count);
-        }
-
-        public override void WriteByte(byte value) {
-            AddWithinOutputLimit(_inner.Position, 1L, _maximumBytes);
-            _inner.WriteByte(value);
-        }
-
-        protected override void Dispose(bool disposing) {
-            if (disposing) _inner.Flush();
-            base.Dispose(disposing);
-        }
-    }
 }

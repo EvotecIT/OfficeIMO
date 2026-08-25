@@ -86,7 +86,7 @@ public sealed class PdfAnnotationReviewCatalog {
     /// <summary>Total annotations represented by the catalog.</summary>
     public int AnnotationCount { get; }
 
-    /// <summary>Annotations that declare an /IRT relationship.</summary>
+    /// <summary>Annotations represented as conversational replies.</summary>
     public int ReplyCount { get; }
 
     /// <summary>Replies whose parent could not be represented as a valid thread ancestor.</summary>
@@ -124,8 +124,19 @@ public sealed class PdfAnnotationReviewCatalog {
             .GroupBy(static annotation => annotation.ObjectNumber!.Value)
             .ToDictionary(static group => group.Key, static group => group.First());
         var children = new Dictionary<int, List<PdfAnnotation>>();
+        int relationshipCount = 0;
+        int replyCount = 0;
         foreach (PdfAnnotation annotation in ordered) {
-            int? parentObjectNumber = annotation.Review?.InReplyToObjectNumber;
+            PdfAnnotationReviewInfo? review = annotation.Review;
+            if (review?.InReplyToObjectNumber.HasValue == true) {
+                relationshipCount++;
+                if (relationshipCount > effectiveOptions.MaximumRelationships) {
+                    throw new InvalidOperationException("Annotation review catalog exceeded the configured relationship limit.");
+                }
+            }
+            if (review?.IsReply != true) continue;
+            replyCount++;
+            int? parentObjectNumber = review.InReplyToObjectNumber;
             if (!parentObjectNumber.HasValue || !byObjectNumber.ContainsKey(parentObjectNumber.Value) || annotation.ObjectNumber == parentObjectNumber) continue;
             if (!children.TryGetValue(parentObjectNumber.Value, out List<PdfAnnotation>? entries)) {
                 entries = new List<PdfAnnotation>();
@@ -133,22 +144,19 @@ public sealed class PdfAnnotationReviewCatalog {
             }
             entries.Add(annotation);
         }
-        int replyCount = ordered.Count(static annotation => annotation.Review?.InReplyToObjectNumber.HasValue == true);
-        if (replyCount > effectiveOptions.MaximumRelationships) {
-            throw new InvalidOperationException("Annotation review catalog exceeded the configured relationship limit.");
-        }
 
         var visited = new HashSet<PdfAnnotation>();
         var threads = new List<PdfAnnotationReviewThread>();
         foreach (PdfAnnotation annotation in ordered) {
-            int? parentObjectNumber = annotation.Review?.InReplyToObjectNumber;
+            bool isReply = annotation.Review?.IsReply == true;
+            int? parentObjectNumber = isReply ? annotation.Review!.InReplyToObjectNumber : null;
             bool hasValidParent = parentObjectNumber.HasValue &&
                 parentObjectNumber != annotation.ObjectNumber &&
                 byObjectNumber.ContainsKey(parentObjectNumber.Value);
             if (hasValidParent) continue;
             threads.Add(new PdfAnnotationReviewThread(
                 BuildEntry(annotation, children, visited, new HashSet<int>(), effectiveOptions.MaximumThreadDepth),
-                parentObjectNumber.HasValue));
+                isReply && parentObjectNumber.HasValue));
         }
 
         foreach (PdfAnnotation annotation in ordered) {

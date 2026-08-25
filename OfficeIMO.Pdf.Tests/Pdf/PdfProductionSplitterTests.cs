@@ -68,6 +68,25 @@ public class PdfProductionSplitterTests {
     }
 
     [Fact]
+    public void Split_AcceptsTheExactCumulativeArtifactByteBudget() {
+        byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("one", "two");
+        var baselineOptions = new PdfProductionSplitOptions { MaximumPagesPerPart = 1 };
+        PdfProductionSplitResult baseline = PdfProductionSplitter.Split(source, baselineOptions);
+
+        PdfProductionSplitResult exact = PdfProductionSplitter.Split(source, new PdfProductionSplitOptions {
+            MaximumPagesPerPart = 1,
+            MaximumCumulativeArtifactBytes = baseline.CumulativeArtifactBytes
+        });
+
+        Assert.Equal(baseline.CumulativeArtifactBytes, exact.CumulativeArtifactBytes);
+        Assert.Equal(baseline.Parts.Select(static part => part.SizeBytes), exact.Parts.Select(static part => part.SizeBytes));
+        Assert.Throws<InvalidOperationException>(() => PdfProductionSplitter.Split(source, new PdfProductionSplitOptions {
+            MaximumPagesPerPart = 1,
+            MaximumCumulativeArtifactBytes = baseline.CumulativeArtifactBytes - 1L
+        }));
+    }
+
+    [Fact]
     public void Split_ReservesStructuralReadLimitsForGeneratedArtifacts() {
         byte[] source = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +

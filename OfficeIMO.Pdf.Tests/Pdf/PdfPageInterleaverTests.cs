@@ -209,6 +209,28 @@ public class PdfPageInterleaverTests {
         Assert.DoesNotContain("excluded-link-owner", System.Text.Encoding.ASCII.GetString(result.ToBytes()), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Interleave_MapsCombinedOpenActionsThroughRoundRobinOutputOrder() {
+        byte[] first = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [5 0 R /Fit] >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 6 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream");
+        byte[] second = PdfProductionWorkflowTestSupport.CreatePdf("B one", "B two");
+
+        PdfInterleaveResult result = PdfPageInterleaver.Interleave(
+            new[] { new PdfInterleaveSource(first), new PdfInterleaveSource(second) },
+            new PdfInterleaveOptions {
+                MergeOptions = new PdfMergeOptions {
+                    Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.Combine }
+                }
+            });
+
+        Assert.Equal(3, PdfInspector.Inspect(result.ToBytes()).OpenAction!.PageNumber);
+    }
+
 
     private static byte[] BuildTwoPageSharedFieldPdf() => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",

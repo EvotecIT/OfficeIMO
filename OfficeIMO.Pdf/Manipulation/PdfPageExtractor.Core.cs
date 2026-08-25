@@ -78,11 +78,7 @@ internal static partial class PdfPageExtractor {
         var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides);
         var objects = new List<byte[]>(sourceIds.Count + 3);
         long serializedObjectBytes = 0L;
-        int outputObjectCount = sourceIds.Count + extraObjects.Length + clonedPages.Count +
-            clonedPages.Sum(static page => page.AnnotationObjectMap.Count) + 3;
-        long objectBytesLimit = maximumOutputBytes.HasValue
-            ? SubtractAssemblyReserve(maximumOutputBytes.Value, outputObjectCount)
-            : long.MaxValue;
+        long objectBytesLimit = maximumOutputBytes ?? long.MaxValue;
     
         foreach (int sourceId in sourceIds) {
             if (!sourceObjects.TryGetValue(sourceId, out var sourceObject)) {
@@ -163,11 +159,9 @@ internal static partial class PdfPageExtractor {
         AddBoundedObject(objects, catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context)), objectBytesLimit, ref serializedObjectBytes);
         AddBoundedObject(objects, infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata)), objectBytesLimit, ref serializedObjectBytes);
     
-        byte[] output = Assemble(objects, catalogId, infoId, fileVersion);
-        if (maximumOutputBytes.HasValue && output.LongLength > maximumOutputBytes.Value) {
-            throw new InvalidDataException("The extracted PDF exceeds the configured output limit.");
-        }
-        return output;
+        return maximumOutputBytes.HasValue
+            ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value)
+            : Assemble(objects, catalogId, infoId, fileVersion);
     }
 
     private static void AddBoundedObject(
@@ -184,13 +178,39 @@ internal static partial class PdfPageExtractor {
         objects.Add(indirectObject);
     }
 
-    private static long SubtractAssemblyReserve(long maximumOutputBytes, int objectCount) {
-        long xrefAndTrailerReserve = 1024L + ((long)objectCount + 1L) * 24L;
-        if (maximumOutputBytes <= xrefAndTrailerReserve) {
-            throw new InvalidDataException("The extracted PDF exceeds the configured output limit.");
+    private static byte[] AssembleBounded(
+        IReadOnlyList<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        long maximumOutputBytes) {
+        using FileStream output = PdfTemporaryFile.Create(".extract", FileOptions.RandomAccess, out _);
+        using var boundedOutput = new PdfBoundedWriteStream(
+            output,
+            maximumOutputBytes,
+            "The extracted PDF exceeds the configured output limit.");
+        PdfFileAssembler.Assemble(
+            boundedOutput,
+            objects,
+            catalogId,
+            infoId,
+            fileVersion,
+            objectMemoryLimitBytes: 0L);
+        boundedOutput.Flush();
+        if (output.Length > int.MaxValue) {
+            throw new InvalidDataException("The extracted PDF exceeds the supported in-memory result size.");
         }
-        return maximumOutputBytes - xrefAndTrailerReserve;
+        var bytes = new byte[(int)output.Length];
+        output.Position = 0L;
+        int read = 0;
+        while (read < bytes.Length) {
+            int count = output.Read(bytes, read, bytes.Length - read);
+            if (count == 0) throw new EndOfStreamException("The temporary extracted PDF ended unexpectedly.");
+            read += count;
+        }
+        return bytes;
     }
+
     
     private static ClonedAnnotationState BuildClonedAnnotationState(
         Dictionary<int, PdfIndirectObject> sourceObjects,

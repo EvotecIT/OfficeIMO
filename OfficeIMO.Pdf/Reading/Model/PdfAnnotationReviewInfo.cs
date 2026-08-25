@@ -53,8 +53,12 @@ public sealed class PdfAnnotationReviewInfo {
     /// <summary>Annotation intent name from /IT.</summary>
     public string? Intent { get; }
 
-    /// <summary>True when this annotation points to another annotation as a reply.</summary>
-    public bool IsReply => InReplyToObjectNumber.HasValue;
+    /// <summary>True when this annotation has an absent/default or explicit R reply relationship.</summary>
+    public bool IsReply => InReplyToObjectNumber.HasValue &&
+        (string.IsNullOrEmpty(ReplyType) || string.Equals(ReplyType, "R", StringComparison.Ordinal));
+
+    /// <summary>True when this annotation declares a Group relationship rather than a conversational reply.</summary>
+    public bool IsGroup => InReplyToObjectNumber.HasValue && string.Equals(ReplyType, "Group", StringComparison.Ordinal);
 
     /// <summary>Typed standard state when the raw state and model form a known combination.</summary>
     public PdfAnnotationReviewState? StandardState => (StateModel, State) switch {
