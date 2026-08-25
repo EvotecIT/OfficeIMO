@@ -7,7 +7,7 @@ namespace OfficeIMO.Reader;
 /// Core-owned atomic file publication used by Reader materializers.
 /// </summary>
 internal static class ReaderFileCommit {
-    internal static void WriteAllBytes(string path, byte[] bytes) {
+    internal static void WriteAllBytes(string path, byte[] bytes, bool overwrite = true) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
@@ -23,10 +23,11 @@ internal static class ReaderFileCommit {
             "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
         try {
             File.WriteAllBytes(temporaryPath, bytes);
-            if (File.Exists(fullPath)) {
-                File.Delete(fullPath);
+            if (overwrite && File.Exists(fullPath)) {
+                File.Replace(temporaryPath, fullPath, null);
+            } else {
+                File.Move(temporaryPath, fullPath);
             }
-            File.Move(temporaryPath, fullPath);
         } finally {
             try {
                 if (File.Exists(temporaryPath)) File.Delete(temporaryPath);

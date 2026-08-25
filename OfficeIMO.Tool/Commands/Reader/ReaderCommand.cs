@@ -22,7 +22,8 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         Stream standardInput,
         TextWriter standardOutput,
         TextWriter standardError,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        bool overwriteSingleOutput = true) {
         if (standardInput == null) throw new ArgumentNullException(nameof(standardInput));
         if (standardOutput == null) throw new ArgumentNullException(nameof(standardOutput));
         if (standardError == null) throw new ArgumentNullException(nameof(standardError));
@@ -49,7 +50,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
 
             return parsed.Command switch {
                 ReaderToolCommand.Read => await RunReadAsync(
-                    parsed, reader, standardInput, standardOutput, cancellationToken).ConfigureAwait(false),
+                    parsed, reader, standardInput, standardOutput, overwriteSingleOutput, cancellationToken).ConfigureAwait(false),
                 ReaderToolCommand.Folder => await RunFolderAsync(
                     parsed, reader, standardError, cancellationToken).ConfigureAwait(false),
                 ReaderToolCommand.Capabilities => await RunCapabilitiesAsync(
@@ -83,9 +84,11 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         OfficeDocumentReader reader,
         Stream standardInput,
         TextWriter standardOutput,
+        bool overwriteOutput,
         CancellationToken cancellationToken) {
         var readerOptions = new ReaderOptions { MaxInputBytes = options.MaxInputBytes };
         OfficeDocumentReadResult document;
+        string? sourcePath = null;
         if (options.InputPath == "-") {
             document = await reader.ReadDocumentAsync(
                 standardInput,
@@ -93,25 +96,26 @@ The dependency-bounded tool does not configure OCR or hosted providers.
                 readerOptions,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         } else {
-            string inputPath = Path.GetFullPath(options.InputPath!);
-            if (!File.Exists(inputPath)) {
-                throw new FileNotFoundException("Input file '" + inputPath + "' does not exist.", inputPath);
+            sourcePath = Path.GetFullPath(options.InputPath!);
+            if (!File.Exists(sourcePath)) {
+                throw new FileNotFoundException("Input file '" + sourcePath + "' does not exist.", sourcePath);
             }
             if (!string.IsNullOrWhiteSpace(options.OutputPath) && options.OutputPath != "-") {
-                ReaderToolPathSafety.EnsureDistinctFile(inputPath, options.OutputPath!);
+                ReaderToolPathSafety.EnsureDistinctFile(sourcePath, options.OutputPath!);
             }
-            document = await reader.ReadDocumentAsync(inputPath, readerOptions, cancellationToken)
+            document = await reader.ReadDocumentAsync(sourcePath, readerOptions, cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        await ReaderToolOutput.WriteSingleAsync(
-            ReaderToolOutput.FormatDocument(document, options.Format),
+        await ReaderToolOutput.WriteSingleDocumentAsync(
+            document,
+            options.Format,
             options.OutputPath,
             standardOutput,
+            options.AssetsPath,
+            sourcePath,
+            overwriteOutput,
             cancellationToken).ConfigureAwait(false);
-        if (!string.IsNullOrWhiteSpace(options.AssetsPath)) {
-            ReaderToolOutput.WriteAssets(document, options.AssetsPath!, cancellationToken);
-        }
         return (int)OfficeImoToolExitCode.Success;
     }
 

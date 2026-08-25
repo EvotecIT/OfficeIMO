@@ -215,6 +215,58 @@ public class PdfAnnotationCreationTests {
         Assert.NotNull(result.RewritePreservationReport);
     }
 
+    [Fact]
+    public void FlattenAnnotations_ReservesGeneratedContentBudgets() {
+        byte[] source = BuildEmptyAppearanceAnnotationPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxRawStreamBytes = 1,
+                MaxDecodedStreamBytes = 1,
+                MaxTotalDecodedStreamBytes = 1,
+                MaxPageContentBytes = 1,
+                MaxRetainedContentBytes = 1,
+                MaxContentOperations = 1,
+                MaxContentOperands = 1
+            }
+        };
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.FlattenAnnotations(source, options: null, readOptions);
+
+        Assert.Equal(1, result.AffectedAnnotationCount);
+        Assert.Empty(result.ToDocument().Read.Annotations());
+    }
+
+    [Fact]
+    public void UpdateAnnotation_ReservesTheSerializedPrimaryAnnotation() {
+        byte[] source = PdfDocument.Create()
+            .TextAnnotation("Short")
+            .Paragraph(paragraph => paragraph.Text("Annotation update"))
+            .ToBytes();
+        int objectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectCharacters = 512, MaxTokensPerObject = 512 }
+        };
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.UpdateAnnotation(
+            source,
+            objectNumber,
+            new PdfAnnotationUpdateOptions { Contents = new string('x', 4096) },
+            readOptions);
+
+        Assert.Equal(4096, Assert.Single(result.ToDocument().Read.Annotations()).Contents!.Length);
+    }
+
+    private static byte[] BuildEmptyAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+        "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "5 0 obj\n<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /AP << /N 6 0 R >> >>\nendobj\n" +
+        "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 60 60] /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "trailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n0\n%%EOF\n");
+
     private static byte[] BuildNonZeroGenerationAnnotationPdf() {
         var objects = new[] {
             (Number: 1, Generation: 0, Body: "<< /Type /Catalog /Pages 2 0 R >>"),

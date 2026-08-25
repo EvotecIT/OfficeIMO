@@ -45,7 +45,7 @@ internal static partial class PdfPageExtractor {
         return new CatalogRewriteState(pageMode, catalogState.PageLayout, catalogState.CatalogVersion, catalogState.CatalogLanguage, outlines, pageLabels, namedDestinations, namedDestinationNameTree, openAction, catalogState.ViewerPreferences, catalogState.XmpMetadata, catalogState.CatalogUri, catalogState.OutputIntents, catalogState.EmbeddedFiles, catalogState.AssociatedFiles, catalogState.OptionalContent);
     }
     
-    private static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredDestinationLinks(
+    internal static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredDestinationLinks(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         IReadOnlyList<int> pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides,

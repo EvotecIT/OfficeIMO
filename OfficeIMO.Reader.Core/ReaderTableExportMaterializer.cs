@@ -112,14 +112,22 @@ public static class ReaderTableExportMaterializer {
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         ReaderTableExportMaterializationOptions effectiveOptions = options ?? new ReaderTableExportMaterializationOptions();
+        List<ReaderTableExportBundle> selectedExports = ReaderMaterializationPreflight.ToList(
+            SelectExports(exports, effectiveOptions),
+            cancellationToken);
         if (effectiveOptions.CreateDirectory) {
             Directory.CreateDirectory(directoryPath);
         } else if (!Directory.Exists(directoryPath)) {
             throw new DirectoryNotFoundException("Directory '" + directoryPath + "' does not exist.");
         }
+        EnsureUniqueFileNames(
+            selectedExports,
+            effectiveOptions,
+            ReaderFileSystemSemantics.GetFileNameComparer(directoryPath),
+            cancellationToken);
 
         var results = new List<ReaderTableMaterializedExport>();
-        foreach (ReaderTableExportBundle export in SelectExports(exports, effectiveOptions)) {
+        foreach (ReaderTableExportBundle export in selectedExports) {
             cancellationToken.ThrowIfCancellationRequested();
             foreach (ReaderTableExportFormat format in SelectFormats(effectiveOptions)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -132,7 +140,7 @@ public static class ReaderTableExportMaterializer {
                     continue;
                 }
 
-                ReaderFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload));
+                ReaderFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload), effectiveOptions.Overwrite);
                 results.Add(new ReaderTableMaterializedExport {
                     Export = export,
                     Format = format,
@@ -235,6 +243,25 @@ public static class ReaderTableExportMaterializer {
                 return ".json";
             default:
                 throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported table export format.");
+        }
+    }
+
+    private static void EnsureUniqueFileNames(
+        IEnumerable<ReaderTableExportBundle> exports,
+        ReaderTableExportMaterializationOptions options,
+        IEqualityComparer<string> fileNameComparer,
+        CancellationToken cancellationToken) {
+        var fileNames = new HashSet<string>(fileNameComparer);
+        foreach (ReaderTableExportBundle export in exports) {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (ReaderTableExportFormat format in SelectFormats(options)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string fileName = ResolveFileName(export, format);
+                if (!fileNames.Add(fileName)) {
+                    throw new InvalidOperationException(
+                        "Multiple table exports target the same filename: " + fileName);
+                }
+            }
         }
     }
 

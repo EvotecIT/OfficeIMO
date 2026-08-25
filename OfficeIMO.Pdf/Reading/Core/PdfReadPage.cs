@@ -305,10 +305,27 @@ public sealed partial class PdfReadPage {
                 out IReadOnlyList<double> lineCoordinates,
                 out IReadOnlyList<double> vertices,
                 out IReadOnlyList<IReadOnlyList<double>> inkList);
-            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList));
+            PdfAnnotationReviewInfo? review = ReadAnnotationReviewInfo(annotation);
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review));
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();
+    }
+
+    private PdfAnnotationReviewInfo? ReadAnnotationReviewInfo(PdfDictionary annotation) {
+        int? inReplyToObjectNumber = annotation.Items.TryGetValue("IRT", out PdfObject? replyObject) && replyObject is PdfReference replyReference
+            ? replyReference.ObjectNumber
+            : null;
+        string? replyType = annotation.Get<PdfName>("RT")?.Name;
+        string? state = annotation.Get<PdfName>("State")?.Name;
+        string? stateModel = annotation.Get<PdfName>("StateModel")?.Name;
+        TryGetString(annotation.Items.TryGetValue("Subj", out PdfObject? subjectObject) ? subjectObject : null, out string? subject);
+        string? intent = annotation.Get<PdfName>("IT")?.Name;
+        if (!inReplyToObjectNumber.HasValue && replyType is null && state is null && stateModel is null && subject is null && intent is null) {
+            return null;
+        }
+
+        return new PdfAnnotationReviewInfo(inReplyToObjectNumber, replyType, state, stateModel, subject, intent);
     }
 
     internal IReadOnlyList<int> GetAnnotationObjectNumbers(string subtypeName) {

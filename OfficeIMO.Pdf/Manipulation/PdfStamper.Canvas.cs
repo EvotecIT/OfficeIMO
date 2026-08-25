@@ -6,6 +6,15 @@ internal static partial class PdfStamper {
         Action<PdfPageCanvas, PdfStampPageContext> build,
         PdfCanvasStampOptions? options = null,
         PdfReadOptions? readOptions = null) {
+        return StampCanvas(pdf, build, out _, options, readOptions);
+    }
+
+    internal static byte[] StampCanvas(
+        byte[] pdf,
+        Action<PdfPageCanvas, PdfStampPageContext> build,
+        out PdfGeneratedOutputGrowth generatedGrowth,
+        PdfCanvasStampOptions? options = null,
+        PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(build, nameof(build));
         PdfCanvasStampOptions effective = options ?? new PdfCanvasStampOptions();
@@ -24,6 +33,8 @@ internal static partial class PdfStamper {
         IReadOnlyList<int> selectedPages = effective.TargetPages?.Resolve(target.Pages.Count) ??
             Enumerable.Range(1, target.Pages.Count).ToArray();
         var requests = new List<PageStampRequest>(selectedPages.Count);
+        int maximumGeneratedPageBytes = 0;
+        long totalGeneratedBytes = 0L;
         for (int selectedIndex = 0; selectedIndex < selectedPages.Count; selectedIndex++) {
             int pageNumber = selectedPages[selectedIndex];
             PdfReadPage page = target.Pages[pageNumber - 1];
@@ -44,6 +55,11 @@ internal static partial class PdfStamper {
             byte[] overlay = PdfDocument.Create(overlayOptions)
                 .Canvas(generatedCanvas => CopyCanvasItems(canvas, generatedCanvas))
                 .ToBytes();
+            int generatedPageBytes = overlay.Length > int.MaxValue - 1024 ? int.MaxValue : overlay.Length + 1024;
+            maximumGeneratedPageBytes = Math.Max(maximumGeneratedPageBytes, generatedPageBytes);
+            totalGeneratedBytes = totalGeneratedBytes > long.MaxValue - generatedPageBytes
+                ? long.MaxValue
+                : totalGeneratedBytes + generatedPageBytes;
             var pageOptions = new PdfPageOverlayOptions {
                 TargetPages = PdfPageSelector.Parse(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 Fit = PdfPageOverlayFit.Stretch,
@@ -57,6 +73,19 @@ internal static partial class PdfStamper {
             requests.Add(new PageStampRequest(overlay, pageOptions));
         }
 
+        generatedGrowth = new PdfGeneratedOutputGrowth(
+            minimumRawStreamBytes: maximumGeneratedPageBytes,
+            minimumDecodedStreamBytes: maximumGeneratedPageBytes,
+            additionalTotalDecodedStreamBytes: totalGeneratedBytes,
+            additionalPageContentBytes: maximumGeneratedPageBytes,
+            additionalRetainedContentBytes: totalGeneratedBytes,
+            additionalDecodedTextCharacters: maximumGeneratedPageBytes,
+            minimumObjectCharacters: maximumGeneratedPageBytes,
+            minimumTokensPerObject: maximumGeneratedPageBytes,
+            minimumObjectNestingDepth: 16,
+            additionalContentOperations: maximumGeneratedPageBytes,
+            additionalContentOperands: maximumGeneratedPageBytes,
+            additionalContentNestingDepth: maximumGeneratedPageBytes == 0 ? 0 : 1);
         return StampPageSetCore(pdf, requests, readOptions);
     }
 

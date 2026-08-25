@@ -81,14 +81,22 @@ public static class OfficeDocumentAssetMaterializer {
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         OfficeDocumentAssetMaterializationOptions effectiveOptions = options ?? new OfficeDocumentAssetMaterializationOptions();
+        List<OfficeDocumentAsset> selectedAssets = ReaderMaterializationPreflight.ToList(
+            SelectAssets(result, effectiveOptions),
+            cancellationToken);
         if (effectiveOptions.CreateDirectory) {
             Directory.CreateDirectory(directoryPath);
         } else if (!Directory.Exists(directoryPath)) {
             throw new DirectoryNotFoundException("Directory '" + directoryPath + "' does not exist.");
         }
+        EnsureUniqueMaterializableFileNames(
+            selectedAssets,
+            effectiveOptions,
+            ReaderFileSystemSemantics.GetFileNameComparer(directoryPath),
+            cancellationToken);
 
         var results = new List<OfficeDocumentMaterializedAsset>();
-        foreach (OfficeDocumentAsset asset in SelectAssets(result, effectiveOptions)) {
+        foreach (OfficeDocumentAsset asset in selectedAssets) {
             cancellationToken.ThrowIfCancellationRequested();
             string fileName = ResolveFileName(asset);
             string outputPath = System.IO.Path.Combine(directoryPath, fileName);
@@ -109,7 +117,7 @@ public static class OfficeDocumentAssetMaterializer {
                 continue;
             }
 
-            ReaderFileCommit.WriteAllBytes(outputPath, payload);
+            ReaderFileCommit.WriteAllBytes(outputPath, payload, effectiveOptions.Overwrite);
             results.Add(new OfficeDocumentMaterializedAsset {
                 Asset = asset,
                 FileName = fileName,
@@ -184,6 +192,25 @@ public static class OfficeDocumentAssetMaterializer {
         }
 
         return !asset.PayloadHashMatches(out _);
+    }
+
+    private static void EnsureUniqueMaterializableFileNames(
+        IEnumerable<OfficeDocumentAsset> assets,
+        OfficeDocumentAssetMaterializationOptions options,
+        IEqualityComparer<string> fileNameComparer,
+        CancellationToken cancellationToken) {
+        var fileNames = new HashSet<string>(fileNameComparer);
+        foreach (OfficeDocumentAsset asset in assets) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (asset.PayloadBytes == null || asset.PayloadBytes.Length == 0 || HasPayloadHashMismatch(asset, options)) {
+                continue;
+            }
+            string fileName = ResolveFileName(asset);
+            if (!fileNames.Add(fileName)) {
+                throw new InvalidOperationException(
+                    "Multiple materializable assets target the same filename: " + fileName);
+            }
+        }
     }
 
     private static OfficeDocumentMaterializedAsset Skipped(OfficeDocumentAsset asset, string fileName, string? path, string reason) {

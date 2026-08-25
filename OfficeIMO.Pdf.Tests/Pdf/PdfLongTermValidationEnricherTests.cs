@@ -66,6 +66,32 @@ public class PdfLongTermValidationEnricherTests {
     }
 
     [Fact]
+    public void Enrich_ReservesReadLimitsForItsGeneratedDssRevision() {
+        using X509Certificate2 certificate = CreateSigningCertificate();
+        byte[] signedPdf = CreateSignedPdf(certificate);
+        var provider = CreateProvider();
+        int signatureObjectNumber = Assert.Single(PdfSignatureValidator.Validate(signedPdf, provider).Signatures).Signature.ObjectNumber;
+        var evidence = new PdfLongTermValidationEvidence(
+            signatureObjectNumber,
+            certificates: new[] { certificate.RawData });
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = signedPdf.LongLength,
+                MaxRevisions = PdfInspector.Probe(signedPdf).Security.RevisionCount
+            }
+        };
+
+        PdfLongTermValidationEnrichmentResult result = PdfLongTermValidationEnricher.Enrich(
+            signedPdf,
+            evidence,
+            provider,
+            readOptions);
+
+        Assert.True(result.Pdf.LongLength > readOptions.Limits.MaxInputBytes);
+        Assert.True(result.IsVerifiedAppendOnlyEnrichment);
+    }
+
+    [Fact]
     public void EnrichmentRejectsSignatureWhoseSignedBytesWereTampered() {
         using X509Certificate2 certificate = CreateSigningCertificate();
         byte[] signedPdf = CreateSignedPdf(certificate);

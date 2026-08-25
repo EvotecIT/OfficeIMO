@@ -241,7 +241,7 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
-    public void MergeEnforcesThePrimarySourcePageLimitOnReadback() {
+    public void MergeComposesSourcePageLimitsForReadback() {
         byte[] first = BuildPdf();
         byte[] second = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Second merge source"))
@@ -250,12 +250,46 @@ public class PdfReadLimitTests {
             Limits = new PdfReadLimits { MaxPages = 1 }
         };
 
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Merge(
-                PdfDocument.Open(first, readOptions),
-                PdfDocument.Open(second)));
+        PdfDocument merged = PdfDocument.Merge(
+            PdfDocument.Open(first, readOptions),
+            PdfDocument.Open(second, readOptions));
 
-        Assert.Equal(PdfReadLimitKind.Pages, exception.Kind);
+        Assert.Equal(2, merged.Inspect().PageCount);
+    }
+
+    [Fact]
+    public void MergeWithRetainsComposedPageAndTextSearchBudgets() {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("owned match")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("owned match")).ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPages = 1, MaxTextSearchMatches = 1 }
+        };
+
+        PdfDocument mergedDocument = PdfDocument.Open(first, readOptions)
+            .MergeWith(PdfDocument.Open(second, readOptions));
+        PdfDocument mergedBytes = PdfDocument.Open(first, readOptions).MergeWith(second);
+
+        Assert.Equal(2, mergedDocument.Inspect().PageCount);
+        Assert.Equal(2, mergedDocument.Text.Find("owned match", new PdfTextSearchOptions { MatchCase = true }).Count);
+        Assert.Equal(2, mergedBytes.Inspect().PageCount);
+    }
+
+    [Fact]
+    public void MergeReservesGeneratedObjectsBeyondAnExactSourceBudget() {
+        byte[] source = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream");
+        int sourceObjectCount = PdfSyntax.ParseObjects(source).Map.Count;
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxIndirectObjects = sourceObjectCount }
+        };
+
+        PdfDocument merged = PdfDocument.Merge(PdfDocument.Open(source, readOptions));
+
+        Assert.Single(merged.Read.Pages());
+        Assert.True(PdfSyntax.ParseObjects(merged.ToBytes()).Map.Count > sourceObjectCount);
     }
 
     [Fact]

@@ -9,9 +9,12 @@ internal static partial class PdfMerger {
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions,
         PdfReadOptions readOptions) {
-        int totalCount = sources.Sum(static source => source.Document.FormFields.Count);
-        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.Document.FormFields.Count);
-        if (totalCount == 0) {
+        ValidateXfaFormPolicy(sources, primarySourceIndex, mode);
+        int totalCount = sources.Sum(static source => source.FormFieldCount);
+        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.FormFieldCount);
+        bool needsXfaCleanup = sources.Any(static source => source.Document.AcroFormXfa is not null) &&
+            (mode == PdfMergeStructureMode.KeepPrimary || mode == PdfMergeStructureMode.Drop);
+        if (totalCount == 0 && !needsXfaCleanup) {
             decisions.Add(new PdfMergeDecision("Forms", mode, "No AcroForm fields were present."));
             return merged;
         }
@@ -36,6 +39,38 @@ internal static partial class PdfMerger {
         }
         decisions.Add(new PdfMergeDecision("Forms", mode, action, imported, dropped, renamed.AsReadOnly()));
         return output;
+    }
+
+    private static void ValidateXfaFormPolicy(IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode) {
+        bool primaryHasXfa = sources[primarySourceIndex].Document.AcroFormXfa is not null;
+        int incomingXfaCount = sources.Where((source, index) => index != primarySourceIndex && source.Document.AcroFormXfa is not null).Count();
+        if (mode == PdfMergeStructureMode.Drop) return;
+        if (mode == PdfMergeStructureMode.RejectIncoming && incomingXfaCount > 0) {
+            throw new InvalidOperationException("PDF merge policy rejected " + incomingXfaCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " incoming XFA form(s).");
+        }
+        if (mode == PdfMergeStructureMode.Combine && (primaryHasXfa || incomingXfaCount > 0)) {
+            throw new NotSupportedException("Combining XFA forms is not supported; flatten or remove XFA before merging.");
+        }
+        if (primaryHasXfa) {
+            throw new NotSupportedException("The primary XFA form cannot be preserved by this merge policy. Flatten or remove XFA before merging, or explicitly drop forms.");
+        }
+    }
+
+    private static void ValidateXfaSourceBeforePreparation(
+        PdfReadDocument source,
+        int sourceIndex,
+        int primarySourceIndex,
+        PdfMergeStructureMode mode) {
+        if (source.AcroFormXfa is null || mode == PdfMergeStructureMode.Drop) return;
+        if (mode == PdfMergeStructureMode.Combine) {
+            throw new NotSupportedException("Combining XFA forms is not supported; flatten or remove XFA before merging.");
+        }
+        if (sourceIndex == primarySourceIndex) {
+            throw new NotSupportedException("The primary XFA form cannot be preserved by this merge policy. Flatten or remove XFA before merging, or explicitly drop forms.");
+        }
+        if (mode == PdfMergeStructureMode.RejectIncoming) {
+            throw new InvalidOperationException("PDF merge policy rejected an incoming XFA form.");
+        }
     }
 
     private static void ValidateCombinableForms(IReadOnlyList<ImportedSource> sources) {
@@ -68,6 +103,94 @@ internal static partial class PdfMerger {
             .Select(static reference => reference.ObjectNumber)
             .Distinct()
             .ToArray();
+    }
+
+    private static int[] PrepareSelectedAcroFormFieldRoots(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadDocument document,
+        IReadOnlyCollection<int> selectedPageObjectNumbers,
+        out int fieldCount) {
+        var pageNumberByObjectNumber = document.Pages
+            .Select((page, index) => new { page.ObjectNumber, PageNumber = index + 1 })
+            .ToDictionary(static item => item.ObjectNumber, static item => item.PageNumber);
+        var selectedPageNumbers = new HashSet<int>();
+        foreach (int pageObjectNumber in selectedPageObjectNumbers) {
+            if (!pageNumberByObjectNumber.TryGetValue(pageObjectNumber, out int pageNumber)) {
+                throw new InvalidOperationException("Selected PDF form page was not found in the source page tree.");
+            }
+            selectedPageNumbers.Add(pageNumber);
+        }
+        var selectedWidgetObjectNumbers = new HashSet<int>();
+        foreach (int pageObjectNumber in selectedPageObjectNumbers) {
+            if (!objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? pageObject) ||
+                pageObject.Value is not PdfDictionary pageDictionary ||
+                !pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ||
+                ResolveObject(objects, annotationsObject) is not PdfArray annotations) {
+                continue;
+            }
+            foreach (PdfReference annotationReference in annotations.Items.OfType<PdfReference>()) {
+                if (ResolveDictionary(objects, annotationReference)?.Get<PdfName>("Subtype")?.Name == "Widget") {
+                    selectedWidgetObjectNumbers.Add(annotationReference.ObjectNumber);
+                }
+            }
+        }
+
+        var roots = new List<int>();
+        foreach (PdfFormField field in document.FormFields) {
+            PdfFormWidget[] selectedWidgets = field.Widgets
+                .Where(widget =>
+                    (widget.PageNumber.HasValue && selectedPageNumbers.Contains(widget.PageNumber.Value)) ||
+                    (widget.ObjectNumber.HasValue && selectedWidgetObjectNumbers.Contains(widget.ObjectNumber.Value)))
+                .ToArray();
+            if (field.Widgets.Count > 0 && selectedWidgets.Length == 0) continue;
+            if (!field.ObjectNumber.HasValue ||
+                !objects.TryGetValue(field.ObjectNumber.Value, out PdfIndirectObject? fieldObject) ||
+                fieldObject.Value is not PdfDictionary fieldDictionary) {
+                throw new NotSupportedException("Partial-page form composition requires indirect AcroForm field dictionaries.");
+            }
+            if (selectedWidgets.Any(static widget => !widget.ObjectNumber.HasValue)) {
+                throw new NotSupportedException("Partial-page form composition requires indirect widget annotations.");
+            }
+
+            var clone = new PdfDictionary();
+            foreach (KeyValuePair<string, PdfObject> entry in fieldDictionary.Items) clone.Items[entry.Key] = entry.Value;
+            MaterializeInheritedFormAttributes(objects, clone);
+            clone.Items.Remove("Parent");
+            if (!string.IsNullOrEmpty(field.Name)) clone.Items["T"] = new PdfStringObj(field.Name!, true);
+            if (field.Widgets.Count > 0 && clone.Get<PdfName>("Subtype")?.Name != "Widget") {
+                var selectedKids = new PdfArray();
+                foreach (PdfFormWidget widget in selectedWidgets) {
+                    int widgetObjectNumber = widget.ObjectNumber!.Value;
+                    if (!objects.TryGetValue(widgetObjectNumber, out PdfIndirectObject? widgetObject)) {
+                        throw new InvalidOperationException("Selected PDF form widget was not found in the source object graph.");
+                    }
+                    selectedKids.Items.Add(new PdfReference(widgetObjectNumber, widgetObject.Generation));
+                }
+                clone.Items["Kids"] = selectedKids;
+            }
+
+            objects[fieldObject.ObjectNumber] = new PdfIndirectObject(fieldObject.ObjectNumber, fieldObject.Generation, clone);
+            roots.Add(fieldObject.ObjectNumber);
+        }
+
+        fieldCount = roots.Count;
+        return roots.Distinct().ToArray();
+    }
+
+    private static void CollectAcroFormResources(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadDocument document,
+        PdfPageExtractor.ObjectCollector collector) {
+        if (!document.Security.RootObjectNumber.HasValue ||
+            !objects.TryGetValue(document.Security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
+            catalogObject.Value is not PdfDictionary catalog ||
+            !catalog.Items.TryGetValue("AcroForm", out PdfObject? acroFormObject) ||
+            ResolveDictionary(objects, acroFormObject) is not PdfDictionary acroForm) {
+            return;
+        }
+        if (acroForm.Items.TryGetValue("DR", out PdfObject? defaultResources)) {
+            collector.CollectObjectGraph(defaultResources);
+        }
     }
 
     private static byte[] RewriteForms(

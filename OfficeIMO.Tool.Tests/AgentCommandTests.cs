@@ -66,7 +66,7 @@ public sealed class AgentCommandTests {
     }
 
     [Fact]
-    public async Task AllowedRootsRequireExactResolvedPathCasing() {
+    public async Task AllowedRootsRespectTheHostFileSystemCasingModel() {
         string root = Path.Combine(
             Path.GetTempPath(),
             "officeimo-agent-root-" + Guid.NewGuid().ToString("N"));
@@ -79,7 +79,13 @@ public sealed class AgentCommandTests {
             await File.WriteAllTextAsync(candidate, "Subject: Case boundary\r\n\r\nBody");
             var policy = new AgentPathPolicy(new[] { allowed });
 
-            Assert.Throws<UnauthorizedAccessException>(() => policy.ResolveInput(candidate));
+            if (OfficeImoToolPathSafety.PathsEqual(allowed, differentlyCased)) {
+                Assert.Equal(
+                    OfficeImoToolPathSafety.ResolveExistingLinks(candidate),
+                    policy.ResolveInput(candidate));
+            } else {
+                Assert.Throws<UnauthorizedAccessException>(() => policy.ResolveInput(candidate));
+            }
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }

@@ -104,14 +104,22 @@ public static class ReaderVisualExportMaterializer {
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         ReaderVisualExportMaterializationOptions effectiveOptions = options ?? new ReaderVisualExportMaterializationOptions();
+        List<ReaderVisualExportBundle> selectedExports = ReaderMaterializationPreflight.ToList(
+            SelectExports(exports, effectiveOptions),
+            cancellationToken);
         if (effectiveOptions.CreateDirectory) {
             Directory.CreateDirectory(directoryPath);
         } else if (!Directory.Exists(directoryPath)) {
             throw new DirectoryNotFoundException("Directory '" + directoryPath + "' does not exist.");
         }
+        EnsureUniqueFileNames(
+            selectedExports,
+            effectiveOptions,
+            ReaderFileSystemSemantics.GetFileNameComparer(directoryPath),
+            cancellationToken);
 
         var results = new List<ReaderVisualMaterializedExport>();
-        foreach (ReaderVisualExportBundle export in SelectExports(exports, effectiveOptions)) {
+        foreach (ReaderVisualExportBundle export in selectedExports) {
             cancellationToken.ThrowIfCancellationRequested();
             foreach (ReaderVisualExportFormat format in SelectFormats(effectiveOptions)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -124,7 +132,7 @@ public static class ReaderVisualExportMaterializer {
                     continue;
                 }
 
-                ReaderFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload));
+                ReaderFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload), effectiveOptions.Overwrite);
                 results.Add(new ReaderVisualMaterializedExport {
                     Export = export,
                     Format = format,
@@ -242,6 +250,25 @@ public static class ReaderVisualExportMaterializer {
         }
 
         return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed : "." + trimmed;
+    }
+
+    private static void EnsureUniqueFileNames(
+        IEnumerable<ReaderVisualExportBundle> exports,
+        ReaderVisualExportMaterializationOptions options,
+        IEqualityComparer<string> fileNameComparer,
+        CancellationToken cancellationToken) {
+        var fileNames = new HashSet<string>(fileNameComparer);
+        foreach (ReaderVisualExportBundle export in exports) {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (ReaderVisualExportFormat format in SelectFormats(options)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string fileName = ResolveFileName(export, format);
+                if (!fileNames.Add(fileName)) {
+                    throw new InvalidOperationException(
+                        "Multiple visual exports target the same filename: " + fileName);
+                }
+            }
+        }
     }
 
     private static ReaderVisualMaterializedExport Skipped(ReaderVisualExportBundle export, ReaderVisualExportFormat format, string fileName, string? path, string reason) {

@@ -131,22 +131,35 @@ public sealed class PdfReadLimits {
     public int MaxType3GlyphInvocationsPerPage { get; init; } = DefaultMaxType3GlyphInvocationsPerPage;
 
     internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {
+        return WithMinimumStructure(minimumInputBytes, MaxIndirectObjects);
+    }
+
+    internal PdfReadLimits WithMinimumStructure(long minimumInputBytes, int minimumIndirectObjects) {
+        return WithGeneratedOutput(minimumInputBytes, minimumIndirectObjects, default);
+    }
+
+    internal PdfReadLimits WithGeneratedOutput(
+        long minimumInputBytes,
+        int minimumIndirectObjects,
+        PdfGeneratedOutputGrowth growth) {
+        if (minimumInputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(minimumInputBytes), "Minimum input bytes must be positive.");
+        if (minimumIndirectObjects <= 0) throw new ArgumentOutOfRangeException(nameof(minimumIndirectObjects), "Minimum indirect objects must be positive.");
         return new PdfReadLimits {
             MaxInputBytes = Math.Max(MaxInputBytes, minimumInputBytes),
-            MaxIndirectObjects = MaxIndirectObjects,
-            MaxRawStreamBytes = MaxRawStreamBytes,
-            MaxDecodedStreamBytes = MaxDecodedStreamBytes,
-            MaxTotalDecodedStreamBytes = MaxTotalDecodedStreamBytes,
-            MaxPageContentBytes = MaxPageContentBytes,
-            MaxRetainedContentBytes = MaxRetainedContentBytes,
+            MaxIndirectObjects = Math.Max(MaxIndirectObjects, minimumIndirectObjects),
+            MaxRawStreamBytes = Math.Max(MaxRawStreamBytes, growth.MinimumRawStreamBytes),
+            MaxDecodedStreamBytes = Math.Max(MaxDecodedStreamBytes, growth.MinimumDecodedStreamBytes),
+            MaxTotalDecodedStreamBytes = SaturatingAdd(MaxTotalDecodedStreamBytes, growth.AdditionalTotalDecodedStreamBytes),
+            MaxPageContentBytes = SaturatingAdd(MaxPageContentBytes, growth.AdditionalPageContentBytes),
+            MaxRetainedContentBytes = SaturatingAdd(MaxRetainedContentBytes, growth.AdditionalRetainedContentBytes),
             MaxActualTextCharacters = MaxActualTextCharacters,
-            MaxDecodedTextCharacters = MaxDecodedTextCharacters,
+            MaxDecodedTextCharacters = SaturatingAdd(MaxDecodedTextCharacters, growth.AdditionalDecodedTextCharacters),
             MaxTextSearchMatches = MaxTextSearchMatches,
-            MaxObjectCharacters = MaxObjectCharacters,
-            MaxTokensPerObject = MaxTokensPerObject,
-            MaxObjectNestingDepth = MaxObjectNestingDepth,
+            MaxObjectCharacters = Math.Max(MaxObjectCharacters, growth.MinimumObjectCharacters),
+            MaxTokensPerObject = Math.Max(MaxTokensPerObject, growth.MinimumTokensPerObject),
+            MaxObjectNestingDepth = Math.Max(MaxObjectNestingDepth, growth.MinimumObjectNestingDepth),
             MaxObjectParsingTime = MaxObjectParsingTime,
-            MaxRevisions = MaxRevisions,
+            MaxRevisions = SaturatingAdd(MaxRevisions, growth.AdditionalRevisions),
             MaxPageTreeNodes = MaxPageTreeNodes,
             MaxPageTreeDepth = MaxPageTreeDepth,
             MaxPages = MaxPages,
@@ -161,13 +174,84 @@ public sealed class PdfReadLimits {
             MaxAttachments = MaxAttachments,
             MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
             MaxFormFieldAppearanceStates = MaxFormFieldAppearanceStates,
-            MaxAnnotationsPerPage = MaxAnnotationsPerPage,
+            MaxAnnotationsPerPage = SaturatingAdd(MaxAnnotationsPerPage, growth.AdditionalAnnotationsPerPage),
             MaxColorSpaceResourcesPerPage = MaxColorSpaceResourcesPerPage,
-            MaxContentOperations = MaxContentOperations,
-            MaxContentOperands = MaxContentOperands,
-            MaxContentNestingDepth = MaxContentNestingDepth,
+            MaxContentOperations = SaturatingAdd(MaxContentOperations, growth.AdditionalContentOperations),
+            MaxContentOperands = SaturatingAdd(MaxContentOperands, growth.AdditionalContentOperands),
+            MaxContentNestingDepth = SaturatingAdd(MaxContentNestingDepth, growth.AdditionalContentNestingDepth),
             MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
         };
+    }
+
+    private static int SaturatingAdd(int value, int added) => value > int.MaxValue - added ? int.MaxValue : value + added;
+
+    private static long SaturatingAdd(long value, long added) => value > long.MaxValue - added ? long.MaxValue : value + added;
+
+    internal static PdfReadLimits ForComposedOutput(
+        IReadOnlyList<PdfReadLimits> sources,
+        long minimumInputBytes,
+        int minimumIndirectObjects) {
+        Guard.NotNull(sources, nameof(sources));
+        if (sources.Count == 0) throw new ArgumentException("At least one source limit set is required for composed output.", nameof(sources));
+        if (minimumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(minimumInputBytes), "Minimum input bytes must be positive.");
+        if (minimumIndirectObjects <= 0) throw new ArgumentOutOfRangeException(nameof(minimumIndirectObjects), "Minimum indirect objects must be positive.");
+
+        return new PdfReadLimits {
+            MaxInputBytes = Math.Max(minimumInputBytes, sources.Max(static limits => limits.MaxInputBytes)),
+            MaxIndirectObjects = Math.Max(minimumIndirectObjects, SaturatingSum(sources, static limits => limits.MaxIndirectObjects)),
+            MaxRawStreamBytes = sources.Max(static limits => limits.MaxRawStreamBytes),
+            MaxDecodedStreamBytes = sources.Max(static limits => limits.MaxDecodedStreamBytes),
+            MaxTotalDecodedStreamBytes = SaturatingSum(sources, static limits => limits.MaxTotalDecodedStreamBytes),
+            MaxPageContentBytes = sources.Max(static limits => limits.MaxPageContentBytes),
+            MaxRetainedContentBytes = SaturatingSum(sources, static limits => limits.MaxRetainedContentBytes),
+            MaxActualTextCharacters = sources.Max(static limits => limits.MaxActualTextCharacters),
+            MaxDecodedTextCharacters = sources.Max(static limits => limits.MaxDecodedTextCharacters),
+            MaxTextSearchMatches = SaturatingSum(sources, static limits => limits.MaxTextSearchMatches),
+            MaxObjectCharacters = sources.Max(static limits => limits.MaxObjectCharacters),
+            MaxTokensPerObject = sources.Max(static limits => limits.MaxTokensPerObject),
+            MaxObjectNestingDepth = sources.Max(static limits => limits.MaxObjectNestingDepth),
+            MaxObjectParsingTime = TimeSpan.FromTicks(SaturatingSum(sources, static limits => limits.MaxObjectParsingTime.Ticks)),
+            MaxRevisions = sources.Max(static limits => limits.MaxRevisions),
+            MaxPageTreeNodes = SaturatingSum(sources, static limits => limits.MaxPageTreeNodes),
+            MaxPageTreeDepth = sources.Max(static limits => limits.MaxPageTreeDepth),
+            MaxPages = SaturatingSum(sources, static limits => limits.MaxPages),
+            MaxFormFields = SaturatingSum(sources, static limits => limits.MaxFormFields),
+            MaxFormFieldDepth = sources.Max(static limits => limits.MaxFormFieldDepth),
+            MaxNameTreeNodes = SaturatingSum(sources, static limits => limits.MaxNameTreeNodes),
+            MaxNameTreeDepth = sources.Max(static limits => limits.MaxNameTreeDepth),
+            MaxJavaScriptBytes = sources.Max(static limits => limits.MaxJavaScriptBytes),
+            MaxJavaScripts = SaturatingSum(sources, static limits => limits.MaxJavaScripts),
+            MaxWidgetActions = SaturatingSum(sources, static limits => limits.MaxWidgetActions),
+            MaxTotalJavaScriptBytes = SaturatingSum(sources, static limits => limits.MaxTotalJavaScriptBytes),
+            MaxAttachments = SaturatingSum(sources, static limits => limits.MaxAttachments),
+            MaxTotalAttachmentBytes = SaturatingSum(sources, static limits => limits.MaxTotalAttachmentBytes),
+            MaxFormFieldAppearanceStates = sources.Max(static limits => limits.MaxFormFieldAppearanceStates),
+            MaxAnnotationsPerPage = sources.Max(static limits => limits.MaxAnnotationsPerPage),
+            MaxColorSpaceResourcesPerPage = sources.Max(static limits => limits.MaxColorSpaceResourcesPerPage),
+            MaxContentOperations = sources.Max(static limits => limits.MaxContentOperations),
+            MaxContentOperands = sources.Max(static limits => limits.MaxContentOperands),
+            MaxContentNestingDepth = sources.Max(static limits => limits.MaxContentNestingDepth),
+            MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage)
+        };
+    }
+
+    private static int SaturatingSum(IReadOnlyList<PdfReadLimits> sources, Func<PdfReadLimits, int> selector) {
+        long total = 0;
+        for (int i = 0; i < sources.Count; i++) {
+            total += selector(sources[i]);
+            if (total >= int.MaxValue) return int.MaxValue;
+        }
+        return (int)total;
+    }
+
+    private static long SaturatingSum(IReadOnlyList<PdfReadLimits> sources, Func<PdfReadLimits, long> selector) {
+        long total = 0;
+        for (int i = 0; i < sources.Count; i++) {
+            long value = selector(sources[i]);
+            if (long.MaxValue - total <= value) return long.MaxValue;
+            total += value;
+        }
+        return total;
     }
 
     internal PdfReadLimits WithMaximumContainerEntries(

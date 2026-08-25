@@ -1,8 +1,17 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationFlattener {
-    private static int FlattenPageVisualAnnotations(Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber, PdfAnnotationFlattenOptions? options, Dictionary<int, int> pageNumbers) {
+    private static int FlattenPageVisualAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        ref int nextObjectNumber,
+        PdfAnnotationFlattenOptions? options,
+        Dictionary<int, int> pageNumbers,
+        out PdfGeneratedOutputGrowth generatedGrowth) {
         int flattenedCount = 0;
+        int maximumContentBytes = 0;
+        long totalContentBytes = 0L;
+        int maximumContentOperations = 0;
+        int maximumContentOperands = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
             if (entry.Value.Value is not PdfDictionary page ||
                 page.Get<PdfName>("Type")?.Name != "Page" ||
@@ -60,13 +69,32 @@ internal static partial class PdfAnnotationFlattener {
 
             string content = BuildFlattenContent(objects, page, pageAnnotations);
             int contentObjectNumber = nextObjectNumber++;
-            objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, CreateContentStream(content));
+            PdfStream contentStream = CreateContentStream(content);
+            objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, contentStream);
             AppendPageContent(objects, page, contentObjectNumber);
             flattenedCount += pageAnnotations.Count;
+            maximumContentBytes = Math.Max(maximumContentBytes, contentStream.Data.Length);
+            totalContentBytes = totalContentBytes > long.MaxValue - contentStream.Data.LongLength
+                ? long.MaxValue
+                : totalContentBytes + contentStream.Data.LongLength;
+            maximumContentOperations = Math.Max(maximumContentOperations, SaturatingMultiply(pageAnnotations.Count, 4));
+            maximumContentOperands = Math.Max(maximumContentOperands, SaturatingMultiply(pageAnnotations.Count, 7));
         }
 
+        generatedGrowth = new PdfGeneratedOutputGrowth(
+            minimumRawStreamBytes: maximumContentBytes,
+            minimumDecodedStreamBytes: maximumContentBytes,
+            additionalTotalDecodedStreamBytes: totalContentBytes,
+            additionalPageContentBytes: maximumContentBytes,
+            additionalRetainedContentBytes: totalContentBytes,
+            additionalContentOperations: maximumContentOperations,
+            additionalContentOperands: maximumContentOperands,
+            additionalContentNestingDepth: flattenedCount == 0 ? 0 : 1);
         return flattenedCount;
     }
+
+    private static int SaturatingMultiply(int value, int multiplier) =>
+        value > int.MaxValue / multiplier ? int.MaxValue : value * multiplier;
 
     private static bool MatchesFlattenSelector(PdfObject annotation, string subtype, PdfAnnotationFlattenOptions? options) {
         if (options == null) return true;

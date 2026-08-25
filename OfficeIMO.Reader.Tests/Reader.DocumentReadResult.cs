@@ -5,8 +5,10 @@ using OfficeIMO.Word;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -578,6 +580,57 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
+    public void ReaderTableExportMaterializer_RejectsDuplicateSanitizedDestinationsBeforeWriting() {
+        var exports = new[] {
+            new ReaderTableExportBundle { Id = "first", FileNamePrefix = "invoice", Csv = "first" },
+            new ReaderTableExportBundle { Id = "second", FileNamePrefix = "invoice", Csv = "second" }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-table-duplicates-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                exports.WriteTableExportsToDirectory(
+                    directory,
+                    new ReaderTableExportMaterializationOptions {
+                        IncludeMarkdown = false,
+                        IncludeJson = false
+                    }));
+
+            Assert.Contains("same filename", exception.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ReaderTableExportMaterializer_HonorsCancellationDuringPreflightEnumeration() {
+        using var cancellation = new CancellationTokenSource();
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-table-cancellation-" + Guid.NewGuid().ToString("N"));
+
+        IEnumerable<ReaderTableExportBundle> Enumerate() {
+            for (int index = 0; ; index++) {
+                if (index == 3) cancellation.Cancel();
+                yield return new ReaderTableExportBundle {
+                    Id = "table-" + index,
+                    FileNamePrefix = "table-" + index,
+                    Csv = "value"
+                };
+            }
+        }
+
+        Assert.Throws<OperationCanceledException>(() =>
+            Enumerate().WriteTableExportsToDirectory(
+                directory,
+                new ReaderTableExportMaterializationOptions {
+                    IncludeMarkdown = false,
+                    IncludeJson = false
+                },
+                cancellation.Token));
+        Assert.False(Directory.Exists(directory));
+    }
+
+    [Fact]
     public void OfficeDocumentAssetNaming_BuildFileName_SanitizesIdsAndExtensions() {
         string fileName = OfficeDocumentAssetNaming.BuildFileName("Page 1/Image:Main", ".PNG");
 
@@ -650,6 +703,85 @@ public sealed class ReaderDocumentReadResultTests {
         Assert.True(written.Written);
         Assert.Equal("asset-stream.bin", written.FileName);
         Assert.Equal(payload, captured);
+    }
+
+    [Fact]
+    public void OfficeDocumentAssetMaterializer_RejectsDuplicateDestinationsBeforeWriting() {
+        var result = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "first",
+                    FileName = "invoice.pdf",
+                    PayloadBytes = Encoding.UTF8.GetBytes("first")
+                },
+                new OfficeDocumentAsset {
+                    Id = "second",
+                    FileName = "invoice.pdf",
+                    PayloadBytes = Encoding.UTF8.GetBytes("second")
+                }
+            }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-asset-duplicates-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                result.WriteAssetsToDirectory(directory));
+
+            Assert.Contains("same filename", exception.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void OfficeDocumentAssetMaterializer_RejectsTrailingWindowsFilenameAliasesBeforeWriting() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+
+        var result = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "first",
+                    FileName = "report",
+                    PayloadBytes = Encoding.UTF8.GetBytes("first")
+                },
+                new OfficeDocumentAsset {
+                    Id = "second",
+                    FileName = "report. ",
+                    PayloadBytes = Encoding.UTF8.GetBytes("second")
+                }
+            }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-asset-windows-aliases-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                result.WriteAssetsToDirectory(directory));
+
+            Assert.Contains("same filename", exception.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void OfficeDocumentAssetMaterializer_HonorsPreCancellationBeforeCreatingDirectory() {
+        var result = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "asset",
+                    PayloadBytes = Encoding.UTF8.GetBytes("payload")
+                }
+            }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-asset-cancellation-" + Guid.NewGuid().ToString("N"));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            result.WriteAssetsToDirectory(directory, cancellationToken: cancellation.Token));
+        Assert.False(Directory.Exists(directory));
     }
 
     [Fact]

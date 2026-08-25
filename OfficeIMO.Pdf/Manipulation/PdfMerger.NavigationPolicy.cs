@@ -8,12 +8,13 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions,
-        PdfReadOptions readOptions) {
-        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.Document.NamedDestinations.Count);
+        PdfReadOptions readOptions,
+        int[]? outputSourceIndexes) {
+        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.NamedDestinationCount);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
                 if (HasIncomingNamedDestinationLinks(sources, primarySourceIndex)) {
-                    merged = RewriteNamedDestinationLinksOnly(merged, GetIncomingPageIndexes(sources, primarySourceIndex), readOptions);
+                    merged = RewriteNamedDestinationLinksOnly(merged, GetIncomingPageIndexes(sources, primarySourceIndex, outputSourceIndexes), readOptions);
                 }
                 decisions.Add(new PdfMergeDecision("NamedDestinations", mode, "Kept primary named destinations.", droppedCount: incomingCount));
                 return merged;
@@ -49,7 +50,7 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
         PdfReadOptions readOptions) {
-        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.Document.PageLabels.Count);
+        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.PageLabelCount);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
                 decisions.Add(new PdfMergeDecision("PageLabels", mode, "Kept primary page-label rules.", droppedCount: incomingCount));
@@ -162,8 +163,22 @@ internal static partial class PdfMerger {
         return result;
     }
 
-    private static HashSet<int> GetIncomingPageIndexes(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
+    private static HashSet<int> GetIncomingPageIndexes(
+        IReadOnlyList<ImportedSource> sources,
+        int primarySourceIndex,
+        int[]? outputSourceIndexes) {
         var result = new HashSet<int>();
+        if (outputSourceIndexes is not null) {
+            for (int outputIndex = 0; outputIndex < outputSourceIndexes.Length; outputIndex++) {
+                int sourceIndex = outputSourceIndexes[outputIndex];
+                if (sourceIndex < 0 || sourceIndex >= sources.Count) {
+                    throw new InvalidOperationException("PDF merge output page ownership is invalid.");
+                }
+                if (sourceIndex != primarySourceIndex) result.Add(outputIndex);
+            }
+            return result;
+        }
+
         int pageOffset = 0;
         for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
             if (sourceIndex != primarySourceIndex) {
@@ -186,8 +201,10 @@ internal static partial class PdfMerger {
                 continue;
             }
 
-            IReadOnlyList<PdfReadPage> pages = sources[sourceIndex].Document.Pages;
-            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            ImportedSource source = sources[sourceIndex];
+            IReadOnlyList<PdfReadPage> pages = source.Document.Pages;
+            for (int selectedPageIndex = 0; selectedPageIndex < source.SelectedPageNumbers.Length; selectedPageIndex++) {
+                int pageIndex = source.SelectedPageNumbers[selectedPageIndex] - 1;
                 IReadOnlyList<PdfLinkAnnotation> links = pages[pageIndex].GetLinkAnnotationsUnchecked();
                 for (int linkIndex = 0; linkIndex < links.Count; linkIndex++) {
                     if (links[linkIndex].IsNamedDestinationLink) {

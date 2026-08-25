@@ -38,6 +38,23 @@ internal static partial class PdfPageExtractor {
     /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
     /// </summary>
     public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfReadOptions? options) {
+        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null);
+    }
+
+    internal static byte[] ExtractPages(
+        byte[] pdf,
+        IEnumerable<int> pageNumbers,
+        PdfReadOptions? options,
+        long maximumOutputBytes) {
+        Guard.Positive(maximumOutputBytes, nameof(maximumOutputBytes));
+        return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes);
+    }
+
+    private static byte[] ExtractPagesCore(
+        byte[] pdf,
+        IEnumerable<int> pageNumbers,
+        PdfReadOptions? options,
+        long? maximumOutputBytes) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
 
@@ -56,7 +73,7 @@ internal static partial class PdfPageExtractor {
 
         var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
         PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
-        return ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion, maximumOutputBytes: maximumOutputBytes);
     }
 
     /// <summary>
