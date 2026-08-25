@@ -339,6 +339,18 @@ public sealed class OfficeFontFaceCollection {
             if (decoded && string.IsNullOrWhiteSpace(error)) error = "Decoded font data does not contain a supported outline program.";
             return false;
         }
+        if (decodedBytes == 0 && maximumDecodedBytes.HasValue) {
+            // The face owns one independent embedding snapshot. The built-in TrueType program
+            // retains the decoded sfnt buffer, while CFF retains that reader buffer plus its
+            // independent shaping snapshot.
+            int retainedFullBufferCount = parsed is OfficeOpenTypeCffFont ? 3 : 2;
+            long retainedBytes = (long)acceptedData.Length * retainedFullBufferCount;
+            if (retainedBytes > maximumDecodedBytes.Value || retainedBytes > int.MaxValue) {
+                error = "Decoded font data exceeds the configured byte limit.";
+                return false;
+            }
+            decodedBytes = (int)retainedBytes;
+        }
 
         string normalizedFamily = familyName!.Trim();
         string normalizedResourceFamily = string.IsNullOrWhiteSpace(resourceFamilyName)

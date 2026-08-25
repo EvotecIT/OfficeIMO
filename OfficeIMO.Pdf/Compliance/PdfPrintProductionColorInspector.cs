@@ -12,6 +12,7 @@ internal static class PdfPrintProductionColorInspector {
         int maximumObjectDepth = document.ReadOptions.Limits.MaxObjectNestingDepth;
         var contentStreams = new List<ContentStreamContext>();
         var graphicsStateDictionaries = new HashSet<PdfDictionary>();
+        var shadingDictionaries = new HashSet<PdfDictionary>();
         var inspectedDictionaries = new HashSet<PdfDictionary>();
         int rgbImages = 0;
         int cmykImages = 0;
@@ -76,6 +77,7 @@ internal static class PdfPrintProductionColorInspector {
                 dictionary,
                 objects,
                 graphicsStateDictionaries,
+                shadingDictionaries,
                 inspectedDictionaries,
                 ref transparencyGroups,
                 maximumObjectDepth);
@@ -90,15 +92,16 @@ internal static class PdfPrintProductionColorInspector {
                 if (dictionary.Items.ContainsKey("SMask")) transparentImages++;
             }
 
-            if (dictionary.Items.ContainsKey("ShadingType")) {
-                PdfObject? colorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
-                    ? colorSpaceObject
-                    : null;
-                if (ContainsColorSpace(colorSpace, "DeviceRGB", objects, maximumObjectDepth)) rgbShadings++;
-                if (ContainsColorSpace(colorSpace, "DeviceCMYK", objects, maximumObjectDepth)) cmykShadings++;
-                if (ContainsDeviceIndependentColorSpace(colorSpace, objects, maximumObjectDepth)) deviceIndependentColorUses++;
-            }
+        }
 
+        foreach (PdfDictionary shading in shadingDictionaries) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfObject? colorSpace = shading.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+                ? colorSpaceObject
+                : null;
+            if (ContainsColorSpace(colorSpace, "DeviceRGB", objects, maximumObjectDepth)) rgbShadings++;
+            if (ContainsColorSpace(colorSpace, "DeviceCMYK", objects, maximumObjectDepth)) cmykShadings++;
+            if (ContainsDeviceIndependentColorSpace(colorSpace, objects, maximumObjectDepth)) deviceIndependentColorUses++;
         }
 
         foreach (PdfDictionary graphicsState in graphicsStateDictionaries) {
@@ -345,6 +348,7 @@ internal static class PdfPrintProductionColorInspector {
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects,
         HashSet<PdfDictionary> graphicsStates,
+        HashSet<PdfDictionary> shadings,
         HashSet<PdfDictionary> inspected,
         ref int transparencyGroups,
         int maximumObjectDepth) {
@@ -368,6 +372,7 @@ internal static class PdfPrintProductionColorInspector {
             if (current != null) {
                 if (!inspected.Add(current)) continue;
                 CollectGraphicsStates(current, objects, graphicsStates, maximumObjectDepth);
+                if (current.Items.ContainsKey("ShadingType")) shadings.Add(current);
                 if (string.Equals(
                         ResolveName(
                             current.Items.TryGetValue("Type", out PdfObject? type) ? type : null,

@@ -36,6 +36,22 @@ public sealed class HtmlPdfWorkbenchContractTests {
         string capture = HtmlPdfPreviewComposer.ComposeForCapture("<p>Capture</p>", "p{color:blue}");
         Assert.DoesNotContain("Content-Security-Policy", capture, StringComparison.Ordinal);
         Assert.Contains("p{color:blue}", capture, StringComparison.Ordinal);
+
+        string localizedCapture = HtmlPdfPreviewComposer.ComposeForCapture(
+            "<!doctype html><html lang=\"en\"><body>Capture</body></html>",
+            string.Empty,
+            "pl-PL");
+        Assert.Contains("lang=\"pl-PL\"", localizedCapture, StringComparison.Ordinal);
+        Assert.DoesNotContain("lang=\"en\"", localizedCapture, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InputFingerprint_LengthPrefixesHtmlAndCssFields() {
+        string first = HtmlPdfWorkbenchConversionService.ComputeInputSha256("a\u001eb", "c");
+        string second = HtmlPdfWorkbenchConversionService.ComputeInputSha256("a", "b\u001ec");
+
+        Assert.NotEqual(first, second);
+        Assert.Equal(first, HtmlPdfWorkbenchConversionService.ComputeInputSha256("a\u001eb", "c"));
     }
 
     [Theory]
@@ -143,6 +159,28 @@ public sealed class HtmlPdfWorkbenchContractTests {
         Assert.False(string.IsNullOrWhiteSpace(result.Evidence.Browser!.BrowserVersion));
         Assert.Equal(0, result.Evidence.Browser.BlockedRequestCount);
         Assert.True(PdfDocument.Open(result.PdfBytes).Inspect().PageCount > 0);
+    }
+
+    [Fact]
+    [Trait("Category", "Live")]
+    public async Task ChromiumConversion_AppliesConfiguredDocumentLanguage() {
+        await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
+            maximumBrowserInstances: 1,
+            maximumQueuedCaptures: 0,
+            networkPolicy: HtmlBrowserNetworkPolicy.Offline));
+        var service = new HtmlPdfWorkbenchConversionService(renderer);
+        var settings = new HtmlPdfWorkbenchSettings {
+            Language = "pl-PL",
+            TaggedPdf = true
+        };
+
+        HtmlPdfWorkbenchResult result = await service.ConvertAsync(new HtmlPdfWorkbenchRequest(
+            "<!doctype html><html lang=\"en\"><body><p>Język polski</p></body></html>",
+            string.Empty,
+            HtmlPdfWorkbenchEngine.Chromium,
+            settings));
+
+        Assert.Equal("pl-PL", PdfReadDocument.Open(result.PdfBytes).CatalogLanguage);
     }
 
     [Fact]

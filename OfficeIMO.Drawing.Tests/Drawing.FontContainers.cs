@@ -189,6 +189,34 @@ public sealed class DrawingFontContainerTests {
         Assert.Equal(original, second[0]);
     }
 
+    [Fact]
+    public void OfficeFontFaceCollection_CountsBuiltInTrueTypeAndFaceBuffersIndependently() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAddBounded(
+            "Bounded TrueType",
+            source,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: source.Length * 2 - 1,
+            out int rejectedBytes,
+            out string? rejectedError));
+        Assert.Equal(0, rejectedBytes);
+        Assert.Contains("limit", rejectedError, StringComparison.OrdinalIgnoreCase);
+
+        Assert.True(fonts.TryAddBounded(
+            "Bounded TrueType",
+            source,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: source.Length * 2,
+            out int acceptedBytes,
+            out string? acceptedError), acceptedError);
+        Assert.Equal(source.Length * 2, acceptedBytes);
+        Assert.Single(fonts.Faces);
+    }
+
     private sealed class TestFontProgramProvider : IOfficeFontProgramProvider {
         private readonly int _decodedByteCount;
         private readonly byte[]? _staticOpenTypeData;

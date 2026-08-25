@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
@@ -32,12 +33,13 @@ public sealed class HtmlPdfWorkbenchConversionService {
 
         long elapsedMilliseconds = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         PdfDocumentInfo pdfInfo = PdfDocument.Open(payload.PdfBytes).Inspect();
+        cancellationToken.ThrowIfCancellationRequested();
         var evidence = new HtmlPdfWorkbenchEvidence(
             "officeimo.html-pdf-workbench/v1",
             DateTimeOffset.UtcNow,
             request.Engine.ToString(),
             payload.RendererVersion,
-            Sha256(Encoding.UTF8.GetBytes(request.Html + "\u001e" + request.Css)),
+            ComputeInputSha256(request.Html, request.Css),
             Sha256(payload.PdfBytes),
             elapsedMilliseconds,
             payload.PdfBytes.Length,
@@ -47,6 +49,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
             payload.Diagnostics,
             payload.BrowserEvidence);
         byte[] evidenceBytes = JsonSerializer.SerializeToUtf8Bytes(evidence, WorkbenchJsonContext.Default.HtmlPdfWorkbenchEvidence);
+        cancellationToken.ThrowIfCancellationRequested();
         return new HtmlPdfWorkbenchResult(payload.PdfBytes, evidenceBytes, evidence);
     }
 
@@ -97,7 +100,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
             outline: settings.Outline,
             tagged: settings.TaggedPdf);
         var browserRequest = new HtmlBrowserPdfRequest(
-            HtmlBrowserPdfSource.FromHtml(HtmlPdfPreviewComposer.ComposeForCapture(request.Html, request.Css)),
+            HtmlBrowserPdfSource.FromHtml(HtmlPdfPreviewComposer.ComposeForCapture(request.Html, request.Css, settings.Language)),
             pdfOptions,
             readiness: new HtmlBrowserPdfReadiness(
                 loadState: HtmlBrowserLoadState.Load,
@@ -186,6 +189,21 @@ public sealed class HtmlPdfWorkbenchConversionService {
     }
 
     private static string Sha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+    internal static string ComputeInputSha256(string html, string css) {
+        using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        AppendUtf8Field(hash, html);
+        AppendUtf8Field(hash, css);
+        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+    }
+
+    private static void AppendUtf8Field(IncrementalHash hash, string value) {
+        byte[] bytes = Encoding.UTF8.GetBytes(value);
+        Span<byte> length = stackalloc byte[sizeof(long)];
+        BinaryPrimitives.WriteInt64BigEndian(length, bytes.LongLength);
+        hash.AppendData(length);
+        hash.AppendData(bytes);
+    }
 
     private static string GetVersion(Assembly assembly) =>
         assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion

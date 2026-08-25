@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
     private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
+    private const string RdfNamespaceUri = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     private const string PdfAIdentificationNamespaceUri = "http://www.aiim.org/pdfa/ns/id/";
     private const string PdfNamespaceUri = "http://ns.adobe.com/pdf/1.3/";
     private const string XmpNamespaceUri = "http://ns.adobe.com/xap/1.0/";
@@ -164,13 +165,29 @@ public sealed partial class PdfReadDocument {
     }
 
     private static string? ReadElementText(XDocument document, string localName) {
-        return NormalizeXmlText(document.Descendants().FirstOrDefault(e => e.Name.LocalName == localName)?.Value);
+        string? elementValue = NormalizeXmlText(document.Descendants().FirstOrDefault(e => e.Name.LocalName == localName)?.Value);
+        return elementValue ?? NormalizeXmlText(FindRdfDescriptionAttribute(document, localName, namespaceUri: null)?.Value);
     }
 
     private static string? ReadElementTextByNamespace(XDocument document, string localName, string namespaceUri) {
         XElement? element = FindElementByNamespace(document, localName, namespaceUri);
-        return NormalizeXmlText(element?.Value);
+        string? elementValue = NormalizeXmlText(element?.Value);
+        if (elementValue is not null) return elementValue;
+        XAttribute? attribute = FindRdfDescriptionAttribute(document, localName, namespaceUri);
+        return NormalizeXmlText(attribute?.Value);
     }
+
+    private static XAttribute? FindRdfDescriptionAttribute(
+        XDocument document,
+        string localName,
+        string? namespaceUri) =>
+        document.Descendants().Where(e =>
+                e.Name.LocalName == "Description" &&
+                string.Equals(e.Name.NamespaceName, RdfNamespaceUri, StringComparison.Ordinal))
+            .Attributes()
+            .FirstOrDefault(a =>
+                a.Name.LocalName == localName &&
+                (namespaceUri is null || string.Equals(a.Name.NamespaceName, namespaceUri, StringComparison.Ordinal)));
 
     private static int? ReadIntegerElementByNamespace(XDocument document, string localName, string namespaceUri) {
         string? value = ReadElementTextByNamespace(document, localName, namespaceUri);

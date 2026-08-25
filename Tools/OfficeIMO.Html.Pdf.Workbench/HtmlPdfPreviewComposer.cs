@@ -9,12 +9,17 @@ public static class HtmlPdfPreviewComposer {
 
     public static string Compose(string html, string css) => ComposeCore(html, css, preview: true);
 
-    public static string ComposeForCapture(string html, string css) => ComposeCore(html, css, preview: false);
+    public static string ComposeForCapture(string html, string css, string? language = null) =>
+        ComposeCore(html, css, preview: false, language);
 
-    private static string ComposeCore(string html, string css, bool preview) {
+    private static string ComposeCore(string html, string css, bool preview, string? language = null) {
         var parser = new HtmlParser();
         IHtmlDocument document = parser.ParseDocument(html ?? string.Empty);
         IElement head = document.Head ?? throw new InvalidOperationException("The HTML parser did not create a head element.");
+
+        if (!string.IsNullOrWhiteSpace(language)) {
+            document.DocumentElement.SetAttribute("lang", language.Trim());
+        }
 
         if (preview) {
             foreach (IElement meta in document.QuerySelectorAll("meta[http-equiv]").ToArray()) meta.Remove();

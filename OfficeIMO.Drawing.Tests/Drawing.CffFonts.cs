@@ -9,6 +9,34 @@ namespace OfficeIMO.Drawing.Tests;
 
 public sealed class DrawingCffFontTests {
     [Fact]
+    public void OfficeFontFaceCollection_CountsBuiltInCffReaderShapingAndFaceBuffers() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAddBounded(
+            "Bounded CFF",
+            data,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: data.Length * 3 - 1,
+            out int rejectedBytes,
+            out string? rejectedError));
+        Assert.Equal(0, rejectedBytes);
+        Assert.Contains("limit", rejectedError, StringComparison.OrdinalIgnoreCase);
+
+        Assert.True(fonts.TryAddBounded(
+            "Bounded CFF",
+            data,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: data.Length * 3,
+            out int acceptedBytes,
+            out string? acceptedError), acceptedError);
+        Assert.Equal(data.Length * 3, acceptedBytes);
+        Assert.Single(fonts.Faces);
+    }
+
+    [Fact]
     public void Cff1FontMeasuresAndProducesContoursWithoutExternalProvider() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         var fonts = new OfficeFontFaceCollection().Add("Source Sans Pro CFF", data);
