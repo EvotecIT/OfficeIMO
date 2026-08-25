@@ -43,4 +43,34 @@ public class PdfBatesNumbererTests {
 
         Assert.Throws<ArgumentException>(() => PdfBatesNumberer.Apply(new[] { input }));
     }
+
+    [Fact]
+    public void Apply_MapsTopAndBottomPositionsToTopLeftCanvasCoordinates() {
+        byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("Body marker");
+        byte[] top = PdfBatesNumberer.Apply(
+            new[] { new PdfBatesDocument(source) },
+            new PdfBatesNumberingOptions { Prefix = "TOP-", MinimumDigits = 2, Position = PdfBatesPosition.TopLeft }).Documents[0].ToBytes();
+        byte[] bottom = PdfBatesNumberer.Apply(
+            new[] { new PdfBatesDocument(source) },
+            new PdfBatesNumberingOptions { Prefix = "BOTTOM-", MinimumDigits = 2, Position = PdfBatesPosition.BottomLeft }).Documents[0].ToBytes();
+
+        PdfLogicalTextBlock topBlock = Assert.Single(PdfLogicalDocument.Load(top).TextBlocks, static block => block.Text.Contains("TOP-01", StringComparison.Ordinal));
+        PdfLogicalTextBlock bottomBlock = Assert.Single(PdfLogicalDocument.Load(bottom).TextBlocks, static block => block.Text.Contains("BOTTOM-01", StringComparison.Ordinal));
+        Assert.True(topBlock.BaselineY > bottomBlock.BaselineY);
+    }
+
+    [Fact]
+    public void Apply_RejectsLabelsThatCannotFitTheConfiguredRectangle() {
+        byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("Body marker");
+
+        InvalidOperationException widthError = Assert.Throws<InvalidOperationException>(() => PdfBatesNumberer.Apply(
+            new[] { new PdfBatesDocument(source) },
+            new PdfBatesNumberingOptions { Prefix = new string('W', 200) }));
+        Assert.Contains("does not fit", widthError.Message, StringComparison.Ordinal);
+
+        InvalidOperationException heightError = Assert.Throws<InvalidOperationException>(() => PdfBatesNumberer.Apply(
+            new[] { new PdfBatesDocument(source) },
+            new PdfBatesNumberingOptions { Height = 5D, FontSize = 10D }));
+        Assert.Contains("does not fit", heightError.Message, StringComparison.Ordinal);
+    }
 }

@@ -496,14 +496,21 @@ internal static partial class PdfMerger {
             document = plannedDocument;
         }
 
-        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        int[] pageObjectNumbers = knownPageObjectNumbers ?? document.Pages.Select(page => page.ObjectNumber).ToArray();
+        bool partialPageSelection = pageObjectNumbers.Length != document.Pages.Count;
+        Dictionary<int, PdfIndirectObject> objects = partialPageSelection
+            ? new Dictionary<int, PdfIndirectObject>(document.Objects)
+            : document.Objects;
         string trailerRaw = document.TrailerRaw;
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF input " + sourceIndex.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(source));
         }
 
+        int formFieldCount = 0;
+        int[]? selectedFormFieldRootObjectNumbers = partialPageSelection
+            ? PrepareSelectedAcroFormFieldRoots(objects, document, pageObjectNumbers, out formFieldCount)
+            : null;
         var collector = new PdfPageExtractor.ObjectCollector(objects);
-        int[] pageObjectNumbers = knownPageObjectNumbers ?? document.Pages.Select(page => page.ObjectNumber).ToArray();
         foreach (int pageObjectNumber in pageObjectNumbers) {
             collector.CollectPage(pageObjectNumber);
         }
@@ -525,7 +532,20 @@ internal static partial class PdfMerger {
         collector.CollectObjectGraph(catalogState.EmbeddedFiles);
         collector.CollectObjectGraph(catalogState.AssociatedFiles);
         collector.CollectObjectGraph(catalogState.OptionalContent);
-        int[] formFieldRootObjectNumbers = CollectAcroFormFieldRoots(objects, document, collector);
+        int[] formFieldRootObjectNumbers;
+        if (selectedFormFieldRootObjectNumbers is null) {
+            formFieldRootObjectNumbers = CollectAcroFormFieldRoots(objects, document, collector);
+            formFieldCount = document.FormFields.Count;
+        } else {
+            formFieldRootObjectNumbers = selectedFormFieldRootObjectNumbers;
+            if (formFieldRootObjectNumbers.Length > 0) {
+                CollectAcroFormResources(objects, document, collector);
+                foreach (int rootObjectNumber in formFieldRootObjectNumbers) {
+                    int generation = objects.TryGetValue(rootObjectNumber, out PdfIndirectObject? rootObject) ? rootObject.Generation : 0;
+                    collector.CollectObjectGraph(new PdfReference(rootObjectNumber, generation));
+                }
+            }
+        }
         return new ImportedSource(
             objects,
             document,
@@ -533,6 +553,7 @@ internal static partial class PdfMerger {
             collector,
             catalogState,
             formFieldRootObjectNumbers,
+            formFieldCount,
             sourceSecurity ?? document.Security,
             sourcePermissionPolicy ?? document.ReadOptions.PermissionPolicy);
     }
@@ -616,14 +637,23 @@ internal static partial class PdfMerger {
             PdfPageExtractor.ObjectCollector collector,
             PdfPageExtractor.CatalogRewriteState catalogState,
             int[] formFieldRootObjectNumbers,
+            int formFieldCount,
             PdfDocumentSecurityInfo sourceSecurity,
             PdfPermissionPolicy sourcePermissionPolicy) {
             Objects = objects;
             Document = document;
             PageObjectNumbers = pageObjectNumbers;
+            var pageNumberByObjectNumber = document.Pages
+                .Select((page, index) => new { page.ObjectNumber, PageNumber = index + 1 })
+                .ToDictionary(static item => item.ObjectNumber, static item => item.PageNumber);
+            SelectedPageNumbers = pageObjectNumbers.Select(pageObjectNumber => pageNumberByObjectNumber[pageObjectNumber]).ToArray();
+            var selectedPageNumberSet = new HashSet<int>(SelectedPageNumbers);
+            NamedDestinationCount = document.NamedDestinations.Count(destination =>
+                destination.PageNumber.HasValue && selectedPageNumberSet.Contains(destination.PageNumber.Value));
             Collector = collector;
             CatalogState = catalogState;
             FormFieldRootObjectNumbers = formFieldRootObjectNumbers;
+            FormFieldCount = formFieldCount;
             SourceSecurity = sourceSecurity;
             SourcePermissionPolicy = sourcePermissionPolicy;
         }
@@ -636,11 +666,17 @@ internal static partial class PdfMerger {
 
         public int[] PageObjectNumbers { get; }
 
+        public int[] SelectedPageNumbers { get; }
+
+        public int NamedDestinationCount { get; }
+
         public PdfPageExtractor.ObjectCollector Collector { get; }
 
         public PdfPageExtractor.CatalogRewriteState CatalogState { get; }
 
         public int[] FormFieldRootObjectNumbers { get; }
+
+        public int FormFieldCount { get; }
 
         public PdfDocumentSecurityInfo SourceSecurity { get; }
 

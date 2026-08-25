@@ -6,17 +6,21 @@ internal static partial class PdfMerger {
         IReadOnlyList<ImportedSource> sources,
         int primarySourceIndex,
         PdfMergeOptions? options,
-        PdfReadOptions outputReadOptions) {
+        PdfReadOptions outputReadOptions,
+        int[]? outputSourceIndexes = null) {
         PdfMergePolicy policy = options?.Policy ?? new PdfMergePolicy();
         Guard.NotNull(policy, nameof(policy));
+        if (outputSourceIndexes is not null && outputSourceIndexes.Length != sources.Sum(static source => source.PageObjectNumbers.Length)) {
+            throw new InvalidOperationException("PDF merge output page ownership does not match the imported page count.");
+        }
 
         var inventories = sources.Select((source, index) => new PdfMergeSourceInventory(
             index,
             source.PageObjectNumbers.Length,
             CountOutlines(source.Document.Outlines),
-            source.Document.NamedDestinations.Count,
+            source.NamedDestinationCount,
             source.Document.PageLabels.Count,
-            source.Document.FormFields.Count,
+            source.FormFieldCount,
             source.Document.Attachments.Count,
             source.SourceSecurity,
             source.SourcePermissionPolicy)).ToArray();
@@ -43,7 +47,7 @@ internal static partial class PdfMerger {
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyMetadataPolicy(merged, sources, primarySourceIndex, policy.Metadata, decisions, currentReadOptions);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions, currentReadOptions);
+        merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions, currentReadOptions, outputSourceIndexes);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions, currentReadOptions);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);

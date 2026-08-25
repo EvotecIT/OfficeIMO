@@ -201,7 +201,8 @@ internal static partial class PdfMerger {
             importedSources,
             options.PrimarySourceIndex,
             options.MergeOptions,
-            outputReadOptions);
+            outputReadOptions,
+            order.Select(static page => page.SourceIndex).ToArray());
         byte[] output = mergeResult.ToBytes();
         PdfReadDocument reopened = PdfReadDocument.Open(output, PdfReadOptions.WithMinimumInputBytes(outputReadOptions, output.LongLength));
         if (reopened.Pages.Count != mappings.Count) throw new InvalidOperationException("Interleaved PDF page count does not match its provenance report.");

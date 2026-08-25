@@ -569,6 +569,9 @@ File.WriteAllBytes("volume-a-numbered.pdf", numbered.Documents[0].ToBytes());
 Console.WriteLine(numbered.NextNumber);
 ```
 
+Every label is measured against its target page rectangle. A batch fails
+instead of wrapping or clipping an identifier that cannot be rendered in full.
+
 Interleave selected pages with explicit output provenance, including reverse
 order for duplex scan backs:
 
@@ -584,6 +587,10 @@ PdfInterleaveResult interleaved = PdfPageInterleaver.Interleave(
 
 File.WriteAllBytes("duplex-scan.pdf", interleaved.ToBytes());
 ```
+
+Page-addressed form fields and named links follow the selected pages and their
+final output ownership; structures that belong only to excluded pages are not
+carried into the composed document.
 
 Production splitting can combine page-count, text-boundary, and target-size
 rules. Every part reports its source pages, termination reason, byte size, and

@@ -228,14 +228,22 @@ public static class PdfBatesNumberer {
 
     private static void AddNumber(PdfPageCanvas canvas, PdfStampPageContext context, string text, PdfBatesNumberingOptions options) {
         double availableWidth = context.Width - (2D * options.HorizontalMargin);
-        if (availableWidth <= 0D || context.Height <= (2D * options.VerticalMargin)) {
+        if (availableWidth <= 0D || options.VerticalMargin + options.Height > context.Height) {
             throw new InvalidOperationException("Bates-number margins leave no drawable page area.");
+        }
+        if (text.Contains('\r') || text.Contains('\n')) {
+            throw new InvalidOperationException("Bates labels must fit on one line and cannot contain line breaks.");
+        }
+        double requiredWidth = PdfWriter.EstimateSimpleTextWidth(text, options.Font, options.FontSize);
+        double requiredHeight = options.FontSize * 1.2D;
+        if (requiredWidth > availableWidth + 0.01D || requiredHeight > options.Height + 0.01D) {
+            throw new InvalidOperationException("Bates label does not fit the configured page rectangle.");
         }
         bool top = options.Position is PdfBatesPosition.TopLeft or PdfBatesPosition.TopCenter or PdfBatesPosition.TopRight;
         PdfAlign alignment = options.Position is PdfBatesPosition.BottomCenter or PdfBatesPosition.TopCenter
             ? PdfAlign.Center
             : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? PdfAlign.Right : PdfAlign.Left;
-        double y = top ? context.Height - options.VerticalMargin - options.Height : options.VerticalMargin;
+        double y = top ? options.VerticalMargin : context.Height - options.VerticalMargin - options.Height;
         canvas.Text(text, options.HorizontalMargin, y, availableWidth, options.Height, options.FontSize, options.Color, alignment, options.Font);
     }
 
