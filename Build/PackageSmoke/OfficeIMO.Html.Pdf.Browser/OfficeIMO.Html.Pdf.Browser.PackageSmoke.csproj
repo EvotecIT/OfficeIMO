@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">net472;$(TargetFrameworks)</TargetFrameworks>
     <EnableOfficeIMOHtmlPdfBrowserPackageSmoke Condition="'$(EnableOfficeIMOHtmlPdfBrowserPackageSmoke)' == ''">false</EnableOfficeIMOHtmlPdfBrowserPackageSmoke>
     <OfficeIMOHtmlPdfBrowserPackageVersion Condition="'$(OfficeIMOHtmlPdfBrowserPackageVersion)' == ''">3.2.5-browser-local</OfficeIMOHtmlPdfBrowserPackageVersion>
     <IsPackable>false</IsPackable>

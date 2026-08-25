@@ -461,6 +461,57 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PrintProductionInspectorBoundsCyclicIndirectObjectGraphs() {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0.1 0.2 0.3 scn /Blend gs",
+            resources: "/ColorSpace << /CS1 6 0 R >> /ExtGState << /Blend 7 0 R >>",
+            pageEntries: "/Cycle 9 0 R",
+            extraObjects:
+                "5 0 obj\n[5 0 R 4 0 R]\nendobj\n" +
+                "6 0 obj\n[6 0 R /DeviceRGB]\nendobj\n" +
+                "7 0 obj\n<< /BM 8 0 R >>\nendobj\n" +
+                "8 0 obj\n[8 0 R /Normal]\nendobj\n" +
+                "9 0 obj\n[9 0 R << /S /Transparency >>]\nendobj\n",
+            contents: "5 0 R");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(1, evidence.NonOpaqueGraphicsStateCount);
+        Assert.Equal(1, evidence.TransparencyGroupCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void PrintProductionInspectorFailsClosedAtConfiguredObjectGraphDepth() {
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            resources: "/ColorSpace << /CS1 6 0 R >>",
+            extraObjects:
+                "6 0 obj\n7 0 R\nendobj\n" +
+                "7 0 obj\n8 0 R\nendobj\n" +
+                "8 0 obj\n9 0 R\nendobj\n" +
+                "9 0 obj\n10 0 R\nendobj\n" +
+                "10 0 obj\n11 0 R\nendobj\n" +
+                "11 0 obj\n12 0 R\nendobj\n" +
+                "12 0 obj\n13 0 R\nendobj\n" +
+                "13 0 obj\n14 0 R\nendobj\n" +
+                "14 0 obj\n15 0 R\nendobj\n" +
+                "15 0 obj\n/DeviceRGB\nendobj\n");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
+        };
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.InspectPrintProductionColors());
+
+        Assert.Equal(PdfReadLimitKind.ObjectNestingDepth, exception.Kind);
+        Assert.Equal(8, exception.Limit);
+        Assert.Equal(9, exception.Actual);
+    }
+
+    [Fact]
     public void PdfXFormalGenerationFailsClosedWhenEmbeddedFontCoverageIsMissing() {
         var options = new PdfOptions()
             .ConfigurePdfX(
@@ -934,13 +985,14 @@ public class PdfXGroundworkTests {
         string content,
         string resources = "",
         string pageEntries = "",
-        string extraObjects = "") {
+        string extraObjects = "",
+        string contents = "4 0 R") {
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << " + resources + " >> " + pageEntries + " /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << " + resources + " >> " + pageEntries + " /Contents " + contents + " >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n" + extraObjects + "trailer\n<< /Root 1 0 R >>\n%%EOF\n");

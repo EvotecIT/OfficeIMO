@@ -144,7 +144,8 @@ try {
     )
     $consumerProjectPath = 'Build/PackageSmoke/OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.PackageSmoke.csproj'
     Invoke-DotNet restore $consumerProjectPath @consumerProperties --artifacts-path $artifactsPath --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
-    foreach ($framework in @('net8.0', 'net10.0')) {
+    $frameworks = if ($IsWindows) { @('net472', 'net8.0', 'net10.0') } else { @('net8.0', 'net10.0') }
+    foreach ($framework in $frameworks) {
         Invoke-DotNet run --project $consumerProjectPath --configuration Release --framework $framework --artifacts-path $artifactsPath --no-restore @consumerProperties
     }
 
