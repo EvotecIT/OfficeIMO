@@ -147,6 +147,68 @@ public class PdfPageInterleaverTests {
         Assert.Equal(2, result.MergeReport.OutputPageCount);
     }
 
+    [Fact]
+    public void Interleave_CarriesTightSourceLimitsThroughResizePreparation() {
+        byte[] first = PdfProductionWorkflowTestSupport.CreatePdf("A one");
+        byte[] second = PdfProductionWorkflowTestSupport.CreatePdf("B one");
+        int firstObjectCount = PdfReadDocument.Open(first).RawStructure().TotalObjectCount;
+        int secondObjectCount = PdfReadDocument.Open(second).RawStructure().TotalObjectCount;
+        var firstSource = new PdfInterleaveSource(first) {
+            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = firstObjectCount } }
+        };
+        var secondSource = new PdfInterleaveSource(second) {
+            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = secondObjectCount } }
+        };
+
+        PdfInterleaveResult result = PdfPageInterleaver.Interleave(
+            new[] { firstSource, secondSource },
+            new PdfInterleaveOptions {
+                MergeOptions = new PdfMergeOptions {
+                    ResizePages = new PdfPageResizeOptions(new PageSize(420, 595))
+                }
+            });
+
+        Assert.Equal(2, result.ToDocument().Read.Pages().Count);
+    }
+
+    [Fact]
+    public void Interleave_ScopesIncomingPagePoliciesAndLinksToSelectedPages() {
+        byte[] incoming = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 8 0 R /PageMode /UseOutlines /PageLabels 10 0 R /OpenAction [5 0 R /Fit] >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R /Annots [7 0 R] >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 6 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /Dest [5 0 R /Fit] /Contents (excluded-link-owner) >>",
+            "<< /Type /Outlines /First 9 0 R /Last 9 0 R /Count 1 >>",
+            "<< /Title (Excluded outline) /Parent 8 0 R /Dest [5 0 R /Fit] >>",
+            "<< /Nums [1 << /S /D /St 1 >>] >>");
+        var selectedIncoming = new PdfInterleaveSource(incoming) { Pages = PdfPageSelector.Parse("1") };
+        var options = new PdfInterleaveOptions {
+            MergeOptions = new PdfMergeOptions {
+                Policy = new PdfMergePolicy {
+                    Outlines = PdfMergeStructureMode.RejectIncoming,
+                    PageLabels = PdfMergeStructureMode.RejectIncoming,
+                    ViewerPreferences = PdfMergeStructureMode.RejectIncoming
+                }
+            }
+        };
+
+        PdfInterleaveResult result = PdfPageInterleaver.Interleave(
+            new[] {
+                new PdfInterleaveSource(PdfProductionWorkflowTestSupport.CreatePdf("Primary")),
+                selectedIncoming
+            },
+            options);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(result.ToBytes());
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Equal(0, result.MergeReport.Sources[1].OutlineCount);
+        Assert.Equal(0, result.MergeReport.Sources[1].PageLabelCount);
+        Assert.DoesNotContain("excluded-link-owner", System.Text.Encoding.ASCII.GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
 
     private static byte[] BuildTwoPageSharedFieldPdf() => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",

@@ -46,6 +46,15 @@ public class PdfBatesNumbererTests {
     }
 
     [Fact]
+    public void Apply_RejectsUndefinedPositions() {
+        byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("Undefined position");
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfBatesNumberer.Apply(
+            new[] { new PdfBatesDocument(source) },
+            new PdfBatesNumberingOptions { Position = (PdfBatesPosition)99 }));
+    }
+
+    [Fact]
     public void Apply_MapsTopAndBottomPositionsToTopLeftCanvasCoordinates() {
         byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("Body marker");
         byte[] top = PdfBatesNumberer.Apply(

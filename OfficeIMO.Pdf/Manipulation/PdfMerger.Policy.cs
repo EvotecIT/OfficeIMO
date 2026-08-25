@@ -17,9 +17,9 @@ internal static partial class PdfMerger {
         var inventories = sources.Select((source, index) => new PdfMergeSourceInventory(
             index,
             source.PageObjectNumbers.Length,
-            CountOutlines(source.Document.Outlines),
+            source.OutlineCount,
             source.NamedDestinationCount,
-            source.Document.PageLabels.Count,
+            source.PageLabelCount,
             source.FormFieldCount,
             source.Document.Attachments.Count,
             source.SourceSecurity,
@@ -111,7 +111,7 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
         PdfReadOptions readOptions) {
-        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(source => CountOutlines(source.Document.Outlines));
+        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.OutlineCount);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
                 decisions.Add(new PdfMergeDecision("Outlines", mode, "Kept the primary outline tree.", droppedCount: incomingCount));

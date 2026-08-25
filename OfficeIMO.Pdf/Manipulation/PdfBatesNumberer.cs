@@ -254,6 +254,7 @@ public static class PdfBatesNumberer {
         if (options.MinimumDigits < 1 || options.MinimumDigits > 18) throw new ArgumentOutOfRangeException(nameof(options), "Minimum digits must be between 1 and 18.");
         if (options.Prefix is null || options.Suffix is null) throw new ArgumentException("Bates prefix and suffix cannot be null.", nameof(options));
         if (options.Prefix.Length + options.Suffix.Length > 512) throw new ArgumentException("Bates prefix and suffix are too long.", nameof(options));
+        if (options.Position < PdfBatesPosition.BottomLeft || options.Position > PdfBatesPosition.TopRight) throw new ArgumentOutOfRangeException(nameof(options), "Bates position must be a defined value.");
         if (!IsPositiveFinite(options.HorizontalMargin) || !IsPositiveFinite(options.VerticalMargin) || !IsPositiveFinite(options.Height) || !IsPositiveFinite(options.FontSize)) {
             throw new ArgumentOutOfRangeException(nameof(options), "Bates geometry and font size must be positive finite values.");
         }

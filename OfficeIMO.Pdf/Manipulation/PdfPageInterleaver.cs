@@ -115,6 +115,7 @@ internal static partial class PdfMerger {
 
         var sourceBytes = new byte[sources.Count][];
         var sourceDocuments = new PdfReadDocument[sources.Count];
+        var sourceReadOptions = new PdfReadOptions[sources.Count];
         var selectedPageNumbers = new int[sources.Count][];
         var selectedPageObjectNumbers = new int[sources.Count][];
         var sourceNames = new string[sources.Count];
@@ -140,12 +141,13 @@ internal static partial class PdfMerger {
             if (pageNumbers.Distinct().Count() != pageNumbers.Length) throw new ArgumentException("Interleave page selections cannot contain duplicate pages.", nameof(sources));
             if (input.Reverse) Array.Reverse(pageNumbers);
 
-            byte[] prepared = PrepareMergeSource(original, options.MergeOptions, input.ReadOptions);
+            byte[] prepared = PrepareMergeSource(original, options.MergeOptions, input.ReadOptions, out PdfReadOptions preparedReadOptions);
             PdfReadDocument preparedDocument = ReferenceEquals(prepared, original)
                 ? plannedDocument
-                : PdfReadDocument.Open(prepared, input.ReadOptions);
+                : PdfReadDocument.Open(prepared, preparedReadOptions);
             sourceBytes[sourceIndex] = prepared;
             sourceDocuments[sourceIndex] = preparedDocument;
+            sourceReadOptions[sourceIndex] = preparedReadOptions;
             selectedPageNumbers[sourceIndex] = pageNumbers;
             selectedPageObjectNumbers[sourceIndex] = pageNumbers.Select(page => preparedDocument.Pages[page - 1].ObjectNumber).ToArray();
             sourceNames[sourceIndex] = string.IsNullOrWhiteSpace(input.Name)
@@ -186,7 +188,7 @@ internal static partial class PdfMerger {
                 selectedPageObjectNumbers[sourceIndex],
                 mergedPageOffset: 0,
                 outputIndexMaps[sourceIndex],
-                sources[sourceIndex].ReadOptions,
+                sourceReadOptions[sourceIndex],
                 sourceDocuments[sourceIndex],
                 sourceSecurity[sourceIndex],
                 sourcePermissionPolicy[sourceIndex]);

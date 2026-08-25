@@ -50,7 +50,7 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
         PdfReadOptions readOptions) {
-        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.Document.PageLabels.Count);
+        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.PageLabelCount);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
                 decisions.Add(new PdfMergeDecision("PageLabels", mode, "Kept primary page-label rules.", droppedCount: incomingCount));
