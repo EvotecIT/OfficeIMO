@@ -113,7 +113,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             overwriteOutput,
             cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(options.AssetsPath)) {
-            ReaderToolOutput.WriteAssets(document, options.AssetsPath!, cancellationToken);
+            ReaderToolOutput.WriteAssets(document, options.AssetsPath!, overwriteOutput, cancellationToken);
         }
         return (int)OfficeImoToolExitCode.Success;
     }

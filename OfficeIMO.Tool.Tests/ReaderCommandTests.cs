@@ -360,6 +360,58 @@ public sealed class ReaderCommandTests {
 
         Assert.Contains("outside the input folder", exception.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void AssetOutputWithoutForceRejectsExistingSidecarsBeforeWritingAnyAssets() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string existingPath = Path.Combine(temporary.Path, "existing.bin");
+        string newPath = Path.Combine(temporary.Path, "new.bin");
+        File.WriteAllText(existingPath, "keep");
+        var document = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "new",
+                    Extension = ".bin",
+                    FileName = "new.bin",
+                    PayloadBytes = Encoding.UTF8.GetBytes("new")
+                },
+                new OfficeDocumentAsset {
+                    Id = "existing",
+                    Extension = ".bin",
+                    FileName = "existing.bin",
+                    PayloadBytes = Encoding.UTF8.GetBytes("replace")
+                }
+            }
+        };
+
+        ReaderToolOutputException exception = Assert.Throws<ReaderToolOutputException>(() =>
+            ReaderToolOutput.WriteAssets(document, temporary.Path, overwrite: false, CancellationToken.None));
+
+        Assert.Contains("--force", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("keep", File.ReadAllText(existingPath));
+        Assert.False(File.Exists(newPath));
+    }
+
+    [Fact]
+    public void AssetOutputWithForceReplacesExistingSidecars() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string existingPath = Path.Combine(temporary.Path, "existing.bin");
+        File.WriteAllText(existingPath, "keep");
+        var document = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "existing",
+                    Extension = ".bin",
+                    FileName = "existing.bin",
+                    PayloadBytes = Encoding.UTF8.GetBytes("replace")
+                }
+            }
+        };
+
+        ReaderToolOutput.WriteAssets(document, temporary.Path, overwrite: true, CancellationToken.None);
+
+        Assert.Equal("replace", File.ReadAllText(existingPath));
+    }
 }
 
 internal sealed class ReaderToolTemporaryDirectory : IDisposable {

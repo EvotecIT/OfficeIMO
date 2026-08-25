@@ -109,7 +109,7 @@ public static class OfficeDocumentAssetMaterializer {
                 continue;
             }
 
-            ReaderFileCommit.WriteAllBytes(outputPath, payload);
+            ReaderFileCommit.WriteAllBytes(outputPath, payload, effectiveOptions.Overwrite);
             results.Add(new OfficeDocumentMaterializedAsset {
                 Asset = asset,
                 FileName = fileName,

@@ -76,7 +76,7 @@ internal static class ReaderToolOutput {
             if (!string.IsNullOrWhiteSpace(assetsRoot) && documents[index].Assets.Count > 0) {
                 string assetDirectory = Path.Combine(assetsRoot!, relativePath + ".assets");
                 ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, assetDirectory);
-                WriteAssets(documents[index], assetDirectory, cancellationToken);
+                WriteAssets(documents[index], assetDirectory, overwrite: true, cancellationToken);
             }
         }
     }
@@ -84,13 +84,38 @@ internal static class ReaderToolOutput {
     internal static void WriteAssets(
         OfficeDocumentReadResult document,
         string assetsPath,
+        bool overwrite,
         CancellationToken cancellationToken) {
         try {
+            if (!overwrite) {
+                foreach (OfficeDocumentAsset asset in document.Assets) {
+                    if (asset.PayloadBytes == null || asset.PayloadBytes.Length == 0) {
+                        continue;
+                    }
+                    if (!string.IsNullOrWhiteSpace(asset.PayloadHash) && !asset.PayloadHashMatches(out _)) {
+                        continue;
+                    }
+
+                    string fileName = string.IsNullOrWhiteSpace(asset.FileName)
+                        ? OfficeDocumentAssetNaming.BuildFileName(asset.Id, asset.Extension)
+                        : Path.GetFileName(asset.FileName!);
+                    if (string.IsNullOrWhiteSpace(fileName)) {
+                        fileName = OfficeDocumentAssetNaming.BuildFileName(asset.Id, asset.Extension);
+                    }
+
+                    string outputPath = Path.Combine(assetsPath, fileName);
+                    if (File.Exists(outputPath)) {
+                        throw new ReaderToolOutputException(
+                            "Asset output already exists. Use --force to replace it: " + Path.GetFullPath(outputPath));
+                    }
+                }
+            }
+
             document.WriteAssetsToDirectory(
                 assetsPath,
                 new OfficeDocumentAssetMaterializationOptions {
                     CreateDirectory = true,
-                    Overwrite = true,
+                    Overwrite = overwrite,
                     ValidatePayloadHash = true
                 },
                 cancellationToken);
