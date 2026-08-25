@@ -130,8 +130,18 @@ internal static partial class HtmlPdfRenderedConverter {
                 out double maximumY)) {
             return false;
         }
-        double outlineOffsetX = minimumX < textX ? textX - minimumX : 0D;
-        double outlineOffsetY = minimumY < 0D ? -minimumY : 0D;
+        OutlinedTextFrame frame = ResolveOutlinedTextFrame(
+            visual.X,
+            visual.Y,
+            visual.Height,
+            frameWidth,
+            textX,
+            minimumX,
+            minimumY,
+            maximumX,
+            maximumY);
+        double outlineOffsetX = frame.OffsetX;
+        double outlineOffsetY = frame.OffsetY;
         var commands = new List<OfficePathCommand>();
         AppendContours(
             commands,
@@ -145,8 +155,8 @@ internal static partial class HtmlPdfRenderedConverter {
         if (visual.Font.IsUnderline) {
             AppendRectangle(
                 commands,
-                textX,
-                textTop + (lineHeight * 0.86D),
+                textX + outlineOffsetX,
+                textTop + (lineHeight * 0.86D) + outlineOffsetY,
                 resolvedAdvance,
                 decorationThickness,
                 webFonts.OutlineBudget);
@@ -154,16 +164,16 @@ internal static partial class HtmlPdfRenderedConverter {
         if (visual.Font.IsStrikethrough) {
             AppendRectangle(
                 commands,
-                textX,
-                textTop + (lineHeight * 0.52D),
+                textX + outlineOffsetX,
+                textTop + (lineHeight * 0.52D) + outlineOffsetY,
                 resolvedAdvance,
                 decorationThickness,
                 webFonts.OutlineBudget);
         }
         if (commands.Count == 0) return false;
 
-        double drawingWidth = Math.Max(0.01D, Math.Max(frameWidth, maximumX + outlineOffsetX));
-        double drawingHeight = Math.Max(0.01D, Math.Max(visual.Height, maximumY + outlineOffsetY));
+        double drawingWidth = frame.Width;
+        double drawingHeight = frame.Height;
         var path = OfficeShape.Path(drawingWidth, drawingHeight, commands);
         path.FillColor = visual.Color;
         path.FillRule = OfficeFillRule.NonZero;
@@ -173,8 +183,8 @@ internal static partial class HtmlPdfRenderedConverter {
         string? link = string.IsNullOrWhiteSpace(visual.Text) ? null : visual.LinkUri;
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
-            visual.X * PointsPerCssPixel,
-            visual.Y * PointsPerCssPixel,
+            frame.X * PointsPerCssPixel,
+            frame.Y * PointsPerCssPixel,
             drawingWidth * PointsPerCssPixel,
             drawingHeight * PointsPerCssPixel,
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
@@ -261,6 +271,27 @@ internal static partial class HtmlPdfRenderedConverter {
             return Math.Max(0D, frameWidth - resolvedAdvance);
         }
         return 0D;
+    }
+
+    internal static OutlinedTextFrame ResolveOutlinedTextFrame(
+        double visualX,
+        double visualY,
+        double visualHeight,
+        double frameWidth,
+        double textX,
+        double minimumX,
+        double minimumY,
+        double maximumX,
+        double maximumY) {
+        double offsetX = minimumX < textX ? textX - minimumX : 0D;
+        double offsetY = minimumY < 0D ? -minimumY : 0D;
+        return new OutlinedTextFrame(
+            visualX - offsetX,
+            visualY - offsetY,
+            Math.Max(0.01D, Math.Max(frameWidth + offsetX, maximumX + offsetX)),
+            Math.Max(0.01D, Math.Max(visualHeight + offsetY, maximumY + offsetY)),
+            offsetX,
+            offsetY);
     }
 
     private static void AppendContours(
@@ -398,5 +429,29 @@ internal static partial class HtmlPdfRenderedConverter {
         internal double Advance { get; }
         internal string? ShapedText { get; }
         internal OfficeTextShapingResult? ShapingResult { get; }
+    }
+
+    internal readonly struct OutlinedTextFrame {
+        internal OutlinedTextFrame(
+            double x,
+            double y,
+            double width,
+            double height,
+            double offsetX,
+            double offsetY) {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            OffsetX = offsetX;
+            OffsetY = offsetY;
+        }
+
+        internal double X { get; }
+        internal double Y { get; }
+        internal double Width { get; }
+        internal double Height { get; }
+        internal double OffsetX { get; }
+        internal double OffsetY { get; }
     }
 }

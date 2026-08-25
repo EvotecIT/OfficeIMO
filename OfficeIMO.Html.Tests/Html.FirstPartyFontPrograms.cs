@@ -152,6 +152,30 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlPdfOutlinedTextNormalizationPreservesVisualAndDecorationOrigins() {
+        HtmlPdfRenderedConverter.OutlinedTextFrame frame = HtmlPdfRenderedConverter.ResolveOutlinedTextFrame(
+            visualX: 40D,
+            visualY: 30D,
+            visualHeight: 20D,
+            frameWidth: 100D,
+            textX: 5D,
+            minimumX: -3D,
+            minimumY: -4D,
+            maximumX: 80D,
+            maximumY: 15D);
+
+        Assert.Equal(8D, frame.OffsetX);
+        Assert.Equal(4D, frame.OffsetY);
+        Assert.Equal(32D, frame.X);
+        Assert.Equal(26D, frame.Y);
+        Assert.Equal(108D, frame.Width);
+        Assert.Equal(24D, frame.Height);
+        Assert.Equal(37D, frame.X + -3D + frame.OffsetX);
+        Assert.Equal(26D, frame.Y + -4D + frame.OffsetY);
+        Assert.Equal(45D, frame.X + 5D + frame.OffsetX);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task HtmlPdfOutlinedVariableFontPropagatesCancellationToShaping() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         HtmlConversionDocument source = HtmlConversionDocument.Parse(

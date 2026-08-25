@@ -16,23 +16,11 @@ internal static partial class PdfPrintProductionStructureInspector {
             else invalidBoxes++;
         }
 
-        var fontDictionaries = new HashSet<PdfDictionary>();
-        var visitedDictionaries = new HashSet<PdfDictionary>();
-        var visitedArrays = new HashSet<PdfArray>();
-        foreach (PdfIndirectObject indirect in document.Objects.Values) {
-            cancellationToken.ThrowIfCancellationRequested();
-            CollectFontResources(
-                indirect.Value,
-                document.Objects,
-                visitedDictionaries,
-                visitedArrays,
-                fontDictionaries,
-                document.ReadOptions.Limits.MaxObjectNestingDepth,
-                cancellationToken);
-        }
+        ReachableFontInspection fontInspection = InspectReachableFonts(document, cancellationToken);
+        HashSet<PdfDictionary> fontDictionaries = fontInspection.Fonts;
 
         int unembedded = 0;
-        int uninspectable = 0;
+        int uninspectable = fontInspection.UninspectableContextCount;
         foreach (PdfDictionary font in fontDictionaries) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
@@ -76,51 +64,6 @@ internal static partial class PdfPrintProductionStructureInspector {
             inner.Bottom >= outer.Bottom - tolerance &&
             inner.Right <= outer.Right + tolerance &&
             inner.Top <= outer.Top + tolerance;
-    }
-
-    private static void CollectFontResources(
-        PdfObject? value,
-        Dictionary<int, PdfIndirectObject> objects,
-        HashSet<PdfDictionary> visited,
-        HashSet<PdfArray> visitedArrays,
-        HashSet<PdfDictionary> fonts,
-        int maximumObjectDepth,
-        System.Threading.CancellationToken cancellationToken) {
-        if (value == null) return;
-        var pending = new Stack<(PdfObject Value, int Depth)>();
-        pending.Push((value, 0));
-        while (pending.Count > 0) {
-            cancellationToken.ThrowIfCancellationRequested();
-            (PdfObject candidate, int depth) = pending.Pop();
-            PdfObject? resolved = ResolveObject(objects, candidate, depth, maximumObjectDepth, out int resolvedDepth);
-            PdfDictionary? dictionary = resolved switch {
-                PdfDictionary direct => direct,
-                PdfStream stream => stream.Dictionary,
-                _ => null
-            };
-            if (dictionary != null) {
-                if (!visited.Add(dictionary)) continue;
-                if (dictionary.Items.TryGetValue("Font", out PdfObject? fontObject) &&
-                    ResolveObject(objects, fontObject, resolvedDepth + 1, maximumObjectDepth, out _) is PdfDictionary fontResources) {
-                    foreach (PdfObject resource in fontResources.Items.Values) {
-                        if (ResolveObject(objects, resource, resolvedDepth + 1, maximumObjectDepth, out _) is PdfDictionary font) {
-                            fonts.Add(font);
-                        }
-                    }
-                }
-
-                foreach (PdfObject child in dictionary.Items.Values) {
-                    pending.Push((child, resolvedDepth + 1));
-                }
-                continue;
-            }
-
-            if (resolved is PdfArray array && visitedArrays.Add(array)) {
-                for (int index = array.Items.Count - 1; index >= 0; index--) {
-                    pending.Push((array.Items[index], resolvedDepth + 1));
-                }
-            }
-        }
     }
 
     private static PdfObject? ResolveObject(

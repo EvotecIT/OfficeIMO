@@ -319,12 +319,12 @@ internal static partial class PdfComplianceAnalyzer {
                 structureEvidence.InvalidProductionPageBoxCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " page(s) have missing, conflicting, or improperly nested production boxes.");
             Add(requirements, "readback-pdfx-font-inspection-complete", "Readback PDF/X font inspection completeness",
                 structureEvidence.UninspectableFontResourceCount == 0,
-                "Every discovered font resource was inspected for a self-contained font program.",
-                structureEvidence.UninspectableFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " font resource(s) could not be inspected completely.");
+                "Every reachable font-selection context and selected font resource was inspected for a self-contained font program.",
+                structureEvidence.UninspectableFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " reachable font-selection context(s) or selected font resource(s) could not be inspected completely.");
             Add(requirements, "readback-pdfx-fonts-embedded", "Readback PDF/X embedded-font policy",
                 structureEvidence.UnembeddedFontResourceCount == 0,
-                "Every discovered font resource contains an embedded font program or self-contained Type3 character procedures.",
-                structureEvidence.UnembeddedFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " font resource(s) do not contain an embedded program.");
+                "Every font selected by reachable content contains an embedded font program or self-contained Type3 character procedures.",
+                structureEvidence.UnembeddedFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " selected font resource(s) do not contain an embedded program.");
         }
 
         if (colorEvidence == null) {

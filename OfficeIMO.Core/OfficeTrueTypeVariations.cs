@@ -324,6 +324,8 @@ internal sealed class OfficeTrueTypeVariations {
                 else if (coordinate > peak) scalar *= peak == end ? 1D : (end - coordinate) / (end - peak);
             } else {
                 if (peak == 0D) continue;
+                // OpenType defines a non-intermediate region's implicit bounds as the zero origin
+                // and the peak tuple. A same-sign coordinate beyond that peak is outside the region.
                 if (coordinate == 0D || coordinate < 0D != peak < 0D || Math.Abs(coordinate) > Math.Abs(peak)) return 0D;
                 scalar *= coordinate / peak;
             }

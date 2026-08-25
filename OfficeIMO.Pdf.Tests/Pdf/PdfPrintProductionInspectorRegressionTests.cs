@@ -186,18 +186,98 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void StructureInspectorIgnoresUnusedFontResources() {
+        const string charProc = "0 0 500 700 d1 0 0 500 700 re f";
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R /Unused 7 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+                "/CharProcs << /A 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+                "/FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n" +
+                "6 0 obj\n<< /Length " + charProc.Length + " >>\nstream\n" + charProc + "\nendstream\nendobj\n" +
+                "7 0 obj\n<< /Type /Font /Subtype /TrueType /BaseFont /Unused >>\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+        Assert.True(evidence.IsComplete);
+    }
+
+    [Fact]
+    public void StructureInspectorFollowsFontSelectionsInInvokedForms() {
+        const string formContent = "BT /F2 12 Tf (A) Tj ET";
+        const string charProc = "0 0 500 700 d1 0 0 500 700 re f";
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm Do",
+            resources: "/Font << /Unused 9 0 R >> /XObject << /Fm 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /Font << /F2 6 0 R >> >> /Length " +
+                formContent.Length + " >>\nstream\n" + formContent + "\nendstream\nendobj\n" +
+                "6 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+                "/CharProcs << /A 7 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+                "/FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n" +
+                "7 0 obj\n<< /Length " + charProc.Length + " >>\nstream\n" + charProc + "\nendstream\nendobj\n" +
+                "9 0 obj\n<< /Type /Font /Subtype /TrueType /BaseFont /Unused >>\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void StructureInspectorFollowsFontSelectionsInPatternsAndSoftMasks() {
+        const string selectedText = "BT /F1 12 Tf (A) Tj ET";
+        const string charProc = "0 0 500 700 d1 0 0 500 700 re f";
+        string type3Font =
+            "<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+            "/CharProcs << /A {0} 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+            "/FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>";
+        byte[] pdf = BuildInspectionPdf(
+            "/Pattern cs /P1 scn /GS1 gs",
+            resources: "/Pattern << /P1 5 0 R >> /ExtGState << /GS1 << /SMask << /S /Luminosity /G 8 0 R >> >> >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 " +
+                "/Resources << /Font << /F1 6 0 R >> >> /Length " + selectedText.Length + " >>\nstream\n" + selectedText + "\nendstream\nendobj\n" +
+                "6 0 obj\n" + string.Format(type3Font, 7) + "\nendobj\n" +
+                "7 0 obj\n<< /Length " + charProc.Length + " >>\nstream\n" + charProc + "\nendstream\nendobj\n" +
+                "8 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency >> " +
+                "/Resources << /Font << /F1 9 0 R >> >> /Length " + selectedText.Length + " >>\nstream\n" + selectedText + "\nendstream\nendobj\n" +
+                "9 0 obj\n" + string.Format(type3Font, 10) + "\nendobj\n" +
+                "10 0 obj\n<< /Length " + charProc.Length + " >>\nstream\n" + charProc + "\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(2, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
     public void StructureInspectorBoundsIndirectFontResourceGraphTraversal() {
         const int firstObject = 5;
         const int lastObject = 40;
         var extraObjects = new StringBuilder();
         for (int objectNumber = firstObject; objectNumber <= lastObject; objectNumber++) {
-            extraObjects.Append(objectNumber).Append(" 0 obj\n<<");
+            extraObjects.Append(objectNumber).Append(" 0 obj\n");
             if (objectNumber < lastObject) {
-                extraObjects.Append(" /Next ").Append(objectNumber + 1).Append(" 0 R");
+                extraObjects.Append(objectNumber + 1).Append(" 0 R");
+            } else {
+                extraObjects.Append("<< /Type /Font /Subtype /TrueType /BaseFont /Deep >>");
             }
-            extraObjects.Append(" >>\nendobj\n");
+            extraObjects.Append("\nendobj\n");
         }
-        byte[] pdf = BuildInspectionPdf(string.Empty, pageEntries: "/Audit 5 0 R", extraObjects: extraObjects.ToString());
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            extraObjects: extraObjects.ToString());
         var options = new PdfReadOptions {
             Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
         };

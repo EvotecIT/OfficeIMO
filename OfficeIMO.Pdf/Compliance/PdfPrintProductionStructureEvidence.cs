@@ -26,13 +26,13 @@ public sealed class PdfPrintProductionStructureEvidence {
     /// <summary>Pages missing or violating the required production boundary-box relationship.</summary>
     public int InvalidProductionPageBoxCount { get; }
 
-    /// <summary>Distinct font resource dictionaries discovered in the artifact object graph.</summary>
+    /// <summary>Distinct font resource dictionaries selected by reachable page, form, pattern, soft-mask, Type3, or appearance content.</summary>
     public int FontResourceCount { get; }
 
     /// <summary>Font resources without a self-contained font program or Type3 character procedures.</summary>
     public int UnembeddedFontResourceCount { get; }
 
-    /// <summary>Font resource dictionaries that could not be inspected completely.</summary>
+    /// <summary>Selected font resources or reachable font-selection contexts that could not be inspected completely.</summary>
     public int UninspectableFontResourceCount { get; }
 
     /// <summary>True when every page has valid print boxes and every font resource is inspectable and embedded.</summary>
