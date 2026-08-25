@@ -22,6 +22,7 @@ $mixedComparison = @($mixed | Where-Object Workload -eq 'pdfhtmlpayload')
 $odsCreate = @($mixed | Where-Object Workload -eq 'odscreate')
 $odsRead = @($mixed | Where-Object Workload -eq 'odsread')
 $epubRead = @($mixed | Where-Object Workload -eq 'epubread')
+$zipTraversal = @($mixed | Where-Object Workload -eq 'ziptraverse')
 if ($mixedRouteHealth.Count -ne 1 -or
     $mixedRouteHealth[0].CatalogEligible -or
     $mixedRouteHealth[0].WillCatalog -or
@@ -44,5 +45,11 @@ if ($epubRead.Count -ne 1 -or
     -not $epubRead[0].Publish) {
     throw 'The EPUB open/read comparison is missing from the catalog-eligible mixed benchmark plan.'
 }
+if ($zipTraversal.Count -ne 1 -or
+    $zipTraversal[0].CatalogEligible -or
+    $zipTraversal[0].WillCatalog -or
+    $zipTraversal[0].Publish) {
+    throw 'The non-equivalent ZIP safety-overhead diagnostic can reach library-comparison publication.'
+}
 
-Write-Host 'Library comparison runner policy verified for standalone route-health and mixed comparison selection.'
+Write-Host 'Library comparison runner policy verified for standalone diagnostics and mixed comparison selection.'

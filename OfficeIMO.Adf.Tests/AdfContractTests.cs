@@ -76,6 +76,35 @@ public sealed class AdfContractTests {
     }
 
     [Fact]
+    public void Parse_DuplicateKnownPropertiesUseTheLastValue() {
+        const string json = "{\"version\":1,\"type\":\"doc\",\"content\":[{" +
+            "\"type\":17,\"type\":\"paragraph\"," +
+            "\"attrs\":[],\"attrs\":{\"source\":\"last\"}," +
+            "\"content\":{},\"content\":[{" +
+                "\"type\":false,\"type\":\"text\"," +
+                "\"text\":17,\"text\":\"Last text\"," +
+                "\"marks\":{},\"marks\":[{" +
+                    "\"type\":null,\"type\":\"link\"," +
+                    "\"attrs\":[],\"attrs\":{\"href\":\"https://example.com/last\"}" +
+                "}]" +
+            "}]," +
+            "\"marks\":{},\"marks\":[{\"type\":\"strong\"}]" +
+        "}]}";
+
+        AdfDocument document = AdfDocument.Parse(json);
+
+        AdfNode paragraph = Assert.Single(document.Content);
+        Assert.Equal("paragraph", paragraph.Type);
+        Assert.Equal("last", paragraph.GetStringAttribute("source"));
+        Assert.Equal("strong", Assert.Single(paragraph.Marks).Type);
+        AdfNode text = Assert.Single(paragraph.Content);
+        Assert.Equal("Last text", text.Text);
+        AdfMark link = Assert.Single(text.Marks);
+        Assert.Equal("link", link.Type);
+        Assert.Equal("https://example.com/last", link.Attributes["href"].GetString());
+    }
+
+    [Fact]
     public void MarkdownRoundTrip_PreservesCommonDocumentStructure() {
         const string markdown = "# Status\n\nThis is **ready** with [details](https://example.com).\n\n- First\n- Second\n\n```powershell\nGet-Date\n```";
 

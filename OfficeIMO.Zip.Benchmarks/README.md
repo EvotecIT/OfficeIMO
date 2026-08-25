@@ -8,7 +8,9 @@ exclude directory entries, and materialize the same descriptor fields.
 The platform lane deliberately omits OfficeIMO's path-traversal, depth,
 entry-count, total-size, per-entry-size, and expansion-ratio policy. Ratios are
 therefore the cost of that additional safety contract, not a claim that the raw
-platform API provides equivalent protections.
+platform API provides equivalent protections. This workload remains an opt-in
+policy-overhead diagnostic and is excluded from the published library-comparison
+catalog.
 
 Before timing, validation requires exact agreement on ordered paths, names,
 directory flags, depth, uncompressed lengths, UTC timestamps, total bytes, and a

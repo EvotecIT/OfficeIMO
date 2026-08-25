@@ -380,12 +380,13 @@ the same offline semantic `.one` read/write contract. The checked-in budgets
 guard allocation, managed-heap growth, process peak, and output size; timing is
 reviewed with BenchmarkDotNet and a same-machine healthy commit.
 
-## ZIP traversal comparison
+## ZIP traversal policy diagnostic
 
 `OfficeIMO.Zip.Benchmarks` measures safe, deterministic OfficeIMO traversal
 against direct `System.IO.Compression` metadata projection. Both lanes return
 the same validated ordered descriptor fields; only OfficeIMO applies path and
-expansion safety limits, so the comparison reports the cost of that policy.
+expansion safety limits, so this non-parity diagnostic reports the cost of that
+policy and is excluded from the published library-comparison catalog.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Zip.Benchmarks -- validate

@@ -36,7 +36,9 @@ in reverse package order, plus excluded directory entries. Their ZIP sizes are
 
 The normal workload was multimodal for both implementations (`mValue` 3.30
 and 3.94). Mean and median are both shown so the host variance remains visible.
-Even the more conservative mean ratio stays well below the 2x contender limit.
+Even the more conservative mean ratio shows modest safety-policy overhead on
+this benign corpus. Because the raw platform lane does not enforce that policy,
+this evidence is diagnostic and is not published as a contender comparison.
 
 The optimization replaced per-entry path splitting with a zero-allocation
 segment scan, removed a duplicate options normalization on stream traversal,

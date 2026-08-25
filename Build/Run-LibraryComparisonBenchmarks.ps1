@@ -292,6 +292,7 @@ $definitions = [ordered]@{
         Filter = '*ZipTraversalComparisonBenchmarks*'
         ComparisonId = "zip-safe-traversal-$Framework"
         Suite = 'OfficeIMO.Zip.SafeTraversal'
+        CatalogEligible = $false
         IdentityVariables = @('scale')
         ExpectedCases = @(
             foreach ($scale in @('Small', 'Normal', 'Large')) {
