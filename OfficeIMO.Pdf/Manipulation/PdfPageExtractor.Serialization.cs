@@ -3,6 +3,30 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
+    internal static PdfDictionary BuildPageDictionaryForSizeCheck(PdfDictionary dictionary, int sourceId, SerializationContext context) {
+        var result = new PdfDictionary();
+        context.PageOverrides.TryGetValue(sourceId, out var pageOverrides);
+        foreach (var entry in dictionary.Items) {
+            if (string.Equals(entry.Key, "Parent", StringComparison.Ordinal) ||
+                pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)) {
+                continue;
+            }
+            result.Items[entry.Key] = entry.Value;
+        }
+
+        if (!result.Items.ContainsKey("Type")) result.Items["Type"] = new PdfName("Page");
+        if (context.MaterializedPageValues.TryGetValue(sourceId, out var inherited)) {
+            foreach (var entry in inherited) {
+                if (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)) continue;
+                if (!result.Items.ContainsKey(entry.Key)) result.Items[entry.Key] = entry.Value;
+            }
+        }
+        if (pageOverrides is not null) {
+            foreach (var entry in pageOverrides) result.Items[entry.Key] = entry.Value;
+        }
+        return result;
+    }
+
     internal static byte[] SerializePageDictionary(PdfDictionary dictionary, int sourceId, SerializationContext context) {
         var sb = new StringBuilder();
         sb.Append("<< ");

@@ -36,6 +36,12 @@ public sealed class PdfAnnotationCreateOptions {
     public int? InReplyToObjectNumber { get; set; }
     /// <summary>Reply type, normally R or Group.</summary>
     public string? ReplyType { get; set; }
+    /// <summary>Optional standard annotation review state.</summary>
+    public PdfAnnotationReviewState? ReviewState { get; set; }
+    /// <summary>Optional annotation subject stored in /Subj.</summary>
+    public string? Subject { get; set; }
+    /// <summary>Optional annotation intent name stored in /IT.</summary>
+    public string? Intent { get; set; }
     /// <summary>Creates and links a popup annotation.</summary>
     public bool CreatePopup { get; set; }
     /// <summary>Popup rectangle. Defaults beside the parent rectangle.</summary>

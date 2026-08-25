@@ -12,7 +12,7 @@ internal static partial class PdfMerger {
 
         var inventories = sources.Select((source, index) => new PdfMergeSourceInventory(
             index,
-            source.Document.Pages.Count,
+            source.PageObjectNumbers.Length,
             CountOutlines(source.Document.Outlines),
             source.Document.NamedDestinations.Count,
             source.Document.PageLabels.Count,
