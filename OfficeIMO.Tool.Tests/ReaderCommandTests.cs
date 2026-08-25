@@ -503,6 +503,135 @@ public sealed class ReaderCommandTests {
     }
 
     [Fact]
+    public async Task AssetDestinationDirectoryIsRejectedBeforeWritingPrimaryOutput() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string primaryPath = Path.Combine(temporary.Path, "output.md");
+        string assetsPath = Path.Combine(temporary.Path, "assets");
+        string occupiedPath = Path.Combine(assetsPath, "image.bin");
+        Directory.CreateDirectory(occupiedPath);
+        var document = new OfficeDocumentReadResult {
+            Markdown = "# Output",
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "image",
+                    Extension = ".bin",
+                    FileName = "image.bin",
+                    PayloadBytes = Encoding.UTF8.GetBytes("payload")
+                }
+            }
+        };
+
+        ReaderToolOutputException exception = await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            ReaderToolOutput.WriteSingleDocumentAsync(
+                document,
+                ReaderToolOutputFormat.Markdown,
+                primaryPath,
+                TextWriter.Null,
+                assetsPath,
+                sourcePath: null,
+                overwrite: true,
+                CancellationToken.None));
+
+        Assert.Contains("is a directory", exception.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(primaryPath));
+        Assert.True(Directory.Exists(occupiedPath));
+    }
+
+    [Fact]
+    public async Task FolderOutputRejectsCrossDocumentAssetAndPrimaryCollisionsBeforeWriting() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string sourceRoot = Path.Combine(temporary.Path, "source");
+        string outputRoot = Path.Combine(temporary.Path, "output");
+        string firstInput = Path.Combine(sourceRoot, "mail.eml");
+        string secondInput = Path.Combine(sourceRoot, "mail.eml.assets", "payload.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(secondInput)!);
+        File.WriteAllText(firstInput, "mail");
+        File.WriteAllText(secondInput, "payload");
+        var documents = new[] {
+            new OfficeDocumentReadResult {
+                Markdown = "# Mail",
+                Assets = new[] {
+                    new OfficeDocumentAsset {
+                        Id = "payload",
+                        FileName = "payload.txt.md",
+                        PayloadBytes = Encoding.UTF8.GetBytes("asset")
+                    }
+                }
+            },
+            new OfficeDocumentReadResult { Markdown = "# Payload" }
+        };
+
+        ReaderToolOutputException exception = await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            ReaderToolOutput.WriteFolderAsync(
+                sourceRoot,
+                outputRoot,
+                outputRoot,
+                new[] { firstInput, secondInput },
+                documents,
+                ReaderToolOutputFormat.Markdown,
+                CancellationToken.None));
+
+        Assert.Contains("conflicting file paths", exception.Message, StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFiles(outputRoot, "*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task WindowsReservedAssetNameIsRejectedBeforeWritingPrimaryOutput() {
+        if (!OperatingSystem.IsWindows()) return;
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string primaryPath = Path.Combine(temporary.Path, "output.md");
+        string assetsPath = Path.Combine(temporary.Path, "assets");
+        var document = new OfficeDocumentReadResult {
+            Markdown = "# Output",
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "reserved",
+                    FileName = "CON",
+                    PayloadBytes = Encoding.UTF8.GetBytes("payload")
+                }
+            }
+        };
+
+        await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            ReaderToolOutput.WriteSingleDocumentAsync(
+                document,
+                ReaderToolOutputFormat.Markdown,
+                primaryPath,
+                TextWriter.Null,
+                assetsPath,
+                sourcePath: null,
+                overwrite: true,
+                CancellationToken.None));
+
+        Assert.False(File.Exists(primaryPath));
+    }
+
+    [Fact]
+    public void LinuxCaseDistinctAssetNamesRemainDistinct() {
+        if (!OperatingSystem.IsLinux()) return;
+        using var temporary = new ReaderToolTemporaryDirectory();
+        var document = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "upper",
+                    FileName = "Logo.png",
+                    PayloadBytes = Encoding.UTF8.GetBytes("upper")
+                },
+                new OfficeDocumentAsset {
+                    Id = "lower",
+                    FileName = "logo.png",
+                    PayloadBytes = Encoding.UTF8.GetBytes("lower")
+                }
+            }
+        };
+
+        ReaderToolOutput.PrepareAssetsOutput(document, temporary.Path, overwrite: true);
+
+        Assert.False(File.Exists(Path.Combine(temporary.Path, "Logo.png")));
+        Assert.False(File.Exists(Path.Combine(temporary.Path, "logo.png")));
+    }
+
+    [Fact]
     public void AssetOutputWithForceReplacesExistingSidecars() {
         using var temporary = new ReaderToolTemporaryDirectory();
         string existingPath = Path.Combine(temporary.Path, "existing.bin");

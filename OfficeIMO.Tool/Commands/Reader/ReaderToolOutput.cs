@@ -85,17 +85,51 @@ internal static class ReaderToolOutput {
             throw new ReaderToolOutputException("Could not create an output directory.", exception);
         }
 
+        var primaryOutputPaths = new string[paths.Count];
+        var assetDirectories = new string?[paths.Count];
+        var plannedFilePaths = new List<string>();
+        var plannedDirectoryPaths = new List<string>();
         for (int index = 0; index < paths.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             string relativePath = Path.GetRelativePath(sourceRoot, paths[index]);
             string suffix = format == ReaderToolOutputFormat.Json ? ".reader.json" : ".md";
             string outputPath = Path.Combine(outputRoot, relativePath + suffix);
             ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, outputPath);
+            primaryOutputPaths[index] = outputPath;
+            AddPlannedFilePath(plannedFilePaths, outputPath);
 
-            string? assetDirectory = null;
             if (!string.IsNullOrWhiteSpace(assetsRoot) && documents[index].Assets.Count > 0) {
-                assetDirectory = Path.Combine(assetsRoot!, relativePath + ".assets");
+                string assetDirectory = Path.Combine(assetsRoot!, relativePath + ".assets");
                 ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, assetDirectory);
+                assetDirectories[index] = assetDirectory;
+                plannedDirectoryPaths.Add(assetDirectory);
+                foreach (string assetPath in GetMaterializableAssetPaths(documents[index], assetDirectory)) {
+                    AddPlannedFilePath(plannedFilePaths, assetPath);
+                }
+            }
+        }
+
+        foreach (string directoryPath in plannedDirectoryPaths) {
+            foreach (string filePath in plannedFilePaths) {
+                if (IsSameOrChildPath(filePath, directoryPath)) {
+                    throw new ReaderToolOutputException(
+                        "A planned output directory conflicts with a planned output file: " +
+                        Path.GetFullPath(directoryPath));
+                }
+            }
+        }
+
+        for (int index = 0; index < paths.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string outputPath = primaryOutputPaths[index];
+            if (Directory.Exists(outputPath)) {
+                throw new ReaderToolOutputException(
+                    "Primary output path is a directory: " + Path.GetFullPath(outputPath));
+            }
+            ProbeWritableFilePath(outputPath);
+
+            string? assetDirectory = assetDirectories[index];
+            if (assetDirectory != null) {
                 PrepareAssetsOutput(
                     documents[index],
                     assetDirectory,
@@ -103,6 +137,11 @@ internal static class ReaderToolOutput {
                     outputPath,
                     paths[index]);
             }
+        }
+
+        for (int index = 0; index < paths.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string outputPath = primaryOutputPaths[index];
 
             await WriteFileAsync(
                     outputPath,
@@ -111,6 +150,7 @@ internal static class ReaderToolOutput {
                     cancellationToken)
                 .ConfigureAwait(false);
 
+            string? assetDirectory = assetDirectories[index];
             if (assetDirectory != null) {
                 WriteAssets(
                     documents[index],
@@ -195,18 +235,25 @@ internal static class ReaderToolOutput {
                 }
 
                 for (int previousIndex = 0; previousIndex < index; previousIndex++) {
-                    if (OfficeImoToolPathSafety.PathsEqual(outputPaths[previousIndex], outputPath)) {
+                    if (OutputPathsEquivalent(outputPaths[previousIndex], outputPath)) {
                         throw new ReaderToolOutputException(
                             "Multiple assets target the same output file: " + Path.GetFullPath(outputPath));
                     }
                 }
 
+                if (Directory.Exists(outputPath)) {
+                    throw new ReaderToolOutputException(
+                        "Asset output path is a directory: " + Path.GetFullPath(outputPath));
+                }
                 if (!overwrite && File.Exists(outputPath)) {
                     throw new ReaderToolOutputException(
                         "Asset output already exists. Use --force to replace it: " + Path.GetFullPath(outputPath));
                 }
             }
             Directory.CreateDirectory(assetsPath);
+            foreach (string outputPath in outputPaths) {
+                ProbeWritableFilePath(outputPath);
+            }
         } catch (ReaderToolOutputException) {
             throw;
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
@@ -239,6 +286,77 @@ internal static class ReaderToolOutput {
 
     private static bool FilePathsConflict(string firstPath, string secondPath) =>
         IsSameOrChildPath(firstPath, secondPath) || IsSameOrChildPath(secondPath, firstPath);
+
+    private static void AddPlannedFilePath(ICollection<string> plannedPaths, string candidatePath) {
+        foreach (string plannedPath in plannedPaths) {
+            if (FilePathsConflict(plannedPath, candidatePath)) {
+                throw new ReaderToolOutputException(
+                    "Multiple outputs target conflicting file paths: " + Path.GetFullPath(candidatePath));
+            }
+        }
+        plannedPaths.Add(candidatePath);
+    }
+
+    private static void ProbeWritableFilePath(string path) {
+        try {
+            string fullPath = Path.GetFullPath(path);
+            if (!File.Exists(fullPath) && !Directory.Exists(fullPath)) {
+                var destination = new FileInfo(fullPath);
+                if (destination.LinkTarget != null) {
+                    throw new ReaderToolOutputException(
+                        "Output path is a dangling symbolic link: " + fullPath);
+                }
+            }
+
+            string? directory = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrWhiteSpace(directory)) {
+                throw new ReaderToolOutputException("Output path must include a directory: " + fullPath);
+            }
+
+            Directory.CreateDirectory(directory);
+            string intendedName = Path.GetFileName(fullPath);
+            ValidateDestinationFileName(intendedName, fullPath);
+            string probePath = File.Exists(fullPath)
+                ? Path.Combine(directory, ".officeimo-write-probe-" + Guid.NewGuid().ToString("N"))
+                : fullPath;
+            using (new FileStream(
+                       probePath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.Delete,
+                       bufferSize: 1,
+                       FileOptions.DeleteOnClose)) {
+            }
+        } catch (ReaderToolOutputException) {
+            throw;
+        } catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
+            throw new ReaderToolOutputException("Could not prepare output path '" + path + "'.", exception);
+        }
+    }
+
+    private static void ValidateDestinationFileName(string fileName, string fullPath) {
+        if (!OperatingSystem.IsWindows()) return;
+
+        string windowsName = fileName.TrimEnd(' ', '.');
+        string stem = windowsName.Split('.')[0];
+        bool reserved =
+            stem.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
+            stem.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
+            stem.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
+            stem.Equals("NUL", StringComparison.OrdinalIgnoreCase) ||
+            (stem.Length == 4 &&
+             (stem.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
+              stem.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)) &&
+             stem[3] is >= '1' and <= '9');
+        if (windowsName.Length != fileName.Length || reserved) {
+            throw new ReaderToolOutputException(
+                "Output filename is not portable on Windows: " + fullPath);
+        }
+    }
+
+    private static bool OutputPathsEquivalent(string firstPath, string secondPath) =>
+        OfficeImoToolPathSafety.PathsEqual(firstPath, secondPath);
 
     private static bool IsSameOrChildPath(string parentPath, string candidatePath) {
         string resolvedParent = OfficeImoToolPathSafety.ResolveExistingLinks(parentPath);

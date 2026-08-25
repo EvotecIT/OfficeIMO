@@ -578,6 +578,30 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
+    public void ReaderTableExportMaterializer_RejectsDuplicateSanitizedDestinationsBeforeWriting() {
+        var exports = new[] {
+            new ReaderTableExportBundle { Id = "first", FileNamePrefix = "invoice", Csv = "first" },
+            new ReaderTableExportBundle { Id = "second", FileNamePrefix = "invoice", Csv = "second" }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-table-duplicates-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                exports.WriteTableExportsToDirectory(
+                    directory,
+                    new ReaderTableExportMaterializationOptions {
+                        IncludeMarkdown = false,
+                        IncludeJson = false
+                    }));
+
+            Assert.Contains("same filename", exception.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OfficeDocumentAssetNaming_BuildFileName_SanitizesIdsAndExtensions() {
         string fileName = OfficeDocumentAssetNaming.BuildFileName("Page 1/Image:Main", ".PNG");
 
@@ -650,6 +674,35 @@ public sealed class ReaderDocumentReadResultTests {
         Assert.True(written.Written);
         Assert.Equal("asset-stream.bin", written.FileName);
         Assert.Equal(payload, captured);
+    }
+
+    [Fact]
+    public void OfficeDocumentAssetMaterializer_RejectsDuplicateDestinationsBeforeWriting() {
+        var result = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "first",
+                    FileName = "invoice.pdf",
+                    PayloadBytes = Encoding.UTF8.GetBytes("first")
+                },
+                new OfficeDocumentAsset {
+                    Id = "second",
+                    FileName = "invoice.pdf",
+                    PayloadBytes = Encoding.UTF8.GetBytes("second")
+                }
+            }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-asset-duplicates-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                result.WriteAssetsToDirectory(directory));
+
+            Assert.Contains("same filename", exception.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]

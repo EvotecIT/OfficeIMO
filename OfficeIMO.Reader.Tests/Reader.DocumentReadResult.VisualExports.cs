@@ -114,6 +114,37 @@ public sealed class ReaderDocumentReadResultVisualExportTests {
     }
 
     [Fact]
+    public void ReaderVisualExportMaterializer_RejectsDuplicateSanitizedDestinationsBeforeWriting() {
+        var exports = new[] {
+            new ReaderVisualExportBundle {
+                Id = "first",
+                FileNamePrefix = "diagram",
+                PayloadExtension = ".mmd",
+                Payload = "first"
+            },
+            new ReaderVisualExportBundle {
+                Id = "second",
+                FileNamePrefix = "diagram",
+                PayloadExtension = ".mmd",
+                Payload = "second"
+            }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-visual-duplicates-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                exports.WriteVisualExportsToDirectory(
+                    directory,
+                    new ReaderVisualExportMaterializationOptions { IncludeJson = false }));
+
+            Assert.Contains("same filename", exception.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ReaderVisualExport_ToJson_EmitsStableNormalizedVisualShape() {
         var visual = new ReaderVisual {
             Kind = "chart",
