@@ -152,7 +152,7 @@ foreach ($platform in @('windows', 'linux')) {
 & git -C $repositoryRoot cat-file -e "$officeCommit`^{commit}"
 if ($LASTEXITCODE -ne 0) { throw "Measured OfficeIMO artifact-evidence commit $officeCommit is unavailable." }
 & git -C $repositoryRoot merge-base --is-ancestor $officeCommit HEAD
-if ($LASTEXITCODE -ne 0) { throw "Measured OfficeIMO artifact-evidence commit $officeCommit is not an ancestor of HEAD." }
+$measuredCommitIsAncestor = $LASTEXITCODE -eq 0
 
 $measuredPaths = @(
     'OfficeIMO.Core',
@@ -163,10 +163,21 @@ $measuredPaths = @(
     'OfficeIMO.Pdf.Benchmarks.Comparisons'
 )
 & git -C $repositoryRoot diff --quiet $officeCommit HEAD -- @measuredPaths
-if ($LASTEXITCODE -ne 0) { throw 'Committed HTML/PDF artifact evidence is stale relative to measured production or evidence-runner sources.' }
+if ($LASTEXITCODE -ne 0) {
+    $relationship = $measuredCommitIsAncestor ? 'after the recorded source commit' : 'relative to the non-ancestor recorded source tree'
+    throw "Committed HTML/PDF artifact evidence is stale: measured production or evidence-runner sources changed $relationship."
+}
+if (-not $measuredCommitIsAncestor) {
+    Write-Verbose "Measured OfficeIMO artifact-evidence commit $officeCommit is squash-equivalent to HEAD for every measured path."
+}
 & git -C $repositoryRoot diff --quiet -- @measuredPaths
 if ($LASTEXITCODE -ne 0) { throw 'Measured HTML/PDF artifact sources have uncommitted changes.' }
 & git -C $repositoryRoot diff --cached --quiet -- @measuredPaths
 if ($LASTEXITCODE -ne 0) { throw 'Measured HTML/PDF artifact sources have staged changes.' }
+$untrackedMeasuredPaths = @(& git -C $repositoryRoot ls-files --others --exclude-standard -- @measuredPaths)
+if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect untracked HTML/PDF artifact source files.' }
+if ($untrackedMeasuredPaths.Count -ne 0) {
+    throw "Measured HTML/PDF artifact sources contain untracked files: $($untrackedMeasuredPaths -join ', ')"
+}
 
 Write-Host "Current-source Windows/Linux HTML/PDF artifact evidence verified at OfficeIMO $officeCommit and HtmlTinkerX $browserCommit."

@@ -118,6 +118,24 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void TrueTypeMvarAdjustsSelectedHorizontalLineMetrics() {
+        byte[] original = ReadAsset("RobotoFlex.ttf");
+        var coordinates = new Dictionary<string, float> { ["wght"] = 1000F };
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(original));
+        OfficeFontVariationModel model = OfficeFontVariationModel.Create(reader, coordinates);
+        byte[] withMvar = ReplaceHvarWithMvar(original, CreateHorizontalMetricsMvar(model));
+        OfficeFontFace originalFace = Load(original, coordinates);
+        OfficeFontFace mvarFace = Load(withMvar, coordinates);
+
+        double scale = 24D / mvarFace.Program.UnitsPerEm;
+        Assert.Equal(originalFace.Program.LineHeight(24D) + 120D * scale, mvarFace.Program.LineHeight(24D), 6);
+        Assert.Equal(
+            originalFace.Program.LineSpacingRatio + 150D / mvarFace.Program.UnitsPerEm,
+            mvarFace.Program.LineSpacingRatio,
+            6);
+    }
+
+    [Fact]
     public void CompositeUseMyMetricsSuppliesSelectedComponentAdvanceWhenHvarIsAbsent() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         RenameTable(data, "HVAR", "HVAX");
@@ -214,6 +232,70 @@ public sealed class DrawingTrueTypeVariableFontTests {
         throw new InvalidOperationException("The test font does not contain table " + oldTag + ".");
     }
 
+    private static byte[] CreateHorizontalMetricsMvar(OfficeFontVariationModel model) {
+        const int recordCount = 3;
+        const int itemStoreOffset = 12 + recordCount * 8;
+        const int regionListOffset = 12;
+        int itemDataOffset = checked(regionListOffset + 4 + model.AxisCount * 6);
+        var table = new byte[checked(itemStoreOffset + itemDataOffset + 14)];
+        WriteUInt16(table, 0, 1);
+        WriteUInt16(table, 6, 8);
+        WriteUInt16(table, 8, recordCount);
+        WriteUInt16(table, 10, itemStoreOffset);
+        WriteUInt32(table, 12, 0x68617363); // hasc
+        WriteUInt16(table, 18, 0);
+        WriteUInt32(table, 20, 0x68647363); // hdsc
+        WriteUInt16(table, 26, 1);
+        WriteUInt32(table, 28, 0x686C6770); // hlgp
+        WriteUInt16(table, 34, 2);
+
+        int store = itemStoreOffset;
+        WriteUInt16(table, store, 1);
+        WriteUInt32(table, store + 2, regionListOffset);
+        WriteUInt16(table, store + 6, 1);
+        WriteUInt32(table, store + 8, checked((uint)itemDataOffset));
+        int region = store + regionListOffset;
+        WriteUInt16(table, region, model.AxisCount);
+        WriteUInt16(table, region + 2, 1);
+        for (int axis = 0; axis < model.AxisCount; axis++) {
+            double coordinate = model.NormalizedCoordinates[axis];
+            int axisOffset = region + 4 + axis * 6;
+            WriteInt16(table, axisOffset, coordinate < 0D ? -0x4000 : 0);
+            WriteInt16(table, axisOffset + 2, ToF2Dot14(coordinate));
+            WriteInt16(table, axisOffset + 4, coordinate > 0D ? 0x4000 : 0);
+        }
+
+        int itemData = store + itemDataOffset;
+        WriteUInt16(table, itemData, 3);
+        WriteUInt16(table, itemData + 2, 1);
+        WriteUInt16(table, itemData + 4, 1);
+        WriteUInt16(table, itemData + 6, 0);
+        WriteInt16(table, itemData + 8, 100);
+        WriteInt16(table, itemData + 10, -20);
+        WriteInt16(table, itemData + 12, 30);
+        return table;
+    }
+
+    private static byte[] ReplaceHvarWithMvar(byte[] source, byte[] table) {
+        int tableOffset = checked((source.Length + 3) & ~3);
+        var data = new byte[checked(tableOffset + table.Length)];
+        Buffer.BlockCopy(source, 0, data, 0, source.Length);
+        Buffer.BlockCopy(table, 0, data, tableOffset, table.Length);
+        int tableCount = (data[4] << 8) | data[5];
+        for (int index = 0; index < tableCount; index++) {
+            int record = 12 + index * 16;
+            if (data[record] != (byte)'H' || data[record + 1] != (byte)'V'
+                || data[record + 2] != (byte)'A' || data[record + 3] != (byte)'R') continue;
+            data[record] = (byte)'M';
+            WriteUInt32(data, record + 8, checked((uint)tableOffset));
+            WriteUInt32(data, record + 12, checked((uint)table.Length));
+            return data;
+        }
+        throw new InvalidDataException("The TrueType fixture does not contain an HVAR table record.");
+    }
+
+    private static int ToF2Dot14(double value) => checked((int)Math.Round(value * 16384D, MidpointRounding.AwayFromZero));
+
     private static void WriteUInt16(byte[] data, int offset, int value) {
         data[offset] = (byte)(value >> 8);
         data[offset + 1] = (byte)value;
@@ -225,6 +307,8 @@ public sealed class DrawingTrueTypeVariableFontTests {
         data[offset + 2] = (byte)(value >> 8);
         data[offset + 3] = (byte)value;
     }
+
+    private static void WriteInt16(byte[] data, int offset, int value) => WriteUInt16(data, offset, unchecked((ushort)value));
 
     private static string Serialize(IReadOnlyList<List<OfficePoint>> contours) {
         var text = new StringBuilder();

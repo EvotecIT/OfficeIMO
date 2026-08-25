@@ -229,6 +229,42 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void CffRejectsCoordinateOverflowBeforeCallingThePathSink() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var bytes = new List<byte> { 139, 139, 21 }; // Consume width and open a contour at 0,0.
+        AppendHugeFiniteOperand(bytes);
+        bytes.Add(139);
+        bytes.Add(5);
+        AppendHugeFiniteOperand(bytes);
+        bytes.Add(139);
+        bytes.Add(5);
+        bytes.Add(14);
+        var sink = new CountingCffSink();
+        var program = new OfficeCffFontData.CffSlice(bytes.ToArray(), 0, bytes.Count);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, sink, CancellationToken.None).Render(program));
+
+        Assert.Contains("not finite", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(2, sink.DrawingOperationCount);
+    }
+
+    [Fact]
+    public void CffBoundedContoursRejectNonFiniteTransformedGeometry() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeCffFont font = Assert.IsType<OfficeOpenTypeCffFont>(
+            OfficeOpenTypeCffFont.TryLoad(data, null, out string? error));
+        Assert.Null(error);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            font.GetTextContoursBounded("A", double.MaxValue, 0D, double.MaxValue, 10_000, CancellationToken.None));
+
+        Assert.Contains("not finite", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Cff2MvarAdjustsSelectedHorizontalLineMetrics() {
         byte[] original = ReadAsset("AdobeVFPrototype-Subset.otf");
         byte[] withMvar = ReplaceHvarWithMvar(original, CreateHorizontalMetricsMvar());
@@ -271,6 +307,17 @@ public sealed class DrawingCffFontTests {
     }
 
     private static byte[] ReadAsset(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", name));
+
+    private static void AppendHugeFiniteOperand(List<byte> bytes) {
+        bytes.AddRange(new byte[] { 28, 0x7F, 0xFF }); // 32767
+        for (int index = 0; index < 6; index++) {
+            bytes.AddRange(new byte[] { 12, 27, 12, 24 }); // dup, mul
+        }
+        for (int index = 0; index < 4; index++) {
+            bytes.AddRange(new byte[] { 28, 0x7F, 0xFF, 12, 24 });
+        }
+        bytes.AddRange(new byte[] { 148, 12, 24 }); // multiply by 9; the result remains finite.
+    }
 
     private static void WriteUInt16(byte[] data, int offset, int value) {
         data[offset] = (byte)(value >> 8);

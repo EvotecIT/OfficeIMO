@@ -126,7 +126,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         var contours = new List<List<OfficePoint>>();
         double scale = Scale(fontSize);
         double cursor = x;
-        double baseline = y + _ascender * scale;
+        double baseline = EnsureFiniteGeometry(y + _ascender * scale);
         int pointCount = 0;
         var operationBudget = new OfficeCffOperationBudget();
         for (int index = 0; index < text.Length;) {
@@ -135,7 +135,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
             int glyphId = _reader.MapGlyph(scalar);
             RenderGlyph(glyphId, cursor, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken, operationBudget);
-            cursor += AdvanceWidth(glyphId) * scale;
+            cursor = EnsureFiniteGeometry(cursor + AdvanceWidth(glyphId) * scale);
         }
         return contours;
     }
@@ -185,25 +185,25 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         long totalAdvance = 0;
         for (int index = 0; index < glyphs.Length; index++) totalAdvance = checked(totalAdvance + glyphs[index].AdvanceWidth);
         bool negativeDirection = totalAdvance < 0;
-        double cursor = negativeDirection ? x - (totalAdvance * scale) : x;
-        double baseline = y + _ascender * scale;
+        double cursor = negativeDirection ? EnsureFiniteGeometry(x - (totalAdvance * scale)) : x;
+        double baseline = EnsureFiniteGeometry(y + _ascender * scale);
         int pointCount = 0;
         var operationBudget = new OfficeCffOperationBudget();
         for (int index = 0; index < glyphs.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PositionedGlyph glyph = glyphs[index];
-            if (negativeDirection) cursor += glyph.AdvanceWidth * scale;
+            if (negativeDirection) cursor = EnsureFiniteGeometry(cursor + glyph.AdvanceWidth * scale);
             RenderGlyph(
                 glyph.GlyphId,
-                cursor + glyph.OffsetX * scale,
-                baseline - glyph.OffsetY * scale,
+                EnsureFiniteGeometry(cursor + glyph.OffsetX * scale),
+                EnsureFiniteGeometry(baseline - glyph.OffsetY * scale),
                 scale,
                 contours,
                 ref pointCount,
                 maximumPointCount,
                 cancellationToken,
                 operationBudget);
-            if (!negativeDirection) cursor += glyph.AdvanceWidth * scale;
+            if (!negativeDirection) cursor = EnsureFiniteGeometry(cursor + glyph.AdvanceWidth * scale);
         }
         return contours;
     }
@@ -265,6 +265,13 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
     private static void ValidatePosition(double x, double y) {
         if (double.IsNaN(x) || double.IsInfinity(x)) throw new ArgumentOutOfRangeException(nameof(x));
         if (double.IsNaN(y) || double.IsInfinity(y)) throw new ArgumentOutOfRangeException(nameof(y));
+    }
+
+    private static double EnsureFiniteGeometry(double value) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException("fontSize", "CFF outline positioning produced non-finite geometry.");
+        }
+        return value;
     }
 
     private static int ReadScalar(string text, ref int index) {
@@ -365,7 +372,11 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
             _current = null;
         }
 
-        private OfficePoint Transform(double x, double y) => new(_originX + x * _scale, _baseline - y * _scale);
+        private OfficePoint Transform(double x, double y) {
+            var point = new OfficePoint(_originX + x * _scale, _baseline - y * _scale);
+            EnsureFinitePoint(point);
+            return point;
+        }
 
         private void FlattenCubic(OfficePoint start, OfficePoint control1, OfficePoint control2, OfficePoint end, int depth) {
             double flatness = Math.Max(DistanceToLine(control1, start, end), DistanceToLine(control2, start, end));
@@ -385,6 +396,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
 
         private void Add(OfficePoint point) {
             _cancellationToken.ThrowIfCancellationRequested();
+            EnsureFinitePoint(point);
             if (PointCount >= _maximumPointCount) throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
             EnsureCurrent();
             _current!.Add(point);
@@ -396,7 +408,18 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
             if (_current == null) _current = new List<OfficePoint>();
         }
 
-        private static OfficePoint Mid(OfficePoint left, OfficePoint right) => new((left.X + right.X) / 2D, (left.Y + right.Y) / 2D);
+        private static OfficePoint Mid(OfficePoint left, OfficePoint right) {
+            var midpoint = new OfficePoint((left.X / 2D) + (right.X / 2D), (left.Y / 2D) + (right.Y / 2D));
+            EnsureFinitePoint(midpoint);
+            return midpoint;
+        }
+
+        private static void EnsureFinitePoint(OfficePoint point) {
+            if (double.IsNaN(point.X) || double.IsInfinity(point.X) ||
+                double.IsNaN(point.Y) || double.IsInfinity(point.Y)) {
+                throw new InvalidDataException("A transformed CFF path coordinate is not finite.");
+            }
+        }
 
         private static double DistanceToLine(OfficePoint point, OfficePoint start, OfficePoint end) {
             double deltaX = end.X - start.X;

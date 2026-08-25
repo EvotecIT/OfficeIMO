@@ -181,8 +181,11 @@ internal sealed class OfficeType2CharStringInterpreter {
         ConsumeWidthForMove(2);
         RequireCount(2);
         CloseContour();
-        _x += _stack[0];
-        _y += _stack[1];
+        double nextX = _x + _stack[0];
+        double nextY = _y + _stack[1];
+        EnsureFinitePoint(nextX, nextY);
+        _x = nextX;
+        _y = nextY;
         _sink.MoveTo(_x, _y);
         _contourOpen = true;
         _stack.Clear();
@@ -192,7 +195,9 @@ internal sealed class OfficeType2CharStringInterpreter {
         ConsumeWidthForMove(1);
         RequireCount(1);
         CloseContour();
-        _x += _stack[0];
+        double nextX = _x + _stack[0];
+        EnsureFinitePoint(nextX, _y);
+        _x = nextX;
         _sink.MoveTo(_x, _y);
         _contourOpen = true;
         _stack.Clear();
@@ -202,7 +207,9 @@ internal sealed class OfficeType2CharStringInterpreter {
         ConsumeWidthForMove(1);
         RequireCount(1);
         CloseContour();
-        _y += _stack[0];
+        double nextY = _y + _stack[0];
+        EnsureFinitePoint(_x, nextY);
+        _y = nextY;
         _sink.MoveTo(_x, _y);
         _contourOpen = true;
         _stack.Clear();
@@ -449,8 +456,11 @@ internal sealed class OfficeType2CharStringInterpreter {
 
     private void LineBy(double dx, double dy) {
         EnsureContour();
-        _x += dx;
-        _y += dy;
+        double nextX = _x + dx;
+        double nextY = _y + dy;
+        EnsureFinitePoint(nextX, nextY);
+        _x = nextX;
+        _y = nextY;
         _sink.LineTo(_x, _y);
     }
 
@@ -465,13 +475,19 @@ internal sealed class OfficeType2CharStringInterpreter {
         double control1Y = _y + dy1;
         double control2X = control1X + dx2;
         double control2Y = control1Y + dy2;
-        _x = control2X + dx3;
-        _y = control2Y + dy3;
-        _sink.CurveTo(control1X, control1Y, control2X, control2Y, _x, _y);
+        double nextX = control2X + dx3;
+        double nextY = control2Y + dy3;
+        EnsureFinitePoint(control1X, control1Y);
+        EnsureFinitePoint(control2X, control2Y);
+        EnsureFinitePoint(nextX, nextY);
+        _x = nextX;
+        _y = nextY;
+        _sink.CurveTo(control1X, control1Y, control2X, control2Y, nextX, nextY);
     }
 
     private void EnsureContour() {
         if (_contourOpen) return;
+        EnsureFinitePoint(_x, _y);
         _sink.MoveTo(_x, _y);
         _contourOpen = true;
     }
@@ -506,22 +522,51 @@ internal sealed class OfficeType2CharStringInterpreter {
             _y = y;
         }
 
-        public void MoveTo(double x, double y) => _inner.MoveTo(x + _x, y + _y);
-        public void LineTo(double x, double y) => _inner.LineTo(x + _x, y + _y);
+        public void MoveTo(double x, double y) {
+            double translatedX = x + _x;
+            double translatedY = y + _y;
+            EnsureFinitePoint(translatedX, translatedY);
+            _inner.MoveTo(translatedX, translatedY);
+        }
+
+        public void LineTo(double x, double y) {
+            double translatedX = x + _x;
+            double translatedY = y + _y;
+            EnsureFinitePoint(translatedX, translatedY);
+            _inner.LineTo(translatedX, translatedY);
+        }
+
         public void CurveTo(
             double control1X,
             double control1Y,
             double control2X,
             double control2Y,
             double x,
-            double y) => _inner.CurveTo(
-                control1X + _x,
-                control1Y + _y,
-                control2X + _x,
-                control2Y + _y,
-                x + _x,
-                y + _y);
+            double y) {
+            double translatedControl1X = control1X + _x;
+            double translatedControl1Y = control1Y + _y;
+            double translatedControl2X = control2X + _x;
+            double translatedControl2Y = control2Y + _y;
+            double translatedX = x + _x;
+            double translatedY = y + _y;
+            EnsureFinitePoint(translatedControl1X, translatedControl1Y);
+            EnsureFinitePoint(translatedControl2X, translatedControl2Y);
+            EnsureFinitePoint(translatedX, translatedY);
+            _inner.CurveTo(
+                translatedControl1X,
+                translatedControl1Y,
+                translatedControl2X,
+                translatedControl2Y,
+                translatedX,
+                translatedY);
+        }
         public void CloseContour() => _inner.CloseContour();
+    }
+
+    private static void EnsureFinitePoint(double x, double y) {
+        if (double.IsNaN(x) || double.IsInfinity(x) || double.IsNaN(y) || double.IsInfinity(y)) {
+            throw new InvalidDataException("A CFF path coordinate is not finite.");
+        }
     }
 
     private void Conditional() {

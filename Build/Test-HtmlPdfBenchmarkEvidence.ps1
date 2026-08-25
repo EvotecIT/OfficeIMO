@@ -87,9 +87,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & git -C $repositoryRoot merge-base --is-ancestor $sourceCommit HEAD
-if ($LASTEXITCODE -ne 0) {
-    throw "Measured OfficeIMO source commit $sourceCommit is not an ancestor of the release candidate."
-}
+$measuredCommitIsAncestor = $LASTEXITCODE -eq 0
 
 $measuredPaths = @(
     'OfficeIMO.Core',
@@ -108,7 +106,11 @@ $measuredPaths = @(
 )
 & git -C $repositoryRoot diff --quiet $sourceCommit HEAD -- @measuredPaths
 if ($LASTEXITCODE -ne 0) {
-    throw 'HTML/PDF benchmark evidence is stale: measured production or benchmark sources changed after the recorded source commit.'
+    $relationship = $measuredCommitIsAncestor ? 'after the recorded source commit' : 'relative to the non-ancestor recorded source tree'
+    throw "HTML/PDF benchmark evidence is stale: measured production or benchmark sources changed $relationship."
+}
+if (-not $measuredCommitIsAncestor) {
+    Write-Verbose "Measured OfficeIMO benchmark commit $sourceCommit is squash-equivalent to HEAD for every measured path."
 }
 
 & git -C $repositoryRoot diff --quiet -- @measuredPaths
@@ -119,6 +121,13 @@ if ($LASTEXITCODE -ne 0) {
 & git -C $repositoryRoot diff --cached --quiet -- @measuredPaths
 if ($LASTEXITCODE -ne 0) {
     throw 'HTML/PDF benchmark evidence is stale: measured production or benchmark sources have staged changes.'
+}
+$untrackedMeasuredPaths = @(& git -C $repositoryRoot ls-files --others --exclude-standard -- @measuredPaths)
+if ($LASTEXITCODE -ne 0) {
+    throw 'Unable to inspect untracked HTML/PDF benchmark source files.'
+}
+if ($untrackedMeasuredPaths.Count -ne 0) {
+    throw "HTML/PDF benchmark evidence is stale: measured sources contain untracked files: $($untrackedMeasuredPaths -join ', ')"
 }
 
 Write-Host "Current-source Windows/Linux HTML/PDF benchmark evidence verified at OfficeIMO $sourceCommit and HtmlTinkerX $browserCommit."

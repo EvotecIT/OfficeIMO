@@ -38,9 +38,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly OfficeTrueTypeVariations? _variations;
     private readonly OfficeFontVariationModel _variationModel;
     private readonly int _unitsPerEm;
-    private readonly short _ascender;
-    private readonly short _descender;
-    private readonly short _lineGap;
+    private readonly int _ascender;
+    private readonly int _descender;
+    private readonly int _lineGap;
     private readonly ushort _numGlyphs;
     private readonly ushort _numHMetrics;
     private readonly short _indexToLocFormat;
@@ -69,9 +69,15 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _name = tables.TryGetValue("name", out var name) ? name : -1;
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
-        _ascender = ReadInt16(_data, _hhea + 4);
-        _descender = ReadInt16(_data, _hhea + 6);
-        _lineGap = ReadInt16(_data, _hhea + 8);
+        OfficeOpenTypeMvarMetrics? mvar = _variationModel.IsVariable
+            ? OfficeOpenTypeMvarMetrics.TryParse(
+                OfficeOpenTypeReader.TryCreate(data)
+                    ?? throw new InvalidDataException("The TrueType font table directory is invalid."),
+                _variationModel)
+            : null;
+        _ascender = checked(ReadInt16(_data, _hhea + 4) + (mvar?.HorizontalAscenderDelta ?? 0));
+        _descender = checked(ReadInt16(_data, _hhea + 6) + (mvar?.HorizontalDescenderDelta ?? 0));
+        _lineGap = checked(ReadInt16(_data, _hhea + 8) + (mvar?.HorizontalLineGapDelta ?? 0));
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
         _variations = variationModel != null && variationModel.IsVariable

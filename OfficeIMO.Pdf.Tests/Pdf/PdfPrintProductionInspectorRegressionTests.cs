@@ -19,6 +19,97 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorTracksDeviceCmykSelectionsAndResourceAliases() {
+        byte[] pdf = BuildInspectionPdf(
+            "/DeviceCMYK cs 0 0 0 1 sc /PrintCmyk CS 0 0 0 1 SCN",
+            resources: "/ColorSpace << /PrintCmyk /DeviceCMYK >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(4, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorAppliesInvokingResourcesToFormsWithoutOwnResources() {
+        const string formContent = "/PrintRgb cs 1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm Do",
+            resources: "/ColorSpace << /PrintRgb /DeviceRGB >> /XObject << /Fm 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+                formContent.Length +
+                " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorAppliesPatternResourcesToNestedForms() {
+        const string patternContent = "/Fm Do";
+        const string formContent = "/PrintRgb cs 1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            extraObjects:
+                "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 " +
+                "/Resources << /ColorSpace << /PrintRgb /DeviceRGB >> /XObject << /Fm 6 0 R >> >> /Length " +
+                patternContent.Length + " >>\nstream\n" + patternContent + "\nendstream\nendobj\n" +
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+                formContent.Length + " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorAppliesGraphicsStateResourcesToSoftMaskForms() {
+        const string formContent = "/PrintRgb cs 1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            "/GS1 gs",
+            resources:
+                "/ColorSpace << /PrintRgb /DeviceRGB >> " +
+                "/ExtGState << /GS1 << /SMask << /S /Luminosity /G 5 0 R >> >> >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+                formContent.Length + " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorRecognizesInlineImageColorSpaceAbbreviations() {
+        byte[] pdf = BuildInspectionPdf(
+            "BI /W 1 /H 1 /BPC 8 /CS /RGB ID abc EI\n" +
+            "BI /W 1 /H 1 /BPC 8 /CS /CMYK ID abcd EI\n" +
+            "BI /W 1 /H 1 /BPC 8 /CS /G ID a EI");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(1, evidence.DeviceRgbImageCount);
+        Assert.Equal(1, evidence.DeviceCmykImageCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorTreatsImageSoftMaskNoneAsOpaque() {
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            extraObjects: "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask /None /Length 1 >>\nstream\na\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(0, evidence.TransparentImageCount);
+    }
+
+    [Fact]
     public void StructureInspectorBoundsIndirectFontResourceGraphTraversal() {
         const int firstObject = 5;
         const int lastObject = 40;
