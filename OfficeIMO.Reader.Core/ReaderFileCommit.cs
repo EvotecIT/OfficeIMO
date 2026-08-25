@@ -24,9 +24,10 @@ internal static class ReaderFileCommit {
         try {
             File.WriteAllBytes(temporaryPath, bytes);
             if (overwrite && File.Exists(fullPath)) {
-                File.Delete(fullPath);
+                File.Replace(temporaryPath, fullPath, null);
+            } else {
+                File.Move(temporaryPath, fullPath);
             }
-            File.Move(temporaryPath, fullPath);
         } finally {
             try {
                 if (File.Exists(temporaryPath)) File.Delete(temporaryPath);

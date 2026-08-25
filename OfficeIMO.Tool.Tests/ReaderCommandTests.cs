@@ -362,10 +362,11 @@ public sealed class ReaderCommandTests {
     }
 
     [Fact]
-    public void AssetOutputWithoutForceRejectsExistingSidecarsBeforeWritingAnyAssets() {
+    public async Task AssetOutputWithoutForceRejectsExistingSidecarsBeforeWritingPrimaryOrAssets() {
         using var temporary = new ReaderToolTemporaryDirectory();
         string existingPath = Path.Combine(temporary.Path, "existing.bin");
         string newPath = Path.Combine(temporary.Path, "new.bin");
+        string primaryPath = Path.Combine(temporary.Path, "output.md");
         File.WriteAllText(existingPath, "keep");
         var document = new OfficeDocumentReadResult {
             Assets = new[] {
@@ -384,12 +385,121 @@ public sealed class ReaderCommandTests {
             }
         };
 
-        ReaderToolOutputException exception = Assert.Throws<ReaderToolOutputException>(() =>
-            ReaderToolOutput.WriteAssets(document, temporary.Path, overwrite: false, CancellationToken.None));
+        ReaderToolOutputException exception = await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            ReaderToolOutput.WriteSingleDocumentAsync(
+                document,
+                ReaderToolOutputFormat.Markdown,
+                primaryPath,
+                TextWriter.Null,
+                temporary.Path,
+                sourcePath: null,
+                overwrite: false,
+                CancellationToken.None));
 
         Assert.Contains("--force", exception.Message, StringComparison.Ordinal);
         Assert.Equal("keep", File.ReadAllText(existingPath));
+        Assert.False(File.Exists(primaryPath));
         Assert.False(File.Exists(newPath));
+    }
+
+    [Fact]
+    public void AssetOutputWithForceRejectsAnInputFileDestination() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string sourcePath = Path.Combine(temporary.Path, "message.eml");
+        File.WriteAllText(sourcePath, "source");
+        var document = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "attachment",
+                    Extension = ".eml",
+                    FileName = "message.eml",
+                    PayloadBytes = Encoding.UTF8.GetBytes("replacement")
+                }
+            }
+        };
+
+        ReaderToolOutputException exception = Assert.Throws<ReaderToolOutputException>(() =>
+            ReaderToolOutput.PrepareAssetsOutput(
+                document,
+                temporary.Path,
+                overwrite: true,
+                primaryOutputPath: null,
+                sourcePath: sourcePath));
+
+        Assert.Contains("input file", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("source", File.ReadAllText(sourcePath));
+    }
+
+    [Fact]
+    public void AssetOutputWithForceRejectsDuplicateDestinations() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        var document = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "first",
+                    Extension = ".pdf",
+                    FileName = "invoice.pdf",
+                    PayloadBytes = Encoding.UTF8.GetBytes("first")
+                },
+                new OfficeDocumentAsset {
+                    Id = "second",
+                    Extension = ".pdf",
+                    FileName = "invoice.pdf",
+                    PayloadBytes = Encoding.UTF8.GetBytes("second")
+                }
+            }
+        };
+
+        ReaderToolOutputException exception = Assert.Throws<ReaderToolOutputException>(() =>
+            ReaderToolOutput.PrepareAssetsOutput(document, temporary.Path, overwrite: true));
+
+        Assert.Contains("same output file", exception.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(temporary.Path, "invoice.pdf")));
+    }
+
+    [Fact]
+    public async Task AssetDirectoryCollisionIsRejectedBeforeWritingPrimaryOutput() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string primaryPath = Path.Combine(temporary.Path, "output.md");
+        var document = new OfficeDocumentReadResult { Markdown = "# Output" };
+
+        ReaderToolOutputException exception = await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            ReaderToolOutput.WriteSingleDocumentAsync(
+                document,
+                ReaderToolOutputFormat.Markdown,
+                primaryPath,
+                TextWriter.Null,
+                primaryPath,
+                sourcePath: null,
+                overwrite: false,
+                CancellationToken.None));
+
+        Assert.Contains("asset directory", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(primaryPath));
+    }
+
+    [Fact]
+    public async Task AssetRootFileIsRejectedBeforeWritingPrimaryOutput() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string primaryPath = Path.Combine(temporary.Path, "output.md");
+        string assetsPath = Path.Combine(temporary.Path, "assets");
+        File.WriteAllText(assetsPath, "occupied");
+        var document = new OfficeDocumentReadResult { Markdown = "# Output" };
+
+        ReaderToolOutputException exception = await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            ReaderToolOutput.WriteSingleDocumentAsync(
+                document,
+                ReaderToolOutputFormat.Markdown,
+                primaryPath,
+                TextWriter.Null,
+                assetsPath,
+                sourcePath: null,
+                overwrite: false,
+                CancellationToken.None));
+
+        Assert.Contains("must be a directory", exception.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(primaryPath));
+        Assert.Equal("occupied", File.ReadAllText(assetsPath));
     }
 
     [Fact]
