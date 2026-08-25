@@ -11,6 +11,9 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         int maximumObjectDepth = document.ReadOptions.Limits.MaxObjectNestingDepth;
         var contentStreams = new List<ContentStreamContext>();
+        var imageDictionaries = new HashSet<PdfDictionary>();
+        var imageContexts = new List<ImageContext>();
+        var shadingContexts = new List<ShadingContext>();
         var graphicsStateDictionaries = new HashSet<PdfDictionary>();
         var shadingDictionaries = new HashSet<PdfDictionary>();
         var inspectedDictionaries = new HashSet<PdfDictionary>();
@@ -87,6 +90,8 @@ internal static partial class PdfPrintProductionColorInspector {
                         objects,
                         pageAliases,
                         contentStreams,
+                        imageContexts,
+                        shadingContexts,
                         maximumObjectDepth);
                 }
             }
@@ -102,6 +107,8 @@ internal static partial class PdfPrintProductionColorInspector {
                     objects,
                     CreateColorSpaceAliases(directResources, objects, maximumObjectDepth),
                     contentStreams,
+                    imageContexts,
+                    shadingContexts,
                     maximumObjectDepth);
             }
 
@@ -115,12 +122,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 maximumObjectDepth);
 
             if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
-                PdfObject? colorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
-                    ? colorSpaceObject
-                    : null;
-                if (ContainsColorSpace(colorSpace, "DeviceRGB", objects, maximumObjectDepth)) rgbImages++;
-                if (ContainsColorSpace(colorSpace, "DeviceCMYK", objects, maximumObjectDepth)) cmykImages++;
-                if (ContainsDeviceIndependentColorSpace(colorSpace, objects, maximumObjectDepth)) deviceIndependentColorUses++;
+                imageDictionaries.Add(dictionary);
                 if (dictionary.Items.TryGetValue("SMask", out PdfObject? softMask) &&
                     !string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal)) {
                     transparentImages++;
@@ -129,14 +131,77 @@ internal static partial class PdfPrintProductionColorInspector {
 
         }
 
+        foreach (PdfDictionary image in imageDictionaries) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfObject? colorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+                ? colorSpaceObject
+                : null;
+            bool usesRgb = ContainsColorSpace(colorSpace, "DeviceRGB", objects, maximumObjectDepth);
+            bool usesCmyk = ContainsColorSpace(colorSpace, "DeviceCMYK", objects, maximumObjectDepth);
+            bool usesDeviceIndependentColor = ContainsDeviceIndependentColorSpace(
+                colorSpace,
+                objects,
+                maximumObjectDepth);
+            foreach (ImageContext context in imageContexts) {
+                if (!ReferenceEquals(context.Dictionary, image)) continue;
+                usesRgb |= ContainsColorSpace(
+                    colorSpace,
+                    "DeviceRGB",
+                    objects,
+                    maximumObjectDepth,
+                    context.Aliases.Rgb);
+                usesCmyk |= ContainsColorSpace(
+                    colorSpace,
+                    "DeviceCMYK",
+                    objects,
+                    maximumObjectDepth,
+                    context.Aliases.Cmyk);
+                usesDeviceIndependentColor |= ContainsDeviceIndependentColorSpace(
+                    colorSpace,
+                    objects,
+                    maximumObjectDepth,
+                    context.Aliases.DeviceIndependent);
+            }
+
+            if (usesRgb) rgbImages++;
+            if (usesCmyk) cmykImages++;
+            if (usesDeviceIndependentColor) deviceIndependentColorUses++;
+        }
+
         foreach (PdfDictionary shading in shadingDictionaries) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfObject? colorSpace = shading.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
                 ? colorSpaceObject
                 : null;
-            if (ContainsColorSpace(colorSpace, "DeviceRGB", objects, maximumObjectDepth)) rgbShadings++;
-            if (ContainsColorSpace(colorSpace, "DeviceCMYK", objects, maximumObjectDepth)) cmykShadings++;
-            if (ContainsDeviceIndependentColorSpace(colorSpace, objects, maximumObjectDepth)) deviceIndependentColorUses++;
+            bool usesRgb = ContainsColorSpace(colorSpace, "DeviceRGB", objects, maximumObjectDepth);
+            bool usesCmyk = ContainsColorSpace(colorSpace, "DeviceCMYK", objects, maximumObjectDepth);
+            bool usesDeviceIndependentColor = ContainsDeviceIndependentColorSpace(
+                colorSpace,
+                objects,
+                maximumObjectDepth);
+            foreach (ShadingContext context in shadingContexts) {
+                if (!ReferenceEquals(context.Dictionary, shading)) continue;
+                usesRgb |= ContainsColorSpace(
+                    colorSpace,
+                    "DeviceRGB",
+                    objects,
+                    maximumObjectDepth,
+                    context.Aliases.Rgb);
+                usesCmyk |= ContainsColorSpace(
+                    colorSpace,
+                    "DeviceCMYK",
+                    objects,
+                    maximumObjectDepth,
+                    context.Aliases.Cmyk);
+                usesDeviceIndependentColor |= ContainsDeviceIndependentColorSpace(
+                    colorSpace,
+                    objects,
+                    maximumObjectDepth,
+                    context.Aliases.DeviceIndependent);
+            }
+            if (usesRgb) rgbShadings++;
+            if (usesCmyk) cmykShadings++;
+            if (usesDeviceIndependentColor) deviceIndependentColorUses++;
         }
 
         foreach (PdfDictionary graphicsState in graphicsStateDictionaries) {
@@ -701,4 +766,8 @@ internal static partial class PdfPrintProductionColorInspector {
     }
 
     private sealed record ContentStreamContext(PdfStream Stream, ColorSpaceAliases Aliases);
+
+    private sealed record ImageContext(PdfDictionary Dictionary, ColorSpaceAliases Aliases);
+
+    private sealed record ShadingContext(PdfDictionary Dictionary, ColorSpaceAliases Aliases);
 }

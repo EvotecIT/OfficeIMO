@@ -2,7 +2,7 @@ using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
 
-internal static class PdfPrintProductionStructureInspector {
+internal static partial class PdfPrintProductionStructureInspector {
     internal static PdfPrintProductionStructureEvidence Inspect(
         PdfReadDocument document,
         System.Threading.CancellationToken cancellationToken = default) {
@@ -62,8 +62,12 @@ internal static class PdfPrintProductionStructureInspector {
         PdfPageBox? media = geometry.MediaBox;
         PdfPageBox? trim = geometry.TrimBox;
         PdfPageBox? bleed = geometry.BleedBox;
-        if (media == null || trim == null || bleed == null || geometry.ArtBox != null) return false;
-        return Contains(media, bleed) && Contains(bleed, trim);
+        PdfPageBox? art = geometry.ArtBox;
+        if (media == null || (trim == null) == (art == null)) return false;
+        PdfPageBox productionBoundary = trim ?? art!;
+        if (!Contains(media, productionBoundary)) return false;
+        return bleed == null ||
+            (Contains(media, bleed) && Contains(bleed, productionBoundary));
     }
 
     private static bool Contains(PdfPageBox outer, PdfPageBox inner) {
@@ -191,7 +195,7 @@ internal static class PdfPrintProductionStructureInspector {
             stream.Data,
             maxDecodedStreamBytes,
             out byte[] decoded,
-            objects) && decoded.Length > 0;
+            objects) && IsValidFontProgram(key, stream, decoded, objects, maximumObjectDepth);
     }
 
     private static string? ResolveName(

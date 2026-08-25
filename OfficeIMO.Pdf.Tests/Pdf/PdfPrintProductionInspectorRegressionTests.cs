@@ -19,6 +19,20 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorResolvesShadingColorSpaceFromInvokingResources() {
+        byte[] pdf = BuildInspectionPdf(
+            "/S1 sh",
+            resources:
+                "/ColorSpace << /CS1 /DeviceRGB >> " +
+                "/Shading << /S1 << /ShadingType 2 /ColorSpace /CS1 /Coords [0 0 100 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >> >> >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(1, evidence.DeviceRgbShadingCount);
+        Assert.True(evidence.HasDeviceRgbUsage);
+    }
+
+    [Fact]
     public void ColorInspectorTracksDeviceCmykSelectionsAndResourceAliases() {
         byte[] pdf = BuildInspectionPdf(
             "/DeviceCMYK cs 0 0 0 1 sc /PrintCmyk CS 0 0 0 1 SCN",
@@ -107,6 +121,68 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
         Assert.Equal(0, evidence.TransparentImageCount);
+    }
+
+    [Fact]
+    public void ColorInspectorResolvesImageColorSpaceFromInvokingPageResources() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/ColorSpace << /CS1 /DeviceRGB >> /XObject << /Im1 5 0 R >>",
+            extraObjects: "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /CS1 /BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(1, evidence.DeviceRgbImageCount);
+        Assert.True(evidence.HasDeviceRgbUsage);
+    }
+
+    [Fact]
+    public void ColorInspectorResolvesImageColorSpaceFromInvokingFormResources() {
+        const string formContent = "/Im1 Do";
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm Do",
+            resources: "/XObject << /Fm 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Resources << /ColorSpace << /CS1 /DeviceRGB >> /XObject << /Im1 6 0 R >> >> /Length " +
+                formContent.Length + " >>\nstream\n" + formContent + "\nendstream\nendobj\n" +
+                "6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /CS1 /BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(1, evidence.DeviceRgbImageCount);
+        Assert.True(evidence.HasDeviceRgbUsage);
+    }
+
+    [Fact]
+    public void StructureInspectorAcceptsArtBoxWithoutExplicitBleedBox() {
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            pageEntries: "/ArtBox [10 10 90 90]");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.ValidProductionPageBoxCount);
+        Assert.Equal(0, evidence.InvalidProductionPageBoxCount);
+    }
+
+    [Fact]
+    public void StructureInspectorRejectsNonemptyInvalidEmbeddedFontStream() {
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /TrueType /BaseFont /Fixture /FontDescriptor 6 0 R >>\nendobj\n" +
+                "6 0 obj\n<< /Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] " +
+                "/ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 7 0 R >>\nendobj\n" +
+                "7 0 obj\n<< /Length 10 >>\nstream\nnot-a-font\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
     }
 
     [Fact]

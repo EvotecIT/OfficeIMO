@@ -20,7 +20,7 @@ public sealed class PdfPrintProductionStructureEvidence {
     /// <summary>Number of pages inspected.</summary>
     public int PageCount { get; }
 
-    /// <summary>Pages with a MediaBox, TrimBox, and containing BleedBox in valid nesting order.</summary>
+    /// <summary>Pages with a MediaBox, exactly one TrimBox or ArtBox, and any explicit BleedBox in valid nesting order.</summary>
     public int ValidProductionPageBoxCount { get; }
 
     /// <summary>Pages missing or violating the required production boundary-box relationship.</summary>

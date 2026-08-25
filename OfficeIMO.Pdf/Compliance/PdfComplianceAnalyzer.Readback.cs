@@ -315,7 +315,7 @@ internal static partial class PdfComplianceAnalyzer {
                 structureEvidence.PageCount > 0 &&
                 structureEvidence.ValidProductionPageBoxCount == structureEvidence.PageCount &&
                 structureEvidence.InvalidProductionPageBoxCount == 0,
-                "Every saved page has a MediaBox, TrimBox, and containing BleedBox with no conflicting ArtBox.",
+                "Every saved page has a MediaBox, exactly one TrimBox or ArtBox, and any explicit BleedBox contains that production boundary.",
                 structureEvidence.InvalidProductionPageBoxCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " page(s) have missing, conflicting, or improperly nested production boxes.");
             Add(requirements, "readback-pdfx-font-inspection-complete", "Readback PDF/X font inspection completeness",
                 structureEvidence.UninspectableFontResourceCount == 0,
