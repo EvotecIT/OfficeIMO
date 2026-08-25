@@ -12,17 +12,34 @@ internal interface IOfficeCffPathSink {
     void CloseContour();
 }
 
+/// <summary>Shared operation budget for one externally requested CFF text render.</summary>
+internal sealed class OfficeCffOperationBudget {
+    private const int DefaultMaximumOperations = 1_000_000;
+    private int _remaining;
+
+    internal OfficeCffOperationBudget() : this(DefaultMaximumOperations) {
+    }
+
+    internal OfficeCffOperationBudget(int maximumOperations) {
+        if (maximumOperations <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOperations));
+        _remaining = maximumOperations;
+    }
+
+    internal void Consume() {
+        if (_remaining-- <= 0) throw new InvalidDataException("The CFF CharString operation budget was exceeded.");
+    }
+}
+
 /// <summary>Bounded Type 2 CharString interpreter for CFF1 and CFF2 glyph outlines.</summary>
 internal sealed class OfficeType2CharStringInterpreter {
     private const int MaximumStack = 513;
     private const int MaximumSubroutineDepth = 32;
-    private const int MaximumOperations = 1_000_000;
     private readonly OfficeCffFontData _font;
     private readonly OfficeCffFontData.CffIndex _localSubroutines;
     private readonly OfficeCffFontData.CffIndex _globalSubroutines;
     private readonly IOfficeCffPathSink _sink;
     private readonly CancellationToken _cancellationToken;
-    private readonly OperationBudget _operationBudget;
+    private readonly OfficeCffOperationBudget _operationBudget;
     private readonly int _seacDepth;
     private readonly List<double> _stack = new List<double>();
     private readonly double[] _transient = new double[32];
@@ -38,7 +55,16 @@ internal sealed class OfficeType2CharStringInterpreter {
         int glyphId,
         IOfficeCffPathSink sink,
         CancellationToken cancellationToken)
-        : this(font, glyphId, sink, cancellationToken, new OperationBudget(), 0) {
+        : this(font, glyphId, sink, cancellationToken, new OfficeCffOperationBudget(), 0) {
+    }
+
+    internal OfficeType2CharStringInterpreter(
+        OfficeCffFontData font,
+        int glyphId,
+        IOfficeCffPathSink sink,
+        CancellationToken cancellationToken,
+        OfficeCffOperationBudget operationBudget)
+        : this(font, glyphId, sink, cancellationToken, operationBudget, 0) {
     }
 
     private OfficeType2CharStringInterpreter(
@@ -46,14 +72,14 @@ internal sealed class OfficeType2CharStringInterpreter {
         int glyphId,
         IOfficeCffPathSink sink,
         CancellationToken cancellationToken,
-        OperationBudget operationBudget,
+        OfficeCffOperationBudget operationBudget,
         int seacDepth) {
         _font = font ?? throw new ArgumentNullException(nameof(font));
         _localSubroutines = font.GetLocalSubroutines(glyphId);
         _globalSubroutines = font.GlobalSubroutines;
         _sink = sink ?? throw new ArgumentNullException(nameof(sink));
         _cancellationToken = cancellationToken;
-        _operationBudget = operationBudget;
+        _operationBudget = operationBudget ?? throw new ArgumentNullException(nameof(operationBudget));
         _seacDepth = seacDepth;
         _widthConsumed = font.IsCff2;
     }
@@ -455,14 +481,6 @@ internal sealed class OfficeType2CharStringInterpreter {
         int index = ToInteger(Pop(), "CFF transient-array index");
         if (index < 0 || index >= _transient.Length) throw new InvalidDataException("A CFF transient-array index is invalid.");
         Push(_transient[index]);
-    }
-
-    private sealed class OperationBudget {
-        private int _remaining = MaximumOperations;
-
-        internal void Consume() {
-            if (_remaining-- <= 0) throw new InvalidDataException("The CFF CharString operation budget was exceeded.");
-        }
     }
 
     private sealed class TranslatedPathSink : IOfficeCffPathSink {

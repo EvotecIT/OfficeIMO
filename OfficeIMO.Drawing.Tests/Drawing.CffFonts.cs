@@ -159,6 +159,64 @@ public sealed class DrawingCffFontTests {
         Assert.Equal(22D, stack[1], 6);
     }
 
+    [Fact]
+    public void CffTextRunSharesOneCharStringOperationBudgetAcrossGlyphs() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var budget = new OfficeCffOperationBudget(1);
+        var sink = new CountingCffSink();
+        var endChar = new OfficeCffFontData.CffSlice(new byte[] { 14 }, 0, 1);
+
+        new OfficeType2CharStringInterpreter(cff, 0, sink, CancellationToken.None, budget).Render(endChar);
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, sink, CancellationToken.None, budget).Render(endChar));
+
+        Assert.Contains("operation budget", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Cff2MvarAdjustsSelectedHorizontalLineMetrics() {
+        byte[] original = ReadAsset("AdobeVFPrototype-Subset.otf");
+        byte[] withMvar = ReplaceHvarWithMvar(original, CreateHorizontalMetricsMvar());
+        var originalFonts = new OfficeFontFaceCollection {
+            FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 0F, ["xxxx"] = 0F }
+        };
+        var mvarFonts = new OfficeFontFaceCollection {
+            FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 0F, ["xxxx"] = 0F }
+        };
+        Assert.True(originalFonts.TryAddBounded(
+            "Original CFF2", original, OfficeFontStyle.Regular, OfficeFontUnicodeRangeSet.All,
+            16 * 1024 * 1024, out _, out string? originalError), originalError);
+        Assert.True(mvarFonts.TryAddBounded(
+            "MVAR CFF2", withMvar, OfficeFontStyle.Regular, OfficeFontUnicodeRangeSet.All,
+            16 * 1024 * 1024, out _, out string? mvarError), mvarError);
+
+        OfficeFontFace originalFace = Assert.Single(originalFonts.Faces);
+        OfficeFontFace mvarFace = Assert.Single(mvarFonts.Faces);
+        double scale = 24D / mvarFace.Program.UnitsPerEm;
+        Assert.Equal(originalFace.Program.LineHeight(24D) + 120D * scale, mvarFace.Program.LineHeight(24D), 6);
+        Assert.Equal(originalFace.Program.LineSpacingRatio + 150D / mvarFace.Program.UnitsPerEm, mvarFace.Program.LineSpacingRatio, 6);
+    }
+
+    [Fact]
+    public void MvarRejectsUnsortedValueRecords() {
+        byte[] source = ReadAsset("AdobeVFPrototype-Subset.otf");
+        byte[] table = CreateHorizontalMetricsMvar();
+        WriteUInt32(table, 12, 0x68647363); // hdsc before hasc is not sorted.
+        WriteUInt32(table, 20, 0x68617363);
+        byte[] data = ReplaceHvarWithMvar(source, table);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeFontVariationModel model = OfficeFontVariationModel.Create(
+            reader,
+            new Dictionary<string, float> { ["wght"] = 0F, ["xxxx"] = 0F });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeOpenTypeMvarMetrics.TryParse(reader, model));
+
+        Assert.Contains("strictly tag-sorted", exception.Message, StringComparison.Ordinal);
+    }
+
     private static byte[] ReadAsset(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", name));
 
     private static void WriteUInt16(byte[] data, int offset, int value) {
@@ -171,6 +229,73 @@ public sealed class DrawingCffFontTests {
         data[offset + 1] = (byte)(value >> 16);
         data[offset + 2] = (byte)(value >> 8);
         data[offset + 3] = (byte)value;
+    }
+
+    private static void WriteInt16(byte[] data, int offset, int value) => WriteUInt16(data, offset, unchecked((ushort)value));
+
+    private static byte[] CreateHorizontalMetricsMvar() {
+        const int recordCount = 3;
+        const int itemStoreOffset = 12 + recordCount * 8;
+        const int regionListOffset = 12;
+        const int itemDataOffset = 28;
+        var table = new byte[itemStoreOffset + 42];
+        WriteUInt16(table, 0, 1); // major version
+        WriteUInt16(table, 2, 0); // minor version
+        WriteUInt16(table, 4, 0); // reserved
+        WriteUInt16(table, 6, 8); // value record size
+        WriteUInt16(table, 8, recordCount);
+        WriteUInt16(table, 10, itemStoreOffset);
+        WriteUInt32(table, 12, 0x68617363); // hasc
+        WriteUInt16(table, 16, 0);
+        WriteUInt16(table, 18, 0);
+        WriteUInt32(table, 20, 0x68647363); // hdsc
+        WriteUInt16(table, 24, 0);
+        WriteUInt16(table, 26, 1);
+        WriteUInt32(table, 28, 0x686C6770); // hlgp
+        WriteUInt16(table, 32, 0);
+        WriteUInt16(table, 34, 2);
+
+        int store = itemStoreOffset;
+        WriteUInt16(table, store, 1);
+        WriteUInt32(table, store + 2, regionListOffset);
+        WriteUInt16(table, store + 6, 1);
+        WriteUInt32(table, store + 8, itemDataOffset);
+        int region = store + regionListOffset;
+        WriteUInt16(table, region, 2); // fixture axis count
+        WriteUInt16(table, region + 2, 1);
+        WriteInt16(table, region + 4, -0x4000);
+        WriteInt16(table, region + 6, -0x4000);
+        WriteInt16(table, region + 8, 0);
+        WriteInt16(table, region + 10, 0);
+        WriteInt16(table, region + 12, 0);
+        WriteInt16(table, region + 14, 0);
+        int itemData = store + itemDataOffset;
+        WriteUInt16(table, itemData, 3);
+        WriteUInt16(table, itemData + 2, 1);
+        WriteUInt16(table, itemData + 4, 1);
+        WriteUInt16(table, itemData + 6, 0);
+        WriteInt16(table, itemData + 8, 100);
+        WriteInt16(table, itemData + 10, -20);
+        WriteInt16(table, itemData + 12, 30);
+        return table;
+    }
+
+    private static byte[] ReplaceHvarWithMvar(byte[] source, byte[] table) {
+        int tableOffset = checked((source.Length + 3) & ~3);
+        var data = new byte[checked(tableOffset + table.Length)];
+        Buffer.BlockCopy(source, 0, data, 0, source.Length);
+        Buffer.BlockCopy(table, 0, data, tableOffset, table.Length);
+        int tableCount = (data[4] << 8) | data[5];
+        for (int index = 0; index < tableCount; index++) {
+            int record = 12 + index * 16;
+            if (data[record] != (byte)'H' || data[record + 1] != (byte)'V'
+                || data[record + 2] != (byte)'A' || data[record + 3] != (byte)'R') continue;
+            data[record] = (byte)'M';
+            WriteUInt32(data, record + 8, checked((uint)tableOffset));
+            WriteUInt32(data, record + 12, checked((uint)table.Length));
+            return data;
+        }
+        throw new InvalidDataException("The CFF2 fixture does not contain an HVAR table record.");
     }
 
     private static string Serialize(IReadOnlyList<List<OfficePoint>> contours) {

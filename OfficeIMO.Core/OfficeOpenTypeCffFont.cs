@@ -14,6 +14,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
     private readonly OfficeCffFontData _cff;
     private readonly OfficeFontVariationModel _variations;
     private readonly OfficeOpenTypeHvarMetrics? _hvar;
+    private readonly int _ascender;
+    private readonly int _descender;
+    private readonly int _lineGap;
     private readonly string _fingerprint;
 
     private OfficeOpenTypeCffFont(
@@ -28,6 +31,12 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         _hvar = variations.IsVariable
             ? OfficeOpenTypeHvarMetrics.TryParse(reader, variations)
             : null;
+        OfficeOpenTypeMvarMetrics? mvar = variations.IsVariable
+            ? OfficeOpenTypeMvarMetrics.TryParse(reader, variations)
+            : null;
+        _ascender = checked(reader.Ascender + (mvar?.HorizontalAscenderDelta ?? 0));
+        _descender = checked(reader.Descender + (mvar?.HorizontalDescenderDelta ?? 0));
+        _lineGap = checked(reader.LineGap + (mvar?.HorizontalLineGapDelta ?? 0));
         _fingerprint = ComputeFingerprint(data, variations.Identity);
     }
 
@@ -60,7 +69,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
     public int UnitsPerEm => _reader.UnitsPerEm;
     public bool IsOpenTypeCff => true;
     public bool ProvidesComplexTextLayout => false;
-    public double LineSpacingRatio => Math.Max(1, _reader.Ascender - _reader.Descender + _reader.LineGap) / (double)_reader.UnitsPerEm;
+    public double LineSpacingRatio => Math.Max(1, _ascender - _descender + _lineGap) / (double)_reader.UnitsPerEm;
     internal bool IsVariable => _variations.IsVariable || _cff.IsCff2;
 
     public byte[] GetFontDataForShaping() => (byte[])_data.Clone();
@@ -98,7 +107,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
 
     public double LineHeight(double fontSize) {
         ValidateSize(fontSize);
-        return Math.Max(1, _reader.Ascender - _reader.Descender) * Scale(fontSize);
+        return Math.Max(1, _ascender - _descender) * Scale(fontSize);
     }
 
     public List<List<OfficePoint>> GetTextContours(string text, double x, double y, double fontSize) =>
@@ -117,14 +126,15 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         var contours = new List<List<OfficePoint>>();
         double scale = Scale(fontSize);
         double cursor = x;
-        double baseline = y + _reader.Ascender * scale;
+        double baseline = y + _ascender * scale;
         int pointCount = 0;
+        var operationBudget = new OfficeCffOperationBudget();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
             int glyphId = _reader.MapGlyph(scalar);
-            RenderGlyph(glyphId, cursor, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken);
+            RenderGlyph(glyphId, cursor, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken, operationBudget);
             cursor += AdvanceWidth(glyphId) * scale;
         }
         return contours;
@@ -176,8 +186,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         for (int index = 0; index < glyphs.Length; index++) totalAdvance = checked(totalAdvance + glyphs[index].AdvanceWidth);
         bool negativeDirection = totalAdvance < 0;
         double cursor = negativeDirection ? x - (totalAdvance * scale) : x;
-        double baseline = y + _reader.Ascender * scale;
+        double baseline = y + _ascender * scale;
         int pointCount = 0;
+        var operationBudget = new OfficeCffOperationBudget();
         for (int index = 0; index < glyphs.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PositionedGlyph glyph = glyphs[index];
@@ -190,7 +201,8 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
                 contours,
                 ref pointCount,
                 maximumPointCount,
-                cancellationToken);
+                cancellationToken,
+                operationBudget);
             if (!negativeDirection) cursor += glyph.AdvanceWidth * scale;
         }
         return contours;
@@ -204,10 +216,11 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         List<List<OfficePoint>> contours,
         ref int pointCount,
         int maximumPointCount,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        OfficeCffOperationBudget operationBudget) {
         if (glyphId < 0 || glyphId >= _cff.GlyphCount) throw new InvalidDataException("A CFF glyph identifier is outside CharStrings.");
         var sink = new CffPathSink(x, baseline, scale, contours, pointCount, maximumPointCount, cancellationToken);
-        var interpreter = new OfficeType2CharStringInterpreter(_cff, glyphId, sink, cancellationToken);
+        var interpreter = new OfficeType2CharStringInterpreter(_cff, glyphId, sink, cancellationToken, operationBudget);
         interpreter.Render(_cff.GetCharString(glyphId));
         pointCount = sink.PointCount;
     }
