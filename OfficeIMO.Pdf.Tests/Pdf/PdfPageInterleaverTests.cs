@@ -114,6 +114,39 @@ public class PdfPageInterleaverTests {
             link => { Assert.Equal(3, link.PageNumber); Assert.Equal("PrimaryDestination", link.DestinationName); });
     }
 
+    [Fact]
+    public void Interleave_RejectsXfaSourcesBeforeComposition() {
+        var xfaSource = new PdfInterleaveSource(BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Fields [] /XFA (unsupported-packet) >>"));
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageInterleaver.Interleave(
+            new[] { xfaSource, new PdfInterleaveSource(PdfProductionWorkflowTestSupport.CreatePdf("Incoming")) }));
+
+        Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Interleave_ComposesSourceBudgetsForTheOwnedOutput() {
+        byte[] first = PdfProductionWorkflowTestSupport.CreatePdf("A one");
+        byte[] second = PdfProductionWorkflowTestSupport.CreatePdf("B one");
+        int sourceObjectLimit = Math.Max(PdfSyntax.ParseObjects(first).Map.Count, PdfSyntax.ParseObjects(second).Map.Count);
+        var firstSource = new PdfInterleaveSource(first) {
+            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxPages = 1, MaxIndirectObjects = sourceObjectLimit } }
+        };
+        var secondSource = new PdfInterleaveSource(second) {
+            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxPages = 1, MaxIndirectObjects = sourceObjectLimit } }
+        };
+
+        PdfInterleaveResult result = PdfPageInterleaver.Interleave(new[] { firstSource, secondSource });
+
+        Assert.Equal(2, result.ToDocument().Read.Pages().Count);
+        Assert.Equal(2, result.MergeReport.OutputPageCount);
+    }
+
 
     private static byte[] BuildTwoPageSharedFieldPdf() => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",

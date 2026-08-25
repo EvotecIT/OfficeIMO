@@ -46,7 +46,7 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
-    public void PolicyMergeEnforcesPrimaryStructuralLimitsDuringRewrites() {
+    public void PolicyMergeComposesSourceStructuralLimitsForTheOwnedOutput() {
         byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
         byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Second")).ToBytes();
         int sourceObjectLimit = Math.Max(
@@ -59,13 +59,52 @@ public class PdfMergerPolicyTests {
             Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Drop }
         };
 
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.MergeWithReport(
-                mergeOptions,
-                PdfDocument.Open(first, readOptions),
-                PdfDocument.Open(second)));
+        PdfMergeResult result = PdfDocument.MergeWithReport(
+            mergeOptions,
+            PdfDocument.Open(first, readOptions),
+            PdfDocument.Open(second, readOptions));
 
-        Assert.Equal(PdfReadLimitKind.IndirectObjects, exception.Kind);
+        Assert.Equal(2, result.ToDocument().Read.Pages().Count);
+        Assert.Equal(2, result.Report.OutputPageCount);
+    }
+
+    [Fact]
+    public void PolicyMerge_RejectsPrimaryXfaUnlessFormsAreExplicitlyDropped() {
+        byte[] xfa = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Fields [] /XFA (unsupported-packet) >>");
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+
+        Assert.Throws<NotSupportedException>(() => PdfMerger.MergeWithReport(new PdfMergeOptions(), xfa, incoming));
+
+        PdfMergeResult dropped = PdfMerger.MergeWithReport(
+            new PdfMergeOptions { Policy = new PdfMergePolicy { Forms = PdfMergeStructureMode.Drop } },
+            xfa,
+            incoming);
+        Assert.Equal(2, dropped.Report.OutputPageCount);
+        Assert.False(PdfInspector.Inspect(dropped.ToBytes()).HasAcroFormXfa);
+        Assert.DoesNotContain("unsupported-packet", Encoding.ASCII.GetString(dropped.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MiddlePageInsertion_RejectsXfaBeforeRebuildingTheCatalog() {
+        byte[] xfa = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 6 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Fields [] /XFA (middle-insertion-packet) >>");
+        byte[] inserted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Inserted")).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfMerger.MergePrimaryWithInsertedPages(xfa, inserted, insertBeforePageNumber: 2));
+
+        Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

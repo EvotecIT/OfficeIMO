@@ -109,6 +109,30 @@ public class PdfAnnotationReviewWorkflowTests {
         Assert.Equal(130, catalog.AnnotationCount);
     }
 
+    [Fact]
+    public void ReviewState_RejectsNonTextAnnotationsAcrossCreateUpdateAndWorkflowSurfaces() {
+        byte[] source = PdfDocument.Create()
+            .HighlightAnnotation("Highlighted", 120, 14)
+            .ToBytes();
+        int highlightObjectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Highlight")).ObjectNumber!.Value;
+
+        Assert.Throws<NotSupportedException>(() => PdfAnnotationReviewEditor.SetState(
+            source,
+            highlightObjectNumber,
+            PdfAnnotationReviewState.Accepted));
+        Assert.Throws<NotSupportedException>(() => PdfAnnotationEditor.UpdateAnnotation(
+            source,
+            highlightObjectNumber,
+            new PdfAnnotationUpdateOptions { ReviewState = PdfAnnotationReviewState.Accepted }));
+        Assert.Throws<NotSupportedException>(() => PdfAnnotationEditor.AddAnnotation(
+            source,
+            new PdfAnnotationCreateOptions {
+                Subtype = "Highlight",
+                Rectangle = new[] { 36D, 72D, 120D, 90D },
+                ReviewState = PdfAnnotationReviewState.Accepted
+            }));
+    }
+
     private static byte[] BuildSparseAnnotationPdf() => Encoding.ASCII.GetBytes(
         "%PDF-1.7\n" +
         "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +

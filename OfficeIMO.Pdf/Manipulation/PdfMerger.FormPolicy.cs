@@ -9,9 +9,12 @@ internal static partial class PdfMerger {
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions,
         PdfReadOptions readOptions) {
+        ValidateXfaFormPolicy(sources, primarySourceIndex, mode);
         int totalCount = sources.Sum(static source => source.FormFieldCount);
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.FormFieldCount);
-        if (totalCount == 0) {
+        bool needsXfaCleanup = sources.Any(static source => source.Document.AcroFormXfa is not null) &&
+            (mode == PdfMergeStructureMode.KeepPrimary || mode == PdfMergeStructureMode.Drop);
+        if (totalCount == 0 && !needsXfaCleanup) {
             decisions.Add(new PdfMergeDecision("Forms", mode, "No AcroForm fields were present."));
             return merged;
         }
@@ -36,6 +39,38 @@ internal static partial class PdfMerger {
         }
         decisions.Add(new PdfMergeDecision("Forms", mode, action, imported, dropped, renamed.AsReadOnly()));
         return output;
+    }
+
+    private static void ValidateXfaFormPolicy(IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode) {
+        bool primaryHasXfa = sources[primarySourceIndex].Document.AcroFormXfa is not null;
+        int incomingXfaCount = sources.Where((source, index) => index != primarySourceIndex && source.Document.AcroFormXfa is not null).Count();
+        if (mode == PdfMergeStructureMode.Drop) return;
+        if (mode == PdfMergeStructureMode.RejectIncoming && incomingXfaCount > 0) {
+            throw new InvalidOperationException("PDF merge policy rejected " + incomingXfaCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " incoming XFA form(s).");
+        }
+        if (mode == PdfMergeStructureMode.Combine && (primaryHasXfa || incomingXfaCount > 0)) {
+            throw new NotSupportedException("Combining XFA forms is not supported; flatten or remove XFA before merging.");
+        }
+        if (primaryHasXfa) {
+            throw new NotSupportedException("The primary XFA form cannot be preserved by this merge policy. Flatten or remove XFA before merging, or explicitly drop forms.");
+        }
+    }
+
+    private static void ValidateXfaSourceBeforePreparation(
+        PdfReadDocument source,
+        int sourceIndex,
+        int primarySourceIndex,
+        PdfMergeStructureMode mode) {
+        if (source.AcroFormXfa is null || mode == PdfMergeStructureMode.Drop) return;
+        if (mode == PdfMergeStructureMode.Combine) {
+            throw new NotSupportedException("Combining XFA forms is not supported; flatten or remove XFA before merging.");
+        }
+        if (sourceIndex == primarySourceIndex) {
+            throw new NotSupportedException("The primary XFA form cannot be preserved by this merge policy. Flatten or remove XFA before merging, or explicitly drop forms.");
+        }
+        if (mode == PdfMergeStructureMode.RejectIncoming) {
+            throw new InvalidOperationException("PDF merge policy rejected an incoming XFA form.");
+        }
     }
 
     private static void ValidateCombinableForms(IReadOnlyList<ImportedSource> sources) {

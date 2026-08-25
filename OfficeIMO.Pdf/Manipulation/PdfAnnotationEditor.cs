@@ -261,6 +261,10 @@ internal static partial class PdfAnnotationEditor {
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<int> ApplyUpdates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
+        if (options.ReviewState.HasValue &&
+            !string.Equals(TryReadName(objects, annotation, "Subtype"), "Text", StringComparison.Ordinal)) {
+            throw new NotSupportedException("PDF review states are supported only for Text annotations.");
+        }
         var changedObjects = new List<int>();
         bool invalidateAppearance = false;
         if (options.Contents is not null) {

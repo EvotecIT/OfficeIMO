@@ -128,6 +128,9 @@ internal static partial class PdfMerger {
                 original,
                 PdfMutationOperation.MergeDocuments,
                 input.ReadOptions);
+            if (plannedDocument.AcroFormXfa is not null) {
+                throw new NotSupportedException("Interleaving XFA forms is not supported because their form packets cannot be preserved across page composition. Flatten or remove XFA before interleaving.");
+            }
             sourceSecurity[sourceIndex] = plan.Preflight.Probe.Security;
             sourcePermissionPolicy[sourceIndex] = plan.Preflight.PermissionPolicy;
             IReadOnlyList<int> resolved = input.Pages?.Resolve(plannedDocument.Pages.Count) ??
@@ -192,10 +195,13 @@ internal static partial class PdfMerger {
         byte[] composed = WriteMerged(
             importedSources,
             options.PrimarySourceIndex,
-            order.Select(static page => new OutputPageReference(page.SourceIndex, page.PageObjectNumber)).ToArray());
-        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
-            sources[options.PrimarySourceIndex].ReadOptions,
-            composed.LongLength);
+            order.Select(static page => new OutputPageReference(page.SourceIndex, page.PageObjectNumber)).ToArray(),
+            out int composedObjectCount);
+        PdfReadOptions outputReadOptions = PdfReadOptions.ForComposedOutput(
+            sourceDocuments[options.PrimarySourceIndex].ReadOptions,
+            sourceDocuments.Select(static document => document.ReadOptions),
+            composed.LongLength,
+            composedObjectCount);
         PdfMergeResult mergeResult = ApplyMergePolicy(
             composed,
             importedSources,

@@ -62,6 +62,32 @@ public sealed class PdfReadOptions {
         };
     }
 
+    internal static PdfReadOptions ForComposedOutput(
+        PdfReadOptions? primaryOptions,
+        IEnumerable<PdfReadOptions> sourceOptions,
+        long minimumInputBytes,
+        int minimumIndirectObjects) {
+        Guard.NotNull(sourceOptions, nameof(sourceOptions));
+        PdfReadOptions primary = Resolve(primaryOptions);
+        PdfReadOptions[] sources = sourceOptions.Select(Resolve).ToArray();
+        if (sources.Length == 0) {
+            throw new ArgumentException("At least one source read-options instance is required for composed output.", nameof(sourceOptions));
+        }
+
+        return new PdfReadOptions {
+            ParsingMode = primary.ParsingMode,
+            Limits = PdfReadLimits.ForComposedOutput(
+                sources.Select(static source => source.Limits).ToArray(),
+                minimumInputBytes,
+                minimumIndirectObjects),
+            PermissionPolicy = primary.PermissionPolicy,
+            PreferToUnicode = primary.PreferToUnicode,
+            UseWinAnsiFallback = primary.UseWinAnsiFallback,
+            AdjustKerningFromTJ = primary.AdjustKerningFromTJ,
+            IncludeArtifactText = primary.IncludeArtifactText
+        };
+    }
+
     internal static PdfReadOptions WithMaximumContainerEntries(
         PdfReadOptions? options,
         int maximumContainerEntries,
