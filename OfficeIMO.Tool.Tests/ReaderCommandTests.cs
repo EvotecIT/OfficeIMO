@@ -576,6 +576,38 @@ public sealed class ReaderCommandTests {
     }
 
     [Fact]
+    public void OutputPlanValidatesLargeDistinctSetsWithoutPairwiseScanning() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        var plan = new ReaderToolOutputPlan("Multiple outputs target conflicting file paths: ");
+        for (int index = 0; index < 10_000; index++) {
+            plan.AddFile(Path.Combine(temporary.Path, "nested", index.ToString(), "output.md"));
+        }
+
+        plan.Validate(CancellationToken.None);
+    }
+
+    [Fact]
+    public void OutputPlanMatchesDestinationUnicodeNormalizationSemantics() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string composedName = "caf\u00e9.md";
+        string decomposedName = composedName.Normalize(NormalizationForm.FormD);
+        string probePath = Path.Combine(temporary.Path, composedName);
+        File.WriteAllText(probePath, "probe");
+        bool aliasesNormalization = File.Exists(Path.Combine(temporary.Path, decomposedName));
+        File.Delete(probePath);
+
+        var plan = new ReaderToolOutputPlan("Multiple outputs target conflicting file paths: ");
+        plan.AddFile(Path.Combine(temporary.Path, composedName));
+        plan.AddFile(Path.Combine(temporary.Path, decomposedName));
+
+        if (aliasesNormalization) {
+            Assert.Throws<ReaderToolOutputException>(() => plan.Validate(CancellationToken.None));
+        } else {
+            plan.Validate(CancellationToken.None);
+        }
+    }
+
+    [Fact]
     public async Task WindowsReservedAssetNameIsRejectedBeforeWritingPrimaryOutput() {
         if (!OperatingSystem.IsWindows()) return;
         using var temporary = new ReaderToolTemporaryDirectory();

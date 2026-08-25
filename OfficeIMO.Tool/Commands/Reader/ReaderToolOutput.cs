@@ -49,7 +49,7 @@ internal static class ReaderToolOutput {
         bool overwrite,
         CancellationToken cancellationToken) {
         if (!string.IsNullOrWhiteSpace(assetsPath)) {
-            PrepareAssetsOutput(document, assetsPath!, overwrite, outputPath, sourcePath);
+            PrepareAssetsOutput(document, assetsPath!, overwrite, outputPath, sourcePath, cancellationToken);
         }
 
         await WriteSingleAsync(
@@ -87,8 +87,7 @@ internal static class ReaderToolOutput {
 
         var primaryOutputPaths = new string[paths.Count];
         var assetDirectories = new string?[paths.Count];
-        var plannedFilePaths = new List<string>();
-        var plannedDirectoryPaths = new List<string>();
+        var outputPlan = new ReaderToolOutputPlan("Multiple outputs target conflicting file paths: ");
         for (int index = 0; index < paths.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             string relativePath = Path.GetRelativePath(sourceRoot, paths[index]);
@@ -96,28 +95,22 @@ internal static class ReaderToolOutput {
             string outputPath = Path.Combine(outputRoot, relativePath + suffix);
             ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, outputPath);
             primaryOutputPaths[index] = outputPath;
-            AddPlannedFilePath(plannedFilePaths, outputPath);
+            outputPlan.AddFile(outputPath);
 
             if (!string.IsNullOrWhiteSpace(assetsRoot) && documents[index].Assets.Count > 0) {
                 string assetDirectory = Path.Combine(assetsRoot!, relativePath + ".assets");
                 ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, assetDirectory);
                 assetDirectories[index] = assetDirectory;
-                plannedDirectoryPaths.Add(assetDirectory);
-                foreach (string assetPath in GetMaterializableAssetPaths(documents[index], assetDirectory)) {
-                    AddPlannedFilePath(plannedFilePaths, assetPath);
+                outputPlan.AddDirectory(assetDirectory);
+                foreach (string assetPath in GetMaterializableAssetPaths(
+                             documents[index],
+                             assetDirectory,
+                             cancellationToken)) {
+                    outputPlan.AddFile(assetPath);
                 }
             }
         }
-
-        foreach (string directoryPath in plannedDirectoryPaths) {
-            foreach (string filePath in plannedFilePaths) {
-                if (IsSameOrChildPath(filePath, directoryPath)) {
-                    throw new ReaderToolOutputException(
-                        "A planned output directory conflicts with a planned output file: " +
-                        Path.GetFullPath(directoryPath));
-                }
-            }
-        }
+        outputPlan.Validate(cancellationToken);
 
         for (int index = 0; index < paths.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -135,7 +128,8 @@ internal static class ReaderToolOutput {
                     assetDirectory,
                     overwrite: true,
                     outputPath,
-                    paths[index]);
+                    paths[index],
+                    cancellationToken);
             }
         }
 
@@ -171,7 +165,7 @@ internal static class ReaderToolOutput {
         string? primaryOutputPath = null,
         string? sourcePath = null) {
         try {
-            PrepareAssetsOutput(document, assetsPath, overwrite, primaryOutputPath, sourcePath);
+            PrepareAssetsOutput(document, assetsPath, overwrite, primaryOutputPath, sourcePath, cancellationToken);
 
             IReadOnlyList<OfficeDocumentMaterializedAsset> materialized = document.WriteAssetsToDirectory(
                 assetsPath,
@@ -201,8 +195,10 @@ internal static class ReaderToolOutput {
         string assetsPath,
         bool overwrite,
         string? primaryOutputPath = null,
-        string? sourcePath = null) {
+        string? sourcePath = null,
+        CancellationToken cancellationToken = default) {
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             if (File.Exists(assetsPath)) {
                 throw new ReaderToolOutputException(
                     "Asset output path must be a directory: " + Path.GetFullPath(assetsPath));
@@ -219,8 +215,12 @@ internal static class ReaderToolOutput {
                     "Asset directory cannot be the input file path or one of its descendants.");
             }
 
-            IReadOnlyList<string> outputPaths = GetMaterializableAssetPaths(document, assetsPath);
+            IReadOnlyList<string> outputPaths = GetMaterializableAssetPaths(document, assetsPath, cancellationToken);
+            var outputPlan = new ReaderToolOutputPlan("Multiple assets target the same output file: ");
+            foreach (string outputPath in outputPaths) outputPlan.AddFile(outputPath);
+            outputPlan.Validate(cancellationToken);
             for (int index = 0; index < outputPaths.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string outputPath = outputPaths[index];
                 if (!string.IsNullOrWhiteSpace(primaryOutputPath) &&
                     primaryOutputPath != "-" &&
@@ -233,14 +233,6 @@ internal static class ReaderToolOutput {
                     throw new ReaderToolOutputException(
                         "Asset output conflicts with the input file: " + Path.GetFullPath(outputPath));
                 }
-
-                for (int previousIndex = 0; previousIndex < index; previousIndex++) {
-                    if (OutputPathsEquivalent(outputPaths[previousIndex], outputPath)) {
-                        throw new ReaderToolOutputException(
-                            "Multiple assets target the same output file: " + Path.GetFullPath(outputPath));
-                    }
-                }
-
                 if (Directory.Exists(outputPath)) {
                     throw new ReaderToolOutputException(
                         "Asset output path is a directory: " + Path.GetFullPath(outputPath));
@@ -252,6 +244,7 @@ internal static class ReaderToolOutput {
             }
             Directory.CreateDirectory(assetsPath);
             foreach (string outputPath in outputPaths) {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProbeWritableFilePath(outputPath);
             }
         } catch (ReaderToolOutputException) {
@@ -263,9 +256,11 @@ internal static class ReaderToolOutput {
 
     private static IReadOnlyList<string> GetMaterializableAssetPaths(
         OfficeDocumentReadResult document,
-        string assetsPath) {
+        string assetsPath,
+        CancellationToken cancellationToken) {
         var outputPaths = new List<string>();
         foreach (OfficeDocumentAsset asset in document.Assets) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (asset.PayloadBytes == null || asset.PayloadBytes.Length == 0) {
                 continue;
             }
@@ -286,16 +281,6 @@ internal static class ReaderToolOutput {
 
     private static bool FilePathsConflict(string firstPath, string secondPath) =>
         IsSameOrChildPath(firstPath, secondPath) || IsSameOrChildPath(secondPath, firstPath);
-
-    private static void AddPlannedFilePath(ICollection<string> plannedPaths, string candidatePath) {
-        foreach (string plannedPath in plannedPaths) {
-            if (FilePathsConflict(plannedPath, candidatePath)) {
-                throw new ReaderToolOutputException(
-                    "Multiple outputs target conflicting file paths: " + Path.GetFullPath(candidatePath));
-            }
-        }
-        plannedPaths.Add(candidatePath);
-    }
 
     private static void ProbeWritableFilePath(string path) {
         try {
@@ -354,9 +339,6 @@ internal static class ReaderToolOutput {
                 "Output filename is not portable on Windows: " + fullPath);
         }
     }
-
-    private static bool OutputPathsEquivalent(string firstPath, string secondPath) =>
-        OfficeImoToolPathSafety.PathsEqual(firstPath, secondPath);
 
     private static bool IsSameOrChildPath(string parentPath, string candidatePath) {
         string resolvedParent = OfficeImoToolPathSafety.ResolveExistingLinks(parentPath);

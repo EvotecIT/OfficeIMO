@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using System.Text.Json;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -142,6 +143,30 @@ public sealed class ReaderDocumentReadResultVisualExportTests {
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void ReaderVisualExportMaterializer_HonorsCancellationDuringPreflightEnumeration() {
+        using var cancellation = new CancellationTokenSource();
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-visual-cancellation-" + Guid.NewGuid().ToString("N"));
+
+        IEnumerable<ReaderVisualExportBundle> Enumerate() {
+            for (int index = 0; ; index++) {
+                if (index == 3) cancellation.Cancel();
+                yield return new ReaderVisualExportBundle {
+                    Id = "visual-" + index,
+                    FileNamePrefix = "visual-" + index,
+                    Payload = "payload"
+                };
+            }
+        }
+
+        Assert.Throws<OperationCanceledException>(() =>
+            Enumerate().WriteVisualExportsToDirectory(
+                directory,
+                new ReaderVisualExportMaterializationOptions { IncludeJson = false },
+                cancellation.Token));
+        Assert.False(Directory.Exists(directory));
     }
 
     [Fact]

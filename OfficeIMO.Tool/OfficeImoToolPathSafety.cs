@@ -8,6 +8,14 @@ internal static class OfficeImoToolPathSafety {
     internal static bool PathsEqual(string firstPath, string secondPath) =>
         OfficePathIdentity.AreEquivalent(firstPath, secondPath);
 
+    /// <summary>Returns a physical, filesystem-aware normalized path key.</summary>
+    internal static string NormalizePath(string path) =>
+        OfficePathIdentity.Normalize(path);
+
+    /// <summary>Returns the stable physical identity for an existing filesystem entry.</summary>
+    internal static string GetPhysicalIdentityKey(string path) =>
+        OfficePathIdentity.GetPhysicalIdentityKey(path);
+
     /// <summary>Resolves every existing symbolic-link segment while preserving a non-existing tail.</summary>
     internal static string ResolveExistingLinks(string path) =>
         OfficePathIdentity.ResolvePhysicalPath(path);

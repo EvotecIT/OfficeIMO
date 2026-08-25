@@ -81,7 +81,9 @@ public static class OfficeDocumentAssetMaterializer {
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         OfficeDocumentAssetMaterializationOptions effectiveOptions = options ?? new OfficeDocumentAssetMaterializationOptions();
-        List<OfficeDocumentAsset> selectedAssets = SelectAssets(result, effectiveOptions).ToList();
+        List<OfficeDocumentAsset> selectedAssets = ReaderMaterializationPreflight.ToList(
+            SelectAssets(result, effectiveOptions),
+            cancellationToken);
         if (effectiveOptions.CreateDirectory) {
             Directory.CreateDirectory(directoryPath);
         } else if (!Directory.Exists(directoryPath)) {
@@ -90,7 +92,8 @@ public static class OfficeDocumentAssetMaterializer {
         EnsureUniqueMaterializableFileNames(
             selectedAssets,
             effectiveOptions,
-            ReaderFileSystemSemantics.GetFileNameComparer(directoryPath));
+            ReaderFileSystemSemantics.GetFileNameComparer(directoryPath),
+            cancellationToken);
 
         var results = new List<OfficeDocumentMaterializedAsset>();
         foreach (OfficeDocumentAsset asset in selectedAssets) {
@@ -194,9 +197,11 @@ public static class OfficeDocumentAssetMaterializer {
     private static void EnsureUniqueMaterializableFileNames(
         IEnumerable<OfficeDocumentAsset> assets,
         OfficeDocumentAssetMaterializationOptions options,
-        IEqualityComparer<string> fileNameComparer) {
+        IEqualityComparer<string> fileNameComparer,
+        CancellationToken cancellationToken) {
         var fileNames = new HashSet<string>(fileNameComparer);
         foreach (OfficeDocumentAsset asset in assets) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (asset.PayloadBytes == null || asset.PayloadBytes.Length == 0 || HasPayloadHashMismatch(asset, options)) {
                 continue;
             }

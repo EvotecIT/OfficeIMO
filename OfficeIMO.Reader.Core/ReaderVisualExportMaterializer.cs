@@ -104,7 +104,9 @@ public static class ReaderVisualExportMaterializer {
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         ReaderVisualExportMaterializationOptions effectiveOptions = options ?? new ReaderVisualExportMaterializationOptions();
-        List<ReaderVisualExportBundle> selectedExports = new List<ReaderVisualExportBundle>(SelectExports(exports, effectiveOptions));
+        List<ReaderVisualExportBundle> selectedExports = ReaderMaterializationPreflight.ToList(
+            SelectExports(exports, effectiveOptions),
+            cancellationToken);
         if (effectiveOptions.CreateDirectory) {
             Directory.CreateDirectory(directoryPath);
         } else if (!Directory.Exists(directoryPath)) {
@@ -113,7 +115,8 @@ public static class ReaderVisualExportMaterializer {
         EnsureUniqueFileNames(
             selectedExports,
             effectiveOptions,
-            ReaderFileSystemSemantics.GetFileNameComparer(directoryPath));
+            ReaderFileSystemSemantics.GetFileNameComparer(directoryPath),
+            cancellationToken);
 
         var results = new List<ReaderVisualMaterializedExport>();
         foreach (ReaderVisualExportBundle export in selectedExports) {
@@ -252,10 +255,13 @@ public static class ReaderVisualExportMaterializer {
     private static void EnsureUniqueFileNames(
         IEnumerable<ReaderVisualExportBundle> exports,
         ReaderVisualExportMaterializationOptions options,
-        IEqualityComparer<string> fileNameComparer) {
+        IEqualityComparer<string> fileNameComparer,
+        CancellationToken cancellationToken) {
         var fileNames = new HashSet<string>(fileNameComparer);
         foreach (ReaderVisualExportBundle export in exports) {
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (ReaderVisualExportFormat format in SelectFormats(options)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string fileName = ResolveFileName(export, format);
                 if (!fileNames.Add(fileName)) {
                     throw new InvalidOperationException(
