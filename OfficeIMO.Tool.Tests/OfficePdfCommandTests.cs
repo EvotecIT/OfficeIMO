@@ -81,6 +81,20 @@ public sealed class OfficePdfCommandTests {
         Assert.Contains(".pdf, .md, .markdown, or .json", error.ToString(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ConvertTreatsHelpAsAnOptionValueWhenItNamesTheAssetsDirectory() {
+        ConvertRoute route = ConvertRoute.Parse([
+            "source.xlsx",
+            "result.md",
+            "--assets",
+            "help"
+        ]);
+
+        Assert.False(route.Help);
+        Assert.Equal(ConvertOutputFormat.Markdown, route.Format);
+        Assert.Contains("help", route.ReaderArguments);
+    }
+
     [Theory]
     [InlineData(".md")]
     [InlineData(".json")]

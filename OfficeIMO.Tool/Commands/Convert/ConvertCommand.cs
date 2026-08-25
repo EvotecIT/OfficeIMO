@@ -90,7 +90,7 @@ internal sealed class ConvertRoute {
 
     internal static ConvertRoute Parse(string[] args) {
         ArgumentNullException.ThrowIfNull(args);
-        if (args.Length == 0 || args.Any(IsHelp)) {
+        if (args.Length == 0 || IsHelp(args[0])) {
             return new ConvertRoute { Help = true };
         }
 
@@ -104,6 +104,9 @@ internal sealed class ConvertRoute {
 
         for (int index = 0; index < args.Length; index++) {
             string token = args[index];
+            if (IsHelp(token)) {
+                return new ConvertRoute { Help = true };
+            }
             switch (token) {
                 case "--output":
                 case "-o":

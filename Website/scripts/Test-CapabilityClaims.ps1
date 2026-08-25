@@ -205,7 +205,6 @@ if (-not (Test-Path -LiteralPath $aotPath -PathType Leaf)) {
 }
 $aot = Get-Content -LiteralPath $aotPath -Raw | ConvertFrom-Json
 $aotClaimFiles = @(
-    'data\faq.json',
     'data\comparison.json',
     'content\docs\advanced\aot-trimming\index.md',
     'content\blog\aot-trimming-office.md'
