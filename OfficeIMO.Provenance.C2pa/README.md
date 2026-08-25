@@ -53,7 +53,7 @@ IOfficeProvenanceSigner signer = new C2paToolProvenanceSigner(
     signerPath: "/opt/my-app/c2pa-kms-signer --profile production");
 
 var claim = new OfficeProvenanceClaim(
-    "OfficeIMO/3.2.4",
+    $"OfficeIMO/{typeof(OfficeProvenanceClaim).Assembly.GetName().Version}",
     new[] {
         new OfficeProvenanceAction(OfficeProvenanceActionKind.Opened),
         new OfficeProvenanceAction(

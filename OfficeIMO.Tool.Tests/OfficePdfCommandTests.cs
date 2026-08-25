@@ -23,7 +23,7 @@ public sealed class OfficePdfCommandTests {
 
         try {
             int exitCode = await OfficeImoToolApp.RunAsync(
-                ["convert", inputPath, "--output", outputPath],
+                ["convert", inputPath, outputPath],
                 Stream.Null,
                 output,
                 error);
@@ -36,6 +36,49 @@ public sealed class OfficePdfCommandTests {
         } finally {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".markdown")]
+    [InlineData(".json")]
+    public async Task ConvertRoutesTextDestinationsThroughTheReaderPipeline(string outputExtension) {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "source.xlsx");
+        string outputPath = Path.Combine(directory, "result" + outputExtension);
+        CreateSource(inputPath, ".xlsx");
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await OfficeImoToolApp.RunAsync(
+                ["convert", inputPath, outputPath],
+                Stream.Null,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.True(File.Exists(outputPath));
+            Assert.Contains("Tool Excel conversion", await File.ReadAllTextAsync(outputPath), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ConvertRejectsUnsupportedDestinationExtensions() {
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await OfficeImoToolApp.RunAsync(
+            ["convert", "source.xlsx", "result.csv"],
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+        Assert.Contains(".pdf, .md, .markdown, or .json", error.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

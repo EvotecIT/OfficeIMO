@@ -4,6 +4,7 @@ using OfficeIMO.Tool.Commands.Html;
 using OfficeIMO.Tool.Commands.Markup;
 using OfficeIMO.Tool.Commands.Mcp;
 using OfficeIMO.Tool.Commands.Reader;
+using System.Reflection;
 using System.Text;
 
 namespace OfficeIMO.Tool;
@@ -13,12 +14,16 @@ internal static class OfficeImoToolApp {
 OfficeIMO.Tool
 
 Usage:
+  officeimo convert <input> [output.pdf|output.md|output.json] [options]
+  officeimo read <path|-> [options]
+  officeimo extract <path|-> [options]
+  officeimo inspect <path> [options]
   officeimo html <command> [options]
-  officeimo convert <input.docx|input.xlsx|input.pptx> [options]
   officeimo reader <command> [options]
   officeimo markup <command> [options]
   officeimo agent <command> [options]
   officeimo mcp serve --stdio
+  officeimo --version
   officeimo help
 
 Run 'officeimo <area> --help' for area-specific commands and options.
@@ -40,23 +45,47 @@ Run 'officeimo <area> --help' for area-specific commands and options.
             return (int)OfficeImoToolExitCode.Success;
         }
 
+        if (IsVersion(args[0])) {
+            if (args.Length != 1) {
+                await standardError.WriteLineAsync("The version command does not accept arguments.").ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Usage;
+            }
+            await WriteUtf8Async(
+                standardOutput,
+                "OfficeIMO.Tool " + GetVersion() + Environment.NewLine,
+                cancellationToken).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Success;
+        }
+
         string[] commandArguments = args.Skip(1).ToArray();
         switch (args[0].ToLowerInvariant()) {
             case "convert":
-                return await OfficePdfCommand.RunAsync(
-                    commandArguments, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+                return await ConvertCommand.RunAsync(
+                    commandArguments, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+            case "read":
+            case "extract":
+                return await RunReaderAsync(
+                    ["read", .. commandArguments],
+                    standardInput,
+                    standardOutput,
+                    standardError,
+                    cancellationToken).ConfigureAwait(false);
+            case "inspect":
+                return await RunAgentAsync(
+                    ["inspect", .. commandArguments],
+                    standardOutput,
+                    standardError,
+                    cancellationToken).ConfigureAwait(false);
             case "html":
                 return await HtmlCommand.RunAsync(
                     commandArguments, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             case "reader":
-                using (var readerOutput = new StreamWriter(
-                           standardOutput,
-                           new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                           bufferSize: 1024,
-                           leaveOpen: true) { AutoFlush = true }) {
-                    return await ReaderCommand.RunAsync(
-                        commandArguments, standardInput, readerOutput, standardError, cancellationToken).ConfigureAwait(false);
-                }
+                return await RunReaderAsync(
+                    commandArguments,
+                    standardInput,
+                    standardOutput,
+                    standardError,
+                    cancellationToken).ConfigureAwait(false);
             case "markup":
                 using (var markupOutput = new StreamWriter(
                            standardOutput,
@@ -67,14 +96,11 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                         commandArguments, standardInput, markupOutput, standardError, cancellationToken).ConfigureAwait(false);
                 }
             case "agent":
-                using (var agentOutput = new StreamWriter(
-                           standardOutput,
-                           new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                           bufferSize: 1024,
-                           leaveOpen: true) { AutoFlush = true }) {
-                    return await AgentCommand.RunAsync(
-                        commandArguments, agentOutput, standardError, cancellationToken).ConfigureAwait(false);
-                }
+                return await RunAgentAsync(
+                    commandArguments,
+                    standardOutput,
+                    standardError,
+                    cancellationToken).ConfigureAwait(false);
             case "mcp":
                 return await McpCommand.RunAsync(
                     commandArguments, standardError, cancellationToken).ConfigureAwait(false);
@@ -86,6 +112,56 @@ Run 'officeimo <area> --help' for area-specific commands and options.
     }
 
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";
+
+    private static bool IsVersion(string value) => value is "version" or "--version" or "-v";
+
+    internal static string GetVersion() {
+        Assembly assembly = typeof(OfficeImoToolApp).Assembly;
+        string? informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informationalVersion)) {
+            int metadataSeparator = informationalVersion.IndexOf('+');
+            return metadataSeparator < 0
+                ? informationalVersion
+                : informationalVersion[..metadataSeparator];
+        }
+        return assembly.GetName().Version?.ToString(3) ?? "unknown";
+    }
+
+    private static async Task<int> RunReaderAsync(
+        string[] args,
+        Stream standardInput,
+        Stream standardOutput,
+        TextWriter standardError,
+        CancellationToken cancellationToken) {
+        using var readerOutput = CreateUtf8Writer(standardOutput);
+        return await ReaderCommand.RunAsync(
+            args,
+            standardInput,
+            readerOutput,
+            standardError,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<int> RunAgentAsync(
+        string[] args,
+        Stream standardOutput,
+        TextWriter standardError,
+        CancellationToken cancellationToken) {
+        using var agentOutput = CreateUtf8Writer(standardOutput);
+        return await AgentCommand.RunAsync(
+            args,
+            agentOutput,
+            standardError,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static StreamWriter CreateUtf8Writer(Stream output) => new(
+        output,
+        new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+        bufferSize: 1024,
+        leaveOpen: true) { AutoFlush = true };
 
     private static async Task WriteUtf8Async(
         Stream output,

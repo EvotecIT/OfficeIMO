@@ -27,6 +27,9 @@ internal sealed class OfficePdfArguments {
             switch (token) {
                 case "--output":
                 case "-o":
+                    if (parsed.OutputPath != null) {
+                        throw new OfficePdfUsageException("Only one output document may be specified.");
+                    }
                     parsed.OutputPath = NextValue(args, ref index, token);
                     break;
                 case "--force":
@@ -45,10 +48,13 @@ internal sealed class OfficePdfArguments {
                     if (token.StartsWith("-", StringComparison.Ordinal)) {
                         throw new OfficePdfUsageException("Unknown option '" + token + "'.");
                     }
-                    if (parsed.InputPath != null) {
-                        throw new OfficePdfUsageException("Only one input document may be specified.");
+                    if (parsed.InputPath == null) {
+                        parsed.InputPath = token;
+                    } else if (parsed.OutputPath == null) {
+                        parsed.OutputPath = token;
+                    } else {
+                        throw new OfficePdfUsageException("Only one input and one output document may be specified.");
                     }
-                    parsed.InputPath = token;
                     break;
             }
         }

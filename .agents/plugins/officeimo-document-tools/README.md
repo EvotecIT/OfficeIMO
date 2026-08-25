@@ -2,10 +2,10 @@
 
 This repo-local Codex plugin exposes compact OfficeIMO tools for working with local documents and mailboxes, plus contributor skills for conversion, PDF, website/WASM, builds, releases, and PSWritePDF retirement.
 
-The bundled STDIO MCP server runs from the versioned `OfficeIMO.Tool` package:
+The plugin launches the `OfficeIMO.Tool` package configured in its MCP manifest. A separately installed CLI exposes the same STDIO server:
 
 ```powershell
-dotnet dnx OfficeIMO.Tool@3.2.5 mcp serve --stdio
+officeimo mcp serve --stdio
 ```
 
 It exposes five bounded tools:
