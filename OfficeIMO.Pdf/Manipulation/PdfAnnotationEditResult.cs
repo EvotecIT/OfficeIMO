@@ -40,4 +40,6 @@ public sealed class PdfAnnotationEditResult {
 
     /// <summary>Opens the edited bytes through the fluent document API.</summary>
     public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_bytes, readOptions ?? _readOptions);
+
+    internal PdfReadOptions OutputReadOptions => _readOptions!;
 }

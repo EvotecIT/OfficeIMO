@@ -1,5 +1,17 @@
 namespace OfficeIMO.Pdf;
 
+internal readonly struct PdfStructuralMarkerCounts {
+    internal PdfStructuralMarkerCounts(int indirectObjectHeaders, int startXrefMarkers, int maximumObjectCharacters) {
+        IndirectObjectHeaders = indirectObjectHeaders;
+        StartXrefMarkers = startXrefMarkers;
+        MaximumObjectCharacters = maximumObjectCharacters;
+    }
+
+    internal int IndirectObjectHeaders { get; }
+    internal int StartXrefMarkers { get; }
+    internal int MaximumObjectCharacters { get; }
+}
+
 internal static partial class PdfSyntax {
     private static int FindObjectEnd(
         string text,
@@ -565,6 +577,67 @@ internal static partial class PdfSyntax {
 
         ThrowIfParsingTimeExceeded(parseTimer, limits);
         return headers;
+    }
+
+    internal static int CountIndirectObjectHeaders(byte[] pdf, PdfReadLimits limits) =>
+        InspectStructuralMarkers(pdf, limits).IndirectObjectHeaders;
+
+    internal static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(limits, nameof(limits));
+        limits.Validate();
+        var parseTimer = System.Diagnostics.Stopwatch.StartNew();
+        string text = PdfEncoding.Latin1GetString(pdf);
+        int count = 0;
+        int maximumObjectCharacters = 0;
+        int cursor = 0;
+        while (TryFindIndirectObjectHeader(
+            text,
+            cursor,
+            text.Length,
+            out IndirectObjectHeader header,
+            parseTimer,
+            limits)) {
+            count = checked(count + 1);
+            cursor = header.Index + header.Length;
+        }
+
+        int objectCursor = 0;
+        while (TryFindIndirectObjectHeader(
+            text,
+            objectCursor,
+            text.Length,
+            out IndirectObjectHeader header,
+            parseTimer,
+            limits)) {
+            int bodyStart = header.Index + header.Length;
+            int objectEnd = FindObjectEnd(text, bodyStart);
+            if (objectEnd < bodyStart) {
+                objectCursor = bodyStart;
+                continue;
+            }
+
+            int bodyEnd = objectEnd >= 6 &&
+                string.Equals(text.Substring(objectEnd - 6, 6), "endobj", StringComparison.Ordinal)
+                    ? objectEnd - 6
+                    : objectEnd;
+            maximumObjectCharacters = Math.Max(maximumObjectCharacters, Math.Max(0, bodyEnd - bodyStart));
+            objectCursor = objectEnd;
+        }
+
+        int startXrefMarkers = 0;
+        foreach (System.Text.RegularExpressions.Match match in StartXrefRegex.Matches(text)) {
+            if (int.TryParse(
+                match.Groups[1].Value,
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out _)) {
+                startXrefMarkers = checked(startXrefMarkers + 1);
+            }
+        }
+
+        ThrowIfParsingTimeExceeded(parseTimer, limits);
+        return new PdfStructuralMarkerCounts(count, startXrefMarkers, maximumObjectCharacters);
     }
 
     private static bool TryFindIndirectObjectHeader(

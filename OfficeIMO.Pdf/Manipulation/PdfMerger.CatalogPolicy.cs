@@ -2,8 +2,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfMerger {
     private static readonly char[] ViewerPreferenceSeparators = { ' ' };
-    private static byte[] ApplyViewerPolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfReadOptions readOptions) {
-        int incoming = sources.Where((source, index) => index != primarySourceIndex && HasViewerState(source.Document)).Count();
+    private static byte[] ApplyViewerPolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfReadOptions readOptions, int[]? outputSourceIndexes) {
+        int incoming = sources.Where((source, index) => index != primarySourceIndex && HasViewerState(source)).Count();
         if (mode == PdfMergeStructureMode.KeepPrimary) { decisions.Add(new PdfMergeDecision("ViewerPreferences", mode, "Kept primary viewer preferences and initial view.", droppedCount: incoming)); return merged; }
         if (mode == PdfMergeStructureMode.RejectIncoming) {
             if (incoming > 0) throw new InvalidOperationException("PDF merge policy rejected incoming viewer state from " + incoming + " source(s).");
@@ -16,9 +16,9 @@ internal static partial class PdfMerger {
             values = new Dictionary<string, string>(StringComparer.Ordinal);
             AddViewerValues(values, sources[primarySourceIndex].Document.ViewerPreferences);
             foreach (ImportedSource source in sources) AddViewerValues(values, source.Document.ViewerPreferences);
-            pageMode = FirstCatalogValue(sources, primarySourceIndex, static document => document.CatalogPageMode);
-            pageLayout = FirstCatalogValue(sources, primarySourceIndex, static document => document.CatalogPageLayout);
-            openAction = FirstOpenAction(sources, primarySourceIndex);
+            pageMode = FirstCatalogStateValue(sources, primarySourceIndex, static state => state.PageMode);
+            pageLayout = FirstCatalogStateValue(sources, primarySourceIndex, static state => state.PageLayout);
+            openAction = FirstOpenAction(sources, primarySourceIndex, outputSourceIndexes);
         }
 
         PdfReadDocument? mergedDocument = openAction is null ? null : PdfReadDocument.Open(merged, readOptions);
@@ -82,7 +82,7 @@ internal static partial class PdfMerger {
         return output;
     }
 
-    private static bool HasViewerState(PdfReadDocument document) => document.ViewerPreferences != null || document.OpenAction != null || document.CatalogPageMode != null || document.CatalogPageLayout != null;
+    private static bool HasViewerState(ImportedSource source) => source.CatalogState.ViewerPreferences != null || source.CatalogState.OpenAction != null || source.CatalogState.PageMode != null || source.CatalogState.PageLayout != null;
     private static bool HasCatalogState(ImportedSource source) => source.Document.CatalogVersion != null || source.Document.CatalogLanguage != null || source.CatalogState.CatalogUri != null || source.CatalogState.OutputIntents != null || source.CatalogState.OptionalContent != null;
 
     private static void AddViewerValues(Dictionary<string, string> target, PdfViewerPreferences? preferences) {
@@ -96,14 +96,36 @@ internal static partial class PdfMerger {
         return null;
     }
 
-    private static MergedNamedDestination? FirstOpenAction(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
+    private static string? FirstCatalogStateValue(IReadOnlyList<ImportedSource> sources, int primarySourceIndex, Func<PdfPageExtractor.CatalogRewriteState, string?> selector) {
+        string? primary = selector(sources[primarySourceIndex].CatalogState); if (!string.IsNullOrEmpty(primary)) return primary;
+        for (int i = 0; i < sources.Count; i++) { string? value = selector(sources[i].CatalogState); if (!string.IsNullOrEmpty(value)) return value; }
+        return null;
+    }
+
+    private static MergedNamedDestination? FirstOpenAction(IReadOnlyList<ImportedSource> sources, int primarySourceIndex, int[]? outputSourceIndexes) {
         int[] order = Enumerable.Range(0, sources.Count).OrderBy(index => index == primarySourceIndex ? 0 : 1).ThenBy(static index => index).ToArray();
         int[] offsets = new int[sources.Count]; int offset = 0; for (int i = 0; i < sources.Count; i++) { offsets[i] = offset; offset += sources[i].PageObjectNumbers.Length; }
         foreach (int index in order) {
+            if (sources[index].CatalogState.OpenAction is null) continue;
             PdfDocumentOpenAction? action = sources[index].Document.OpenAction;
-            if (action?.PageNumber != null) return new MergedNamedDestination("OpenAction", action.PageNumber.Value + offsets[index], action.DestinationMode, action.DestinationLeft, action.DestinationBottom, action.DestinationRight, action.DestinationTop, action.DestinationZoom);
+            if (action?.PageNumber != null) {
+                int selectedPageIndex = Array.IndexOf(sources[index].SelectedPageNumbers, action.PageNumber.Value);
+                int outputPageNumber = FindOutputPageNumber(index, selectedPageIndex, offsets, outputSourceIndexes);
+                if (outputPageNumber > 0) return new MergedNamedDestination("OpenAction", outputPageNumber, action.DestinationMode, action.DestinationLeft, action.DestinationBottom, action.DestinationRight, action.DestinationTop, action.DestinationZoom);
+            }
         }
         return null;
+    }
+
+    private static int FindOutputPageNumber(int sourceIndex, int selectedPageIndex, int[] sourceOffsets, int[]? outputSourceIndexes) {
+        if (selectedPageIndex < 0) return 0;
+        if (outputSourceIndexes is null) return sourceOffsets[sourceIndex] + selectedPageIndex + 1;
+        int sourcePageIndex = 0;
+        for (int outputIndex = 0; outputIndex < outputSourceIndexes.Length; outputIndex++) {
+            if (outputSourceIndexes[outputIndex] != sourceIndex) continue;
+            if (sourcePageIndex++ == selectedPageIndex) return outputIndex + 1;
+        }
+        return 0;
     }
 
     private static PdfDictionary BuildViewerPreferences(Dictionary<string, string> values) {

@@ -19,7 +19,14 @@ internal static partial class PdfAnnotationFlattener {
         FlattenVisualAnnotations(pdf, options, readOptions: null);
 
     /// <summary>Flattens matching supported visual annotations using explicit read limits or credentials.</summary>
-    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfReadOptions? readOptions) {
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfReadOptions? readOptions) =>
+        FlattenVisualAnnotations(pdf, options, readOptions, out _);
+
+    internal static byte[] FlattenVisualAnnotations(
+        byte[] pdf,
+        PdfAnnotationFlattenOptions? options,
+        PdfReadOptions? readOptions,
+        out PdfGeneratedOutputGrowth generatedGrowth) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFlattenOptions(options);
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
@@ -34,8 +41,14 @@ internal static partial class PdfAnnotationFlattener {
         PdfReadDocument read = PdfReadDocument.Open(pdf, readOptions);
         var pageNumbers = new Dictionary<int, int>();
         for (int i = 0; i < read.Pages.Count; i++) pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
-        int flattenedCount = FlattenPageVisualAnnotations(objects, ref nextObjectNumber, options, pageNumbers);
+        int flattenedCount = FlattenPageVisualAnnotations(
+            objects,
+            ref nextObjectNumber,
+            options,
+            pageNumbers,
+            out generatedGrowth);
         if (flattenedCount == 0) {
+            generatedGrowth = default;
             return pdf.ToArray();
         }
 

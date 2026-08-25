@@ -75,12 +75,22 @@ public static class PdfLongTermValidationEnricher {
             trailerRaw,
             changedObjects,
             encryptionHandler: encryptionHandler);
-        PdfSignatureValidationReport after = PdfSignatureValidator.Validate(enriched, cryptographyProvider, readOptions);
+        PdfGeneratedOutputGrowth generatedGrowth = PdfGeneratedOutputGrowth.FromSerializedObjects(
+            objects,
+            changedObjects,
+            additionalRevisions: 1);
+        PdfReadOptions outputReadOptions = PdfReadOptions.ForGeneratedOutput(
+            readOptions,
+            pdf,
+            enriched,
+            generatedGrowth);
+        PdfSignatureValidationReport after = PdfSignatureValidator.Validate(enriched, cryptographyProvider, outputReadOptions);
         PdfSignatureMutationReport mutation = PdfSignatureMutationAnalyzer.Analyze(
             pdf,
             enriched,
             PdfMutationOperation.EnrichLongTermValidation,
-            readOptions: readOptions);
+            readOptions: readOptions,
+            afterReadOptions: outputReadOptions);
         var result = new PdfLongTermValidationEnrichmentResult(
             enriched,
             vriKey,

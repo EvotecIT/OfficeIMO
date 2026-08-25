@@ -50,6 +50,15 @@ public sealed class PdfAnnotationUpdateOptions {
     /// <summary>Replacement reply type stored in /RT, normally R or Group.</summary>
     public string? ReplyType { get; set; }
 
+    /// <summary>Replacement standard annotation state and matching state model.</summary>
+    public PdfAnnotationReviewState? ReviewState { get; set; }
+
+    /// <summary>Replacement /Subj subject text. Null leaves the value unchanged.</summary>
+    public string? Subject { get; set; }
+
+    /// <summary>Replacement /IT intent name. Null leaves the value unchanged.</summary>
+    public string? Intent { get; set; }
+
     /// <summary>Replacement popup open state for a popup annotation or linked /Popup dictionary.</summary>
     public bool? PopupOpen { get; set; }
 

@@ -6,17 +6,21 @@ internal static partial class PdfMerger {
         IReadOnlyList<ImportedSource> sources,
         int primarySourceIndex,
         PdfMergeOptions? options,
-        PdfReadOptions outputReadOptions) {
+        PdfReadOptions outputReadOptions,
+        int[]? outputSourceIndexes = null) {
         PdfMergePolicy policy = options?.Policy ?? new PdfMergePolicy();
         Guard.NotNull(policy, nameof(policy));
+        if (outputSourceIndexes is not null && outputSourceIndexes.Length != sources.Sum(static source => source.PageObjectNumbers.Length)) {
+            throw new InvalidOperationException("PDF merge output page ownership does not match the imported page count.");
+        }
 
         var inventories = sources.Select((source, index) => new PdfMergeSourceInventory(
             index,
-            source.Document.Pages.Count,
-            CountOutlines(source.Document.Outlines),
-            source.Document.NamedDestinations.Count,
-            source.Document.PageLabels.Count,
-            source.Document.FormFields.Count,
+            source.PageObjectNumbers.Length,
+            source.OutlineCount,
+            source.NamedDestinationCount,
+            source.PageLabelCount,
+            source.FormFieldCount,
             source.Document.Attachments.Count,
             source.SourceSecurity,
             source.SourcePermissionPolicy)).ToArray();
@@ -43,7 +47,7 @@ internal static partial class PdfMerger {
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyMetadataPolicy(merged, sources, primarySourceIndex, policy.Metadata, decisions, currentReadOptions);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions, currentReadOptions);
+        merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions, currentReadOptions, outputSourceIndexes);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions, currentReadOptions);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
@@ -51,7 +55,7 @@ internal static partial class PdfMerger {
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions, currentReadOptions);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions, currentReadOptions);
+        merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions, currentReadOptions, outputSourceIndexes);
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
 
         PdfReadDocument readback = PdfReadDocument.Open(merged, currentReadOptions);
@@ -107,7 +111,7 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
         PdfReadOptions readOptions) {
-        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(source => CountOutlines(source.Document.Outlines));
+        int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.OutlineCount);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
                 decisions.Add(new PdfMergeDecision("Outlines", mode, "Kept the primary outline tree.", droppedCount: incomingCount));

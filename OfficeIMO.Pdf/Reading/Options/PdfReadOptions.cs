@@ -62,6 +62,78 @@ public sealed class PdfReadOptions {
         };
     }
 
+    internal static PdfReadOptions ForGeneratedOutput(
+        PdfReadOptions? sourceOptions,
+        byte[] sourcePdf,
+        byte[] outputPdf,
+        PdfGeneratedOutputGrowth growth = default) {
+        Guard.NotNull(sourcePdf, nameof(sourcePdf));
+        Guard.NotNull(outputPdf, nameof(outputPdf));
+        PdfReadOptions source = Resolve(sourceOptions);
+        PdfStructuralMarkerCounts sourceMarkers = PdfSyntax.InspectStructuralMarkers(sourcePdf, source.Limits);
+        PdfStructuralMarkerCounts outputMarkers = PdfSyntax.InspectStructuralMarkers(outputPdf, source.Limits);
+        int sourceHeaders = sourceMarkers.IndirectObjectHeaders;
+        int outputHeaders = outputMarkers.IndirectObjectHeaders;
+        int addedHeaders = Math.Max(0, outputHeaders - sourceHeaders);
+        int reservedObjects = source.Limits.MaxIndirectObjects > int.MaxValue - addedHeaders
+            ? int.MaxValue
+            : source.Limits.MaxIndirectObjects + addedHeaders;
+        int addedStartXrefMarkers = Math.Max(0, outputMarkers.StartXrefMarkers - sourceMarkers.StartXrefMarkers);
+        PdfGeneratedOutputGrowth effectiveGrowth = new PdfGeneratedOutputGrowth(
+            additionalRevisions: Math.Max(growth.AdditionalRevisions, addedStartXrefMarkers),
+            additionalAnnotationsPerPage: growth.AdditionalAnnotationsPerPage,
+            minimumRawStreamBytes: growth.MinimumRawStreamBytes,
+            minimumDecodedStreamBytes: growth.MinimumDecodedStreamBytes,
+            additionalTotalDecodedStreamBytes: growth.AdditionalTotalDecodedStreamBytes,
+            additionalPageContentBytes: growth.AdditionalPageContentBytes,
+            additionalRetainedContentBytes: growth.AdditionalRetainedContentBytes,
+            additionalDecodedTextCharacters: growth.AdditionalDecodedTextCharacters,
+            minimumObjectCharacters: Math.Max(growth.MinimumObjectCharacters, outputMarkers.MaximumObjectCharacters),
+            minimumTokensPerObject: Math.Max(growth.MinimumTokensPerObject, outputMarkers.MaximumObjectCharacters),
+            minimumObjectNestingDepth: growth.MinimumObjectNestingDepth,
+            additionalContentOperations: growth.AdditionalContentOperations,
+            additionalContentOperands: growth.AdditionalContentOperands,
+            additionalContentNestingDepth: growth.AdditionalContentNestingDepth);
+
+        return new PdfReadOptions {
+            ParsingMode = source.ParsingMode,
+            Limits = source.Limits.WithGeneratedOutput(outputPdf.LongLength, Math.Max(outputHeaders, reservedObjects), effectiveGrowth),
+            Password = source.Password,
+            AesCryptographyProvider = source.AesCryptographyProvider,
+            PermissionPolicy = source.PermissionPolicy,
+            PreferToUnicode = source.PreferToUnicode,
+            UseWinAnsiFallback = source.UseWinAnsiFallback,
+            AdjustKerningFromTJ = source.AdjustKerningFromTJ,
+            IncludeArtifactText = source.IncludeArtifactText
+        };
+    }
+
+    internal static PdfReadOptions ForComposedOutput(
+        PdfReadOptions? primaryOptions,
+        IEnumerable<PdfReadOptions> sourceOptions,
+        long minimumInputBytes,
+        int minimumIndirectObjects) {
+        Guard.NotNull(sourceOptions, nameof(sourceOptions));
+        PdfReadOptions primary = Resolve(primaryOptions);
+        PdfReadOptions[] sources = sourceOptions.Select(Resolve).ToArray();
+        if (sources.Length == 0) {
+            throw new ArgumentException("At least one source read-options instance is required for composed output.", nameof(sourceOptions));
+        }
+
+        return new PdfReadOptions {
+            ParsingMode = primary.ParsingMode,
+            Limits = PdfReadLimits.ForComposedOutput(
+                sources.Select(static source => source.Limits).ToArray(),
+                minimumInputBytes,
+                minimumIndirectObjects),
+            PermissionPolicy = primary.PermissionPolicy,
+            PreferToUnicode = primary.PreferToUnicode,
+            UseWinAnsiFallback = primary.UseWinAnsiFallback,
+            AdjustKerningFromTJ = primary.AdjustKerningFromTJ,
+            IncludeArtifactText = primary.IncludeArtifactText
+        };
+    }
+
     internal static PdfReadOptions WithMaximumContainerEntries(
         PdfReadOptions? options,
         int maximumContainerEntries,

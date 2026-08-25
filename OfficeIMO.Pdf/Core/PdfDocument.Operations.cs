@@ -336,10 +336,11 @@ public sealed partial class PdfDocument {
     }
 
     private PdfDocument MergeWith(PdfDocument document, PdfReadOptions targetReadOptions) {
-        return ApplyMutation(input => PdfMerger.Merge(
+        byte[] input = GetBytesForOperation();
+        PdfMergeResult result = PdfMerger.MergeOwned(
             new[] { input, document.GetBytesForOperation() },
-            new[] { targetReadOptions, document.ReadOptions }),
-            targetReadOptions);
+            new[] { targetReadOptions, document.ReadOptions });
+        return WithBytes(input, result.OwnedBytes, result.ReadOptions, nameof(MergeWith));
     }
 
     /// <summary>
@@ -359,10 +360,11 @@ public sealed partial class PdfDocument {
     }
 
     private PdfDocument MergeWith(byte[] pdf, PdfReadOptions targetReadOptions) {
-        return ApplyMutation(input => PdfMerger.Merge(
+        byte[] input = GetBytesForOperation();
+        PdfMergeResult result = PdfMerger.MergeOwned(
             new[] { input, pdf },
-            new[] { targetReadOptions, PdfReadOptions.Default }),
-            targetReadOptions);
+            new[] { targetReadOptions, PdfReadOptions.Default });
+        return WithBytes(input, result.OwnedBytes, result.ReadOptions, nameof(MergeWith));
     }
 
     /// <summary>
