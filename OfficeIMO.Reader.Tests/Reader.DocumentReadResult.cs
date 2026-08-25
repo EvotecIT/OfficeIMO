@@ -5,6 +5,7 @@ using OfficeIMO.Word;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -735,7 +736,7 @@ public sealed class ReaderDocumentReadResultTests {
 
     [Fact]
     public void OfficeDocumentAssetMaterializer_RejectsTrailingWindowsFilenameAliasesBeforeWriting() {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
 
         var result = new OfficeDocumentReadResult {
             Assets = new[] {
