@@ -107,7 +107,7 @@ public static class PdfProductionSplitter {
         foreach (PlannedPart group in planned) {
             if (!options.TargetPartSizeBytes.HasValue) {
                 byte[] artifact = Extract(pdf, group.Pages, readOptions, options, ref probeCount, ref cumulativeArtifactBytes);
-                AddVerifiedPart(output, artifact, group.Pages, group.Reason, exceedsTarget: false, readOptions);
+                AddVerifiedPart(output, pdf, artifact, group.Pages, group.Reason, exceedsTarget: false, readOptions);
                 continue;
             }
 
@@ -168,7 +168,7 @@ public static class PdfProductionSplitter {
             byte[] bestArtifact = Extract(source, bestPages, readOptions, options, ref probeCount, ref cumulativeArtifactBytes);
             if (bestArtifact.LongLength > targetBytes) {
                 PdfProductionSplitReason reason = remainingPages == 1 ? group.Reason : PdfProductionSplitReason.TargetSize;
-                AddVerifiedPart(output, bestArtifact, bestPages, reason, exceedsTarget: true, readOptions);
+                AddVerifiedPart(output, source, bestArtifact, bestPages, reason, exceedsTarget: true, readOptions);
                 startIndex++;
                 continue;
             }
@@ -211,6 +211,7 @@ public static class PdfProductionSplitter {
             bool reachesGroupEnd = startIndex + bestPageCount == group.Pages.Length;
             AddVerifiedPart(
                 output,
+                source,
                 bestArtifact,
                 bestPages,
                 reachesGroupEnd ? group.Reason : PdfProductionSplitReason.TargetSize,
@@ -256,13 +257,14 @@ public static class PdfProductionSplitter {
 
     private static void AddVerifiedPart(
         List<PdfProductionSplitPart> output,
+        byte[] source,
         byte[] artifact,
         IEnumerable<int> pages,
         PdfProductionSplitReason reason,
         bool exceedsTarget,
         PdfReadOptions? readOptions) {
         int[] pageNumbers = pages.ToArray();
-        PdfReadOptions strictOptions = CreateStrictReadOptions(readOptions, artifact.LongLength);
+        PdfReadOptions strictOptions = CreateStrictReadOptions(readOptions, source, artifact);
         PdfReadDocument reopened = PdfReadDocument.Open(artifact, strictOptions);
         if (reopened.Pages.Count != pageNumbers.Length) throw new InvalidOperationException("Generated split artifact page count does not match its report.");
         output.Add(new PdfProductionSplitPart(
@@ -274,8 +276,8 @@ public static class PdfProductionSplitter {
             strictOptions));
     }
 
-    private static PdfReadOptions CreateStrictReadOptions(PdfReadOptions? readOptions, long minimumInputBytes) {
-        PdfReadOptions effective = PdfReadOptions.WithMinimumInputBytes(readOptions, minimumInputBytes);
+    private static PdfReadOptions CreateStrictReadOptions(PdfReadOptions? readOptions, byte[] source, byte[] artifact) {
+        PdfReadOptions effective = PdfReadOptions.ForGeneratedOutput(readOptions, source, artifact);
         return new PdfReadOptions {
             ParsingMode = PdfParsingMode.Strict,
             Limits = effective.Limits,

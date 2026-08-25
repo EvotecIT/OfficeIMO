@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -72,5 +73,58 @@ public class PdfBatesNumbererTests {
             new[] { new PdfBatesDocument(source) },
             new PdfBatesNumberingOptions { Height = 5D, FontSize = 10D }));
         Assert.Contains("does not fit", heightError.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ReservesStructuralReadLimitsForGeneratedBatesObjects() {
+        byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("Tight Bates budget");
+        int sourceObjectCount = PdfReadDocument.Open(source).RawStructure().TotalObjectCount;
+        var input = new PdfBatesDocument(source) {
+            ReadOptions = new PdfReadOptions {
+                Limits = new PdfReadLimits { MaxIndirectObjects = sourceObjectCount }
+            }
+        };
+
+        PdfBatesDocumentResult result = Assert.Single(PdfBatesNumberer.Apply(
+            new[] { input },
+            new PdfBatesNumberingOptions { Prefix = "7 0 obj-" }).Documents);
+
+        Assert.Contains("7 0 obj-000001", result.ToDocument().Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ReservesContentReadLimitsForGeneratedBatesStreams() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>\nendobj\n" +
+            "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n0\n%%EOF\n");
+        var input = new PdfBatesDocument(source) {
+            ReadOptions = new PdfReadOptions {
+                Limits = new PdfReadLimits {
+                    MaxRawStreamBytes = 1,
+                    MaxDecodedStreamBytes = 1,
+                    MaxTotalDecodedStreamBytes = 1,
+                    MaxPageContentBytes = 1,
+                    MaxRetainedContentBytes = 1,
+                    MaxDecodedTextCharacters = 1,
+                    MaxObjectCharacters = 100,
+                    MaxTokensPerObject = 50,
+                    MaxObjectNestingDepth = 4,
+                    MaxRevisions = 1,
+                    MaxContentOperations = 1,
+                    MaxContentOperands = 1,
+                    MaxContentNestingDepth = 1
+                }
+            }
+        };
+
+        PdfBatesDocumentResult result = Assert.Single(PdfBatesNumberer.Apply(
+            new[] { input },
+            new PdfBatesNumberingOptions { Prefix = "startxref 123-" }).Documents);
+
+        Assert.Contains("startxref 123-000001", result.ToDocument().Read.Text(), StringComparison.Ordinal);
     }
 }

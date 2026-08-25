@@ -195,24 +195,26 @@ public static class PdfBatesNumberer {
             }
 
             var assignmentByPage = assignments.ToDictionary(static assignment => assignment.PageNumber);
+            PdfGeneratedOutputGrowth generatedGrowth = default;
             byte[] output = assignments.Count == 0
                 ? source
                 : PdfStamper.StampCanvas(
                     source,
                     (canvas, context) => AddNumber(canvas, context, assignmentByPage[context.PageNumber].Text, effective),
+                    out generatedGrowth,
                     new PdfCanvasStampOptions {
                         TargetPages = PdfPageSelector.Parse(string.Join(",", selectedPages.Select(static page => page.ToString(CultureInfo.InvariantCulture))))
                     },
                     input.ReadOptions);
+            PdfReadOptions outputReadOptions = PdfReadOptions.ForGeneratedOutput(input.ReadOptions, source, output, generatedGrowth);
             PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(
                 source,
                 output,
                 options: null,
                 originalReadOptions: input.ReadOptions,
-                rewrittenReadOptions: PdfReadOptions.WithMinimumInputBytes(input.ReadOptions, output.LongLength));
+                rewrittenReadOptions: outputReadOptions);
             preservation.ThrowIfFailed();
             var readOnlyAssignments = new ReadOnlyCollection<PdfBatesAssignment>(assignments);
-            PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(input.ReadOptions, output.LongLength);
             documentResults.Add(new PdfBatesDocumentResult(documentIndex, documentName, output, readOnlyAssignments, preservation, outputReadOptions));
             allAssignments.AddRange(assignments);
         }

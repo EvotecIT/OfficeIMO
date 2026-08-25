@@ -54,16 +54,27 @@ public class PdfAnnotationReviewWorkflowTests {
             ReservedSignatureContentsBytes = 512
         });
         byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
+        int signedHeaderCount = PdfSyntax.CountIndirectObjectHeaders(signed, new PdfReadLimits());
+        int signedObjectCount = PdfReadDocument.Open(signed).RawStructure().TotalObjectCount;
+        int signedRevisionCount = PdfInspector.Probe(signed).Security.RevisionCount;
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxIndirectObjects = Math.Max(signedHeaderCount, signedObjectCount),
+                MaxRevisions = signedRevisionCount
+            }
+        };
 
         PdfAnnotationEditResult result = PdfAnnotationReviewEditor.SetState(
             signed,
             objectNumber,
             PdfAnnotationReviewState.Completed,
-            allowResidualDataInAppendOnly: true);
+            allowResidualDataInAppendOnly: true,
+            readOptions: readOptions);
 
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
         Assert.True(result.SignatureMutationReport!.IsPreservedAppendOnlyMutation);
         Assert.True(result.Bytes.AsSpan(0, signed.Length).SequenceEqual(signed));
+        Assert.Single(result.ToDocument().Read.Annotations());
         Assert.Equal(PdfAnnotationReviewState.Completed, Assert.Single(PdfInspector.Inspect(result.Bytes).GetAnnotationsBySubtype("Text")).Review!.StandardState);
     }
 
@@ -130,7 +141,31 @@ public class PdfAnnotationReviewWorkflowTests {
                 Subtype = "Highlight",
                 Rectangle = new[] { 36D, 72D, 120D, 90D },
                 ReviewState = PdfAnnotationReviewState.Accepted
-            }));
+        }));
+    }
+
+    [Fact]
+    public void AddReply_ReservesStructuralReadLimitsForGeneratedAnnotationObjects() {
+        byte[] source = PdfDocument.Create()
+            .TextAnnotation("Parent note")
+            .Paragraph(paragraph => paragraph.Text("Tight review budget"))
+            .ToBytes();
+        int parentObjectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+        int sourceObjectCount = PdfReadDocument.Open(source).RawStructure().TotalObjectCount;
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxIndirectObjects = sourceObjectCount,
+                MaxAnnotationsPerPage = 1
+            }
+        };
+
+        PdfAnnotationEditResult result = PdfAnnotationReviewEditor.AddReply(
+            source,
+            parentObjectNumber,
+            "Budgeted reply",
+            readOptions: readOptions);
+
+        Assert.Equal(2, result.ToDocument().Read.Annotations().Count);
     }
 
     private static byte[] BuildSparseAnnotationPdf() => Encoding.ASCII.GetBytes(

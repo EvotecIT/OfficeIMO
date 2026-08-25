@@ -97,6 +97,32 @@ public class PdfStampAnnotationEditorTests {
         Assert.Equal("Encrypted approval", Assert.Single(PdfInspector.Inspect(result.Bytes, readOptions).GetAnnotationsBySubtype("Stamp")).Contents);
     }
 
+    [Fact]
+    public void AddStampAnnotation_ReservesGeneratedAnnotationAndAppearanceLimits() {
+        byte[] source = PdfDocument.Create()
+            .TextAnnotation("Existing note")
+            .Paragraph(paragraph => paragraph.Text("Tight stamp budget"))
+            .ToBytes();
+        int maximumSourceStreamBytes = PdfSyntax.ParseObjects(source).Map.Values
+            .Select(static indirect => indirect.Value)
+            .OfType<PdfStream>()
+            .Max(static stream => stream.Data.Length);
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxAnnotationsPerPage = 1,
+                MaxRawStreamBytes = maximumSourceStreamBytes,
+                MaxDecodedStreamBytes = maximumSourceStreamBytes
+            }
+        };
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.AddStampAnnotation(
+            source,
+            new PdfStampAnnotationOptions { Contents = new string('A', 400) },
+            readOptions);
+
+        Assert.Equal(2, result.ToDocument().Read.Annotations().Count);
+    }
+
     private static byte[] Certify(byte[] source, PdfCertificationPermissionLevel permission) {
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,

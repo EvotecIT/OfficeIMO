@@ -61,7 +61,7 @@ public static class PdfRepairArtifact {
         PdfRepairArtifactOptions effective = options ?? new PdfRepairArtifactOptions();
         if (effective.MaximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(options), "Maximum repair-artifact bytes must be positive.");
 
-        PdfReadOptions lenientOptions = CreateReadOptions(readOptions, PdfParsingMode.Lenient, pdf.LongLength);
+        PdfReadOptions lenientOptions = CreateReadOptions(readOptions, PdfParsingMode.Lenient);
         PdfReadDocument source = PdfReadDocument.Open(pdf, lenientOptions);
         PdfRepairReport sourceRepairs = source.RepairReport;
         if (effective.RequireRecoveredDefects && sourceRepairs.RepairCount == 0) {
@@ -85,7 +85,9 @@ public static class PdfRepairArtifact {
             outputEncryption: null,
             mutateObjectGraph: null,
             maximumOutputBytes: effective.MaximumOutputBytes);
-        PdfReadOptions strictOptions = CreateReadOptions(readOptions, PdfParsingMode.Strict, output.LongLength);
+        PdfReadOptions strictOptions = CreateReadOptions(
+            PdfReadOptions.ForGeneratedOutput(readOptions, pdf, output),
+            PdfParsingMode.Strict);
         PdfReadDocument strictOutput = PdfReadDocument.Open(output, strictOptions);
         if (strictOutput.RepairReport.HasRepairs) throw new InvalidOperationException("The repaired artifact still requires parser recovery.");
 
@@ -105,8 +107,8 @@ public static class PdfRepairArtifact {
             strictOptions);
     }
 
-    private static PdfReadOptions CreateReadOptions(PdfReadOptions? readOptions, PdfParsingMode parsingMode, long minimumInputBytes) {
-        PdfReadOptions effective = PdfReadOptions.WithMinimumInputBytes(readOptions, minimumInputBytes);
+    private static PdfReadOptions CreateReadOptions(PdfReadOptions? readOptions, PdfParsingMode parsingMode) {
+        PdfReadOptions effective = PdfReadOptions.Resolve(readOptions);
         return new PdfReadOptions {
             ParsingMode = parsingMode,
             Limits = effective.Limits,

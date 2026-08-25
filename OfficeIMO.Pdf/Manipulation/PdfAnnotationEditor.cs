@@ -150,7 +150,7 @@ internal static partial class PdfAnnotationEditor {
             }
             PdfAnnotationEditResult incremental = UpdateAnnotationIncrementally(pdf, objectNumber, options, mutationPlan, readOptions);
             byte[] incrementalBytes = incremental.Bytes;
-            ValidateUpdatedAnnotation(incrementalBytes, objectNumber, options, PdfReadOptions.WithMinimumInputBytes(readOptions, incrementalBytes.LongLength));
+            ValidateUpdatedAnnotation(incrementalBytes, objectNumber, options, incremental.OutputReadOptions);
             return incremental;
         }
 
@@ -169,8 +169,12 @@ internal static partial class PdfAnnotationEditor {
         IReadOnlyList<int> changedObjects = ApplyUpdates(objects, annotation, options);
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap);
-        ValidateUpdatedAnnotation(rewritten, numberMap[objectNumber], options, PdfReadOptions.WithMinimumInputBytes(readOptions, rewritten.LongLength));
-        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions);
+        PdfGeneratedOutputGrowth generatedGrowth = BuildGeneratedOutputGrowth(
+            objects,
+            new[] { objectNumber }.Concat(changedObjects));
+        PdfReadOptions rewrittenReadOptions = PdfReadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth);
+        ValidateUpdatedAnnotation(rewritten, numberMap[objectNumber], options, rewrittenReadOptions);
+        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
     }
 
     /// <summary>Removes annotations from a PDF file and writes the result to another file.</summary>

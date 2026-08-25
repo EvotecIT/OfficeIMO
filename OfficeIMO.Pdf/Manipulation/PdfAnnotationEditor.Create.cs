@@ -36,16 +36,25 @@ internal static partial class PdfAnnotationEditor {
         IReadOnlyList<int> generatedObjects = ApplyUpdates(objects, annotation, update);
         var references = new List<PdfReference> { new PdfReference(annotationObjectNumber, 0) }; if (popupObjectNumber.HasValue) references.Add(new PdfReference(popupObjectNumber.Value, 0));
         int owner = pageObjectNumber; foreach (PdfReference reference in references) owner = AddAnnotationReference(objects, pageObjectNumber, page, reference);
+        PdfGeneratedOutputGrowth generatedGrowth = BuildGeneratedOutputGrowth(
+            objects,
+            generatedObjects
+                .Concat(references.Select(static reference => reference.ObjectNumber))
+                .Concat(new[] { owner }),
+            additionalAnnotationsPerPage: references.Count,
+            additionalRevisions: plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly ? 1 : 0);
 
         byte[] output;
         if (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
             int[] changed = new[] { owner, annotationObjectNumber }.Concat(popupObjectNumber.HasValue ? new[] { popupObjectNumber.Value } : Array.Empty<int>()).Concat(generatedObjects).Distinct().ToArray();
             output = PdfIncrementalObjectWriter.Append(pdf, objects, plan.Preflight.Probe.Security, trailerRaw, changed, encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, plan.Preflight.Probe.Security));
-            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan, readOptions); ValidateCreatedAnnotation(output, options, annotationObjectNumber, options.InReplyToObjectNumber, PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength)); return new PdfAnnotationEditResult(output, 1, plan, proof, readOptions: readOptions);
+            PdfReadOptions outputReadOptions = PdfReadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
+            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan, readOptions, outputReadOptions); ValidateCreatedAnnotation(output, options, annotationObjectNumber, options.InReplyToObjectNumber, outputReadOptions); return new PdfAnnotationEditResult(output, 1, plan, proof, readOptions: outputReadOptions);
         }
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap);
         int? rewrittenParent = options.InReplyToObjectNumber.HasValue ? numberMap[options.InReplyToObjectNumber.Value] : null;
-        ValidateCreatedAnnotation(output, options, numberMap[annotationObjectNumber], rewrittenParent, PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength)); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true, readOptions: readOptions);
+        PdfReadOptions rewrittenReadOptions = PdfReadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
+        ValidateCreatedAnnotation(output, options, numberMap[annotationObjectNumber], rewrittenParent, rewrittenReadOptions); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
     }
 
     private static void ValidateCreateOptions(PdfAnnotationCreateOptions options) {
@@ -64,6 +73,18 @@ internal static partial class PdfAnnotationEditor {
 
     private static bool IsAppearanceSubtype(string subtype) => subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
     private static bool IsCreatableSubtype(string subtype) => subtype == "Text" || IsAppearanceSubtype(subtype);
+
+    private static PdfGeneratedOutputGrowth BuildGeneratedOutputGrowth(
+        Dictionary<int, PdfIndirectObject> objects,
+        IEnumerable<int> generatedObjectNumbers,
+        int additionalAnnotationsPerPage = 0,
+        int additionalRevisions = 0) {
+        return PdfGeneratedOutputGrowth.FromSerializedObjects(
+            objects,
+            generatedObjectNumbers,
+            additionalAnnotationsPerPage,
+            additionalRevisions);
+    }
     private static double[] DefaultPopupRectangle(IReadOnlyList<double> parent) => new[] { parent[2] + 8D, parent[1], parent[2] + 208D, parent[1] + 120D };
     private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int expectedObjectNumber, int? expectedParentObjectNumber, PdfReadOptions? readOptions) {
         PdfDocumentInfo info = PdfInspector.Inspect(output, readOptions);

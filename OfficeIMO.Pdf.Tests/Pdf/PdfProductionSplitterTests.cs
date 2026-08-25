@@ -1,3 +1,4 @@
+using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -64,5 +65,32 @@ public class PdfProductionSplitterTests {
             TargetPartSizeBytes = long.MaxValue,
             MaximumCumulativeArtifactBytes = 1
         }));
+    }
+
+    [Fact]
+    public void Split_ReservesStructuralReadLimitsForGeneratedArtifacts() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>\nendobj\n" +
+            "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n0\n%%EOF\n");
+        int sourceObjectCount = PdfReadDocument.Open(source).RawStructure().TotalObjectCount;
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxIndirectObjects = sourceObjectCount,
+                MaxObjectCharacters = 100,
+                MaxTokensPerObject = 100
+            }
+        };
+
+        PdfProductionSplitResult result = PdfProductionSplitter.Split(
+            source,
+            new PdfProductionSplitOptions { MaximumPagesPerPart = 1 },
+            readOptions);
+
+        Assert.Single(result.Parts);
+        Assert.All(result.Parts, static part => Assert.Single(part.ToDocument().Read.Pages()));
     }
 }

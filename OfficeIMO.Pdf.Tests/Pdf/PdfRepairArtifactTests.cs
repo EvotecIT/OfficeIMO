@@ -32,11 +32,43 @@ public class PdfRepairArtifactTests {
         Assert.Throws<InvalidOperationException>(() => PdfRepairArtifact.Create(ambiguous, new PdfRepairArtifactOptions { RequireRecoveredDefects = false }));
     }
 
-    private static byte[] BuildStreamPdf(string lengthEntry) {
+    [Fact]
+    public void Create_PreservesTheCallerSourceInputByteLimit() {
+        byte[] source = BuildStreamPdf("/Length 999");
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength - 1L }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfRepairArtifact.Create(source, readOptions: readOptions));
+
+        Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
+    }
+
+    [Fact]
+    public void Create_ReservesCanonicalRewriteObjectGrowth() {
+        const string catalogBody = "<</Type/Catalog/Pages 2 0 R/A[]/B[]/C[]/D[]/E[]/F[]/G[]/H[]/I[]/J[]>>";
+        byte[] source = BuildStreamPdf("/Length 999", catalogBody);
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxObjectCharacters = catalogBody.Length,
+                MaxTokensPerObject = catalogBody.Length
+            }
+        };
+
+        PdfRepairArtifactResult result = PdfRepairArtifact.Create(source, readOptions: readOptions);
+
+        Assert.True(result.IsVerified);
+        Assert.Single(result.ToDocument().Read.Pages());
+    }
+
+    private static byte[] BuildStreamPdf(
+        string lengthEntry,
+        string catalogBody = "<< /Type /Catalog /Pages 2 0 R >>") {
         const string streamData = "BT (Recovered stream text) Tj ET";
         return Encoding.ASCII.GetBytes(
             "%PDF-1.7\n" +
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+            "1 0 obj\n" + catalogBody + "\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>\nendobj\n" +
             "4 0 obj\n<< " + lengthEntry + " >>\nstream\n" + streamData + "\nendstream\nendobj\n" +
