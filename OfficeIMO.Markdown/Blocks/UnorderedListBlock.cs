@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock {
     /// <summary>List items.</summary>
-    public List<ListItem> Items { get; } = new List<ListItem>();
+    public List<ListItem> Items { get; } = new List<ListItem>(4);
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() =>
         MarkdownListRendering.RenderMarkdown(

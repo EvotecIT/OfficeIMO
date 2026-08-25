@@ -11,6 +11,8 @@ namespace OfficeIMO.Word {
         /// so online viewers render them consistently.
         /// </summary>
         public void NormalizeTablesForOnline() {
+            if (!_tableNormalizationRequired) return;
+
             try {
                 var main = _wordprocessingDocument.MainDocumentPart;
                 if (main == null) return;
@@ -18,6 +20,7 @@ namespace OfficeIMO.Word {
                 // Body tables
                 foreach (var t in main.Document?.Body?.Descendants<Table>() ?? Enumerable.Empty<Table>()) {
                     try {
+                        if (IsCanonicalDefaultTable(t)) continue;
                         var wt = new WordTable(this, t, initializeChildren: true);
                         wt.NormalizeForOnline();
                     } catch { }
@@ -27,6 +30,7 @@ namespace OfficeIMO.Word {
                 foreach (var hp in main.HeaderParts) {
                     foreach (var t in hp.Header?.Descendants<Table>() ?? Enumerable.Empty<Table>()) {
                         try {
+                            if (IsCanonicalDefaultTable(t)) continue;
                             var wt = new WordTable(this, t, initializeChildren: true);
                             wt.NormalizeForOnline();
                         } catch { }
@@ -37,6 +41,7 @@ namespace OfficeIMO.Word {
                 foreach (var fp in main.FooterParts) {
                     foreach (var t in fp.Footer?.Descendants<Table>() ?? Enumerable.Empty<Table>()) {
                         try {
+                            if (IsCanonicalDefaultTable(t)) continue;
                             var wt = new WordTable(this, t, initializeChildren: true);
                             wt.NormalizeForOnline();
                         } catch { }
@@ -44,6 +49,35 @@ namespace OfficeIMO.Word {
                 }
 
             } catch { }
+        }
+
+        internal void MarkTableNormalizationRequired() => _tableNormalizationRequired = true;
+
+        private static bool IsCanonicalDefaultTable(Table table) {
+            if (table.Parent is TableCell ||
+                table.Descendants<HorizontalMerge>().Any() ||
+                table.Descendants<GridSpan>().Any()) return false;
+            TableWidth? tableWidth = table.GetFirstChild<TableProperties>()?.TableWidth;
+            if (tableWidth?.Type?.Value != TableWidthUnitValues.Auto || tableWidth.Width?.Value != "0") return false;
+
+            TableRow? firstRow = table.Elements<TableRow>().FirstOrDefault();
+            if (firstRow == null) return false;
+            int columnCount = firstRow.Elements<TableCell>().Count();
+            if (columnCount == 0) return false;
+            TableGrid? grid = table.GetFirstChild<TableGrid>();
+            if (grid == null || grid.Elements<GridColumn>().Count() != columnCount ||
+                grid.Elements<GridColumn>().Any(column => column.Width?.Value != "2400")) return false;
+
+            foreach (TableRow row in table.Elements<TableRow>()) {
+                int cellCount = 0;
+                foreach (TableCell cell in row.Elements<TableCell>()) {
+                    cellCount++;
+                    TableCellWidth? width = cell.TableCellProperties?.TableCellWidth;
+                    if (width?.Type?.Value != TableWidthUnitValues.Dxa || width.Width?.Value != "2400") return false;
+                }
+                if (cellCount != columnCount) return false;
+            }
+            return true;
         }
     }
 }

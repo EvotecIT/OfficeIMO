@@ -20,9 +20,7 @@ public static partial class MarkdownReader {
                 IsFootnoteDefinitionStarter(lines[i], options) ||
                 (options.StandaloneImageBlocks && IsImageLine(lines[i]))) return false;
 
-            var sb = new StringBuilder();
             int j = i;
-            bool prevHard = false;
             while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
                    !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
@@ -38,17 +36,26 @@ public static partial class MarkdownReader {
                    !IsAbbreviationDefinitionStarter(lines[j], options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
                    !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
-                var raw = lines[j];
-                bool hard = EndsWithTwoSpaces(raw);
-                var trimmed = raw.TrimEnd();
-                trimmed = ConsumeTrailingBackslashHardBreak(trimmed, options, out bool slashHard);
-                hard = hard || slashHard;
-                if (j > i) sb.Append(prevHard ? "\n" : " ");
-                sb.Append(trimmed);
-                prevHard = hard;
                 j++;
             }
-            if (sb.Length == 0) return false;
+            if (j == i) return false;
+
+            // Common semantic parsing frequently produces single-line paragraphs with no
+            // generic-attribute work. Avoid materializing a temporary line list only to join
+            // the same line again before parsing its inlines.
+            if (!state.CaptureSyntaxTree && !options.GenericAttributes && j == i + 1) {
+                var singleLineText = GetParagraphLineJoinInfo(
+                    lines[i] ?? string.Empty,
+                    absoluteLine: 1,
+                    startColumn: 1,
+                    options,
+                    sourceTextMap: null,
+                    hasFollowingLine: false).Text;
+                doc.Add(new ParagraphBlock(ParseInlines(singleLineText, options, state)));
+                i = j;
+                return true;
+            }
+
             var paragraphLines = new List<string>(j - i);
             for (var lineIndex = i; lineIndex < j; lineIndex++) {
                 paragraphLines.Add(lines[lineIndex]);
@@ -88,7 +95,9 @@ public static partial class MarkdownReader {
                     }
                 }
 
-                var (headingInlineText, headingSourceMap) = JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state);
+                var (headingInlineText, headingSourceMap) = state.CaptureSyntaxTree
+                    ? JoinParagraphLinesWithSourceMap(contentLines, state.SourceLineOffset + i, options, state)
+                    : (JoinParagraphLines(contentLines, options), null);
                 var heading = new HeadingBlock(level, ParseInlines(headingInlineText, options, state, headingSourceMap));
                 if (contentLines.Count > 0
                     && ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(contentLines, options, state)) {
@@ -169,7 +178,9 @@ public static partial class MarkdownReader {
             }
 
             ConsumeLeadingSoftBreakGenericAttributeContinuationLines(paragraphLines, options, state, i, out var paragraphLineStartColumns);
-            var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state, paragraphLineStartColumns);
+            var (text, sourceMap) = state.CaptureSyntaxTree
+                ? JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state, paragraphLineStartColumns)
+                : (JoinParagraphLines(paragraphLines, options), null);
             var inlineOptions = suppressInlineAutolinks ? CloneOptionsWithoutInlineAutolinks(options) : options;
             var paragraph = new ParagraphBlock(ParseInlines(text, inlineOptions, state, sourceMap));
             paragraph.SetAttributes(paragraphAttributes);
@@ -731,8 +742,8 @@ public static partial class MarkdownReader {
     private static bool IsQuoteStarter(string line) {
         if (string.IsNullOrEmpty(line)) return false;
         if (CountLeadingIndentColumns(line) > 3) return false;
-        var t = line.TrimStart();
-        return t.StartsWith(">");
+        var quoteMarkerIndex = GetFirstNonWhitespaceIndex(line);
+        return quoteMarkerIndex < line.Length && line[quoteMarkerIndex] == '>';
     }
 
     private static string ExpandReferenceLinks(string text, MarkdownReaderState state) {

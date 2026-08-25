@@ -130,7 +130,7 @@ internal static partial class EpubReader {
             }
 
             string markup = ReadEntryText(candidate.Entry, effective.MaxChapterBytes);
-            if (!TryParseXml(markup, out var chapterDocument) || chapterDocument == null) {
+            if (!TryReadChapterMarkup(markup, out ChapterMarkupInfo chapterMarkup)) {
                 diagnostics.Warning(
                     "epub.chapter.invalid-xhtml",
                     $"Skipped chapter '{normalizedPath}' because chapter markup is not valid XML/XHTML.",
@@ -138,8 +138,8 @@ internal static partial class EpubReader {
                 continue;
             }
 
-            var text = ExtractVisibleText(chapterDocument);
-            bool hasStructuredContent = HasStructuredChapterContent(chapterDocument);
+            string text = chapterMarkup.Text;
+            bool hasStructuredContent = chapterMarkup.HasStructuredContent;
             string? retainedHtml = null;
             if (effective.IncludeRawHtml) {
                 if (candidate.Entry.Length > effective.MaxTotalRawHtmlBytes - totalRawHtmlBytes) {
@@ -157,12 +157,7 @@ internal static partial class EpubReader {
             }
 
             emitted++;
-            var title = ResolveChapterTitle(chapterDocument, navigation.TitleMap, normalizedPath);
-            string? baseHref = chapterDocument
-                .Descendants()
-                .Where(static element => element.Name.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase))
-                .Select(element => NullIfWhiteSpace(GetAttribute(element, "href")))
-                .FirstOrDefault(static value => value != null);
+            string? title = ResolveChapterTitle(chapterMarkup, navigation.TitleMap, normalizedPath);
 
             chapters.Add(new EpubChapter {
                 Order = emitted,
@@ -174,7 +169,7 @@ internal static partial class EpubReader {
                 RenditionLayout = candidate.RenditionLayout,
                 Encryption = chapterEncryption,
                 Title = title,
-                BaseHref = baseHref,
+                BaseHref = chapterMarkup.BaseHref,
                 Text = text,
                 HasStructuredContent = hasStructuredContent,
                 Html = retainedHtml
@@ -216,24 +211,6 @@ internal static partial class EpubReader {
             Diagnostics = diagnostics.Items,
             Warnings = diagnostics.WarningMessages
         };
-    }
-
-    private static bool HasStructuredChapterContent(XDocument document) {
-        return document.Descendants().Any(static element => {
-            string name = element.Name.LocalName;
-            return name.Equals("img", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("picture", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("svg", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("table", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("form", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("input", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("select", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("textarea", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("audio", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("video", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("object", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("canvas", StringComparison.OrdinalIgnoreCase);
-        });
     }
 
     private static IReadOnlyList<EpubResource> BuildResources(

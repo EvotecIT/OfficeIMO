@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class GoogleWorkspaceDiagnosticsTests {
+    public partial class GoogleWorkspaceDiagnosticsTests {
         [Fact]
         public void Test_TranslationReport_ToDiagnosticEntries_ProjectsNotices() {
             var report = new TranslationReport();
@@ -508,6 +508,33 @@ namespace OfficeIMO.Tests {
                     "Google content",
                     new TranslationReport(),
                     maxResponseBytes: 8));
+        }
+
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_ReturnsUnknownLengthByteResponsesExactly() {
+            byte[] responseBytes = Enumerable.Range(0, 256 * 1024 + 17)
+                .Select(index => (byte)(index % 251))
+                .ToArray();
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new UnknownLengthContent(responseBytes)
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 0
+                });
+
+            byte[] result = await transport.SendBytesAsync(
+                "token",
+                HttpMethod.Get,
+                "https://lh3.googleusercontent.com/image.png",
+                GoogleWorkspaceRequestSafety.Safe,
+                "Google content",
+                new TranslationReport(),
+                maxResponseBytes: responseBytes.Length);
+
+            Assert.Equal(responseBytes, result);
         }
 
         [Fact]

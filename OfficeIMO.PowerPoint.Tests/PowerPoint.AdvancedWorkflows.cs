@@ -756,6 +756,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SignatureCarrierAddedThroughOpenXmlDocumentStillBlocksSave() {
+            using var destination = new MemoryStream();
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(destination);
+            presentation.AddSlide().AddTitle("Live signature carrier");
+            presentation.OpenXmlDocument.AddDigitalSignatureOriginPart();
+
+            PowerPointSignatureReport inspection = presentation.InspectSignatures();
+
+            Assert.True(inspection.HasOriginPart);
+            Assert.Throws<PowerPointSignedPresentationMutationException>(
+                () => presentation.Save());
+        }
+
+        [Fact]
         public void SignedPresentationDisposeCannotBypassMutationPolicy() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

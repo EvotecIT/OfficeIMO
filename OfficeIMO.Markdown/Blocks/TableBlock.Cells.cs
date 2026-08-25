@@ -41,7 +41,10 @@ public sealed partial class TableBlock {
         }
 
         if (useStructuredCells) {
-            return AssignTableCellLocations(PrepareStructuredRowCells(StructuredHeaders, columnCount), isHeader: true, rowIndex: -1);
+            IReadOnlyList<TableCell> cells = _structuredCellsAreOwned && CanReuseOwnedStructuredRow(StructuredHeaders, columnCount)
+                ? StructuredHeaders!
+                : PrepareStructuredRowCells(StructuredHeaders, columnCount);
+            return AssignTableCellLocations(cells, isHeader: true, rowIndex: -1);
         }
 
         var headers = PrepareRowCells(Headers, columnCount);
@@ -57,7 +60,10 @@ public sealed partial class TableBlock {
 
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
             if (useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count) {
-                rows.Add(AssignTableCellLocations(PrepareStructuredRowCells(StructuredRows[rowIndex], columnCount), isHeader: false, rowIndex: rowIndex));
+                IReadOnlyList<TableCell> cells = _structuredCellsAreOwned && CanReuseOwnedStructuredRow(StructuredRows[rowIndex], columnCount)
+                    ? StructuredRows[rowIndex]
+                    : PrepareStructuredRowCells(StructuredRows[rowIndex], columnCount);
+                rows.Add(AssignTableCellLocations(cells, isHeader: false, rowIndex: rowIndex));
                 continue;
             }
 
@@ -65,6 +71,19 @@ public sealed partial class TableBlock {
         }
 
         return rows;
+    }
+
+    private static bool CanReuseOwnedStructuredRow(IReadOnlyList<TableCell>? row, int expectedCount) {
+        if (row == null || row.Count != expectedCount) {
+            return false;
+        }
+
+        for (int i = 0; i < row.Count; i++) {
+            if (row[i] == null || row[i].ColumnSpan != 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private IReadOnlyList<InlineSequence> BuildHeaderInlines() {

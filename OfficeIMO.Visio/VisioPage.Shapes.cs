@@ -6,23 +6,17 @@ namespace OfficeIMO.Visio {
     public partial class VisioPage {
 
         private string NextId(VisioConnector? ignoredConnector = null) {
-            HashSet<int> usedIds = new();
-
-            void Reserve(string? id) {
-                if (int.TryParse(id, out int numericId) && numericId > 0) {
-                    usedIds.Add(numericId);
-                }
+            if (ignoredConnector == null) {
+                EnsurePageObjectIdIndex();
+                return _nextAutomaticObjectId.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            void VisitShape(VisioShape shape) {
-                Reserve(shape.Id);
-                foreach (VisioShape child in shape.Children) {
-                    VisitShape(child);
-                }
-            }
+            InvalidatePageObjectIdIndex();
+            HashSet<int> usedIds = _automaticObjectIdScratch;
+            usedIds.Clear();
 
             foreach (VisioShape shape in _shapes) {
-                VisitShape(shape);
+                ReserveShapeTreeIds(shape, usedIds);
             }
 
             foreach (VisioConnector connector in _connectors) {
@@ -30,11 +24,11 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                Reserve(connector.Id);
+                ReserveNumericId(connector.Id, usedIds);
             }
 
             foreach (string reservedId in _reservedAutomaticObjectIds) {
-                Reserve(reservedId);
+                ReserveNumericId(reservedId, usedIds);
             }
 
             int nextId = 1;
@@ -45,10 +39,101 @@ namespace OfficeIMO.Visio {
             return nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
+        private static void ReserveShapeTreeIds(VisioShape shape, HashSet<int> usedIds) {
+            ReserveNumericId(shape.Id, usedIds);
+            for (int index = 0; index < shape.Children.Count; index++) {
+                ReserveShapeTreeIds(shape.Children[index], usedIds);
+            }
+        }
+
+        private static void ReserveNumericId(string? id, HashSet<int> usedIds) {
+            if (int.TryParse(id, out int numericId) && numericId > 0) {
+                usedIds.Add(numericId);
+            }
+        }
+
         internal void ReserveAutomaticObjectId(string id) {
             if (!string.IsNullOrWhiteSpace(id)) {
                 _reservedAutomaticObjectIds.Add(id);
+                if (_pageObjectIdIndexCurrent) {
+                    ReserveNumericId(id, _automaticObjectIdScratch);
+                    AdvanceNextAutomaticObjectId();
+                }
             }
+        }
+
+        private void EnsurePageObjectIdIndex() {
+            if (_pageObjectIdIndexCurrent) {
+                return;
+            }
+
+            _pageObjectIds.Clear();
+            _automaticObjectIdScratch.Clear();
+            _nextAutomaticObjectId = 1;
+            _pageObjectIdIndexCurrent = true;
+            for (int index = 0; index < _shapes.Count; index++) {
+                RegisterShapeTreeIds(_shapes[index]);
+            }
+
+            for (int index = 0; index < _connectors.Count; index++) {
+                RegisterPageObjectId(_connectors[index].Id);
+            }
+
+            foreach (string reservedId in _reservedAutomaticObjectIds) {
+                ReserveNumericId(reservedId, _automaticObjectIdScratch);
+            }
+
+            AdvanceNextAutomaticObjectId();
+        }
+
+        private void AdvanceNextAutomaticObjectId() {
+            while (_automaticObjectIdScratch.Contains(_nextAutomaticObjectId)) {
+                _nextAutomaticObjectId++;
+            }
+        }
+
+        private void RegisterPageObjectId(string id) {
+            if (!_pageObjectIdIndexCurrent) {
+                return;
+            }
+
+            _pageObjectIds.Add(id);
+            ReserveNumericId(id, _automaticObjectIdScratch);
+            AdvanceNextAutomaticObjectId();
+        }
+
+        private void RegisterShapeTreeIds(VisioShape shape) {
+            RegisterPageObjectId(shape.Id);
+            for (int index = 0; index < shape.Children.Count; index++) {
+                RegisterShapeTreeIds(shape.Children[index]);
+            }
+        }
+
+        private void InvalidatePageObjectIdIndex() {
+            _pageObjectIdIndexCurrent = false;
+        }
+
+        private void AttachShapeTree(VisioShape shape) {
+            shape.SetOwnerPage(this);
+            RegisterShapeTreeIds(shape);
+        }
+
+        private void DetachShapeTree(VisioShape shape) {
+            shape.SetOwnerPage(null);
+            InvalidatePageObjectIdIndex();
+        }
+
+        internal void PrepareNestedShapeForPage(VisioShape shape, VisioShape? ignoredShape = null) {
+            EnsureShapeNotOwnedByAnotherPage(shape);
+            EnsureShapeTreeIdsAvailable(shape, ignoredShape);
+        }
+
+        internal void AttachNestedShapeTree(VisioShape shape) {
+            AttachShapeTree(shape);
+        }
+
+        internal void DetachNestedShapeTree(VisioShape shape) {
+            DetachShapeTree(shape);
         }
 
         private void PrepareConnectorForPage(VisioConnector connector, VisioConnector? ignoredConnector = null) {
@@ -72,6 +157,8 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(shape));
             }
 
+            EnsureShapeNotOwnedByAnotherPage(shape);
+
             if (_shapes.Contains(shape) && !ReferenceEquals(shape, ignoredShape)) {
                 throw new InvalidOperationException("The shape is already part of this page.");
             }
@@ -85,7 +172,21 @@ namespace OfficeIMO.Visio {
             shape.NormalizeDescendantParentLinks();
         }
 
+        private void EnsureShapeNotOwnedByAnotherPage(VisioShape shape) {
+            if (shape.OwnerPage != null && !ReferenceEquals(shape.OwnerPage, this)) {
+                throw new InvalidOperationException("The shape already belongs to another page. Remove it from that page before reusing it.");
+            }
+        }
+
         private void EnsureShapeTreeIdsAvailable(VisioShape shape, VisioShape? ignoredShape) {
+            if (shape.Children.Count == 0) {
+                if (string.IsNullOrWhiteSpace(shape.Id)) {
+                    throw new InvalidOperationException("Shape id cannot be null or whitespace.");
+                }
+                EnsurePageObjectIdAvailable(shape.Id, "Shape", ignoredShape: ignoredShape);
+                return;
+            }
+
             HashSet<string> newIds = new(StringComparer.Ordinal);
 
             void Visit(VisioShape current) {
@@ -98,8 +199,8 @@ namespace OfficeIMO.Visio {
                 }
 
                 EnsurePageObjectIdAvailable(current.Id, "Shape", ignoredShape: ignoredShape);
-                foreach (VisioShape child in current.Children) {
-                    Visit(child);
+                for (int index = 0; index < current.Children.Count; index++) {
+                    Visit(current.Children[index]);
                 }
             }
 
@@ -109,6 +210,14 @@ namespace OfficeIMO.Visio {
         private void EnsurePageObjectIdAvailable(string id, string kind, VisioShape? ignoredShape = null, VisioConnector? ignoredConnector = null) {
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new InvalidOperationException($"{kind} id cannot be null or whitespace on page '{Name}'.");
+            }
+
+            if (ignoredShape == null && ignoredConnector == null) {
+                EnsurePageObjectIdIndex();
+                if (_pageObjectIds.Contains(id)) {
+                    throw new InvalidOperationException($"{kind} id '{id}' is already used by another page object on page '{Name}'.");
+                }
+                return;
             }
 
             foreach (VisioShape shape in _shapes) {
@@ -134,8 +243,8 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
-            foreach (VisioShape child in shape.Children) {
-                if (ShapeTreeContainsId(child, id, ignoredShape)) {
+            for (int index = 0; index < shape.Children.Count; index++) {
+                if (ShapeTreeContainsId(shape.Children[index], id, ignoredShape)) {
                     return true;
                 }
             }

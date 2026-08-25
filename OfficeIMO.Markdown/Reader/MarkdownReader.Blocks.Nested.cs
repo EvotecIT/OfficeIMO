@@ -11,8 +11,8 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsParagraphInterruptingUnorderedListLine(string line) {
-        return IsUnorderedListLine(line, out _, out _, out string content)
-               && !string.IsNullOrWhiteSpace(content);
+        return TryGetUnorderedListMarkerInfo(line, out _, out int contentStartIndex)
+               && !IsWhiteSpaceFrom(line, contentStartIndex);
     }
 
     private static bool LastCollectedLinePreservesIndentedContinuation(List<string> collected, MarkdownReaderOptions? options = null) {
@@ -79,15 +79,18 @@ public static partial class MarkdownReader {
             }
 
             int lineIndentColumns = CountLeadingIndentColumns(line);
+            int relativeLineIndentColumns = state?.CaptureSyntaxTree == false || state?.UseRelativeListMarkerIndent == true
+                ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
+                : lineIndentColumns;
             bool underIndentedMarkerContinuation = options.StrictListIndentation
-                && lineIndentColumns > 3
+                && relativeLineIndentColumns > 3
                 && lineIndentColumns < continuationIndent;
             bool breakOnOrderedListLine = breakOnAnyOrderedListLine ||
                 IsMarkdigDefinitionLazyOrderedListBoundary(state, k, line, options);
 
             // Stop before the next list item (including nested items).
             if (!underIndentedMarkerContinuation &&
-                (IsUnorderedListLine(line, out _, out _, out _, out _) ||
+                (IsUnorderedListLine(line) ||
                 (breakOnOrderedListLine ? IsOrderedListLine(line, options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line, options)))) {
                 break;
             }
@@ -112,9 +115,9 @@ public static partial class MarkdownReader {
 
                 if (IsCodeFenceOpen(slice, out _, out _, out _)) break;
                 if (IsCustomContainerOpeningLine(slice, options)) break;
-                if (sliceTrim.StartsWith(">")) break;
+                if (sliceTrim.StartsWith(">", StringComparison.Ordinal)) break;
 
-                if (options.HtmlBlocks && sliceTrim.StartsWith("<")) {
+                if (options.HtmlBlocks && sliceTrim.StartsWith("<", StringComparison.Ordinal)) {
                     // Avoid breaking on angle-bracket autolinks like "<https://...>".
                     if (!TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) break;
                 }
@@ -148,7 +151,7 @@ public static partial class MarkdownReader {
                 var next = lines[peek] ?? string.Empty;
                 bool nextBreakOnOrderedListLine = breakOnAnyOrderedListLine ||
                     IsMarkdigDefinitionLazyOrderedListBoundary(state, peek, next, options);
-                if (IsUnorderedListLine(next, out _, out _, out _, out _) ||
+                if (IsUnorderedListLine(next) ||
                     (nextBreakOnOrderedListLine ? IsOrderedListLine(next, options, out _, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next, options))) {
                     break;
                 }
@@ -194,6 +197,40 @@ public static partial class MarkdownReader {
         return collected;
     }
 
+    private static bool IsImmediateListLeadBoundary(
+        string[] lines,
+        int nextIndex,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        bool breakOnAnyOrderedListLine,
+        MarkdownReaderState? state) {
+        if (lines == null || nextIndex >= lines.Length) {
+            return true;
+        }
+
+        string line = lines[nextIndex] ?? string.Empty;
+        int lineIndentColumns = CountLeadingIndentColumns(line);
+        int relativeLineIndentColumns = state?.CaptureSyntaxTree == false || state?.UseRelativeListMarkerIndent == true
+            ? Math.Max(0, lineIndentColumns - state.ListMarkerIndentOffset)
+            : lineIndentColumns;
+        bool underIndentedMarkerContinuation = options.StrictListIndentation
+            && relativeLineIndentColumns > 3
+            && lineIndentColumns < continuationIndent;
+        if (underIndentedMarkerContinuation) {
+            return false;
+        }
+
+        if (IsUnorderedListLine(line)) {
+            return true;
+        }
+
+        bool breakOnOrderedListLine = breakOnAnyOrderedListLine
+            || IsMarkdigDefinitionLazyOrderedListBoundary(state, nextIndex, line, options);
+        return breakOnOrderedListLine
+            ? IsOrderedListLine(line, options, out _, out _, out _, out _)
+            : IsParagraphInterruptingOrderedListLine(line, options);
+    }
+
     private static bool IsMarkdigDefinitionLazyOrderedListBoundary(
         MarkdownReaderState? state,
         int lineIndex,
@@ -237,7 +274,7 @@ public static partial class MarkdownReader {
 
         var trimmed = source.TrimStart();
         if (trimmed.Length == 0) return false;
-        if (trimmed.StartsWith(">")) return false;
+        if (trimmed.StartsWith(">", StringComparison.Ordinal)) return false;
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
@@ -245,7 +282,7 @@ public static partial class MarkdownReader {
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
         int sourceIndentColumns = CountLeadingIndentColumns(source);
-        if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) {
+        if (IsUnorderedListLine(trimmed)) {
             if (sourceIndentColumns <= 3) return false;
             normalized = trimmed;
             return true;
@@ -257,7 +294,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (options.HtmlBlocks && trimmed.StartsWith("<") && !TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
+        if (options.HtmlBlocks && trimmed.StartsWith("<", StringComparison.Ordinal) && !TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
             return false;
         }
 
@@ -458,7 +495,7 @@ public static partial class MarkdownReader {
 
         if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.List)
             && ((options.OrderedLists && IsOrderedListLine(nextSlice, options, out _, out _))
-                || (options.UnorderedLists && IsUnorderedListLine(nextSlice, out _, out _, out _, out _)))) {
+                || (options.UnorderedLists && IsUnorderedListLine(nextSlice)))) {
             return true;
         }
 
@@ -539,9 +576,10 @@ public static partial class MarkdownReader {
 
         string line = lines[index] ?? string.Empty;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        if (!StartsWithMarkerAfterIndent(line, continuationIndent, maximumAdditionalColumns: 3, marker: '>')) return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
         if (CountLeadingIndentColumns(slice) > 3) return false;
-        if (!slice.TrimStart().StartsWith(">")) return false;
+        if (!slice.TrimStart().StartsWith(">", StringComparison.Ordinal)) return false;
 
         int j = index;
         var collected = new List<string>();
@@ -561,7 +599,7 @@ public static partial class MarkdownReader {
                 break;
             }
 
-            if (CountLeadingIndentColumns(part) <= 3 && part.TrimStart().StartsWith(">")) {
+            if (CountLeadingIndentColumns(part) <= 3 && part.TrimStart().StartsWith(">", StringComparison.Ordinal)) {
                 int markerStartColumn = continuationIndent + CountLeadingIndentColumns(part) + 1;
                 string quoteContent = StripSingleQuoteMarker(part);
                 if (TryNormalizeQuotedListContinuationLine(lastQuoteContent, quoteContent, options, out var normalizedQuotedLine)) {
@@ -634,7 +672,7 @@ public static partial class MarkdownReader {
         }
 
         if (options.UnorderedLists &&
-            IsUnorderedListLine(line, out int unorderedLevelAbs, out _, out _, out _) &&
+            IsUnorderedListLine(line, out int unorderedLevelAbs) &&
             unorderedLevelAbs >= itemLevelAbs + 1) {
             return true;
         }
@@ -645,7 +683,7 @@ public static partial class MarkdownReader {
     private static string StripSingleQuoteMarker(string line) {
         if (string.IsNullOrEmpty(line)) return string.Empty;
         var trimmed = line.TrimStart();
-        if (!trimmed.StartsWith(">")) return trimmed;
+        if (!trimmed.StartsWith(">", StringComparison.Ordinal)) return trimmed;
         return trimmed.Length >= 2 && trimmed[1] == ' ' ? trimmed.Substring(2) : trimmed.Substring(1);
     }
 
@@ -857,7 +895,7 @@ public static partial class MarkdownReader {
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
         string sliceTrim = slice.TrimStart();
-        if (!sliceTrim.StartsWith("<")) return false;
+        if (!sliceTrim.StartsWith("<", StringComparison.Ordinal)) return false;
         if (TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) return false;
 
         // Collect contiguous indented lines and let HtmlBlockParser decide the extent.

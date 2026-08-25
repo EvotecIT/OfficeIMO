@@ -31,31 +31,45 @@ internal static partial class DocumentReaderEngine {
                 throw CreateUnsupportedInputException(logicalName, detection);
             }
 
-            long position = readStream.Position;
-            SourceInfo source = BuildSourceInfoFromStream(readStream, logicalName,
-                ShouldComputeSourceHash(handler, effective), cancellationToken);
-            readStream.Position = position;
-            IEnumerable<ReaderChunk> chunks;
-            if (handler.ReadStream != null) {
-                chunks = handler.ReadStream(readStream, logicalName, effective, cancellationToken)
-                    ?? throw new InvalidOperationException($"Reader handler '{handler.Id}' returned null chunks.");
-            } else if (handler.ReadDocumentStream != null) {
-                OfficeDocumentReadResult result = ValidateDocumentResult(
-                    handler.ReadDocumentStream(readStream, logicalName, effective, cancellationToken),
-                    handler.Id);
-                chunks = result.Chunks ?? Array.Empty<ReaderChunk>();
-            } else if (handler.ReadDocumentStreamAsync != null) {
-                throw CreateAsyncOnlyHandlerException(handler.Id, "stream");
-            } else {
-                throw new NotSupportedException($"Reader handler '{handler.Id}' does not support stream input.");
-            }
-
-            return chunks
-                .Select(chunk => EnrichChunk(chunk, source, effective.ComputeHashes))
-                .ToArray();
+            return ReadResolvedStream(
+                readStream,
+                logicalName,
+                effective,
+                handler,
+                cancellationToken);
         } finally {
             if (ownsReadStream) readStream.Dispose();
         }
+    }
+
+    private static ReaderChunk[] ReadResolvedStream(
+        Stream readStream,
+        string logicalName,
+        ReaderOptions effective,
+        ReaderHandlerDescriptor handler,
+        CancellationToken cancellationToken) {
+        long position = readStream.Position;
+        SourceInfo source = BuildSourceInfoFromStream(readStream, logicalName,
+            ShouldComputeSourceHash(handler, effective), cancellationToken);
+        readStream.Position = position;
+        IEnumerable<ReaderChunk> chunks;
+        if (handler.ReadStream != null) {
+            chunks = handler.ReadStream(readStream, logicalName, effective, cancellationToken)
+                ?? throw new InvalidOperationException($"Reader handler '{handler.Id}' returned null chunks.");
+        } else if (handler.ReadDocumentStream != null) {
+            OfficeDocumentReadResult result = ValidateDocumentResult(
+                handler.ReadDocumentStream(readStream, logicalName, effective, cancellationToken),
+                handler.Id);
+            chunks = result.Chunks ?? Array.Empty<ReaderChunk>();
+        } else if (handler.ReadDocumentStreamAsync != null) {
+            throw CreateAsyncOnlyHandlerException(handler.Id, "stream");
+        } else {
+            throw new NotSupportedException($"Reader handler '{handler.Id}' does not support stream input.");
+        }
+
+        return chunks
+            .Select(chunk => EnrichChunk(chunk, source, effective.ComputeHashes))
+            .ToArray();
     }
 
     public static IEnumerable<ReaderChunk> Read(

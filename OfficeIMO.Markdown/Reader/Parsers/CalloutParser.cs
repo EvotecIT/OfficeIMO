@@ -18,7 +18,7 @@ public static partial class MarkdownReader {
             while (j < lines.Length) {
                 var ln = lines[j] ?? string.Empty;
                 var t = ln.TrimStart();
-                if (!t.StartsWith(">")) {
+                if (!t.StartsWith(">", StringComparison.Ordinal)) {
                     if (string.IsNullOrWhiteSpace(ln)) {
                         break;
                     }

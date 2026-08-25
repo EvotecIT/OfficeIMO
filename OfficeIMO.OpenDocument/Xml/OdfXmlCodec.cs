@@ -5,15 +5,9 @@ internal static class OdfXmlCodec {
         try {
             using var stream = new MemoryStream(bytes, writable: false);
             XmlReaderSettings settings = CreateReaderSettings(maxCharacters);
-            using (XmlReader depthReader = XmlReader.Create(stream, settings)) {
-                while (depthReader.Read()) {
-                    if (depthReader.Depth > maxDepth) throw new InvalidDataException($"OpenDocument XML part '{partPath}' exceeds MaxXmlDepth ({maxDepth}).");
-                }
-            }
-            stream.Position = 0;
-            settings = CreateReaderSettings(maxCharacters);
-            using XmlReader reader = XmlReader.Create(stream, settings);
-            return XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
+            using XmlReader sourceReader = XmlReader.Create(stream, settings);
+            using var reader = new OdfDepthLimitingXmlReader(sourceReader, partPath, maxDepth);
+            return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
         } catch (InvalidDataException) {
             throw;
         } catch (Exception ex) when (ex is XmlException || ex is InvalidOperationException) {

@@ -18,19 +18,31 @@ internal enum OfflineCertificatePathSearchOutcome {
 
 internal static class CertificateChainValidator {
     private const int MaxOfflineIssuerSignatureChecks = 65_536;
+    private static readonly CertificateValidationResult NotPerformed = new(
+        SecurityValidationStatus.NotPerformed,
+        SecurityValidationStatus.NotPerformed,
+        Array.Empty<string>());
+    private static readonly CertificateValidationResult InvalidWithoutChain = new(
+        SecurityValidationStatus.Invalid,
+        SecurityValidationStatus.NotPerformed,
+        Array.Empty<string>());
+    private static readonly CertificateValidationResult IndeterminateWithoutChain = new(
+        SecurityValidationStatus.Indeterminate,
+        SecurityValidationStatus.NotPerformed,
+        Array.Empty<string>());
 
     internal static CertificateValidationResult Validate(
         X509Certificate2? certificate,
         IEnumerable<X509Certificate2> embeddedCertificates,
         CertificateValidationOptions options,
-        IList<SecurityFinding> findings,
+        ref SecurityFindingCollection findings,
         string role,
         CertificateUsagePurpose purpose,
         int? signerIndex = null) {
         if (certificate == null) {
             return Empty(SecurityValidationStatus.Indeterminate);
         }
-        bool usageAccepted = ValidateCertificateUsage(certificate, purpose, findings, role, signerIndex);
+        bool usageAccepted = ValidateCertificateUsage(certificate, purpose, ref findings, role, signerIndex);
         if (!options.ValidateChain) {
             return Empty(usageAccepted
                 ? SecurityValidationStatus.NotPerformed
@@ -118,12 +130,12 @@ internal static class CertificateChainValidator {
     private static bool ValidateCertificateUsage(
         X509Certificate2 certificate,
         CertificateUsagePurpose purpose,
-        IList<SecurityFinding> findings,
+        ref SecurityFindingCollection findings,
         string role,
         int? signerIndex) {
-        X509KeyUsageExtension? keyUsage = certificate.Extensions
-            .OfType<X509KeyUsageExtension>()
-            .FirstOrDefault();
+        X509KeyUsageExtension? keyUsage = certificate.Extensions["2.5.29.15"] as X509KeyUsageExtension;
+        X509EnhancedKeyUsageExtension? enhancedKeyUsage =
+            certificate.Extensions["2.5.29.37"] as X509EnhancedKeyUsageExtension;
         if (keyUsage != null &&
             (keyUsage.KeyUsages & (X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation)) == 0) {
             findings.Add(new SecurityFinding(
@@ -134,9 +146,6 @@ internal static class CertificateChainValidator {
             return false;
         }
 
-        X509EnhancedKeyUsageExtension? enhancedKeyUsage = certificate.Extensions
-            .OfType<X509EnhancedKeyUsageExtension>()
-            .FirstOrDefault();
         if (enhancedKeyUsage == null) {
             if (purpose == CertificateUsagePurpose.TimestampAuthority) {
                 findings.Add(new SecurityFinding(
@@ -159,9 +168,12 @@ internal static class CertificateChainValidator {
             return false;
         }
 
-        bool permitted = enhancedKeyUsage.EnhancedKeyUsages
-            .Cast<Oid>()
-            .Any(oid => IsPermittedEnhancedKeyUsage(oid.Value, purpose));
+        bool permitted = false;
+        foreach (Oid oid in enhancedKeyUsage.EnhancedKeyUsages) {
+            if (!IsPermittedEnhancedKeyUsage(oid.Value, purpose)) continue;
+            permitted = true;
+            break;
+        }
         if (!permitted) {
             findings.Add(new SecurityFinding(
                 SecurityFindingSeverity.Error,
@@ -202,11 +214,11 @@ internal static class CertificateChainValidator {
             "1.3.6.1.4.1.311.10.3.12";
     }
 
-    private static CertificateValidationResult Empty(SecurityValidationStatus chainStatus) =>
-        new CertificateValidationResult(
-            chainStatus,
-            SecurityValidationStatus.NotPerformed,
-            Array.Empty<string>());
+    private static CertificateValidationResult Empty(SecurityValidationStatus chainStatus) => chainStatus switch {
+        SecurityValidationStatus.NotPerformed => NotPerformed,
+        SecurityValidationStatus.Invalid => InvalidWithoutChain,
+        _ => IndeterminateWithoutChain
+    };
 
     private static bool TryApplyCertificateDownloadPolicy(
         X509ChainPolicy chainPolicy,

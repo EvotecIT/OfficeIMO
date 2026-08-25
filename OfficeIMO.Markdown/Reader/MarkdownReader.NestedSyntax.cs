@@ -10,28 +10,42 @@ public static partial class MarkdownReader {
         string markdown,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
-        int lineOffset) {
+        int lineOffset,
+        bool suppressBlockGenericAttributes = false) {
 
-        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+        var nestedOptions = options.FrontMatter
+            ? CloneOptionsWithoutFrontMatter(options)
+            : options;
         var nestedState = CreateNestedState(state, options);
-        var syntaxChildren = new List<MarkdownSyntaxNode>();
+        nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
+        List<MarkdownSyntaxNode>? syntaxChildren = state.CaptureSyntaxTree
+            ? new List<MarkdownSyntaxNode>()
+            : null;
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: lineOffset, applyDocumentTransforms: false);
-        return (nestedDoc.Blocks, syntaxChildren);
+        return (nestedDoc.Blocks, syntaxChildren != null
+            ? syntaxChildren
+            : Array.Empty<MarkdownSyntaxNode>());
     }
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
-        IReadOnlyCollection<int>? suppressedParagraphGenericAttributeStartLines = null) {
+        IReadOnlyCollection<int>? suppressedParagraphGenericAttributeStartLines = null,
+        bool suppressBlockGenericAttributes = false) {
         if (sourceLines == null || sourceLines.Count == 0) {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
-        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+        var nestedOptions = options.FrontMatter
+            ? CloneOptionsWithoutFrontMatter(options)
+            : options;
         var nestedState = CreateNestedState(state, options);
-        nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
+        nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
+        if (state.CaptureSyntaxTree) {
+            nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
+        }
         nestedState.LazyQuoteContinuationLines.Clear();
         nestedState.QuoteContainerLines.Clear();
         nestedState.SuppressedSetextHeadingUnderlineLines.Clear();
@@ -56,8 +70,14 @@ public static partial class MarkdownReader {
             }
         }
 
-        var syntaxChildren = new List<MarkdownSyntaxNode>();
+        List<MarkdownSyntaxNode>? syntaxChildren = state.CaptureSyntaxTree
+            ? new List<MarkdownSyntaxNode>()
+            : null;
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
+        if (syntaxChildren == null) {
+            return (nestedDoc.Blocks, Array.Empty<MarkdownSyntaxNode>());
+        }
+
         var remappedSyntaxChildren = RemapNestedSyntaxNodes(sourceLines, syntaxChildren);
         var remappedSyntaxTree = BuildDocumentSyntaxTree(remappedSyntaxChildren, nestedDoc);
         SynchronizeOwnedSyntaxCaches(remappedSyntaxTree);

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\OfficeIMO.Rtf.Tests\Documents\RtfCorpus\producers\gembox-document\gembox-document-2026.8.102.rtf" Link="producer-gembox-document.rtf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="RtfPipe" Version="2.0.7677.4303" />
+  </ItemGroup>
+
+</Project>

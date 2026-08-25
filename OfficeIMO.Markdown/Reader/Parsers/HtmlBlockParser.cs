@@ -474,7 +474,7 @@ public static partial class MarkdownReader {
             return sourceLines;
         }
 
-        private static MarkdownSourceSpan CreateDetailsSourceSpan(
+        private static MarkdownSourceSpan? CreateDetailsSourceSpan(
             MarkdownReaderState state,
             string htmlContent,
             int startLineIndex,

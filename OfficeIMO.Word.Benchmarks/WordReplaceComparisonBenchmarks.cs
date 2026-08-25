@@ -19,12 +19,18 @@ public class WordReplaceComparisonBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _fixture = WordBenchmarkCorpus.CreateParagraphFixture(ItemCount, withPlaceholder: true);
-        WordBenchmarkCorpus.ValidateReplacedDocument(OfficeIMO(), ItemCount);
+        SetupOfficeAndOpenXml();
         WordBenchmarkCorpus.ValidateReplacedDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateReplacedDocument(NPOI(), ItemCount);
+    }
+
+    internal void SetupOfficeAndOpenXml() {
+        _fixture = WordBenchmarkCorpus.CreateParagraphFixture(ItemCount, withPlaceholder: true);
+        WordBenchmarkCorpus.ValidateReplacedDocument(OfficeIMO(), ItemCount);
         WordBenchmarkCorpus.ValidateReplacedDocument(OpenXmlSdk(), ItemCount);
     }
+
+    internal int InputBytes => _fixture.Length;
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() {

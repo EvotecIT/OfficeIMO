@@ -61,6 +61,24 @@ drawing conclusions:
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*'
 ```
 
+### Publishable Open XML SDK evidence
+
+The public evidence classes isolate OfficeIMO.Word and the MIT-licensed Open
+XML SDK from the license-restricted combined comparison. Both implementations
+start from the same rich package shell, perform equivalent work, and must pass
+the structural validators before measurement:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- validate-openxml
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*OpenXmlEvidenceBenchmarks*'
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- evidence --repeat 3 --json .benchmark-artifacts\word\openxml-evidence.json
+```
+
+The isolated runner records source commit and dirty-tree state together with
+elapsed time, allocation, retained heap, sampled managed peak, absolute process
+peak, input bytes, and output bytes. The current Windows result is documented
+in [`Docs/benchmarks/officeimo.word-openxml-2026-08-24.md`](../Docs/benchmarks/officeimo.word-openxml-2026-08-24.md).
+
 The shared repository runner adds provenance capture and PowerForge-normalized
 JSON/CSV/Markdown evidence. Word workloads are excluded from the default `all`
 selection so ordinary comparison runs do not restore NPOI or require its license

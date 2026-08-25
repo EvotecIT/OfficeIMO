@@ -161,7 +161,7 @@ public static class LatexSimpleMacroExpander {
             }
             if (!active.Add(name)) {
                 diagnostics.Add(new LatexMacroExpansionDiagnostic("LATEXMAC002", LatexDiagnosticSeverity.Error,
-                    "Cyclic simple macro invocation '" + name + "'.", invocation.Span.Start.Offset));
+                    "Cyclic simple macro invocation '" + name + "'.", invocation.StartOffset));
                 output.Append(invocation.Text);
                 tokenIndex++;
                 continue;
@@ -186,7 +186,7 @@ public static class LatexSimpleMacroExpander {
             }
             if (arguments.Count != definition.ParameterCount) {
                 diagnostics.Add(new LatexMacroExpansionDiagnostic("LATEXMAC001", LatexDiagnosticSeverity.Warning,
-                    "Simple macro '" + name + "' did not receive the required arguments.", invocation.Span.Start.Offset));
+                    "Simple macro '" + name + "' did not receive the required arguments.", invocation.StartOffset));
                 output.Append(invocation.Text);
                 active.Remove(name);
                 tokenIndex++;
@@ -254,14 +254,14 @@ public static class LatexSimpleMacroExpander {
         out string content) {
         content = string.Empty;
         if (cursor >= tokens.Count || tokens[cursor].Kind != open) return false;
-        int start = tokens[cursor].Span.End.Offset;
+        int start = tokens[cursor].EndOffset;
         cursor++;
         int depth = 1;
         while (cursor < tokens.Count) {
             LatexToken token = tokens[cursor];
             if (token.Kind == open) depth++;
             else if (token.Kind == close && --depth == 0) {
-                content = value.Substring(start, token.Span.Start.Offset - start);
+                content = value.Substring(start, token.StartOffset - start);
                 cursor++;
                 return true;
             }

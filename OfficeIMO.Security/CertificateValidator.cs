@@ -21,7 +21,7 @@ public static class CertificateValidator {
 #else
         ArgumentNullException.ThrowIfNull(certificate);
 #endif
-        var findings = new List<SecurityFinding>();
+        var findings = new SecurityFindingCollection();
         CertificateUsagePurpose usagePurpose = purpose switch {
             CertificateValidationPurpose.TimestampAuthority => CertificateUsagePurpose.TimestampAuthority,
             CertificateValidationPurpose.EmailSigning => CertificateUsagePurpose.EmailSigner,
@@ -31,7 +31,7 @@ public static class CertificateValidator {
             certificate,
             additionalCertificates ?? Array.Empty<X509Certificate2>(),
             options ?? new CertificateValidationOptions(),
-            findings,
+            ref findings,
             purpose == CertificateValidationPurpose.TimestampAuthority ? "TSA" : "Signer",
             usagePurpose);
         return new CertificateTrustValidationResult(validation, findings.ToArray());

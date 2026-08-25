@@ -46,7 +46,7 @@ public static class ZipTraversal {
 
         var effective = Normalize(options);
         using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
-        return Traverse(archive, effective);
+        return TraverseCore(archive, effective);
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ public static class ZipTraversal {
     }
 
     private static ZipTraversalResult TraverseCore(ZipArchive archive, ZipTraversalOptions options) {
-        var list = new List<ZipEntryDescriptor>();
+        var list = new List<ZipEntryDescriptor>(Math.Min(archive.Entries.Count, options.MaxEntries));
         var warnings = new List<ZipTraversalWarning>();
         long totalUncompressed = 0;
         int accepted = 0;

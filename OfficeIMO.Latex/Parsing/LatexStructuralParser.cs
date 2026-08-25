@@ -61,7 +61,7 @@ internal sealed class LatexStructuralParser {
                     _diagnostics.Add(new LatexDiagnostic("LATEX006", LatexDiagnosticSeverity.Error,
                         "Verbatim content is not terminated; source was preserved through end of input.", token.Span));
                 }
-                return Node(LatexSyntaxKind.Verbatim, token.Span.Start.Offset, token.Span.End.Offset, token.Value);
+                return Node(LatexSyntaxKind.Verbatim, token.StartOffset, token.EndOffset, token.Value);
             default:
                 _index++;
                 return TokenNode(token);
@@ -76,41 +76,41 @@ internal sealed class LatexStructuralParser {
         EnforceDepth(depth);
         LatexToken opening = _tokens[_index++];
         var children = new List<LatexSyntaxNode> {
-            Node(LatexSyntaxKind.GroupDelimiter, opening.Span.Start.Offset, opening.Span.End.Offset, null)
+            Node(LatexSyntaxKind.GroupDelimiter, opening.StartOffset, opening.EndOffset, null)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
             LatexToken token = _tokens[_index];
             if (token.Kind == closingKind) {
                 _index++;
-                children.Add(Node(LatexSyntaxKind.GroupDelimiter, token.Span.Start.Offset, token.Span.End.Offset, null));
+                children.Add(Node(LatexSyntaxKind.GroupDelimiter, token.StartOffset, token.EndOffset, null));
                 terminated = true;
                 break;
             }
             children.Add(ParseNode(depth, allowMath));
         }
-        int end = terminated ? children[children.Count - 1].Span.End.Offset : _source.Text.Length;
+        int end = terminated ? children[children.Count - 1].EndOffset : _source.Text.Length;
         if (!terminated) {
             _diagnostics.Add(new LatexDiagnostic("LATEX001", LatexDiagnosticSeverity.Error,
                 "Group is not terminated; source was preserved through end of input.", opening.Span));
         }
-        return Node(groupKind, opening.Span.Start.Offset, end, null, children);
+        return Node(groupKind, opening.StartOffset, end, null, children);
     }
 
     private LatexSyntaxNode ParseCommand(int depth, LatexCommandSyntaxSignature? explicitSignature = null) {
         EnforceDepth(depth);
         LatexToken command = _tokens[_index++];
         var children = new List<LatexSyntaxNode> {
-            Node(LatexSyntaxKind.CommandToken, command.Span.Start.Offset, command.Span.End.Offset, command.Value)
+            Node(LatexSyntaxKind.CommandToken, command.StartOffset, command.EndOffset, command.Value)
         };
-        int end = command.Span.End.Offset;
+        int end = command.EndOffset;
         LatexCommandSyntaxSignature? signature = explicitSignature ?? LatexProfileSyntaxCatalog.GetCommand(command.Value ?? string.Empty);
         if (signature != null) {
             if (signature.AllowsStar && _index < _tokens.Count &&
                 _tokens[_index].Kind == LatexTokenKind.Text && string.Equals(_tokens[_index].Text, "*", StringComparison.Ordinal)) {
                 LatexToken star = _tokens[_index++];
                 children.Add(TokenNode(star));
-                end = star.Span.End.Offset;
+                end = star.EndOffset;
             }
             for (int index = 0; index < signature.Arguments.Count; index++) {
                 LatexTokenKind openingKind = signature.Arguments[index] == LatexArgumentGroupKind.Optional
@@ -120,11 +120,11 @@ internal sealed class LatexStructuralParser {
                     if (signature.Arguments[index] == LatexArgumentGroupKind.Required) break;
                 }
             }
-            return Node(LatexSyntaxKind.Command, command.Span.Start.Offset, end, command.Value, children);
+            return Node(LatexSyntaxKind.Command, command.StartOffset, end, command.Value, children);
         }
 
         ParseFallbackCommandGroups(depth, children, ref end);
-        return Node(LatexSyntaxKind.Command, command.Span.Start.Offset, end, command.Value, children);
+        return Node(LatexSyntaxKind.Command, command.StartOffset, end, command.Value, children);
     }
 
     private void ParseFallbackCommandGroups(int depth, List<LatexSyntaxNode> children, ref int end) {
@@ -136,14 +136,14 @@ internal sealed class LatexStructuralParser {
             while (_index < lookahead) {
                 LatexToken trivia = _tokens[_index++];
                 children.Add(TokenNode(trivia));
-                end = trivia.Span.End.Offset;
+                end = trivia.EndOffset;
             }
             LatexToken opening = _tokens[_index];
             LatexSyntaxNode group = opening.Kind == LatexTokenKind.OpenBrace
                 ? ParseGroup(LatexTokenKind.CloseBrace, LatexSyntaxKind.RequiredGroup, depth + 1, true)
                 : ParseGroup(LatexTokenKind.CloseBracket, LatexSyntaxKind.OptionalGroup, depth + 1, true);
             children.Add(group);
-            end = group.Span.End.Offset;
+            end = group.EndOffset;
         }
     }
 
@@ -158,19 +158,19 @@ internal sealed class LatexStructuralParser {
         while (_index < lookahead) {
             LatexToken trivia = _tokens[_index++];
             children.Add(TokenNode(trivia));
-            end = trivia.Span.End.Offset;
+            end = trivia.EndOffset;
         }
         LatexSyntaxNode group = expectedOpening == LatexTokenKind.OpenBrace
             ? ParseGroup(LatexTokenKind.CloseBrace, LatexSyntaxKind.RequiredGroup, depth + 1, true)
             : ParseGroup(LatexTokenKind.CloseBracket, LatexSyntaxKind.OptionalGroup, depth + 1, true);
         children.Add(group);
-        end = group.Span.End.Offset;
+        end = group.EndOffset;
         return true;
     }
 
     private LatexSyntaxNode ParseEnvironment(int depth) {
         EnforceDepth(depth);
-        int start = _tokens[_index].Span.Start.Offset;
+        int start = _tokens[_index].StartOffset;
         TryGetEnvironmentName(_index, out string expectedName);
         LatexSyntaxNode begin = ParseCommand(depth + 1, LatexProfileSyntaxCatalog.GetEnvironmentBegin(expectedName));
         string name = GetFirstRequiredGroupContent(begin) ?? string.Empty;
@@ -192,7 +192,7 @@ internal sealed class LatexStructuralParser {
             }
             children.Add(ParseNode(depth + 1, true));
         }
-        int end = endCommand?.Span.End.Offset ?? _source.Text.Length;
+        int end = endCommand?.EndOffset ?? _source.Text.Length;
         if (endCommand == null) {
             _diagnostics.Add(new LatexDiagnostic("LATEX004", LatexDiagnosticSeverity.Error,
                 "Environment '" + name + "' is not terminated.", begin.Span));
@@ -204,25 +204,25 @@ internal sealed class LatexStructuralParser {
         EnforceDepth(depth);
         LatexToken opening = _tokens[_index++];
         var children = new List<LatexSyntaxNode> {
-            Node(LatexSyntaxKind.MathDelimiter, opening.Span.Start.Offset, opening.Span.End.Offset, opening.Text)
+            Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, opening.Text)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
             LatexToken token = _tokens[_index];
             if (token.Kind == LatexTokenKind.MathShift && string.Equals(token.Text, opening.Text, StringComparison.Ordinal)) {
                 _index++;
-                children.Add(Node(LatexSyntaxKind.MathDelimiter, token.Span.Start.Offset, token.Span.End.Offset, token.Text));
+                children.Add(Node(LatexSyntaxKind.MathDelimiter, token.StartOffset, token.EndOffset, token.Text));
                 terminated = true;
                 break;
             }
             children.Add(ParseNode(depth + 1, false));
         }
-        int end = terminated ? children[children.Count - 1].Span.End.Offset : _source.Text.Length;
+        int end = terminated ? children[children.Count - 1].EndOffset : _source.Text.Length;
         if (!terminated) {
             _diagnostics.Add(new LatexDiagnostic("LATEX003", LatexDiagnosticSeverity.Error,
                 "Math region is not terminated.", opening.Span));
         }
-        return Node(LatexSyntaxKind.Math, opening.Span.Start.Offset, end, opening.Text, children);
+        return Node(LatexSyntaxKind.Math, opening.StartOffset, end, opening.Text, children);
     }
 
     private LatexSyntaxNode ParseCommandMath(int depth) {
@@ -230,25 +230,25 @@ internal sealed class LatexStructuralParser {
         LatexToken opening = _tokens[_index++];
         string closingName = string.Equals(opening.Value, "(", StringComparison.Ordinal) ? ")" : "]";
         var children = new List<LatexSyntaxNode> {
-            Node(LatexSyntaxKind.MathDelimiter, opening.Span.Start.Offset, opening.Span.End.Offset, opening.Text)
+            Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, opening.Text)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
             LatexToken token = _tokens[_index];
             if (token.Kind == LatexTokenKind.Command && string.Equals(token.Value, closingName, StringComparison.Ordinal)) {
                 _index++;
-                children.Add(Node(LatexSyntaxKind.MathDelimiter, token.Span.Start.Offset, token.Span.End.Offset, token.Text));
+                children.Add(Node(LatexSyntaxKind.MathDelimiter, token.StartOffset, token.EndOffset, token.Text));
                 terminated = true;
                 break;
             }
             children.Add(ParseNode(depth + 1, false));
         }
-        int end = terminated ? children[children.Count - 1].Span.End.Offset : _source.Text.Length;
+        int end = terminated ? children[children.Count - 1].EndOffset : _source.Text.Length;
         if (!terminated) {
             _diagnostics.Add(new LatexDiagnostic("LATEX003", LatexDiagnosticSeverity.Error,
                 "Math region is not terminated.", opening.Span));
         }
-        return Node(LatexSyntaxKind.Math, opening.Span.Start.Offset, end, opening.Text, children);
+        return Node(LatexSyntaxKind.Math, opening.StartOffset, end, opening.Text, children);
     }
 
     private bool TryGetEnvironmentName(int commandIndex, out string name) {
@@ -257,11 +257,11 @@ internal sealed class LatexStructuralParser {
         while (index < _tokens.Count && IsArgumentTrivia(_tokens[index])) index++;
         if (index >= _tokens.Count || _tokens[index].Kind != LatexTokenKind.OpenBrace) return false;
         int depth = 1;
-        int contentStart = _tokens[index].Span.End.Offset;
+        int contentStart = _tokens[index].EndOffset;
         for (int current = index + 1; current < _tokens.Count; current++) {
             if (_tokens[current].Kind == LatexTokenKind.OpenBrace) depth++;
             else if (_tokens[current].Kind == LatexTokenKind.CloseBrace && --depth == 0) {
-                name = _source.Text.Substring(contentStart, _tokens[current].Span.Start.Offset - contentStart).Trim();
+                name = _source.Text.Substring(contentStart, _tokens[current].StartOffset - contentStart).Trim();
                 return name.Length > 0;
             }
         }
@@ -271,10 +271,10 @@ internal sealed class LatexStructuralParser {
     private string? GetFirstRequiredGroupContent(LatexSyntaxNode command) {
         LatexSyntaxNode? group = command.Children.FirstOrDefault(static child => child.Kind == LatexSyntaxKind.RequiredGroup);
         if (group == null || group.Children.Count < 2) return null;
-        int start = group.Children[0].Span.End.Offset;
+        int start = group.Children[0].EndOffset;
         int end = group.Children[group.Children.Count - 1].Kind == LatexSyntaxKind.GroupDelimiter
-            ? group.Children[group.Children.Count - 1].Span.Start.Offset
-            : group.Span.End.Offset;
+            ? group.Children[group.Children.Count - 1].StartOffset
+            : group.EndOffset;
         return _source.Text.Substring(start, end - start).Trim();
     }
 
@@ -288,7 +288,7 @@ internal sealed class LatexStructuralParser {
                 : token.Kind == LatexTokenKind.Command
                     ? LatexSyntaxKind.CommandToken
                     : LatexSyntaxKind.Text;
-        return Node(kind, token.Span.Start.Offset, token.Span.End.Offset, token.Value);
+        return Node(kind, token.StartOffset, token.EndOffset, token.Value);
     }
 
     private LatexSyntaxNode Node(
@@ -298,18 +298,33 @@ internal sealed class LatexStructuralParser {
         string? value,
         IReadOnlyList<LatexSyntaxNode>? children = null) {
         IReadOnlyList<LatexSyntaxNode>? completed = CompleteCoverage(start, end, children);
-        return new LatexSyntaxNode(kind, _source.CreateSpan(start, end), _source.Text.Substring(start, end - start), value, completed);
+        return new LatexSyntaxNode(kind, _source, start, end, value, completed);
     }
 
     private IReadOnlyList<LatexSyntaxNode>? CompleteCoverage(int start, int end, IReadOnlyList<LatexSyntaxNode>? children) {
         if (children == null || children.Count == 0) return children;
+        int expected = start;
+        for (int index = 0; index < children.Count; index++) {
+            LatexSyntaxNode child = children[index];
+            if (child.StartOffset > expected) return CompleteCoverageWithGaps(start, end, children);
+            expected = child.EndOffset;
+        }
+        return expected == end ? children : CompleteCoverageWithGaps(start, end, children);
+    }
+
+    private IReadOnlyList<LatexSyntaxNode> CompleteCoverageWithGaps(
+        int start,
+        int end,
+        IReadOnlyList<LatexSyntaxNode> children) {
         var result = new List<LatexSyntaxNode>(children.Count + 2);
         int expected = start;
         for (int index = 0; index < children.Count; index++) {
             LatexSyntaxNode child = children[index];
-            if (child.Span.Start.Offset > expected) result.Add(Node(LatexSyntaxKind.Trivia, expected, child.Span.Start.Offset, null));
+            if (child.StartOffset > expected) {
+                result.Add(Node(LatexSyntaxKind.Trivia, expected, child.StartOffset, null));
+            }
             result.Add(child);
-            expected = child.Span.End.Offset;
+            expected = child.EndOffset;
         }
         if (expected < end) result.Add(Node(LatexSyntaxKind.Trivia, expected, end, null));
         return result;

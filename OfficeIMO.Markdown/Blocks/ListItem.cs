@@ -5,14 +5,17 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     private readonly ParagraphBlock _leadParagraphBlock;
-    private readonly List<ParagraphBlock> _additionalParagraphBlocks = new List<ParagraphBlock>();
-    private readonly List<ParagraphBlock> _paragraphBlocks = new List<ParagraphBlock>();
-    private readonly List<IMarkdownBlock> _blockChildren = new List<IMarkdownBlock>();
+    private List<ParagraphBlock>? _additionalParagraphBlocks;
+    private List<ParagraphBlock>? _paragraphBlocks;
+    private List<IMarkdownBlock>? _blockChildren;
+    private List<InlineSequence>? _additionalParagraphs;
+    private List<IMarkdownBlock>? _nestedBlocks;
+    private List<MarkdownSyntaxNode>? _syntaxChildren;
 
     /// <summary>Inlines representing item content.</summary>
     public InlineSequence Content { get; }
     /// <summary>Additional paragraphs inside the list item (multi-paragraph list items).</summary>
-    public List<InlineSequence> AdditionalParagraphs { get; } = new List<InlineSequence>();
+    public List<InlineSequence> AdditionalParagraphs => _additionalParagraphs ??= new List<InlineSequence>();
     /// <summary>
     /// Paragraph blocks owned by this list item.
     /// This exposes list-item paragraph content as blocks for AST-style consumers.
@@ -20,16 +23,16 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public IReadOnlyList<ParagraphBlock> ParagraphBlocks {
         get {
             EnsureParagraphBlocks();
-            return _paragraphBlocks;
+            return _paragraphBlocks!;
         }
     }
     /// <summary>Nested block content inside the list item (e.g., nested ordered/unordered lists, code blocks).</summary>
-    public List<IMarkdownBlock> NestedBlocks { get; } = new List<IMarkdownBlock>();
+    public List<IMarkdownBlock> NestedBlocks => _nestedBlocks ??= new List<IMarkdownBlock>();
     /// <summary>Ordered AST-style view of all list-item child blocks, including lead paragraphs.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks {
         get {
             EnsureChildBlocks();
-            return _blockChildren;
+            return _blockChildren!;
         }
     }
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
@@ -51,14 +54,47 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
     public bool ForceLoose { get; set; }
-    internal List<MarkdownSyntaxNode> SyntaxChildren { get; } = new List<MarkdownSyntaxNode>();
-    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+    internal List<MarkdownSyntaxNode> SyntaxChildren => _syntaxChildren ??= new List<MarkdownSyntaxNode>(4);
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => _syntaxChildren;
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) {
         Content = content ?? new InlineSequence();
         _leadParagraphBlock = new ParagraphBlock(Content);
     }
+
+    internal ParagraphBlock LeadParagraphBlock => _leadParagraphBlock;
+    internal bool HasAdditionalParagraphs => _additionalParagraphs?.Count > 0;
+    internal int NestedBlockCount => _nestedBlocks?.Count ?? 0;
+    internal IReadOnlyList<IMarkdownBlock> NestedBlocksOrEmpty => _nestedBlocks ?? (IReadOnlyList<IMarkdownBlock>)Array.Empty<IMarkdownBlock>();
+    internal int SyntaxBlockChildCount =>
+        (IncludesLeadParagraphBlock ? 1 : 0)
+        + (_additionalParagraphs?.Count ?? 0)
+        + (_nestedBlocks?.Count ?? 0);
+
+    internal IMarkdownBlock GetSyntaxBlockChild(int index) {
+        if ((uint)index >= (uint)SyntaxBlockChildCount) {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        if (IncludesLeadParagraphBlock) {
+            if (index == 0) {
+                return _leadParagraphBlock;
+            }
+            index--;
+        }
+
+        int additionalParagraphCount = _additionalParagraphs?.Count ?? 0;
+        if (index < additionalParagraphCount) {
+            SyncAdditionalParagraphBlocks();
+            return _additionalParagraphBlocks![index];
+        }
+
+        return _nestedBlocks![index - additionalParagraphCount];
+    }
+
+    private bool IncludesLeadParagraphBlock =>
+        Content.Nodes.Count > 0 || (!HasAdditionalParagraphs && NestedBlockCount == 0);
 
     private ListItem(InlineSequence content, bool isTask, bool isChecked) {
         Content = content ?? new InlineSequence();
@@ -273,15 +309,26 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
-        var children = BuildListMarkerSyntaxNodes();
-        children.AddRange(MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
+        var markerChildren = BuildListMarkerSyntaxNodes();
+        var contentChildren = MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this);
         var attributeNode = MarkdownGenericAttributeSyntaxNodes.Create(this);
-        if (attributeNode != null) {
-            children.Add(attributeNode);
+        int childCount = markerChildren.Count
+            + contentChildren.Count
+            + (attributeNode == null ? 0 : 1)
+            + (nestedList == null ? 0 : 1);
+        var children = new MarkdownSyntaxNode[childCount];
+        int childIndex = 0;
+        for (int i = 0; i < markerChildren.Count; i++) {
+            children[childIndex++] = markerChildren[i];
         }
-
+        for (int i = 0; i < contentChildren.Count; i++) {
+            children[childIndex++] = contentChildren[i];
+        }
+        if (attributeNode != null) {
+            children[childIndex++] = attributeNode;
+        }
         if (nestedList != null) {
-            children.Add(nestedList);
+            children[childIndex] = nestedList;
         }
 
         string? literal = IsTask
@@ -297,14 +344,21 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             attributes: Attributes);
     }
 
-    private List<MarkdownSyntaxNode> BuildListMarkerSyntaxNodes() {
-        var children = new List<MarkdownSyntaxNode>(2);
+    private IReadOnlyList<MarkdownSyntaxNode> BuildListMarkerSyntaxNodes() {
+        int markerCount = (MarkerSourceSpan.HasValue ? 1 : 0)
+            + (TaskMarkerSourceSpan.HasValue ? 1 : 0);
+        if (markerCount == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var children = new MarkdownSyntaxNode[markerCount];
+        int markerIndex = 0;
         if (MarkerSourceSpan.HasValue) {
-            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ListMarker, MarkerSourceSpan.Value, MarkerText));
+            children[markerIndex++] = new MarkdownSyntaxNode(MarkdownSyntaxKind.ListMarker, MarkerSourceSpan.Value, MarkerText);
         }
 
         if (TaskMarkerSourceSpan.HasValue) {
-            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.TaskListMarker, TaskMarkerSourceSpan.Value, TaskMarkerText));
+            children[markerIndex] = new MarkdownSyntaxNode(MarkdownSyntaxKind.TaskListMarker, TaskMarkerSourceSpan.Value, TaskMarkerText);
         }
 
         return children;
@@ -312,23 +366,22 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() => BuildOwnedSyntaxChildren();
 
-    private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
-        var blockChildren = ChildBlocks;
-        if (SyntaxChildren.Count > 0) {
-            return BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(blockChildren);
+    private IReadOnlyList<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
+        if (_syntaxChildren?.Count > 0) {
+            return BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes();
         }
 
-        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(blockChildren).ToList();
+        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(this);
     }
 
-    private List<MarkdownSyntaxNode> BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(IReadOnlyList<IMarkdownBlock> blockChildren) {
-        var canonicalChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, blockChildren).ToList();
+    private IReadOnlyList<MarkdownSyntaxNode> BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes() {
+        var canonical = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(_syntaxChildren, this);
         if (!HasSyntaxOnlyDefinitionChildren()) {
-            return canonicalChildren;
+            return canonical;
         }
 
-        var usedCanonicalChildren = new bool[canonicalChildren.Count];
-        var children = new List<MarkdownSyntaxNode>(canonicalChildren.Count + SyntaxChildren.Count);
+        var usedCanonicalChildren = new bool[canonical.Count];
+        var children = new List<MarkdownSyntaxNode>(canonical.Count + SyntaxChildren.Count);
         for (int i = 0; i < SyntaxChildren.Count; i++) {
             var syntaxChild = SyntaxChildren[i];
             if (IsSyntaxOnlyDefinitionChild(syntaxChild)) {
@@ -336,16 +389,16 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
                 continue;
             }
 
-            var canonicalIndex = FindCanonicalChildForCachedSyntax(canonicalChildren, usedCanonicalChildren, syntaxChild);
+            var canonicalIndex = FindCanonicalChildForCachedSyntax(canonical, usedCanonicalChildren, syntaxChild);
             if (canonicalIndex >= 0) {
-                children.Add(canonicalChildren[canonicalIndex]);
+                children.Add(canonical[canonicalIndex]);
                 usedCanonicalChildren[canonicalIndex] = true;
             }
         }
 
-        for (int i = 0; i < canonicalChildren.Count; i++) {
+        for (int i = 0; i < canonical.Count; i++) {
             if (!usedCanonicalChildren[i]) {
-                children.Add(canonicalChildren[i]);
+                children.Add(canonical[i]);
             }
         }
 
@@ -385,38 +438,44 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
 
     private void EnsureParagraphBlocks() {
+        _paragraphBlocks ??= new List<ParagraphBlock>();
         SyncAdditionalParagraphBlocks();
 
         _paragraphBlocks.Clear();
-        if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && NestedBlocks.Count == 0)) {
+        if (IncludesLeadParagraphBlock) {
             _paragraphBlocks.Add(_leadParagraphBlock);
         }
 
-        for (int i = 0; i < _additionalParagraphBlocks.Count; i++) {
+        for (int i = 0; i < _additionalParagraphBlocks!.Count; i++) {
             _paragraphBlocks.Add(_additionalParagraphBlocks[i]);
         }
     }
 
     private void EnsureChildBlocks() {
+        _blockChildren ??= new List<IMarkdownBlock>();
         EnsureParagraphBlocks();
 
         _blockChildren.Clear();
-        for (int i = 0; i < _paragraphBlocks.Count; i++) {
+        for (int i = 0; i < _paragraphBlocks!.Count; i++) {
             _blockChildren.Add(_paragraphBlocks[i]);
         }
 
-        for (int i = 0; i < NestedBlocks.Count; i++) {
-            _blockChildren.Add(NestedBlocks[i]);
+        if (_nestedBlocks != null) {
+            for (int i = 0; i < _nestedBlocks.Count; i++) {
+                _blockChildren.Add(_nestedBlocks[i]);
+            }
         }
     }
 
     private void SyncAdditionalParagraphBlocks() {
-        while (_additionalParagraphBlocks.Count > AdditionalParagraphs.Count) {
+        _additionalParagraphBlocks ??= new List<ParagraphBlock>();
+        int additionalParagraphCount = _additionalParagraphs?.Count ?? 0;
+        while (_additionalParagraphBlocks.Count > additionalParagraphCount) {
             _additionalParagraphBlocks.RemoveAt(_additionalParagraphBlocks.Count - 1);
         }
 
-        for (int i = 0; i < AdditionalParagraphs.Count; i++) {
-            var paragraph = AdditionalParagraphs[i] ?? new InlineSequence();
+        for (int i = 0; i < additionalParagraphCount; i++) {
+            var paragraph = _additionalParagraphs![i] ?? new InlineSequence();
             if (i < _additionalParagraphBlocks.Count && ReferenceEquals(_additionalParagraphBlocks[i].Inlines, paragraph)) {
                 continue;
             }

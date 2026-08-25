@@ -15,6 +15,16 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_CurrentHead_Review_Tests {
     [Fact]
+    public void Parse_DefaultPath_ReturnsFullyBoundObjectTree() {
+        MarkdownDoc document = MarkdownReader.Parse("# Heading\n\nParagraph with **strong** text.");
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+        Assert.All(
+            document.Blocks.Cast<MarkdownObject>(),
+            block => Assert.True(block.SourceSpan.HasValue));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_TransformDiagnostics() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.PreserveTrivia = true;

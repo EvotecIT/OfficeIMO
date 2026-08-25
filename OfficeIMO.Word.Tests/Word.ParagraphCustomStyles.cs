@@ -34,6 +34,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_OverrideBuiltInParagraphStyle() {
+            using (WordDocument warmup = WordDocument.Create()) {
+                Assert.NotNull(warmup._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart);
+            }
             var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal);
             Assert.NotNull(original);
             var custom = new WordParagraphStyleDefinition("Normal") { Bold = true };
@@ -44,7 +47,50 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Normal", retrieved!.StyleId);
             Assert.True(retrieved.Bold);
 
+            using (WordDocument document = WordDocument.Create()) {
+                Style normal = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                    .Elements<Style>()
+                    .Single(style => style.StyleId == "Normal");
+                Assert.NotNull(normal.StyleRunProperties?.Bold);
+            }
+
             WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, original!);
+        }
+
+        [Fact]
+        public void Test_ReregisteredCustomStyleReplacesCachedDefaultDefinition() {
+            const string styleId = "CachedCustomStyleReplacement";
+            var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
+            var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
+
+            try {
+                WordParagraphStyle.RegisterCustomStyle(
+                    styleId,
+                    new WordParagraphStyleDefinition(styleId) { Name = "Original" });
+
+                using (WordDocument warmup = WordDocument.Create(new WordCreateOptions {
+                    DocumentType = WordDocumentType.MacroEnabledTemplate
+                })) {
+                    Style cached = warmup._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                        .Elements<Style>()
+                        .Single(style => style.StyleId == styleId);
+                    Assert.Equal("Original", cached.StyleName!.Val);
+                }
+
+                WordParagraphStyle.RegisterCustomStyle(
+                    styleId,
+                    new WordParagraphStyleDefinition(styleId) { Name = "Updated" });
+
+                using WordDocument document = WordDocument.Create(new WordCreateOptions {
+                    DocumentType = WordDocumentType.MacroEnabledTemplate
+                });
+                Style current = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                    .Elements<Style>()
+                    .Single(style => style.StyleId == styleId);
+                Assert.Equal("Updated", current.StyleName!.Val);
+            } finally {
+                dict.Remove(styleId);
+            }
         }
 
         [Fact]

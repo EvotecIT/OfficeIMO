@@ -4,6 +4,10 @@ namespace OfficeIMO.Markdown;
 /// Base type for the navigable OfficeIMO.Markdown object tree.
 /// </summary>
 public abstract class MarkdownObject {
+    // Parsed objects can use their already-retained syntax node as immutable source metadata.
+    // Objects edited or constructed independently fall back to a writable metadata holder.
+    private object? _metadata;
+
     /// <summary>Parent node in the markdown object tree, or <c>null</c> for the document root.</summary>
     public MarkdownObject? Parent { get; private set; }
 
@@ -23,10 +27,38 @@ public abstract class MarkdownObject {
     public MarkdownObject? NextSibling { get; private set; }
 
     /// <summary>Source span mapped from the syntax tree when available.</summary>
-    public MarkdownSourceSpan? SourceSpan { get; internal set; }
+    public MarkdownSourceSpan? SourceSpan {
+        get => _metadata switch {
+            MarkdownSyntaxNode syntaxNode => syntaxNode.SourceSpan,
+            MarkdownObjectMetadata metadata => metadata.SourceSpan,
+            MarkdownSourceSpan sourceSpan => sourceSpan,
+            _ => null
+        };
+        internal set {
+            if (value.HasValue) {
+                if (_metadata == null || _metadata is MarkdownSourceSpan) {
+                    _metadata = value.Value;
+                } else {
+                    WritableMetadata.SourceSpan = value;
+                }
+            } else if (_metadata is MarkdownObjectMetadata metadata) {
+                metadata.SourceSpan = null;
+            } else if (_metadata is MarkdownSourceSpan) {
+                _metadata = null;
+            } else if (_metadata is MarkdownSyntaxNode syntaxNode) {
+                _metadata = syntaxNode.Attributes.IsEmpty
+                    ? null
+                    : new MarkdownObjectMetadata { Attributes = syntaxNode.Attributes };
+            }
+        }
+    }
 
     /// <summary>Generic Markdown attributes associated with this node.</summary>
-    public MarkdownAttributeSet Attributes { get; private set; } = MarkdownAttributeSet.Empty;
+    public MarkdownAttributeSet Attributes => _metadata switch {
+        MarkdownSyntaxNode syntaxNode => syntaxNode.Attributes,
+        MarkdownObjectMetadata metadata => metadata.Attributes,
+        _ => MarkdownAttributeSet.Empty
+    };
 
     /// <summary>Immediate child objects in document order.</summary>
     public IReadOnlyList<MarkdownObject> ChildObjects => MarkdownObjectTreeBinder.GetChildObjects(this);
@@ -87,8 +119,61 @@ public abstract class MarkdownObject {
     }
 
     internal void SetAttributes(MarkdownAttributeSet? attributes) {
-        Attributes = attributes == null || attributes.IsEmpty ? MarkdownAttributeSet.Empty : attributes;
+        if (attributes == null || attributes.IsEmpty) {
+            if (_metadata is MarkdownObjectMetadata metadata) {
+                metadata.Attributes = MarkdownAttributeSet.Empty;
+            } else if (_metadata is MarkdownSyntaxNode syntaxNode) {
+                _metadata = syntaxNode.SourceSpan.HasValue
+                    ? new MarkdownObjectMetadata { SourceSpan = syntaxNode.SourceSpan }
+                    : null;
+            }
+            return;
+        }
+
+        WritableMetadata.Attributes = attributes;
     }
+
+    internal void BindSyntaxNode(MarkdownSyntaxNode syntaxNode) {
+        if (syntaxNode == null) {
+            throw new ArgumentNullException(nameof(syntaxNode));
+        }
+
+        MarkdownAttributeSet existingAttributes = Attributes;
+        _metadata = syntaxNode.Attributes.IsEmpty && !existingAttributes.IsEmpty
+            ? new MarkdownObjectMetadata {
+                SourceSpan = syntaxNode.SourceSpan,
+                Attributes = existingAttributes
+            }
+            : syntaxNode;
+    }
+
+    internal MarkdownSyntaxNode? BoundSyntaxNode => _metadata as MarkdownSyntaxNode;
+
+    private MarkdownObjectMetadata WritableMetadata {
+        get {
+            if (_metadata is MarkdownObjectMetadata metadata) {
+                return metadata;
+            }
+
+            var created = _metadata switch {
+                MarkdownSyntaxNode syntaxNode => new MarkdownObjectMetadata {
+                    SourceSpan = syntaxNode.SourceSpan,
+                    Attributes = syntaxNode.Attributes
+                },
+                MarkdownSourceSpan sourceSpan => new MarkdownObjectMetadata {
+                    SourceSpan = sourceSpan
+                },
+                _ => new MarkdownObjectMetadata()
+            };
+            _metadata = created;
+            return created;
+        }
+    }
+}
+
+internal sealed class MarkdownObjectMetadata {
+    internal MarkdownSourceSpan? SourceSpan;
+    internal MarkdownAttributeSet Attributes = MarkdownAttributeSet.Empty;
 }
 
 /// <summary>
@@ -100,3 +185,68 @@ public abstract class MarkdownBlock : MarkdownObject { }
 /// Base type for markdown inlines that participate in the object tree.
 /// </summary>
 public abstract class MarkdownInline : MarkdownObject, IMarkdownInline { }
+
+internal interface IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? AuxiliarySyntaxMetadata { get; set; }
+}
+
+internal sealed class MarkdownInlineAuxiliarySyntaxMetadata {
+    private MarkdownSourceSpan _openingMarkerSpan;
+    private MarkdownSourceSpan _closingMarkerSpan;
+    private MarkdownInlineAuxiliarySyntaxRareMetadata? _rare;
+
+    internal string OpeningMarker = string.Empty;
+    internal string ClosingMarker = string.Empty;
+
+    internal string? AutolinkLiteral {
+        get => _rare?.AutolinkLiteral;
+        set {
+            if (string.IsNullOrEmpty(value) && _rare == null) {
+                return;
+            }
+
+            (_rare ??= new MarkdownInlineAuxiliarySyntaxRareMetadata()).AutolinkLiteral = value;
+        }
+    }
+
+    internal MarkdownSourceSpan? OpeningMarkerSpan {
+        get => _openingMarkerSpan.StartLine == 0 ? null : _openingMarkerSpan;
+        set => _openingMarkerSpan = value.GetValueOrDefault();
+    }
+
+    internal string SeparatorMarker {
+        get => _rare?.SeparatorMarker ?? string.Empty;
+        set {
+            if (string.IsNullOrEmpty(value) && _rare == null) {
+                return;
+            }
+
+            (_rare ??= new MarkdownInlineAuxiliarySyntaxRareMetadata()).SeparatorMarker = value ?? string.Empty;
+        }
+    }
+
+    internal MarkdownSourceSpan? SeparatorMarkerSpan {
+        get {
+            MarkdownSourceSpan span = _rare?.SeparatorMarkerSpan ?? default;
+            return span.StartLine == 0 ? null : span;
+        }
+        set {
+            if (!value.HasValue && _rare == null) {
+                return;
+            }
+
+            (_rare ??= new MarkdownInlineAuxiliarySyntaxRareMetadata()).SeparatorMarkerSpan = value.GetValueOrDefault();
+        }
+    }
+
+    internal MarkdownSourceSpan? ClosingMarkerSpan {
+        get => _closingMarkerSpan.StartLine == 0 ? null : _closingMarkerSpan;
+        set => _closingMarkerSpan = value.GetValueOrDefault();
+    }
+}
+
+internal sealed class MarkdownInlineAuxiliarySyntaxRareMetadata {
+    internal string? AutolinkLiteral;
+    internal string SeparatorMarker = string.Empty;
+    internal MarkdownSourceSpan SeparatorMarkerSpan;
+}

@@ -9,12 +9,13 @@
 - version 5 JSON transport serialization and deserialization
 - token-aware hierarchy construction and hierarchy JSON serialization
 - Markdown parser, heading/table chunking, and paragraph-only chunking isolation for regression diagnosis
+- repeated XML sibling scaling at 128, 1,200, and 10,000 elements
 
 The corpus is generated deterministically during benchmark setup. Document creation is outside measured operations, while every measured read starts from the same immutable byte payload. Hashing is disabled in the extraction lane so format parsing and result projection remain visible; hosts that rely on source hashing should benchmark that option separately for their storage layer.
 
 ## Generate extraction evidence
 
-The `evidence` command writes a deterministic, format-neutral corpus for DOCX, XLSX, PPTX, PDF, HTML, CSV, MSG, EPUB, ZIP, and malformed input. It evaluates Markdown retention separately from OfficeIMO-native tables, links, assets, and source locations, then records repeatability hashes and diagnostic runtime/allocation measurements:
+The `evidence` command writes a deterministic, format-neutral corpus for DOCX, XLSX, PPTX, PDF, HTML, CSV, JSON, XML, YAML, MSG, EPUB, ZIP, and malformed input. It evaluates Markdown retention separately from OfficeIMO-native tables, links, assets, and source locations, then records repeatability hashes, diagnostic runtime/allocation measurements, normalized input/output bytes, retained managed heap, sampled managed-heap peak, and working-set growth. Memory growth is measured in an isolated child process for each OfficeIMO case so one format cannot inherit another format's process peak:
 
 ```powershell
 dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csproj -c Release -f net8.0 -- evidence --output artifacts/reader-evidence
@@ -28,7 +29,7 @@ dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csp
   --runners OfficeIMO.Reader.Benchmarks/Comparison/external-runner.example.json
 ```
 
-Replace the `fileName` placeholder with an executable path or command name. The example reads Markdown from standard output; file-producing tools can instead set `outputMode` to `file` and include `{output}` in their argument list. Missing or non-executable runners are reported as evidence gaps. Each runner receives an independent report section because external process duration and peak working set are not comparable to in-process OfficeIMO duration and allocation. Generated corpus files, extracted Markdown, and machine-specific reports belong under `artifacts/` and should not be committed. Use the BenchmarkDotNet lanes below for release performance claims.
+Replace the `fileName` placeholder with an executable path or command name. The example reads Markdown from standard output; file-producing tools can instead set `outputMode` to `file` and include `{output}` in their argument list. Missing or non-executable runners are reported as evidence gaps. Each runner receives an independent report section because external process duration and peak working set are not comparable to OfficeIMO managed allocation. Output bytes describe normalized extracted Markdown, not a round trip back to the source format. Generated corpus files, extracted Markdown, and machine-specific reports belong under `artifacts/` and should not be committed. Use the BenchmarkDotNet lanes below for release performance claims.
 
 ## Run
 

@@ -40,24 +40,8 @@ internal static class ReaderBenchmarkCorpus {
     private static ReaderBenchmarkInput Text(string name, string sourceName, string text) =>
         new ReaderBenchmarkInput(name, sourceName, Encoding.UTF8.GetBytes(text));
 
-    private static string BuildMarkdown() {
-        var builder = new StringBuilder();
-        builder.AppendLine("# Reader benchmark handbook");
-        for (int section = 1; section <= 80; section++) {
-            builder.AppendLine();
-            builder.Append("## Section ").AppendLine(section.ToString());
-            builder.AppendLine();
-            builder.Append("This representative section contains document ingestion guidance, stable citations, and bounded processing notes for item ")
-                .Append(section).AppendLine(".");
-            builder.AppendLine();
-            builder.AppendLine("| Name | Value | Status |");
-            builder.AppendLine("| --- | ---: | --- |");
-            for (int row = 1; row <= 5; row++) {
-                builder.Append("| Item ").Append(row).Append(" | ").Append(section * row).AppendLine(" | Ready |");
-            }
-        }
-        return builder.ToString();
-    }
+    private static string BuildMarkdown() =>
+        Comparison.ReaderComparisonCorpus.BuildMarkdownBenchmark();
 
     private static string BuildCsv() {
         var builder = new StringBuilder("Id,Name,Amount,Active,RecordedUtc\n");

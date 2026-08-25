@@ -15,7 +15,7 @@ public class OneNoteReadWriteBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _section = CreateSection(PageCount);
+        _section = OneNoteBenchmarkCorpus.CreateSection(PageCount);
         _desktopBytes = OneNoteSectionWriter.Write(_section);
         _desktopStream = new MemoryStream(_desktopBytes, writable: false);
     }
@@ -33,24 +33,11 @@ public class OneNoteReadWriteBenchmarks {
     public byte[] WriteDesktopSection() => OneNoteSectionWriter.Write(_section);
 
     [Benchmark]
+    public byte[] WriteDesktopSectionWithoutRoundTripValidation() => OneNoteSectionWriter.Write(
+        _section,
+        new OneNoteWriterOptions { ValidateRoundTrip = false });
+
+    [Benchmark]
     public string ProjectMarkdown() => _section.ToMarkdown();
 
-    private static OneNoteSection CreateSection(int pageCount) {
-        var section = new OneNoteSection { Name = "Benchmark section" };
-        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-            var page = new OneNotePage { Title = "Page " + (pageIndex + 1), Level = pageIndex % 3 };
-            var outline = new OneNoteOutline();
-            for (int paragraphIndex = 0; paragraphIndex < 8; paragraphIndex++) {
-                var paragraph = new OneNoteParagraph();
-                var run = new OneNoteTextRun { Text = "Offline OneNote benchmark paragraph " + paragraphIndex + " on page " + pageIndex + "." };
-                run.Style.Bold = paragraphIndex % 3 == 0;
-                run.Style.Italic = paragraphIndex % 4 == 0;
-                paragraph.Runs.Add(run);
-                outline.Children.Add(paragraph);
-            }
-            page.Outlines.Add(outline);
-            section.Pages.Add(page);
-        }
-        return section;
-    }
 }

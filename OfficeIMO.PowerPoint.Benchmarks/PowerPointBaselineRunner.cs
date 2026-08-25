@@ -43,13 +43,26 @@ internal static class PowerPointBaselineRunner {
     }
 
     internal static int RunBaseline(string[] args) {
+        bool verifyBudgets = args.Any(argument => string.Equals(argument,
+            "--verify-budgets", StringComparison.OrdinalIgnoreCase));
         string? scaleFilter = GetOption(args, "--scale");
+        string? operationFilter = GetOption(args, "--operation");
         string? jsonPath = GetOption(args, "--json");
         string? corpusDirectory = GetOption(args, "--corpus-dir");
+        int repeat = GetPositiveIntOption(args, "--repeat", 1);
         IReadOnlyList<string> scales = string.IsNullOrWhiteSpace(scaleFilter)
             ? PowerPointBenchmarkCorpus.Scales
             : new[] { PowerPointBenchmarkCorpus.Get(scaleFilter!).Scale };
+        PowerPointBenchmarkBudgetManifest? manifest = verifyBudgets
+            ? PowerPointBenchmarkEvidence.LoadBudgetManifest()
+            : null;
+        IReadOnlyList<string> operations = manifest != null
+            && string.IsNullOrWhiteSpace(operationFilter)
+            ? manifest.Budgets.Select(budget => budget.Operation)
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+            : SelectOperations(operationFilter);
         var measurements = new List<PowerPointBaselineMeasurement>();
+        var failures = new List<string>();
         foreach (string scale in scales) {
             string? sharedSourcePath = null;
             if (!string.IsNullOrWhiteSpace(corpusDirectory)) {
@@ -62,26 +75,36 @@ internal static class PowerPointBaselineRunner {
                 File.WriteAllBytes(sharedSourcePath,
                     PowerPointBenchmarkCorpus.CreatePackage(fixture));
             }
-            foreach (string operation in Operations) {
-                PowerPointBaselineMeasurement measurement = RunChildProbe(
-                    operation, scale, sharedSourcePath);
-                measurements.Add(measurement);
-                Console.WriteLine(
-                    $"{operation,-16} {scale,-6} " +
-                    $"{measurement.ElapsedMilliseconds,10:F1} ms " +
-                    $"{measurement.AllocatedBytes / 1048576D,10:F1} MiB alloc " +
-                    $"{measurement.PeakWorkingSetBytes / 1048576D,10:F1} MiB peak " +
-                    $"{measurement.OutputBytes / 1048576D,10:F1} MiB output");
+            foreach (string operation in operations) {
+                for (var iteration = 1; iteration <= repeat; iteration++) {
+                    PowerPointBaselineMeasurement measurement = RunChildProbe(
+                        operation, scale, sharedSourcePath) with { Iteration = iteration };
+                    measurements.Add(measurement);
+                    if (manifest != null) {
+                        PowerPointBenchmarkEvidence.EvaluateBudget(manifest,
+                            measurement, failures);
+                    }
+                    Console.WriteLine(
+                        $"{operation,-16} {scale,-6} #{iteration,-2} " +
+                        $"{measurement.ElapsedMilliseconds,10:F1} ms " +
+                        $"{measurement.AllocatedBytes / 1048576D,10:F1} MiB alloc " +
+                        $"{measurement.PeakManagedHeapGrowthBytes / 1048576D,10:F1} MiB managed peak " +
+                        $"{measurement.PeakWorkingSetBytes / 1048576D,10:F1} MiB process peak " +
+                        $"{measurement.OutputBytes / 1048576D,10:F1} MiB output");
+                }
             }
         }
 
         var report = new PowerPointBaselineReport(
             DateTimeOffset.UtcNow,
+            PowerPointBenchmarkEvidence.ResolveCommit(),
+            PowerPointBenchmarkEvidence.ResolveSourceTreeDirty(),
             RuntimeInformation.FrameworkDescription,
             RuntimeInformation.OSDescription,
             RuntimeInformation.ProcessArchitecture.ToString(),
             Environment.ProcessorCount,
-            measurements);
+            measurements,
+            failures);
         if (!string.IsNullOrWhiteSpace(jsonPath)) {
             string fullPath = Path.GetFullPath(jsonPath!);
             string? directory = Path.GetDirectoryName(fullPath);
@@ -89,7 +112,10 @@ internal static class PowerPointBaselineRunner {
             File.WriteAllText(fullPath, JsonSerializer.Serialize(report, JsonOptions));
             Console.WriteLine("Wrote " + fullPath);
         }
-        return 0;
+        foreach (string failure in failures) {
+            Console.Error.WriteLine("BUDGET FAILURE: " + failure);
+        }
+        return failures.Count == 0 ? 0 : 1;
     }
 
     private static PowerPointBaselineMeasurement Measure(string operation,
@@ -100,11 +126,14 @@ internal static class PowerPointBaselineRunner {
             : new FileInfo(sourcePath).Length;
 
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        long heapBefore = GC.GetTotalMemory(forceFullCollection: false);
+        using var heapSampler = new PowerPointManagedHeapSampler();
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
         PowerPointOperationResult result = Execute(operation, fixture,
             sourcePath);
         stopwatch.Stop();
+        long peakManagedHeap = heapSampler.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
         using Process process = Process.GetCurrentProcess();
         process.Refresh();
@@ -113,13 +142,19 @@ internal static class PowerPointBaselineRunner {
         return new PowerPointBaselineMeasurement(
             operation,
             fixture.Scale,
+            1,
             fixture.SlideCount,
             result.ShapeCount,
             inputBytes,
             result.OutputBytes,
             stopwatch.Elapsed.TotalMilliseconds,
             allocated,
-            peakWorkingSet);
+            Math.Max(0, peakManagedHeap - heapBefore),
+            peakWorkingSet,
+            result.InputAllocatedBytes,
+            result.LoadAllocatedBytes,
+            result.EditAllocatedBytes,
+            result.SaveAllocatedBytes);
     }
 
     private static PowerPointOperationResult Execute(string operation,
@@ -129,19 +164,29 @@ internal static class PowerPointBaselineRunner {
             return PowerPointOperationResult.Package(bytes);
         }
         if (sourcePath == null) throw new InvalidOperationException("Benchmark source package is unavailable.");
+        long stageStart = GC.GetTotalAllocatedBytes(precise: true);
         byte[] source = File.ReadAllBytes(sourcePath);
+        long afterInput = GC.GetTotalAllocatedBytes(precise: true);
         if (string.Equals(operation, "OpenEditSave", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            long afterLoad = GC.GetTotalAllocatedBytes(precise: true);
             for (int index = 0; index < presentation.Slides.Count; index += 10) {
                 PowerPointTextBox edit = presentation.Slides[index].AddTextBoxPoints(
                     "Reviewed", 760, 486, 140, 22);
                 edit.FontSize = 9;
                 edit.Color = "166534";
             }
+            long afterEdit = GC.GetTotalAllocatedBytes(precise: true);
             using var output = new MemoryStream();
             presentation.Save(output);
-            return PowerPointOperationResult.Package(output.ToArray());
+            byte[] package = output.ToArray();
+            long afterSave = GC.GetTotalAllocatedBytes(precise: true);
+            return PowerPointOperationResult.Package(package,
+                afterInput - stageStart,
+                afterLoad - afterInput,
+                afterEdit - afterLoad,
+                afterSave - afterEdit);
         }
         if (string.Equals(operation, "OpenImageExport", StringComparison.OrdinalIgnoreCase)) {
             using var input = new MemoryStream(source, writable: false);
@@ -376,26 +421,53 @@ internal static class PowerPointBaselineRunner {
             item => string.Equals(item, name, StringComparison.OrdinalIgnoreCase));
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
+
+    private static IReadOnlyList<string> SelectOperations(string? filter) {
+        if (string.IsNullOrWhiteSpace(filter)) return Operations;
+        string? operation = Operations.FirstOrDefault(item =>
+            string.Equals(item, filter, StringComparison.OrdinalIgnoreCase));
+        return operation == null
+            ? throw new ArgumentException("Unknown PowerPoint benchmark operation: " + filter)
+            : new[] { operation };
+    }
+
+    private static int GetPositiveIntOption(string[] args, string name,
+        int defaultValue) {
+        string? value = GetOption(args, name);
+        if (value == null) return defaultValue;
+        return int.TryParse(value, out int parsed) && parsed > 0
+            ? parsed
+            : throw new ArgumentException(name + " must be a positive integer.");
+    }
 }
 
 internal sealed record PowerPointBaselineMeasurement(
     string Operation,
     string Scale,
+    int Iteration,
     int SlideCount,
     int ShapeCount,
     long InputBytes,
     long OutputBytes,
     double ElapsedMilliseconds,
     long AllocatedBytes,
-    long PeakWorkingSetBytes);
+    long PeakManagedHeapGrowthBytes,
+    long PeakWorkingSetBytes,
+    long InputAllocatedBytes,
+    long LoadAllocatedBytes,
+    long EditAllocatedBytes,
+    long SaveAllocatedBytes);
 
 internal sealed record PowerPointBaselineReport(
     DateTimeOffset MeasuredAtUtc,
+    string SourceCommit,
+    bool SourceTreeDirty,
     string Framework,
     string OperatingSystem,
     string Architecture,
     int ProcessorCount,
-    IReadOnlyList<PowerPointBaselineMeasurement> Measurements);
+    IReadOnlyList<PowerPointBaselineMeasurement> Measurements,
+    IReadOnlyList<string> Failures);
 
 internal sealed class PowerPointOperationResult {
     private PowerPointOperationResult() { }
@@ -405,10 +477,22 @@ internal sealed class PowerPointOperationResult {
     internal byte[]? PdfBytes { get; private init; }
     internal long OutputBytes { get; private init; }
     internal int ShapeCount { get; set; }
+    internal long InputAllocatedBytes { get; private init; }
+    internal long LoadAllocatedBytes { get; private init; }
+    internal long EditAllocatedBytes { get; private init; }
+    internal long SaveAllocatedBytes { get; private init; }
 
-    internal static PowerPointOperationResult Package(byte[] bytes) => new() {
+    internal static PowerPointOperationResult Package(byte[] bytes,
+        long inputAllocatedBytes = 0,
+        long loadAllocatedBytes = 0,
+        long editAllocatedBytes = 0,
+        long saveAllocatedBytes = 0) => new() {
         PackageBytes = bytes,
-        OutputBytes = bytes.LongLength
+        OutputBytes = bytes.LongLength,
+        InputAllocatedBytes = inputAllocatedBytes,
+        LoadAllocatedBytes = loadAllocatedBytes,
+        EditAllocatedBytes = editAllocatedBytes,
+        SaveAllocatedBytes = saveAllocatedBytes
     };
 
     internal static PowerPointOperationResult ImageSet(

@@ -67,7 +67,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                     RowSpan = ParseCellSpan(cell.GetAttribute("rowspan"))
                 };
                 structuredCells.Add(structuredCell);
-                renderedCells.Add(RenderTableCellBlocksToMarkdown(cellBlocks));
+                renderedCells.Add(RenderTableCellToMarkdown(structuredCell));
                 CaptureSpannedColumnAlignment(columnAlignments, logicalColumn, structuredCell.ColumnSpan, cellAlignment, replaceExisting: isHeaderRow, maxExpandedColumns: maxExpandedColumns);
                 CaptureSpannedColumnWidth(columnWidthPoints, columnWidthWeights, logicalColumn, structuredCell.ColumnSpan, ParseColumnWidth(cell), replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
                 UpdateActiveCellRowSpans(activeRowSpans, logicalColumn, structuredCell.ColumnSpan, structuredCell.RowSpan);
@@ -102,7 +102,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         ApplyColumnAlignments(table, columnAlignments);
         ApplyColumnWidths(table, columnWidthPoints, columnWidthWeights);
-        table.SetStructuredCells(headerCells, rowCells, table.ComputeContentSignature());
+        table.SetOwnedStructuredCells(headerCells, rowCells, table.ComputeContentSignature());
 
         return table;
     }
@@ -697,12 +697,12 @@ internal sealed partial class HtmlToMarkdownConverter {
         return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
     }
 
-    private static string RenderTableCellBlocksToMarkdown(IReadOnlyList<IMarkdownBlock> blocks) {
-        if (blocks == null || blocks.Count == 0) {
+    private static string RenderTableCellToMarkdown(TableCell cell) {
+        if (cell == null || cell.ChildBlocks.Count == 0) {
             return string.Empty;
         }
 
-        return new TableCell(blocks).Markdown.Replace("  \n", "<br>");
+        return cell.Markdown.Replace("  \n", "<br>");
     }
 
     private sealed class ColumnWidthHint {

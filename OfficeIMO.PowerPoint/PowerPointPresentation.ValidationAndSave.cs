@@ -265,6 +265,19 @@ namespace OfficeIMO.PowerPoint {
             PresentationRoot.Save();
             _document!.Save();
 
+#if NET8_0_OR_GREATER
+            PresentationDocumentType currentType = _document.DocumentType;
+            bool canSnapshotCurrentPackage = currentType
+                == PresentationDocumentType.Presentation
+                && (destinationType == null
+                    || destinationType == PresentationDocumentType.Presentation)
+                && _presentationPart.VbaProjectPart == null;
+            if (canSnapshotCurrentPackage
+                && _packageStream is MemoryStream currentPackage) {
+                return currentPackage.ToArray();
+            }
+#endif
+
             using var packageStream = new MemoryStream();
             using (PresentationDocument clone = _document.Clone(
                        packageStream)) {

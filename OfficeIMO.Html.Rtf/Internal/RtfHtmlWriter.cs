@@ -272,10 +272,11 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfToHtmlOptions options, RtfDocument document) {
-        foreach (IRtfInline inline in inlines) {
+        for (int index = 0; index < inlines.Count; index++) {
+            IRtfInline inline = inlines[index];
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(builder, run, options, document);
+                    AppendRun(builder, run, inlines, ref index, options, document);
                     break;
                 case RtfBreak rtfBreak:
                     AppendBreak(builder, rtfBreak.Kind, options.IncludeRoundTripMetadata);
@@ -303,7 +304,13 @@ internal static partial class RtfHtmlWriter {
         }
     }
 
-    private static void AppendRun(StringBuilder builder, RtfRun run, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendRun(
+        StringBuilder builder,
+        RtfRun run,
+        IReadOnlyList<IRtfInline> inlines,
+        ref int index,
+        RtfToHtmlOptions options,
+        RtfDocument document) {
         bool revisionOpened = AppendRevisionStart(builder, run, document, options.IncludeRoundTripMetadata);
         int opened = 0;
         string? hyperlink = ResolveHtmlUrl(run.Hyperlink?.ToString(), options, "RtfHtmlHyperlinkRejected", "run.Hyperlink");
@@ -325,6 +332,13 @@ internal static partial class RtfHtmlWriter {
         OpenTag(builder, "sub", run.VerticalPosition == RtfVerticalPosition.Subscript, ref opened);
 
         builder.Append(Encode(run.Text));
+        while (!options.IncludeRoundTripMetadata &&
+               index + 1 < inlines.Count &&
+               inlines[index + 1] is RtfRun nextRun &&
+               HaveEquivalentHtmlFormatting(run, nextRun)) {
+            builder.Append(Encode(nextRun.Text));
+            index++;
+        }
 
         CloseTag(builder, "sub", run.VerticalPosition == RtfVerticalPosition.Subscript);
         CloseTag(builder, "sup", run.VerticalPosition == RtfVerticalPosition.Superscript);

@@ -6,6 +6,40 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class PstWriterTableTests {
     [Fact]
+    public void Single_and_multi_block_data_trees_round_trip_at_the_block_boundary() {
+        string path = Path.Combine(Path.GetTempPath(),
+            string.Concat("officeimo-pst-data-tree-", Guid.NewGuid().ToString("N"), ".pst"));
+        byte[] singleBlock = Enumerable.Range(0, 8176).Select(index => (byte)(index * 17)).ToArray();
+        byte[] multiBlock = Enumerable.Range(0, 8177).Select(index => (byte)(index * 29)).ToArray();
+        try {
+            using (var writer = new PstWriterFile(path)) {
+                var nodes = new[] {
+                    new PstWriterNode(0x604, 0, writer.WriteDataTree(singleBlock)),
+                    new PstWriterNode(0x624, 0, writer.WriteDataTree(multiBlock))
+                };
+                PstWriterTreeRoot nbt = writer.WriteNodeTree(nodes);
+                PstWriterTreeRoot bbt = writer.WriteBlockTree();
+                writer.FinalizeFile(nbt, bbt, nodes);
+            }
+
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            PstHeader header = PstHeader.Read(stream, EmailStoreFormat.Pst);
+            var ndb = new PstNdbReader(stream, header, EmailStoreReaderOptions.Default,
+                CancellationToken.None);
+            ndb.LoadIndexes();
+
+            Assert.Equal(singleBlock, ndb.ReadDataTree(ndb.Nodes[0x604].DataBid,
+                64 * 1024 * 1024, CancellationToken.None).ToArray(64 * 1024 * 1024));
+            Assert.Equal(multiBlock, ndb.ReadDataTree(ndb.Nodes[0x624].DataBid,
+                64 * 1024 * 1024, CancellationToken.None).ToArray(64 * 1024 * 1024));
+        } finally {
+            try { if (File.Exists(path)) File.Delete(path); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Fact]
     public void Folder_table_row_matrix_uses_the_table_budget_by_default() {
         var options = new EmailStoreReaderOptions(
             maxDecodedPropertyBytesPerItem: 128,

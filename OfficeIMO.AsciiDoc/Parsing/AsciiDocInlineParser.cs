@@ -136,7 +136,7 @@ internal sealed class AsciiDocInlineParser {
     private void AddText(int start, int end, List<AsciiDocInline> items, List<AsciiDocSyntaxNode> syntaxNodes) {
         if (end <= start) return;
         AsciiDocSyntaxNode syntax = _factory.Node(AsciiDocSyntaxKind.InlineText, start, end);
-        Add(new AsciiDocTextInline(syntax, syntax.OriginalText), items, syntaxNodes);
+        Add(new AsciiDocTextInline(syntax), items, syntaxNodes);
     }
 
     private void Add(AsciiDocInline item, List<AsciiDocInline> items, List<AsciiDocSyntaxNode> syntaxNodes) {

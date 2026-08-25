@@ -48,6 +48,49 @@ internal sealed class MarkdownSourceTextMap {
         return new MarkdownSourcePoint(normalizedLine, normalizedColumn, GetOffset(normalizedLine, normalizedColumn));
     }
 
+    /// <summary>Writes a contiguous source slice without rescanning the source line for every character.</summary>
+    internal int WriteSequentialPoints(
+        MarkdownSourcePoint?[] destination,
+        ref int destinationIndex,
+        string text,
+        int line,
+        int startColumn) {
+        if (destination == null) {
+            throw new ArgumentNullException(nameof(destination));
+        }
+        if (string.IsNullOrEmpty(text)) {
+            return startColumn;
+        }
+        if (destinationIndex < 0 || destinationIndex + text.Length > destination.Length) {
+            throw new ArgumentOutOfRangeException(nameof(destinationIndex));
+        }
+
+        var firstPoint = CreatePoint(line, startColumn);
+        var logicalSourceColumn = startColumn;
+        var mappedSourceColumn = firstPoint.Column;
+        var sourceOffset = firstPoint.Offset;
+        var maximumColumn = GetLineLength(firstPoint.Line);
+        var lineEndExclusive = firstPoint.Line < _lineStarts.Length
+            ? _lineStarts[firstPoint.Line] - 1
+            : _text.Length;
+        while (lineEndExclusive > sourceOffset && _text[lineEndExclusive - 1] == '\n') {
+            lineEndExclusive--;
+        }
+        var maximumOffset = Math.Max(sourceOffset, lineEndExclusive - 1);
+
+        for (var index = 0; index < text.Length; index++) {
+            destination[destinationIndex++] = new MarkdownSourcePoint(
+                firstPoint.Line,
+                mappedSourceColumn,
+                sourceOffset);
+            logicalSourceColumn = MarkdownSourceColumns.AdvanceColumn(logicalSourceColumn, text[index]);
+            mappedSourceColumn = Math.Min(maximumColumn, Math.Max(1, logicalSourceColumn));
+            sourceOffset = Math.Min(maximumOffset, sourceOffset + 1);
+        }
+
+        return logicalSourceColumn;
+    }
+
     private int NormalizeColumn(int line, int column) {
         var length = GetLineLength(line);
         if (length <= 0) {

@@ -15,4 +15,8 @@
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="powerpoint-performance-budgets.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

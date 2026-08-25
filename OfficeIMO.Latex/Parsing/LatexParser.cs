@@ -13,8 +13,8 @@ internal static class LatexParser {
         options ??= new LatexParseOptions();
         options.ValidateNamedModes();
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(source, options, cancellationToken);
         var sourceText = new LatexSourceText(source);
+        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(sourceText, options, cancellationToken);
         var diagnostics = new List<LatexDiagnostic>();
         var structural = new LatexStructuralParser(sourceText, tokens, options, diagnostics, cancellationToken);
         LatexSyntaxTree syntaxTree = structural.Parse();

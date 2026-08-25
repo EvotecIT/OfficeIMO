@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "description": "Regression ceilings for validated OfficeMarkup and Markdig semantic parsing. The ratio limits preserve practical headroom below the 2x contender boundary.",
+  "budgets": [
+    {
+      "scale": "Small",
+      "documents": 256,
+      "maxElapsedNanosecondsPerDocument": 1000000,
+      "maxAllocatedBytesPerDocument": 49152,
+      "maxRetainedManagedHeapGrowthBytes": 33554432,
+      "maxPeakManagedHeapGrowthBytes": 67108864,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 167772160,
+      "maxElapsedRatio": 1.75,
+      "maxAllocationRatio": 1.6
+    },
+    {
+      "scale": "Normal",
+      "documents": 128,
+      "maxElapsedNanosecondsPerDocument": 20000000,
+      "maxAllocatedBytesPerDocument": 2359296,
+      "maxRetainedManagedHeapGrowthBytes": 201326592,
+      "maxPeakManagedHeapGrowthBytes": 335544320,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 503316480,
+      "maxElapsedRatio": 1.75,
+      "maxAllocationRatio": 1.6
+    },
+    {
+      "scale": "Large",
+      "documents": 16,
+      "maxElapsedNanosecondsPerDocument": 100000000,
+      "maxAllocatedBytesPerDocument": 23068672,
+      "maxRetainedManagedHeapGrowthBytes": 402653184,
+      "maxPeakManagedHeapGrowthBytes": 671088640,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 805306368,
+      "maxElapsedRatio": 1.75,
+      "maxAllocationRatio": 1.6
+    }
+  ]
+}

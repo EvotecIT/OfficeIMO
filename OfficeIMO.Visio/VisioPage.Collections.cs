@@ -20,7 +20,10 @@ namespace OfficeIMO.Visio {
                     }
 
                     _page.PrepareShapeForPage(value, _page._shapes[index]);
+                    VisioShape existing = _page._shapes[index];
                     _page._shapes[index] = value;
+                    _page.DetachShapeTree(existing);
+                    _page.AttachShapeTree(value);
                 }
             }
 
@@ -31,9 +34,16 @@ namespace OfficeIMO.Visio {
             public void Add(VisioShape item) {
                 _page.PrepareShapeForPage(item);
                 _page._shapes.Add(item);
+                _page.AttachShapeTree(item);
             }
 
-            public void Clear() => _page._shapes.Clear();
+            public void Clear() {
+                for (int index = 0; index < _page._shapes.Count; index++) {
+                    _page._shapes[index].SetOwnerPage(null);
+                }
+                _page._shapes.Clear();
+                _page.InvalidatePageObjectIdIndex();
+            }
 
             public bool Contains(VisioShape item) => _page._shapes.Contains(item);
 
@@ -46,11 +56,22 @@ namespace OfficeIMO.Visio {
             public void Insert(int index, VisioShape item) {
                 _page.PrepareShapeForPage(item);
                 _page._shapes.Insert(index, item);
+                _page.AttachShapeTree(item);
             }
 
-            public bool Remove(VisioShape item) => _page._shapes.Remove(item);
+            public bool Remove(VisioShape item) {
+                bool removed = _page._shapes.Remove(item);
+                if (removed) {
+                    _page.DetachShapeTree(item);
+                }
+                return removed;
+            }
 
-            public void RemoveAt(int index) => _page._shapes.RemoveAt(index);
+            public void RemoveAt(int index) {
+                VisioShape shape = _page._shapes[index];
+                _page._shapes.RemoveAt(index);
+                _page.DetachShapeTree(shape);
+            }
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
@@ -72,6 +93,7 @@ namespace OfficeIMO.Visio {
 
                     _page.PrepareConnectorForPage(value, existing);
                     _page._connectors[index] = value;
+                    _page.InvalidatePageObjectIdIndex();
                 }
             }
 
@@ -82,9 +104,13 @@ namespace OfficeIMO.Visio {
             public void Add(VisioConnector item) {
                 _page.PrepareConnectorForPage(item);
                 _page._connectors.Add(item);
+                _page.RegisterPageObjectId(item.Id);
             }
 
-            public void Clear() => _page._connectors.Clear();
+            public void Clear() {
+                _page._connectors.Clear();
+                _page.InvalidatePageObjectIdIndex();
+            }
 
             public bool Contains(VisioConnector item) => _page._connectors.Contains(item);
 
@@ -97,11 +123,21 @@ namespace OfficeIMO.Visio {
             public void Insert(int index, VisioConnector item) {
                 _page.PrepareConnectorForPage(item);
                 _page._connectors.Insert(index, item);
+                _page.RegisterPageObjectId(item.Id);
             }
 
-            public bool Remove(VisioConnector item) => _page._connectors.Remove(item);
+            public bool Remove(VisioConnector item) {
+                bool removed = _page._connectors.Remove(item);
+                if (removed) {
+                    _page.InvalidatePageObjectIdIndex();
+                }
+                return removed;
+            }
 
-            public void RemoveAt(int index) => _page._connectors.RemoveAt(index);
+            public void RemoveAt(int index) {
+                _page._connectors.RemoveAt(index);
+                _page.InvalidatePageObjectIdIndex();
+            }
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }

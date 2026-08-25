@@ -59,6 +59,7 @@ and nullable object-typed values:
 
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvDataReaderWriteBenchmarks*" --job short --warmupCount 3 --iterationCount 9
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --datareader-write-size-evidence --rows 25000,100000 --json .benchmark-artifacts\csv\datareader-write-size.json
 ```
 
 This 25,000-row, 10-column lane complements the numeric-heavy 40-column

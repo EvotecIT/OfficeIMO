@@ -329,6 +329,7 @@ namespace OfficeIMO.Word {
 
             // Insert the new row after the last row
             var insertedRow = lastRow.InsertAfterSelf(clonedRow);
+            InvalidateRowElements();
 
             return GetOrCreateRow(insertedRow, initializeCells: true);
         }

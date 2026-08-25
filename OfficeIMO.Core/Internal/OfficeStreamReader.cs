@@ -63,6 +63,59 @@ namespace OfficeIMO.Core.Internal {
             long originalPosition = source.CanSeek ? source.Position : 0;
             try {
                 if (source.CanSeek) source.Seek(0, SeekOrigin.Begin);
+                if (source.CanSeek) {
+                    long remaining = source.Length - source.Position;
+                    EnsureWithinLimit(remaining, maxBytes);
+                    if (remaining > int.MaxValue) {
+                        throw new InvalidDataException($"Stream length {remaining} exceeds the supported in-memory size.");
+                    }
+
+                    byte[] result = remaining == 0
+                        ? Array.Empty<byte>()
+                        : new byte[checked((int)remaining)];
+                    int offset = 0;
+                    while (offset < result.Length) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        int exactRead = await source.ReadAsync(
+                            result,
+                            offset,
+                            result.Length - offset,
+                            cancellationToken).ConfigureAwait(false);
+                        if (exactRead == 0) {
+                            Array.Resize(ref result, offset);
+                            return result;
+                        }
+
+                        offset += exactRead;
+                    }
+
+                    var trailingByte = new byte[1];
+                    int trailingRead = await source.ReadAsync(
+                        trailingByte,
+                        0,
+                        1,
+                        cancellationToken).ConfigureAwait(false);
+                    if (trailingRead == 0) return result;
+
+                    using var expanded = new MemoryStream(checked(result.Length + 1));
+                    expanded.Write(result, 0, result.Length);
+                    expanded.WriteByte(trailingByte[0]);
+                    long expandedTotal = checked((long)result.Length + 1);
+                    EnsureWithinLimit(expandedTotal, maxBytes);
+                    var expandedBuffer = new byte[BufferSize];
+                    int expandedRead;
+                    while ((expandedRead = await source.ReadAsync(
+                        expandedBuffer,
+                        0,
+                        expandedBuffer.Length,
+                        cancellationToken).ConfigureAwait(false)) > 0) {
+                        expandedTotal = checked(expandedTotal + expandedRead);
+                        EnsureWithinLimit(expandedTotal, maxBytes);
+                        expanded.Write(expandedBuffer, 0, expandedRead);
+                    }
+                    return expanded.ToArray();
+                }
+
                 using var output = new MemoryStream();
                 var buffer = new byte[BufferSize];
                 long total = 0;
@@ -81,33 +134,46 @@ namespace OfficeIMO.Core.Internal {
         private static byte[] ReadToEnd(Stream source, CancellationToken cancellationToken, long? maxBytes) {
             cancellationToken.ThrowIfCancellationRequested();
             if (source.CanSeek) {
-                long remaining = source.Length - source.Position;
+                long remaining = Math.Max(0, source.Length - source.Position);
                 EnsureWithinLimit(remaining, maxBytes);
                 if (remaining > int.MaxValue) {
                     throw new InvalidDataException($"Stream length {remaining} exceeds the supported in-memory size.");
                 }
 
-                if (remaining >= BufferSize) {
-                    byte[] result = new byte[checked((int)remaining)];
-                    int offset = 0;
-                    while (offset < result.Length) {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        int exactRead = source.Read(result, offset, result.Length - offset);
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (exactRead == 0) {
-                            if (offset == 0) {
-                                return Array.Empty<byte>();
-                            }
-
-                            Array.Resize(ref result, offset);
-                            return result;
-                        }
-
-                        offset += exactRead;
+                byte[] result = remaining == 0
+                    ? Array.Empty<byte>()
+                    : new byte[checked((int)remaining)];
+                int offset = 0;
+                while (offset < result.Length) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int exactRead = source.Read(result, offset, result.Length - offset);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (exactRead == 0) {
+                        Array.Resize(ref result, offset);
+                        return result;
                     }
 
-                    return result;
+                    offset += exactRead;
                 }
+
+                int trailingByte = source.ReadByte();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (trailingByte < 0) return result;
+
+                using var expanded = new MemoryStream(checked(result.Length + 1));
+                expanded.Write(result, 0, result.Length);
+                expanded.WriteByte(checked((byte)trailingByte));
+                long expandedTotal = checked((long)result.Length + 1);
+                EnsureWithinLimit(expandedTotal, maxBytes);
+                var expandedBuffer = new byte[BufferSize];
+                int expandedRead;
+                while ((expandedRead = source.Read(expandedBuffer, 0, expandedBuffer.Length)) > 0) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    expandedTotal = checked(expandedTotal + expandedRead);
+                    EnsureWithinLimit(expandedTotal, maxBytes);
+                    expanded.Write(expandedBuffer, 0, expandedRead);
+                }
+                return expanded.ToArray();
             }
 
             using var output = new MemoryStream();

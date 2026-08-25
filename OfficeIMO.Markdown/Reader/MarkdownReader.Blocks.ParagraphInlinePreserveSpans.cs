@@ -19,11 +19,19 @@ public static partial class MarkdownReader {
             return Array.Empty<bool>();
         }
 
-        var text = string.Join("\n", lines);
-        if (text.IndexOf('`') < 0 && text.IndexOf('<') < 0) {
-            return new bool[Math.Max(0, lines.Count - 1)];
+        bool containsCandidateDelimiter = false;
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            string line = lines[lineIndex] ?? string.Empty;
+            if (line.IndexOf('`') >= 0 || line.IndexOf('<') >= 0) {
+                containsCandidateDelimiter = true;
+                break;
+            }
+        }
+        if (!containsCandidateDelimiter) {
+            return Array.Empty<bool>();
         }
 
+        var text = string.Join("\n", lines);
         var ranges = FindMatchedCodeSpanRanges(text);
         if (options?.InlineHtml == true) {
             ranges.AddRange(FindMatchedRawInlineHtmlTagRanges(text));
@@ -87,6 +95,12 @@ public static partial class MarkdownReader {
                 break;
             }
 
+            if (TryGetRawInlineHtmlConstructEnd(text, tagStart, out int constructEnd)) {
+                ranges.Add(new ParagraphInlinePreserveRange(tagStart + 1, constructEnd));
+                position = constructEnd;
+                continue;
+            }
+
             if (!HtmlBlockParser.TryParseHtmlTag(text.Substring(tagStart), out _, out _, out int endIndex)) {
                 position = tagStart + 1;
                 continue;
@@ -97,6 +111,39 @@ public static partial class MarkdownReader {
         }
 
         return ranges;
+    }
+
+    private static bool TryGetRawInlineHtmlConstructEnd(string text, int start, out int endExclusive) {
+        endExclusive = 0;
+        string? closing = null;
+        int contentStart = start;
+        if (text.IndexOf("<!--", start, StringComparison.Ordinal) == start) {
+            closing = "-->";
+            contentStart += 4;
+        } else if (text.IndexOf("<?", start, StringComparison.Ordinal) == start) {
+            closing = "?>";
+            contentStart += 2;
+        } else if (text.IndexOf("<![CDATA[", start, StringComparison.Ordinal) == start) {
+            closing = "]]>";
+            contentStart += 9;
+        } else if (text.IndexOf("<!", start, StringComparison.Ordinal) == start
+                   && start + 2 < text.Length
+                   && char.IsUpper(text[start + 2])) {
+            closing = ">";
+            contentStart += 2;
+        }
+
+        if (closing == null) {
+            return false;
+        }
+
+        int closingStart = text.IndexOf(closing, contentStart, StringComparison.Ordinal);
+        if (closingStart < 0) {
+            return false;
+        }
+
+        endExclusive = closingStart + closing.Length;
+        return true;
     }
 
     private static int CountBacktickRun(string text, int start) {

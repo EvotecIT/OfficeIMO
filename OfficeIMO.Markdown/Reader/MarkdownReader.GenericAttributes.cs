@@ -92,7 +92,7 @@ public static partial class MarkdownReader {
         MarkdownReaderState state) {
         var line = lines[lineIndex];
         return (options.FencedCode && IsCodeFenceOpen(line, out _, out _, out _))
-            || (options.UnorderedLists && IsUnorderedListLine(line, out _, out _, out _, out _))
+            || (options.UnorderedLists && IsUnorderedListLine(line))
             || (options.OrderedLists && IsOrderedListLine(line, options, out _, out _))
             || StartsTable(lines, lineIndex, options, state);
     }
@@ -120,7 +120,7 @@ public static partial class MarkdownReader {
             MarkdownGenericAttributeSourceSpans.Set(target, pending.SourceText, pending.SourceSpan);
         }
 
-        captureStartLine = pending.SourceSpan.StartLine - 1;
+        captureStartLine = (pending.SourceSpan?.StartLine ?? blockStartLine + 1) - 1;
         state.PendingGenericAttributeBlock = null;
         return true;
     }
@@ -130,7 +130,7 @@ public static partial class MarkdownReader {
         MarkdownPendingGenericAttributeBlock pending,
         int blockStartLine) {
         if (target is HeadingBlock heading) {
-            heading.OffsetRelativeSourceInfoLines(Math.Max(0, blockStartLine + 1 - pending.SourceSpan.StartLine));
+            heading.OffsetRelativeSourceInfoLines(Math.Max(0, blockStartLine + 1 - (pending.SourceSpan?.StartLine ?? blockStartLine + 1)));
         }
 
         target.SetAttributes(pending.Attributes);
@@ -217,7 +217,7 @@ public static partial class MarkdownReader {
             }
 
             if (options.UnorderedLists
-                && IsUnorderedListLine(lines[i], out _, out _, out _, out _)) {
+                && IsUnorderedListLine(lines[i])) {
                 return true;
             }
 

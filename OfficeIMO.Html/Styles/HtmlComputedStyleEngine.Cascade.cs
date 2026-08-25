@@ -23,7 +23,7 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -79,7 +79,7 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
-        if (!IsSupportedDeclarationValue(name, resolved.Value)) {
+        if (!valueAlreadyValidated && !IsSupportedDeclarationValue(name, resolved.Value)) {
             return;
         }
 
@@ -193,7 +193,7 @@ public static partial class HtmlComputedStyleEngine {
         if (property == null) return Array.Empty<CascadedProperty>();
         var candidates = new List<CascadedProperty>(property.Alternatives.Count + 1) { property };
         candidates.AddRange(property.Alternatives);
-        return candidates.AsReadOnly();
+        return candidates;
     }
 
     private static string StripTrailingImportant(string value, out bool isImportant) {

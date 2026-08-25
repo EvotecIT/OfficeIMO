@@ -62,6 +62,32 @@ public sealed class ReaderZipModularTests {
     }
 
     [Fact]
+    public void ZipTraversal_PreservesSafeSegmentsAndRejectsDotSegments() {
+        var zipPath = Path.Combine(Path.GetTempPath(), "officeimo-zip-" + Guid.NewGuid().ToString("N") + ".zip");
+        try {
+            using (var fs = new FileStream(zipPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false)) {
+                WriteTextEntry(archive, "./safe.txt", "safe");
+                WriteTextEntry(archive, "safe//double.txt", "safe");
+                WriteTextEntry(archive, "safe/.../literal.txt", "safe");
+                WriteTextEntry(archive, "safe/./dot.txt", "bad");
+                WriteTextEntry(archive, "safe/../parent.txt", "bad");
+            }
+
+            ZipTraversalResult result = ZipTraversal.Traverse(zipPath);
+
+            Assert.Equal(
+                new[] { "safe.txt", "safe/.../literal.txt", "safe//double.txt" },
+                result.Entries.Select(entry => entry.FullName));
+            Assert.Equal(2, result.Warnings.Count);
+            Assert.All(result.Warnings, warning =>
+                Assert.Contains("path traversal", warning.Warning, StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderZip_ReadsNestedZipAndEmitsWarnings() {
         var zipPath = Path.Combine(Path.GetTempPath(), "officeimo-reader-zip-" + Guid.NewGuid().ToString("N") + ".zip");
         try {

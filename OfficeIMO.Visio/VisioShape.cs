@@ -194,6 +194,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioShape? Parent { get; internal set; }
 
+        internal VisioPage? OwnerPage { get; private set; }
+
         /// <summary>
         /// Child shapes when this shape represents a group.
         /// </summary>
@@ -613,6 +615,13 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        internal void SetOwnerPage(VisioPage? page) {
+            OwnerPage = page;
+            for (int index = 0; index < _children.Count; index++) {
+                _children[index].SetOwnerPage(page);
+            }
+        }
+
         internal bool ContainsInHierarchy(VisioShape candidate) {
             if (ReferenceEquals(this, candidate)) {
                 return true;
@@ -627,7 +636,7 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private void PrepareChildForParent(VisioShape child) {
+        private void PrepareChildForParent(VisioShape child, VisioShape? ignoredChild = null) {
             if (child == null) {
                 throw new ArgumentNullException(nameof(child));
             }
@@ -648,11 +657,20 @@ namespace OfficeIMO.Visio {
                 throw new InvalidOperationException("The shape already belongs to another parent. Remove it from the current parent before reusing it.");
             }
 
+            OwnerPage?.PrepareNestedShapeForPage(child, ignoredChild);
+
             child.Parent = this;
             child.NormalizeDescendantParentLinks();
         }
 
+        private void AttachChild(VisioShape child) {
+            if (OwnerPage != null) {
+                OwnerPage.AttachNestedShapeTree(child);
+            }
+        }
+
         private void DetachChild(VisioShape child) {
+            OwnerPage?.DetachNestedShapeTree(child);
             if (ReferenceEquals(child.Parent, this)) {
                 child.Parent = null;
             }
@@ -738,7 +756,7 @@ namespace OfficeIMO.Visio {
                         return;
                     }
 
-                    _owner.PrepareChildForParent(value);
+                    _owner.PrepareChildForParent(value, existing);
                     try {
                         _owner._children[index] = value;
                     } catch {
@@ -747,6 +765,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     _owner.DetachChild(existing);
+                    _owner.AttachChild(value);
                 }
             }
 
@@ -757,6 +776,7 @@ namespace OfficeIMO.Visio {
             public void Add(VisioShape item) {
                 _owner.PrepareChildForParent(item);
                 _owner._children.Add(item);
+                _owner.AttachChild(item);
             }
 
             public void Clear() {
@@ -778,6 +798,7 @@ namespace OfficeIMO.Visio {
             public void Insert(int index, VisioShape item) {
                 _owner.PrepareChildForParent(item);
                 _owner._children.Insert(index, item);
+                _owner.AttachChild(item);
             }
 
             public bool Remove(VisioShape item) {

@@ -1,10 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 
 namespace OfficeIMO.OpenDocument.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class OpenDocumentPackageBenchmarks {
     private byte[] _odt = Array.Empty<byte>();
 
@@ -30,7 +28,6 @@ public class OpenDocumentPackageBenchmarks {
 }
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class OpenDocumentFormulaBenchmarks {
     private OdsDocument _document = null!;
 

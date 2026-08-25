@@ -160,7 +160,10 @@ namespace OfficeIMO.Tests {
 
             public override int Read(byte[] buffer, int offset, int count) {
                 int read = _inner.Read(buffer, offset, count);
-                if (!BulkReadObserved && count >= 81920) {
+                // The format probe reads only the 8-byte package signature. Cancel on
+                // the subsequent payload read without coupling the contract test to a
+                // particular copy-buffer size or allocation strategy.
+                if (!BulkReadObserved && count > 8) {
                     BulkReadObserved = true;
                     _cancel();
                 }

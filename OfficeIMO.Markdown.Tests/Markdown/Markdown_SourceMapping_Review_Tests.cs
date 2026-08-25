@@ -7,6 +7,37 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_SourceMapping_Review_Tests {
     [Fact]
+    public void SequentialSourceMap_Preserves_Logical_EndColumn_After_Clamped_Writes() {
+        const string source = "\t[x](u)\nnext";
+        const string firstLine = "\t[x](u)";
+        var sourceMap = new MarkdownSourceTextMap(source);
+        var points = new MarkdownSourcePoint?[firstLine.Length];
+        var destinationIndex = 0;
+
+        var nextColumn = sourceMap.WriteSequentialPoints(points, ref destinationIndex, firstLine, line: 1, startColumn: 1);
+
+        Assert.Equal(firstLine.Length, destinationIndex);
+        Assert.Equal(11, nextColumn);
+        Assert.Equal(new[] { 1, 5, 6, 7, 8, 9, 10 }, points.Select(point => point!.Value.Column));
+        Assert.Equal(Enumerable.Range(0, firstLine.Length), points.Select(point => point!.Value.Offset));
+    }
+
+    [Fact]
+    public void MultilineParagraph_TabBeforeJoin_Preserves_Text_SourceSlice_And_Edit() {
+        const string markdown = "[x](u)\tq\n**b**";
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var text = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Text);
+
+        Assert.Equal("\tq ", text.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 9), text.SourceSpan);
+        Assert.Equal(
+            "[x](u) gap \n**b**",
+            native.CreateReplaceEdit(text.SourceSpan!.Value, " gap ").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
     public void DetailsSummary_Inlines_Are_SourceBacked() {
         const string markdown = "<details><summary>[docs](url)</summary>\nbody\n</details>";
         var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {

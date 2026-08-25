@@ -19,6 +19,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     private int? _cachedCellContentSignature;
     private bool _cachedUsesStructuredCells;
     private int _cachedCellColumnCount = -1;
+    private bool _structuredCellsAreOwned;
 
     /// <summary>Optional header cells.</summary>
     public List<string> Headers { get; } = new List<string>();
@@ -153,6 +154,22 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         }
 
         StructuredContentSignature = contentSignature;
+        _structuredCellsAreOwned = false;
+        InvalidateRealizedCellCache();
+    }
+
+    /// <summary>
+    /// Transfers converter-owned structured cells into this table without cloning a model that
+    /// was created exclusively for this table.
+    /// </summary>
+    internal void SetOwnedStructuredCells(
+        List<TableCell>? headers,
+        List<IReadOnlyList<TableCell>>? rows,
+        int contentSignature) {
+        StructuredHeaders = headers;
+        StructuredRows = rows;
+        StructuredContentSignature = contentSignature;
+        _structuredCellsAreOwned = true;
         InvalidateRealizedCellCache();
     }
 
@@ -182,14 +199,15 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
         int columnCount = GetEffectiveColumnCount();
         bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == ComputeContentSignature();
-        Func<string?, string> escapeCell = (useStructuredCells || CellsContainRenderedMarkdown) ? EscapeRenderedMarkdownCell : EscapeMarkdownCell;
+        bool preserveMarkdownEscapes = useStructuredCells || CellsContainRenderedMarkdown;
 
         if (Headers.Count > 0) {
             var sb = new StringBuilder();
-            var headerMarkdown = useStructuredCells
-                ? PrepareStructuredRowMarkdown(StructuredHeaders, Headers, columnCount)
-                : PrepareRowCells(Headers, columnCount);
-            var escapedHeaders = headerMarkdown.Select(escapeCell).ToArray();
+            var escapedHeaders = PrepareEscapedMarkdownRow(
+                useStructuredCells ? StructuredHeaders : null,
+                Headers,
+                columnCount,
+                preserveMarkdownEscapes);
             AppendTableAttributesToFirstCell(escapedHeaders);
             AppendRow(sb, escapedHeaders);
 
@@ -201,10 +219,13 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             AppendRow(sb, alignRow);
 
             for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
-                var rowMarkdown = useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count
-                    ? PrepareStructuredRowMarkdown(StructuredRows[rowIndex], Rows[rowIndex], columnCount)
-                    : PrepareRowCells(Rows[rowIndex], columnCount);
-                var escapedRow = rowMarkdown.Select(escapeCell).ToArray();
+                var escapedRow = PrepareEscapedMarkdownRow(
+                    useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count
+                        ? StructuredRows[rowIndex]
+                        : null,
+                    Rows[rowIndex],
+                    columnCount,
+                    preserveMarkdownEscapes);
                 AppendRow(sb, escapedRow);
             }
 
@@ -217,10 +238,13 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         }
 
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
-            var rowMarkdown = useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count
-                ? PrepareStructuredRowMarkdown(StructuredRows[rowIndex], Rows[rowIndex], columnCount)
-                : PrepareRowCells(Rows[rowIndex], columnCount);
-            var escapedRow = rowMarkdown.Select(escapeCell).ToArray();
+            var escapedRow = PrepareEscapedMarkdownRow(
+                useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count
+                    ? StructuredRows[rowIndex]
+                    : null,
+                Rows[rowIndex],
+                columnCount,
+                preserveMarkdownEscapes);
             if (rowIndex == 0) {
                 AppendTableAttributesToFirstCell(escapedRow);
             }

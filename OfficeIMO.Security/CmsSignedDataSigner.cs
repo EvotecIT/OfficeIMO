@@ -5,6 +5,7 @@ using Org.BouncyCastle.Asn1.Cms;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Cms;
 using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Operators.Utilities;
 
 namespace OfficeIMO.Security;
 
@@ -58,28 +59,84 @@ public static class CmsSignedDataSigner {
         }
 
         Org.BouncyCastle.X509.X509Certificate bcSigner = DotNetUtilities.FromX509Certificate(signingCertificate);
-        var signatureFactory = new PlatformRsaSignatureFactory(rsa, options.DigestAlgorithm);
-        var attributes = new SignedAttributeGenerator(options);
-        var signerBuilder = new SignerInfoGeneratorBuilder()
-            .WithSignedAttributeGenerator(attributes);
+        AlgorithmIdentifier signatureAlgorithm = DefaultSignatureAlgorithmFinder.Instance.Find(
+            GetSignatureAlgorithmName(options.DigestAlgorithm));
+        AlgorithmIdentifier digestAlgorithm = DefaultDigestAlgorithmFinder.Instance.Find(signatureAlgorithm);
+        byte[] contentDigest = ComputeDigest(content, options.DigestAlgorithm);
+        var attributeParameters = new Dictionary<CmsAttributeTableParameter, object> {
+            [CmsAttributeTableParameter.ContentType] = new DerObjectIdentifier(contentTypeOid),
+            [CmsAttributeTableParameter.Digest] = contentDigest,
+            [CmsAttributeTableParameter.DigestAlgorithmIdentifier] = digestAlgorithm,
+            [CmsAttributeTableParameter.SignatureAlgorithmIdentifier] = signatureAlgorithm
+        };
+        Org.BouncyCastle.Asn1.Cms.AttributeTable attributeTable =
+            new SignedAttributeGenerator(options).GetAttributes(attributeParameters);
+        var signedAttributes = new DerSet(attributeTable.ToAsn1EncodableVector());
+        byte[] signedAttributeBytes = signedAttributes.GetEncoded(Asn1Encodable.Der);
+        byte[] signature = rsa.SignData(
+            signedAttributeBytes,
+            options.DigestAlgorithm,
+            RSASignaturePadding.Pkcs1);
 
-        var generator = new CmsSignedDataGenerator { UseDefiniteLength = true };
-        generator.AddSignerInfoGenerator(signerBuilder.Build(signatureFactory, bcSigner));
-        generator.AddCertificate(bcSigner);
+        var signerIdentifier = new SignerIdentifier(
+            new IssuerAndSerialNumber(bcSigner.IssuerDN, bcSigner.SerialNumber));
+        var signerInfo = new SignerInfo(
+            signerIdentifier,
+            digestAlgorithm,
+            signedAttributes,
+            signatureAlgorithm,
+            new DerOctetString(signature),
+            unauthenticatedAttributes: null);
 
+        var certificates = new List<Asn1Encodable> { bcSigner.CertificateStructure };
         if (options.IncludeCertificateChain && certificateChain != null) {
             var embeddedThumbprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
                 signingCertificate.Thumbprint ?? string.Empty
             };
             foreach (X509Certificate2 certificate in certificateChain) {
                 if (certificate == null || !embeddedThumbprints.Add(certificate.Thumbprint ?? string.Empty)) continue;
-                generator.AddCertificate(DotNetUtilities.FromX509Certificate(certificate));
+                certificates.Add(DotNetUtilities.FromX509Certificate(certificate).CertificateStructure);
             }
         }
 
-        var processable = new CmsProcessableByteArray(new DerObjectIdentifier(contentTypeOid), content);
-        return generator.Generate(processable, encapsulate).GetEncoded();
+        var encapsulatedContent = new ContentInfo(
+            new DerObjectIdentifier(contentTypeOid),
+            encapsulate ? new DerOctetString(content) : null);
+        var signedData = new SignedData(
+            new DerSet(digestAlgorithm),
+            encapsulatedContent,
+            new DerSet(certificates),
+            crls: null,
+            new DerSet(signerInfo));
+        return new ContentInfo(CmsObjectIdentifiers.SignedData, signedData)
+            .GetEncoded(Asn1Encodable.Der);
     }
+
+    private static string GetSignatureAlgorithmName(HashAlgorithmName digestAlgorithm) {
+        if (digestAlgorithm == HashAlgorithmName.SHA256) return "SHA256WITHRSA";
+        if (digestAlgorithm == HashAlgorithmName.SHA384) return "SHA384WITHRSA";
+        if (digestAlgorithm == HashAlgorithmName.SHA512) return "SHA512WITHRSA";
+        if (digestAlgorithm == HashAlgorithmName.SHA1) return "SHA1WITHRSA";
+        throw new NotSupportedException("CMS RSA signing supports SHA-1, SHA-256, SHA-384, and SHA-512.");
+    }
+
+    private static byte[] ComputeDigest(byte[] content, HashAlgorithmName digestAlgorithm) {
+        using HashAlgorithm algorithm = digestAlgorithm == HashAlgorithmName.SHA256
+            ? SHA256.Create()
+            : digestAlgorithm == HashAlgorithmName.SHA384
+                ? SHA384.Create()
+                : digestAlgorithm == HashAlgorithmName.SHA512
+                    ? SHA512.Create()
+                    : digestAlgorithm == HashAlgorithmName.SHA1
+                        ? CreateSha1DigestForLegacyCmsCompatibility()
+                        : throw new NotSupportedException(
+                            "CMS RSA signing supports SHA-1, SHA-256, SHA-384, and SHA-512.");
+        return algorithm.ComputeHash(content);
+    }
+
+#pragma warning disable CA5350 // Caller-selected SHA-1 is retained only for legacy CMS interoperability.
+    private static SHA1 CreateSha1DigestForLegacyCmsCompatibility() => SHA1.Create();
+#pragma warning restore CA5350
 
     private sealed class SignedAttributeGenerator : CmsAttributeTableGenerator {
         private readonly CmsSigningOptions _options;

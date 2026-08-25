@@ -62,6 +62,38 @@ public static partial class MarkdownReader {
         return line.Substring(index);
     }
 
+    private static bool StartsWithMarkerAfterIndent(
+        string line,
+        int requiredColumns,
+        int maximumAdditionalColumns,
+        char marker) {
+        if (string.IsNullOrEmpty(line)) {
+            return false;
+        }
+
+        var columns = 0;
+        var index = 0;
+        while (index < line.Length) {
+            var value = line[index];
+            if (value == ' ') {
+                columns++;
+                index++;
+                continue;
+            }
+            if (value == '\t') {
+                columns += 4 - (columns % 4);
+                index++;
+                continue;
+            }
+            break;
+        }
+
+        return columns >= requiredColumns &&
+            columns - requiredColumns <= maximumAdditionalColumns &&
+            index < line.Length &&
+            line[index] == marker;
+    }
+
     private static bool HasIndentedCodeContinuationAfterBlankLines(string[] lines, int blankLineIndex, int requiredColumns) {
         if (lines == null || blankLineIndex < 0) return false;
 

@@ -6,6 +6,14 @@ namespace OfficeIMO.Markdown.Html;
 internal sealed partial class HtmlToMarkdownConverter {
     internal static InlineSequence ConvertInlineNodesToInlineSequence(IEnumerable<INode> nodes, ConversionContext? context) {
         var sequence = new InlineSequence { AutoSpacing = false };
+        if (nodes is INodeList nodeList) {
+            for (int i = 0; i < nodeList.Length; i++) {
+                bool trimEnd = NextVisibleInlineNodeIsBoundary(nodeList, i + 1, context);
+                AppendInlineNode(sequence, nodeList[i], context, trimEnd);
+            }
+            return sequence;
+        }
+
         var materializedNodes = nodes as IList<INode> ?? nodes.ToList();
         for (int i = 0; i < materializedNodes.Count; i++) {
             bool trimEnd = NextVisibleInlineNodeIsBoundary(materializedNodes, i + 1, context);
@@ -456,28 +464,64 @@ internal sealed partial class HtmlToMarkdownConverter {
             return string.Empty;
         }
 
-        var sb = new StringBuilder(text.Length);
+        StringBuilder? sb = null;
         bool previousWasWhitespace = false;
-        foreach (char ch in text) {
+        for (int i = 0; i < text.Length; i++) {
+            char ch = text[i];
             if (char.IsWhiteSpace(ch)) {
                 if (previousWasWhitespace) {
+                    sb ??= AllocateWhitespaceBuilder(text, i);
                     continue;
                 }
 
-                sb.Append(' ');
+                if (ch != ' ') {
+                    sb ??= AllocateWhitespaceBuilder(text, i);
+                    sb.Append(' ');
+                } else {
+                    sb?.Append(ch);
+                }
                 previousWasWhitespace = true;
                 continue;
             }
 
-            sb.Append(ch);
+            sb?.Append(ch);
             previousWasWhitespace = false;
         }
 
-        return sb.ToString();
+        return sb?.ToString() ?? text;
+    }
+
+    private static StringBuilder AllocateWhitespaceBuilder(string text, int prefixLength) {
+        var builder = new StringBuilder(text.Length);
+        if (prefixLength > 0) {
+            builder.Append(text, 0, prefixLength);
+        }
+        return builder;
     }
 
     private static bool NextVisibleInlineNodeIsBoundary(IList<INode> nodes, int startIndex, ConversionContext? context) {
         for (int i = startIndex; i < nodes.Count; i++) {
+            var node = nodes[i];
+            switch (node) {
+                case null:
+                case IComment:
+                    continue;
+                case IText text when string.IsNullOrWhiteSpace(text.Data):
+                    continue;
+                case IElement element when context != null && ShouldIgnoreElement(element, context):
+                    continue;
+                case IElement element when element.TagName.Equals("BR", StringComparison.OrdinalIgnoreCase):
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool NextVisibleInlineNodeIsBoundary(INodeList nodes, int startIndex, ConversionContext? context) {
+        for (int i = startIndex; i < nodes.Length; i++) {
             var node = nodes[i];
             switch (node) {
                 case null:

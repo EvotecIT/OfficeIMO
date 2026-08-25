@@ -41,6 +41,25 @@ page-break
     }
 
     [Fact]
+    public void Parse_CommonProfile_Preserves_SourceText_For_Mapped_Markdown_Blocks() {
+        const string markup = "# Title\n\nIntro with **strong** text.\n\n- First\n- Second\n\n| Name | Value |\n| --- | ---: |\n| A | 1 |";
+
+        var result = OfficeMarkupParser.Parse(markup, new OfficeMarkupParserOptions {
+            Profile = OfficeMarkupProfile.Common,
+            Validate = false
+        });
+
+        Assert.Collection(
+            result.Document.Blocks,
+            block => Assert.Equal("# Title", block.SourceText),
+            block => Assert.Equal("Intro with **strong** text.", block.SourceText),
+            block => Assert.Equal("- First\n- Second", block.SourceText!.Replace("\r\n", "\n")),
+            block => Assert.Equal(
+                "| Name | Value |\n| --- | ---: |\n| A | 1 |",
+                block.SourceText!.Replace("\r\n", "\n")));
+    }
+
+    [Fact]
     public void Parse_DocumentProfile_PreservesMarkdownAfterSingleLineDirectives() {
         var markup = """
 ---

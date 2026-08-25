@@ -4,18 +4,26 @@ namespace OfficeIMO.Markdown;
 /// Source span for markdown syntax nodes.
 /// </summary>
 public readonly struct MarkdownSourceSpan : IEquatable<MarkdownSourceSpan> {
+    private const int Missing = int.MinValue;
+    private readonly int _startLine;
+    private readonly int _startColumn;
+    private readonly int _endLine;
+    private readonly int _endColumn;
+    private readonly int _startOffset;
+    private readonly int _endOffset;
+
     /// <summary>1-based start line.</summary>
-    public int StartLine { get; }
+    public int StartLine => _startLine;
     /// <summary>1-based start column.</summary>
-    public int? StartColumn { get; }
+    public int? StartColumn => _startLine == 0 || _startColumn == Missing ? null : _startColumn;
     /// <summary>1-based end line.</summary>
-    public int EndLine { get; }
+    public int EndLine => _endLine;
     /// <summary>1-based end column.</summary>
-    public int? EndColumn { get; }
+    public int? EndColumn => _startLine == 0 || _endColumn == Missing ? null : _endColumn;
     /// <summary>0-based start offset in the normalized markdown text.</summary>
-    public int? StartOffset { get; }
+    public int? StartOffset => _startLine == 0 || _startOffset == Missing ? null : _startOffset;
     /// <summary>0-based end offset in the normalized markdown text.</summary>
-    public int? EndOffset { get; }
+    public int? EndOffset => _startLine == 0 || _endOffset == Missing ? null : _endOffset;
 
     /// <summary>Create a line-based source span.</summary>
     public MarkdownSourceSpan(int startLine, int endLine) {
@@ -26,12 +34,12 @@ public readonly struct MarkdownSourceSpan : IEquatable<MarkdownSourceSpan> {
             endLine = startLine;
         }
 
-        StartLine = startLine;
-        StartColumn = null;
-        EndLine = endLine;
-        EndColumn = null;
-        StartOffset = null;
-        EndOffset = null;
+        _startLine = startLine;
+        _startColumn = Missing;
+        _endLine = endLine;
+        _endColumn = Missing;
+        _startOffset = Missing;
+        _endOffset = Missing;
     }
 
     /// <summary>Create a source span with line, column, and optional normalized-text offsets.</summary>
@@ -52,12 +60,12 @@ public readonly struct MarkdownSourceSpan : IEquatable<MarkdownSourceSpan> {
             endColumn = startColumn;
         }
 
-        StartLine = startLine;
-        StartColumn = startColumn;
-        EndLine = endLine;
-        EndColumn = endColumn;
-        StartOffset = startOffset;
-        EndOffset = endOffset;
+        _startLine = startLine;
+        _startColumn = startColumn;
+        _endLine = endLine;
+        _endColumn = endColumn;
+        _startOffset = startOffset ?? Missing;
+        _endOffset = endOffset ?? Missing;
     }
 
     /// <summary>Returns true when the span contains the given 1-based line number.</summary>

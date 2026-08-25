@@ -13,7 +13,23 @@ internal static class MarkdownBenchmarkCorpus {
         ["NormalizationStress"] = BuildNormalizationStress()
     };
 
-    public static IEnumerable<string> Names => Corpora.Keys;
+    public static IEnumerable<string> Names {
+        get {
+            string? selectedName = Environment.GetEnvironmentVariable("OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS");
+            if (string.IsNullOrWhiteSpace(selectedName)) {
+                return Corpora.Keys;
+            }
+
+            if (!Corpora.ContainsKey(selectedName)) {
+                throw new InvalidOperationException(
+                    $"Unknown Markdown benchmark corpus '{selectedName}'. Valid values: {string.Join(", ", Corpora.Keys)}.");
+            }
+
+            return new[] { selectedName };
+        }
+    }
+
+    internal static IEnumerable<string> AllNames => Corpora.Keys;
 
     public static string Get(string name) => Corpora[name];
 

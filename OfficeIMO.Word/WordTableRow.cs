@@ -216,6 +216,7 @@ namespace OfficeIMO.Word {
         /// Remove a row
         /// </summary>
         public void Remove() {
+            _wordTable.TrackRemovedRow(_tableRow);
             _tableRow.Remove();
         }
 

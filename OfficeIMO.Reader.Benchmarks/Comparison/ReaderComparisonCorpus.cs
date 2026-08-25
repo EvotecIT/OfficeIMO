@@ -21,7 +21,11 @@ internal static class ReaderComparisonCorpus {
         CreatePowerPoint(),
         CreatePdf(),
         CreateHtml(),
+        CreateMarkdown(),
         CreateCsv(),
+        CreateJson(),
+        CreateXml(),
+        CreateYaml(),
         CreateMsg(),
         CreateEpub(),
         CreateZip(),
@@ -157,12 +161,96 @@ internal static class ReaderComparisonCorpus {
             Probe("rich-link", ReaderComparisonProbeKind.RichLink));
     }
 
+    private static ReaderComparisonCase CreateMarkdown() {
+        const string sourceName = "handbook.md";
+        return Case("markdown", sourceName, Encoding.UTF8.GetBytes(BuildMarkdownBenchmark()),
+            Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "Reader benchmark handbook"),
+            Probe("last-section", ReaderComparisonProbeKind.ContainsText, "Section 80"),
+            Probe("table", ReaderComparisonProbeKind.MarkdownTable, "Item 5"),
+            Probe("rich-table", ReaderComparisonProbeKind.RichTable),
+            Probe("heading-location", ReaderComparisonProbeKind.LocationHeading, "Reader benchmark handbook"),
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, sourceName));
+    }
+
+    internal static string BuildMarkdownBenchmark() {
+        var builder = new StringBuilder();
+        builder.Append("# Reader benchmark handbook\n");
+        for (int section = 1; section <= 80; section++) {
+            builder.Append('\n');
+            builder.Append("## Section ").Append(section).Append('\n');
+            builder.Append('\n');
+            builder.Append("This representative section contains document ingestion guidance, stable citations, and bounded processing notes for item ")
+                .Append(section).Append(".\n");
+            builder.Append('\n');
+            builder.Append("| Name | Value | Status |\n");
+            builder.Append("| --- | ---: | --- |\n");
+            for (int row = 1; row <= 5; row++) {
+                builder.Append("| Item ").Append(row).Append(" | ").Append(section * row).Append(" | Ready |\n");
+            }
+        }
+        return builder.ToString();
+    }
+
     private static ReaderComparisonCase CreateCsv() {
         const string csv = "Control,Owner,Status\nCSV retention marker,Reader team,Ready\n";
         return Case("csv", "evidence-records.csv", Encoding.UTF8.GetBytes(csv),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "CSV retention marker"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
             Probe("path-location", ReaderComparisonProbeKind.LocationPath, "evidence-records.csv"));
+    }
+
+    private static ReaderComparisonCase CreateJson() {
+        var json = new StringBuilder(96_000);
+        json.Append("{\"records\":[");
+        for (var index = 0; index < 1_200; index++) {
+            if (index > 0) json.Append(',');
+            json.Append("{\"name\":\"JSON retention marker ")
+                .Append(index)
+                .Append("\",\"value\":")
+                .Append(index)
+                .Append('}');
+        }
+        json.Append("]}");
+
+        return Case("json", "evidence-records.json", Encoding.UTF8.GetBytes(json.ToString()),
+            Probe("last-record", ReaderComparisonProbeKind.ContainsText, "JSON retention marker 1199"),
+            Probe("rich-table", ReaderComparisonProbeKind.RichTable),
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, "evidence-records.json"));
+    }
+
+    private static ReaderComparisonCase CreateXml() {
+        var xml = new StringBuilder(112_000);
+        xml.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?><records>");
+        for (var index = 0; index < 1_200; index++) {
+            xml.Append("<record><name>XML retention marker ")
+                .Append(index)
+                .Append("</name><value>")
+                .Append(index)
+                .Append("</value></record>");
+        }
+        xml.Append("</records>");
+
+        return Case("xml", "evidence-records.xml", Encoding.UTF8.GetBytes(xml.ToString()),
+            Probe("last-record", ReaderComparisonProbeKind.ContainsText, "XML retention marker 1199"),
+            Probe("rich-table", ReaderComparisonProbeKind.RichTable),
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, "evidence-records.xml"));
+    }
+
+    private static ReaderComparisonCase CreateYaml() {
+        var yaml = new StringBuilder(80_000);
+        yaml.Append("records:\n");
+        for (var index = 0; index < 1_200; index++) {
+            yaml.Append("  - name: YAML retention marker ")
+                .Append(index)
+                .Append("\n    value: ")
+                .Append(index)
+                .Append('\n');
+        }
+
+        return Case("yaml", "evidence-records.yaml", Encoding.UTF8.GetBytes(yaml.ToString()),
+            Probe("last-record", ReaderComparisonProbeKind.ContainsText, "YAML retention marker 1199"),
+            Probe("rich-table", ReaderComparisonProbeKind.RichTable),
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, "evidence-records.yaml"));
     }
 
     private static ReaderComparisonCase CreateMsg() {

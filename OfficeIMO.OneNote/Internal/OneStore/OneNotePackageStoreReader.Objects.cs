@@ -89,7 +89,7 @@ internal static partial class OneNotePackageStoreReader {
                     revision.CellId.Value,
                     options,
                     accumulator.Offset);
-                record.RawPropertyData = OneNoteBinaryPayload.FromBytes(accumulator.PropertyData);
+                record.RawPropertyData = OneNoteBinaryPayload.FromOwnedBytes(accumulator.PropertyData);
                 record.PropertySet = OneNotePropertySetReader.Read(accumulator.PropertyData, mappings, options, (ulong)Math.Max(0, accumulator.Offset));
                 ApplyFileDataProperties(record);
             }
@@ -111,7 +111,7 @@ internal static partial class OneNotePackageStoreReader {
                 }
                 byte[] bytes = FssHttpStreamObjectReader.ReadData(stream, blobNode, (ulong)options.MaxAssetBytes, "object-data BLOB");
                 graph.TotalAssetBytes += bytes.LongLength;
-                graph.FileDataObjects.Add(new OneNoteFileDataStoreObject(fileDataId, OneNoteBinaryPayload.FromBytes(bytes)));
+                graph.FileDataObjects.Add(new OneNoteFileDataStoreObject(fileDataId, OneNoteBinaryPayload.FromOwnedBytes(bytes)));
             }
         }
     }

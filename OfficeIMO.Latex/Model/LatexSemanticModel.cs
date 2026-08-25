@@ -15,8 +15,8 @@ public sealed class LatexArgument : ILatexSourceEdit {
         Syntax = syntax;
         IsOptional = syntax.Kind == LatexSyntaxKind.OptionalGroup;
         bool closed = syntax.Children.Count >= 2 && syntax.Children[syntax.Children.Count - 1].Kind == LatexSyntaxKind.GroupDelimiter;
-        int start = syntax.Children.Count == 0 ? syntax.Span.Start.Offset : syntax.Children[0].Span.End.Offset;
-        int end = closed ? syntax.Children[syntax.Children.Count - 1].Span.Start.Offset : syntax.Span.End.Offset;
+        int start = syntax.Children.Count == 0 ? syntax.StartOffset : syntax.Children[0].EndOffset;
+        int end = closed ? syntax.Children[syntax.Children.Count - 1].StartOffset : syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
         _content = source.Text.Substring(start, end - start);
         IsTerminated = closed;
@@ -53,10 +53,14 @@ public sealed class LatexCommand {
     internal LatexCommand(LatexSyntaxNode syntax, LatexSourceText source) {
         Syntax = syntax;
         Name = syntax.Value ?? string.Empty;
-        _arguments = syntax.Children
-            .Where(static child => child.Kind == LatexSyntaxKind.RequiredGroup || child.Kind == LatexSyntaxKind.OptionalGroup)
-            .Select(child => new LatexArgument(child, source))
-            .ToArray();
+        var arguments = new List<LatexArgument>();
+        for (int index = 0; index < syntax.Children.Count; index++) {
+            LatexSyntaxNode child = syntax.Children[index];
+            if (child.Kind == LatexSyntaxKind.RequiredGroup || child.Kind == LatexSyntaxKind.OptionalGroup) {
+                arguments.Add(new LatexArgument(child, source));
+            }
+        }
+        _arguments = arguments.Count == 0 ? Array.Empty<LatexArgument>() : arguments.ToArray();
     }
 
     /// <summary>Lossless command syntax.</summary>
@@ -73,9 +77,20 @@ public sealed class LatexCommand {
     /// <summary>True when any argument changed.</summary>
     public bool IsModified => Arguments.Any(static argument => argument.IsModified);
     /// <summary>Returns the required argument at a zero-based required-only index.</summary>
-    public LatexArgument? GetRequiredArgument(int index) => Arguments.Where(static argument => !argument.IsOptional).Skip(index).FirstOrDefault();
+    public LatexArgument? GetRequiredArgument(int index) => GetArgument(index, optional: false);
     /// <summary>Returns the optional argument at a zero-based optional-only index.</summary>
-    public LatexArgument? GetOptionalArgument(int index) => Arguments.Where(static argument => argument.IsOptional).Skip(index).FirstOrDefault();
+    public LatexArgument? GetOptionalArgument(int index) => GetArgument(index, optional: true);
+
+    private LatexArgument? GetArgument(int requestedIndex, bool optional) {
+        if (requestedIndex < 0) return null;
+        int foundIndex = 0;
+        for (int index = 0; index < _arguments.Count; index++) {
+            LatexArgument argument = _arguments[index];
+            if (argument.IsOptional != optional) continue;
+            if (foundIndex++ == requestedIndex) return argument;
+        }
+        return null;
+    }
 }
 
 /// <summary>Source-backed begin/end LaTeX environment.</summary>
@@ -92,8 +107,8 @@ public sealed class LatexEnvironment : ILatexSourceEdit {
         Name = syntax.Value ?? string.Empty;
         BeginCommand = beginCommand;
         EndCommand = endCommand;
-        int start = beginCommand.Syntax.Span.End.Offset;
-        int end = endCommand?.Syntax.Span.Start.Offset ?? syntax.Span.End.Offset;
+        int start = beginCommand.Syntax.EndOffset;
+        int end = endCommand?.Syntax.StartOffset ?? syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
         _content = source.Text.Substring(start, end - start);
     }
@@ -156,9 +171,9 @@ public sealed class LatexMath : ILatexSourceEdit {
             : Delimiter == "$$" ? LatexMathKind.DisplayDollar
             : Delimiter == "\\(" ? LatexMathKind.InlineParentheses
             : LatexMathKind.DisplayBrackets;
-        int start = syntax.Children.Count == 0 ? syntax.Span.Start.Offset : syntax.Children[0].Span.End.Offset;
+        int start = syntax.Children.Count == 0 ? syntax.StartOffset : syntax.Children[0].EndOffset;
         bool closed = syntax.Children.Count >= 2 && syntax.Children[syntax.Children.Count - 1].Kind == LatexSyntaxKind.MathDelimiter;
-        int end = closed ? syntax.Children[syntax.Children.Count - 1].Span.Start.Offset : syntax.Span.End.Offset;
+        int end = closed ? syntax.Children[syntax.Children.Count - 1].StartOffset : syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
         _content = source.Text.Substring(start, end - start);
         IsTerminated = closed;

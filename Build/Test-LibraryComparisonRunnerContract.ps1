@@ -19,6 +19,10 @@ $mixed = @(
 )
 $mixedRouteHealth = @($mixed | Where-Object Workload -eq 'pdfformats')
 $mixedComparison = @($mixed | Where-Object Workload -eq 'pdfhtmlpayload')
+$odsCreate = @($mixed | Where-Object Workload -eq 'odscreate')
+$odsRead = @($mixed | Where-Object Workload -eq 'odsread')
+$epubRead = @($mixed | Where-Object Workload -eq 'epubread')
+$zipTraversal = @($mixed | Where-Object Workload -eq 'ziptraverse')
 if ($mixedRouteHealth.Count -ne 1 -or
     $mixedRouteHealth[0].CatalogEligible -or
     $mixedRouteHealth[0].WillCatalog -or
@@ -30,6 +34,22 @@ if ($mixedComparison.Count -ne 1 -or
     -not $mixedComparison[0].WillCatalog -or
     -not $mixedComparison[0].Publish) {
     throw 'The mixed benchmark plan no longer publishes eligible library-comparison evidence.'
+}
+if ($odsCreate.Count -ne 1 -or $odsRead.Count -ne 1 -or
+    -not $odsCreate[0].CatalogEligible -or -not $odsCreate[0].WillCatalog -or
+    -not $odsRead[0].CatalogEligible -or -not $odsRead[0].WillCatalog) {
+    throw 'The ODS create/read comparisons are missing from the catalog-eligible mixed benchmark plan.'
+}
+if ($epubRead.Count -ne 1 -or
+    -not $epubRead[0].CatalogEligible -or -not $epubRead[0].WillCatalog -or
+    -not $epubRead[0].Publish) {
+    throw 'The EPUB open/read comparison is missing from the catalog-eligible mixed benchmark plan.'
+}
+if ($zipTraversal.Count -ne 1 -or
+    $zipTraversal[0].CatalogEligible -or
+    $zipTraversal[0].WillCatalog -or
+    $zipTraversal[0].Publish) {
+    throw 'The non-equivalent ZIP safety-overhead diagnostic can reach library-comparison publication.'
 }
 
 $pdfHtml = @(
@@ -48,4 +68,4 @@ if ($unrelated.Count -ne 1 -or $unrelated[0].Workload -ne 'csv') {
     throw 'An unrelated comparison workload still depends on HtmlTinkerX discovery.'
 }
 
-Write-Host 'Library comparison runner policy verified for standalone and mixed PDF route-health selection.'
+Write-Host 'Library comparison runner policy verified for standalone diagnostics, HTML-to-PDF route health, and mixed comparison selection.'

@@ -3,7 +3,8 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Standalone inline image: ![alt](src "title").
 /// </summary>
-public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner {
+    MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Alternate text for the image.</summary>
     public string Alt { get; }
     /// <summary>Plain-text alternate text used for HTML rendering and text extraction.</summary>

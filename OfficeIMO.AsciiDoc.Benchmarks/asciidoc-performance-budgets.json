@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "description": "Regression ceilings for validated lossless parse and parse-plus-preserve-write workloads. They are guards, not optimality or competitor-parity claims.",
+  "budgets": [
+    {
+      "operation": "Parse",
+      "scale": "Small",
+      "maxElapsedMilliseconds": 5,
+      "maxAllocatedBytes": 80000,
+      "maxRetainedManagedHeapGrowthBytes": 60000,
+      "maxPeakManagedHeapGrowthBytes": 130000,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 67108864,
+      "maxOutputBytes": 0
+    },
+    {
+      "operation": "ParseWrite",
+      "scale": "Small",
+      "maxElapsedMilliseconds": 5,
+      "maxAllocatedBytes": 80000,
+      "maxRetainedManagedHeapGrowthBytes": 1048576,
+      "maxPeakManagedHeapGrowthBytes": 130000,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 67108864,
+      "maxOutputBytes": 1173
+    },
+    {
+      "operation": "Parse",
+      "scale": "Normal",
+      "maxElapsedMilliseconds": 20,
+      "maxAllocatedBytes": 3350000,
+      "maxRetainedManagedHeapGrowthBytes": 2400000,
+      "maxPeakManagedHeapGrowthBytes": 3400000,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 83886080,
+      "maxOutputBytes": 0
+    },
+    {
+      "operation": "ParseWrite",
+      "scale": "Normal",
+      "maxElapsedMilliseconds": 20,
+      "maxAllocatedBytes": 3350000,
+      "maxRetainedManagedHeapGrowthBytes": 1048576,
+      "maxPeakManagedHeapGrowthBytes": 3400000,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 83886080,
+      "maxOutputBytes": 56323
+    },
+    {
+      "operation": "Parse",
+      "scale": "Large",
+      "maxElapsedMilliseconds": 180,
+      "maxAllocatedBytes": 34000000,
+      "maxRetainedManagedHeapGrowthBytes": 23000000,
+      "maxPeakManagedHeapGrowthBytes": 34000000,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 115343360,
+      "maxOutputBytes": 0
+    },
+    {
+      "operation": "ParseWrite",
+      "scale": "Large",
+      "maxElapsedMilliseconds": 180,
+      "maxAllocatedBytes": 34000000,
+      "maxRetainedManagedHeapGrowthBytes": 1048576,
+      "maxPeakManagedHeapGrowthBytes": 34000000,
+      "maxAbsoluteProcessPeakWorkingSetBytes": 115343360,
+      "maxOutputBytes": 571429
+    }
+  ]
+}

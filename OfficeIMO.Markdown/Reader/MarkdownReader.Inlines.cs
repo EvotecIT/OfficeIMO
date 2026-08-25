@@ -5,7 +5,25 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
-        var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
+        InlineSequence sequence;
+        bool hasRegisteredAbbreviations = options.Abbreviations && state?.Abbreviations.Count > 0;
+        if (state?.CaptureSyntaxTree == false
+            && sourceMap == null
+            && options.InlineParserExtensions.Count == 0
+            && !hasRegisteredAbbreviations
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks: true, allowImages: true)) {
+            sequence = new InlineSequence { AutoSpacing = false };
+            if (!string.IsNullOrEmpty(text)) {
+                sequence.AddRaw(new MarkdownTextRun(text));
+            }
+        } else if (TryParseSimpleCommonMarkInlines(text, options, state, sourceMap, out var simpleSequence)) {
+            sequence = simpleSequence;
+        } else if (TryParsePlainDoubleAsteriskInlines(text, options, state, sourceMap, out var plainStrongSequence)) {
+            sequence = plainStrongSequence;
+        } else {
+            sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
+        }
+
         ApplyGenericAttributesToInlineElements(sequence, options);
         NormalizeInlineSequenceInPlace(sequence, options.InputNormalization);
         ApplyInlineTransformExtensions(sequence, text, options, state);
@@ -22,21 +40,36 @@ public static partial class MarkdownReader {
         InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null,
         int inlineHtmlWrapperDepth = 0,
         int imageAltDepth = 0) {
-        var root = new InlineSequence { AutoSpacing = false };
+        var root = new InlineSequence(ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages) ? 8 : 1) {
+            AutoSpacing = false
+        };
         if (string.IsNullOrEmpty(text)) return root;
+        bool captureSyntaxMetadata = state?.CaptureSyntaxTree != false;
         var inlineParserExtensions = BuildEffectiveInlineParserExtensions(options);
-        inlineHtmlWrapperMatches ??= BuildInlineHtmlWrapperMatchIndex(text);
-        EmphasisClosingRunIndex? emphasisClosingRuns = text.IndexOf('*') >= 0 || text.IndexOf('_') >= 0
+        if (sourceMap == null
+            && inlineParserExtensions.Count == 0
+            && !(options.Abbreviations && state?.Abbreviations.Count > 0)
+            && !ContainsPotentialInlineSyntax(text, options, allowLinks, allowImages)) {
+            root.AddRaw(new MarkdownTextRun(text));
+            return root;
+        }
+
+        inlineHtmlWrapperMatches ??= options.InlineHtml
+            ? BuildInlineHtmlWrapperMatchIndex(text)
+            : InlineHtmlWrapperMatchIndex.Empty;
+        using EmphasisClosingRunIndex? emphasisClosingRuns = text.IndexOf('*') >= 0 || text.IndexOf('_') >= 0
             ? EmphasisClosingRunIndex.Build(text, options.CjkFriendlyEmphasis)
             : null;
-        EmphasisClosingRunIndex? standardEmphasisClosingRuns = options.CjkFriendlyEmphasis && text.IndexOf('_') >= 0
+        using EmphasisClosingRunIndex? standardEmphasisClosingRuns = options.CjkFriendlyEmphasis && text.IndexOf('_') >= 0
             ? EmphasisClosingRunIndex.Build(text, cjkFriendlyEmphasis: false)
             : emphasisClosingRuns;
 
         // We parse emphasis/strong/strikethrough using a simple stack of open frames so that nesting like
         // "*a **b** c*" behaves intuitively. This is not a full spec implementation, but it's materially
         // more robust than naive IndexOf-based matching.
-        var stack = new Stack<InlineFrame>();
+        // Every parse owns the root frame, so allocate the small common-case
+        // backing store directly instead of growing from zero on the first push.
+        var stack = new Stack<InlineFrame>(4);
         stack.Push(new InlineFrame(FrameKind.Root, '\0', 0, root, -1));
         InlineSequence Current() => stack.Peek().Seq;
         MarkdownInlineSourceMap? SliceMap(int start, int length) => sourceMap?.Slice(start, length);
@@ -55,12 +88,14 @@ public static partial class MarkdownReader {
                     sourceMap?.GetSpan(contentStart, contentLength));
             }
 
-            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
-                node,
-                marker,
-                sourceMap?.GetSpan(start, fenceLength),
-                marker,
-                sourceMap?.GetSpan(closingStart, fenceLength));
+            if (captureSyntaxMetadata) {
+                MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                    node,
+                    marker,
+                    sourceMap?.GetSpan(start, fenceLength),
+                    marker,
+                    sourceMap?.GetSpan(closingStart, fenceLength));
+            }
             AddRawNode(node, start, closingStart + fenceLength - start);
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new MarkdownTextRun(literal), start, length);
@@ -221,14 +256,16 @@ public static partial class MarkdownReader {
                 link,
                 targetLength > 0 ? sourceMap?.GetSpan(targetStart, targetLength) : null,
                 titleStart.HasValue && titleLength.HasValue ? sourceMap?.GetSpan(titleStart.Value, titleLength.Value) : null);
-            MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
-                link,
-                "[",
-                sourceMap?.GetSpan(start, 1),
-                ")",
-                sourceMap?.GetSpan(start + length - 1, 1),
-                "](",
-                sourceMap?.GetSpan(start + labelLength + 1, 2));
+            if (captureSyntaxMetadata) {
+                MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
+                    link,
+                    "[",
+                    sourceMap?.GetSpan(start, 1),
+                    ")",
+                    sourceMap?.GetSpan(start + length - 1, 1),
+                    "](",
+                    sourceMap?.GetSpan(start + labelLength + 1, 2));
+            }
         }
         void AddInlineImageNode(
             string alt,
@@ -371,17 +408,18 @@ public static partial class MarkdownReader {
                 }
             }
 
-            if (TryParseInlineExtension(
-                text,
-                pos,
-                options,
-                state,
-                allowLinks,
-                allowImages,
-                sourceMap,
-                inlineParserExtensions,
-                ParseNestedInlineSegment,
-                out var extensionResult)) {
+            if (inlineParserExtensions.Count > 0
+                && TryParseInlineExtension(
+                    text,
+                    pos,
+                    options,
+                    state,
+                    allowLinks,
+                    allowImages,
+                    sourceMap,
+                    inlineParserExtensions,
+                    ParseNestedInlineSegment,
+                    out var extensionResult)) {
                 AddRawNode(extensionResult.Inline, pos, extensionResult.ConsumedLength);
                 pos += extensionResult.ConsumedLength;
                 continue;
@@ -794,6 +832,18 @@ public static partial class MarkdownReader {
 
                 GetDelimiterFlags(text, pos, marker, runLen, options.CjkFriendlyEmphasis, out bool canOpen, out bool canClose);
 
+                // An opener with no compatible future closing run can never produce
+                // semantic emphasis. Preserve it as literal text without allocating a
+                // frame that would only be unwound at the end of the inline sequence.
+                if (canOpen
+                    && !canClose
+                    && marker is '*' or '_'
+                    && emphasisClosingRuns?.FindFirstRun(pos + runLen, marker) < 0) {
+                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    pos += runLen;
+                    continue;
+                }
+
                 if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack, emphasisClosingRuns)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
@@ -834,18 +884,18 @@ public static partial class MarkdownReader {
 
                 if (canOpen) {
                     if (splitDoubleRunIntoDualItalic || splitDoubleRunIntoRootDualItalic) {
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos));
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + 1));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence(4) { AutoSpacing = false }, pos));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence(4) { AutoSpacing = false }, pos + 1));
                         remaining -= 2;
                     }
                     else if (preferInnerBold) {
-                        stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }, pos));
+                        stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence(4) { AutoSpacing = false }, pos));
                         remaining -= 2;
                     }
 
                     if (splitDoubleUnderscoreOpener && !splitDoubleRunIntoDualItalic && !splitDoubleRunIntoRootDualItalic) {
                         AddTextNode("_", pos, 1);
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + 1));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence(4) { AutoSpacing = false }, pos + 1));
                         remaining -= 2;
                     }
                     else if (literalPrefixForOddCloser > 0 && !splitDoubleRunIntoDualItalic && !splitDoubleRunIntoRootDualItalic) {
@@ -856,14 +906,14 @@ public static partial class MarkdownReader {
                     while (remaining > 0) {
                         if (marker == '~') {
                             if (options.Subscript && !options.SingleTildeStrikethrough && remaining == 1) {
-                                stack.Push(new InlineFrame(FrameKind.Subscript, marker, 1, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                stack.Push(new InlineFrame(FrameKind.Subscript, marker, 1, new InlineSequence(4) { AutoSpacing = false }, pos + (runLen - remaining)));
                                 remaining -= 1;
                                 continue;
                             }
 
                             int strikeDelimiterLength = remaining >= 2 ? 2 : (options.SingleTildeStrikethrough ? 1 : 2);
                             if (remaining >= strikeDelimiterLength) {
-                                stack.Push(new InlineFrame(FrameKind.Strike, marker, strikeDelimiterLength, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                stack.Push(new InlineFrame(FrameKind.Strike, marker, strikeDelimiterLength, new InlineSequence(4) { AutoSpacing = false }, pos + (runLen - remaining)));
                                 remaining -= strikeDelimiterLength;
                                 continue;
                             }
@@ -872,7 +922,7 @@ public static partial class MarkdownReader {
 
                         if (marker == '=') {
                             if (remaining >= 2) {
-                                stack.Push(new InlineFrame(FrameKind.Highlight, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                stack.Push(new InlineFrame(FrameKind.Highlight, marker, 2, new InlineSequence(4) { AutoSpacing = false }, pos + (runLen - remaining)));
                                 remaining -= 2;
                                 continue;
                             }
@@ -881,7 +931,7 @@ public static partial class MarkdownReader {
 
                         if (marker == '+') {
                             if (remaining >= 2) {
-                                stack.Push(new InlineFrame(FrameKind.Inserted, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                stack.Push(new InlineFrame(FrameKind.Inserted, marker, 2, new InlineSequence(4) { AutoSpacing = false }, pos + (runLen - remaining)));
                                 remaining -= 2;
                                 continue;
                             }
@@ -889,18 +939,18 @@ public static partial class MarkdownReader {
                         }
 
                         if (marker == '^') {
-                            stack.Push(new InlineFrame(FrameKind.Superscript, marker, 1, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                            stack.Push(new InlineFrame(FrameKind.Superscript, marker, 1, new InlineSequence(4) { AutoSpacing = false }, pos + (runLen - remaining)));
                             remaining -= 1;
                             continue;
                         }
 
                         if (remaining >= 2) {
-                            stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                            stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence(4) { AutoSpacing = false }, pos + (runLen - remaining)));
                             remaining -= 2;
                             continue;
                         }
 
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence(4) { AutoSpacing = false }, pos + (runLen - remaining)));
                         remaining -= 1;
                     }
                 }

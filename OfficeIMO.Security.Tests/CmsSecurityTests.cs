@@ -30,6 +30,74 @@ public sealed class CmsSecurityTests {
         Assert.Contains(tampered.Signers[0].Findings, finding => finding.Code == "CmsContentDigestMismatch");
     }
 
+    [Theory]
+    [InlineData("SHA1", "1.3.14.3.2.26")]
+    [InlineData("SHA256", "2.16.840.1.101.3.4.2.1")]
+    [InlineData("SHA384", "2.16.840.1.101.3.4.2.2")]
+    [InlineData("SHA512", "2.16.840.1.101.3.4.2.3")]
+    public void DetachedRsaSignature_FastPathPreservesSupportedDigestContracts(
+        string digestName,
+        string expectedDigestOid) {
+        byte[] content = Encoding.UTF8.GetBytes("OfficeIMO RSA digest contract\r\n");
+        using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Digest " + digestName);
+        byte[] encoded = CmsSignedDataSigner.SignDetached(
+            content,
+            certificate,
+            new CmsSigningOptions {
+                DigestAlgorithm = new HashAlgorithmName(digestName),
+                IncludeSigningTime = false,
+                IncludeCertificateChain = false
+            });
+
+        CmsVerificationResult result = CmsSignedDataVerifier.VerifyDetached(encoded, content, TrustSelfSigned());
+
+        CmsSignerVerificationResult signer = Assert.Single(result.Signers);
+        Assert.True(result.IsCryptographicallyValid);
+        Assert.Equal(SecurityValidationStatus.Valid, signer.SignatureStatus);
+        Assert.Equal(SecurityValidationStatus.Valid, signer.DigestStatus);
+        Assert.Equal(expectedDigestOid, signer.DigestAlgorithmOid);
+    }
+
+    [Fact]
+    public void PlatformDetachedRsaSignature_PreservesTypedResultAndRejectsTampering() {
+        byte[] content = Encoding.UTF8.GetBytes("OfficeIMO platform CMS contract\r\n");
+        using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO Platform CMS");
+        var signedCms = new System.Security.Cryptography.Pkcs.SignedCms(
+            new System.Security.Cryptography.Pkcs.ContentInfo(content),
+            detached: true);
+        var platformSigner = new System.Security.Cryptography.Pkcs.CmsSigner(
+            System.Security.Cryptography.Pkcs.SubjectIdentifierType.IssuerAndSerialNumber,
+            certificate) {
+            DigestAlgorithm = new Oid("2.16.840.1.101.3.4.2.1"),
+            IncludeOption = X509IncludeOption.EndCertOnly
+        };
+        signedCms.ComputeSignature(platformSigner, silent: true);
+        byte[] encoded = signedCms.Encode();
+        var options = new CmsVerificationOptions { ValidateTimestamps = false };
+        options.CertificateValidation.ValidateChain = false;
+        options.CertificateValidation.DisableCertificateDownloads = true;
+        options.CertificateValidation.RevocationMode = X509RevocationMode.NoCheck;
+
+        CmsVerificationResult valid = CmsSignedDataVerifier.VerifyDetached(encoded, content, options);
+        byte[] tampered = (byte[])content.Clone();
+        tampered[^1] ^= 0x5A;
+        CmsVerificationResult invalid = CmsSignedDataVerifier.VerifyDetached(encoded, tampered, options);
+
+        CmsSignerVerificationResult signer = Assert.Single(valid.Signers);
+        Assert.True(valid.Parsed);
+        Assert.True(valid.IsDetached);
+        Assert.True(valid.IsCryptographicallyValid);
+        Assert.Equal(SecurityValidationStatus.Valid, signer.SignatureStatus);
+        Assert.Equal(SecurityValidationStatus.Valid, signer.DigestStatus);
+        Assert.Equal(SecurityValidationStatus.NotPerformed, signer.CertificateValidation.ChainStatus);
+        Assert.Equal(certificate.RawData, signer.SignerCertificate);
+        Assert.Equal(certificate.Subject, signer.Subject);
+        Assert.Equal(certificate.Issuer, signer.Issuer);
+        Assert.Equal(certificate.SerialNumber, signer.SerialNumber);
+        Assert.Equal(certificate.Thumbprint, signer.Thumbprint);
+        Assert.False(invalid.IsCryptographicallyValid);
+    }
+
     [Fact]
     public void EncapsulatedSignature_ReturnsTheExactContent() {
         byte[] content = { 0, 1, 2, 3, 254, 255 };

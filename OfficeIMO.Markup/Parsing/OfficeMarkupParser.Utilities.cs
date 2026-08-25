@@ -4,15 +4,11 @@ namespace OfficeIMO.Markup;
 
 public static partial class OfficeMarkupParser {
     private static MarkdownReaderOptions CreateNestedMarkdownOptions() {
-        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
-        RegisterOfficeFences(options);
-        return options;
+        return DefaultMarkdownOptions;
     }
 
     private static string ToPlainText(InlineSequence sequence) {
-        var sb = new StringBuilder();
-        ((IPlainTextMarkdownInline)sequence).AppendPlainText(sb);
-        return sb.ToString();
+        return InlinePlainText.Extract(sequence);
     }
 
     private static bool IsMermaid(string language) =>

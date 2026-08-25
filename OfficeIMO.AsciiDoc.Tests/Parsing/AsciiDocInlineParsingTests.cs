@@ -44,6 +44,20 @@ public sealed class AsciiDocInlineParsingTests {
     }
 
     [Fact]
+    public void AssigningOriginalLiteralText_DoesNotMarkDocumentModified() {
+        const string source = "Before *unchanged* after.\n";
+        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+        AsciiDocParagraph paragraph = Assert.Single(document.BlocksOfType<AsciiDocParagraph>());
+        AsciiDocTextInline text = Assert.Single(
+            Assert.Single(paragraph.Inlines.Items.OfType<AsciiDocFormattedInline>()).Content.Items.OfType<AsciiDocTextInline>());
+
+        text.Text = "unchanged";
+
+        Assert.False(document.IsModified);
+        Assert.Equal(source, document.ToAsciiDoc());
+    }
+
+    [Fact]
     public void PunctuationAndEscapes_DoNotCreateFalseFormatting() {
         const string source = "2 * 3, snake_case, and \\*literal*.\n";
 

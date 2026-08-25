@@ -183,3 +183,40 @@ public class ReaderMarkdownPipelineBenchmarks {
     public ReaderChunk[] ReadParagraphChunks() =>
         _paragraphReader.Read(_bytes, "handbook.md", _readerOptions).ToArray();
 }
+
+[MemoryDiagnoser]
+[ShortRunJob(RuntimeMoniker.Net80)]
+public class ReaderXmlSiblingBenchmarks {
+    private OfficeDocumentReader _reader = null!;
+    private byte[] _bytes = Array.Empty<byte>();
+    private ReaderOptions _options = null!;
+
+    [Params(128, 1_200, 10_000)]
+    public int SiblingCount { get; set; }
+
+    [GlobalSetup]
+    public void Setup() {
+        var xml = new System.Text.StringBuilder(SiblingCount * 64);
+        xml.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?><records>");
+        for (var index = 0; index < SiblingCount; index++) {
+            xml.Append("<record><name>Item ")
+                .Append(index)
+                .Append("</name><value>")
+                .Append(index)
+                .Append("</value></record>");
+        }
+        xml.Append("</records>");
+
+        _bytes = System.Text.Encoding.UTF8.GetBytes(xml.ToString());
+        _reader = new OfficeDocumentReaderBuilder().AddXmlHandler().Build();
+        _options = new ReaderOptions {
+            ComputeHashes = false,
+            MaxChars = 4_000,
+            MaxTableRows = SiblingCount * 4
+        };
+    }
+
+    [Benchmark]
+    public OfficeDocumentReadResult ReadRepeatedSiblings() =>
+        _reader.ReadDocument(_bytes, "records.xml", _options);
+}

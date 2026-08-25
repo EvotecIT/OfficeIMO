@@ -11,6 +11,16 @@ param(
         'xlsx',
         'xlsxwrite',
         'xlsb',
+        'markdownparse',
+        'markdownhtml',
+        'htmltomarkdown',
+        'rtfhtml',
+        'emailmimeread',
+        'emailmimewrite',
+        'odscreate',
+        'odsread',
+        'epubread',
+        'ziptraverse',
         'imagepngdecode',
         'imagejpegdecode',
         'imagepngencode',
@@ -158,6 +168,166 @@ $definitions = [ordered]@{
         Suite = 'OfficeIMO.Excel.Xlsb.MarkPflug65K'
         IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
+    }
+    markdownparse = [pscustomobject]@{
+        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
+        Filter = '*MarkdownParseBenchmarks.*_ParseSemantic*_CommonMark'
+        ComparisonId = "markdown-commonmark-parse-$Framework"
+        Suite = 'OfficeIMO.Markdown.CommonMarkParse'
+        IdentityVariables = @('corpusname')
+        ExpectedCases = @(
+            foreach ($corpus in @(
+                'PortableReadme',
+                'Transcript',
+                'TechnicalDoc',
+                'RichAst',
+                'LongNestedList',
+                'LargeTable',
+                'NormalizationStress')) {
+                foreach ($engine in @('OfficeIMO-Semantic', 'Markdig')) {
+                    "$engine|CorpusName=$corpus"
+                }
+            }
+        )
+    }
+    markdownhtml = [pscustomobject]@{
+        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
+        Filter = '*MarkdownHtmlBenchmarks.*_ToHtml_CommonMark'
+        ComparisonId = "markdown-commonmark-html-$Framework"
+        Suite = 'OfficeIMO.Markdown.CommonMarkHtml'
+        IdentityVariables = @('corpusname')
+        ExpectedCases = @(
+            foreach ($corpus in @(
+                'PortableReadme',
+                'Transcript',
+                'TechnicalDoc',
+                'RichAst',
+                'LongNestedList',
+                'LargeTable',
+                'NormalizationStress')) {
+                foreach ($engine in @('OfficeIMO', 'Markdig')) {
+                    "$engine|CorpusName=$corpus"
+                }
+            }
+        )
+    }
+    htmltomarkdown = [pscustomobject]@{
+        Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
+        Filter = '*HtmlToMarkdownBenchmarks*'
+        ComparisonId = "html-to-markdown-$Framework"
+        Suite = 'OfficeIMO.Markdown.HtmlToMarkdown'
+        IdentityVariables = @('corpusname')
+        ExpectedCases = @(
+            foreach ($corpus in @('Article', 'LargeArticle', 'Table')) {
+                foreach ($engine in @('OfficeIMO', 'ReverseMarkdown')) {
+                    "$engine|CorpusName=$corpus"
+                }
+            }
+        )
+    }
+    rtfhtml = [pscustomobject]@{
+        Project = 'OfficeIMO.Rtf.Benchmarks.Comparisons\OfficeIMO.Rtf.Benchmarks.Comparisons.csproj'
+        Filter = '*RtfToHtmlComparisonBenchmarks*'
+        ComparisonId = "rtf-to-html-$Framework"
+        Suite = 'OfficeIMO.Rtf.HtmlComparison'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Medium', 'Large', 'Producer')) {
+                foreach ($engine in @('OfficeIMO', 'RtfPipe')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    odscreate = [pscustomobject]@{
+        Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
+        Filter = '*OdsCreateComparisonBenchmarks*'
+        ComparisonId = "opendocument-ods-create-$Framework"
+        Suite = 'OfficeIMO.OpenDocument.OdsCreate'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    odsread = [pscustomobject]@{
+        Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
+        Filter = '*OdsReadComparisonBenchmarks*'
+        ComparisonId = "opendocument-ods-read-$Framework"
+        Suite = 'OfficeIMO.OpenDocument.OdsRead'
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'OpenStandardLibrary')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    emailmimeread = [pscustomobject]@{
+        Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
+        Filter = '*EmailMimeReadBenchmarks*'
+        ComparisonId = "email-mime-read-$Framework"
+        Suite = 'OfficeIMO.Email.MimeRead'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'MimeKit')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    emailmimewrite = [pscustomobject]@{
+        Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
+        Filter = '*EmailMimeWriteBenchmarks*'
+        ComparisonId = "email-mime-write-$Framework"
+        Suite = 'OfficeIMO.Email.MimeWrite'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'MimeKit')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    epubread = [pscustomobject]@{
+        Project = 'OfficeIMO.Epub.Benchmarks.Comparisons\OfficeIMO.Epub.Benchmarks.Comparisons.csproj'
+        Filter = '*EpubReadComparisonBenchmarks*'
+        ComparisonId = "epub-open-read-$Framework"
+        Suite = 'OfficeIMO.Epub.OpenRead'
+        ValidatedSizeEvidence = $true
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal')) {
+                foreach ($engine in @('OfficeIMO', 'VersOne.Epub+HAP')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    ziptraverse = [pscustomobject]@{
+        Project = 'OfficeIMO.Zip.Benchmarks\OfficeIMO.Zip.Benchmarks.csproj'
+        Filter = '*ZipTraversalComparisonBenchmarks*'
+        ComparisonId = "zip-safe-traversal-$Framework"
+        Suite = 'OfficeIMO.Zip.SafeTraversal'
+        CatalogEligible = $false
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Small', 'Normal', 'Large')) {
+                foreach ($engine in @('OfficeIMO', 'System.IO.Compression')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
     }
     imagepngdecode = [pscustomobject]@{
         Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
@@ -552,6 +722,9 @@ foreach ($name in $selected) {
         'benchmark.workload.sourceCommit' = $gitSha
         'benchmark.workload.framework' = $Framework
     }
+    if ($definition.ValidatedSizeEvidence) {
+        $provenanceMetadata['benchmark.workload.sizeEvidencePath'] = 'validated-size-evidence.json'
+    }
     if ($null -ne $affinityLabel) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
     }
@@ -611,6 +784,46 @@ foreach ($name in $selected) {
     if ($benchmarkExitCode -ne 0) {
         throw "$name benchmark run failed with exit code $benchmarkExitCode."
     }
+
+    $sizeEvidencePath = $null
+    if ($definition.ValidatedSizeEvidence) {
+        $sizeEvidencePath = Join-Path $artifactsPath 'validated-size-evidence.json'
+        $sizeArguments = @(
+            'run',
+            '-c', 'Release',
+            '-f', $Framework,
+            '--project', (Join-Path $repositoryRoot $definition.Project),
+            '--',
+            'validate',
+            '--json', $sizeEvidencePath
+        )
+        Push-Location -LiteralPath $repositoryRoot
+        try {
+            & dotnet @sizeArguments
+            $sizeEvidenceExitCode = $LASTEXITCODE
+        } finally {
+            Pop-Location
+        }
+        if ($sizeEvidenceExitCode -ne 0) {
+            throw "$name validated size evidence failed with exit code $sizeEvidenceExitCode."
+        }
+
+        $sizeResults = Get-Content -LiteralPath $sizeEvidencePath -Raw | ConvertFrom-Json
+        $sizeEvidence = [ordered]@{
+            Workload = $name
+            ComparisonId = $definition.ComparisonId
+            SourceCommit = $gitSha
+            Framework = $Framework
+            Platform = $platform
+            CapturedAtUtc = [DateTimeOffset]::UtcNow.ToString('O')
+            Results = $sizeResults
+        }
+        $sizeEvidenceJson = $sizeEvidence | ConvertTo-Json -Depth 12
+        [System.IO.File]::WriteAllText(
+            $sizeEvidencePath,
+            $sizeEvidenceJson,
+            [System.Text.UTF8Encoding]::new($false))
+    }
     $provenanceCapture |
         Complete-BenchmarkProvenanceCapture |
         Out-Null
@@ -664,6 +877,7 @@ foreach ($name in $selected) {
         EvidenceLocation = $evidenceLocation
         ArtifactsPath = $artifactsPath
         NormalizedResult = $normalizedPath
+        SizeEvidence = $sizeEvidencePath
         CatalogEligible = $workloadPlan.WillCatalog
     })
 }
@@ -702,6 +916,7 @@ $outputs = foreach ($measurement in $measurements) {
         } else {
             $measurement.NormalizedResult
         }
+        SizeEvidence = $measurement.SizeEvidence
         EvidenceCatalog = if ($measurement.CatalogEligible) { $catalogPath } else { $null }
     }
 }

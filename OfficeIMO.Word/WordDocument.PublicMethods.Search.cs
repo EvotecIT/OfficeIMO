@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Net.Http;
@@ -71,9 +72,83 @@ namespace OfficeIMO.Word {
         /// <param name="stringComparison"></param>
         /// <returns></returns>
         public int FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+            if (TryFindAndReplaceInSimpleTextNodes(textToFind, textToReplace, stringComparison, out int fastCount)) {
+                return fastCount;
+            }
             int countFind = 0;
             FindAndReplaceInternal(textToFind, textToReplace, ref countFind, true, stringComparison);
             return countFind;
+        }
+
+        private bool TryFindAndReplaceInSimpleTextNodes(
+            string textToFind,
+            string textToReplace,
+            StringComparison stringComparison,
+            out int count) {
+            count = 0;
+            string replacement = textToReplace ?? string.Empty;
+            if (string.IsNullOrEmpty(textToFind) ||
+                replacement.IndexOf('\r') >= 0 ||
+                replacement.IndexOf('\n') >= 0 ||
+                replacement.IndexOf('\t') >= 0) {
+                return false;
+            }
+
+            MainDocumentPart? mainPart = _wordprocessingDocument?.MainDocumentPart;
+            Body? body = mainPart?.Document?.Body;
+            if (body == null || mainPart!.HeaderParts.Any() || mainPart.FooterParts.Any()) {
+                return false;
+            }
+
+            var nodes = new List<Text>();
+            OpenXmlElement? bodyChild = body.FirstChild;
+            while (bodyChild != null) {
+                if (bodyChild is Paragraph paragraph) {
+                    if (!TryCollectSimpleTextNodes(paragraph, nodes)) return false;
+                } else if (bodyChild is not SectionProperties) {
+                    return false;
+                }
+                bodyChild = bodyChild.NextSibling();
+            }
+            string[] values = new string[nodes.Count];
+            for (int index = 0; index < nodes.Count; index++) values[index] = nodes[index].Text;
+            if (HasCrossParagraphMatch(values, textToFind, stringComparison)) return false;
+
+            for (int index = 0; index < nodes.Count; index++) {
+                string value = values[index];
+                if (value.IndexOf(textToFind, stringComparison) < 0) continue;
+                int localCount = 0;
+                string updated = value.FindAndReplace(
+                    textToFind,
+                    replacement,
+                    stringComparison,
+                    ref localCount);
+                nodes[index].Text = updated;
+                if (updated.Length > 0 &&
+                    (char.IsWhiteSpace(updated[0]) || char.IsWhiteSpace(updated[updated.Length - 1]))) {
+                    nodes[index].Space = SpaceProcessingModeValues.Preserve;
+                }
+                count += localCount;
+            }
+            return true;
+        }
+
+        private static bool TryCollectSimpleTextNodes(OpenXmlElement parent, List<Text> nodes) {
+            OpenXmlElement? child = parent.FirstChild;
+            while (child != null) {
+                if (child is Text text) {
+                    nodes.Add(text);
+                } else if (child is OpenXmlLeafTextElement ||
+                           child is Break ||
+                           child is TabChar ||
+                           child is CarriageReturn) {
+                    return false;
+                } else if (child.HasChildren && !TryCollectSimpleTextNodes(child, nodes)) {
+                    return false;
+                }
+                child = child.NextSibling();
+            }
+            return true;
         }
 
         /// <summary>
@@ -113,6 +188,29 @@ namespace OfficeIMO.Word {
                 throw new ArgumentNullException("oldText should not be null");
             }
             List<WordParagraph> foundParagraphs = new List<WordParagraph>();
+            string[] paragraphTexts = new string[paragraphs.Count];
+            for (int index = 0; index < paragraphs.Count; index++) {
+                paragraphTexts[index] = paragraphs[index]?.Text ?? string.Empty;
+            }
+            if (!HasCrossParagraphMatch(paragraphTexts, oldText, stringComparison)) {
+                for (int index = 0; index < paragraphs.Count; index++) {
+                    WordParagraph? paragraph = paragraphs[index];
+                    if (paragraph == null) continue;
+                    int localCount = 0;
+                    string updated = paragraphTexts[index].FindAndReplace(
+                        oldText,
+                        newText,
+                        stringComparison,
+                        ref localCount);
+                    if (localCount == 0) continue;
+
+                    count += localCount;
+                    if (replace) paragraph.Text = updated;
+                    foundParagraphs.Add(paragraph);
+                }
+                return foundParagraphs;
+            }
+
             var removeParas = new List<int>();
             var foundList = SearchText(paragraphs, oldText, new WordPositionInParagraph() { Paragraph = 0 }, stringComparison);
 
@@ -161,6 +259,87 @@ namespace OfficeIMO.Word {
                 }
             }
             return foundParagraphs;
+        }
+
+        private static bool HasCrossParagraphMatch(
+            IReadOnlyList<string> paragraphTexts,
+            string searched,
+            StringComparison stringComparison) {
+            if (searched.Length < 2 || paragraphTexts.Count < 2) return false;
+            if (stringComparison == StringComparison.Ordinal) {
+                return HasCrossParagraphOrdinalMatch(paragraphTexts, searched);
+            }
+
+            int tailLength = searched.Length - 1;
+            string tail = paragraphTexts[0].Length <= tailLength
+                ? paragraphTexts[0]
+                : paragraphTexts[0].Substring(paragraphTexts[0].Length - tailLength);
+            for (int index = 1; index < paragraphTexts.Count; index++) {
+                string current = paragraphTexts[index];
+                int prefixLength = Math.Min(tailLength, current.Length);
+                string boundary = tail + current.Substring(0, prefixLength);
+                int searchIndex = 0;
+                while (searchIndex < tail.Length) {
+                    int matchIndex = boundary.IndexOf(searched, searchIndex, stringComparison);
+                    if (matchIndex < 0 || matchIndex >= tail.Length) break;
+                    if (matchIndex + searched.Length > tail.Length) return true;
+                    searchIndex = matchIndex + 1;
+                }
+
+                string combined = tail + current;
+                tail = combined.Length <= tailLength
+                    ? combined
+                    : combined.Substring(combined.Length - tailLength);
+            }
+            return false;
+        }
+
+        private static bool HasCrossParagraphOrdinalMatch(
+            IReadOnlyList<string> paragraphTexts,
+            string searched) {
+            int maximumTailLength = searched.Length - 1;
+            var tail = new char[maximumTailLength];
+            int tailCount = 0;
+            for (int index = 0; index < paragraphTexts.Count; index++) {
+                string current = paragraphTexts[index];
+                if (index > 0 && ContainsOrdinalMatchAcrossBoundary(tail, tailCount, current, searched)) {
+                    return true;
+                }
+
+                if (current.Length >= maximumTailLength) {
+                    current.CopyTo(current.Length - maximumTailLength, tail, 0, maximumTailLength);
+                    tailCount = maximumTailLength;
+                    continue;
+                }
+
+                int retained = Math.Min(tailCount, maximumTailLength - current.Length);
+                if (retained > 0) Array.Copy(tail, tailCount - retained, tail, 0, retained);
+                current.CopyTo(0, tail, retained, current.Length);
+                tailCount = retained + current.Length;
+            }
+            return false;
+        }
+
+        private static bool ContainsOrdinalMatchAcrossBoundary(
+            char[] tail,
+            int tailCount,
+            string current,
+            string searched) {
+            int combinedLength = tailCount + current.Length;
+            int firstStart = Math.Max(0, tailCount - searched.Length + 1);
+            for (int start = firstStart; start < tailCount && start + searched.Length <= combinedLength; start++) {
+                int matchIndex = 0;
+                while (matchIndex < searched.Length) {
+                    int combinedIndex = start + matchIndex;
+                    char value = combinedIndex < tailCount
+                        ? tail[combinedIndex]
+                        : current[combinedIndex - tailCount];
+                    if (value != searched[matchIndex]) break;
+                    matchIndex++;
+                }
+                if (matchIndex == searched.Length) return true;
+            }
+            return false;
         }
 
         private static List<WordTextSegment> SearchText(List<WordParagraph> paragraphs, String searched, WordPositionInParagraph startPos, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {

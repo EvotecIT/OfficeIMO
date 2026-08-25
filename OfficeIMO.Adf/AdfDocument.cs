@@ -12,6 +12,9 @@ namespace OfficeIMO.Adf;
 /// Represents an Atlas Document Format document while retaining fields that OfficeIMO does not yet understand.
 /// </summary>
 public sealed class AdfDocument {
+    private List<AdfNode>? _content;
+    private Dictionary<string, JsonElement>? _extensionData;
+
     /// <summary>Creates an empty ADF document.</summary>
     public AdfDocument() {
     }
@@ -30,10 +33,17 @@ public sealed class AdfDocument {
     public string Type { get; set; } = "doc";
 
     /// <summary>Top-level document nodes.</summary>
-    public List<AdfNode> Content { get; } = new List<AdfNode>();
+    public List<AdfNode> Content => _content ??= new List<AdfNode>();
 
     /// <summary>Unknown root properties retained during parse/write round trips.</summary>
-    public IDictionary<string, JsonElement> ExtensionData { get; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+    public IDictionary<string, JsonElement> ExtensionData =>
+        _extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
+    internal IReadOnlyList<AdfNode> ContentItems => _content ?? (IReadOnlyList<AdfNode>)Array.Empty<AdfNode>();
+    internal IReadOnlyDictionary<string, JsonElement> ExtensionItems =>
+        _extensionData ?? (IReadOnlyDictionary<string, JsonElement>)EmptyJsonValues.Instance;
+    internal void AddExtension(string name, JsonElement value) =>
+        (_extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal))[name] = value;
 
     /// <summary>Parses an ADF JSON document.</summary>
     public static AdfDocument Parse(string json) => AdfJsonSerializer.Parse(json);
@@ -47,6 +57,11 @@ public sealed class AdfDocument {
 
 /// <summary>An ADF content node.</summary>
 public sealed class AdfNode {
+    private List<AdfNode>? _content;
+    private List<AdfMark>? _marks;
+    private Dictionary<string, JsonElement>? _attributes;
+    private Dictionary<string, JsonElement>? _extensionData;
+
     /// <summary>Creates an ADF node.</summary>
     public AdfNode(string type) {
         if (string.IsNullOrWhiteSpace(type)) throw new ArgumentException("ADF node type is required.", nameof(type));
@@ -60,16 +75,29 @@ public sealed class AdfNode {
     public string? Text { get; set; }
 
     /// <summary>Child nodes.</summary>
-    public List<AdfNode> Content { get; } = new List<AdfNode>();
+    public List<AdfNode> Content => _content ??= new List<AdfNode>();
 
     /// <summary>Marks applied to a text node.</summary>
-    public List<AdfMark> Marks { get; } = new List<AdfMark>();
+    public List<AdfMark> Marks => _marks ??= new List<AdfMark>();
 
     /// <summary>Node attributes retained as arbitrary JSON values.</summary>
-    public IDictionary<string, JsonElement> Attributes { get; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+    public IDictionary<string, JsonElement> Attributes =>
+        _attributes ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
     /// <summary>Unknown node properties retained during parse/write round trips.</summary>
-    public IDictionary<string, JsonElement> ExtensionData { get; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+    public IDictionary<string, JsonElement> ExtensionData =>
+        _extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
+    internal IReadOnlyList<AdfNode> ContentItems => _content ?? (IReadOnlyList<AdfNode>)Array.Empty<AdfNode>();
+    internal IReadOnlyList<AdfMark> MarkItems => _marks ?? (IReadOnlyList<AdfMark>)Array.Empty<AdfMark>();
+    internal IReadOnlyDictionary<string, JsonElement> AttributeItems =>
+        _attributes ?? (IReadOnlyDictionary<string, JsonElement>)EmptyJsonValues.Instance;
+    internal IReadOnlyDictionary<string, JsonElement> ExtensionItems =>
+        _extensionData ?? (IReadOnlyDictionary<string, JsonElement>)EmptyJsonValues.Instance;
+    internal void AddAttribute(string name, JsonElement value) =>
+        (_attributes ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal))[name] = value;
+    internal void AddExtension(string name, JsonElement value) =>
+        (_extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal))[name] = value;
 
     /// <summary>Creates a text node.</summary>
     public static AdfNode TextNode(string text, IEnumerable<AdfMark>? marks = null) {
@@ -95,19 +123,22 @@ public sealed class AdfNode {
 
     /// <summary>Gets a string attribute when present.</summary>
     public string? GetStringAttribute(string name) =>
-        Attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
+        _attributes != null && _attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
     /// <summary>Gets an integer attribute when present.</summary>
     public int? GetInt32Attribute(string name) =>
-        Attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int result)
+        _attributes != null && _attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int result)
             ? result
             : null;
 }
 
 /// <summary>An ADF text mark such as strong, emphasis, code, or link.</summary>
 public sealed class AdfMark {
+    private Dictionary<string, JsonElement>? _attributes;
+    private Dictionary<string, JsonElement>? _extensionData;
+
     /// <summary>Creates an ADF mark.</summary>
     public AdfMark(string type) {
         if (string.IsNullOrWhiteSpace(type)) throw new ArgumentException("ADF mark type is required.", nameof(type));
@@ -118,10 +149,21 @@ public sealed class AdfMark {
     public string Type { get; set; }
 
     /// <summary>Mark attributes retained as arbitrary JSON values.</summary>
-    public IDictionary<string, JsonElement> Attributes { get; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+    public IDictionary<string, JsonElement> Attributes =>
+        _attributes ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
     /// <summary>Unknown mark properties retained during parse/write round trips.</summary>
-    public IDictionary<string, JsonElement> ExtensionData { get; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+    public IDictionary<string, JsonElement> ExtensionData =>
+        _extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
+    internal IReadOnlyDictionary<string, JsonElement> AttributeItems =>
+        _attributes ?? (IReadOnlyDictionary<string, JsonElement>)EmptyJsonValues.Instance;
+    internal IReadOnlyDictionary<string, JsonElement> ExtensionItems =>
+        _extensionData ?? (IReadOnlyDictionary<string, JsonElement>)EmptyJsonValues.Instance;
+    internal void AddAttribute(string name, JsonElement value) =>
+        (_attributes ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal))[name] = value;
+    internal void AddExtension(string name, JsonElement value) =>
+        (_extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal))[name] = value;
 
     /// <summary>Sets a JSON-compatible mark attribute.</summary>
     public AdfMark SetAttribute<T>(string name, T value) {
@@ -140,9 +182,28 @@ public sealed class AdfMark {
 
     /// <summary>Gets a string attribute when present.</summary>
     public string? GetStringAttribute(string name) =>
-        Attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
+        _attributes != null && _attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
+}
+
+internal sealed class EmptyJsonValues : IReadOnlyDictionary<string, JsonElement> {
+    internal static readonly EmptyJsonValues Instance = new();
+
+    private EmptyJsonValues() { }
+
+    public int Count => 0;
+    public IEnumerable<string> Keys => Array.Empty<string>();
+    public IEnumerable<JsonElement> Values => Array.Empty<JsonElement>();
+    public JsonElement this[string key] => throw new KeyNotFoundException();
+    public bool ContainsKey(string key) => false;
+    public bool TryGetValue(string key, out JsonElement value) {
+        value = default;
+        return false;
+    }
+    public IEnumerator<KeyValuePair<string, JsonElement>> GetEnumerator() =>
+        Enumerable.Empty<KeyValuePair<string, JsonElement>>().GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 internal static class AdfJsonValue {

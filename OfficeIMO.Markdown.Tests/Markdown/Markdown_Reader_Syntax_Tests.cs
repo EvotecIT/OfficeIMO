@@ -59,6 +59,48 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseProjectionWithBlockSpans_Matches_FullParse_ProjectionContract() {
+        const string markdown = """
+# Title
+
+Paragraph text
+
+| Name | Value |
+| --- | ---: |
+| Alpha | 1 |
+""";
+
+        var projection = OfficeIMO.Markdown.MarkdownReader.ParseProjectionWithBlockSpans(markdown);
+        var full = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown).Document;
+
+        Assert.Equal(
+            full.Blocks.Select(static block => block.RenderMarkdown()),
+            projection.Blocks.Select(static block => block.RenderMarkdown()));
+        Assert.Equal(
+            full.Blocks.Cast<MarkdownObject>().Select(static block => block.SourceSpan),
+            projection.Blocks.Cast<MarkdownObject>().Select(static block => block.SourceSpan));
+
+        var fullTable = Assert.IsType<TableBlock>(full.Blocks[2]);
+        var projectedTable = Assert.IsType<TableBlock>(projection.Blocks[2]);
+        Assert.Equal(fullTable.Headers, projectedTable.Headers);
+        Assert.Equal(fullTable.Rows, projectedTable.Rows);
+        Assert.Null(projectedTable.StructuredHeaders);
+        Assert.Null(projectedTable.StructuredRows);
+    }
+
+    [Fact]
+    public void ParseProjectionWithBlockSpans_Uses_FullParse_When_DocumentTransforms_Are_Configured() {
+        var options = new MarkdownReaderOptions();
+        options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
+
+        var projection = OfficeIMO.Markdown.MarkdownReader.ParseProjectionWithBlockSpans("original", options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(projection.Blocks));
+        Assert.Equal("rewritten", ((IMarkdownBlock)paragraph).RenderMarkdown());
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 8), paragraph.SourceSpan);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Handles_Mixed_Line_Endings_Without_Trailing_Newline() {
         const string markdown = "# Title\r\n\r\nParagraph one\r\rSecond para";
 

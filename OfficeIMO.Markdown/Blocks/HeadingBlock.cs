@@ -4,50 +4,76 @@ namespace OfficeIMO.Markdown;
 /// Markdown heading (ATX) block, levels 1–6.
 /// </summary>
 public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IContextualHtmlMarkdownBlock, IHeadingMarkdownBlock {
+    private HeadingBlockSyntaxMetadata? _syntaxMetadata;
+
     /// <summary>Heading level constrained to [1,6].</summary>
     public int Level { get; }
     /// <summary>Inline content owned by this heading.</summary>
     public InlineSequence Inlines { get; }
     /// <summary>Plain-text heading text for compatibility, slugs, and TOC labels.</summary>
     public string Text { get; }
-    internal bool HasLevelSourceInfo { get; private set; }
-    internal int LevelSourceLineOffset { get; private set; }
-    internal int LevelSourceStartColumn { get; private set; }
-    internal int LevelSourceEndColumn { get; private set; }
-    internal bool HasOpeningMarkerSourceInfo { get; private set; }
-    internal int OpeningMarkerSourceLineOffset { get; private set; }
-    internal int OpeningMarkerSourceStartColumn { get; private set; }
-    internal int OpeningMarkerSourceEndColumn { get; private set; }
-    internal bool HasSetextUnderlineMarkerSourceInfo { get; private set; }
-    internal int SetextUnderlineMarkerSourceLineOffset { get; private set; }
-    internal int SetextUnderlineMarkerSourceStartColumn { get; private set; }
-    internal int SetextUnderlineMarkerSourceEndColumn { get; private set; }
-    internal bool HasTextSourceInfo { get; private set; }
-    internal int TextSourceLineOffset { get; private set; }
-    internal int TextSourceEndLineOffset { get; private set; }
-    internal int TextSourceStartColumn { get; private set; }
-    internal int TextSourceEndColumn { get; private set; }
-    internal bool HasClosingMarkerSourceInfo { get; private set; }
-    internal int ClosingMarkerSourceLineOffset { get; private set; }
-    internal int ClosingMarkerSourceStartColumn { get; private set; }
-    internal int ClosingMarkerSourceEndColumn { get; private set; }
+    internal bool HasLevelSourceInfo => _syntaxMetadata?.HasLevelSourceInfo == true;
+    internal int LevelSourceLineOffset => _syntaxMetadata?.LevelSourceLineOffset ?? 0;
+    internal int LevelSourceStartColumn => _syntaxMetadata?.LevelSourceStartColumn ?? 0;
+    internal int LevelSourceEndColumn => _syntaxMetadata?.LevelSourceEndColumn ?? 0;
+    internal bool HasOpeningMarkerSourceInfo => _syntaxMetadata?.HasOpeningMarkerSourceInfo == true;
+    internal int OpeningMarkerSourceLineOffset => _syntaxMetadata?.OpeningMarkerSourceLineOffset ?? 0;
+    internal int OpeningMarkerSourceStartColumn => _syntaxMetadata?.OpeningMarkerSourceStartColumn ?? 0;
+    internal int OpeningMarkerSourceEndColumn => _syntaxMetadata?.OpeningMarkerSourceEndColumn ?? 0;
+    internal bool HasSetextUnderlineMarkerSourceInfo => _syntaxMetadata?.HasSetextUnderlineMarkerSourceInfo == true;
+    internal int SetextUnderlineMarkerSourceLineOffset => _syntaxMetadata?.SetextUnderlineMarkerSourceLineOffset ?? 0;
+    internal int SetextUnderlineMarkerSourceStartColumn => _syntaxMetadata?.SetextUnderlineMarkerSourceStartColumn ?? 0;
+    internal int SetextUnderlineMarkerSourceEndColumn => _syntaxMetadata?.SetextUnderlineMarkerSourceEndColumn ?? 0;
+    internal bool HasTextSourceInfo => _syntaxMetadata?.HasTextSourceInfo == true;
+    internal int TextSourceLineOffset => _syntaxMetadata?.TextSourceLineOffset ?? 0;
+    internal int TextSourceEndLineOffset => _syntaxMetadata?.TextSourceEndLineOffset ?? 0;
+    internal int TextSourceStartColumn => _syntaxMetadata?.TextSourceStartColumn ?? 0;
+    internal int TextSourceEndColumn => _syntaxMetadata?.TextSourceEndColumn ?? 0;
+    internal bool HasClosingMarkerSourceInfo => _syntaxMetadata?.HasClosingMarkerSourceInfo == true;
+    internal int ClosingMarkerSourceLineOffset => _syntaxMetadata?.ClosingMarkerSourceLineOffset ?? 0;
+    internal int ClosingMarkerSourceStartColumn => _syntaxMetadata?.ClosingMarkerSourceStartColumn ?? 0;
+    internal int ClosingMarkerSourceEndColumn => _syntaxMetadata?.ClosingMarkerSourceEndColumn ?? 0;
     internal bool SuppressAutoIdentifier { get; private set; }
     /// <summary>Source span for the heading marker or setext underline that determines the level.</summary>
-    public MarkdownSourceSpan? LevelSourceSpan { get; private set; }
+    public MarkdownSourceSpan? LevelSourceSpan {
+        get => _syntaxMetadata?.LevelSourceSpan;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.LevelSourceSpan = current);
+    }
     /// <summary>Source span for the heading text payload.</summary>
-    public MarkdownSourceSpan? TextSourceSpan { get; private set; }
+    public MarkdownSourceSpan? TextSourceSpan {
+        get => _syntaxMetadata?.TextSourceSpan;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.TextSourceSpan = current);
+    }
     /// <summary>Source span for the ATX opening marker token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; private set; }
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan {
+        get => _syntaxMetadata?.OpeningMarkerSourceSpan;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.OpeningMarkerSourceSpan = current);
+    }
     /// <summary>Exact ATX opening marker token when parsed from markdown.</summary>
-    public string? OpeningMarkerText { get; private set; }
+    public string? OpeningMarkerText {
+        get => _syntaxMetadata?.OpeningMarkerText;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.OpeningMarkerText = current);
+    }
     /// <summary>Source span for a Setext underline marker token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? SetextUnderlineMarkerSourceSpan { get; private set; }
+    public MarkdownSourceSpan? SetextUnderlineMarkerSourceSpan {
+        get => _syntaxMetadata?.SetextUnderlineMarkerSourceSpan;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.SetextUnderlineMarkerSourceSpan = current);
+    }
     /// <summary>Exact Setext underline marker token when parsed from markdown.</summary>
-    public string? SetextUnderlineMarkerText { get; private set; }
+    public string? SetextUnderlineMarkerText {
+        get => _syntaxMetadata?.SetextUnderlineMarkerText;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.SetextUnderlineMarkerText = current);
+    }
     /// <summary>Source span for an optional ATX closing marker token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; private set; }
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan {
+        get => _syntaxMetadata?.ClosingMarkerSourceSpan;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.ClosingMarkerSourceSpan = current);
+    }
     /// <summary>Exact optional ATX closing marker token when parsed from markdown.</summary>
-    public string? ClosingMarkerText { get; private set; }
+    public string? ClosingMarkerText {
+        get => _syntaxMetadata?.ClosingMarkerText;
+        private set => SetSyntaxValue(value, static (metadata, current) => metadata.ClosingMarkerText = current);
+    }
     /// <summary>
     /// Creates a new heading block.
     /// </summary>
@@ -67,32 +93,37 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         if (level < 1) level = 1; else if (level > 6) level = 6;
         Level = level;
         Inlines = inlines ?? new InlineSequence();
-        Text = InlinePlainText.Extract(Inlines);
+        Text = Inlines.Nodes.Count == 1 && Inlines.Nodes[0] is MarkdownTextRun textRun
+            ? textRun.Text
+            : InlinePlainText.Extract(Inlines);
         TextSourceSpan = Inlines.SourceSpan;
     }
 
     internal void SetLevelSourceInfo(int lineOffset, int startColumn, int endColumn) {
-        HasLevelSourceInfo = true;
-        LevelSourceLineOffset = Math.Max(0, lineOffset);
-        LevelSourceStartColumn = Math.Max(1, startColumn);
-        LevelSourceEndColumn = Math.Max(LevelSourceStartColumn, endColumn);
+        var metadata = SyntaxMetadata;
+        metadata.HasLevelSourceInfo = true;
+        metadata.LevelSourceLineOffset = Math.Max(0, lineOffset);
+        metadata.LevelSourceStartColumn = Math.Max(1, startColumn);
+        metadata.LevelSourceEndColumn = Math.Max(metadata.LevelSourceStartColumn, endColumn);
     }
 
     internal void SetOpeningMarkerSourceInfo(int lineOffset, int startColumn, int endColumn, MarkdownSourceSpan? sourceSpan = null) {
-        HasOpeningMarkerSourceInfo = true;
-        OpeningMarkerSourceLineOffset = Math.Max(0, lineOffset);
-        OpeningMarkerSourceStartColumn = Math.Max(1, startColumn);
-        OpeningMarkerSourceEndColumn = Math.Max(OpeningMarkerSourceStartColumn, endColumn);
+        var metadata = SyntaxMetadata;
+        metadata.HasOpeningMarkerSourceInfo = true;
+        metadata.OpeningMarkerSourceLineOffset = Math.Max(0, lineOffset);
+        metadata.OpeningMarkerSourceStartColumn = Math.Max(1, startColumn);
+        metadata.OpeningMarkerSourceEndColumn = Math.Max(metadata.OpeningMarkerSourceStartColumn, endColumn);
         OpeningMarkerSourceSpan = sourceSpan;
         LevelSourceSpan = sourceSpan ?? LevelSourceSpan;
-        OpeningMarkerText = new string('#', OpeningMarkerSourceEndColumn - OpeningMarkerSourceStartColumn + 1);
+        OpeningMarkerText = new string('#', metadata.OpeningMarkerSourceEndColumn - metadata.OpeningMarkerSourceStartColumn + 1);
     }
 
     internal void SetSetextUnderlineMarkerSourceInfo(int lineOffset, int startColumn, int endColumn, string markerText, MarkdownSourceSpan? sourceSpan = null) {
-        HasSetextUnderlineMarkerSourceInfo = true;
-        SetextUnderlineMarkerSourceLineOffset = Math.Max(0, lineOffset);
-        SetextUnderlineMarkerSourceStartColumn = Math.Max(1, startColumn);
-        SetextUnderlineMarkerSourceEndColumn = Math.Max(SetextUnderlineMarkerSourceStartColumn, endColumn);
+        var metadata = SyntaxMetadata;
+        metadata.HasSetextUnderlineMarkerSourceInfo = true;
+        metadata.SetextUnderlineMarkerSourceLineOffset = Math.Max(0, lineOffset);
+        metadata.SetextUnderlineMarkerSourceStartColumn = Math.Max(1, startColumn);
+        metadata.SetextUnderlineMarkerSourceEndColumn = Math.Max(metadata.SetextUnderlineMarkerSourceStartColumn, endColumn);
         SetextUnderlineMarkerSourceSpan = sourceSpan;
         LevelSourceSpan = sourceSpan ?? LevelSourceSpan;
         SetextUnderlineMarkerText = markerText ?? string.Empty;
@@ -103,25 +134,27 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     internal void SetTextSourceInfo(int startLineOffset, int startColumn, int endLineOffset, int endColumn) {
-        HasTextSourceInfo = true;
-        TextSourceLineOffset = Math.Max(0, startLineOffset);
-        TextSourceEndLineOffset = Math.Max(TextSourceLineOffset, endLineOffset);
-        TextSourceStartColumn = Math.Max(1, startColumn);
-        TextSourceEndColumn = Math.Max(1, endColumn);
-        if (TextSourceEndLineOffset == TextSourceLineOffset) {
-            TextSourceEndColumn = Math.Max(TextSourceStartColumn, TextSourceEndColumn);
+        var metadata = SyntaxMetadata;
+        metadata.HasTextSourceInfo = true;
+        metadata.TextSourceLineOffset = Math.Max(0, startLineOffset);
+        metadata.TextSourceEndLineOffset = Math.Max(metadata.TextSourceLineOffset, endLineOffset);
+        metadata.TextSourceStartColumn = Math.Max(1, startColumn);
+        metadata.TextSourceEndColumn = Math.Max(1, endColumn);
+        if (metadata.TextSourceEndLineOffset == metadata.TextSourceLineOffset) {
+            metadata.TextSourceEndColumn = Math.Max(metadata.TextSourceStartColumn, metadata.TextSourceEndColumn);
         }
 
         TextSourceSpan = Inlines.SourceSpan ?? TextSourceSpan;
     }
 
     internal void SetClosingMarkerSourceInfo(int lineOffset, int startColumn, int endColumn, MarkdownSourceSpan? sourceSpan = null) {
-        HasClosingMarkerSourceInfo = true;
-        ClosingMarkerSourceLineOffset = Math.Max(0, lineOffset);
-        ClosingMarkerSourceStartColumn = Math.Max(1, startColumn);
-        ClosingMarkerSourceEndColumn = Math.Max(ClosingMarkerSourceStartColumn, endColumn);
+        var metadata = SyntaxMetadata;
+        metadata.HasClosingMarkerSourceInfo = true;
+        metadata.ClosingMarkerSourceLineOffset = Math.Max(0, lineOffset);
+        metadata.ClosingMarkerSourceStartColumn = Math.Max(1, startColumn);
+        metadata.ClosingMarkerSourceEndColumn = Math.Max(metadata.ClosingMarkerSourceStartColumn, endColumn);
         ClosingMarkerSourceSpan = sourceSpan;
-        ClosingMarkerText = new string('#', ClosingMarkerSourceEndColumn - ClosingMarkerSourceStartColumn + 1);
+        ClosingMarkerText = new string('#', metadata.ClosingMarkerSourceEndColumn - metadata.ClosingMarkerSourceStartColumn + 1);
     }
 
     internal void SuppressAutomaticIdentifier() {
@@ -129,29 +162,29 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     }
 
     internal void OffsetRelativeSourceInfoLines(int lineOffsetDelta) {
-        if (lineOffsetDelta <= 0) {
+        if (lineOffsetDelta <= 0 || _syntaxMetadata == null) {
             return;
         }
 
-        if (HasLevelSourceInfo) {
-            LevelSourceLineOffset += lineOffsetDelta;
+        if (_syntaxMetadata.HasLevelSourceInfo) {
+            _syntaxMetadata.LevelSourceLineOffset += lineOffsetDelta;
         }
 
-        if (HasOpeningMarkerSourceInfo) {
-            OpeningMarkerSourceLineOffset += lineOffsetDelta;
+        if (_syntaxMetadata.HasOpeningMarkerSourceInfo) {
+            _syntaxMetadata.OpeningMarkerSourceLineOffset += lineOffsetDelta;
         }
 
-        if (HasSetextUnderlineMarkerSourceInfo) {
-            SetextUnderlineMarkerSourceLineOffset += lineOffsetDelta;
+        if (_syntaxMetadata.HasSetextUnderlineMarkerSourceInfo) {
+            _syntaxMetadata.SetextUnderlineMarkerSourceLineOffset += lineOffsetDelta;
         }
 
-        if (HasTextSourceInfo) {
-            TextSourceLineOffset += lineOffsetDelta;
-            TextSourceEndLineOffset += lineOffsetDelta;
+        if (_syntaxMetadata.HasTextSourceInfo) {
+            _syntaxMetadata.TextSourceLineOffset += lineOffsetDelta;
+            _syntaxMetadata.TextSourceEndLineOffset += lineOffsetDelta;
         }
 
-        if (HasClosingMarkerSourceInfo) {
-            ClosingMarkerSourceLineOffset += lineOffsetDelta;
+        if (_syntaxMetadata.HasClosingMarkerSourceInfo) {
+            _syntaxMetadata.ClosingMarkerSourceLineOffset += lineOffsetDelta;
         }
     }
 
@@ -354,4 +387,59 @@ public sealed class HeadingBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
             ClosingMarkerSourceEndColumn);
         return ClosingMarkerSourceSpan;
     }
+
+    private HeadingBlockSyntaxMetadata SyntaxMetadata =>
+        _syntaxMetadata ??= new HeadingBlockSyntaxMetadata();
+
+    private void SetSyntaxValue(
+        MarkdownSourceSpan? value,
+        Action<HeadingBlockSyntaxMetadata, MarkdownSourceSpan?> setter) {
+        if (value.HasValue) {
+            setter(SyntaxMetadata, value);
+        } else if (_syntaxMetadata != null) {
+            setter(_syntaxMetadata, null);
+        }
+    }
+
+    private void SetSyntaxValue(
+        string? value,
+        Action<HeadingBlockSyntaxMetadata, string?> setter) {
+        if (value != null) {
+            setter(SyntaxMetadata, value);
+        } else if (_syntaxMetadata != null) {
+            setter(_syntaxMetadata, null);
+        }
+    }
+}
+
+internal sealed class HeadingBlockSyntaxMetadata {
+    internal bool HasLevelSourceInfo;
+    internal int LevelSourceLineOffset;
+    internal int LevelSourceStartColumn;
+    internal int LevelSourceEndColumn;
+    internal bool HasOpeningMarkerSourceInfo;
+    internal int OpeningMarkerSourceLineOffset;
+    internal int OpeningMarkerSourceStartColumn;
+    internal int OpeningMarkerSourceEndColumn;
+    internal bool HasSetextUnderlineMarkerSourceInfo;
+    internal int SetextUnderlineMarkerSourceLineOffset;
+    internal int SetextUnderlineMarkerSourceStartColumn;
+    internal int SetextUnderlineMarkerSourceEndColumn;
+    internal bool HasTextSourceInfo;
+    internal int TextSourceLineOffset;
+    internal int TextSourceEndLineOffset;
+    internal int TextSourceStartColumn;
+    internal int TextSourceEndColumn;
+    internal bool HasClosingMarkerSourceInfo;
+    internal int ClosingMarkerSourceLineOffset;
+    internal int ClosingMarkerSourceStartColumn;
+    internal int ClosingMarkerSourceEndColumn;
+    internal MarkdownSourceSpan? LevelSourceSpan;
+    internal MarkdownSourceSpan? TextSourceSpan;
+    internal MarkdownSourceSpan? OpeningMarkerSourceSpan;
+    internal string? OpeningMarkerText;
+    internal MarkdownSourceSpan? SetextUnderlineMarkerSourceSpan;
+    internal string? SetextUnderlineMarkerText;
+    internal MarkdownSourceSpan? ClosingMarkerSourceSpan;
+    internal string? ClosingMarkerText;
 }

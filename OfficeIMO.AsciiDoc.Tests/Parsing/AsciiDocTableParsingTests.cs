@@ -43,6 +43,28 @@ public sealed class AsciiDocTableParsingTests {
     }
 
     [Fact]
+    public void PsvTable_InfersHeaderFromFirstRowBoundaryRatherThanDocumentEnding() {
+        const string implicitHeader =
+            "[cols=2*]\n|===\n" +
+            "|Name |Value\n\n" +
+            "|Alice |1\n" +
+            "|===\n";
+        const string trailingBlankLineOnly =
+            "[cols=2*]\n|===\n" +
+            "|Name |Value\n" +
+            "|Alice |1\n" +
+            "|===\n\n";
+
+        AsciiDocTable inferred = Assert.Single(
+            AsciiDocDocument.Parse(implicitHeader).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
+        AsciiDocTable ordinary = Assert.Single(
+            AsciiDocDocument.Parse(trailingBlankLineOnly).Document.BlocksOfType<AsciiDocTableBlock>()).Table;
+
+        Assert.True(inferred.Rows[0].IsHeader);
+        Assert.False(ordinary.Rows[0].IsHeader);
+    }
+
+    [Fact]
     public void CustomPsvSeparator_DoesNotSplitLiteralPipes() {
         const string source = "[cols=2*,separator=¦]\n|===\n¦A | literal ¦B\n|===\n";
 

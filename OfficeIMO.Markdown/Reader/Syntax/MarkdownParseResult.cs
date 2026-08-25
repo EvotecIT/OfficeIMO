@@ -4,6 +4,8 @@ namespace OfficeIMO.Markdown;
 /// Result of parsing markdown into both the object model and a syntax tree.
 /// </summary>
 public sealed class MarkdownParseResult {
+    private Dictionary<object, MarkdownSyntaxNode>? _finalNodeByAssociatedObject;
+    private IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic>? _generatedSyntaxDiagnostics;
     /// <summary>The parsed markdown object model.</summary>
     public MarkdownDoc Document { get; }
     /// <summary>
@@ -30,7 +32,21 @@ public sealed class MarkdownParseResult {
     /// <summary>Optional document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
     /// <summary>Diagnostics for final syntax nodes generated from semantic content rather than exact parsed source.</summary>
-    public IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> GeneratedSyntaxDiagnostics { get; }
+    public IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> GeneratedSyntaxDiagnostics {
+        get {
+            IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic>? diagnostics =
+                System.Threading.Volatile.Read(ref _generatedSyntaxDiagnostics);
+            if (diagnostics != null) {
+                return diagnostics;
+            }
+
+            var created = BuildGeneratedSyntaxDiagnostics(FinalSyntaxTree);
+            return System.Threading.Interlocked.CompareExchange(
+                ref _generatedSyntaxDiagnostics,
+                created,
+                comparand: null) ?? created;
+        }
+    }
     /// <summary>Effective reference-style link definitions collected during parsing, in source order where spans are available.</summary>
     public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions { get; }
     /// <summary>Effective abbreviation definitions collected during parsing, in source order where spans are available.</summary>
@@ -53,7 +69,6 @@ public sealed class MarkdownParseResult {
         OriginalMarkdown = preservesOriginalMarkdown ? originalMarkdown ?? string.Empty : SourceMarkdown;
         PreservesOriginalMarkdown = preservesOriginalMarkdown;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
-        GeneratedSyntaxDiagnostics = BuildGeneratedSyntaxDiagnostics(FinalSyntaxTree);
         ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownReferenceLinkDefinition>();
         AbbreviationDefinitions = abbreviationDefinitions ?? Array.Empty<MarkdownAbbreviationDefinition>();
         document.AttachParseResult(this);
@@ -67,13 +82,33 @@ public sealed class MarkdownParseResult {
             return null;
         }
 
-        foreach (var node in FinalSyntaxTree.DescendantsAndSelf()) {
-            if (ReferenceEquals(node.AssociatedObject, associatedObject)) {
-                return node;
+        Dictionary<object, MarkdownSyntaxNode>? index =
+            System.Threading.Volatile.Read(ref _finalNodeByAssociatedObject);
+        if (index == null) {
+            var created = new Dictionary<object, MarkdownSyntaxNode>(ReferenceObjectComparer.Instance);
+            foreach (MarkdownSyntaxNode node in FinalSyntaxTree.DescendantsAndSelf()) {
+                object? value = node.AssociatedObject;
+                if (value != null && !created.ContainsKey(value)) {
+                    created.Add(value, node);
+                }
             }
+            index = System.Threading.Interlocked.CompareExchange(
+                ref _finalNodeByAssociatedObject,
+                created,
+                comparand: null) ?? created;
         }
 
-        return null;
+        return index.TryGetValue(associatedObject, out MarkdownSyntaxNode? result)
+            ? result
+            : null;
+    }
+
+    private sealed class ReferenceObjectComparer : IEqualityComparer<object> {
+        internal static readonly ReferenceObjectComparer Instance = new ReferenceObjectComparer();
+
+        bool IEqualityComparer<object>.Equals(object? left, object? right) => ReferenceEquals(left, right);
+
+        int IEqualityComparer<object>.GetHashCode(object value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
     }
 
     /// <summary>
@@ -360,13 +395,27 @@ public sealed class MarkdownParseResult {
     }
 
     private static IReadOnlyList<MarkdownGeneratedSyntaxDiagnostic> BuildGeneratedSyntaxDiagnostics(MarkdownSyntaxNode? syntaxTree) {
-        if (syntaxTree == null) {
+        if (syntaxTree == null || !ContainsGeneratedSyntax(syntaxTree)) {
             return Array.Empty<MarkdownGeneratedSyntaxDiagnostic>();
         }
 
         var diagnostics = new List<MarkdownGeneratedSyntaxDiagnostic>();
         AddGeneratedSyntaxDiagnostics(syntaxTree, FormatPathSegment(syntaxTree), "0", diagnostics);
         return diagnostics;
+    }
+
+    private static bool ContainsGeneratedSyntax(MarkdownSyntaxNode node) {
+        if (node.IsGenerated) {
+            return true;
+        }
+
+        for (var i = 0; i < node.Children.Count; i++) {
+            if (ContainsGeneratedSyntax(node.Children[i])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AddGeneratedSyntaxDiagnostics(

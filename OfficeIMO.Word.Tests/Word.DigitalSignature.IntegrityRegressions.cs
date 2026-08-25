@@ -235,6 +235,22 @@ namespace OfficeIMO.Tests {
             Assert.False(Assert.Single(validation.Signatures).IsValidUnderPolicy);
         }
 
+        [Fact]
+        public void Test_DigitalSignature_OrphanSignaturePartBlocksUnsignedSaveShortcut() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureOrphanPart.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Orphan signature carrier");
+                document.Save();
+            }
+            AddOrphanDigitalSignaturePart(filePath);
+
+            using WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadWrite
+            });
+
+            Assert.Throws<WordSignatureSavePolicyException>(() => loaded.Save());
+        }
+
         private static void RetargetRelationship(string filePath, string entryName, string relationshipId) {
             using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
             ZipArchiveEntry entry = archive.GetEntry(entryName)!;
@@ -248,6 +264,32 @@ namespace OfficeIMO.Tests {
             ZipArchiveEntry replacement = archive.CreateEntry(entryName, CompressionLevel.Optimal);
             using Stream output = replacement.Open();
             relationships.Save(output);
+        }
+
+        private static void AddOrphanDigitalSignaturePart(string filePath) {
+            const string signaturePartName = "_xmlsignatures/orphan.xml";
+            const string signatureContentType =
+                "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
+            using var archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry signature = archive.CreateEntry(signaturePartName, CompressionLevel.Optimal);
+            using (Stream output = signature.Open()) {
+                byte[] xml = Encoding.UTF8.GetBytes(
+                    "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\" />");
+                output.Write(xml, 0, xml.Length);
+            }
+
+            ZipArchiveEntry contentTypesEntry = archive.GetEntry("[Content_Types].xml")!;
+            XDocument contentTypes;
+            using (Stream input = contentTypesEntry.Open()) contentTypes = XDocument.Load(input);
+            XNamespace contentTypesNamespace =
+                "http://schemas.openxmlformats.org/package/2006/content-types";
+            contentTypes.Root!.Add(new XElement(contentTypesNamespace + "Override",
+                new XAttribute("PartName", "/" + signaturePartName),
+                new XAttribute("ContentType", signatureContentType)));
+            contentTypesEntry.Delete();
+            ZipArchiveEntry replacement = archive.CreateEntry("[Content_Types].xml", CompressionLevel.Optimal);
+            using Stream contentTypesOutput = replacement.Open();
+            contentTypes.Save(contentTypesOutput);
         }
 
         private static void TamperDocumentText(string filePath, string replacementText) {

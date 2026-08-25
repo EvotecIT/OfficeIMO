@@ -244,6 +244,28 @@ public sealed class EpubPackageContractTests {
     }
 
     [Fact]
+    public void Load_StreamsChapterMarkupWithoutChangingExtractionContracts() {
+        const string markup =
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head>" +
+            "<title> Local <span>Title</span> </title><base href=\"../assets/\"/>" +
+            "</head><body> leading <p>Alpha <em>Beta</em> gamma</p>" +
+            "<script>hidden script</script><style>hidden style</style><table/>" +
+            "</body></html>";
+        byte[] package = BuildSingleChapterPackage(markup);
+
+        EpubDocument document = EpubDocument.Load(
+            new MemoryStream(package, writable: false),
+            new EpubReadOptions { IncludeRawHtml = true });
+
+        EpubChapter chapter = Assert.Single(document.Chapters);
+        Assert.Equal("Local Title", chapter.Title);
+        Assert.Equal("../assets/", chapter.BaseHref);
+        Assert.Equal("leading Alpha Beta gamma", chapter.Text);
+        Assert.True(chapter.HasStructuredContent);
+        Assert.Equal(markup, chapter.Html);
+    }
+
+    [Fact]
     public void Load_InvalidZipThrowsStructuredFatalDiagnostic() {
         EpubReadException exception = Assert.Throws<EpubReadException>(() =>
             EpubDocument.Load(new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: false)));
@@ -274,6 +296,26 @@ public sealed class EpubPackageContractTests {
                 archive,
                 "EPUB/chapter.xhtml",
                 "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><p>Fallback identity.</p></body></html>");
+        }
+        return output.ToArray();
+    }
+
+    private static byte[] BuildSingleChapterPackage(string markup) {
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            WriteTextEntry(
+                archive,
+                "META-INF/container.xml",
+                "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">" +
+                "<rootfiles><rootfile full-path=\"EPUB/package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles>" +
+                "</container>");
+            WriteTextEntry(
+                archive,
+                "EPUB/package.opf",
+                "<package version=\"3.0\" xmlns=\"http://www.idpf.org/2007/opf\">" +
+                "<manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+                "</manifest><spine><itemref idref=\"chapter\"/></spine></package>");
+            WriteTextEntry(archive, "EPUB/chapter.xhtml", markup);
         }
         return output.ToArray();
     }

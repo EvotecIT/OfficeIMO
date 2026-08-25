@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markup;
 
@@ -75,6 +76,8 @@ public sealed class OfficeMarkupDiagnostic {
 /// </summary>
 public abstract class OfficeMarkupNode {
     private readonly Dictionary<string, string> _attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    private string? _sourceText;
+    private IMarkdownBlock? _sourceMarkdownBlock;
 
     protected OfficeMarkupNode(OfficeMarkupNodeKind kind) {
         Kind = kind;
@@ -82,7 +85,24 @@ public abstract class OfficeMarkupNode {
 
     public OfficeMarkupNodeKind Kind { get; }
     public IDictionary<string, string> Attributes => _attributes;
-    public string? SourceText { get; set; }
+    public string? SourceText {
+        get {
+            if (_sourceText == null && _sourceMarkdownBlock != null) {
+                _sourceText = _sourceMarkdownBlock.RenderMarkdown();
+                _sourceMarkdownBlock = null;
+            }
+            return _sourceText;
+        }
+        set {
+            _sourceText = value;
+            _sourceMarkdownBlock = null;
+        }
+    }
+
+    internal void SetLazySourceText(IMarkdownBlock sourceMarkdownBlock) {
+        _sourceText = null;
+        _sourceMarkdownBlock = sourceMarkdownBlock ?? throw new ArgumentNullException(nameof(sourceMarkdownBlock));
+    }
 }
 
 /// <summary>

@@ -753,15 +753,14 @@ internal static class OfficePngContainerValidator {
         int offset,
         int count,
         CancellationToken cancellationToken) {
-        uint crc = 0xFFFFFFFFU;
-        for (int index = 0; index < count; index++) {
-            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            crc ^= bytes[offset + index];
-            for (int bit = 0; bit < 8; bit++) {
-                crc = (crc & 1U) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
-            }
+        uint crc = OfficePngCrc32.Begin();
+        int end = offset + count;
+        for (int chunkOffset = offset; chunkOffset < end; chunkOffset += 4096) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int chunkLength = Math.Min(4096, end - chunkOffset);
+            crc = OfficePngCrc32.Append(crc, bytes, chunkOffset, chunkLength);
         }
-        return crc ^ 0xFFFFFFFFU;
+        return OfficePngCrc32.Complete(crc);
     }
 
     private static int ReadBigEndianInt32(byte[] bytes, int offset) =>
