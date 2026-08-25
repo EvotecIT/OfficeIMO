@@ -734,6 +734,37 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
+    public void OfficeDocumentAssetMaterializer_RejectsTrailingWindowsFilenameAliasesBeforeWriting() {
+        if (!OperatingSystem.IsWindows()) return;
+
+        var result = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset {
+                    Id = "first",
+                    FileName = "report",
+                    PayloadBytes = Encoding.UTF8.GetBytes("first")
+                },
+                new OfficeDocumentAsset {
+                    Id = "second",
+                    FileName = "report. ",
+                    PayloadBytes = Encoding.UTF8.GetBytes("second")
+                }
+            }
+        };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-asset-windows-aliases-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                result.WriteAssetsToDirectory(directory));
+
+            Assert.Contains("same filename", exception.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OfficeDocumentAssetMaterializer_HonorsPreCancellationBeforeCreatingDirectory() {
         var result = new OfficeDocumentReadResult {
             Assets = new[] {

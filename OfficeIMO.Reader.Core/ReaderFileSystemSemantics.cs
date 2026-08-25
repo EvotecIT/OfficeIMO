@@ -23,11 +23,15 @@ internal static class ReaderFileSystemSemantics {
             using (new FileStream(probePath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
             }
             bool ignoreCase = File.Exists(alternatePath);
+            bool trimTrailingDots = File.Exists(probePath + ".");
+            bool trimTrailingSpaces = File.Exists(probePath + " ");
             using (new FileStream(normalizationProbePath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
             }
             bool normalize = File.Exists(normalizationAlternatePath);
             StringComparer comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-            return normalize ? new NormalizedFileNameComparer(comparer) : comparer;
+            return normalize || trimTrailingDots || trimTrailingSpaces
+                ? new FileNameSemanticsComparer(comparer, normalize, trimTrailingDots, trimTrailingSpaces)
+                : comparer;
         } catch (IOException) {
             return DefaultComparer;
         } catch (UnauthorizedAccessException) {
@@ -46,24 +50,56 @@ internal static class ReaderFileSystemSemantics {
         }
     }
 
-    private static StringComparer DefaultComparer =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static IEqualityComparer<string> DefaultComparer {
+        get {
+            bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            StringComparer comparer = windows || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                ? StringComparer.OrdinalIgnoreCase
+                : StringComparer.Ordinal;
+            return windows
+                ? new FileNameSemanticsComparer(comparer, normalize: false, trimTrailingDots: true, trimTrailingSpaces: true)
+                : comparer;
+        }
+    }
 
-    private sealed class NormalizedFileNameComparer : IEqualityComparer<string> {
+    private sealed class FileNameSemanticsComparer : IEqualityComparer<string> {
         private readonly StringComparer _comparer;
+        private readonly bool _normalize;
+        private readonly bool _trimTrailingDots;
+        private readonly bool _trimTrailingSpaces;
 
-        internal NormalizedFileNameComparer(StringComparer comparer) {
+        internal FileNameSemanticsComparer(
+            StringComparer comparer,
+            bool normalize,
+            bool trimTrailingDots,
+            bool trimTrailingSpaces) {
             _comparer = comparer;
+            _normalize = normalize;
+            _trimTrailingDots = trimTrailingDots;
+            _trimTrailingSpaces = trimTrailingSpaces;
         }
 
         public bool Equals(string? x, string? y) =>
-            _comparer.Equals(Normalize(x), Normalize(y));
+            _comparer.Equals(Canonicalize(x), Canonicalize(y));
 
         public int GetHashCode(string value) =>
-            _comparer.GetHashCode(Normalize(value)!);
+            _comparer.GetHashCode(Canonicalize(value)!);
 
-        private static string? Normalize(string? value) => value?.Normalize(NormalizationForm.FormC);
+        private string? Canonicalize(string? value) {
+            if (value == null) return null;
+
+            int length = value.Length;
+            while (length > 0) {
+                char trailing = value[length - 1];
+                if ((trailing == '.' && _trimTrailingDots) || (trailing == ' ' && _trimTrailingSpaces)) {
+                    length--;
+                    continue;
+                }
+                break;
+            }
+
+            string canonical = length == value.Length ? value : value.Substring(0, length);
+            return _normalize ? canonical.Normalize(NormalizationForm.FormC) : canonical;
+        }
     }
 }

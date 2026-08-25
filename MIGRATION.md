@@ -11,9 +11,9 @@ OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIM
 
 ## OfficeIMO 3.2: deterministic Reader export destinations
 
-`WriteAssetsToDirectory`, `WriteTableExportsToDirectory`, and `WriteVisualExportsToDirectory` now reject duplicate destination filenames before creating or replacing any output. The comparison uses the destination filesystem's case and Unicode-normalization behavior after applying the materializer's filename sanitization. Older versions could write or skip colliding entries according to `Overwrite`, making the surviving payload depend on enumeration order.
+`WriteAssetsToDirectory`, `WriteTableExportsToDirectory`, and `WriteVisualExportsToDirectory` now reject duplicate destination filenames before creating or replacing any output. The comparison uses the destination filesystem's case and Unicode-normalization behavior after applying the materializer's filename sanitization. It also treats trailing dots and spaces as aliases when the destination filesystem applies Windows filename semantics, so names such as `report`, `report.`, and `report ` cannot target one output. Older versions could write or skip colliding entries according to `Overwrite`, making the surviving payload depend on enumeration order.
 
-Applications that construct assets, table exports, or visual exports must assign names that remain unique after sanitization. Deduplicate or rename colliding entries before materialization, or catch `InvalidOperationException` and report the conflicting destination. `Overwrite` continues to control conflicts with files already on disk; it does not allow two entries in one operation to target the same file.
+Applications that construct assets, table exports, or visual exports must assign names that remain unique after sanitization and destination-filesystem canonicalization. Deduplicate or rename colliding entries before materialization, remove trailing dots and spaces from Windows-bound custom filenames, or catch `InvalidOperationException` and report the conflicting destination. `Overwrite` continues to control conflicts with files already on disk; it does not allow two entries in one operation to target the same file.
 
 ## OfficeIMO 3.2: editable HTML layout projection defaults
 
