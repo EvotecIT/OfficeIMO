@@ -10,7 +10,6 @@ api_url: "/api/word/"
 meta.software.name: "OfficeIMO.Word"
 meta.software.application_category: "DeveloperApplication"
 meta.software.operating_system: "Windows, Linux, macOS"
-meta.software.version: "3.1.0"
 meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Word"
 meta.software.price: 0
 meta.software.price_currency: "USD"

@@ -9,11 +9,11 @@
         },
         {
           "question": "Does OfficeIMO support DOC, XLS, XLSB, and PPT as well as DOCX, XLSX, and PPTX?",
-          "answer": "<p>OfficeIMO 3.1 classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and reports conversion coverage by operation and fidelity. Use the <a href='/compatibility/'>compatibility dashboard</a> for tracked behaviors, fallbacks, and deliberate blocks.</p>"
+          "answer": "<p>OfficeIMO classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and reports conversion coverage by operation and fidelity. Use the <a href='/compatibility/'>compatibility dashboard</a> for tracked behaviors, fallbacks, and deliberate blocks.</p>"
         },
         {
           "question": "What .NET versions are supported?",
-          "answer": "<p>OfficeIMO 3.1 targets <strong>.NET 8.0</strong>, <strong>.NET 10.0</strong>, <strong>.NET Standard 2.0</strong>, and <strong>.NET Framework 4.7.2</strong>.</p>"
+          "answer": "<p>OfficeIMO targets <strong>.NET 8.0</strong>, <strong>.NET 10.0</strong>, <strong>.NET Standard 2.0</strong>, and <strong>.NET Framework 4.7.2</strong>.</p>"
         },
         {
           "question": "Is OfficeIMO free for commercial use?",
@@ -37,7 +37,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>The OfficeIMO 3.2 validation matrix covers <strong>99 of the 101 production projects</strong>. CI fully roots 97 library assemblies, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts the production CLI tool on Windows and Linux. The Chromium browser-PDF bridge uses managed cross-platform deployment, while the WPF/WebView2 renderer uses managed Windows deployment. Check the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and <a href='/data/aot-compatibility.json'>project matrix</a> for the exact package and runtime path.</p>"
+          "answer": "<p>Yes, for the packages and workflows covered by the OfficeIMO validation matrix. CI validates production libraries, a bounded native workflow for the optional Google APIs credential adapter, and the production CLI tool on Windows and Linux. The Chromium browser-PDF bridge uses managed cross-platform deployment, while the WPF/WebView2 renderer uses managed Windows deployment. Check the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and <a href='/data/aot-compatibility.json'>project matrix</a> for the current project counts, exact package coverage, and runtime path.</p>"
         }
       ]
     },

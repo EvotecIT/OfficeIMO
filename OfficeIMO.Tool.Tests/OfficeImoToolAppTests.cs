@@ -17,9 +17,82 @@ public sealed class OfficeImoToolAppTests {
         Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
         Assert.Contains("officeimo html", help, StringComparison.Ordinal);
         Assert.Contains("officeimo convert", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo read", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo extract", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo inspect", help, StringComparison.Ordinal);
         Assert.Contains("officeimo reader", help, StringComparison.Ordinal);
         Assert.Contains("officeimo markup", help, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
+    public async Task VersionReportsThePackedAssemblyVersion() {
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await OfficeImoToolApp.RunAsync(["--version"], input, output, error);
+
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+        Assert.Equal(
+            "OfficeIMO.Tool " + OfficeImoToolApp.GetVersion() + Environment.NewLine,
+            Encoding.UTF8.GetString(output.ToArray()));
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Theory]
+    [InlineData("read")]
+    [InlineData("extract")]
+    public async Task TopLevelExtractionAliasesUseTheReaderPipeline(string command) {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            "OfficeIMO.Tool.Tests",
+            Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(directory, "source.md");
+        Directory.CreateDirectory(directory);
+        await File.WriteAllTextAsync(path, "# Alias proof\n\nReader content");
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await OfficeImoToolApp.RunAsync(
+                [command, path, "--format", "markdown"],
+                input,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.Contains("Alias proof", Encoding.UTF8.GetString(output.ToArray()), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TopLevelInspectAliasUsesTheAgentPipeline() {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            "OfficeIMO.Tool.Tests",
+            Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(directory, "source.md");
+        Directory.CreateDirectory(directory);
+        await File.WriteAllTextAsync(path, "# Inspect alias\n\nAgent content");
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await OfficeImoToolApp.RunAsync(["inspect", path], input, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            using JsonDocument document = JsonDocument.Parse(output.ToArray());
+            Assert.Equal("Markdown", document.RootElement.GetProperty("kind").GetString());
+            Assert.Equal(string.Empty, error.ToString());
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]

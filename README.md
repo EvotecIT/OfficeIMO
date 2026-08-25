@@ -12,9 +12,9 @@ OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing,
 
 This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
-The current source line is `3.2.x`; the latest coordinated NuGet release is `3.2.6`. Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
+Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
 
-Upgrading an existing application? Most `OfficeIMO.Word` users can begin with the [short Word-first 3.1 path](MIGRATION.md#start-here-most-officeimoword-applications); the full [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
+Upgrading an existing application? The [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
@@ -57,7 +57,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.2.x` source packages | 94 |
+| Coordinated source packages | 94 |
 | Documented package, tool, and example projects below | 101 |
 | Native format, foundation, and shared-service packages | 26 |
 | Conversion and cloud bridge packages | 36 |
@@ -634,7 +634,7 @@ _Dependency footprint:_ Excel, Excel OpenDocument, PDF, and native OpenDocument 
 - [x] Visual-page reconstruction by default, with explicit editable-table mode
 - [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
 
-_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The 3.1 package graph has no all-formats umbrella or bridge-specific Core package.
+_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The current package graph has no all-formats umbrella or bridge-specific Core package.
 
 #### [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 
@@ -1099,37 +1099,37 @@ Fixed-layout PDF import is necessarily semantic rather than visually lossless. R
 
 ## Install
 
-Install only the native packages and adapters an application needs. The commands below use the current `3.2.6` NuGet release.
+Install only the native packages and adapters an application needs. Unversioned `dotnet add package` commands select the current stable NuGet release.
 
 ```powershell
-dotnet add package OfficeIMO.Word --version 3.2.6
-dotnet add package OfficeIMO.Word.Pdf --version 3.2.6
+dotnet add package OfficeIMO.Word
+dotnet add package OfficeIMO.Word.Pdf
 
-dotnet add package OfficeIMO.Excel --version 3.2.6
-dotnet add package OfficeIMO.Excel.Html --version 3.2.6
-dotnet add package OfficeIMO.Excel.Pdf --version 3.2.6
+dotnet add package OfficeIMO.Excel
+dotnet add package OfficeIMO.Excel.Html
+dotnet add package OfficeIMO.Excel.Pdf
 
-dotnet add package OfficeIMO.Epub --version 3.2.6
-dotnet add package OfficeIMO.Epub.Image --version 3.2.6
+dotnet add package OfficeIMO.Epub
+dotnet add package OfficeIMO.Epub.Image
 
-dotnet add package OfficeIMO.Adf --version 3.2.6
-dotnet add package OfficeIMO.Confluence --version 3.2.6
+dotnet add package OfficeIMO.Adf
+dotnet add package OfficeIMO.Confluence
 
-dotnet add package OfficeIMO.Reader.Pdf --version 3.2.6
+dotnet add package OfficeIMO.Reader.Pdf
 
 # Add every Reader adapter only when a broad ingestion host genuinely needs all formats.
-dotnet add package OfficeIMO.Reader.All --version 3.2.6
+dotnet add package OfficeIMO.Reader.All
 
-dotnet add package OfficeIMO.OneNote --version 3.2.6
-dotnet add package OfficeIMO.OneNote.Markdown --version 3.2.6
-dotnet add package OfficeIMO.OneNote.Html --version 3.2.6
-dotnet add package OfficeIMO.OneNote.Pdf --version 3.2.6
-dotnet add package OfficeIMO.Reader.OneNote --version 3.2.6
+dotnet add package OfficeIMO.OneNote
+dotnet add package OfficeIMO.OneNote.Markdown
+dotnet add package OfficeIMO.OneNote.Html
+dotnet add package OfficeIMO.OneNote.Pdf
+dotnet add package OfficeIMO.Reader.OneNote
 ```
 
-Keep OfficeIMO package references in one application on the same published version. The repository source is on the coordinated `3.2.x` line.
+Keep OfficeIMO package references in one application on the same published version.
 
-Install the unified CLI with `dotnet tool install --global OfficeIMO.Tool --version 3.2.6`. Contributors can run the current checkout directly with `dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- <command>`.
+Install the unified CLI with `dotnet tool install --global OfficeIMO.Tool`. See the [OfficeIMO.Tool guide](OfficeIMO.Tool/README.md) for global and repository-local installation, common commands, and contributor usage.
 
 ## Common workflows
 

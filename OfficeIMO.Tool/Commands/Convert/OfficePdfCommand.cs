@@ -15,7 +15,7 @@ internal static class OfficePdfCommand {
 OfficeIMO.Tool - Office to PDF
 
 Usage:
-  officeimo convert <input.docx|input.xlsx|input.pptx> [--output <file.pdf>] [--force]
+  officeimo convert <input.docx|input.xlsx|input.pptx> [output.pdf] [--output <file.pdf>] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
 

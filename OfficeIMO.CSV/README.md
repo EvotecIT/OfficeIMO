@@ -368,7 +368,7 @@ must be thread-safe; keep the reader sequential when a converter depends on
 mutable single-threaded state.
 
 `OpenDataReader` is the forward-only entry point. Use `CsvDocument.Load` when a
-materialized document is required; 3.1 no longer exposes a load-mode switch.
+materialized document is required; the current API does not expose a load-mode switch.
 `LoadAsync` and `SaveAsync` perform asynchronous source or destination I/O but
 still materialize the document or serialized output. They are not an async CSV
 cursor; `DbDataReader.Read()` remains the bounded forward-only read path.

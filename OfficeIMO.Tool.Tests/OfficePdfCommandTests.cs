@@ -23,7 +23,7 @@ public sealed class OfficePdfCommandTests {
 
         try {
             int exitCode = await OfficeImoToolApp.RunAsync(
-                ["convert", inputPath, "--output", outputPath],
+                ["convert", inputPath, outputPath],
                 Stream.Null,
                 output,
                 error);
@@ -33,6 +33,101 @@ public sealed class OfficePdfCommandTests {
             Assert.NotEmpty(OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(outputPath)).Pages);
             Assert.Contains(outputPath, Encoding.UTF8.GetString(output.ToArray()), StringComparison.Ordinal);
             Assert.DoesNotContain("Error ", error.ToString(), StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".markdown")]
+    [InlineData(".json")]
+    public async Task ConvertRoutesTextDestinationsThroughTheReaderPipeline(string outputExtension) {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "source.xlsx");
+        string outputPath = Path.Combine(directory, "result" + outputExtension);
+        CreateSource(inputPath, ".xlsx");
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await OfficeImoToolApp.RunAsync(
+                ["convert", inputPath, outputPath],
+                Stream.Null,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.True(File.Exists(outputPath));
+            Assert.Contains("Tool Excel conversion", await File.ReadAllTextAsync(outputPath), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ConvertRejectsUnsupportedDestinationExtensions() {
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await OfficeImoToolApp.RunAsync(
+            ["convert", "source.xlsx", "result.csv"],
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+        Assert.Contains(".pdf, .md, .markdown, or .json", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConvertTreatsHelpAsAnOptionValueWhenItNamesTheAssetsDirectory() {
+        ConvertRoute route = ConvertRoute.Parse([
+            "source.xlsx",
+            "result.md",
+            "--assets",
+            "help"
+        ]);
+
+        Assert.False(route.Help);
+        Assert.Equal(ConvertOutputFormat.Markdown, route.Format);
+        Assert.Contains("help", route.ReaderArguments);
+    }
+
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".json")]
+    public async Task ConvertRequiresForceToReplaceReaderDestinations(string outputExtension) {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "source.xlsx");
+        string outputPath = Path.Combine(directory, "result" + outputExtension);
+        CreateSource(inputPath, ".xlsx");
+        await File.WriteAllTextAsync(outputPath, "original content");
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int refusedExitCode = await OfficeImoToolApp.RunAsync(
+                ["convert", inputPath, outputPath],
+                Stream.Null,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, refusedExitCode);
+            Assert.Equal("original content", await File.ReadAllTextAsync(outputPath));
+            Assert.Contains("--force", error.ToString(), StringComparison.Ordinal);
+
+            error.GetStringBuilder().Clear();
+            int forcedExitCode = await OfficeImoToolApp.RunAsync(
+                ["convert", inputPath, outputPath, "--force"],
+                Stream.Null,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, forcedExitCode);
+            Assert.Contains("Tool Excel conversion", await File.ReadAllTextAsync(outputPath), StringComparison.Ordinal);
+            Assert.Equal(string.Empty, error.ToString());
         } finally {
             Directory.Delete(directory, recursive: true);
         }
