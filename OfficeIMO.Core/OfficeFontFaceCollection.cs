@@ -319,16 +319,15 @@ public sealed class OfficeFontFaceCollection {
             }
             if (providerResult != null) {
                 byte[]? staticData = providerResult.StaticOpenTypeDataSnapshot;
-                int retainedBytes = Math.Max(
-                    providerResult.DecodedByteCount,
-                    staticData?.Length ?? data.Length);
+                int faceDataBytes = staticData?.Length ?? data.Length;
+                long retainedBytes = (long)providerResult.DecodedByteCount + faceDataBytes;
                 if (retainedBytes > providerLimit) {
                     error = "Decoded font data exceeds the configured byte limit.";
                     return false;
                 }
                 parsed = providerResult.Program;
                 acceptedData = staticData ?? (byte[])data.Clone();
-                decodedBytes = retainedBytes;
+                decodedBytes = checked((int)retainedBytes);
                 canEmbedAsStaticPdfFont = staticData != null;
             } else {
                 parsed = builtInProgram;

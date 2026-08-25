@@ -16,6 +16,7 @@ internal interface IOfficeCffPathSink {
 internal sealed class OfficeCffOperationBudget {
     private const int DefaultMaximumOperations = 1_000_000;
     private int _remaining;
+    private uint _randomState = 0x9E3779B9U;
 
     internal OfficeCffOperationBudget() : this(DefaultMaximumOperations) {
     }
@@ -27,6 +28,17 @@ internal sealed class OfficeCffOperationBudget {
 
     internal void Consume() {
         if (_remaining-- <= 0) throw new InvalidDataException("The CFF CharString operation budget was exceeded.");
+    }
+
+    internal double NextRandom() {
+        // Type 2 requires a pseudo-random sequence in (0, 1]. Keep it deterministic for
+        // reproducible document output and shared across every glyph in one bounded render.
+        uint value = _randomState;
+        value ^= value << 13;
+        value ^= value >> 17;
+        value ^= value << 5;
+        _randomState = value;
+        return (value + 1D) / (uint.MaxValue + 1D);
     }
 }
 
@@ -301,7 +313,7 @@ internal sealed class OfficeType2CharStringInterpreter {
             case 20: PutTransient(); break;
             case 21: GetTransient(); break;
             case 22: Conditional(); break;
-            case 23: Push(0.5D); break;
+            case 23: Push(_operationBudget.NextRandom()); break;
             case 24: Binary((left, right) => left * right); break;
             case 26:
                 double value = Pop();

@@ -119,6 +119,62 @@ public sealed class DrawingFontContainerTests {
         Assert.Empty(fonts.Faces);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeFontFaceCollection_CountsProviderAndFaceBuffersIndependently(bool includeStaticSnapshot) {
+        byte[] woff2 = { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 };
+        var fonts = new OfficeFontFaceCollection {
+            FontProgramProvider = new TestFontProgramProvider(
+                decodedByteCount: 57,
+                staticOpenTypeData: includeStaticSnapshot ? woff2 : null)
+        };
+
+        Assert.False(fonts.TryAddBounded(
+            "Provider Demo",
+            woff2,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: 64,
+            out int rejectedBytes,
+            out string? rejectedError));
+        Assert.Equal(0, rejectedBytes);
+        Assert.Contains("limit", rejectedError, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(fonts.Faces);
+
+        Assert.True(fonts.TryAddBounded(
+            "Provider Demo",
+            woff2,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: 65,
+            out int acceptedBytes,
+            out string? acceptedError), acceptedError);
+        Assert.Equal(65, acceptedBytes);
+        Assert.Single(fonts.Faces);
+    }
+
+    [Fact]
+    public void OfficeFontFaceCollection_RejectsProviderAndFaceBufferTotalsBeyondInt32() {
+        byte[] woff2 = { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 };
+        var fonts = new OfficeFontFaceCollection {
+            FontProgramProvider = new TestFontProgramProvider(int.MaxValue)
+        };
+
+        Assert.False(fonts.TryAddBounded(
+            "Provider Demo",
+            woff2,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: int.MaxValue,
+            out int decodedBytes,
+            out string? error));
+
+        Assert.Equal(0, decodedBytes);
+        Assert.Contains("limit", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(fonts.Faces);
+    }
+
     [Fact]
     public void TrueTypeShapingDataReturnsIndependentSnapshots() {
         byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
@@ -135,16 +191,18 @@ public sealed class DrawingFontContainerTests {
 
     private sealed class TestFontProgramProvider : IOfficeFontProgramProvider {
         private readonly int _decodedByteCount;
+        private readonly byte[]? _staticOpenTypeData;
 
-        internal TestFontProgramProvider(int decodedByteCount) {
+        internal TestFontProgramProvider(int decodedByteCount, byte[]? staticOpenTypeData = null) {
             _decodedByteCount = decodedByteCount;
+            _staticOpenTypeData = staticOpenTypeData;
         }
 
         internal OfficeFontProgramLoadRequest? LastRequest { get; private set; }
 
         public OfficeFontProgramLoadResult? TryLoad(OfficeFontProgramLoadRequest request) {
             LastRequest = request;
-            return new OfficeFontProgramLoadResult(new TestFontProgram(), _decodedByteCount);
+            return new OfficeFontProgramLoadResult(new TestFontProgram(), _decodedByteCount, _staticOpenTypeData);
         }
     }
 

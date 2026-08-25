@@ -176,6 +176,31 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void CffRandomOperatorProducesADeterministicSequenceWithinTheUnitRange() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var program = new OfficeCffFontData.CffSlice(new byte[] {
+            12, 23, // random x
+            12, 23, // random y
+            21,     // rmoveto
+            149, 139, 5, // 10 0 rlineto
+            14
+        }, 0, 9);
+        var first = new CountingCffSink();
+        var second = new CountingCffSink();
+
+        new OfficeType2CharStringInterpreter(cff, 0, first, CancellationToken.None).Render(program);
+        new OfficeType2CharStringInterpreter(cff, 0, second, CancellationToken.None).Render(program);
+
+        Assert.InRange(first.LastMoveX, double.Epsilon, 1D);
+        Assert.InRange(first.LastMoveY, double.Epsilon, 1D);
+        Assert.NotEqual(first.LastMoveX, first.LastMoveY);
+        Assert.Equal(first.LastMoveX, second.LastMoveX);
+        Assert.Equal(first.LastMoveY, second.LastMoveY);
+    }
+
+    [Fact]
     public void Cff2MvarAdjustsSelectedHorizontalLineMetrics() {
         byte[] original = ReadAsset("AdobeVFPrototype-Subset.otf");
         byte[] withMvar = ReplaceHvarWithMvar(original, CreateHorizontalMetricsMvar());
@@ -310,10 +335,14 @@ public sealed class DrawingCffFontTests {
     private sealed class CountingCffSink : IOfficeCffPathSink {
         internal int MoveCount { get; private set; }
         internal int DrawingOperationCount { get; private set; }
+        internal double LastMoveX { get; private set; }
+        internal double LastMoveY { get; private set; }
 
         public void MoveTo(double x, double y) {
             MoveCount++;
             DrawingOperationCount++;
+            LastMoveX = x;
+            LastMoveY = y;
         }
 
         public void LineTo(double x, double y) => DrawingOperationCount++;
