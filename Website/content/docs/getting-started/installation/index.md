@@ -23,7 +23,11 @@ For a repository-local installation, create or reuse a .NET tool manifest:
 dotnet new tool-manifest
 dotnet tool install OfficeIMO.Tool
 dotnet tool run officeimo help
-# The SDK also resolves the local tool through this shorthand:
+```
+
+The SDK also resolves the local tool through this shorthand:
+
+```powershell
 dotnet officeimo help
 ```
 
