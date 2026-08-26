@@ -81,6 +81,7 @@ try {
             [ordered]@{
                 engine = $engineName
                 cancellation = [ordered]@{
+                    apiSupportsCancellation = $engineName -in @('OfficeIMO', 'Chromium')
                     status = $engineName -in @('OfficeIMO', 'Chromium') ? 'Passed' : 'Unsupported'
                 }
                 determinism = [ordered]@{
@@ -153,6 +154,47 @@ try {
 
     $report.engines[0].outputs = $validOutputs
     $officeEngine = $report.engines | Where-Object { $_.engine -eq 'OfficeIMO' }
+    $officeEngine.cancellation.apiSupportsCancellation = $false
+    $officeEngine.cancellation.status = 'Unsupported'
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $missingSupportedCancellationRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'cancellation') { throw }
+        $missingSupportedCancellationRejected = $true
+    }
+    if (-not $missingSupportedCancellationRejected) {
+        throw 'HTML/PDF artifact exporter accepted missing cancellation proof from a supported engine.'
+    }
+
+    $officeEngine.cancellation.apiSupportsCancellation = $true
+    $officeEngine.cancellation.status = 'Passed'
+    $peachEngine = $report.engines | Where-Object { $_.engine -eq 'PeachPDF' }
+    $peachEngine.cancellation.apiSupportsCancellation = $true
+    $peachEngine.cancellation.status = 'Passed'
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $falseSupportedCancellationRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'cancellation') { throw }
+        $falseSupportedCancellationRejected = $true
+    }
+    if (-not $falseSupportedCancellationRejected) {
+        throw 'HTML/PDF artifact exporter accepted cancellation proof from an unsupported comparison API.'
+    }
+
+    $peachEngine.cancellation.apiSupportsCancellation = $false
+    $peachEngine.cancellation.status = 'Unsupported'
     $officeEngine.determinism.exactBytesIdentical = $false
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))

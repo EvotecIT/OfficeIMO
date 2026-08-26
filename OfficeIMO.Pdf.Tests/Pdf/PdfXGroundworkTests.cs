@@ -601,6 +601,20 @@ public class PdfXGroundworkTests {
     }
 
     [Theory]
+    [InlineData("BI /W 1 /H 1 /BPC 8 ID A EI", false)]
+    [InlineData("BI /W 1 /H 1 /IM true /BPC 1 ID A EI", true)]
+    public void PrintProductionInspectorRequiresColorSpaceForNonMaskInlineImages(
+        string content,
+        bool expectedComplete) {
+        byte[] pdf = BuildInspectionPdf(content);
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(expectedComplete, evidence.IsComplete);
+        Assert.Equal(expectedComplete ? 0 : 1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
     [InlineData("1e309 0 0 rg 0 0 10 10 re f")]
     [InlineData("BI /W 1e309 /H 1 /BPC 8 /CS /G ID A EI")]
     [InlineData("1e309 /F1 Do")]

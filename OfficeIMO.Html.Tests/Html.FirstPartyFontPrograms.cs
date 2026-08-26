@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.TestAssets;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -82,6 +83,26 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var outlineShapes = PdfCore.PdfDocument.Open(firstPdf).Read.Drawing(1).Shapes;
         Assert.NotEmpty(outlineShapes);
         Assert.All(outlineShapes, shape => Assert.Equal(OfficeFillRule.NonZero, shape.Shape.FillRule));
+    }
+
+    [Fact]
+    public void HtmlPdfTrueTypeCollectionUsesAccessibleVectorOutlines() {
+        const string text = "OfficeIMO 0123456789";
+        byte[] collection = ManagedTextShapingTestAssets.CreateFontCollection(
+            text.Select(character => (int)character).ToArray());
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            FontHtml("Collection Face", "font/ttf", collection, text, link: false));
+
+        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(new HtmlPdfSaveOptions());
+        byte[] pdf = result.ToBytes();
+
+        Assert.Contains(text, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
+            && warning.Details.TryGetValue("StaticPdfEmbeddable", out string? staticEmbeddable)
+            && staticEmbeddable == "false");
+        Assert.NotEmpty(PdfCore.PdfDocument.Open(pdf).Read.Drawing(1).Shapes);
+        Assert.True(HtmlPdfAccessibilityValidator.Validate(source, pdf).IsValid);
     }
 
     [Fact]

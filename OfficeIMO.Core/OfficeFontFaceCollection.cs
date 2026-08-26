@@ -244,12 +244,7 @@ public sealed class OfficeFontFaceCollection {
                 return false;
             }
         }
-        bool isFontCollection = decoded
-            && openTypeData.Length >= 4
-            && openTypeData[0] == (byte)'t'
-            && openTypeData[1] == (byte)'t'
-            && openTypeData[2] == (byte)'c'
-            && openTypeData[3] == (byte)'f';
+        bool isFontCollection = decoded && HasTrueTypeCollectionSignature(openTypeData);
         if (isFontCollection && variationValues != null && variationValues.Count > 0) {
             error = "Variable-font axes cannot be selected on a font collection. Extract and register the intended face as an individual OpenType font.";
             return false;
@@ -288,7 +283,7 @@ public sealed class OfficeFontFaceCollection {
         }
         IOfficeFontProgram? parsed = builtInProgram;
         byte[] acceptedData = openTypeData;
-        bool canEmbedAsStaticPdfFont = parsed != null && !builtInVariable;
+        bool canEmbedAsStaticPdfFont = parsed != null && !builtInVariable && !isFontCollection;
         // Configuring a provider is an explicit request to use its complete layout engine even
         // for TrueType faces the dependency-free core can decode. A provider may still decline,
         // in which case the already validated built-in program remains the fallback.
@@ -328,11 +323,11 @@ public sealed class OfficeFontFaceCollection {
                 parsed = providerResult.Program;
                 acceptedData = staticData ?? (byte[])data.Clone();
                 decodedBytes = checked((int)retainedBytes);
-                canEmbedAsStaticPdfFont = staticData != null;
+                canEmbedAsStaticPdfFont = staticData != null && !HasTrueTypeCollectionSignature(staticData);
             } else {
                 parsed = builtInProgram;
                 acceptedData = openTypeData;
-                canEmbedAsStaticPdfFont = builtInProgram != null && !builtInVariable;
+                canEmbedAsStaticPdfFont = builtInProgram != null && !builtInVariable && !isFontCollection;
             }
         }
         if (parsed == null) {
@@ -723,6 +718,14 @@ public sealed class OfficeFontFaceCollection {
     private static bool MatchesFamily(OfficeFontFace face, string family) =>
         string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)
         || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+
+    private static bool HasTrueTypeCollectionSignature(byte[]? data) =>
+        data != null
+        && data.Length >= 4
+        && data[0] == (byte)'t'
+        && data[1] == (byte)'t'
+        && data[2] == (byte)'c'
+        && data[3] == (byte)'f';
 
 
     private static string CreateResourceFamilyName(

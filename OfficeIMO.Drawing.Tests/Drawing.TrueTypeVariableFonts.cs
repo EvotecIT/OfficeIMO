@@ -293,7 +293,20 @@ public sealed class DrawingTrueTypeVariableFontTests {
                 coordinate: 0.4D,
                 peak,
                 intermediateStart: start,
-                intermediateEnd: end));
+            intermediateEnd: end));
+    }
+
+    [Fact]
+    public void FontCollectionFaceCanShapeButIsNotDirectlyEmbeddable() {
+        int[] probeScalars = "OfficeIMO 0123456789".Select(character => (int)character).ToArray();
+        byte[] collection = ManagedTextShapingTestAssets.CreateFontCollection(probeScalars);
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.True(fonts.TryAdd("Collection", collection));
+
+        OfficeFontFace face = Assert.Single(fonts.Faces);
+        Assert.True(face.Program.HasGlyphs("OfficeIMO 0123456789"));
+        Assert.False(face.CanEmbedAsStaticPdfFont);
     }
 
     [Fact]

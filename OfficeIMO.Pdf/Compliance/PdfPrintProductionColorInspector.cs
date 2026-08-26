@@ -363,18 +363,24 @@ internal static partial class PdfPrintProductionColorInspector {
                                 break;
                         }
 
-                        if (operation.InlineImage != null &&
-                            operation.InlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColorSpace)) {
-                            ColorSpaceUsage usage = ClassifyColorSpace(
-                                inlineColorSpace,
-                                objects,
-                                maximumObjectDepth,
-                                aliases,
-                                normalizeInlineImageAbbreviations: true);
-                            if (!usage.IsKnown) contextWasUninspectable = true;
-                            if (usage.UsesDeviceRgb) rgbImages++;
-                            if (usage.UsesDeviceCmyk) cmykImages++;
-                            if (usage.UsesDeviceIndependent) deviceIndependentColorUses++;
+                        if (operation.InlineImage != null) {
+                            PdfDictionary inlineImage = operation.InlineImage.Dictionary;
+                            if (inlineImage.Items.TryGetValue("ColorSpace", out PdfObject? inlineColorSpace)) {
+                                ColorSpaceUsage usage = ClassifyColorSpace(
+                                    inlineColorSpace,
+                                    objects,
+                                    maximumObjectDepth,
+                                    aliases,
+                                    normalizeInlineImageAbbreviations: true);
+                                if (!usage.IsKnown) contextWasUninspectable = true;
+                                if (usage.UsesDeviceRgb) rgbImages++;
+                                if (usage.UsesDeviceCmyk) cmykImages++;
+                                if (usage.UsesDeviceIndependent) deviceIndependentColorUses++;
+                            } else {
+                                bool isImageMask = inlineImage.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
+                                    ResolveObject(objects, imageMaskObject, 0, maximumObjectDepth) is PdfBoolean { Value: true };
+                                if (!isImageMask) contextWasUninspectable = true;
+                            }
                         }
                     },
                     maxNestingDepth: document.ReadOptions.Limits.MaxContentNestingDepth,

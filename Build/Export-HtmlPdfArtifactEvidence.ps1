@@ -54,6 +54,12 @@ if ($actualOsFamily -ne $expectedOsFamily -or
 }
 
 $expectedEngines = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF')
+$expectedCancellation = @{
+    Chromium = @{ Supports = $true; Status = 'Passed' }
+    OfficeIMO = @{ Supports = $true; Status = 'Passed' }
+    ITextPdfHtml = @{ Supports = $false; Status = 'Unsupported' }
+    PeachPDF = @{ Supports = $false; Status = 'Unsupported' }
+}
 $engines = @($report.engines)
 $actualEngines = @($engines | ForEach-Object { [string] $_.engine } | Sort-Object)
 if ($engines.Count -ne $expectedEngines.Count -or
@@ -73,7 +79,9 @@ foreach ($engine in $engines) {
     }
 
     $requiresExactBytes = $engineName -eq 'OfficeIMO'
-    if ([string] $engine.cancellation.status -notin @('Passed', 'Unsupported') -or
+    $cancellation = $expectedCancellation[$engineName]
+    if ($engine.cancellation.apiSupportsCancellation -ne $cancellation.Supports -or
+        [string] $engine.cancellation.status -ne $cancellation.Status -or
         $engine.memoryComparable -ne $true -or
         ($requiresExactBytes -and $engine.determinism.exactBytesIdentical -ne $true) -or
         $engine.determinism.semanticOutputIdentical -ne $true -or
