@@ -222,6 +222,59 @@ public class PdfXGroundworkTests {
         Assert.Equal(1, structure.UnembeddedFontResourceCount);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PdfXStructureInspectorRejectsType1ProgramsForTrueTypeFonts(bool composite) {
+        byte[] type1 = Encoding.ASCII.GetBytes("%!PS-AdobeFont-1.0: Fake 1.0\neexec\n");
+        byte[] pdf = BuildMismatchedType1InspectionPdf(type1, composite);
+
+        PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf)
+            .InspectPrintProductionStructure();
+
+        Assert.Equal(1, structure.FontResourceCount);
+        Assert.Equal(1, structure.UnembeddedFontResourceCount);
+        Assert.False(structure.IsComplete);
+    }
+
+    [Fact]
+    public void PdfFontCompatibilityBindsOpenTypeOutlineTechnologyAndExcludesMmType1() {
+        byte[] trueType = { 0, 1, 0, 0 };
+        byte[] openTypeCff = { (byte)'O', (byte)'T', (byte)'T', (byte)'O' };
+
+        Assert.True(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("TrueType", trueType));
+        Assert.True(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("CIDFontType2", trueType));
+        Assert.False(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("Type1", trueType));
+        Assert.False(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("CIDFontType0", trueType));
+        Assert.True(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("Type1", openTypeCff));
+        Assert.True(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("CIDFontType0", openTypeCff));
+        Assert.False(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("TrueType", openTypeCff));
+        Assert.False(PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram("CIDFontType2", openTypeCff));
+        Assert.False(PdfFontProgramCompatibility.IsCompatible("MMType1", "FontFile3", "OpenType"));
+    }
+
+    [Fact]
+    public void PdfResourceResolverRejectsOpenTypeCffProgramDeclaredAsTrueType() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        byte[] fontBytes = File.ReadAllBytes(fontPath!);
+        var streamDictionary = new PdfDictionary();
+        streamDictionary.Items["Subtype"] = new PdfName("OpenType");
+        var descriptor = new PdfDictionary();
+        descriptor.Items["FontFile3"] = new PdfStream(streamDictionary, fontBytes);
+        var font = new PdfDictionary();
+        font.Items["Subtype"] = new PdfName("TrueType");
+        font.Items["BaseFont"] = new PdfName("MismatchedCff");
+        font.Items["FontDescriptor"] = descriptor;
+
+        PdfFontResource resource = ResourceResolver.CreateFontResource(
+            "F1",
+            font,
+            new Dictionary<int, PdfIndirectObject>());
+
+        Assert.Null(resource.EmbeddedTrueTypeFont);
+    }
+
     [Fact]
     public void PdfXGeneratedAndExactPoliciesRejectLinks() {
         var options = new PdfOptions()
@@ -1293,6 +1346,26 @@ public class PdfXGroundworkTests {
         WriteAscii(output, "6 0 obj\n<< /Type /FontDescriptor /FontName /Fake /FontFile3 7 0 R >>\nendobj\n");
         WriteAscii(output, "7 0 obj\n<< /Subtype /Type1C /Length " + cff.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(cff, 0, cff.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildMismatchedType1InspectionPdf(byte[] type1, bool composite) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf (A) Tj ET");
+        if (composite) {
+            WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Fake /Encoding /Identity-H /DescendantFonts [8 0 R] >>\nendobj\n");
+            WriteAscii(output, "8 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Fake /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 6 0 R >>\nendobj\n");
+        } else {
+            WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /TrueType /BaseFont /Fake /FontDescriptor 6 0 R >>\nendobj\n");
+        }
+        WriteAscii(output, "6 0 obj\n<< /Type /FontDescriptor /FontName /Fake /FontFile 7 0 R >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Length " + type1.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(type1, 0, type1.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

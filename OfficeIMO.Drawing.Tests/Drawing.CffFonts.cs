@@ -30,10 +30,48 @@ public sealed class DrawingCffFontTests {
             0, 0,
             0, 0, 0, 1, 1, 1, 2, 14
         };
+        byte[] multiFontCff1 = {
+            1, 0, 4, 1,
+            0, 2, 1, 1, 2, 3, (byte)'A', (byte)'B',
+            0, 2, 1, 1, 3, 5, 165, 17, 165, 17,
+            0, 0,
+            0, 0,
+            0, 1, 1, 1, 2, 14
+        };
+        byte[] nameKeyedCff1 = validCff1;
+        byte[] cidKeyedCff1 = {
+            1, 0, 4, 1,
+            0, 1, 1, 1, 2, (byte)'A',
+            0, 1, 1, 1, 8, 139, 139, 139, 12, 30, 165, 17,
+            0, 0,
+            0, 0,
+            0, 1, 1, 1, 2, 14
+        };
+        byte[] structurallyCompleteCidCff1 = {
+            1, 0, 4, 1,
+            0, 1, 1, 1, 2, (byte)'A',
+            0, 1, 1, 1, 14,
+            139, 139, 139, 12, 30,
+            171, 17,
+            177, 12, 36,
+            182, 12, 37,
+            0, 0,
+            0, 0,
+            0, 1, 1, 1, 2, 14,
+            0, 1, 1, 1, 1,
+            0, 0
+        };
 
         Assert.True(OfficeCffFontData.IsStructurallyValidProgram(validCff1, isCff2: false));
         Assert.True(OfficeCffFontData.IsStructurallyValidProgram(validCff2, isCff2: true));
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(overlappingCff2, isCff2: true));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(multiFontCff1, isCff2: false));
+        Assert.True(OfficeCffFontData.IsStructurallyValidProgram(nameKeyedCff1, isCff2: false, requireCidKeyed: false));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(nameKeyedCff1, isCff2: false, requireCidKeyed: true));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(cidKeyedCff1, isCff2: false, requireCidKeyed: true));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(cidKeyedCff1, isCff2: false, requireCidKeyed: false));
+        Assert.True(OfficeCffFontData.IsStructurallyValidProgram(structurallyCompleteCidCff1, isCff2: false, requireCidKeyed: true));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(structurallyCompleteCidCff1, isCff2: false, requireCidKeyed: false));
     }
 
     [Fact]

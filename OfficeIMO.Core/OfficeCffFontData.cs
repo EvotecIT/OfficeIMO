@@ -36,7 +36,7 @@ internal sealed class OfficeCffFontData {
     internal int GlyphCount => _charStrings.Count;
     internal OfficeCffVariationStore? VariationStore { get; }
 
-    internal static bool IsStructurallyValidProgram(byte[] data, bool isCff2) {
+    internal static bool IsStructurallyValidProgram(byte[] data, bool isCff2, bool? requireCidKeyed = null) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         try {
             int minimumHeaderSize = isCff2 ? 5 : 4;
@@ -56,21 +56,39 @@ internal sealed class OfficeCffFontData {
                 CffDictionary topDictionary = CffDictionary.Parse(data, topOffset, topLength);
                 int cursor = checked(topOffset + topLength);
                 _ = CffIndex.Read(data, ref cursor, tableEnd, countSize: 4);
-                return HasNonEmptyCharStrings(data, tableEnd, topDictionary, cursor, countSize: 4);
+                return ReadNonEmptyCharStrings(data, tableEnd, topDictionary, cursor, countSize: 4).Count > 0;
             }
 
             if (data[3] < 1 || data[3] > 4) return false;
             int cff1Cursor = data[2];
             CffIndex names = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
             CffIndex topDictionaries = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
-            if (names.Count <= 0 || topDictionaries.Count != names.Count) return false;
+            if (names.Count != 1 || topDictionaries.Count != 1) return false;
             _ = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
             _ = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
-            for (int index = 0; index < topDictionaries.Count; index++) {
-                CffSlice top = topDictionaries[index];
-                CffDictionary topDictionary = CffDictionary.Parse(data, top.Offset, top.Length);
-                if (!HasNonEmptyCharStrings(data, tableEnd, topDictionary, cff1Cursor, countSize: 2)) return false;
+            CffSlice top = topDictionaries[0];
+            CffDictionary cff1TopDictionary = CffDictionary.Parse(data, top.Offset, top.Length);
+            bool isCidKeyed = cff1TopDictionary.ContainsOperation(0x0C1E);
+            if (requireCidKeyed.HasValue &&
+                isCidKeyed != requireCidKeyed.Value) return false;
+            CffIndex charStrings = ReadNonEmptyCharStrings(
+                data,
+                tableEnd,
+                cff1TopDictionary,
+                cff1Cursor,
+                countSize: 2);
+            if (!isCidKeyed) return true;
+            if (!cff1TopDictionary.HasNonNegativeIntegerOperands(0x0C1E, 3) ||
+                !cff1TopDictionary.TryGetInteger(0x0C24, out int fdArrayOffset) ||
+                !cff1TopDictionary.TryGetInteger(0x0C25, out int fdSelectOffset) ||
+                fdArrayOffset < cff1Cursor || fdSelectOffset < cff1Cursor) return false;
+            CffIndex fdArray = CffIndex.ReadAt(data, fdArrayOffset, tableEnd, countSize: 2);
+            if (fdArray.Count <= 0 || fdArray.Count > 256) return false;
+            for (int index = 0; index < fdArray.Count; index++) {
+                CffSlice fontDictionary = fdArray[index];
+                _ = CffDictionary.Parse(data, fontDictionary.Offset, fontDictionary.Length);
             }
+            _ = ReadFdSelect(data, fdSelectOffset, tableEnd, charStrings.Count, fdArray.Count);
             return true;
         } catch (Exception exception) when (
             exception is InvalidDataException ||
@@ -81,16 +99,20 @@ internal sealed class OfficeCffFontData {
         }
     }
 
-    private static bool HasNonEmptyCharStrings(
+    private static CffIndex ReadNonEmptyCharStrings(
         byte[] data,
         int tableEnd,
         CffDictionary topDictionary,
         int minimumOffset,
         int countSize) {
         int charStringsOffset = topDictionary.GetRequiredInteger(17, "CharStrings");
-        if (charStringsOffset < minimumOffset) return false;
+        if (charStringsOffset < minimumOffset) {
+            throw new InvalidDataException("The CFF CharStrings INDEX overlaps preceding data.");
+        }
         EnsureRange(charStringsOffset, countSize, 0, tableEnd, "The CFF CharStrings INDEX offset is invalid.");
-        return CffIndex.ReadAt(data, charStringsOffset, tableEnd, countSize).Count > 0;
+        CffIndex charStrings = CffIndex.ReadAt(data, charStringsOffset, tableEnd, countSize);
+        if (charStrings.Count <= 0) throw new InvalidDataException("The CFF CharStrings INDEX is empty.");
+        return charStrings;
     }
 
     internal static OfficeCffFontData Parse(OfficeOpenTypeReader reader, OfficeFontVariationModel variations) {
@@ -419,6 +441,17 @@ internal sealed class OfficeCffFontData {
         internal int GetRequiredInteger(int operation, string name) {
             if (!TryGetInteger(operation, out int value)) throw new InvalidDataException("The CFF Top DICT is missing " + name + ".");
             return value;
+        }
+
+        internal bool ContainsOperation(int operation) => _values.ContainsKey(operation);
+
+        internal bool HasNonNegativeIntegerOperands(int operation, int count) {
+            if (!_values.TryGetValue(operation, out double[]? operands) || operands.Length != count) return false;
+            for (int index = 0; index < operands.Length; index++) {
+                double operand = operands[index];
+                if (operand < 0D || operand > int.MaxValue || operand != Math.Truncate(operand)) return false;
+            }
+            return true;
         }
 
         internal bool TryGetInteger(int operation, out int value) {

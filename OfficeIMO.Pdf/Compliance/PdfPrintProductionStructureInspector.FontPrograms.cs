@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionStructureInspector {
     private static bool IsValidFontProgram(
+        string? fontSubtype,
         string key,
         PdfStream stream,
         byte[] decoded,
@@ -11,10 +12,12 @@ internal static partial class PdfPrintProductionStructureInspector {
         int maximumObjectDepth) {
         if (decoded.Length == 0) return false;
         if (string.Equals(key, "FontFile", StringComparison.Ordinal)) {
-            return IsValidType1Program(decoded);
+            return PdfFontProgramCompatibility.IsCompatible(fontSubtype, key) &&
+                IsValidType1Program(decoded);
         }
         if (string.Equals(key, "FontFile2", StringComparison.Ordinal)) {
-            return IsValidSfntProgram(decoded, requireTrueTypeOutlines: true);
+            return PdfFontProgramCompatibility.IsCompatible(fontSubtype, key) &&
+                IsValidSfntProgram(decoded, fontSubtype);
         }
         if (!string.Equals(key, "FontFile3", StringComparison.Ordinal)) return false;
 
@@ -24,12 +27,15 @@ internal static partial class PdfPrintProductionStructureInspector {
                 : null,
             objects,
             maximumObjectDepth);
-        if (string.Equals(subtype, "Type1C", StringComparison.Ordinal) ||
-            string.Equals(subtype, "CIDFontType0C", StringComparison.Ordinal)) {
-            return IsValidCff1Program(decoded);
+        if (!PdfFontProgramCompatibility.IsCompatible(fontSubtype, key, subtype)) return false;
+        if (string.Equals(subtype, "Type1C", StringComparison.Ordinal)) {
+            return IsValidCff1Program(decoded, requireCidKeyed: false);
+        }
+        if (string.Equals(subtype, "CIDFontType0C", StringComparison.Ordinal)) {
+            return IsValidCff1Program(decoded, requireCidKeyed: true);
         }
         if (string.Equals(subtype, "OpenType", StringComparison.Ordinal)) {
-            return IsValidSfntProgram(decoded, requireTrueTypeOutlines: false);
+            return IsValidSfntProgram(decoded, fontSubtype);
         }
         return false;
     }
@@ -45,12 +51,11 @@ internal static partial class PdfPrintProductionStructureInspector {
             ContainsAscii(data, "eexec");
     }
 
-    private static bool IsValidSfntProgram(byte[] data, bool requireTrueTypeOutlines) {
+    private static bool IsValidSfntProgram(byte[] data, string? fontSubtype) {
         if (data.Length < 12) return false;
         uint scaler = ReadUInt32BigEndian(data, 0);
         bool isTrueType = scaler == 0x00010000U || scaler == 0x74727565U;
-        bool isOpenTypeCff = scaler == 0x4F54544FU;
-        if (requireTrueTypeOutlines ? !isTrueType : (!isTrueType && !isOpenTypeCff)) return false;
+        if (!PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram(fontSubtype, data)) return false;
 
         int tableCount = ReadUInt16BigEndian(data, 4);
         if (tableCount <= 0 || tableCount > 4096 || 12L + tableCount * 16L > data.Length) return false;
@@ -95,11 +100,18 @@ internal static partial class PdfPrintProductionStructureInspector {
         if (!hasCff) return false;
         var cff = new byte[cffLength];
         Buffer.BlockCopy(data, cffOffset, cff, 0, cffLength);
-        return cffIsVersion2 ? IsValidCff2Program(cff) : IsValidCff1Program(cff);
+        if (cffIsVersion2) return IsValidCff2Program(cff);
+        bool? requireCidKeyed = string.Equals(fontSubtype, "Type1", StringComparison.Ordinal)
+            ? false
+            : null;
+        return IsValidCff1Program(cff, requireCidKeyed);
     }
 
-    private static bool IsValidCff1Program(byte[] data) {
-        return OfficeCffFontData.IsStructurallyValidProgram(data, isCff2: false);
+    private static bool IsValidCff1Program(byte[] data, bool? requireCidKeyed) {
+        return OfficeCffFontData.IsStructurallyValidProgram(
+            data,
+            isCff2: false,
+            requireCidKeyed: requireCidKeyed);
     }
 
     private static bool IsValidCff2Program(byte[] data) {

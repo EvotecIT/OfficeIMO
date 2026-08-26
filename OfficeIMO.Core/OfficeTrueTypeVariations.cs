@@ -314,21 +314,12 @@ internal sealed class OfficeTrueTypeVariations {
         double scalar = 1D;
         IReadOnlyList<double> coordinates = _model.NormalizedCoordinates;
         for (int axis = 0; axis < coordinates.Count; axis++) {
-            double coordinate = coordinates[axis];
-            double peak = tuple.Peak[axis];
-            if (tuple.IntermediateStart != null && tuple.IntermediateEnd != null) {
-                double start = tuple.IntermediateStart[axis];
-                double end = tuple.IntermediateEnd[axis];
-                if (start > peak || peak > end || coordinate < start || coordinate > end) return 0D;
-                if (coordinate < peak) scalar *= peak == start ? 1D : (coordinate - start) / (peak - start);
-                else if (coordinate > peak) scalar *= peak == end ? 1D : (end - coordinate) / (end - peak);
-            } else {
-                if (peak == 0D) continue;
-                // OpenType defines a non-intermediate region's implicit bounds as the zero origin
-                // and the peak tuple. A same-sign coordinate beyond that peak is outside the region.
-                if (coordinate == 0D || coordinate < 0D != peak < 0D || Math.Abs(coordinate) > Math.Abs(peak)) return 0D;
-                scalar *= coordinate / peak;
-            }
+            scalar *= OfficeOpenTypeVariationRegion.CalculateTupleScalar(
+                coordinates[axis],
+                tuple.Peak[axis],
+                tuple.IntermediateStart?[axis],
+                tuple.IntermediateEnd?[axis]);
+            if (scalar == 0D) return 0D;
         }
         return scalar;
     }

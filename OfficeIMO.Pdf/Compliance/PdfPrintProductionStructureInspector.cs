@@ -108,6 +108,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         }
 
         PdfDictionary fontWithDescriptor = font;
+        string? programFontSubtype = subtype;
         if (string.Equals(subtype, "Type0", StringComparison.Ordinal)) {
             if (!font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject) ||
                 ResolveObject(objects, descendantsObject, 0, maximumObjectDepth, out _) is not PdfArray descendants ||
@@ -126,17 +127,37 @@ internal static partial class PdfPrintProductionStructureInspector {
                 return false;
             }
             fontWithDescriptor = descendant;
+            programFontSubtype = descendantSubtype;
         }
 
         if (!fontWithDescriptor.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject) ||
             ResolveObject(objects, descriptorObject, 0, maximumObjectDepth, out _) is not PdfDictionary descriptor) return false;
 
-        return HasReadableFontStream(descriptor, "FontFile", objects, maxDecodedStreamBytes, maximumObjectDepth) ||
-            HasReadableFontStream(descriptor, "FontFile2", objects, maxDecodedStreamBytes, maximumObjectDepth) ||
-            HasReadableFontStream(descriptor, "FontFile3", objects, maxDecodedStreamBytes, maximumObjectDepth);
+        return HasReadableFontStream(
+                programFontSubtype,
+                descriptor,
+                "FontFile",
+                objects,
+                maxDecodedStreamBytes,
+                maximumObjectDepth) ||
+            HasReadableFontStream(
+                programFontSubtype,
+                descriptor,
+                "FontFile2",
+                objects,
+                maxDecodedStreamBytes,
+                maximumObjectDepth) ||
+            HasReadableFontStream(
+                programFontSubtype,
+                descriptor,
+                "FontFile3",
+                objects,
+                maxDecodedStreamBytes,
+                maximumObjectDepth);
     }
 
     private static bool HasReadableFontStream(
+        string? fontSubtype,
         PdfDictionary descriptor,
         string key,
         Dictionary<int, PdfIndirectObject> objects,
@@ -150,7 +171,7 @@ internal static partial class PdfPrintProductionStructureInspector {
             stream.Data,
             maxDecodedStreamBytes,
             out byte[] decoded,
-            objects) && IsValidFontProgram(key, stream, decoded, objects, maximumObjectDepth);
+            objects) && IsValidFontProgram(fontSubtype, key, stream, decoded, objects, maximumObjectDepth);
     }
 
     private static string? ResolveName(

@@ -244,6 +244,38 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void IntermediateGvarTupleIgnoresZeroPeakAxes() {
+        Assert.Equal(
+            1D,
+            OfficeOpenTypeVariationRegion.CalculateTupleScalar(
+                coordinate: 0.75D,
+                peak: 0D,
+                intermediateStart: 0D,
+                intermediateEnd: 0D));
+        Assert.Equal(
+            0.5D,
+            OfficeOpenTypeVariationRegion.CalculateTupleScalar(
+                coordinate: 0.25D,
+                peak: 0.5D,
+                intermediateStart: 0D,
+                intermediateEnd: 1D));
+    }
+
+    [Theory]
+    [InlineData(0.5D, 0.25D, 0.75D)]
+    [InlineData(-0.5D, 0.75D, 0.5D)]
+    [InlineData(-0.5D, 0.25D, 0.5D)]
+    public void IntermediateGvarTupleIgnoresInvalidAxisRegions(double start, double peak, double end) {
+        Assert.Equal(
+            1D,
+            OfficeOpenTypeVariationRegion.CalculateTupleScalar(
+                coordinate: 0.4D,
+                peak,
+                intermediateStart: start,
+                intermediateEnd: end));
+    }
+
+    [Fact]
     public void VariableAxisSelectionRejectsFontCollectionsExplicitly() {
         byte[] collection = ManagedTextShapingTestAssets.CreateFontCollection('B');
         var fonts = new OfficeFontFaceCollection {
