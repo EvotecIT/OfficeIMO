@@ -92,7 +92,6 @@ try {
         scale = 'High'
         iterations = 3
         environment = [ordered]@{
-            osFamily = $isWindowsHost ? 'Windows' : 'Linux'
             osDescription = $osDescription
             externalRasterizer = 'contract-test'
         }
@@ -164,8 +163,6 @@ try {
     }
 
     $officeEngine.determinism.exactBytesIdentical = $true
-    $validOsFamily = $report.environment.osFamily
-    $report.environment.osFamily = 'macOS'
     $report.environment.osDescription = 'macOS contract-test host'
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
@@ -183,7 +180,6 @@ try {
         throw 'HTML/PDF artifact exporter mislabeled non-Linux evidence as Linux.'
     }
 
-    $report.environment.osFamily = $validOsFamily
     $report.environment.osDescription = $osDescription
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))

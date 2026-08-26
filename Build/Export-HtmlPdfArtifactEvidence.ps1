@@ -34,9 +34,19 @@ if ($report.schemaVersion -ne 2 -or
 }
 
 $expectedOsFamily = $Platform -eq 'windows' ? 'Windows' : 'Linux'
-$actualOsFamily = [string] $report.environment.osFamily
+$osDescription = [string] $report.environment.osDescription
+$actualOsFamily = if ($osDescription -match '(?i)windows') {
+    'Windows'
+} elseif ($osDescription -match '(?i)darwin|mac\s*os|osx') {
+    'macOS'
+} elseif ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Linux)) {
+    'Linux'
+} else {
+    'Unknown'
+}
 if ($actualOsFamily -ne $expectedOsFamily -or
-    [string]::IsNullOrWhiteSpace([string] $report.environment.osDescription) -or
+    [string]::IsNullOrWhiteSpace($osDescription) -or
     [string]::IsNullOrWhiteSpace([string] $report.environment.externalRasterizer)) {
     throw "HTML/PDF artifact evidence is not a $expectedOsFamily run with an external rasterizer."
 }

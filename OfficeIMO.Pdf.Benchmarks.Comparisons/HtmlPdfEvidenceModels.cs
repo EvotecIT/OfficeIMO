@@ -21,7 +21,6 @@ internal sealed record HtmlPdfSourceReference(
     bool? WorktreeClean);
 
 internal sealed record HtmlPdfEvidenceEnvironment(
-    string OsFamily,
     string OsDescription,
     string OsArchitecture,
     string ProcessArchitecture,
