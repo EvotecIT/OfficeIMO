@@ -680,8 +680,9 @@ var encryption = new PdfStandardEncryptionOptions("reader-password") {
     AesCryptographyProvider = aes
 };
 
-PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-    .Paragraph(p => p.Text("Protected in the current host."))
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .Paragraph(p => p.Text("Protected in the current host."))),
+        new PdfOptions().SetEncryption(encryption))
     .Save("protected.pdf");
 
 PdfDocument opened = PdfDocument.Open("protected.pdf", new PdfReadOptions {
@@ -909,9 +910,10 @@ var options = new PdfOptions()
         PdfTrappingStatus.False)
     .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4");
 
-PdfComplianceArtifact artifact = PdfDocument.Create(options)
-    .Meta(title: "Print-ready report")
-    .Paragraph(paragraph => paragraph.Text("Generated colors are converted through the CMYK print condition."))
+PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf
+        .Meta(title: "Print-ready report")
+        .Paragraph(paragraph => paragraph.Text("Generated colors are converted through the CMYK print condition.")),
+        options)
     .CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
 
 File.WriteAllBytes("print-ready.pdf", artifact.ToBytes());

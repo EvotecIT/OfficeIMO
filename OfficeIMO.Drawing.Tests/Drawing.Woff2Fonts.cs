@@ -98,6 +98,23 @@ public sealed class DrawingWoff2FontTests {
     }
 
     [Fact]
+    public void Woff2DecoderTreatsDeclaredSfntSizeAsReferenceOnly() {
+        byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "OpenSans-Regular.woff2"));
+        foreach (uint declaredSize in new[] { 0U, 1U, uint.MaxValue }) {
+            byte[] referenceOnly = (byte[])source.Clone();
+            WriteBigEndianUInt32(referenceOnly, 16, declaredSize);
+
+            Assert.True(OfficeFontContainerDecoder.TryDecodeToOpenType(
+                referenceOnly,
+                16 * 1024 * 1024,
+                out _,
+                out OfficeFontContainerFormat format,
+                out string? error), error);
+            Assert.Equal(OfficeFontContainerFormat.Woff2, format);
+        }
+    }
+
+    [Fact]
     public void Woff2DecoderAcceptsReservedHeaderValueButRejectsUnknownTableTransform() {
         byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "OpenSans-Regular.woff2"));
         byte[] reservedHeader = (byte[])source.Clone();

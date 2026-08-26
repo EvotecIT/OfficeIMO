@@ -19,7 +19,11 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!OfficeRasterImageDecoder.TryDecode(sourceBytes, out OfficeRasterImage? raster) || raster == null) {
+        if (!OfficeRasterImageDecoder.TryDecode(
+                sourceBytes,
+                options: null,
+                out OfficeRasterImage? raster,
+                out OfficeRasterDecodeInfo decodeInfo) || raster == null) {
             unsupportedReason = "The raster image decoder could not produce RGBA pixels for CMYK conversion.";
             return false;
         }
@@ -30,12 +34,30 @@ internal static partial class PdfWriter {
             return false;
         }
 
+        // The metadata inspector accounts for the encoded source separately. Report only
+        // the decoded raster retained beside it so the shared aggregate budget is additive.
+        long retainedBeforeMetadata = checked(pixelCount * 4L + 24L);
+        OfficeImageMetadataSnapshot metadata = OfficeImageMetadataInspector.Inspect(
+            sourceBytes,
+            decodeInfo.Format,
+            retainedBeforeMetadata);
+        OfficeIccColorProfile? sourceProfile = null;
+        if ((metadata.Kinds & OfficeImageMetadataKinds.Icc) != 0 &&
+            (metadata.Icc == null ||
+             !OfficeIccColorProfile.TryCreate(metadata.Icc, out sourceProfile) ||
+             sourceProfile == null ||
+             sourceProfile.ComponentCount != 3)) {
+            unsupportedReason = "The raster image carries an embedded ICC profile that cannot be normalized to sRGB before PDF/X CMYK conversion.";
+            return false;
+        }
+
         byte[] pixels = raster.GetPixels();
         int baseRowLength = checked(1 + raster.Width * 4);
         byte[] cmykRows = new byte[checked(baseRowLength * raster.Height)];
         byte[]? alphaRows = flattenTransparency ? null : new byte[checked((1 + raster.Width) * raster.Height)];
         PdfColor background = transparencyBackground;
         var components = new double[4];
+        var sourceComponents = sourceProfile == null ? null : new double[3];
         bool hasTransparency = false;
 
         for (int row = 0; row < raster.Height; row++) {
@@ -51,14 +73,23 @@ internal static partial class PdfWriter {
                 byte alpha = pixels[source + 3];
                 hasTransparency |= alpha != 255;
                 OfficeColor color;
+                if (sourceProfile != null) {
+                    sourceComponents![0] = pixels[source] / 255D;
+                    sourceComponents[1] = pixels[source + 1] / 255D;
+                    sourceComponents[2] = pixels[source + 2] / 255D;
+                    if (!sourceProfile.TryConvert(sourceComponents, transform.RenderingIntent, out color)) {
+                        unsupportedReason = "The raster image ICC profile could not normalize a source pixel to sRGB before PDF/X CMYK conversion.";
+                        return false;
+                    }
+                } else {
+                    color = OfficeColor.FromRgb(pixels[source], pixels[source + 1], pixels[source + 2]);
+                }
                 if (flattenTransparency && alpha != 255) {
                     double opacity = alpha / 255D;
                     color = OfficeColor.FromRgb(
-                        Composite(pixels[source], background.R, opacity),
-                        Composite(pixels[source + 1], background.G, opacity),
-                        Composite(pixels[source + 2], background.B, opacity));
-                } else {
-                    color = OfficeColor.FromRgb(pixels[source], pixels[source + 1], pixels[source + 2]);
+                        Composite(color.R, background.R, opacity),
+                        Composite(color.G, background.G, opacity),
+                        Composite(color.B, background.B, opacity));
                 }
 
                 transform.Convert(color, components);

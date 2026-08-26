@@ -12,6 +12,8 @@ internal sealed class PdfPrintColorTransform {
     private readonly OfficeIccRenderingIntent _renderingIntent;
     private readonly PdfBlackPreservationMode _blackPreservationMode;
 
+    internal OfficeIccRenderingIntent RenderingIntent => _renderingIntent;
+
     private PdfPrintColorTransform(
         OfficeIccColorProfile profile,
         OfficeIccRenderingIntent renderingIntent,

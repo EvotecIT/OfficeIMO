@@ -314,6 +314,52 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PdfXRasterConversionUsesSupportedEmbeddedRgbProfileAndRejectsUnsupportedProfiles() {
+        var raster = new OfficeRasterImage(1, 1, OfficeColor.FromRgb(180, 80, 30));
+        byte[] untaggedJpeg = OfficeJpegCodec.Encode(raster);
+        byte[] taggedRgbJpeg = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
+            Metadata = new OfficeJpegMetadata(icc: IccMabTestProfiles.CreateRgbXyz16WithTransformedStages())
+        });
+        byte[] taggedCmykJpeg = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
+            Metadata = new OfficeJpegMetadata(icc: IccMabTestProfiles.CreateCmykLab8Bidirectional())
+        });
+        var options = new PdfOptions()
+            .ConfigurePdfXGroundwork(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51");
+        options.CompressContentStreams = false;
+
+        byte[] pdf = PdfDocument.Create(options).Image(taggedRgbJpeg, 12, 12).ToBytes();
+        byte[] untaggedPdf = PdfDocument.Create(options).Image(untaggedJpeg, 12, 12).ToBytes();
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Create(options).Image(taggedCmykJpeg, 12, 12).ToBytes());
+        byte[] taggedPixels = Assert.Single(PdfImageExtractor.ExtractImages(pdf)).Bytes;
+        byte[] untaggedPixels = Assert.Single(PdfImageExtractor.ExtractImages(untaggedPdf)).Bytes;
+
+        Assert.Contains("/ColorSpace /DeviceCMYK", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.False(taggedPixels.SequenceEqual(untaggedPixels));
+        Assert.Contains("embedded ICC profile", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PdfMetadataResolvesNonzeroGenerationInfoReferences() {
+        byte[] matching = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n5 2 obj\n<< /Title (Generation two) /GTS_PDFXVersion (PDF/X-4) /Trapped /False >>\nendobj\n" +
+            "trailer\n<< /Info 5 2 R >>\n%%EOF\n");
+        byte[] mismatched = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n5 2 obj\n<< /Title (Wrong generation) >>\nendobj\n" +
+            "trailer\n<< /Info 5 1 R >>\n%%EOF\n");
+
+        PdfMetadata metadata = PdfReadDocument.Open(matching).Metadata;
+
+        Assert.Equal("Generation two", metadata.Title);
+        Assert.Equal("PDF/X-4", metadata.PdfXVersion);
+        Assert.Equal(PdfTrappingStatus.False, metadata.TrappingStatus);
+        Assert.Null(PdfReadDocument.Open(mismatched).Metadata.Title);
+    }
+
+    [Fact]
     public void PdfXGroundworkRejectsEncryptionRegardlessOfConfigurationOrder() {
         PdfOptions options = new PdfOptions()
             .ConfigurePdfXGroundwork(

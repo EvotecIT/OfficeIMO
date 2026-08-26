@@ -52,10 +52,10 @@ internal static partial class OfficeWoff2Decoder {
         if (tableCount <= 0 || tableCount > MaximumTableCount) throw new InvalidDataException("The WOFF 2 table count is invalid.");
         // Encoders are required to write zero, but the WOFF2 decoder conformance contract
         // explicitly requires accepting a non-zero reserved header value.
-        uint declaredSfntSize = ReadUInt32(data, 16);
-        if (declaredSfntSize == 0 || declaredSfntSize > maximumDecodedBytes || declaredSfntSize > int.MaxValue) {
-            throw new InvalidDataException("The decoded WOFF 2 font exceeds the configured byte limit.");
-        }
+        // WOFF2 totalSfntSize is reference-only. The W3C contract explicitly forbids
+        // rejecting a correctly decoded font when reconstruction produces a different size.
+        // Actual table and output allocations remain bounded by maximumDecodedBytes below.
+        _ = ReadUInt32(data, 16);
         uint compressedSizeValue = ReadUInt32(data, 20);
         if (compressedSizeValue == 0 || compressedSizeValue > int.MaxValue) {
             throw new InvalidDataException("The WOFF 2 compressed payload length is invalid.");
