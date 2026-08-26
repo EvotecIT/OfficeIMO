@@ -34,10 +34,65 @@ if ($report.schemaVersion -ne 2 -or
 }
 
 $expectedOsFamily = $Platform -eq 'windows' ? 'Windows' : 'Linux'
-$actualOsFamily = if ([string] $report.environment.osDescription -match '(?i)windows') { 'Windows' } else { 'Linux' }
+$osDescription = [string] $report.environment.osDescription
+$actualOsFamily = if ($osDescription -match '(?i)windows') {
+    'Windows'
+} elseif ($osDescription -match '(?i)linux') {
+    'Linux'
+} else {
+    'Unknown'
+}
 if ($actualOsFamily -ne $expectedOsFamily -or
     [string]::IsNullOrWhiteSpace([string] $report.environment.externalRasterizer)) {
     throw "HTML/PDF artifact evidence is not a $expectedOsFamily run with an external rasterizer."
+}
+
+$expectedEngines = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF')
+$engines = @($report.engines)
+$actualEngines = @($engines | ForEach-Object { [string] $_.engine } | Sort-Object)
+if ($engines.Count -ne $expectedEngines.Count -or
+    @(Compare-Object -ReferenceObject $expectedEngines -DifferenceObject $actualEngines).Count -ne 0) {
+    throw 'HTML/PDF artifact evidence must contain exactly the required Chromium, ITextPdfHtml, OfficeIMO, and PeachPDF engines.'
+}
+
+foreach ($engine in $engines) {
+    $engineName = [string] $engine.engine
+    $outputs = @($engine.outputs)
+    $iterations = @($outputs | ForEach-Object { [int] $_.iteration } | Sort-Object -Unique)
+    $expectedIterations = @(1..([int] $report.iterations))
+    if ($outputs.Count -ne [int] $report.iterations -or
+        $iterations.Count -ne $expectedIterations.Count -or
+        @(Compare-Object -ReferenceObject $expectedIterations -DifferenceObject $iterations).Count -ne 0) {
+        throw "HTML/PDF artifact evidence engine '$engineName' must contain exactly one output for every declared iteration."
+    }
+
+    if ([string] $engine.cancellation.status -notin @('Passed', 'Unsupported') -or
+        $engine.memoryComparable -ne $true -or
+        $engine.determinism.exactBytesIdentical -ne $true -or
+        $engine.determinism.semanticOutputIdentical -ne $true -or
+        $engine.determinism.managedVisualPreviewIdentical -ne $true -or
+        $engine.determinism.externalVisualPreviewIdentical -ne $true) {
+        throw "HTML/PDF artifact evidence engine '$engineName' does not satisfy the cancellation, memory, and determinism contract."
+    }
+
+    foreach ($output in $outputs) {
+        $contract = $output.contract
+        if ($null -eq $contract -or
+            [int] $contract.pageCount -lt 1 -or
+            [int] $contract.textLength -lt 1 -or
+            [int] $contract.reportMarkerCount -lt 1 -or
+            $contract.tagged -ne $true -or
+            $contract.marked -ne $true -or
+            [string]::IsNullOrWhiteSpace([string] $contract.catalogLanguage) -or
+            [int] $contract.structureElementCount -lt 1 -or
+            [int] $contract.markedContentReferenceCount -lt 1 -or
+            [int] $contract.parentTreeEntryCount -lt 1 -or
+            $contract.hasDocumentStructureElement -ne $true -or
+            $contract.figuresHaveAlternateText -ne $true -or
+            [string] $output.semanticSha256 -notmatch '^[0-9a-f]{64}$') {
+            throw "HTML/PDF artifact evidence engine '$engineName' contains an output without the required semantic and tagged-PDF contract."
+        }
+    }
 }
 
 $artifacts = [System.Collections.Generic.List[object]]::new()
@@ -119,7 +174,7 @@ Add-ValidatedArtifact `
     -ExpectedSize ([long] $report.input.sizeBytes) `
     -ExpectedSha256 ([string] $report.input.sha256)
 
-foreach ($engine in @($report.engines)) {
+foreach ($engine in $engines) {
     foreach ($output in @($engine.outputs)) {
         Add-ValidatedArtifact `
             -Kind ("pdf:$($engine.engine)") `

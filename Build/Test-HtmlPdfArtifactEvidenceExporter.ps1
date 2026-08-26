@@ -16,6 +16,77 @@ try {
     $insideHash = (Get-FileHash -LiteralPath $insidePath -Algorithm SHA256).Hash.ToLowerInvariant()
     $reportPath = Join-Path $evidenceRoot 'html-pdf-evidence.json'
     $outputPath = Join-Path $temporaryRoot 'summary.json'
+    $engines = @(
+        foreach ($engineName in @('OfficeIMO', 'PeachPDF', 'ITextPdfHtml', 'Chromium')) {
+            $outputs = @(
+                foreach ($iteration in 1..3) {
+                    $slug = $engineName.ToLowerInvariant()
+                    $pdfRelativePath = "$slug-$iteration.pdf"
+                    $managedRelativePath = "$slug-$iteration-managed.png"
+                    $externalRelativePath = "$slug-$iteration-external.png"
+                    foreach ($artifact in @(
+                            [pscustomobject]@{ Path = $pdfRelativePath; Content = "pdf-$engineName-$iteration" },
+                            [pscustomobject]@{ Path = $managedRelativePath; Content = "managed-$engineName-$iteration" },
+                            [pscustomobject]@{ Path = $externalRelativePath; Content = "external-$engineName-$iteration" })) {
+                        $artifactPath = Join-Path $evidenceRoot $artifact.Path
+                        [System.IO.File]::WriteAllText(
+                            $artifactPath,
+                            $artifact.Content,
+                            [System.Text.UTF8Encoding]::new($false))
+                    }
+
+                    $pdfItem = Get-Item -LiteralPath (Join-Path $evidenceRoot $pdfRelativePath)
+                    $managedItem = Get-Item -LiteralPath (Join-Path $evidenceRoot $managedRelativePath)
+                    $externalItem = Get-Item -LiteralPath (Join-Path $evidenceRoot $externalRelativePath)
+                    [ordered]@{
+                        iteration = $iteration
+                        relativePath = $pdfRelativePath
+                        sizeBytes = $pdfItem.Length
+                        sha256 = (Get-FileHash -LiteralPath $pdfItem.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                        semanticSha256 = ('a' * 64)
+                        contract = [ordered]@{
+                            pageCount = 1
+                            textLength = 10
+                            reportMarkerCount = 1
+                            characterChecksum = 1
+                            tagged = $true
+                            marked = $true
+                            catalogLanguage = 'en-US'
+                            structureElementCount = 2
+                            markedContentReferenceCount = 1
+                            parentTreeEntryCount = 1
+                            hasDocumentStructureElement = $true
+                            figuresHaveAlternateText = $true
+                        }
+                        managedVisual = [ordered]@{
+                            relativePath = $managedRelativePath
+                            sizeBytes = $managedItem.Length
+                            sha256 = (Get-FileHash -LiteralPath $managedItem.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                        }
+                        externalVisual = [ordered]@{
+                            relativePath = $externalRelativePath
+                            sizeBytes = $externalItem.Length
+                            sha256 = (Get-FileHash -LiteralPath $externalItem.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+                        }
+                    }
+                }
+            )
+            [ordered]@{
+                engine = $engineName
+                cancellation = [ordered]@{
+                    status = $engineName -in @('OfficeIMO', 'Chromium') ? 'Passed' : 'Unsupported'
+                }
+                determinism = [ordered]@{
+                    exactBytesIdentical = $true
+                    semanticOutputIdentical = $true
+                    managedVisualPreviewIdentical = $true
+                    externalVisualPreviewIdentical = $true
+                }
+                memoryComparable = $true
+                outputs = $outputs
+            }
+        }
+    )
     $report = [ordered]@{
         schemaVersion = 2
         scale = 'High'
@@ -29,9 +100,69 @@ try {
             sizeBytes = $insideItem.Length
             sha256 = $insideHash
         }
-        engines = @()
+        engines = $engines
     }
 
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+
+    $validEngines = $report.engines
+    $report.engines = @()
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $missingEnginesRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'exactly the required') { throw }
+        $missingEnginesRejected = $true
+    }
+    if (-not $missingEnginesRejected) {
+        throw 'HTML/PDF artifact exporter accepted evidence without the required engines.'
+    }
+
+    $report.engines = $validEngines
+    $validOutputs = $report.engines[0].outputs
+    $report.engines[0].outputs = @($validOutputs | Select-Object -First 2)
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $missingOutputRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'exactly one output') { throw }
+        $missingOutputRejected = $true
+    }
+    if (-not $missingOutputRejected) {
+        throw 'HTML/PDF artifact exporter accepted incomplete engine output.'
+    }
+
+    $report.engines[0].outputs = $validOutputs
+    $validOsDescription = $report.environment.osDescription
+    $report.environment.osDescription = 'macOS contract-test host'
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $unsupportedOsRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform linux `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'not a Linux run') { throw }
+        $unsupportedOsRejected = $true
+    }
+    if (-not $unsupportedOsRejected) {
+        throw 'HTML/PDF artifact exporter mislabeled non-Linux evidence as Linux.'
+    }
+
+    $report.environment.osDescription = $validOsDescription
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
     & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `

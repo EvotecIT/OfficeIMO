@@ -45,6 +45,62 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorAppliesDefaultDeviceColorSpaceSubstitutions() {
+        byte[] pdf = BuildInspectionPdf(
+            "0 0 0 1 k 1 0 0 rg 0.5 g " +
+            "/DeviceRGB cs 1 0 0 sc /DeviceCMYK CS 0 0 0 1 SC",
+            resources:
+                "/ColorSpace << " +
+                "/DefaultCMYK [/ICCBased 5 0 R] " +
+                "/DefaultRGB [/ICCBased 6 0 R] " +
+                "/DefaultGray [/ICCBased 7 0 R] >>",
+            extraObjects:
+                "5 0 obj\n<< /N 4 /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+                "6 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+                "7 0 obj\n<< /N 1 /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(0, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(7, evidence.DeviceIndependentColorUsageCount);
+    }
+
+    [Fact]
+    public void ColorInspectorFailsClosedOnInvalidDefaultDeviceColorSpace() {
+        byte[] pdf = BuildInspectionPdf(
+            "0 0 0 1 k",
+            resources: "/ColorSpace << /DefaultCMYK /Bogus >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorAppliesDefaultRgbToReachableImagesAndShadings() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do /S1 sh",
+            resources:
+                "/ColorSpace << /DefaultRGB [/ICCBased 6 0 R] >> " +
+                "/XObject << /Im1 5 0 R >> " +
+                "/Shading << /S1 << /ShadingType 2 /ColorSpace /DeviceRGB >> >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n" +
+                "6 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(0, evidence.DeviceRgbImageCount);
+        Assert.Equal(0, evidence.DeviceRgbShadingCount);
+        Assert.Equal(2, evidence.DeviceIndependentColorUsageCount);
+    }
+
+    [Fact]
     public void ColorInspectorAppliesInvokingResourcesToFormsWithoutOwnResources() {
         const string formContent = "/PrintRgb cs 1 0 0 sc";
         byte[] pdf = BuildInspectionPdf(
@@ -155,6 +211,33 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.True(evidence.HasDeviceRgbUsage);
     }
 
+    [Theory]
+    [InlineData("/Bogus")]
+    [InlineData("[/Indexed /Bogus 1 <00>]")]
+    public void ColorInspectorFailsClosedOnUnclassifiedReachableImageColorSpace(string colorSpace) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace " + colorSpace +
+                " /BitsPerComponent 8 /Length 1 >>\nstream\na\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorFailsClosedOnUnclassifiedInlineImageColorSpace() {
+        byte[] pdf = BuildInspectionPdf("BI /W 1 /H 1 /BPC 8 /CS /Bogus ID a EI");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void ColorInspectorIgnoresUnusedImageAndFormXObjects() {
         const string unusedFormContent = "/DeviceRGB cs 1 0 0 sc";
@@ -201,6 +284,20 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
         Assert.Equal(1, evidence.ValidProductionPageBoxCount);
         Assert.Equal(0, evidence.InvalidProductionPageBoxCount);
+    }
+
+    [Fact]
+    public void StructureInspectorRejectsProductionBoxWithExtraCoordinates() {
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            pageEntries: "/TrimBox [10 10 90 90 999]");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfPrintProductionStructureEvidence evidence = document.InspectPrintProductionStructure();
+
+        Assert.Null(document.Pages[0].GetGeometry().TrimBox);
+        Assert.Equal(0, evidence.ValidProductionPageBoxCount);
+        Assert.Equal(1, evidence.InvalidProductionPageBoxCount);
     }
 
     [Fact]

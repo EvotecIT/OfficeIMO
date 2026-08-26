@@ -35,7 +35,7 @@ public sealed partial class PdfReadPage {
     private bool TryReadPageBox(string key, PdfObject? value, out PdfPageBox? box) {
         box = null;
         var array = ResolveArray(value);
-        if (array is null || array.Items.Count < 4) {
+        if (array is null || array.Items.Count != 4) {
             return false;
         }
 
