@@ -910,10 +910,10 @@ var options = new PdfOptions()
         PdfTrappingStatus.False)
     .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4");
 
-PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf
-        .Meta(title: "Print-ready report")
-        .Paragraph(paragraph => paragraph.Text("Generated colors are converted through the CMYK print condition.")),
+PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
+        .Paragraph(paragraph => paragraph.Text("Generated colors are converted through the CMYK print condition."))),
         options)
+    .Meta(title: "Print-ready report")
     .CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
 
 File.WriteAllBytes("print-ready.pdf", artifact.ToBytes());

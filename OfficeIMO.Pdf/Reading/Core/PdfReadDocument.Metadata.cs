@@ -1,13 +1,6 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private static readonly System.Text.RegularExpressions.Regex InfoReferenceRegex =
-        new System.Text.RegularExpressions.Regex(
-            @"/Info\s+(\d+)\s+(\d+)\s+R",
-            System.Text.RegularExpressions.RegexOptions.Compiled
-                | System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-            TimeSpan.FromSeconds(2));
-
     private string ToRaw() {
         // Reconstruct raw text for simple metadata extraction without reserialization; ok for small files.
         var sb = new StringBuilder();
@@ -28,11 +21,10 @@ public sealed partial class PdfReadDocument {
 
     private PdfMetadata ExtractMetadata() {
         // Trailer has /Info N G R when present.
-        System.Text.RegularExpressions.Match m = InfoReferenceRegex.Match(_trailerRaw);
-        if (!m.Success) return new PdfMetadata();
-        if (!int.TryParse(m.Groups[1].Value, out int infoId)) return new PdfMetadata();
-        if (!int.TryParse(m.Groups[2].Value, out int infoGeneration)) return new PdfMetadata();
-        if (!PdfObjectLookup.TryGet(_objects, new PdfReference(infoId, infoGeneration), out var infoObj) ||
+        if (!PdfSyntax.TryGetTrailerReference(_trailerRaw, "Info", _options.Limits, out PdfReference infoReference)) {
+            return new PdfMetadata();
+        }
+        if (!PdfObjectLookup.TryGet(_objects, infoReference, out var infoObj) ||
             infoObj.Value is not PdfDictionary dict) return new PdfMetadata();
         string? GetStr(string key) => dict.Get<PdfStringObj>(key)?.Value;
         return new PdfMetadata {

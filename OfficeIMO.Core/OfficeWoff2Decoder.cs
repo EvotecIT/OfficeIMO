@@ -65,6 +65,7 @@ internal static partial class OfficeWoff2Decoder {
         var records = new List<TableRecord>(tableCount);
         var tags = new HashSet<uint>();
         long transformedByteCount = 0;
+        long declaredSfntByteCount = checked(12L + tableCount * 16L);
         for (int index = 0; index < tableCount; index++) {
             EnsureAvailable(data, cursor, 1, "The WOFF 2 table directory is truncated.");
             byte flags = data[cursor++];
@@ -81,6 +82,10 @@ internal static partial class OfficeWoff2Decoder {
             uint originalLength = ReadBase128(data, ref cursor);
             if (originalLength == 0 || originalLength > int.MaxValue) {
                 throw new InvalidDataException("A WOFF 2 table has an invalid original length.");
+            }
+            declaredSfntByteCount = checked(declaredSfntByteCount + ((originalLength + 3L) & ~3L));
+            if (declaredSfntByteCount > maximumDecodedBytes) {
+                throw new InvalidDataException("The decoded WOFF 2 font exceeds the configured byte limit.");
             }
             int transformVersion = flags >> 6;
             if (tag == GlyfTag || tag == LocaTag) {
@@ -240,7 +245,11 @@ internal static partial class OfficeWoff2Decoder {
             if (!tables.TryGetValue(GlyfTag, out byte[]? transformedGlyf)) {
                 throw new InvalidDataException("The transformed WOFF 2 glyf table is missing.");
             }
-            GlyfResult result = ReconstructGlyf(transformedGlyf, maximumDecodedBytes);
+            GlyfResult result = ReconstructGlyf(
+                transformedGlyf,
+                glyfRecord.Value.OriginalLength,
+                locaRecord.Value.OriginalLength,
+                maximumDecodedBytes);
             if (result.Loca.Length != locaRecord.Value.OriginalLength) {
                 throw new InvalidDataException("The reconstructed WOFF 2 loca table length is invalid.");
             }

@@ -95,23 +95,37 @@ internal static partial class OfficeWoff2Decoder {
     }
 
     private sealed class ByteBuilder {
-        private readonly List<byte> _bytes = new List<byte>();
+        private readonly List<byte> _bytes;
+        private readonly int _maximumCount;
+
+        internal ByteBuilder(int maximumCount = int.MaxValue) {
+            if (maximumCount < 0) throw new ArgumentOutOfRangeException(nameof(maximumCount));
+            _maximumCount = maximumCount;
+            _bytes = new List<byte>(Math.Min(maximumCount, 4096));
+        }
 
         internal int Count => _bytes.Count;
+        internal int RemainingCapacity => _maximumCount - _bytes.Count;
 
-        internal void Add(byte value) => _bytes.Add(value);
+        internal void Add(byte value) {
+            EnsureCapacity(1);
+            _bytes.Add(value);
+        }
 
         internal void Add(byte[] data) {
             if (data == null) throw new ArgumentNullException(nameof(data));
+            EnsureCapacity(data.Length);
             _bytes.AddRange(data);
         }
 
         internal void Add(byte[] data, int offset, int length) {
             EnsureAvailable(data, offset, length, "Font data is truncated.");
+            EnsureCapacity(length);
             for (int index = 0; index < length; index++) _bytes.Add(data[offset + index]);
         }
 
         internal void AddUInt16(ushort value) {
+            EnsureCapacity(2);
             _bytes.Add((byte)(value >> 8));
             _bytes.Add((byte)value);
         }
@@ -119,6 +133,7 @@ internal static partial class OfficeWoff2Decoder {
         internal void AddInt16(short value) => AddUInt16(unchecked((ushort)value));
 
         internal void AddUInt32(uint value) {
+            EnsureCapacity(4);
             _bytes.Add((byte)(value >> 24));
             _bytes.Add((byte)(value >> 16));
             _bytes.Add((byte)(value >> 8));
@@ -126,9 +141,15 @@ internal static partial class OfficeWoff2Decoder {
         }
 
         internal void PadToEven() {
-            if ((_bytes.Count & 1) != 0) _bytes.Add(0);
+            if ((_bytes.Count & 1) != 0) Add(0);
         }
 
         internal byte[] ToArray() => _bytes.ToArray();
+
+        private void EnsureCapacity(int additionalCount) {
+            if (additionalCount < 0 || _bytes.Count > _maximumCount - additionalCount) {
+                throw new InvalidDataException("The reconstructed WOFF 2 table exceeds the configured byte limit.");
+            }
+        }
     }
 }

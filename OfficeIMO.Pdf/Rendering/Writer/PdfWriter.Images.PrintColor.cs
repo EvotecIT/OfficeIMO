@@ -41,20 +41,52 @@ internal static partial class PdfWriter {
             sourceBytes,
             decodeInfo.Format,
             retainedBeforeMetadata);
+        long baseRowLengthValue = checked(1L + raster.Width * 4L);
+        long cmykLengthValue = checked(baseRowLengthValue * raster.Height);
+        long alphaLengthValue = flattenTransparency ? 0L : checked((1L + raster.Width) * raster.Height);
+        if (baseRowLengthValue > int.MaxValue ||
+            cmykLengthValue > int.MaxValue ||
+            alphaLengthValue > int.MaxValue) {
+            unsupportedReason = "Raster image conversion exceeds the bounded PDF/X managed-memory limit.";
+            return false;
+        }
         OfficeIccColorProfile? sourceProfile = null;
-        if ((metadata.Kinds & OfficeImageMetadataKinds.Icc) != 0 &&
-            (metadata.Icc == null ||
-             !OfficeIccColorProfile.TryCreate(metadata.Icc, out sourceProfile) ||
-             sourceProfile == null ||
-             sourceProfile.ComponentCount != 3)) {
-            unsupportedReason = "The raster image carries an embedded ICC profile that cannot be normalized to sRGB before PDF/X CMYK conversion.";
+        if ((metadata.Kinds & OfficeImageMetadataKinds.Icc) != 0) {
+            if (metadata.Icc == null ||
+                !TryGetIccParseAllocationUpperBound(metadata.Icc.LongLength, out long profileParseUpperBound) ||
+                !IsPdfXImageWorkingSetWithinLimit(
+                    sourceBytes.LongLength,
+                    raster.PixelBuffer.LongLength,
+                    metadata.Icc.LongLength,
+                    profileParseUpperBound,
+                    cmykLengthValue,
+                    alphaLengthValue)) {
+                unsupportedReason = "The raster image ICC profile exceeds the bounded PDF/X managed-memory limit before parsing.";
+                return false;
+            }
+            if (!OfficeIccColorProfile.TryCreate(metadata.Icc, out sourceProfile) ||
+                sourceProfile == null ||
+                sourceProfile.ComponentCount != 3) {
+                unsupportedReason = "The raster image carries an embedded ICC profile that cannot be normalized to sRGB before PDF/X CMYK conversion.";
+                return false;
+            }
+        }
+
+        if (!IsPdfXImageWorkingSetWithinLimit(
+                sourceBytes.LongLength,
+                raster.PixelBuffer.LongLength,
+                metadata.Icc?.LongLength ?? 0L,
+                sourceProfile?.RetainedByteCount ?? 0L,
+                cmykLengthValue,
+                alphaLengthValue)) {
+            unsupportedReason = "Raster image conversion exceeds the bounded PDF/X managed-memory limit.";
             return false;
         }
 
-        byte[] pixels = raster.GetPixels();
-        int baseRowLength = checked(1 + raster.Width * 4);
-        byte[] cmykRows = new byte[checked(baseRowLength * raster.Height)];
-        byte[]? alphaRows = flattenTransparency ? null : new byte[checked((1 + raster.Width) * raster.Height)];
+        byte[] pixels = raster.PixelBuffer;
+        int baseRowLength = checked((int)baseRowLengthValue);
+        byte[] cmykRows = new byte[checked((int)cmykLengthValue)];
+        byte[]? alphaRows = flattenTransparency ? null : new byte[checked((int)alphaLengthValue)];
         PdfColor background = transparencyBackground;
         var components = new double[4];
         var sourceComponents = sourceProfile == null ? null : new double[3];
@@ -119,6 +151,51 @@ internal static partial class PdfWriter {
 
     private static byte Composite(byte foreground, double background, double opacity) =>
         (byte)Math.Round((foreground * opacity) + (background * 255D * (1D - opacity)));
+
+    internal static bool IsPdfXImageWorkingSetWithinLimit(
+        long sourceBytes,
+        long rasterBytes,
+        long profileBytes,
+        long profileTransformBytes,
+        long cmykBytes,
+        long alphaBytes) {
+        try {
+            long baseline = checked(
+                sourceBytes + 24L +
+                rasterBytes + 24L +
+                (profileBytes == 0L ? 0L : profileBytes + 24L) +
+                profileTransformBytes +
+                cmykBytes + 24L +
+                (alphaBytes == 0L ? 0L : alphaBytes + 24L));
+            long cmykCompressedBound = GetDeflateZlibMaximumLength(cmykBytes);
+            long cmykCompressionPeak = checked(baseline + cmykCompressedBound * 3L + 48L);
+            long alphaCompressionPeak = alphaBytes == 0L
+                ? 0L
+                : checked(
+                    baseline + cmykCompressedBound + 24L +
+                    GetDeflateZlibMaximumLength(alphaBytes) * 3L + 48L);
+            return Math.Max(cmykCompressionPeak, alphaCompressionPeak) <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    internal static bool TryGetIccParseAllocationUpperBound(long profileBytes, out long upperBound) {
+        upperBound = 0L;
+        if (profileBytes <= 0L) return false;
+        try {
+            // Supported ICC LUT and curve payloads can expand from compact byte/ushort samples
+            // into doubles and multiple intent transforms. Bound the parser before it materializes
+            // those structures; the post-parse check below uses the exact retained count.
+            upperBound = checked(1_048_576L + profileBytes * 64L);
+            return upperBound <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private static long GetDeflateZlibMaximumLength(long length) => checked(
+        length + (length >> 12) + (length >> 14) + (length >> 25) + 13L);
 
     private static byte ToComponentByte(double value) =>
         (byte)Math.Round(Math.Max(0D, Math.Min(1D, value)) * 255D);

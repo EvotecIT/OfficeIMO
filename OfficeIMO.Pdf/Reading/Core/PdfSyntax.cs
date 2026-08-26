@@ -9,8 +9,6 @@ internal static partial class PdfSyntax {
 #else
     private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline, RegexTimeout);
 #endif
-    private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
-
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
         return ParseObjects(pdf, null, out _, out _);
     }
@@ -223,7 +221,7 @@ internal static partial class PdfSyntax {
             }
         }
         PdfStandardSecurityHandler? decryptor = null;
-        int? encryptObjectNumber = TryReadFirstReferenceObjectNumber(trailerRaw, "Encrypt");
+        int? encryptObjectNumber = ReadTrailerReference(trailerRaw, "Encrypt", limits)?.ObjectNumber;
         if (encryptObjectNumber.HasValue) {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor);
             if (decryptor is not null) {

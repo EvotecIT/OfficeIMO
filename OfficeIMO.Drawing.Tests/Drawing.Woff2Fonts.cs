@@ -98,6 +98,20 @@ public sealed class DrawingWoff2FontTests {
     }
 
     [Fact]
+    public void Woff2DecoderRejectsOversizedDirectoryOutputBeforeDecompression() {
+        byte[] oversizedDirectory = CreateWoff2WithOversizedDeclaredGlyf();
+
+        Assert.False(OfficeFontContainerDecoder.TryDecodeToOpenType(
+            oversizedDirectory,
+            maximumDecodedBytes: 1_024,
+            out _,
+            out OfficeFontContainerFormat format,
+            out string? error));
+        Assert.Equal(OfficeFontContainerFormat.Woff2, format);
+        Assert.Contains("decoded WOFF 2 font exceeds", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Woff2DecoderTreatsDeclaredSfntSizeAsReferenceOnly() {
         byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "OpenSans-Regular.woff2"));
         foreach (uint declaredSize in new[] { 0U, 1U, uint.MaxValue }) {
@@ -160,6 +174,38 @@ public sealed class DrawingWoff2FontTests {
         data[offset + 1] = (byte)(value >> 16);
         data[offset + 2] = (byte)(value >> 8);
         data[offset + 3] = (byte)value;
+    }
+
+    private static byte[] CreateWoff2WithOversizedDeclaredGlyf() {
+        using var output = new MemoryStream();
+        output.Write(new byte[48], 0, 48);
+        output.WriteByte(10); // Known-tag index for transformed glyf.
+        WriteBase128(output, 2_000_000);
+        WriteBase128(output, 1);
+        output.WriteByte(0);
+        while ((output.Length & 3) != 0) output.WriteByte(0);
+        byte[] bytes = output.ToArray();
+        WriteBigEndianUInt32(bytes, 0, 0x774F4632);
+        WriteBigEndianUInt32(bytes, 4, 0x00010000);
+        WriteBigEndianUInt32(bytes, 8, checked((uint)bytes.Length));
+        bytes[12] = 0;
+        bytes[13] = 1;
+        WriteBigEndianUInt32(bytes, 20, 1);
+        return bytes;
+    }
+
+    private static void WriteBase128(Stream output, uint value) {
+        var encoded = new byte[5];
+        int offset = encoded.Length;
+        do {
+            encoded[--offset] = (byte)(value & 0x7F);
+            value >>= 7;
+        } while (value != 0);
+        for (int index = offset; index < encoded.Length; index++) {
+            byte current = encoded[index];
+            if (index < encoded.Length - 1) current |= 0x80;
+            output.WriteByte(current);
+        }
     }
 #endif
 }

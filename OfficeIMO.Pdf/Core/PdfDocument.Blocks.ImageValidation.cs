@@ -66,6 +66,24 @@ public sealed partial class PdfDocument {
             // understood by the managed header reader. The PDF writer embeds JPEG data without
             // decoding it, and layout deliberately falls back to the requested/page box in this case.
             if (LooksLikeJpeg(data)) {
+                OfficeImageMetadataSnapshot jpegMetadata = OfficeImageMetadataInspector.Inspect(
+                    data,
+                    OfficeImageFormat.Jpeg);
+                bool hasJpegIcc = (jpegMetadata.Kinds & OfficeImageMetadataKinds.Icc) != 0;
+                if (hasJpegIcc && jpegMetadata.Icc == null) {
+                    throw new NotSupportedException(
+                        SupportedImageMessage + " The embedded JPEG ICC profile cannot be retained or normalized safely.");
+                }
+                if (hasJpegIcc) {
+                    if (!PdfWriter.TryGetJpegComponentCount(data, out int jpegComponentCount)) {
+                        throw new NotSupportedException(
+                            SupportedImageMessage + " The tagged JPEG component count cannot be verified; four-component JPEG data cannot be normalized safely.");
+                    }
+                    if (jpegComponentCount == 4) {
+                        throw new NotSupportedException(
+                            SupportedImageMessage + " A four-component JPEG with an embedded ICC profile cannot be normalized safely.");
+                    }
+                }
                 return new PreparedImage(
                     (byte[])data.Clone(),
                     new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0),
@@ -92,8 +110,24 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException(SupportedImageMessage + " The source image header is not recognized.");
         }
 
+        OfficeImageMetadataSnapshot sourceMetadata = OfficeImageMetadataInspector.Inspect(data, sourceInfo.Format);
+        bool hasEmbeddedIccProfile = (sourceMetadata.Kinds & OfficeImageMetadataKinds.Icc) != 0;
+        if (hasEmbeddedIccProfile && sourceMetadata.Icc == null) {
+            throw new NotSupportedException(
+                SupportedImageMessage + " The embedded ICC profile cannot be retained or normalized safely.");
+        }
+
         if (sourceInfo.Format == OfficeImageFormat.Jpeg) {
-            if (PdfWriter.TryGetJpegComponentCount(data, out int componentCount) && componentCount == 4) {
+            bool hasComponentCount = PdfWriter.TryGetJpegComponentCount(data, out int componentCount);
+            if (hasEmbeddedIccProfile && !hasComponentCount) {
+                throw new NotSupportedException(
+                    SupportedImageMessage + " The tagged JPEG component count cannot be verified; four-component JPEG data cannot be normalized safely.");
+            }
+            if (hasComponentCount && componentCount == 4) {
+                if (hasEmbeddedIccProfile) {
+                    throw new NotSupportedException(
+                        SupportedImageMessage + " A four-component JPEG with an embedded ICC profile cannot be normalized safely.");
+                }
                 if (!OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
                         sourceInfo,
                         OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
@@ -119,6 +153,11 @@ public sealed partial class PdfDocument {
 
             string suffix = string.IsNullOrWhiteSpace(sourcePngReason) ? string.Empty : " " + sourcePngReason;
             throw new NotSupportedException(SupportedImageMessage + suffix);
+        }
+
+        if (hasEmbeddedIccProfile) {
+            throw new NotSupportedException(
+                SupportedImageMessage + $" The embedded {sourceInfo.Format} ICC profile cannot be retained through PNG normalization.");
         }
 
         if (!OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(

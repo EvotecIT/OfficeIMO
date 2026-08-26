@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -47,20 +45,7 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryGetTrailerRootReference(string? trailerRaw, out PdfReference reference) {
-        reference = null!;
-        if (string.IsNullOrWhiteSpace(trailerRaw)) {
-            return false;
-        }
-
-        Match match = TrailerRootRegex.Match(trailerRaw);
-        if (!match.Success ||
-            !int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectNumber) ||
-            !int.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
-            return false;
-        }
-
-        reference = new PdfReference(objectNumber, generation);
-        return true;
+        return TryGetTrailerReference(trailerRaw, "Root", limits: null, out reference);
     }
 
     private static bool TryGetXrefStreamRootReference(Dictionary<int, PdfIndirectObject> map, out PdfReference reference) {

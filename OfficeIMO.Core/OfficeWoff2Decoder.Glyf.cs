@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 
 namespace OfficeIMO.Drawing;
@@ -13,7 +12,11 @@ internal static partial class OfficeWoff2Decoder {
     private const ushort CompositeHasTwoByTwo = 0x0080;
     private const ushort CompositeHasInstructions = 0x0100;
 
-    private static GlyfResult ReconstructGlyf(byte[] data, int maximumDecodedBytes) {
+    private static GlyfResult ReconstructGlyf(
+        byte[] data,
+        int expectedGlyfLength,
+        int expectedLocaLength,
+        int maximumDecodedBytes) {
         if (data.Length < TransformedGlyfHeaderLength) throw new InvalidDataException("The transformed WOFF 2 glyf header is truncated.");
         ushort version = ReadUInt16(data, 0);
         ushort optionFlags = ReadUInt16(data, 2);
@@ -23,6 +26,25 @@ internal static partial class OfficeWoff2Decoder {
         if ((optionFlags & ~1) != 0) throw new InvalidDataException("The transformed WOFF 2 glyf option flags are invalid.");
         if (glyphCount <= 0) throw new InvalidDataException("The transformed WOFF 2 glyf table has no glyphs.");
         if (indexFormat > 1) throw new InvalidDataException("The transformed WOFF 2 loca index format is invalid.");
+        int locaEntrySize = indexFormat == 0 ? 2 : 4;
+        int requiredLocaLength = checked((glyphCount + 1) * locaEntrySize);
+        if (expectedGlyfLength <= 0 || expectedLocaLength != requiredLocaLength) {
+            throw new InvalidDataException("The transformed WOFF 2 glyf/loca output lengths are invalid.");
+        }
+        // The directory's original glyf length is reference metadata for transformed tables;
+        // conforming fonts can reconstruct to a different byte count. Bound the actual builder
+        // and all per-glyph builders independently instead of requiring byte-count equality.
+        long retainedReconstructionBytes = checked(
+            data.LongLength * 2L +
+            expectedLocaLength + 24L +
+            (glyphCount + 1L) * sizeof(uint) + 24L +
+            glyphCount * sizeof(short) + 24L +
+            8L * 24L);
+        long availableGlyfWorkingBytes = maximumDecodedBytes - retainedReconstructionBytes;
+        if (availableGlyfWorkingBytes < 3L) {
+            throw new InvalidDataException("The reconstructed WOFF 2 glyf working set exceeds the configured byte limit.");
+        }
+        int maximumGlyfBytes = checked((int)Math.Min(int.MaxValue, availableGlyfWorkingBytes / 8L));
 
         var sizes = new int[7];
         int headerCursor = 8;
@@ -62,17 +84,20 @@ internal static partial class OfficeWoff2Decoder {
         int glyphCursor = 0;
         int compositeCursor = 0;
         int instructionCursor = 0;
-        var glyphs = new List<byte[]>(glyphCount);
+        var glyf = new ByteBuilder(maximumGlyfBytes);
+        var offsets = new uint[glyphCount + 1];
         var xMinimums = new short[glyphCount];
         for (int glyphId = 0; glyphId < glyphCount; glyphId++) {
+            offsets[glyphId] = checked((uint)glyf.Count);
             short contourCount = ReadInt16(nContourStream, glyphId * 2);
+            byte[] glyph;
             if (contourCount == 0) {
-                glyphs.Add(Array.Empty<byte>());
-                continue;
-            }
-            bool hasBox = (bboxBitmap[glyphId >> 3] & (0x80 >> (glyphId & 7))) != 0;
-            if (contourCount > 0) {
-                byte[] glyph = DecodeSimpleGlyph(
+                glyph = Array.Empty<byte>();
+            } else {
+                int maximumGlyphBytes = glyf.RemainingCapacity;
+                bool hasBox = (bboxBitmap[glyphId >> 3] & (0x80 >> (glyphId & 7))) != 0;
+                if (contourCount > 0) {
+                    glyph = DecodeSimpleGlyph(
                     glyphId,
                     contourCount,
                     hasBox,
@@ -87,28 +112,31 @@ internal static partial class OfficeWoff2Decoder {
                     instructionStream,
                     ref instructionCursor,
                     overlapBitmap,
-                    maximumDecodedBytes,
+                    maximumGlyphBytes,
                     out short xMin);
-                glyphs.Add(glyph);
-                xMinimums[glyphId] = xMin;
-            } else if (contourCount == -1) {
-                if (!hasBox) throw new InvalidDataException("A transformed WOFF 2 composite glyph is missing its bounding box.");
-                byte[] glyph = DecodeCompositeGlyph(
-                    bboxStream,
-                    ref bboxCursor,
-                    glyphStream,
-                    ref glyphCursor,
-                    compositeStream,
-                    ref compositeCursor,
-                    instructionStream,
-                    ref instructionCursor,
-                    out short xMin);
-                glyphs.Add(glyph);
-                xMinimums[glyphId] = xMin;
-            } else {
-                throw new InvalidDataException("A transformed WOFF 2 glyph has an invalid contour count.");
+                    xMinimums[glyphId] = xMin;
+                } else if (contourCount == -1) {
+                    if (!hasBox) throw new InvalidDataException("A transformed WOFF 2 composite glyph is missing its bounding box.");
+                    glyph = DecodeCompositeGlyph(
+                        bboxStream,
+                        ref bboxCursor,
+                        glyphStream,
+                        ref glyphCursor,
+                        compositeStream,
+                        ref compositeCursor,
+                        instructionStream,
+                        ref instructionCursor,
+                        maximumGlyphBytes,
+                        out short xMin);
+                    xMinimums[glyphId] = xMin;
+                } else {
+                    throw new InvalidDataException("A transformed WOFF 2 glyph has an invalid contour count.");
+                }
             }
+            glyf.Add(glyph);
+            glyf.PadToEven();
         }
+        offsets[glyphCount] = checked((uint)glyf.Count);
         if (pointsCursor != nPointsStream.Length
             || flagsCursor != flagStream.Length
             || glyphCursor != glyphStream.Length
@@ -118,28 +146,23 @@ internal static partial class OfficeWoff2Decoder {
             throw new InvalidDataException("A transformed WOFF 2 glyf substream contains trailing or missing data.");
         }
 
-        var glyf = new ByteBuilder();
-        var offsets = new uint[glyphCount + 1];
-        for (int glyphId = 0; glyphId < glyphCount; glyphId++) {
-            offsets[glyphId] = checked((uint)glyf.Count);
-            glyf.Add(glyphs[glyphId]);
-            glyf.PadToEven();
-            if (glyf.Count > maximumDecodedBytes) throw new InvalidDataException("The reconstructed WOFF 2 glyf table exceeds the configured byte limit.");
-        }
-        offsets[glyphCount] = checked((uint)glyf.Count);
-
-        var loca = new ByteBuilder();
+        var loca = new byte[expectedLocaLength];
+        int locaOffset = 0;
         if (indexFormat == 0) {
             foreach (uint offsetValue in offsets) {
                 if ((offsetValue & 1) != 0 || offsetValue / 2 > ushort.MaxValue) {
                     throw new InvalidDataException("The reconstructed WOFF 2 loca table cannot use short offsets.");
                 }
-                loca.AddUInt16(checked((ushort)(offsetValue / 2)));
+                WriteUInt16(loca, locaOffset, checked((ushort)(offsetValue / 2)));
+                locaOffset += 2;
             }
         } else {
-            foreach (uint offsetValue in offsets) loca.AddUInt32(offsetValue);
+            foreach (uint offsetValue in offsets) {
+                WriteUInt32(loca, locaOffset, offsetValue);
+                locaOffset += 4;
+            }
         }
-        return new GlyfResult(glyf.ToArray(), loca.ToArray(), indexFormat, xMinimums);
+        return new GlyfResult(glyf.ToArray(), loca, indexFormat, xMinimums);
     }
 
     private static byte[] DecodeSimpleGlyph(
@@ -157,7 +180,7 @@ internal static partial class OfficeWoff2Decoder {
         byte[] instructionStream,
         ref int instructionCursor,
         byte[] overlapBitmap,
-        int maximumDecodedBytes,
+        int maximumGlyphBytes,
         out short xMinimum) {
         var endPoints = new ushort[contourCount];
         int pointCount = 0;
@@ -169,7 +192,7 @@ internal static partial class OfficeWoff2Decoder {
             pointCount += contourPoints;
             endPoints[contour] = checked((ushort)(pointCount - 1));
         }
-        if (pointCount > maximumDecodedBytes / 2) throw new InvalidDataException("A transformed WOFF 2 glyph exceeds the configured point budget.");
+        if (pointCount > maximumGlyphBytes / 2) throw new InvalidDataException("A transformed WOFF 2 glyph exceeds the configured point budget.");
         EnsureAvailable(flagStream, flagCursor, pointCount, "The transformed WOFF 2 point-flag stream is truncated.");
         var points = new GlyphPoint[pointCount];
         int x = 0;
@@ -208,7 +231,7 @@ internal static partial class OfficeWoff2Decoder {
 
         bool overlapSimple = overlapBitmap.Length > 0
             && (overlapBitmap[glyphId >> 3] & (0x80 >> (glyphId & 7))) != 0;
-        var result = new ByteBuilder();
+        var result = new ByteBuilder(maximumGlyphBytes);
         result.AddInt16(checked((short)contourCount));
         result.AddInt16(xMin);
         result.AddInt16(yMin);
@@ -217,7 +240,7 @@ internal static partial class OfficeWoff2Decoder {
         foreach (ushort endPoint in endPoints) result.AddUInt16(endPoint);
         result.AddUInt16(checked((ushort)instructions.Length));
         result.Add(instructions);
-        EncodeSimpleCoordinates(points, overlapSimple, result);
+        EncodeSimpleCoordinates(points, overlapSimple, result, maximumGlyphBytes);
         return result.ToArray();
     }
 
@@ -230,10 +253,16 @@ internal static partial class OfficeWoff2Decoder {
         ref int compositeCursor,
         byte[] instructionStream,
         ref int instructionCursor,
+        int maximumGlyphBytes,
         out short xMinimum) {
         ReadBoundingBox(bboxStream, ref bboxCursor, out short xMin, out short yMin, out short xMax, out short yMax);
         xMinimum = xMin;
-        var components = new ByteBuilder();
+        var result = new ByteBuilder(maximumGlyphBytes);
+        result.AddInt16(-1);
+        result.AddInt16(xMin);
+        result.AddInt16(yMin);
+        result.AddInt16(xMax);
+        result.AddInt16(yMax);
         bool moreComponents;
         bool hasInstructions = false;
         do {
@@ -245,19 +274,12 @@ internal static partial class OfficeWoff2Decoder {
             else if ((flags & CompositeHasXYScale) != 0) componentLength += 4;
             else if ((flags & CompositeHasTwoByTwo) != 0) componentLength += 8;
             EnsureAvailable(compositeStream, compositeCursor, componentLength, "The transformed WOFF 2 composite component is truncated.");
-            components.Add(compositeStream, compositeCursor, componentLength);
+            result.Add(compositeStream, compositeCursor, componentLength);
             compositeCursor += componentLength;
             moreComponents = (flags & CompositeMoreComponents) != 0;
             hasInstructions |= (flags & CompositeHasInstructions) != 0;
         } while (moreComponents);
 
-        var result = new ByteBuilder();
-        result.AddInt16(-1);
-        result.AddInt16(xMin);
-        result.AddInt16(yMin);
-        result.AddInt16(xMax);
-        result.AddInt16(yMax);
-        result.Add(components.ToArray());
         if (hasInstructions) {
             int instructionLength = Read255UInt16(glyphStream, ref glyphCursor);
             EnsureAvailable(instructionStream, instructionCursor, instructionLength, "The transformed WOFF 2 composite instruction stream is truncated.");
@@ -300,10 +322,14 @@ internal static partial class OfficeWoff2Decoder {
         }
     }
 
-    private static void EncodeSimpleCoordinates(GlyphPoint[] points, bool overlapSimple, ByteBuilder output) {
+    private static void EncodeSimpleCoordinates(
+        GlyphPoint[] points,
+        bool overlapSimple,
+        ByteBuilder output,
+        int maximumGlyphBytes) {
         var flags = new byte[points.Length];
-        var xBytes = new ByteBuilder();
-        var yBytes = new ByteBuilder();
+        var xBytes = new ByteBuilder(maximumGlyphBytes);
+        var yBytes = new ByteBuilder(maximumGlyphBytes);
         int previousX = 0;
         int previousY = 0;
         for (int index = 0; index < points.Length; index++) {

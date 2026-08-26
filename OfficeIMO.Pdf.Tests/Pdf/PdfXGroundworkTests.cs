@@ -323,6 +323,13 @@ public class PdfXGroundworkTests {
         byte[] taggedCmykJpeg = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
             Metadata = new OfficeJpegMetadata(icc: IccMabTestProfiles.CreateCmykLab8Bidirectional())
         });
+        byte[] fourComponentJpeg = Convert.FromBase64String(
+            "/9j/7gAOQWRvYmUAZAAAAAAA/9sAQwABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB/8AAFAgAAQABBEMRAE0RAFkRAEsRAP/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/aAA4EQwBNAFkASwAAPwD+/iv8/wDr/P8A6/v4r//Z");
+        byte[] taggedFourComponentJpeg = AddJpegIccProfile(
+            fourComponentJpeg,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional());
+        byte[] taggedGif = AddGifIccApplicationExtension(Convert.FromBase64String(
+            "R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs="));
         var options = new PdfOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
@@ -334,19 +341,46 @@ public class PdfXGroundworkTests {
         byte[] untaggedPdf = PdfDocument.Create(options).Image(untaggedJpeg, 12, 12).ToBytes();
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfDocument.Create(options).Image(taggedCmykJpeg, 12, 12).ToBytes());
+        NotSupportedException publicPathException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Create(options).Image(taggedFourComponentJpeg, 12, 12).ToBytes());
+        NotSupportedException taggedGifException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Create(options).Image(taggedGif, 12, 12).ToBytes());
         byte[] taggedPixels = Assert.Single(PdfImageExtractor.ExtractImages(pdf)).Bytes;
         byte[] untaggedPixels = Assert.Single(PdfImageExtractor.ExtractImages(untaggedPdf)).Bytes;
 
         Assert.Contains("/ColorSpace /DeviceCMYK", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.False(taggedPixels.SequenceEqual(untaggedPixels));
         Assert.Contains("embedded ICC profile", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("four-component JPEG", publicPathException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("embedded ICC profile", taggedGifException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PdfXRasterConversionRejectsAggregateWorkingSetBeforeOutputAllocation() {
+        Assert.True(PdfWriter.IsPdfXImageWorkingSetWithinLimit(
+            sourceBytes: 1_024,
+            rasterBytes: 4_096,
+            profileBytes: 512,
+            profileTransformBytes: 1_024,
+            cmykBytes: 4_096,
+            alphaBytes: 1_024));
+        Assert.False(PdfWriter.IsPdfXImageWorkingSetWithinLimit(
+            sourceBytes: 1_024,
+            rasterBytes: 200_000_000,
+            profileBytes: 512,
+            profileTransformBytes: 1_024,
+            cmykBytes: 200_000_000,
+            alphaBytes: 50_000_000));
+        Assert.True(PdfWriter.TryGetIccParseAllocationUpperBound(1_024, out long boundedProfileBytes));
+        Assert.True(boundedProfileBytes > 1_024);
+        Assert.False(PdfWriter.TryGetIccParseAllocationUpperBound(long.MaxValue, out _));
     }
 
     [Fact]
     public void PdfMetadataResolvesNonzeroGenerationInfoReferences() {
         byte[] matching = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n5 2 obj\n<< /Title (Generation two) /GTS_PDFXVersion (PDF/X-4) /Trapped /False >>\nendobj\n" +
-            "trailer\n<< /Info 5 2 R >>\n%%EOF\n");
+            "trailer\n<< /Note (/Info 9 0 R /Root 7 0 R) % /Info 8 0 R /Root 6 0 R\n /Info 5 2 R /Root 1 3 R >>\n%%EOF\n");
         byte[] mismatched = Encoding.ASCII.GetBytes(
             "%PDF-1.7\n5 2 obj\n<< /Title (Wrong generation) >>\nendobj\n" +
             "trailer\n<< /Info 5 1 R >>\n%%EOF\n");
@@ -357,6 +391,15 @@ public class PdfXGroundworkTests {
         Assert.Equal("PDF/X-4", metadata.PdfXVersion);
         Assert.Equal(PdfTrappingStatus.False, metadata.TrappingStatus);
         Assert.Null(PdfReadDocument.Open(mismatched).Metadata.Title);
+        PdfReference infoReference = Assert.IsType<PdfReference>(PdfSyntax.ReadTrailerReference(
+            Encoding.ASCII.GetString(matching), "Info"));
+        PdfReference rootReference = Assert.IsType<PdfReference>(PdfSyntax.ReadTrailerReference(
+            Encoding.ASCII.GetString(matching), "Root"));
+        Assert.Equal((5, 2), (infoReference.ObjectNumber, infoReference.Generation));
+        Assert.Equal((1, 3), (rootReference.ObjectNumber, rootReference.Generation));
+        PdfReference inheritedRoot = Assert.IsType<PdfReference>(PdfSyntax.ReadTrailerReference(
+            "trailer\n<< /Prev 42 >>\ntrailer\n<< /Root 4 1 R >>", "Root"));
+        Assert.Equal((4, 1), (inheritedRoot.ObjectNumber, inheritedRoot.Generation));
     }
 
     [Fact]
@@ -1093,6 +1136,48 @@ public class PdfXGroundworkTests {
             " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n");
+    }
+
+    private static byte[] AddJpegIccProfile(byte[] jpeg, byte[] profile) {
+        const int maximumPartLength = 65_519;
+        int partCount = checked((profile.Length + maximumPartLength - 1) / maximumPartLength);
+        if (partCount < 1 || partCount > byte.MaxValue) {
+            throw new ArgumentOutOfRangeException(nameof(profile));
+        }
+        using var output = new MemoryStream(checked(jpeg.Length + profile.Length + partCount * 18));
+        output.Write(jpeg, 0, 2);
+        byte[] prefix = Encoding.ASCII.GetBytes("ICC_PROFILE\0");
+        int profileOffset = 0;
+        for (int part = 0; part < partCount; part++) {
+            int partLength = Math.Min(maximumPartLength, profile.Length - profileOffset);
+            int segmentLength = checked(2 + prefix.Length + 2 + partLength);
+            output.WriteByte(0xFF);
+            output.WriteByte(0xE2);
+            output.WriteByte((byte)(segmentLength >> 8));
+            output.WriteByte((byte)segmentLength);
+            output.Write(prefix, 0, prefix.Length);
+            output.WriteByte(checked((byte)(part + 1)));
+            output.WriteByte(checked((byte)partCount));
+            output.Write(profile, profileOffset, partLength);
+            profileOffset += partLength;
+        }
+        output.Write(jpeg, 2, jpeg.Length - 2);
+        return output.ToArray();
+    }
+
+    private static byte[] AddGifIccApplicationExtension(byte[] gif) {
+        const int globalColorTableEnd = 19;
+        byte[] extension = {
+            0x21, 0xFF, 0x0B,
+            (byte)'I', (byte)'C', (byte)'C', (byte)'R', (byte)'G', (byte)'B',
+            (byte)'G', (byte)'1', (byte)'0', (byte)'1', (byte)'2',
+            0x03, 0x01, 0x02, 0x03, 0x00
+        };
+        var result = new byte[gif.Length + extension.Length];
+        Buffer.BlockCopy(gif, 0, result, 0, globalColorTableEnd);
+        Buffer.BlockCopy(extension, 0, result, globalColorTableEnd, extension.Length);
+        Buffer.BlockCopy(gif, globalColorTableEnd, result, globalColorTableEnd + extension.Length, gif.Length - globalColorTableEnd);
+        return result;
     }
 
     private static void WriteAscii(Stream stream, string value) {
