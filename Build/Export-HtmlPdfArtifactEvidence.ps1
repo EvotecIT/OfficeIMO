@@ -66,9 +66,10 @@ foreach ($engine in $engines) {
         throw "HTML/PDF artifact evidence engine '$engineName' must contain exactly one output for every declared iteration."
     }
 
+    $requiresExactBytes = $engineName -eq 'OfficeIMO'
     if ([string] $engine.cancellation.status -notin @('Passed', 'Unsupported') -or
         $engine.memoryComparable -ne $true -or
-        $engine.determinism.exactBytesIdentical -ne $true -or
+        ($requiresExactBytes -and $engine.determinism.exactBytesIdentical -ne $true) -or
         $engine.determinism.semanticOutputIdentical -ne $true -or
         $engine.determinism.managedVisualPreviewIdentical -ne $true -or
         $engine.determinism.externalVisualPreviewIdentical -ne $true) {

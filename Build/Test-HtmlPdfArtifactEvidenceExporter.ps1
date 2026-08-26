@@ -77,7 +77,7 @@ try {
                     status = $engineName -in @('OfficeIMO', 'Chromium') ? 'Passed' : 'Unsupported'
                 }
                 determinism = [ordered]@{
-                    exactBytesIdentical = $true
+                    exactBytesIdentical = $engineName -eq 'OfficeIMO'
                     semanticOutputIdentical = $true
                     managedVisualPreviewIdentical = $true
                     externalVisualPreviewIdentical = $true
@@ -144,6 +144,25 @@ try {
     }
 
     $report.engines[0].outputs = $validOutputs
+    $officeEngine = $report.engines | Where-Object { $_.engine -eq 'OfficeIMO' }
+    $officeEngine.determinism.exactBytesIdentical = $false
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $officeByteDriftRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'determinism contract') { throw }
+        $officeByteDriftRejected = $true
+    }
+    if (-not $officeByteDriftRejected) {
+        throw 'HTML/PDF artifact exporter accepted byte drift from OfficeIMO.'
+    }
+
+    $officeEngine.determinism.exactBytesIdentical = $true
     $validOsDescription = $report.environment.osDescription
     $report.environment.osDescription = 'macOS contract-test host'
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
