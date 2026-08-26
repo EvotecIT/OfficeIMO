@@ -41,6 +41,40 @@ if ($actualOsFamily -ne $expectedOsFamily -or
 }
 
 $artifacts = [System.Collections.Generic.List[object]]::new()
+function Assert-NoArtifactPathLinks {
+    param(
+        [Parameter(Mandatory)][string] $RootPath,
+        [Parameter(Mandatory)][string] $FullPath,
+        [Parameter(Mandatory)][string] $RelativePath
+    )
+
+    $rootPathFull = [System.IO.Path]::GetFullPath($RootPath).TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar)
+    $relativeFromRoot = [System.IO.Path]::GetRelativePath($rootPathFull, $FullPath)
+    $currentPath = $rootPathFull
+    $pathsToInspect = [System.Collections.Generic.List[string]]::new()
+    $pathsToInspect.Add($currentPath)
+    foreach ($segment in $relativeFromRoot.Split(
+            [char[]]@(
+                [System.IO.Path]::DirectorySeparatorChar,
+                [System.IO.Path]::AltDirectorySeparatorChar),
+            [System.StringSplitOptions]::RemoveEmptyEntries)) {
+        $currentPath = Join-Path $currentPath $segment
+        $pathsToInspect.Add($currentPath)
+    }
+
+    foreach ($path in $pathsToInspect) {
+        $item = Get-Item -LiteralPath $path -Force
+        $isReparsePoint = ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0
+        $isLink = $item.PSObject.Properties.Name -contains 'LinkType' -and
+            -not [string]::IsNullOrWhiteSpace([string] $item.LinkType)
+        if ($isReparsePoint -or $isLink) {
+            throw "Artifact path contains a symbolic link or reparse point: $RelativePath"
+        }
+    }
+}
+
 function Add-ValidatedArtifact {
     param(
         [Parameter(Mandatory)][string] $Kind,
@@ -59,6 +93,10 @@ function Add-ValidatedArtifact {
     if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
         throw "Artifact is missing: $RelativePath"
     }
+    Assert-NoArtifactPathLinks `
+        -RootPath $evidenceRoot `
+        -FullPath $fullPath `
+        -RelativePath $RelativePath
 
     $item = Get-Item -LiteralPath $fullPath
     $actualHash = (Get-FileHash -LiteralPath $fullPath -Algorithm SHA256).Hash.ToLowerInvariant()

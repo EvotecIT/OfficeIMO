@@ -539,6 +539,18 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PrintProductionInspectorFailsClosedOnUnknownSelectedColorSpace() {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0.5 scn 0 0 10 10 re f",
+            resources: "/ColorSpace << /CS1 /Bogus >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void PrintProductionInspectorIgnoresUnreachableFormStreams() {
         byte[] pdf = BuildInspectionPdf(
             "0 0 0 1 k 0 0 10 10 re f",
@@ -565,6 +577,22 @@ public class PdfXGroundworkTests {
         Assert.True(evidence.IsComplete);
         Assert.True(evidence.HasDeviceRgbUsage);
         Assert.Equal(1, evidence.DeviceRgbOperatorCount);
+    }
+
+    [Theory]
+    [InlineData("(A) Tj")]
+    [InlineData("[(A) 25] TJ")]
+    [InlineData("(A) '")]
+    [InlineData("0 0 (A) \"")]
+    public void PrintProductionInspectorInspectsOnlyPaintedType3CharacterProcedures(string showOperation) {
+        byte[] pdf = BuildType3ReachabilityInspectionPdf(showOperation);
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.False(evidence.HasDeviceRgbUsage);
+        Assert.Equal(1, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
     }
 
     [Fact]
@@ -1282,6 +1310,21 @@ public class PdfXGroundworkTests {
         WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf (A) Tj ET");
         WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n");
         WriteInspectionStream(output, 6, string.Empty, "1 0 0 rg 0 0 500 700 re f");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildType3ReachabilityInspectionPdf(string showOperation) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf " + showOperation + " ET");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R /B 7 0 R /C 8 0 R >> /Encoding << /Differences [65 /A /B /C] >> /FirstChar 65 /LastChar 67 /Widths [500 500 500] /Resources << >> >>\nendobj\n");
+        WriteInspectionStream(output, 6, string.Empty, "0 0 0 1 k 0 0 500 700 re f");
+        WriteInspectionStream(output, 7, string.Empty, "1 0 0 rg 0 0 500 700 re f");
+        WriteAscii(output, "8 0 obj\n<< /Filter /Unsupported /Length 3 >>\nstream\nabc\nendstream\nendobj\n");
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

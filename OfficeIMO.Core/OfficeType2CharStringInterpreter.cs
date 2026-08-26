@@ -105,7 +105,10 @@ internal sealed class OfficeType2CharStringInterpreter {
     }
 
     internal void Render(OfficeCffFontData.CffSlice charString) {
-        Execute(charString, 0);
+        ExecutionResult result = Execute(charString, 0);
+        if (!_font.IsCff2 && result != ExecutionResult.EndChar) {
+            throw new InvalidDataException("A CFF1 glyph CharString must end with endchar.");
+        }
         CloseContour();
         if (_stack.Count != 0) throw new InvalidDataException("The CFF CharString ends with unconsumed operands.");
     }
@@ -442,10 +445,10 @@ internal sealed class OfficeType2CharStringInterpreter {
     }
 
     private void ConsumeEndChar() {
+        if (_font.IsCff2) throw new InvalidDataException("A CFF2 CharString cannot use endchar.");
         if (!_widthConsumed && (_stack.Count == 1 || _stack.Count == 5)) _stack.RemoveAt(0);
         _widthConsumed = true;
         if (_stack.Count == 4) {
-            if (_font.IsCff2) throw new InvalidDataException("A CFF2 CharString uses the CFF1 seac-compatible endchar form.");
             double accentX = _stack[0];
             double accentY = _stack[1];
             int baseCode = ToInteger(_stack[2], "CFF seac base character");

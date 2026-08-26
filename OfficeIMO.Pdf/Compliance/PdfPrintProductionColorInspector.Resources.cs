@@ -74,6 +74,8 @@ internal static partial class PdfPrintProductionColorInspector {
         for (int index = firstContext; index < streams.Count; index++) contentDepths.Add(0);
 
         int transparencyGroups = 0;
+        string? activePageFontName = null;
+        var pageFontStack = new Stack<string?>();
         for (int localIndex = 0; localIndex < contentDepths.Count; localIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             ContentStreamContext context = streams[firstContext + localIndex];
@@ -85,6 +87,9 @@ internal static partial class PdfPrintProductionColorInspector {
                     objects)) continue;
 
             bool contextWasUninspectable = false;
+            bool isPageContent = contentDepths[localIndex] == 0;
+            string? activeFontName = isPageContent ? activePageFontName : null;
+            Stack<string?> fontStack = isPageContent ? pageFontStack : new Stack<string?>();
             try {
                 PdfContentStreamInterpreter.Interpret(
                     PdfEncoding.Latin1GetString(decoded),
@@ -92,6 +97,12 @@ internal static partial class PdfPrintProductionColorInspector {
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
                         switch (operation.Name) {
+                            case "q":
+                                fontStack.Push(activeFontName);
+                                break;
+                            case "Q":
+                                if (fontStack.Count > 0) activeFontName = fontStack.Pop();
+                                break;
                             case "Do":
                                 if (operation.HasInvalidOperands ||
                                     operation.Operands.Count != 1 ||
@@ -213,9 +224,21 @@ internal static partial class PdfPrintProductionColorInspector {
                             case "Tf":
                                 if (operation.HasInvalidOperands ||
                                     operation.Operands.Count != 2 ||
-                                    operation.Operands[0] is not string fontName ||
-                                    !TryAddType3CharProcs(
-                                        fontName,
+                                    operation.Operands[0] is not string fontName) {
+                                    contextWasUninspectable = true;
+                                } else {
+                                    activeFontName = fontName;
+                                }
+                                break;
+                            case "Tj":
+                            case "TJ":
+                            case "'":
+                            case "\"":
+                                if (operation.HasInvalidOperands ||
+                                    string.IsNullOrWhiteSpace(activeFontName) ||
+                                    !TryAddShownType3CharProcs(
+                                        activeFontName!,
+                                        operation,
                                         context,
                                         contentDepths[localIndex] + 1,
                                         streams,
@@ -231,6 +254,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     maxNestingDepth: limits.MaxContentNestingDepth,
                     maxOperands: limits.MaxContentOperands,
                     dispatchInvalidOperations: true);
+                if (isPageContent) activePageFontName = activeFontName;
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
                 exception is PdfReadLimitException ||
@@ -379,8 +403,9 @@ internal static partial class PdfPrintProductionColorInspector {
         return false;
     }
 
-    private static bool TryAddType3CharProcs(
+    private static bool TryAddShownType3CharProcs(
         string fontName,
+        PdfContentOperation operation,
         ContentStreamContext context,
         int contentDepth,
         List<ContentStreamContext> streams,
@@ -413,6 +438,8 @@ internal static partial class PdfPrintProductionColorInspector {
                 fontDepth + 1,
                 limits.MaxObjectNestingDepth,
                 out int charProcsDepth) is not PdfDictionary charProcs) return false;
+        if (!TryGetType3GlyphNames(font, objects, limits.MaxObjectNestingDepth, out Dictionary<int, string> glyphNames) ||
+            !TryGetShownTextBytes(operation, out List<byte[]> shownText)) return false;
 
         PdfDictionary? resources = context.Resources;
         ColorSpaceAliases aliases = context.Aliases;
@@ -426,7 +453,15 @@ internal static partial class PdfPrintProductionColorInspector {
             resources = fontResources;
             aliases = CreateColorSpaceAliases(fontResources, objects, limits.MaxObjectNestingDepth);
         }
-        foreach (PdfObject charProcObject in charProcs.Items.Values) {
+        var shownGlyphNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (byte[] text in shownText) {
+            for (int index = 0; index < text.Length; index++) {
+                if (!glyphNames.TryGetValue(text[index], out string? glyphName)) return false;
+                shownGlyphNames.Add(glyphName);
+            }
+        }
+        foreach (string glyphName in shownGlyphNames) {
+            if (!charProcs.Items.TryGetValue(glyphName, out PdfObject? charProcObject)) return false;
             if (ResolveObject(
                     objects,
                     charProcObject,
@@ -445,7 +480,69 @@ internal static partial class PdfPrintProductionColorInspector {
                     limits,
                     ref transparencyGroups)) return false;
         }
-        return charProcs.Items.Count > 0;
+        return true;
+    }
+
+    private static bool TryGetType3GlyphNames(
+        PdfDictionary font,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        out Dictionary<int, string> glyphNames) {
+        glyphNames = null!;
+        if (!font.Items.TryGetValue("Encoding", out PdfObject? encodingObject)) return false;
+        PdfObject? resolvedEncoding = ResolveObject(objects, encodingObject, 0, maximumObjectDepth);
+        PdfDictionary? encoding = resolvedEncoding as PdfDictionary;
+        string baseEncoding = "StandardEncoding";
+        if (resolvedEncoding is PdfName encodingName) {
+            baseEncoding = encodingName.Name;
+        } else if (encoding == null) {
+            return false;
+        }
+        if (encoding?.Items.TryGetValue("BaseEncoding", out PdfObject? baseEncodingObject) == true) {
+            if (ResolveObject(objects, baseEncodingObject, 0, maximumObjectDepth) is not PdfName baseEncodingName) {
+                return false;
+            }
+            baseEncoding = baseEncodingName.Name;
+        }
+        if (!PdfType3GlyphEncoding.TryCreate(baseEncoding, out glyphNames)) return false;
+        if (encoding?.Items.TryGetValue("Differences", out PdfObject? differencesObject) != true) return true;
+        if (ResolveObject(objects, differencesObject, 0, maximumObjectDepth) is not PdfArray differences) return false;
+
+        int code = -1;
+        foreach (PdfObject item in differences.Items) {
+            PdfObject? resolved = ResolveObject(objects, item, 0, maximumObjectDepth);
+            if (resolved is PdfNumber number) {
+                if (double.IsNaN(number.Value) || double.IsInfinity(number.Value) ||
+                    number.Value != Math.Truncate(number.Value) || number.Value < 0D || number.Value > 255D) return false;
+                code = (int)number.Value;
+            } else if (resolved is PdfName name && code >= 0 && code <= 255) {
+                glyphNames[code++] = name.Name;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool TryGetShownTextBytes(PdfContentOperation operation, out List<byte[]> shownText) {
+        shownText = new List<byte[]>();
+        if (string.Equals(operation.Name, "TJ", StringComparison.Ordinal)) {
+            if (operation.Operands.Count != 1 || operation.Operands[0] is not List<object> items) return false;
+            foreach (object item in items) {
+                if (item is byte[] bytes) {
+                    shownText.Add(bytes);
+                } else if (item is not double value || double.IsNaN(value) || double.IsInfinity(value)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        int expectedOperandCount = string.Equals(operation.Name, "\"", StringComparison.Ordinal) ? 3 : 1;
+        if (operation.Operands.Count != expectedOperandCount ||
+            operation.Operands[operation.Operands.Count - 1] is not byte[] text) return false;
+        shownText.Add(text);
+        return true;
     }
 
     private static bool IsTransparencyGroup(

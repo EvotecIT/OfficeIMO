@@ -549,7 +549,11 @@ internal sealed class OfficeCffVariationStore {
                 double peak = reader.ReadF2Dot14(regionCursor + 2);
                 double end = reader.ReadF2Dot14(regionCursor + 4);
                 regionCursor += 6;
-                scalar *= CalculateRegionScalar(variations.NormalizedCoordinates[axis], start, peak, end);
+                scalar *= OfficeOpenTypeVariationRegion.CalculateScalar(
+                    variations.NormalizedCoordinates[axis],
+                    start,
+                    peak,
+                    end);
             }
             regionScalars[region] = scalar;
         }
@@ -599,11 +603,4 @@ internal sealed class OfficeCffVariationStore {
             ?? throw new InvalidDataException("The CFF2 vsindex value references a null ItemVariationData entry.");
     }
 
-    private static double CalculateRegionScalar(double coordinate, double start, double peak, double end) {
-        if (start > peak || peak > end || start < 0D && end > 0D && peak != 0D) return 0D;
-        if (peak == 0D || coordinate == peak) return 1D;
-        if (coordinate <= start || coordinate >= end) return 0D;
-        if (coordinate < peak) return peak == start ? 1D : (coordinate - start) / (peak - start);
-        return peak == end ? 1D : (end - coordinate) / (end - peak);
-    }
 }

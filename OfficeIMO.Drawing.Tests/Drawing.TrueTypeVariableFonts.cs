@@ -204,6 +204,19 @@ public sealed class DrawingTrueTypeVariableFontTests {
         Assert.Equal(0, variationStore.Evaluate(0, 0));
     }
 
+    [Theory]
+    [InlineData(0.5D, 0.25D, 0.75D)]
+    [InlineData(-0.5D, 0.75D, 0.5D)]
+    [InlineData(-0.5D, 0.25D, 0.5D)]
+    public void NonParticipatingVariationAxesHaveNeutralScalar(double start, double peak, double end) {
+        Assert.Equal(1D, OfficeOpenTypeVariationRegion.CalculateScalar(0.4D, start, peak, end));
+    }
+
+    [Fact]
+    public void ParticipatingVariationAxesStillSuppressCoordinatesOutsideTheRegion() {
+        Assert.Equal(0D, OfficeOpenTypeVariationRegion.CalculateScalar(-0.5D, 0D, 0.5D, 1D));
+    }
+
     [Fact]
     public void VariableAxisSelectionRejectsFontCollectionsExplicitly() {
         byte[] collection = ManagedTextShapingTestAssets.CreateFontCollection('B');

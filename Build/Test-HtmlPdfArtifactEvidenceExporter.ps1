@@ -68,6 +68,49 @@ try {
     if (-not $rejected) {
         throw 'HTML/PDF artifact exporter accepted a path outside the evidence root.'
     }
+
+    $linkedArtifacts = Join-Path $evidenceRoot 'artifacts'
+    $outsideArtifacts = Join-Path $temporaryRoot 'outside-artifacts'
+    $linkPath = Join-Path $linkedArtifacts 'link'
+    New-Item -ItemType Directory -Path $linkedArtifacts -Force | Out-Null
+    New-Item -ItemType Directory -Path $outsideArtifacts -Force | Out-Null
+    $linkedOutsidePath = Join-Path $outsideArtifacts 'linked.html'
+    [System.IO.File]::WriteAllText($linkedOutsidePath, 'linked-outside', [System.Text.UTF8Encoding]::new($false))
+    if ($isWindowsHost) {
+        New-Item -ItemType Junction -Path $linkPath -Target $outsideArtifacts | Out-Null
+    } else {
+        New-Item -ItemType SymbolicLink -Path $linkPath -Target $outsideArtifacts | Out-Null
+    }
+    try {
+        $linkedOutsideItem = Get-Item -LiteralPath $linkedOutsidePath
+        $report.input.relativePath = 'artifacts/link/linked.html'
+        $report.input.sizeBytes = $linkedOutsideItem.Length
+        $report.input.sha256 = (Get-FileHash -LiteralPath $linkedOutsidePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+        [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+
+        $linkRejected = $false
+        try {
+            & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+                -EvidencePath $evidenceRoot `
+                -Platform $platform `
+                -OutputPath $outputPath
+        } catch {
+            if ($_.Exception.Message -notmatch 'symbolic link or reparse point') { throw }
+            $linkRejected = $true
+        }
+        if (-not $linkRejected) {
+            throw 'HTML/PDF artifact exporter accepted an artifact through a symbolic link or reparse point.'
+        }
+    } finally {
+        if (Test-Path -LiteralPath $linkPath) {
+            if ($isWindowsHost) {
+                [System.IO.Directory]::Delete($linkPath)
+            } else {
+                Remove-Item -LiteralPath $linkPath -Force
+            }
+        }
+    }
 } finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
         Remove-Item -LiteralPath $temporaryRoot -Recurse -Force

@@ -267,6 +267,37 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void Cff1RejectsGlyphProgramsWithoutEndChar() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var program = new OfficeCffFontData.CffSlice(new byte[] {
+            139, 139, 21 // rmoveto 0 0, but no endchar
+        }, 0, 3);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
+
+        Assert.Contains("must end with endchar", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Cff2RejectsCff1EndCharOperator() {
+        byte[] data = ReadAsset("AdobeVFPrototype-Subset.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeFontVariationModel variations = OfficeFontVariationModel.Create(
+            reader,
+            new Dictionary<string, float>());
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, variations);
+        var program = new OfficeCffFontData.CffSlice(new byte[] { 14 }, 0, 1);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
+
+        Assert.Contains("cannot use endchar", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void CffRejectsDataFollowingSubroutineReturn() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));

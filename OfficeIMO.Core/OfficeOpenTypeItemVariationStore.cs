@@ -51,7 +51,11 @@ internal sealed class OfficeOpenTypeItemVariationStore {
                 double peak = reader.ReadF2Dot14(cursor + 2);
                 double finish = reader.ReadF2Dot14(cursor + 4);
                 cursor += 6;
-                scalar *= CalculateRegionScalar(variations.NormalizedCoordinates[axis], start, peak, finish);
+                scalar *= OfficeOpenTypeVariationRegion.CalculateScalar(
+                    variations.NormalizedCoordinates[axis],
+                    start,
+                    peak,
+                    finish);
             }
             regionScalars[region] = scalar;
         }
@@ -134,14 +138,6 @@ internal sealed class OfficeOpenTypeItemVariationStore {
             value += delta * _regionScalars[dataSet.RegionIndexes[index]];
         }
         return checked((int)Math.Round(value, MidpointRounding.ToEven));
-    }
-
-    private static double CalculateRegionScalar(double coordinate, double start, double peak, double end) {
-        if (start > peak || peak > end || start < 0D && end > 0D && peak != 0D) return 0D;
-        if (peak == 0D || coordinate == peak) return 1D;
-        if (coordinate <= start || coordinate >= end) return 0D;
-        if (coordinate < peak) return peak == start ? 1D : (coordinate - start) / (peak - start);
-        return peak == end ? 1D : (end - coordinate) / (end - peak);
     }
 
     private readonly struct DataSet {
