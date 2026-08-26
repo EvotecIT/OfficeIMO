@@ -787,13 +787,13 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-08-25T23:10:28.8490872+00:00",
+      "generatedUtc": "2026-08-26T01:49:37.3618079+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.json",
-      "resultSha256": "1b99d0d37469b1f4061f8925341722cb787f3639b422fb61f3103a2a63812531",
-      "artifactDestinationSha256": "5f8176805cb41dac1888f69619e22de6373d169380fbcfcea8345b3207ce53f1",
-      "artifactFileName": "pdf-html-generation-net10.0-linux-full.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.1705d7a44c0700ab18bebfb557f32a5b2641c98a67f0605e61061915fdf4d88f.json",
+      "resultSha256": "1705d7a44c0700ab18bebfb557f32a5b2641c98a67f0605e61061915fdf4d88f",
+      "artifactDestinationSha256": "02a5893edcbc4334085e1445365a7b6193a85b527278ca58382e2d0f377f969f",
+      "artifactFileName": "pdf-html-generation-net10.0-linux-full.1705d7a44c0700ab18bebfb557f32a5b2641c98a67f0605e61061915fdf4d88f.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.1705d7a44c0700ab18bebfb557f32a5b2641c98a67f0605e61061915fdf4d88f.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Linux",
@@ -823,8 +823,8 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "cce60e7c6e48f4e1436106b67e1a4e5efaa8dea0",
-        "gitSha": "cce60e7c6e48f4e1436106b67e1a4e5efaa8dea0",
+        "benchmark.workload.sourceCommit": "9ab55885c872cd579f5e35bb8dd0bb97034192ec",
+        "gitSha": "9ab55885c872cd579f5e35bb8dd0bb97034192ec",
         "runMode": "full"
       },
       "comparable": true,
@@ -884,13 +884,13 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-25T22:56:50.5339991+00:00",
+      "generatedUtc": "2026-08-26T01:31:41.9277857+00:00",
       "publish": true,
-      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.json",
-      "resultSha256": "4632b39d29c2bcd60744eca01a1192c5921914000dc6074a5db339cbc54652c6",
-      "artifactDestinationSha256": "458dd48975fd71568139bfe12ca4e4126085c5ecebaaf613ae893faff67c4e0b",
-      "artifactFileName": "pdf-html-generation-net10.0-windows-full.json",
-      "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.json",
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.0e04caf171dc54dc76cc7cbf2b8b1ccaa57530fbdd324baa05bc123f18b0b730.json",
+      "resultSha256": "0e04caf171dc54dc76cc7cbf2b8b1ccaa57530fbdd324baa05bc123f18b0b730",
+      "artifactDestinationSha256": "2e240e10a1fe01698a02d1651f6424003de2141a6992d189f99d39177b435519",
+      "artifactFileName": "pdf-html-generation-net10.0-windows-full.0e04caf171dc54dc76cc7cbf2b8b1ccaa57530fbdd324baa05bc123f18b0b730.json",
+      "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.0e04caf171dc54dc76cc7cbf2b8b1ccaa57530fbdd324baa05bc123f18b0b730.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
       "environment": {
         "osFamily": "Windows",
@@ -920,8 +920,8 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "cce60e7c6e48f4e1436106b67e1a4e5efaa8dea0",
-        "gitSha": "cce60e7c6e48f4e1436106b67e1a4e5efaa8dea0",
+        "benchmark.workload.sourceCommit": "9ab55885c872cd579f5e35bb8dd0bb97034192ec",
+        "gitSha": "9ab55885c872cd579f5e35bb8dd0bb97034192ec",
         "runMode": "full"
       },
       "comparable": true,
@@ -1675,7 +1675,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-25T22:56:50.5339991+00:00"
+      "latestUtc": "2026-08-26T01:31:41.9277857+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1685,7 +1685,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-25T23:10:28.8490872+00:00"
+      "latestUtc": "2026-08-26T01:49:37.3618079+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
