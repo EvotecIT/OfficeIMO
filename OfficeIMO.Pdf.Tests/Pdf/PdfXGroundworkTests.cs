@@ -180,6 +180,24 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PdfXStructureInspectorRejectsCffProgramsWithoutCharStrings() {
+        byte[] cff = {
+            1, 0, 4, 1,
+            0, 1, 1, 1, 2, (byte)'A',
+            0, 1, 1, 1, 1,
+            0, 0,
+            0, 0
+        };
+        byte[] pdf = BuildEmbeddedType1CInspectionPdf(cff);
+
+        PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf)
+            .InspectPrintProductionStructure();
+
+        Assert.Equal(1, structure.FontResourceCount);
+        Assert.Equal(1, structure.UnembeddedFontResourceCount);
+    }
+
+    [Fact]
     public void PdfXGeneratedAndExactPoliciesRejectLinks() {
         var options = new PdfOptions()
             .ConfigurePdfXGroundwork(
@@ -483,6 +501,24 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PrintProductionInspectorIgnoresUnreachableFormStreams() {
+        byte[] pdf = BuildInspectionPdf(
+            "0 0 0 1 k 0 0 10 10 re f",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 25 >>\nstream\n" +
+                "/DeviceRGB cs 1 0 0 scn f\nendstream\nendobj\n" +
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Filter /Unsupported /Length 3 >>\nstream\nabc\nendstream\nendobj\n" +
+                "7 0 obj\n<< /Type /Page /MediaBox [0 0 10 10] /Resources << >> /Contents 8 0 R >>\nendobj\n" +
+                "8 0 obj\n<< /Length 25 >>\nstream\n/DeviceRGB cs 1 0 0 scn f\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.False(evidence.HasDeviceRgbUsage);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void PrintProductionInspectorInspectsType3CharacterProcedures() {
         byte[] pdf = BuildType3ColorInspectionPdf();
 
@@ -762,6 +798,22 @@ public class PdfXGroundworkTests {
         Assert.True(info.XmpMetadata!.IsWellFormedXml);
         Assert.Equal("uuid:6ad44c01-cdb5-4a3e-a310-2346af838ba5", info.XmpMetadata.DocumentId);
         Assert.Equal(metadata.CreationDate, info.Metadata.CreationDate);
+    }
+
+    [Fact]
+    public void XmpMetadataRejectsInvalidUtf8InsteadOfReplacementDecoding() {
+        byte[] prefix = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"UTF-8\"?><x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><x:value>");
+        byte[] suffix = Encoding.UTF8.GetBytes("</x:value></x:xmpmeta>");
+        var xmp = new byte[prefix.Length + 1 + suffix.Length];
+        Buffer.BlockCopy(prefix, 0, xmp, 0, prefix.Length);
+        xmp[prefix.Length] = 0xFF;
+        Buffer.BlockCopy(suffix, 0, xmp, prefix.Length + 1, suffix.Length);
+
+        PdfXmpMetadataInfo? metadata = PdfReadDocument.Open(BuildXmpInspectionPdf(xmp)).XmpMetadata;
+
+        Assert.NotNull(metadata);
+        Assert.False(metadata!.IsWellFormedXml);
+        Assert.Null(metadata.RawXml);
     }
 
     [Fact]
@@ -1088,6 +1140,33 @@ public class PdfXGroundworkTests {
         return output.ToArray();
     }
 
+    private static byte[] BuildEmbeddedType1CInspectionPdf(byte[] cff) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf (A) Tj ET");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Fake /FontDescriptor 6 0 R >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /FontDescriptor /FontName /Fake /FontFile3 7 0 R >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Subtype /Type1C /Length " + cff.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(cff, 0, cff.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildXmpInspectionPdf(byte[] xmp) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Metadata 4 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Type /Metadata /Subtype /XML /Length " + xmp.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(xmp, 0, xmp.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
     private static byte[] BuildScopedColorSpaceInspectionPdf() {
         const string rgbContent = "/CS1 cs 0.1 0.2 0.3 scn";
         const string cmykContent = "/CS1 cs 0.1 0.2 0.3 0.4 scn";
@@ -1095,10 +1174,10 @@ public class PdfXGroundworkTests {
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CS1 /DeviceRGB >> >> /Contents 5 0 R >>\nendobj\n");
-        WriteAscii(output, "4 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CS1 /DeviceCMYK >> >> /Contents 6 0 R >>\nendobj\n");
-        WriteInspectionStream(output, 5, string.Empty, rgbContent);
-        WriteInspectionStream(output, 6, string.Empty, cmykContent);
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CS1 /DeviceRGB >> /XObject << /Fm1 7 0 R >> >> /Contents 5 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CS1 /DeviceCMYK >> /XObject << /Fm2 8 0 R >> >> /Contents 6 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 5, string.Empty, rgbContent + " /Fm1 Do");
+        WriteInspectionStream(output, 6, string.Empty, cmykContent + " /Fm2 Do");
         WriteInspectionStream(
             output,
             7,

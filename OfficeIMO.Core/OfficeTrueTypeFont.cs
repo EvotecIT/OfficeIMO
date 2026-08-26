@@ -15,7 +15,7 @@ namespace OfficeIMO.Drawing;
 /// It supports the simple glyf/cmap/hmtx path needed by OfficeIMO renderers and falls back
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
-public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeVariableFontProgram {
+public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
     private const int MaxCmapSubtables = 64;
@@ -310,6 +310,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     public double LineHeight(double fontSize) {
         return Math.Max(1, _ascender - _descender) * ScaleFor(fontSize);
     }
+
+    /// <inheritdoc />
+    public double BaselineOffset(double fontSize) => _ascender * ScaleFor(fontSize);
 
     internal double LineSpacingRatio =>
         Math.Max(1, _ascender - _descender + _lineGap) / (double)_unitsPerEm;

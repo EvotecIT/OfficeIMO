@@ -42,6 +42,23 @@ internal static partial class PdfPrintProductionColorInspector {
                 shadings,
                 depth,
                 maximumObjectDepth);
+            CollectResourceType3Streams(
+                resources,
+                aliases,
+                objects,
+                streams,
+                pending,
+                depth,
+                maximumObjectDepth);
+            CollectResourcePatternStreams(
+                resources,
+                aliases,
+                objects,
+                streams,
+                visitedContexts,
+                pending,
+                depth,
+                maximumObjectDepth);
             if (resources.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) &&
                 ResolveObject(
                     objects,
@@ -120,6 +137,104 @@ internal static partial class PdfPrintProductionColorInspector {
                     pending,
                     maximumObjectDepth);
             }
+        }
+    }
+
+    private static void CollectResourceType3Streams(
+        PdfDictionary resources,
+        ColorSpaceAliases inheritedAliases,
+        Dictionary<int, PdfIndirectObject> objects,
+        List<ContentStreamContext> streams,
+        Stack<(PdfDictionary Resources, ColorSpaceAliases Aliases, int Depth)> pending,
+        int depth,
+        int maximumObjectDepth) {
+        if (!resources.Items.TryGetValue("Font", out PdfObject? fontsObject) ||
+            ResolveObject(
+                objects,
+                fontsObject,
+                depth + 1,
+                maximumObjectDepth,
+                out int fontsDepth) is not PdfDictionary fonts) return;
+        foreach (PdfObject fontObject in fonts.Items.Values) {
+            if (ResolveObject(
+                    objects,
+                    fontObject,
+                    fontsDepth + 1,
+                    maximumObjectDepth,
+                    out int fontDepth) is not PdfDictionary font ||
+                !string.Equals(
+                    ResolveName(
+                        font.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null,
+                        objects,
+                        maximumObjectDepth),
+                    "Type3",
+                    StringComparison.Ordinal) ||
+                !font.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) ||
+                ResolveObject(
+                    objects,
+                    charProcsObject,
+                    fontDepth + 1,
+                    maximumObjectDepth) is not PdfDictionary charProcs) continue;
+
+            PdfDictionary? fontResources = ResolveResourcesDictionary(
+                font,
+                objects,
+                inheritResources: false,
+                maximumObjectDepth);
+            ColorSpaceAliases aliases = fontResources == null
+                ? inheritedAliases
+                : CreateColorSpaceAliases(fontResources, objects, maximumObjectDepth);
+            foreach (PdfObject charProc in charProcs.Items.Values) {
+                CollectStreams(charProc, objects, aliases, streams, maximumObjectDepth);
+            }
+            if (fontResources != null) pending.Push((fontResources, aliases, fontDepth + 1));
+        }
+    }
+
+    private static void CollectResourcePatternStreams(
+        PdfDictionary resources,
+        ColorSpaceAliases inheritedAliases,
+        Dictionary<int, PdfIndirectObject> objects,
+        List<ContentStreamContext> streams,
+        List<ContentStreamContext> visitedContexts,
+        Stack<(PdfDictionary Resources, ColorSpaceAliases Aliases, int Depth)> pending,
+        int depth,
+        int maximumObjectDepth) {
+        if (!resources.Items.TryGetValue("Pattern", out PdfObject? patternsObject) ||
+            ResolveObject(
+                objects,
+                patternsObject,
+                depth + 1,
+                maximumObjectDepth,
+                out int patternsDepth) is not PdfDictionary patterns) return;
+        foreach (PdfObject patternObject in patterns.Items.Values) {
+            if (ResolveObject(
+                    objects,
+                    patternObject,
+                    patternsDepth + 1,
+                    maximumObjectDepth,
+                    out int patternDepth) is not PdfStream pattern ||
+                !pattern.Dictionary.Items.TryGetValue("PatternType", out PdfObject? patternType) ||
+                ResolveObject(objects, patternType, patternDepth + 1, maximumObjectDepth) is not PdfNumber patternTypeNumber ||
+                patternTypeNumber.Value != 1D) continue;
+
+            ColorSpaceAliases aliases = inheritedAliases;
+            PdfDictionary childResources = resources;
+            if (pattern.Dictionary.Items.TryGetValue("Resources", out PdfObject? patternResourcesObject) &&
+                ResolveObject(
+                    objects,
+                    patternResourcesObject,
+                    patternDepth + 1,
+                    maximumObjectDepth,
+                    out int patternResourcesDepth) is PdfDictionary patternResources) {
+                aliases = CreateColorSpaceAliases(patternResources, objects, maximumObjectDepth);
+                childResources = patternResources;
+                patternDepth = patternResourcesDepth;
+            }
+            if (ContainsContentStreamContext(visitedContexts, pattern, aliases)) continue;
+            visitedContexts.Add(new ContentStreamContext(pattern, aliases));
+            AddContentStream(pattern, aliases, streams);
+            pending.Push((childResources, aliases, patternDepth + 1));
         }
     }
 

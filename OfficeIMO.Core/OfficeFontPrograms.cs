@@ -96,6 +96,14 @@ public interface IOfficeBoundedFontProgram : IOfficeFontProgram {
 }
 
 /// <summary>
+/// Optional vertical-metrics contract for aligning fallback runs from different font faces on one baseline.
+/// </summary>
+public interface IOfficeFontBaselineMetrics {
+    /// <summary>Returns the distance from the top of the face line box to its baseline.</summary>
+    double BaselineOffset(double fontSize);
+}
+
+/// <summary>
 /// Internal seam used to keep an external shaping engine on the same selected
 /// variable-font instance as the first-party metrics and outline engine.
 /// </summary>

@@ -8,7 +8,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>First-party managed CFF1/CFF2 measurement and outline program.</summary>
-internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOfficeVariableFontProgram {
+internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
     private readonly byte[] _data;
     private readonly OfficeOpenTypeReader _reader;
     private readonly OfficeCffFontData _cff;
@@ -108,6 +108,11 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
     public double LineHeight(double fontSize) {
         ValidateSize(fontSize);
         return Math.Max(1, _ascender - _descender) * Scale(fontSize);
+    }
+
+    public double BaselineOffset(double fontSize) {
+        ValidateSize(fontSize);
+        return _ascender * Scale(fontSize);
     }
 
     public List<List<OfficePoint>> GetTextContours(string text, double x, double y, double fontSize) =>

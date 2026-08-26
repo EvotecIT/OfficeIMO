@@ -87,27 +87,43 @@ public sealed partial class PdfReadDocument {
             return string.Empty;
         }
 
-        if (data.Length >= 3 &&
-            data[0] == 0xEF &&
-            data[1] == 0xBB &&
-            data[2] == 0xBF) {
-            return Encoding.UTF8.GetString(data, 3, data.Length - 3);
-        }
+        try {
+            if (data.Length >= 3 &&
+                data[0] == 0xEF &&
+                data[1] == 0xBB &&
+                data[2] == 0xBF) {
+                return StrictUtf8.GetString(data, 3, data.Length - 3);
+            }
 
-        if (data.Length >= 2 &&
-            data[0] == 0xFE &&
-            data[1] == 0xFF) {
-            return Encoding.BigEndianUnicode.GetString(data, 2, data.Length - 2);
-        }
+            if (data.Length >= 2 &&
+                data[0] == 0xFE &&
+                data[1] == 0xFF) {
+                return StrictBigEndianUnicode.GetString(data, 2, data.Length - 2);
+            }
 
-        if (data.Length >= 2 &&
-            data[0] == 0xFF &&
-            data[1] == 0xFE) {
-            return Encoding.Unicode.GetString(data, 2, data.Length - 2);
-        }
+            if (data.Length >= 2 &&
+                data[0] == 0xFF &&
+                data[1] == 0xFE) {
+                return StrictLittleEndianUnicode.GetString(data, 2, data.Length - 2);
+            }
 
-        return Encoding.UTF8.GetString(data);
+            return StrictUtf8.GetString(data);
+        } catch (DecoderFallbackException) {
+            return null;
+        }
     }
+
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+    private static readonly Encoding StrictBigEndianUnicode = new UnicodeEncoding(
+        bigEndian: true,
+        byteOrderMark: false,
+        throwOnInvalidBytes: true);
+    private static readonly Encoding StrictLittleEndianUnicode = new UnicodeEncoding(
+        bigEndian: false,
+        byteOrderMark: false,
+        throwOnInvalidBytes: true);
 
     private static XDocument? TryParseXml(string? rawXml) {
         if (string.IsNullOrWhiteSpace(rawXml)) {

@@ -26,86 +26,34 @@ internal static partial class PdfPrintProductionColorInspector {
         int nonOpaqueStates = 0;
         int transparencyGroups = 0;
 
-        foreach (PdfIndirectObject indirect in objects.Values) {
+        foreach (PdfReadPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            PdfDictionary? dictionary = indirect.Value switch {
-                PdfDictionary value => value,
-                PdfStream stream => stream.Dictionary,
-                _ => null
-            };
-            if (dictionary == null) continue;
+            PdfDictionary dictionary = page.PageDictionary;
 
-            string? type = ResolveName(
-                dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+            ColorSpaceAliases pageAliases = ResolveColorSpaceAliases(
+                dictionary,
                 objects,
+                inheritResources: true,
                 maximumObjectDepth);
-            string? subtype = ResolveName(
-                dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null,
-                objects,
-                maximumObjectDepth);
-            if (indirect.Value is PdfStream candidate &&
-                (string.Equals(subtype, "Form", StringComparison.Ordinal) ||
-                 dictionary.Items.ContainsKey("PatternType"))) {
-                AddContentStream(
-                    candidate,
-                    ResolveColorSpaceAliases(dictionary, objects, inheritResources: false, maximumObjectDepth),
-                    contentStreams);
-            }
-
-            if (string.Equals(subtype, "Type3", StringComparison.Ordinal) &&
-                dictionary.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) &&
-                ResolveObject(objects, charProcsObject, 0, maximumObjectDepth) is PdfDictionary charProcs) {
-                ColorSpaceAliases aliases = ResolveColorSpaceAliases(
-                    dictionary,
-                    objects,
-                    inheritResources: false,
-                    maximumObjectDepth);
-                foreach (PdfObject charProc in charProcs.Items.Values) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    CollectStreams(charProc, objects, aliases, contentStreams, maximumObjectDepth);
-                }
-            }
-
-            if (string.Equals(type, "Page", StringComparison.Ordinal) &&
-                dictionary.Items.TryGetValue("Contents", out PdfObject? contents)) {
-                ColorSpaceAliases pageAliases = ResolveColorSpaceAliases(
-                    dictionary,
-                    objects,
-                    inheritResources: true,
-                    maximumObjectDepth);
+            if (dictionary.Items.TryGetValue("Contents", out PdfObject? contents)) {
                 CollectStreams(
                     contents,
                     objects,
                     pageAliases,
                     contentStreams,
                     maximumObjectDepth);
-                PdfDictionary? pageResources = ResolveResourcesDictionary(
-                    dictionary,
-                    objects,
-                    inheritResources: true,
-                    maximumObjectDepth);
-                if (pageResources != null) {
-                    CollectResourceFormStreams(
-                        pageResources,
-                        objects,
-                        pageAliases,
-                        contentStreams,
-                        imageContexts,
-                        shadingContexts,
-                        maximumObjectDepth);
-                }
             }
 
-            PdfDictionary? directResources = ResolveResourcesDictionary(
+            PdfDictionary? pageResources = ResolveResourcesDictionary(
                 dictionary,
                 objects,
-                inheritResources: false,
+                inheritResources: true,
                 maximumObjectDepth);
-            if (directResources != null) {
+            if (pageResources != null) {
                 CollectResourceFormStreams(
-                    directResources,
+                    pageResources,
                     objects,
-                    CreateColorSpaceAliases(directResources, objects, maximumObjectDepth),
+                    pageAliases,
                     contentStreams,
                     imageContexts,
                     shadingContexts,
@@ -120,15 +68,15 @@ internal static partial class PdfPrintProductionColorInspector {
                 inspectedDictionaries,
                 ref transparencyGroups,
                 maximumObjectDepth);
+        }
 
-            if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
-                imageDictionaries.Add(dictionary);
-                if (dictionary.Items.TryGetValue("SMask", out PdfObject? softMask) &&
-                    !string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal)) {
-                    transparentImages++;
-                }
+        foreach (ImageContext context in imageContexts) imageDictionaries.Add(context.Dictionary);
+        foreach (ShadingContext context in shadingContexts) shadingDictionaries.Add(context.Dictionary);
+        foreach (PdfDictionary image in imageDictionaries) {
+            if (image.Items.TryGetValue("SMask", out PdfObject? softMask) &&
+                !string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal)) {
+                transparentImages++;
             }
-
         }
 
         foreach (PdfDictionary image in imageDictionaries) {

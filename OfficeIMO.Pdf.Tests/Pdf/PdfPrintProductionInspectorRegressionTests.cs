@@ -66,7 +66,8 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         const string patternContent = "/Fm Do";
         const string formContent = "/PrintRgb cs 1 0 0 sc";
         byte[] pdf = BuildInspectionPdf(
-            string.Empty,
+            "/Pattern cs /P1 scn 0 0 10 10 re f",
+            resources: "/Pattern << /P1 5 0 R >>",
             extraObjects:
                 "5 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 " +
                 "/Resources << /ColorSpace << /PrintRgb /DeviceRGB >> /XObject << /Fm 6 0 R >> >> /Length " +

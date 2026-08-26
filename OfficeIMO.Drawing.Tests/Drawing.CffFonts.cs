@@ -9,6 +9,34 @@ namespace OfficeIMO.Drawing.Tests;
 
 public sealed class DrawingCffFontTests {
     [Fact]
+    public void CffStructuralValidationRequiresNonOverlappingCharStringsIndexes() {
+        byte[] validCff1 = {
+            1, 0, 4, 1,
+            0, 1, 1, 1, 2, (byte)'A',
+            0, 1, 1, 1, 3, 160, 17,
+            0, 0,
+            0, 0,
+            0, 1, 1, 1, 2, 14
+        };
+        byte[] validCff2 = {
+            2, 0, 5, 0, 2,
+            150, 17,
+            0, 0, 0, 0,
+            0, 0, 0, 1, 1, 1, 2, 14
+        };
+        byte[] overlappingCff2 = {
+            2, 0, 5, 0, 2,
+            148, 17,
+            0, 0,
+            0, 0, 0, 1, 1, 1, 2, 14
+        };
+
+        Assert.True(OfficeCffFontData.IsStructurallyValidProgram(validCff1, isCff2: false));
+        Assert.True(OfficeCffFontData.IsStructurallyValidProgram(validCff2, isCff2: true));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(overlappingCff2, isCff2: true));
+    }
+
+    [Fact]
     public void OfficeFontFaceCollection_CountsBuiltInCffReaderShapingAndFaceBuffers() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         var fonts = new OfficeFontFaceCollection();

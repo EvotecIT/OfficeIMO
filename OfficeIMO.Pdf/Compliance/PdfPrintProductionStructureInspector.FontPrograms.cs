@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionStructureInspector {
@@ -97,56 +99,11 @@ internal static partial class PdfPrintProductionStructureInspector {
     }
 
     private static bool IsValidCff1Program(byte[] data) {
-        if (data.Length < 4 || data[0] != 1 || data[2] < 4 || data[2] > data.Length ||
-            data[3] < 1 || data[3] > 4) return false;
-        int cursor = data[2];
-        if (!TryReadCffIndex(data, cursor, out cursor, out int nameCount) || nameCount <= 0) return false;
-        if (!TryReadCffIndex(data, cursor, out cursor, out int topDictionaryCount) ||
-            topDictionaryCount != nameCount) return false;
-        if (!TryReadCffIndex(data, cursor, out cursor, out _)) return false;
-        return TryReadCffIndex(data, cursor, out _, out _);
+        return OfficeCffFontData.IsStructurallyValidProgram(data, isCff2: false);
     }
 
     private static bool IsValidCff2Program(byte[] data) {
-        if (data.Length < 5 || data[0] != 2 || data[2] < 5 || data[2] > data.Length) return false;
-        int topDictionaryLength = ReadUInt16BigEndian(data, 3);
-        int globalSubrOffset = data[2] + topDictionaryLength;
-        return topDictionaryLength > 0 && globalSubrOffset <= data.Length &&
-            TryReadCffIndex(data, globalSubrOffset, out _, out _);
-    }
-
-    private static bool TryReadCffIndex(byte[] data, int offset, out int nextOffset, out int count) {
-        nextOffset = offset;
-        count = 0;
-        if (offset < 0 || offset > data.Length - 2) return false;
-        count = ReadUInt16BigEndian(data, offset);
-        if (count == 0) {
-            nextOffset = offset + 2;
-            return true;
-        }
-        if (offset > data.Length - 3) return false;
-        int offsetSize = data[offset + 2];
-        if (offsetSize < 1 || offsetSize > 4) return false;
-        long offsetsStart = offset + 3L;
-        long dataStart = offsetsStart + (count + 1L) * offsetSize;
-        if (dataStart > data.Length) return false;
-        uint first = ReadCffOffset(data, (int)offsetsStart, offsetSize);
-        uint last = ReadCffOffset(data, (int)(offsetsStart + count * (long)offsetSize), offsetSize);
-        if (first != 1 || last < first || last - 1L > data.Length - dataStart) return false;
-        uint previous = first;
-        for (int index = 1; index <= count; index++) {
-            uint current = ReadCffOffset(data, (int)(offsetsStart + index * (long)offsetSize), offsetSize);
-            if (current < previous || current > last) return false;
-            previous = current;
-        }
-        nextOffset = (int)(dataStart + last - 1L);
-        return true;
-    }
-
-    private static uint ReadCffOffset(byte[] data, int offset, int size) {
-        uint value = 0;
-        for (int index = 0; index < size; index++) value = (value << 8) | data[offset + index];
-        return value;
+        return OfficeCffFontData.IsStructurallyValidProgram(data, isCff2: true);
     }
 
     private static bool StartsWithAscii(byte[] data, string value) {

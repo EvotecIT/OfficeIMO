@@ -176,6 +176,20 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlPdfOutlinedFallbackRunsShareOneBaselineAcrossFaceMetrics() {
+        HtmlPdfRenderedConverter.OutlinedLineMetrics metrics = HtmlPdfRenderedConverter.ResolveOutlinedLineMetrics(
+            visualHeight: 20D,
+            lineHeights: new[] { 10D, 12D },
+            baselineOffsets: new[] { 8D, 7D });
+
+        Assert.Equal(3.5D, metrics.TextTop);
+        Assert.Equal(11.5D, metrics.Baseline);
+        Assert.Equal(13D, metrics.LineHeight);
+        Assert.Equal(metrics.Baseline, metrics.TextTop + 8D);
+        Assert.Equal(metrics.Baseline, (metrics.Baseline - 7D) + 7D);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task HtmlPdfOutlinedVariableFontPropagatesCancellationToShaping() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         HtmlConversionDocument source = HtmlConversionDocument.Parse(

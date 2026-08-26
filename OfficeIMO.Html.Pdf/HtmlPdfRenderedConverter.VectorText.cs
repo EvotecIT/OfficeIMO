@@ -81,23 +81,36 @@ internal static partial class HtmlPdfRenderedConverter {
                 : measuredAdvance;
         double scaleX = resolvedAdvance / measuredAdvance;
         double textX = ResolveOutlinedTextX(frameWidth, resolvedAdvance, visual.Alignment);
-        double lineHeight = runs.Max(run => run.Face.Program.LineHeight(visual.Font.Size));
-        double textTop = Math.Max(0D, (visual.Height - lineHeight) / 2D);
+        var lineHeights = new double[runs.Count];
+        var baselineOffsets = new double[runs.Count];
+        for (int index = 0; index < runs.Count; index++) {
+            lineHeights[index] = runs[index].Face.Program.LineHeight(visual.Font.Size);
+            baselineOffsets[index] = ResolveBaselineOffset(
+                runs[index].Face.Program,
+                visual.Font.Size,
+                lineHeights[index]);
+        }
+        OutlinedLineMetrics lineMetrics = ResolveOutlinedLineMetrics(
+            visual.Height,
+            lineHeights,
+            baselineOffsets);
         var allContours = new List<List<OfficePoint>>();
         int retainedPointCount = 0;
         double cursor = textX;
-        foreach (OutlinedFontRun run in runs) {
+        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+            OutlinedFontRun run = runs[runIndex];
             cancellationToken.ThrowIfCancellationRequested();
             var bounded = (IOfficeBoundedFontProgram)run.Face.Program;
             int availablePoints = webFonts.OutlineBudget.RemainingPointAllowance - retainedPointCount;
             if (availablePoints <= 0) {
                 throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
             }
+            double runTop = lineMetrics.Baseline - baselineOffsets[runIndex];
             List<List<OfficePoint>> contours = run.ShapingResult == null
                 ? bounded.GetTextContoursBounded(
                     run.Text,
                     cursor,
-                    textTop,
+                    runTop,
                     visual.Font.Size,
                     availablePoints,
                     cancellationToken)
@@ -105,7 +118,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     run.ShapedText!,
                     run.ShapingResult,
                     cursor,
-                    textTop,
+                    runTop,
                     visual.Font.Size,
                     availablePoints,
                     cancellationToken);
@@ -156,7 +169,7 @@ internal static partial class HtmlPdfRenderedConverter {
             AppendRectangle(
                 commands,
                 textX + outlineOffsetX,
-                textTop + (lineHeight * 0.86D) + outlineOffsetY,
+                lineMetrics.TextTop + (lineMetrics.LineHeight * 0.86D) + outlineOffsetY,
                 resolvedAdvance,
                 decorationThickness,
                 webFonts.OutlineBudget);
@@ -165,7 +178,7 @@ internal static partial class HtmlPdfRenderedConverter {
             AppendRectangle(
                 commands,
                 textX + outlineOffsetX,
-                textTop + (lineHeight * 0.52D) + outlineOffsetY,
+                lineMetrics.TextTop + (lineMetrics.LineHeight * 0.52D) + outlineOffsetY,
                 resolvedAdvance,
                 decorationThickness,
                 webFonts.OutlineBudget);
@@ -271,6 +284,46 @@ internal static partial class HtmlPdfRenderedConverter {
             return Math.Max(0D, frameWidth - resolvedAdvance);
         }
         return 0D;
+    }
+
+    private static double ResolveBaselineOffset(
+        IOfficeFontProgram program,
+        double fontSize,
+        double lineHeight) {
+        double offset = program is IOfficeFontBaselineMetrics metrics
+            ? metrics.BaselineOffset(fontSize)
+            : lineHeight * 0.8D;
+        if (double.IsNaN(offset) || double.IsInfinity(offset)) return lineHeight * 0.8D;
+        return Math.Max(0D, Math.Min(lineHeight, offset));
+    }
+
+    internal static OutlinedLineMetrics ResolveOutlinedLineMetrics(
+        double visualHeight,
+        IReadOnlyList<double> lineHeights,
+        IReadOnlyList<double> baselineOffsets) {
+        if (lineHeights == null) throw new ArgumentNullException(nameof(lineHeights));
+        if (baselineOffsets == null) throw new ArgumentNullException(nameof(baselineOffsets));
+        if (lineHeights.Count == 0 || lineHeights.Count != baselineOffsets.Count) {
+            throw new ArgumentException("Outlined line metrics require one baseline offset per font run.");
+        }
+
+        double maximumAscent = 0D;
+        double maximumDescent = 0D;
+        for (int index = 0; index < lineHeights.Count; index++) {
+            double lineHeight = lineHeights[index];
+            double baselineOffset = baselineOffsets[index];
+            if (double.IsNaN(lineHeight) || double.IsInfinity(lineHeight) || lineHeight <= 0D ||
+                double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset) ||
+                baselineOffset < 0D || baselineOffset > lineHeight) {
+                throw new ArgumentOutOfRangeException(nameof(lineHeights), "Outlined font metrics must be finite and bounded by the line height.");
+            }
+            maximumAscent = Math.Max(maximumAscent, baselineOffset);
+            maximumDescent = Math.Max(maximumDescent, lineHeight - baselineOffset);
+        }
+
+        double combinedLineHeight = maximumAscent + maximumDescent;
+        double textTop = Math.Max(0D, (visualHeight - combinedLineHeight) / 2D);
+        return new OutlinedLineMetrics(textTop, textTop + maximumAscent, combinedLineHeight);
     }
 
     internal static OutlinedTextFrame ResolveOutlinedTextFrame(
@@ -453,5 +506,17 @@ internal static partial class HtmlPdfRenderedConverter {
         internal double Height { get; }
         internal double OffsetX { get; }
         internal double OffsetY { get; }
+    }
+
+    internal readonly struct OutlinedLineMetrics {
+        internal OutlinedLineMetrics(double textTop, double baseline, double lineHeight) {
+            TextTop = textTop;
+            Baseline = baseline;
+            LineHeight = lineHeight;
+        }
+
+        internal double TextTop { get; }
+        internal double Baseline { get; }
+        internal double LineHeight { get; }
     }
 }
