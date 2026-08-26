@@ -46,12 +46,20 @@ internal static class HtmlPdfEvidenceRunner {
             engineReports.Add(await RunEngineAsync(engine, html, scenario, iterations, outputDirectory, rasterizer).ConfigureAwait(false));
         }
 
+        string osFamily = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "Windows"
+            : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? "Linux"
+                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? "macOS"
+                    : "Unknown";
         var report = new HtmlPdfEvidenceReport(
             SchemaVersion: 2,
             GeneratedUtc: DateTimeOffset.UtcNow,
             Scale: scale.ToString(),
             Iterations: iterations,
             Environment: new HtmlPdfEvidenceEnvironment(
+                osFamily,
                 RuntimeInformation.OSDescription,
                 RuntimeInformation.OSArchitecture.ToString(),
                 RuntimeInformation.ProcessArchitecture.ToString(),
