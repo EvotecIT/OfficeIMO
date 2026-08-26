@@ -130,7 +130,7 @@ internal static partial class PdfComplianceAnalyzer {
         (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
         Add(requirements, "readback-xmp-metadata", "Readback catalog XMP metadata",
-            xmp != null && xmp.IsWellFormedXml,
+            xmp != null && xmp.IsXmlMetadataStream && xmp.IsWellFormedXml,
             "The saved PDF contains readable, well-formed catalog XMP metadata.",
             "The saved PDF must contain readable, well-formed catalog XMP metadata.");
 
@@ -206,7 +206,8 @@ internal static partial class PdfComplianceAnalyzer {
             : null;
 
         Add(requirements, "readback-pdfx-identification", "Readback PDF/X identification XMP",
-            xmp?.IsWellFormedXml == true &&
+            xmp?.IsXmlMetadataStream == true &&
+            xmp.IsWellFormedXml &&
             string.Equals(xmp.PdfXVersion, expectedVersion, StringComparison.Ordinal) &&
             (expectedConformance == null || string.Equals(xmp.PdfXConformance, expectedConformance, StringComparison.Ordinal)),
             "The saved PDF contains matching " + GetDisplayName(profile) + " identification metadata.",
@@ -242,8 +243,9 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF Info dictionary contains matching PDF/X identification.",
             "The saved PDF Info dictionary must contain matching GTS_PDFXVersion and, where required, GTS_PDFXConformance values.");
 
-        PdfOutputIntentInfo? outputIntent = info.OutputIntents.FirstOrDefault(static intent =>
-            string.Equals(intent.Subtype, "GTS_PDFX", StringComparison.Ordinal));
+        PdfOutputIntentInfo? outputIntent = TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? singleOutputIntent)
+            ? singleOutputIntent
+            : null;
         bool hasMatchingProfileSize = outputIntent?.DestinationOutputProfileSizeBytes is int actualProfileSize &&
             outputIntent.DestinationOutputProfileDeclaredSizeBytes is int declaredProfileSize &&
             actualProfileSize >= 128 &&
@@ -536,6 +538,24 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostics.Add(ex.Message);
             return false;
         }
+    }
+
+    internal static bool TryGetSinglePdfXOutputIntent(
+        IReadOnlyList<PdfOutputIntentInfo> outputIntents,
+        out PdfOutputIntentInfo? outputIntent) {
+        outputIntent = null;
+        int count = 0;
+        for (int index = 0; index < outputIntents.Count; index++) {
+            PdfOutputIntentInfo candidate = outputIntents[index];
+            if (!string.Equals(candidate.Subtype, "GTS_PDFX", StringComparison.Ordinal)) continue;
+            count++;
+            if (count > 1) {
+                outputIntent = null;
+                return false;
+            }
+            outputIntent = candidate;
+        }
+        return count == 1;
     }
 
     private static PdfComplianceRequirement BuildReadbackPdfAEmbeddedFileModificationDateRequirement(PdfDocumentInfo info) {

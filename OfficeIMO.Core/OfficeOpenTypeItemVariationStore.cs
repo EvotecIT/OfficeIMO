@@ -112,10 +112,9 @@ internal sealed class OfficeOpenTypeItemVariationStore {
     }
 
     internal int Evaluate(int outerIndex, int innerIndex) {
-        if (outerIndex < 0 || outerIndex >= _dataSets.Length) return 0;
+        ValidateIndex(outerIndex, innerIndex);
         DataSet dataSet = _dataSets[outerIndex];
         if (!dataSet.IsPresent) return 0;
-        if (innerIndex < 0 || innerIndex >= dataSet.ItemCount) return 0;
         int cursor = checked(dataSet.Offset + innerIndex * dataSet.RowSize);
         double value = 0D;
         for (int index = 0; index < dataSet.RegionIndexes.Length; index++) {
@@ -138,6 +137,17 @@ internal sealed class OfficeOpenTypeItemVariationStore {
             value += delta * _regionScalars[dataSet.RegionIndexes[index]];
         }
         return checked((int)Math.Round(value, MidpointRounding.ToEven));
+    }
+
+    internal void ValidateIndex(int outerIndex, int innerIndex) {
+        if (outerIndex < 0 || outerIndex >= _dataSets.Length) {
+            throw new InvalidDataException("An OpenType variation-store outer index is invalid.");
+        }
+        DataSet dataSet = _dataSets[outerIndex];
+        if (!dataSet.IsPresent) return;
+        if (innerIndex < 0 || innerIndex >= dataSet.ItemCount) {
+            throw new InvalidDataException("An OpenType variation-store inner index is invalid.");
+        }
     }
 
     private readonly struct DataSet {

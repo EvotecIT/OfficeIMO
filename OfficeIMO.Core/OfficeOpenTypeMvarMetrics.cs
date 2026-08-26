@@ -54,6 +54,7 @@ internal sealed class OfficeOpenTypeMvarMetrics {
         }
 
         var records = new Dictionary<uint, ValueRecord>();
+        var allRecordIndexes = new List<ValueRecord>(recordCount);
         uint previousTag = 0;
         for (int index = 0; index < recordCount; index++) {
             int recordOffset = checked(recordsOffset + index * recordSize);
@@ -62,10 +63,12 @@ internal sealed class OfficeOpenTypeMvarMetrics {
                 throw new InvalidDataException("The MVAR value records are not strictly tag-sorted.");
             }
             previousTag = tag;
+            var valueRecord = new ValueRecord(
+                reader.ReadUInt16(recordOffset + 4),
+                reader.ReadUInt16(recordOffset + 6));
+            allRecordIndexes.Add(valueRecord);
             if (tag == HorizontalAscenderTag || tag == HorizontalDescenderTag || tag == HorizontalLineGapTag) {
-                records.Add(tag, new ValueRecord(
-                    reader.ReadUInt16(recordOffset + 4),
-                    reader.ReadUInt16(recordOffset + 6)));
+                records.Add(tag, valueRecord);
             }
         }
         OfficeOpenTypeItemVariationStore store = OfficeOpenTypeItemVariationStore.Parse(
@@ -73,6 +76,10 @@ internal sealed class OfficeOpenTypeMvarMetrics {
             storeOffset,
             end,
             model);
+        for (int index = 0; index < allRecordIndexes.Count; index++) {
+            ValueRecord record = allRecordIndexes[index];
+            store.ValidateIndex(record.OuterIndex, record.InnerIndex);
+        }
         return new OfficeOpenTypeMvarMetrics(store, records);
     }
 

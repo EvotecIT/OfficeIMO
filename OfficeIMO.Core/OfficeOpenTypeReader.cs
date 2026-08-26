@@ -160,6 +160,7 @@ internal sealed class OfficeOpenTypeReader {
             if (subtable < _cmap.Offset || subtable > cmapEnd - 2) continue;
             int format = ReadUInt16(subtable);
             if (format != 4 && format != 12) continue;
+            if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
             int score = format == 12 ? 100 : 50;
             if (preferFormat12 && format == 12) score += 100;
             if (platform == 3 && encoding == 10) score += 20;

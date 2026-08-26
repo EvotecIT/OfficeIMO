@@ -40,6 +40,7 @@ internal sealed class OfficeOpenTypeHvarMetrics {
         DeltaSetIndexMap? map = advanceMapRelative == 0
             ? null
             : DeltaSetIndexMap.Parse(reader, checked(offset + (int)advanceMapRelative), end);
+        map?.Validate(store);
         return new OfficeOpenTypeHvarMetrics(store, map);
     }
 
@@ -89,6 +90,12 @@ internal sealed class OfficeOpenTypeHvarMetrics {
 
         internal DeltaSetIndex Resolve(int glyphId) =>
             _entries[Math.Min(Math.Max(0, glyphId), _entries.Length - 1)];
+
+        internal void Validate(OfficeOpenTypeItemVariationStore store) {
+            for (int index = 0; index < _entries.Length; index++) {
+                store.ValidateIndex(_entries[index].Outer, _entries[index].Inner);
+            }
+        }
     }
 
     private readonly struct DeltaSetIndex {

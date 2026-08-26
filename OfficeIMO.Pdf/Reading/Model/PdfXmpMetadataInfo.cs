@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfXmpMetadataInfo {
     internal PdfXmpMetadataInfo(
         int? objectNumber,
+        string? type,
         string? subtype,
         string? filter,
         int streamSizeBytes,
@@ -37,6 +38,7 @@ public sealed class PdfXmpMetadataInfo {
         string? electronicInvoiceVersion,
         string? electronicInvoiceConformanceLevel) {
         ObjectNumber = objectNumber;
+        Type = type;
         Subtype = subtype;
         Filter = filter;
         StreamSizeBytes = streamSizeBytes;
@@ -72,8 +74,16 @@ public sealed class PdfXmpMetadataInfo {
     /// <summary>Metadata stream object number when the catalog entry is indirect.</summary>
     public int? ObjectNumber { get; }
 
+    /// <summary>Metadata stream /Type name, normally Metadata.</summary>
+    public string? Type { get; }
+
     /// <summary>Metadata stream /Subtype name, usually XML.</summary>
     public string? Subtype { get; }
+
+    /// <summary>True when the catalog entry is structurally identified as an XML metadata stream.</summary>
+    public bool IsXmlMetadataStream =>
+        string.Equals(Type, "Metadata", StringComparison.Ordinal) &&
+        string.Equals(Subtype, "XML", StringComparison.Ordinal);
 
     /// <summary>Metadata stream filter name or simple filter value, when present.</summary>
     public string? Filter { get; }

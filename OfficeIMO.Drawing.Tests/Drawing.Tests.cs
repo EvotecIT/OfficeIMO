@@ -3403,6 +3403,19 @@ public partial class DrawingTests {
         Assert.False(font.HasGlyphs("A"));
     }
 
+    [Fact]
+    public void OpenTypeReadersIgnoreNonUnicodeCmapSubtables() {
+        byte[] cmap = CreateFormat12Cmap('A');
+        WriteUInt16(cmap, 4, 1); // Macintosh platform
+        WriteUInt16(cmap, 6, 0);
+        byte[] fontData = CreateMinimalTrueTypeFont(cmap);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

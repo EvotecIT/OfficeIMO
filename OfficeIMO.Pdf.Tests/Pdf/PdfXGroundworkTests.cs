@@ -499,6 +499,39 @@ public class PdfXGroundworkTests {
         Assert.Equal(PdfComplianceRequirementStatus.Missing, report.FindRequirement("readback-pdfx-output-intent")!.Status);
     }
 
+    [Theory]
+    [InlineData("/Type /Metadatz /Subtype /XML")]
+    [InlineData("/Type /Metadata /Subtype /XYZ")]
+    public void PdfXReadbackRequiresAnXmlMetadataStream(string replacement) {
+        var options = new PdfOptions().ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            "FOGRA51");
+        byte[] pdf = PdfDocument.Create(options).ToBytes();
+        ReplaceAsciiAll(pdf, "/Type /Metadata /Subtype /XML", replacement);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.False(info.XmpMetadata!.IsXmlMetadataStream);
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, report.FindRequirement("readback-pdfx-identification")!.Status);
+    }
+
+    [Fact]
+    public void PdfXReadbackRequiresExactlyOnePdfXOutputIntent() {
+        var options = new PdfOptions().ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            "FOGRA51");
+        PdfDocumentInfo info = PdfInspector.Inspect(PdfDocument.Create(options).ToBytes());
+        PdfOutputIntentInfo intent = Assert.Single(info.OutputIntents);
+
+        Assert.True(PdfComplianceAnalyzer.TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? selected));
+        Assert.Same(intent, selected);
+        Assert.False(PdfComplianceAnalyzer.TryGetSinglePdfXOutputIntent(new[] { intent, intent }, out selected));
+        Assert.Null(selected);
+    }
+
     [Fact]
     public void PrintProductionInspectorFindsNamedAndInlineDeviceRgb() {
         byte[] pdf = BuildInspectionPdf(

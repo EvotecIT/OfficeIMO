@@ -491,6 +491,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             var absolute = cmapOffset + offset;
             if (absolute < cmapOffset || absolute > cmapEnd - 2) continue;
             var format = ReadUInt16(_data, absolute);
+            if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
             var score = (platform == 3 && encoding == 10 ? 4 : platform == 3 && encoding == 1 ? 3 : platform == 0 ? 2 : 1);
             if ((format == 4 || format == 12) && score > bestScore) {
                 best = absolute;

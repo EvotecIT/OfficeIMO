@@ -50,6 +50,7 @@ public sealed partial class PdfReadDocument {
         XDocument? document = rawXml is null ? null : TryParseXml(rawXml);
         return new PdfXmpMetadataInfo(
             objectNumber,
+            TryReadName(stream.Dictionary, "Type"),
             TryReadName(stream.Dictionary, "Subtype"),
             TryReadStreamFilter(stream),
             stream.Data.Length,

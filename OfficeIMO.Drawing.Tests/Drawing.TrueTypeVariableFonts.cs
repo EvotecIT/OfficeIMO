@@ -202,6 +202,32 @@ public sealed class DrawingTrueTypeVariableFontTests {
             model);
 
         Assert.Equal(0, variationStore.Evaluate(0, 0));
+        Assert.Throws<InvalidDataException>(() => variationStore.Evaluate(1, 0));
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(0, 3)]
+    public void MvarRejectsOutOfRangeVariationStoreIndices(int outerIndex, int innerIndex) {
+        byte[] original = ReadAsset("RobotoFlex.ttf");
+        var coordinates = new Dictionary<string, float> { ["wght"] = 1000F };
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(original));
+        OfficeFontVariationModel model = OfficeFontVariationModel.Create(reader, coordinates);
+        byte[] mvar = CreateHorizontalMetricsMvar(model);
+        WriteUInt16(mvar, 16, outerIndex);
+        WriteUInt16(mvar, 18, innerIndex);
+        byte[] malformed = ReplaceHvarWithMvar(original, mvar);
+        var fonts = new OfficeFontFaceCollection { FontVariationResolver = _ => coordinates };
+
+        Assert.False(fonts.TryAddBounded(
+            "Invalid MVAR",
+            malformed,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            8 * 1024 * 1024,
+            out _,
+            out string? error));
+        Assert.Contains("variation-store", error, StringComparison.Ordinal);
     }
 
     [Theory]
