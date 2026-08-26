@@ -497,6 +497,26 @@ public class OfficeColorSpaceConverterTests {
     }
 
     [Fact]
+    public void IccOutputProfile_DerivesKOnlyNeutralToneFromItsRoundTripResponse() {
+        Assert.True(OfficeIccColorProfile.TryCreate(
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            out OfficeIccColorProfile? profile));
+        OfficeColor neutral = OfficeColor.FromRgb(128, 128, 128);
+        const OfficeIccRenderingIntent intent = OfficeIccRenderingIntent.RelativeColorimetric;
+
+        Assert.True(profile!.TryConvertToDevice(neutral, intent, out double[] profiledComponents));
+        Assert.True(profile.TryConvert(profiledComponents, intent, out OfficeColor profiledColor));
+        Assert.True(profile.TryDeriveNeutralBlack(neutral, intent, out double black));
+        Assert.True(profile.TryConvert(new[] { 0D, 0D, 0D, black }, intent, out OfficeColor blackOnlyColor));
+
+        Assert.InRange(black, 0D, 1D);
+        Assert.InRange(Math.Abs(Luminance(profiledColor) - Luminance(blackOnlyColor)), 0D, 2D);
+
+        static double Luminance(OfficeColor color) =>
+            0.2126D * color.R + 0.7152D * color.G + 0.0722D * color.B;
+    }
+
+    [Fact]
     public void IccMbaProfile_UsesMatrixInputProfileAndInverseMediaWhiteForAbsoluteOutput() {
         byte[] profileBytes = IccMabTestProfiles.AddRgbXyzOutputTransform(PdfIccProfiles.SrgbIec6196621);
         int mediaWhiteOffset = FindTagOffset(profileBytes, "wtpt") + 8;

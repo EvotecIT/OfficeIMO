@@ -39,6 +39,9 @@ public class PdfXGroundworkTests {
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
         PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
         PdfOptions clone = options.Clone();
+        Assert.True(OfficeIccColorProfile.TryCreate(cmykProfile, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryDeriveNeutralBlack(OfficeColor.FromRgb(128, 128, 128), options.PdfXRenderingIntent, out double neutralBlack));
+        string expectedNeutralOperator = "0 0 0 " + neutralBlack.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) + " k";
 
         Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf16, clone.FileVersion);
@@ -55,7 +58,7 @@ public class PdfXGroundworkTests {
         Assert.Contains("/S /GTS_PDFX", raw, StringComparison.Ordinal);
         Assert.Contains("/Trapped /False", raw, StringComparison.Ordinal);
         Assert.Contains("/TrimBox [0 0 612 792] /BleedBox [0 0 612 792]", raw, StringComparison.Ordinal);
-        Assert.Contains("0 0 0 0.5 k", raw, StringComparison.Ordinal);
+        Assert.Contains(expectedNeutralOperator, raw, StringComparison.Ordinal);
         Assert.DoesNotContain(" rg\n", raw, StringComparison.Ordinal);
         Assert.Contains("/ColorSpace /DeviceCMYK", raw, StringComparison.Ordinal);
         Assert.Equal("PDF/X-4", info.XmpMetadata!.PdfXVersion);
@@ -126,6 +129,28 @@ public class PdfXGroundworkTests {
         Assert.Contains("% 0.4 0.5 0.6 rg remains a comment", normalized, StringComparison.Ordinal);
         Assert.DoesNotContain("0.1 0.2 0.3 rg", normalized, StringComparison.Ordinal);
         Assert.Contains(" k 0 0 10 10 re f", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfXNeutralAxisUsesTheOutputProfilesBlackTone() {
+        byte[] profileBytes = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        var options = new PdfOptions().ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            profileBytes,
+            "FOGRA51",
+            PdfTrappingStatus.False);
+        PdfPrintColorTransform transform = Assert.IsType<PdfPrintColorTransform>(PdfPrintColorTransform.Create(options));
+        OfficeColor neutral = OfficeColor.FromRgb(128, 128, 128);
+        var converted = new double[4];
+
+        transform.Convert(neutral, converted);
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryDeriveNeutralBlack(neutral, options.PdfXRenderingIntent, out double expectedBlack));
+
+        Assert.Equal(0D, converted[0]);
+        Assert.Equal(0D, converted[1]);
+        Assert.Equal(0D, converted[2]);
+        Assert.Equal(expectedBlack, converted[3], 6);
     }
 
     [Fact]
@@ -861,6 +886,25 @@ public class PdfXGroundworkTests {
         Assert.Null(PdfDateCodec.TryParse(value));
     }
 
+    [Theory]
+    [InlineData("D:2026")]
+    [InlineData("D:20260824130000")]
+    public void PdfDateCodecDoesNotTreatPartialOrTimezoneLessDatesAsProductionPrecise(string value) {
+        Assert.NotNull(PdfDateCodec.TryParse(value));
+        Assert.False(PdfDateCodec.TryParseProductionDate(value, out _));
+    }
+
+    [Fact]
+    public void PdfXReadbackRejectsTimezoneLessInfoDatesThatMatchXmpByDefault() {
+        byte[] pdf = BuildProductionDateReconciliationPdf(
+            "D:20260824130000",
+            "D:20260824130500");
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, report.FindRequirement("readback-pdfx-production-dates")!.Status);
+    }
+
     [Fact]
     public void PdfXReadbackRejectsCreationAfterModification() {
         byte[] pdf = CreatePdfXMetadataEditFixture();
@@ -1094,6 +1138,30 @@ public class PdfXGroundworkTests {
             .Meta(title: "Original production metadata")
             .Paragraph(paragraph => paragraph.Text("Metadata editing must retain the PDF/X production contract."))
             .ToBytes();
+    }
+
+    private static byte[] BuildProductionDateReconciliationPdf(string infoCreationDate, string infoModificationDate) {
+        const string xmp =
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">" +
+            "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+            "<rdf:Description rdf:about=\"\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" " +
+            "xmp:CreateDate=\"2026-08-24T13:00:00Z\" " +
+            "xmp:ModifyDate=\"2026-08-24T13:05:00Z\" " +
+            "xmp:MetadataDate=\"2026-08-24T13:05:00Z\"/>" +
+            "</rdf:RDF></x:xmpmeta>";
+        byte[] xmpBytes = Encoding.UTF8.GetBytes(xmp);
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Metadata /Subtype /XML /Length " + xmpBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(xmpBytes, 0, xmpBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /CreationDate (" + infoCreationDate + ") /ModDate (" + infoModificationDate + ") >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Info 6 0 R >>\n%%EOF\n");
+        return output.ToArray();
     }
 
     private static void ReplaceAsciiAll(byte[] bytes, string oldValue, string newValue) {

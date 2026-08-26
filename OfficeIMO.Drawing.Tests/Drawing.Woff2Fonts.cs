@@ -182,6 +182,16 @@ public sealed class DrawingWoff2FontTests {
         Assert.Contains("do not match", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Woff2DecoderRejectsCompositeGlyphReferenceOutsideMaxpGlyphCount() {
+        byte[] component = { 0, 0, 0, 2 };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeWoff2Decoder.ValidateCompositeGlyphReference(component, 0, glyphCount: 2));
+
+        Assert.Contains("maxp.numGlyphs", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void WriteBigEndianUInt32(byte[] data, int offset, uint value) {
         data[offset] = (byte)(value >> 24);
         data[offset + 1] = (byte)(value >> 16);

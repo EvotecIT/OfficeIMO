@@ -34,14 +34,20 @@ public sealed partial class PdfReadDocument {
             dict.Items.TryGetValue(key, out PdfObject? value) && ResolveObject(value) is PdfName name
                 ? name.Name
                 : null;
+        string? creationDate = GetText("CreationDate");
+        string? modificationDate = GetText("ModDate");
+        bool creationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(creationDate, out DateTimeOffset parsedCreationDate);
+        bool modificationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(modificationDate, out DateTimeOffset parsedModificationDate);
         return new PdfMetadata {
             Title = GetText("Title"),
             Author = GetText("Author"),
             Subject = GetText("Subject"),
             Keywords = GetText("Keywords"),
             TrappingStatus = ParseTrappingStatus(GetName("Trapped")),
-            CreationDate = PdfDateCodec.TryParse(GetText("CreationDate")),
-            ModificationDate = PdfDateCodec.TryParse(GetText("ModDate")),
+            CreationDate = creationDateIsProductionPrecise ? parsedCreationDate : PdfDateCodec.TryParse(creationDate),
+            ModificationDate = modificationDateIsProductionPrecise ? parsedModificationDate : PdfDateCodec.TryParse(modificationDate),
+            CreationDateIsProductionPrecise = creationDateIsProductionPrecise,
+            ModificationDateIsProductionPrecise = modificationDateIsProductionPrecise,
             PdfXVersion = GetText("GTS_PDFXVersion"),
             PdfXConformance = GetText("GTS_PDFXConformance")
         };

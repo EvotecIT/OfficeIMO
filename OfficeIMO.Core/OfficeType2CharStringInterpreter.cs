@@ -46,6 +46,12 @@ internal sealed class OfficeCffOperationBudget {
 
 /// <summary>Bounded Type 2 CharString interpreter for CFF1 and CFF2 glyph outlines.</summary>
 internal sealed class OfficeType2CharStringInterpreter {
+    private enum ExecutionResult {
+        Exhausted,
+        Return,
+        EndChar
+    }
+
     private const int MaximumStack = 513;
     private const int MaximumSubroutineDepth = 32;
     private readonly OfficeCffFontData _font;
@@ -104,7 +110,7 @@ internal sealed class OfficeType2CharStringInterpreter {
         if (_stack.Count != 0) throw new InvalidDataException("The CFF CharString ends with unconsumed operands.");
     }
 
-    private bool Execute(OfficeCffFontData.CffSlice program, int depth) {
+    private ExecutionResult Execute(OfficeCffFontData.CffSlice program, int depth) {
         if (depth > MaximumSubroutineDepth) throw new InvalidDataException("The CFF CharString subroutine depth is excessive.");
         int offset = program.Offset;
         int end = checked(program.Offset + program.Length);
@@ -126,17 +132,24 @@ internal sealed class OfficeType2CharStringInterpreter {
                 case 6: AlternatingLines(horizontalFirst: true); break;
                 case 7: AlternatingLines(horizontalFirst: false); break;
                 case 8: RelativeCurves(); break;
-                case 10: CallSubroutine(_localSubroutines, depth); break;
+                case 10:
+                    if (CallSubroutine(_localSubroutines, depth) == ExecutionResult.EndChar) {
+                        if (offset != end) throw new InvalidDataException("A CFF CharString contains data after endchar.");
+                        return ExecutionResult.EndChar;
+                    }
+                    break;
                 case 11:
                     if (depth == 0) throw new InvalidDataException("A top-level CFF CharString cannot use return.");
-                    return true;
+                    if (offset != end) throw new InvalidDataException("A CFF CharString subroutine contains data after return.");
+                    return ExecutionResult.Return;
                 case 12:
                     if (offset >= end) throw new InvalidDataException("A CFF escaped operator is truncated.");
                     ExecuteEscaped(data[offset++]);
                     break;
                 case 14:
+                    if (offset != end) throw new InvalidDataException("A CFF CharString contains data after endchar.");
                     ConsumeEndChar();
-                    return false;
+                    return ExecutionResult.EndChar;
                 case 15: SelectVariationData(); break;
                 case 16: Blend(); break;
                 case 18: ConsumeStems(); break;
@@ -154,13 +167,18 @@ internal sealed class OfficeType2CharStringInterpreter {
                 case 25: LineThenCurve(); break;
                 case 26: VerticalCurves(); break;
                 case 27: HorizontalCurves(); break;
-                case 29: CallSubroutine(_globalSubroutines, depth); break;
+                case 29:
+                    if (CallSubroutine(_globalSubroutines, depth) == ExecutionResult.EndChar) {
+                        if (offset != end) throw new InvalidDataException("A CFF CharString contains data after endchar.");
+                        return ExecutionResult.EndChar;
+                    }
+                    break;
                 case 30: AlternatingCurves(horizontalFirst: false); break;
                 case 31: AlternatingCurves(horizontalFirst: true); break;
                 default: throw new NotSupportedException("CFF CharString operator " + value + " is not supported.");
             }
         }
-        return false;
+        return ExecutionResult.Exhausted;
     }
 
     private void ConsumeStems() {
@@ -377,11 +395,15 @@ internal sealed class OfficeType2CharStringInterpreter {
         _stack.Clear();
     }
 
-    private void CallSubroutine(OfficeCffFontData.CffIndex index, int depth) {
+    private ExecutionResult CallSubroutine(OfficeCffFontData.CffIndex index, int depth) {
         int operand = ToInteger(Pop(), "CFF subroutine index");
         int biased = checked(operand + SubroutineBias(index.Count));
         if (biased < 0 || biased >= index.Count) throw new InvalidDataException("A CFF subroutine index is outside the INDEX.");
-        _ = Execute(index[biased], depth + 1);
+        ExecutionResult result = Execute(index[biased], depth + 1);
+        if (result == ExecutionResult.Exhausted) {
+            throw new InvalidDataException("A CFF CharString subroutine does not terminate with return.");
+        }
+        return result;
     }
 
     private void SelectVariationData() {

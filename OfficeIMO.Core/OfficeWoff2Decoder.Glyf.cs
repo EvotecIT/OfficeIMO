@@ -118,6 +118,7 @@ internal static partial class OfficeWoff2Decoder {
                 } else if (contourCount == -1) {
                     if (!hasBox) throw new InvalidDataException("A transformed WOFF 2 composite glyph is missing its bounding box.");
                     glyph = DecodeCompositeGlyph(
+                        glyphCount,
                         bboxStream,
                         ref bboxCursor,
                         glyphStream,
@@ -245,6 +246,7 @@ internal static partial class OfficeWoff2Decoder {
     }
 
     private static byte[] DecodeCompositeGlyph(
+        int glyphCount,
         byte[] bboxStream,
         ref int bboxCursor,
         byte[] glyphStream,
@@ -268,6 +270,7 @@ internal static partial class OfficeWoff2Decoder {
         do {
             EnsureAvailable(compositeStream, compositeCursor, 4, "The transformed WOFF 2 composite stream is truncated.");
             ushort flags = ReadUInt16(compositeStream, compositeCursor);
+            ValidateCompositeGlyphReference(compositeStream, compositeCursor, glyphCount);
             int componentLength = 4;
             componentLength += (flags & CompositeArgumentsAreWords) != 0 ? 4 : 2;
             if ((flags & CompositeHasScale) != 0) componentLength += 2;
@@ -288,6 +291,16 @@ internal static partial class OfficeWoff2Decoder {
             instructionCursor += instructionLength;
         }
         return result.ToArray();
+    }
+
+    internal static void ValidateCompositeGlyphReference(byte[] compositeStream, int componentOffset, int glyphCount) {
+        if (compositeStream == null) throw new ArgumentNullException(nameof(compositeStream));
+        if (glyphCount <= 0) throw new ArgumentOutOfRangeException(nameof(glyphCount));
+        EnsureAvailable(compositeStream, componentOffset, 4, "The transformed WOFF 2 composite stream is truncated.");
+        int componentGlyphId = ReadUInt16(compositeStream, componentOffset + 2);
+        if (componentGlyphId >= glyphCount) {
+            throw new InvalidDataException("A transformed WOFF 2 composite component references a glyph outside maxp.numGlyphs.");
+        }
     }
 
     private static void DecodeTriplet(byte[] data, ref int offset, int flag, out int deltaX, out int deltaY) {

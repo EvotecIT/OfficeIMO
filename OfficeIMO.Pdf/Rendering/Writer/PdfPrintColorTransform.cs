@@ -11,6 +11,9 @@ internal sealed class PdfPrintColorTransform {
     private readonly OfficeIccColorProfile _profile;
     private readonly OfficeIccRenderingIntent _renderingIntent;
     private readonly PdfBlackPreservationMode _blackPreservationMode;
+    private readonly double[] _neutralBlackCache = new double[256];
+    private readonly bool[] _neutralBlackCached = new bool[256];
+    private readonly object _neutralBlackCacheLock = new object();
 
     internal OfficeIccRenderingIntent RenderingIntent => _renderingIntent;
 
@@ -40,6 +43,10 @@ internal sealed class PdfPrintColorTransform {
             profile.ComponentCount != 4 ||
             !profile.HasOutputTransform) {
             throw new InvalidOperationException("PDF/X color conversion requires a supported CMYK output-intent profile with a PCS-to-device transform.");
+        }
+        if (options.BlackPreservationMode == PdfBlackPreservationMode.NeutralAxis &&
+            !profile.CanDeriveNeutralBlack(options.PdfXRenderingIntent)) {
+            throw new InvalidOperationException("Neutral-axis PDF/X conversion requires a bidirectional CMYK output-intent profile.");
         }
 
         return new PdfPrintColorTransform(profile, options.PdfXRenderingIntent, options.BlackPreservationMode);
@@ -135,12 +142,18 @@ internal sealed class PdfPrintColorTransform {
 
     private void Convert(PdfColor color, out double cyan, out double magenta, out double yellow, out double black) {
         bool isNeutral = NearlyEqual(color.R, color.G) && NearlyEqual(color.G, color.B);
-        if ((_blackPreservationMode == PdfBlackPreservationMode.NeutralAxis && isNeutral) ||
-            (_blackPreservationMode == PdfBlackPreservationMode.PureBlack && isNeutral && NearlyEqual(color.R, 0D))) {
+        if (_blackPreservationMode == PdfBlackPreservationMode.NeutralAxis && isNeutral) {
             cyan = 0D;
             magenta = 0D;
             yellow = 0D;
-            black = 1D - color.R;
+            black = GetProfileDerivedNeutralBlack(color);
+            return;
+        }
+        if (_blackPreservationMode == PdfBlackPreservationMode.PureBlack && isNeutral && NearlyEqual(color.R, 0D)) {
+            cyan = 0D;
+            magenta = 0D;
+            yellow = 0D;
+            black = 1D;
             return;
         }
 
@@ -161,6 +174,21 @@ internal sealed class PdfPrintColorTransform {
         }
 
         Convert(PdfColor.FromOfficeColor(color), out destination[0], out destination[1], out destination[2], out destination[3]);
+    }
+
+    private double GetProfileDerivedNeutralBlack(PdfColor color) {
+        OfficeColor officeColor = color.ToOfficeColor();
+        int level = officeColor.R;
+        if (System.Threading.Volatile.Read(ref _neutralBlackCached[level])) return _neutralBlackCache[level];
+        lock (_neutralBlackCacheLock) {
+            if (_neutralBlackCached[level]) return _neutralBlackCache[level];
+            if (!_profile.TryDeriveNeutralBlack(officeColor, _renderingIntent, out double black)) {
+                throw new InvalidOperationException("The configured PDF/X CMYK ICC profile could not derive its neutral black tone.");
+            }
+            _neutralBlackCache[level] = black;
+            System.Threading.Volatile.Write(ref _neutralBlackCached[level], true);
+            return black;
+        }
     }
 
     private static string Format(double value) =>

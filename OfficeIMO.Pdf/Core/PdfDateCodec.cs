@@ -53,6 +53,17 @@ internal static class PdfDateCodec {
         }
     }
 
+    internal static bool TryParseProductionDate(string? value, out DateTimeOffset result) {
+        result = default;
+        DateTimeOffset? parsed = TryParse(value);
+        if (!parsed.HasValue || string.IsNullOrWhiteSpace(value)) return false;
+
+        string raw = value!.StartsWith("D:", StringComparison.Ordinal) ? value.Substring(2) : value;
+        if (raw.Length <= 14 || (raw[14] != 'Z' && raw[14] != '+' && raw[14] != '-')) return false;
+        result = parsed.Value;
+        return true;
+    }
+
     private static bool TryOptionalPart(string value, int startIndex, out int result) {
         result = 0;
         if (value.Length <= startIndex) {

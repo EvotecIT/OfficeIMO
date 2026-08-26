@@ -212,7 +212,9 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF contains matching " + GetDisplayName(profile) + " identification metadata.",
             "The saved PDF XMP metadata must contain matching pdfxid identification for " + GetDisplayName(profile) + ".");
 
-        bool hasReconciledDates = info.Metadata.CreationDate.HasValue &&
+        bool hasReconciledDates = info.Metadata.CreationDateIsProductionPrecise &&
+            info.Metadata.ModificationDateIsProductionPrecise &&
+            info.Metadata.CreationDate.HasValue &&
             info.Metadata.ModificationDate.HasValue &&
             xmp?.CreationDate.HasValue == true &&
             xmp.ModificationDate.HasValue &&

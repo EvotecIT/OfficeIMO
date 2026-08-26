@@ -159,6 +159,7 @@ public sealed class DrawingCffFontTests {
         target.Data[target.Offset + 3] = 247; // achar = StandardEncoding acute (194)
         target.Data[target.Offset + 4] = 86;
         target.Data[target.Offset + 5] = 14;  // endchar
+        target = new OfficeCffFontData.CffSlice(target.Data, target.Offset, 6);
         var sink = new CountingCffSink();
 
         new OfficeType2CharStringInterpreter(cff, targetGlyph, sink, CancellationToken.None).Render(target);
@@ -246,6 +247,65 @@ public sealed class DrawingCffFontTests {
             new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
 
         Assert.Contains("top-level", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CffRejectsDataFollowingEndChar() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var program = new OfficeCffFontData.CffSlice(new byte[] {
+            139, 139, 21,
+            14,
+            139
+        }, 0, 5);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
+
+        Assert.Contains("after endchar", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CffRejectsDataFollowingSubroutineReturn() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        OfficeCffFontData.CffIndex subroutines = cff.GetLocalSubroutines(0);
+        Assert.True(subroutines.Count > 0);
+        OfficeCffFontData.CffSlice subroutine = subroutines[0];
+        Assert.True(subroutine.Length >= 2);
+        subroutine.Data[subroutine.Offset] = 11;
+        subroutine.Data[subroutine.Offset + 1] = 139;
+        var program = new OfficeCffFontData.CffSlice(new byte[] {
+            32, // -107, selecting local subroutine zero for a small INDEX
+            10,
+            14
+        }, 0, 3);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
+
+        Assert.Contains("after return", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CffRejectsDataFollowingEndCharInsideSubroutine() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        OfficeCffFontData.CffIndex subroutines = cff.GetLocalSubroutines(0);
+        Assert.True(subroutines.Count > 0);
+        OfficeCffFontData.CffSlice subroutine = subroutines[0];
+        Assert.True(subroutine.Length >= 2);
+        subroutine.Data[subroutine.Offset] = 14;
+        subroutine.Data[subroutine.Offset + 1] = 139;
+        var program = new OfficeCffFontData.CffSlice(new byte[] { 32, 10 }, 0, 2);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
+
+        Assert.Contains("after endchar", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -18,6 +18,8 @@ public sealed class PdfMetadata {
     public DateTimeOffset? CreationDate { get; set; }
     /// <summary>Document modification date from the Info dictionary.</summary>
     public DateTimeOffset? ModificationDate { get; set; }
+    internal bool CreationDateIsProductionPrecise { get; set; }
+    internal bool ModificationDateIsProductionPrecise { get; set; }
     /// <summary>PDF/X version from <c>GTS_PDFXVersion</c> in the Info dictionary.</summary>
     public string? PdfXVersion { get; set; }
     /// <summary>PDF/X conformance from <c>GTS_PDFXConformance</c> in the Info dictionary.</summary>
