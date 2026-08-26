@@ -81,6 +81,13 @@ foreach ($engine in $engines) {
     }
 
     foreach ($output in $outputs) {
+        $memory = $output.processTreeMemory
+        if ($null -eq $memory -or
+            [int] $memory.sampleCount -lt 1 -or
+            [int] $memory.minimumObservedProcessCount -lt 1 -or
+            ($engineName -eq 'Chromium' -and [int] $memory.maximumObservedProcessCount -le 1)) {
+            throw "HTML/PDF artifact evidence engine '$engineName' contains output without comparable process-tree memory evidence."
+        }
         $contract = $output.contract
         if ($null -eq $contract -or
             [int] $contract.pageCount -lt 1 -or
@@ -101,6 +108,12 @@ foreach ($engine in $engines) {
 }
 
 $artifacts = [System.Collections.Generic.List[object]]::new()
+$pathComparer = if ($pathComparison -eq [System.StringComparison]::OrdinalIgnoreCase) {
+    [System.StringComparer]::OrdinalIgnoreCase
+} else {
+    [System.StringComparer]::Ordinal
+}
+$validatedArtifactPaths = [System.Collections.Generic.HashSet[string]]::new($pathComparer)
 function Assert-NoArtifactPathLinks {
     param(
         [Parameter(Mandatory)][string] $RootPath,
@@ -164,6 +177,7 @@ function Add-ValidatedArtifact {
         -not [string]::Equals($actualHash, $ExpectedSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Artifact size or SHA-256 does not match the evidence report: $RelativePath"
     }
+    $validatedArtifactPaths.Add($fullPath) | Out-Null
 
     $artifacts.Add([ordered]@{
             kind = $Kind
@@ -227,6 +241,10 @@ $summary = [ordered]@{
 }
 
 $resolvedOutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+if ([string]::Equals($resolvedOutputPath, [System.IO.Path]::GetFullPath($reportPath), $pathComparison) -or
+    $validatedArtifactPaths.Contains($resolvedOutputPath)) {
+    throw 'The artifact evidence summary output cannot overwrite the report or a validated input artifact.'
+}
 New-Item -ItemType Directory -Path (Split-Path -Parent $resolvedOutputPath) -Force | Out-Null
 $json = ($summary | ConvertTo-Json -Depth 100).Replace("`r`n", "`n") + "`n"
 [System.IO.File]::WriteAllText($resolvedOutputPath, $json, [System.Text.UTF8Encoding]::new($false))

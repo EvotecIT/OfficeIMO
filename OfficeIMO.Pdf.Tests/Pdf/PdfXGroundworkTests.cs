@@ -750,7 +750,7 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
-    public void PrintProductionInspectorBoundsCyclicIndirectObjectGraphs() {
+    public void PrintProductionInspectorBoundsCyclicIndirectObjectGraphsAndFailsClosed() {
         byte[] pdf = BuildInspectionPdf(
             "/CS1 cs 0.1 0.2 0.3 scn /Blend gs",
             resources: "/ColorSpace << /CS1 6 0 R >> /ExtGState << /Blend 7 0 R >>",
@@ -768,7 +768,8 @@ public class PdfXGroundworkTests {
         Assert.Equal(2, evidence.DeviceRgbOperatorCount);
         Assert.Equal(1, evidence.NonOpaqueGraphicsStateCount);
         Assert.Equal(0, evidence.TransparencyGroupCount);
-        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+        Assert.False(evidence.IsComplete);
     }
 
     [Fact]

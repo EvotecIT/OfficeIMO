@@ -20,6 +20,8 @@ internal static partial class PdfPrintProductionColorInspector {
         int cmykImages = 0;
         int rgbShadings = 0;
         int cmykShadings = 0;
+        int rgbTransparencyGroups = 0;
+        int cmykTransparencyGroups = 0;
         int deviceIndependentColorUses = 0;
         int transparentImages = 0;
         int nonOpaqueStates = 0;
@@ -42,13 +44,13 @@ internal static partial class PdfPrintProductionColorInspector {
                 maximumObjectDepth);
             int firstPageContext = contentStreams.Count;
             if (dictionary.Items.TryGetValue("Contents", out PdfObject? contents)) {
-                CollectStreams(
+                if (!CollectStreams(
                     contents,
                     objects,
                     pageAliases,
                     pageResources,
                     contentStreams,
-                    maximumObjectDepth);
+                    maximumObjectDepth)) uninspectable++;
             }
             ReachableResourceCollection reachable = CollectReachableResourceContexts(
                 contentStreams,
@@ -60,7 +62,40 @@ internal static partial class PdfPrintProductionColorInspector {
                 document.ReadOptions.Limits,
                 cancellationToken);
             transparencyGroups += reachable.TransparencyGroupCount;
-            if (IsTransparencyGroup(dictionary, objects, maximumObjectDepth)) transparencyGroups++;
+            if (!TryClassifyTransparencyGroup(
+                    dictionary,
+                    pageAliases,
+                    objects,
+                    maximumObjectDepth,
+                    out bool isPageTransparencyGroup,
+                    out ColorSpaceUsage? pageGroupUsage)) {
+                uninspectable++;
+            } else if (isPageTransparencyGroup) {
+                transparencyGroups++;
+                ApplyTransparencyGroupUsage(
+                    pageGroupUsage,
+                    ref rgbTransparencyGroups,
+                    ref cmykTransparencyGroups,
+                    ref deviceIndependentColorUses);
+            }
+        }
+
+        foreach (ContentStreamContext context in contentStreams) {
+            if (!TryClassifyTransparencyGroup(
+                    context.Stream.Dictionary,
+                    context.Aliases,
+                    objects,
+                    maximumObjectDepth,
+                    out bool isTransparencyGroup,
+                    out ColorSpaceUsage? groupUsage)) {
+                uninspectable++;
+            } else if (isTransparencyGroup) {
+                ApplyTransparencyGroupUsage(
+                    groupUsage,
+                    ref rgbTransparencyGroups,
+                    ref cmykTransparencyGroups,
+                    ref deviceIndependentColorUses);
+            }
         }
 
         foreach (ImageContext context in imageContexts) imageDictionaries.Add(context.Dictionary);
@@ -154,7 +189,15 @@ internal static partial class PdfPrintProductionColorInspector {
 
         foreach (PdfDictionary graphicsState in graphicsStateDictionaries) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (IsNonOpaqueGraphicsState(graphicsState, objects, maximumObjectDepth)) nonOpaqueStates++;
+            if (!TryInspectGraphicsState(
+                    graphicsState,
+                    objects,
+                    maximumObjectDepth,
+                    out bool isNonOpaque)) {
+                uninspectable++;
+            } else if (isNonOpaque) {
+                nonOpaqueStates++;
+            }
         }
 
         int rgbOperators = 0;
@@ -353,6 +396,8 @@ internal static partial class PdfPrintProductionColorInspector {
             cmykImages,
             rgbShadings,
             cmykShadings,
+            rgbTransparencyGroups,
+            cmykTransparencyGroups,
             deviceIndependentColorUses,
             transparentImages,
             nonOpaqueStates,
@@ -360,13 +405,14 @@ internal static partial class PdfPrintProductionColorInspector {
             uninspectable);
     }
 
-    private static void CollectStreams(
+    private static bool CollectStreams(
         PdfObject value,
         Dictionary<int, PdfIndirectObject> objects,
         ColorSpaceAliases aliases,
         PdfDictionary? resources,
         List<ContentStreamContext> streams,
         int maximumObjectDepth) {
+        bool complete = true;
         var pending = new Stack<(PdfObject Value, int Depth)>();
         var inspectedArrays = new HashSet<PdfArray>();
         pending.Push((value, 0));
@@ -385,8 +431,11 @@ internal static partial class PdfPrintProductionColorInspector {
                 for (int index = array.Items.Count - 1; index >= 0; index--) {
                     pending.Push((array.Items[index], resolvedDepth + 1));
                 }
+            } else {
+                complete = false;
             }
         }
+        return complete;
     }
 
     private static ColorSpaceAliases ResolveColorSpaceAliases(
@@ -676,16 +725,67 @@ internal static partial class PdfPrintProductionColorInspector {
         int maximumObjectDepth) =>
         value == null ? null : (ResolveObject(objects, value, 0, maximumObjectDepth) as PdfName)?.Name;
 
-    private static bool IsNonOpaqueGraphicsState(
+    private static bool TryInspectGraphicsState(
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth) {
-        if (TryResolveNumber(dictionary, "ca", objects, maximumObjectDepth, out double fillAlpha) && fillAlpha != 1D) return true;
-        if (TryResolveNumber(dictionary, "CA", objects, maximumObjectDepth, out double strokeAlpha) && strokeAlpha != 1D) return true;
+        int maximumObjectDepth,
+        out bool isNonOpaque) {
+        isNonOpaque = false;
+        if (!TryInspectAlpha(dictionary, "ca", objects, maximumObjectDepth, ref isNonOpaque) ||
+            !TryInspectAlpha(dictionary, "CA", objects, maximumObjectDepth, ref isNonOpaque)) return false;
         if (dictionary.Items.TryGetValue("BM", out PdfObject? blendObject) &&
-            HasNonNormalBlendMode(blendObject, objects, maximumObjectDepth)) return true;
-        if (!dictionary.Items.TryGetValue("SMask", out PdfObject? softMask)) return false;
-        return !string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal);
+            HasNonNormalBlendMode(blendObject, objects, maximumObjectDepth)) isNonOpaque = true;
+        if (dictionary.Items.TryGetValue("SMask", out PdfObject? softMask) &&
+            !string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal)) {
+            isNonOpaque = true;
+        }
+        return true;
+    }
+
+    private static bool TryInspectAlpha(
+        PdfDictionary dictionary,
+        string key,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        ref bool isNonOpaque) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? candidate)) return true;
+        if (ResolveObject(objects, candidate, 0, maximumObjectDepth) is not PdfNumber number ||
+            double.IsNaN(number.Value) || double.IsInfinity(number.Value) ||
+            number.Value < 0D || number.Value > 1D) return false;
+        if (number.Value != 1D) isNonOpaque = true;
+        return true;
+    }
+
+    private static bool TryClassifyTransparencyGroup(
+        PdfDictionary dictionary,
+        ColorSpaceAliases aliases,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        out bool isTransparencyGroup,
+        out ColorSpaceUsage? usage) {
+        isTransparencyGroup = false;
+        usage = null;
+        if (!dictionary.Items.TryGetValue("Group", out PdfObject? groupObject)) return true;
+        if (ResolveObject(objects, groupObject, 0, maximumObjectDepth) is not PdfDictionary group ||
+            ResolveName(group.Items.TryGetValue("S", out PdfObject? subtype) ? subtype : null, objects, maximumObjectDepth) is not string subtypeName) {
+            return false;
+        }
+        if (!string.Equals(subtypeName, "Transparency", StringComparison.Ordinal)) return true;
+        isTransparencyGroup = true;
+        if (!group.Items.TryGetValue("CS", out PdfObject? colorSpace)) return true;
+        usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, aliases);
+        return usage.IsKnown;
+    }
+
+    private static void ApplyTransparencyGroupUsage(
+        ColorSpaceUsage? usage,
+        ref int rgbTransparencyGroups,
+        ref int cmykTransparencyGroups,
+        ref int deviceIndependentColorUses) {
+        if (usage == null) return;
+        if (usage.UsesDeviceRgb) rgbTransparencyGroups++;
+        if (usage.UsesDeviceCmyk) cmykTransparencyGroups++;
+        if (usage.UsesDeviceIndependent) deviceIndependentColorUses++;
     }
 
     private static bool HasNonNormalBlendMode(

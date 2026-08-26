@@ -56,7 +56,10 @@ public sealed partial class PdfReadDocument {
     }
 
     private PdfOutputIntentProfileMetadata ReadOutputIntentProfileMetadata(PdfStream profileStream) {
-        byte[] profileBytes = _decodedStreamBudget.Decode(profileStream, _objects);
+        byte[] profileBytes = _decodedStreamBudget.DecodeRequired(
+            profileStream,
+            _objects,
+            _options.Limits.MaxDecodedStreamBytes);
         _outputIntentMetadataRetentionBudget.Charge(
             profileStream,
             PdfIccProfileCacheRepresentation.DecodedBytes,

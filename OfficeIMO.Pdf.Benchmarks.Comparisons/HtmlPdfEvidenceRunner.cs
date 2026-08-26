@@ -142,7 +142,9 @@ internal static class HtmlPdfEvidenceRunner {
             MemoryScope: "Fresh worker process tree sampled from process start through renderer shutdown; the evidence coordinator is excluded.",
             MemoryComparable: outputs.All(output =>
                 output.ProcessTreeMemory.SampleCount > 0 &&
-                output.ProcessTreeMemory.MinimumObservedProcessCount > 0),
+                output.ProcessTreeMemory.MinimumObservedProcessCount > 0 &&
+                (engine != HtmlPdfComparisonEngine.Chromium ||
+                    output.ProcessTreeMemory.MaximumObservedProcessCount > 1)),
             Outputs: outputs);
     }
 

@@ -30,6 +30,63 @@ internal static class OfficeOpenTypeCmap {
         return valid;
     }
 
+    internal static HashSet<int> CollectValidFormat4Subtables(
+        byte[] data,
+        int cmapOffset,
+        int cmapLength,
+        int maximumSubtables) {
+        var valid = new HashSet<int>();
+        if (data == null || cmapOffset < 0 || cmapLength < 4 || cmapOffset > data.Length - cmapLength) return valid;
+        int cmapEnd = cmapOffset + cmapLength;
+        int count = ReadUInt16(data, cmapOffset + 2);
+        if (count <= 0 || count > maximumSubtables || cmapLength < 4 + count * 8) return valid;
+        for (int index = 0; index < count; index++) {
+            int record = cmapOffset + 4 + index * 8;
+            uint relativeValue = ReadUInt32(data, record + 4);
+            if (relativeValue > (uint)(cmapLength - 2)) continue;
+            int table = cmapOffset + (int)relativeValue;
+            if (table < cmapOffset || table > cmapEnd - 2 || ReadUInt16(data, table) != 4) continue;
+            if (IsValidFormat4Subtable(data, table, cmapOffset, cmapEnd, maximumSubtables)) valid.Add(table);
+        }
+        return valid;
+    }
+
+    private static bool IsValidFormat4Subtable(
+        byte[] data,
+        int table,
+        int cmapOffset,
+        int cmapEnd,
+        int maximumSubtables) {
+        if (table < cmapOffset || table > cmapEnd - 16) return false;
+        int length = ReadUInt16(data, table + 2);
+        int segmentCountX2 = ReadUInt16(data, table + 6);
+        if (length < 16 || (segmentCountX2 & 1) != 0 || segmentCountX2 == 0 || table > cmapEnd - length) return false;
+        int segmentCount = segmentCountX2 / 2;
+        if (segmentCount > maximumSubtables * 16) return false;
+        int endCodes = table + 14;
+        int startCodes = endCodes + segmentCount * 2 + 2;
+        int deltas = startCodes + segmentCount * 2;
+        int rangeOffsets = deltas + segmentCount * 2;
+        int tableEnd = table + length;
+        if (rangeOffsets < table || rangeOffsets > tableEnd - segmentCount * 2) return false;
+
+        int previousEnd = -1;
+        for (int index = 0; index < segmentCount; index++) {
+            int end = ReadUInt16(data, endCodes + index * 2);
+            int start = ReadUInt16(data, startCodes + index * 2);
+            if (start > end || start <= previousEnd) return false;
+            int rangeOffset = ReadUInt16(data, rangeOffsets + index * 2);
+            if (rangeOffset != 0) {
+                long firstGlyph = (long)rangeOffsets + index * 2 + rangeOffset;
+                long lastGlyph = firstGlyph + (long)(end - start) * 2;
+                if (firstGlyph < table || lastGlyph > tableEnd - 2L) return false;
+            }
+            previousEnd = end;
+        }
+        return ReadUInt16(data, endCodes + (segmentCount - 1) * 2) == 0xFFFF &&
+            ReadUInt16(data, startCodes + (segmentCount - 1) * 2) == 0xFFFF;
+    }
+
     private static bool IsValidFormat12Subtable(
         byte[] data,
         int table,

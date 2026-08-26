@@ -510,6 +510,15 @@ public partial class PdfInspectorTests {
         Assert.True(outputIntent.DestinationOutputProfileHasIccSignature);
     }
 
+    [Fact]
+    public void Inspect_RejectsUnsupportedOutputIntentProfileFiltersInsteadOfReadingRawBytes() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildUnsupportedFilteredOutputIntentProfilePdf());
+        PdfOutputIntentInfo outputIntent = Assert.Single(info.OutputIntents);
+
+        Assert.True(outputIntent.HasDestinationOutputProfile);
+        Assert.Throws<InvalidDataException>(() => _ = outputIntent.DestinationOutputProfileSizeBytes);
+    }
+
     private static byte[] BuildXmpMetadataPdfWithPayload(string xmp) {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",

@@ -3449,6 +3449,28 @@ public partial class DrawingTests {
         Assert.False(font.HasGlyphs("A"));
     }
 
+    [Theory]
+    [InlineData(0x0040, 0x0041, 0xFFFF, 0xFFFF)] // start exceeds end
+    [InlineData(0xFFFF, 0x0041, 0xFFFF, 0xFFFF)] // segments overlap
+    [InlineData(0x0041, 0x0041, 0xFFFE, 0xFFFE)] // missing terminal segment
+    public void OpenTypeReadersRejectInvalidFormat4SegmentSequences(
+        int firstEnd,
+        int firstStart,
+        int terminalEnd,
+        int terminalStart) {
+        byte[] cmap = CreateFormat4Cmap(glyphId: 1, useRangeOffset: false);
+        WriteUInt16(cmap, 26, firstEnd);
+        WriteUInt16(cmap, 28, terminalEnd);
+        WriteUInt16(cmap, 32, firstStart);
+        WriteUInt16(cmap, 34, terminalStart);
+        byte[] fontData = CreateMinimalTrueTypeFont(cmap);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
     [Fact]
     public void OfficeTrueTypeFontMapsNonBmpScalarsThroughFormat12Cmap() {
         byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));

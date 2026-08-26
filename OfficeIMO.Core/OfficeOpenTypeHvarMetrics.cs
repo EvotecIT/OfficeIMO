@@ -40,7 +40,15 @@ internal sealed class OfficeOpenTypeHvarMetrics {
         DeltaSetIndexMap? map = advanceMapRelative == 0
             ? null
             : DeltaSetIndexMap.Parse(reader, checked(offset + (int)advanceMapRelative), end);
-        map?.Validate(store);
+        if (map == null) {
+            // OpenType maps an absent advanceWidthMapping to outer index zero and
+            // inner index glyphId. Validate that complete implicit range while the
+            // font is being registered instead of deferring a malformed index to
+            // the first measurement or outline request.
+            store.ValidateIndex(0, reader.GlyphCount - 1);
+        } else {
+            map.Validate(store);
+        }
         return new OfficeOpenTypeHvarMetrics(store, map);
     }
 

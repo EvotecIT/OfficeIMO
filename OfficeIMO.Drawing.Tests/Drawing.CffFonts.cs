@@ -271,6 +271,36 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void Cff1CharStringsRejectMoreThanFortyEightOperands() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var programBytes = new byte[50];
+        for (int index = 0; index < 49; index++) programBytes[index] = 139;
+        programBytes[49] = 14;
+        var program = new OfficeCffFontData.CffSlice(programBytes, 0, programBytes.Length);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
+
+        Assert.Equal(48, cff.MaximumOperandStack);
+        Assert.Contains("operand stack", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Cff2UsesItsDeclaredOrDefaultOperandStackLimit() {
+        byte[] data = ReadAsset("AdobeVFPrototype-Subset.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeFontVariationModel variations = OfficeFontVariationModel.Create(
+            reader,
+            new Dictionary<string, float> { ["wght"] = 700F, ["xxxx"] = 75F });
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, variations);
+
+        Assert.InRange(cff.MaximumOperandStack, 1, 513);
+        Assert.True(cff.IsCff2);
+    }
+
+    [Fact]
     public void CffRejectsReturnInTopLevelCharString() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));

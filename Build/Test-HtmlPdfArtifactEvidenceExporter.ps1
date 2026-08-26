@@ -44,6 +44,13 @@ try {
                         sizeBytes = $pdfItem.Length
                         sha256 = (Get-FileHash -LiteralPath $pdfItem.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
                         semanticSha256 = ('a' * 64)
+                        processTreeMemory = [ordered]@{
+                            peakWorkingSetBytes = 1024
+                            sampleCount = 2
+                            minimumObservedProcessCount = 1
+                            maximumObservedProcessCount = $engineName -eq 'Chromium' ? 2 : 1
+                            sampler = 'contract-test'
+                        }
                         contract = [ordered]@{
                             pageCount = 1
                             textLength = 10
@@ -163,6 +170,25 @@ try {
     }
 
     $officeEngine.determinism.exactBytesIdentical = $true
+    $chromiumEngine = $report.engines | Where-Object { $_.engine -eq 'Chromium' }
+    $chromiumEngine.outputs[0].processTreeMemory.maximumObservedProcessCount = 1
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $singleProcessChromiumRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'process-tree memory evidence') { throw }
+        $singleProcessChromiumRejected = $true
+    }
+    if (-not $singleProcessChromiumRejected) {
+        throw 'HTML/PDF artifact exporter accepted Chromium evidence that never observed a child process.'
+    }
+
+    $chromiumEngine.outputs[0].processTreeMemory.maximumObservedProcessCount = 2
     $report.environment.osDescription = 'macOS contract-test host'
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
@@ -189,6 +215,22 @@ try {
         -OutputPath $outputPath
     if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
         throw 'HTML/PDF artifact exporter did not produce the valid in-root summary.'
+    }
+
+    foreach ($protectedOutputPath in @($reportPath, $insidePath)) {
+        $protectedOutputRejected = $false
+        try {
+            & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+                -EvidencePath $evidenceRoot `
+                -Platform $platform `
+                -OutputPath $protectedOutputPath
+        } catch {
+            if ($_.Exception.Message -notmatch 'cannot overwrite') { throw }
+            $protectedOutputRejected = $true
+        }
+        if (-not $protectedOutputRejected) {
+            throw 'HTML/PDF artifact exporter accepted an output path that overwrites validated evidence.'
+        }
     }
 
     $siblingName = $isWindowsHost ? 'Escape' : 'run'

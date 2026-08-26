@@ -52,7 +52,6 @@ internal sealed class OfficeType2CharStringInterpreter {
         EndChar
     }
 
-    private const int MaximumStack = 513;
     private const int MaximumSubroutineDepth = 32;
     private readonly OfficeCffFontData _font;
     private readonly OfficeCffFontData.CffIndex _localSubroutines;
@@ -642,7 +641,7 @@ internal sealed class OfficeType2CharStringInterpreter {
     }
 
     private void Push(double value) {
-        if (_stack.Count >= MaximumStack || double.IsNaN(value) || double.IsInfinity(value)) {
+        if (_stack.Count >= _font.MaximumOperandStack || double.IsNaN(value) || double.IsInfinity(value)) {
             throw new InvalidDataException("The CFF CharString operand stack is invalid.");
         }
         _stack.Add(value);

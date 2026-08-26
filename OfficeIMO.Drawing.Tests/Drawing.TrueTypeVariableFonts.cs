@@ -148,6 +148,27 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void VariableFontRegistrationRejectsAnImplicitHvarMapOutsideTheVariationStore() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        int hvar = FindTableOffset(data, "HVAR");
+        Assert.NotEqual(0U, ReadUInt32(data, hvar + 8));
+        WriteUInt32(data, hvar + 8, 0U);
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAdd("Malformed HVAR", data));
+    }
+
+    [Fact]
+    public void VariableFontRegistrationRejectsGvarDataInsideTheOffsetDirectory() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        int gvar = FindTableOffset(data, "gvar");
+        WriteUInt32(data, gvar + 16, 20U);
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAdd("Malformed gvar", data));
+    }
+
+    [Fact]
     public void TrueTypeMvarAdjustsSelectedHorizontalLineMetrics() {
         byte[] original = ReadAsset("RobotoFlex.ttf");
         var coordinates = new Dictionary<string, float> { ["wght"] = 1000F };

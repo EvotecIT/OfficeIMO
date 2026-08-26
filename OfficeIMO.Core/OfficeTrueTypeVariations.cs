@@ -71,22 +71,17 @@ internal sealed class OfficeTrueTypeVariations {
         }
         int sharedTupleOffset = checked(gvar + (int)sharedTupleRelative);
         int glyphData = checked(gvar + (int)glyphDataRelative);
-        if (sharedTupleOffset < gvar || sharedTupleOffset > end - checked(sharedTupleCount * axisCount * 2)
-            || glyphData < gvar || glyphData > end) {
-            throw new InvalidDataException("The gvar table offsets are invalid.");
-        }
-        var sharedTuples = new double[sharedTupleCount][];
-        int cursor = sharedTupleOffset;
-        for (int tuple = 0; tuple < sharedTupleCount; tuple++) {
-            sharedTuples[tuple] = ReadTuple(reader, ref cursor, axisCount, end);
-        }
-        var offsets = new uint[glyphCount + 1];
-        cursor = gvar + 20;
         bool longOffsets = (flags & GvarLongOffsets) != 0;
         int offsetSize = longOffsets ? 4 : 2;
-        if (cursor > end - checked(offsets.Length * offsetSize)) {
-            throw new InvalidDataException("The gvar glyph-offset array is truncated.");
+        int offsetDirectoryEnd = checked(gvar + 20 + (glyphCount + 1) * offsetSize);
+        int sharedTupleBytes = checked(sharedTupleCount * axisCount * 2);
+        if (offsetDirectoryEnd > end ||
+            sharedTupleCount > 0 && (sharedTupleOffset < offsetDirectoryEnd || sharedTupleOffset > end - sharedTupleBytes) ||
+            glyphData < offsetDirectoryEnd || glyphData > end) {
+            throw new InvalidDataException("The gvar table offsets are invalid.");
         }
+        var offsets = new uint[glyphCount + 1];
+        int cursor = gvar + 20;
         uint previous = 0;
         for (int index = 0; index < offsets.Length; index++) {
             uint value = longOffsets ? reader.ReadUInt32(cursor) : (uint)reader.ReadUInt16(cursor) * 2U;
@@ -94,6 +89,16 @@ internal sealed class OfficeTrueTypeVariations {
             if (value < previous || value > end - glyphData) throw new InvalidDataException("A gvar glyph offset is invalid.");
             offsets[index] = value;
             previous = value;
+        }
+        long glyphDataEnd = (long)glyphData + offsets[offsets.Length - 1];
+        long sharedTupleEnd = (long)sharedTupleOffset + sharedTupleBytes;
+        if (glyphDataEnd > end || sharedTupleOffset < glyphDataEnd && glyphData < sharedTupleEnd) {
+            throw new InvalidDataException("The gvar table data regions overlap.");
+        }
+        var sharedTuples = new double[sharedTupleCount][];
+        cursor = sharedTupleOffset;
+        for (int tuple = 0; tuple < sharedTupleCount; tuple++) {
+            sharedTuples[tuple] = ReadTuple(reader, ref cursor, axisCount, end);
         }
         OfficeOpenTypeHvarMetrics? hvar = OfficeOpenTypeHvarMetrics.TryParse(reader, model);
         return new OfficeTrueTypeVariations(reader, model, gvar, end, glyphData, offsets, sharedTuples, hvar);

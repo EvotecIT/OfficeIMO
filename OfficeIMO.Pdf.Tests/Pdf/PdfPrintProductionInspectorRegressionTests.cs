@@ -476,6 +476,78 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(9, exception.Actual);
     }
 
+    [Theory]
+    [InlineData("99 0 R")]
+    [InlineData("[4 0 R 99 0 R]")]
+    [InlineData("[4 0 R 5]")]
+    public void PrintProductionInspectorsFailClosedOnMalformedPageContents(string contents) {
+        byte[] pdf = BuildInspectionPdf(string.Empty, contents: contents);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfPrintProductionColorEvidence colors = document.InspectPrintProductionColors();
+        PdfPrintProductionStructureEvidence structure = document.InspectPrintProductionStructure();
+
+        Assert.False(colors.IsComplete);
+        Assert.True(colors.UninspectableContentStreamCount > 0);
+        Assert.False(structure.IsComplete);
+        Assert.True(structure.UninspectableFontResourceCount > 0);
+    }
+
+    [Theory]
+    [InlineData("/ca /Bogus")]
+    [InlineData("/CA 2")]
+    [InlineData("/ca -0.1")]
+    public void ColorInspectorFailsClosedOnMalformedGraphicsStateAlpha(string graphicsState) {
+        byte[] pdf = BuildInspectionPdf(
+            "/GS1 gs",
+            resources: "/ExtGState << /GS1 << " + graphicsState + " >> >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorClassifiesTransparencyGroupColorSpaceAliases() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm1 Do",
+            resources: "/ColorSpace << /BlendRgb /DeviceRGB >> /XObject << /Fm1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Group << /S /Transparency /CS /BlendRgb >> /Resources << /ColorSpace << /BlendRgb /DeviceRGB >> >> " +
+                "/Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.True(evidence.HasDeviceRgbUsage);
+        Assert.Equal(1, evidence.DeviceRgbTransparencyGroupCount);
+        Assert.Equal(1, evidence.TransparencyGroupCount);
+    }
+
+    [Fact]
+    public void StructureInspectorInspectsOnlyPaintedType3CharacterProcedures() {
+        const string painted = "0 0 500 700 d1 0 0 500 700 re f";
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+                "/CharProcs << /A 6 0 R /B 7 0 R >> /Encoding << /Type /Encoding /Differences [65 /A /B] >> " +
+                "/FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << >> >>\nendobj\n" +
+                "6 0 obj\n<< /Length " + painted.Length + " >>\nstream\n" + painted + "\nendstream\nendobj\n" +
+                "7 0 obj\n<< /Filter /Unsupported /Length 3 >>\nstream\nbad\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
     [Fact]
     public void XmpInspectorReadsSimplePropertiesFromRdfDescriptionAttributes() {
         const string xmp = """
@@ -545,13 +617,14 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         string resources = "",
         string pageEntries = "",
         string extraObjects = "",
-        string pageTreeEntries = "") {
+        string pageTreeEntries = "",
+        string contents = "4 0 R") {
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] " + pageTreeEntries + " >>\nendobj\n");
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << " + resources + " >> " + pageEntries + " /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << " + resources + " >> " + pageEntries + " /Contents " + contents + " >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n" + extraObjects + "trailer\n<< /Root 1 0 R >>\n%%EOF\n");

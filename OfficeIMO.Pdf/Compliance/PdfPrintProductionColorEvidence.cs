@@ -11,6 +11,8 @@ public sealed class PdfPrintProductionColorEvidence {
         int deviceCmykImageCount,
         int deviceRgbShadingCount,
         int deviceCmykShadingCount,
+        int deviceRgbTransparencyGroupCount,
+        int deviceCmykTransparencyGroupCount,
         int deviceIndependentColorUsageCount,
         int transparentImageCount,
         int nonOpaqueGraphicsStateCount,
@@ -22,6 +24,8 @@ public sealed class PdfPrintProductionColorEvidence {
         DeviceCmykImageCount = deviceCmykImageCount;
         DeviceRgbShadingCount = deviceRgbShadingCount;
         DeviceCmykShadingCount = deviceCmykShadingCount;
+        DeviceRgbTransparencyGroupCount = deviceRgbTransparencyGroupCount;
+        DeviceCmykTransparencyGroupCount = deviceCmykTransparencyGroupCount;
         DeviceIndependentColorUsageCount = deviceIndependentColorUsageCount;
         TransparentImageCount = transparentImageCount;
         NonOpaqueGraphicsStateCount = nonOpaqueGraphicsStateCount;
@@ -41,6 +45,10 @@ public sealed class PdfPrintProductionColorEvidence {
     public int DeviceRgbShadingCount { get; }
     /// <summary>Number of shading dictionaries that declare DeviceCMYK.</summary>
     public int DeviceCmykShadingCount { get; }
+    /// <summary>Number of reachable transparency groups whose blending color space uses DeviceRGB.</summary>
+    public int DeviceRgbTransparencyGroupCount { get; }
+    /// <summary>Number of reachable transparency groups whose blending color space uses DeviceCMYK.</summary>
+    public int DeviceCmykTransparencyGroupCount { get; }
     /// <summary>Number of inspected color uses that select CalGray, CalRGB, Lab, ICCBased, or a color space whose alternate selects one of them.</summary>
     public int DeviceIndependentColorUsageCount { get; }
     /// <summary>Number of image XObjects with a soft mask.</summary>
@@ -54,7 +62,8 @@ public sealed class PdfPrintProductionColorEvidence {
 
     /// <summary>True when inspected page, form, pattern, image, or shading evidence still uses DeviceRGB.</summary>
     public bool HasDeviceRgbUsage =>
-        DeviceRgbOperatorCount > 0 || DeviceRgbImageCount > 0 || DeviceRgbShadingCount > 0;
+        DeviceRgbOperatorCount > 0 || DeviceRgbImageCount > 0 || DeviceRgbShadingCount > 0 ||
+        DeviceRgbTransparencyGroupCount > 0;
 
     /// <summary>True when inspected content, images, or shadings use a device-independent color space.</summary>
     public bool HasDeviceIndependentColorUsage => DeviceIndependentColorUsageCount > 0;

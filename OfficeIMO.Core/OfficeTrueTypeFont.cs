@@ -36,6 +36,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _loca;
     private readonly int _maxp;
     private readonly int _name;
+    private readonly HashSet<int> _validFormat4Subtables;
     private readonly HashSet<int> _validFormat12Subtables;
     private readonly OfficeTrueTypeVariations? _variations;
     private readonly OfficeFontVariationModel _variationModel;
@@ -71,6 +72,11 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _loca = tables["loca"];
         _maxp = tables["maxp"];
         _name = tables.TryGetValue("name", out var name) ? name : -1;
+        _validFormat4Subtables = OfficeOpenTypeCmap.CollectValidFormat4Subtables(
+            _data,
+            _cmap,
+            _cmapLength,
+            MaxCmapSubtables);
         _validFormat12Subtables = OfficeOpenTypeCmap.CollectValidFormat12Subtables(
             _data,
             _cmap,
@@ -499,6 +505,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (absolute < cmapOffset || absolute > cmapEnd - 2) continue;
             var format = ReadUInt16(_data, absolute);
             if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
+            if (format == 4 && !_validFormat4Subtables.Contains(absolute)) continue;
             if (format == 12 && !_validFormat12Subtables.Contains(absolute)) continue;
             var score = (platform == 3 && encoding == 10 ? 4 : platform == 3 && encoding == 1 ? 3 : platform == 0 ? 2 : 1);
             if ((format == 4 || format == 12) && score > bestScore) {
@@ -513,6 +520,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private ushort MapFormat4(int table, int cmapEnd, int scalar) {
+        if (!_validFormat4Subtables.Contains(table)) return 0;
         if (scalar > char.MaxValue) return 0;
         if (table < _cmap || table > cmapEnd - 16) return 0;
         var length = ReadUInt16(_data, table + 2);

@@ -486,7 +486,7 @@ internal static partial class PdfPrintProductionColorInspector {
         return true;
     }
 
-    private static bool TryGetType3GlyphNames(
+    internal static bool TryGetType3GlyphNames(
         PdfDictionary font,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
@@ -527,7 +527,7 @@ internal static partial class PdfPrintProductionColorInspector {
         return true;
     }
 
-    private static bool TryGetShownTextBytes(PdfContentOperation operation, out List<byte[]> shownText) {
+    internal static bool TryGetShownTextBytes(PdfContentOperation operation, out List<byte[]> shownText) {
         shownText = new List<byte[]>();
         if (string.Equals(operation.Name, "TJ", StringComparison.Ordinal)) {
             if (operation.Operands.Count != 1 || operation.Operands[0] is not List<object> items) return false;

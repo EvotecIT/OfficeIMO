@@ -17,6 +17,7 @@ internal sealed class OfficeCffFontData {
 
     private OfficeCffFontData(
         bool isCff2,
+        int maximumOperandStack,
         CffIndex charStrings,
         CffIndex globalSubroutines,
         CffIndex[] localSubroutines,
@@ -24,6 +25,7 @@ internal sealed class OfficeCffFontData {
         int[]? standardEncodingGlyphs,
         OfficeCffVariationStore? variationStore) {
         IsCff2 = isCff2;
+        MaximumOperandStack = maximumOperandStack;
         _charStrings = charStrings;
         _globalSubroutines = globalSubroutines;
         _localSubroutines = localSubroutines;
@@ -33,6 +35,7 @@ internal sealed class OfficeCffFontData {
     }
 
     internal bool IsCff2 { get; }
+    internal int MaximumOperandStack { get; }
     internal int GlyphCount => _charStrings.Count;
     internal OfficeCffVariationStore? VariationStore { get; }
 
@@ -169,6 +172,12 @@ internal sealed class OfficeCffFontData {
                 tableEnd,
                 variations);
         }
+        int maximumOperandStack = isCff2 && topDictionary.TryGetInteger(25, out int declaredMaximumStack)
+            ? declaredMaximumStack
+            : isCff2 ? 513 : 48;
+        if (maximumOperandStack <= 0 || maximumOperandStack > 513) {
+            throw new InvalidDataException("The CFF operand-stack limit is invalid.");
+        }
 
         int[]? standardEncodingGlyphs = null;
         if (!isCff2) {
@@ -211,6 +220,7 @@ internal sealed class OfficeCffFontData {
 
         return new OfficeCffFontData(
             isCff2,
+            maximumOperandStack,
             charStrings,
             globalSubroutines,
             localSubroutines,
