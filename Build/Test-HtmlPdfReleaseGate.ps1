@@ -66,6 +66,7 @@ if ($expectedHtmlTinkerXCommit -notmatch '^[0-9a-f]{40}$') {
 
 & "$PSScriptRoot/Test-LibraryComparisonRunnerContract.ps1"
 & "$PSScriptRoot/Test-HtmlPdfBenchmarkEvidence.ps1"
+& "$PSScriptRoot/Test-HtmlPdfArtifactEvidenceExporter.ps1"
 & "$PSScriptRoot/Test-HtmlPdfArtifactEvidence.ps1"
 & "$PSScriptRoot/Test-HtmlPdfBrowserPackages.ps1" -ExpectedHtmlTinkerXCommit $expectedHtmlTinkerXCommit
 & "$PSScriptRoot/Test-TypographyPackages.ps1"

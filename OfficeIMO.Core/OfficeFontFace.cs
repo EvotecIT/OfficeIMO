@@ -73,7 +73,7 @@ public sealed class OfficeFontFace {
     internal OfficeFontFace CreateAlias(string familyName, string resourceFamilyName) =>
         new OfficeFontFace(familyName, resourceFamilyName, _data, Style, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);
 
-    internal bool Covers(string text) => UnicodeRanges.ContainsText(text) && ParsedFont.HasGlyphs(text);
+    internal bool Covers(string text) => UnicodeRanges.ContainsFontCoverageText(text) && ParsedFont.HasGlyphs(text);
 
     internal bool HasGlyphs(string text) => ParsedFont.HasGlyphs(text);
 

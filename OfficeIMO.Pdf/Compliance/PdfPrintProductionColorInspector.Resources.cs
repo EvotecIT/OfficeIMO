@@ -73,7 +73,6 @@ internal static partial class PdfPrintProductionColorInspector {
         var contentDepths = new List<int>();
         for (int index = firstContext; index < streams.Count; index++) contentDepths.Add(0);
 
-        int uninspectable = 0;
         int transparencyGroups = 0;
         for (int localIndex = 0; localIndex < contentDepths.Count; localIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -239,10 +238,10 @@ internal static partial class PdfPrintProductionColorInspector {
                 // The normal inspection pass records decoding/interpreter failures once.
                 continue;
             }
-            if (contextWasUninspectable) uninspectable++;
+            if (contextWasUninspectable) context.ResourceInspectionIncomplete = true;
         }
 
-        return new ReachableResourceCollection(uninspectable, transparencyGroups);
+        return new ReachableResourceCollection(transparencyGroups);
     }
 
     private static bool AddNestedStream(

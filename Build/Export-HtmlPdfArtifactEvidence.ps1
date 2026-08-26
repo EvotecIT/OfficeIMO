@@ -20,6 +20,11 @@ $reportPath = if (Test-Path -LiteralPath $resolvedEvidencePath -PathType Contain
     $resolvedEvidencePath
 }
 $evidenceRoot = Split-Path -Parent $reportPath
+$pathComparison = if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+    [System.StringComparison]::OrdinalIgnoreCase
+} else {
+    [System.StringComparison]::Ordinal
+}
 $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
 
 if ($report.schemaVersion -ne 2 -or
@@ -48,7 +53,7 @@ function Add-ValidatedArtifact {
     $rootPrefix = [System.IO.Path]::GetFullPath($evidenceRoot).TrimEnd(
         [System.IO.Path]::DirectorySeparatorChar,
         [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
-    if (-not $fullPath.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    if (-not $fullPath.StartsWith($rootPrefix, $pathComparison)) {
         throw "Artifact path escapes the evidence root: $RelativePath"
     }
     if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {

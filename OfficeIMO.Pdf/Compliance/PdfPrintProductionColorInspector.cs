@@ -24,7 +24,6 @@ internal static partial class PdfPrintProductionColorInspector {
         int transparentImages = 0;
         int nonOpaqueStates = 0;
         int transparencyGroups = 0;
-        int uninspectableResourceContexts = 0;
 
         foreach (PdfReadPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -59,7 +58,6 @@ internal static partial class PdfPrintProductionColorInspector {
                 graphicsStateDictionaries,
                 document.ReadOptions.Limits,
                 cancellationToken);
-            uninspectableResourceContexts += reachable.UninspectableContextCount;
             transparencyGroups += reachable.TransparencyGroupCount;
             if (IsTransparencyGroup(dictionary, objects, maximumObjectDepth)) transparencyGroups++;
         }
@@ -153,7 +151,7 @@ internal static partial class PdfPrintProductionColorInspector {
 
         int rgbOperators = 0;
         int cmykOperators = 0;
-        int uninspectable = uninspectableResourceContexts;
+        int uninspectable = 0;
         foreach (ContentStreamContext context in contentStreams) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfStream stream = context.Stream;
@@ -182,10 +180,16 @@ internal static partial class PdfPrintProductionColorInspector {
                     bool StrokeUsesDeviceCmyk,
                     bool FillUsesDeviceIndependentColor,
                     bool StrokeUsesDeviceIndependentColor)>();
+                bool contextWasUninspectable = false;
                 PdfContentStreamInterpreter.Interpret(
                     PdfEncoding.Latin1GetString(decoded),
                     document.ReadOptions.Limits.MaxContentOperations,
                     operation => {
+                        if (operation.HasInvalidOperands) {
+                            contextWasUninspectable = true;
+                            return;
+                        }
+
                         switch (operation.Name) {
                             case "q":
                                 colorSpaceStack.Push((
@@ -297,7 +301,9 @@ internal static partial class PdfPrintProductionColorInspector {
                         }
                     },
                     maxNestingDepth: document.ReadOptions.Limits.MaxContentNestingDepth,
-                    maxOperands: document.ReadOptions.Limits.MaxContentOperands);
+                    maxOperands: document.ReadOptions.Limits.MaxContentOperands,
+                    dispatchInvalidOperations: true);
+                if (contextWasUninspectable || context.ResourceInspectionIncomplete) uninspectable++;
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
                 exception is PdfReadLimitException ||
@@ -635,14 +641,23 @@ internal static partial class PdfPrintProductionColorInspector {
             DeviceIndependent.SetEquals(other.DeviceIndependent);
     }
 
-    private sealed record ContentStreamContext(
-        PdfStream Stream,
-        ColorSpaceAliases Aliases,
-        PdfDictionary? Resources);
+    private sealed class ContentStreamContext {
+        internal ContentStreamContext(
+            PdfStream stream,
+            ColorSpaceAliases aliases,
+            PdfDictionary? resources) {
+            Stream = stream;
+            Aliases = aliases;
+            Resources = resources;
+        }
 
-    private sealed record ReachableResourceCollection(
-        int UninspectableContextCount,
-        int TransparencyGroupCount);
+        internal PdfStream Stream { get; }
+        internal ColorSpaceAliases Aliases { get; }
+        internal PdfDictionary? Resources { get; }
+        internal bool ResourceInspectionIncomplete { get; set; }
+    }
+
+    private sealed record ReachableResourceCollection(int TransparencyGroupCount);
 
     private sealed record ImageContext(PdfDictionary Dictionary, ColorSpaceAliases Aliases);
 

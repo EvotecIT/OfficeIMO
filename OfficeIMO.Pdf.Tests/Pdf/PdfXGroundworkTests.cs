@@ -489,6 +489,19 @@ public class PdfXGroundworkTests {
         Assert.Equal(1, evidence.DeviceRgbImageCount);
     }
 
+    [Theory]
+    [InlineData("1e309 0 0 rg 0 0 10 10 re f")]
+    [InlineData("BI /W 1e309 /H 1 /BPC 8 /CS /G ID A EI")]
+    [InlineData("1e309 /F1 Do")]
+    public void PrintProductionInspectorFailsClosedOnMalformedContentOperands(string content) {
+        byte[] pdf = BuildInspectionPdf(content);
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void PrintProductionInspectorScopesAliasesToEachPageAndFormResourceDictionary() {
         byte[] pdf = BuildScopedColorSpaceInspectionPdf();
