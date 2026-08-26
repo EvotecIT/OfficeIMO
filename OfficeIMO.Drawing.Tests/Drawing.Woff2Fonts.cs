@@ -169,6 +169,19 @@ public sealed class DrawingWoff2FontTests {
         Assert.Contains("extraneous", error, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Woff2DecoderRequiresTransformedGlyfAndMaxpGlyphCountsToMatch() {
+        var transformedGlyf = new byte[36];
+        transformedGlyf[5] = 2;
+        var maxp = new byte[6];
+        maxp[5] = 1;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeWoff2Decoder.ValidateTransformedGlyfGlyphCount(transformedGlyf, maxp));
+
+        Assert.Contains("do not match", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void WriteBigEndianUInt32(byte[] data, int offset, uint value) {
         data[offset] = (byte)(value >> 24);
         data[offset + 1] = (byte)(value >> 16);

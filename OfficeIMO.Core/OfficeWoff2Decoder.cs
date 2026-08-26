@@ -245,6 +245,10 @@ internal static partial class OfficeWoff2Decoder {
             if (!tables.TryGetValue(GlyfTag, out byte[]? transformedGlyf)) {
                 throw new InvalidDataException("The transformed WOFF 2 glyf table is missing.");
             }
+            if (!tables.TryGetValue(MaxpTag, out byte[]? maxp)) {
+                throw new InvalidDataException("The transformed WOFF 2 glyf table is missing maxp.");
+            }
+            ValidateTransformedGlyfGlyphCount(transformedGlyf, maxp);
             GlyfResult result = ReconstructGlyf(
                 transformedGlyf,
                 glyfRecord.Value.OriginalLength,
@@ -278,6 +282,20 @@ internal static partial class OfficeWoff2Decoder {
                 throw new InvalidDataException("The reconstructed WOFF 2 hmtx table length is invalid.");
             }
             tables[HmtxTag] = hmtx;
+        }
+    }
+
+    internal static void ValidateTransformedGlyfGlyphCount(byte[] transformedGlyf, byte[] maxp) {
+        if (transformedGlyf == null) throw new ArgumentNullException(nameof(transformedGlyf));
+        if (maxp == null) throw new ArgumentNullException(nameof(maxp));
+        if (transformedGlyf.Length < 6) {
+            throw new InvalidDataException("The transformed WOFF 2 glyf header is truncated.");
+        }
+        if (maxp.Length < 6) throw new InvalidDataException("The WOFF 2 maxp table is truncated.");
+        int transformedGlyphCount = ReadUInt16(transformedGlyf, 4);
+        int maxpGlyphCount = ReadUInt16(maxp, 4);
+        if (transformedGlyphCount != maxpGlyphCount) {
+            throw new InvalidDataException("The transformed WOFF 2 glyf and maxp glyph counts do not match.");
         }
     }
 

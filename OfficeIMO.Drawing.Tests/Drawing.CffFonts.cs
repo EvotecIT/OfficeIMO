@@ -256,6 +256,36 @@ public sealed class DrawingCffFontTests {
         Assert.Equal(first.LastMoveY, second.LastMoveY);
     }
 
+    [Theory]
+    [InlineData(true, 0D, 12D)]
+    [InlineData(false, 12D, 0D)]
+    public void CffFlex1AppliesTheFinalDeltaToTheMinorAxis(
+        bool horizontallyDominant,
+        double expectedX,
+        double expectedY) {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        int major = 10;
+        int minor = 1;
+        var bytes = new List<byte>();
+        for (int index = 0; index < 5; index++) {
+            bytes.Add(checked((byte)(139 + (horizontallyDominant ? major : minor))));
+            bytes.Add(checked((byte)(139 + (horizontallyDominant ? minor : major))));
+        }
+        bytes.Add(146); // Final minor-axis delta = 7.
+        bytes.Add(12);
+        bytes.Add(37); // flex1
+        bytes.Add(14);
+        var sink = new CountingCffSink();
+
+        new OfficeType2CharStringInterpreter(cff, 0, sink, CancellationToken.None).Render(
+            new OfficeCffFontData.CffSlice(bytes.ToArray(), 0, bytes.Count));
+
+        Assert.Equal(expectedX, sink.LastCurveX, 6);
+        Assert.Equal(expectedY, sink.LastCurveY, 6);
+    }
+
     [Fact]
     public void CffRejectsCoordinateOverflowBeforeCallingThePathSink() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
@@ -440,6 +470,8 @@ public sealed class DrawingCffFontTests {
         internal int DrawingOperationCount { get; private set; }
         internal double LastMoveX { get; private set; }
         internal double LastMoveY { get; private set; }
+        internal double LastCurveX { get; private set; }
+        internal double LastCurveY { get; private set; }
 
         public void MoveTo(double x, double y) {
             MoveCount++;
@@ -456,7 +488,11 @@ public sealed class DrawingCffFontTests {
             double control2X,
             double control2Y,
             double x,
-            double y) => DrawingOperationCount++;
+            double y) {
+            DrawingOperationCount++;
+            LastCurveX = x;
+            LastCurveY = y;
+        }
 
         public void CloseContour() {
         }

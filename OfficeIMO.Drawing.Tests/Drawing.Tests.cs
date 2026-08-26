@@ -3392,6 +3392,30 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OpenTypeReadersRejectCmapSubtablesThatEscapeTheCmapTable() {
+        byte[] fontData = CreateMinimalTrueTypeFont(
+            CreateCrossTableFormat12Cmap(),
+            CreateFormat12Group(0x0041, glyphId: 1));
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenTypeReadersRejectFormat4GlyphIdsOutsideMaxp(bool useRangeOffset) {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat4Cmap(glyphId: 2, useRangeOffset));
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
+    [Fact]
     public void OfficeTrueTypeFontMapsNonBmpScalarsThroughFormat12Cmap() {
         byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(fontData);
@@ -3621,13 +3645,56 @@ public partial class DrawingTests {
         return data;
     }
 
-    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap) {
+    private static byte[] CreateCrossTableFormat12Cmap() {
+        var data = new byte[28];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, 28);
+        WriteUInt32(data, 24, 1);
+        return data;
+    }
+
+    private static byte[] CreateFormat12Group(int scalar, int glyphId) {
+        var data = new byte[12];
+        WriteUInt32(data, 0, (uint)scalar);
+        WriteUInt32(data, 4, (uint)scalar);
+        WriteUInt32(data, 8, (uint)glyphId);
+        return data;
+    }
+
+    private static byte[] CreateFormat4Cmap(int glyphId, bool useRangeOffset) {
+        int formatLength = useRangeOffset ? 34 : 32;
+        var data = new byte[12 + formatLength];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 1);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 4);
+        WriteUInt16(data, 14, formatLength);
+        WriteUInt16(data, 18, 4);
+        WriteUInt16(data, 20, 4);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 26, 0x0041);
+        WriteUInt16(data, 28, 0xFFFF);
+        WriteUInt16(data, 32, 0x0041);
+        WriteUInt16(data, 34, 0xFFFF);
+        WriteUInt16(data, 36, useRangeOffset ? 0 : unchecked((ushort)(glyphId - 0x0041)));
+        WriteUInt16(data, 38, 1);
+        WriteUInt16(data, 40, useRangeOffset ? 4 : 0);
+        if (useRangeOffset) WriteUInt16(data, 44, glyphId);
+        return data;
+    }
+
+    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null) {
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
-            ("glyf", new byte[4]),
+            ("glyf", glyfData ?? new byte[4]),
             ("head", CreateHeadTable()),
             ("hhea", CreateHheaTable()),
-            ("hmtx", new byte[] { 0x01, 0xF4, 0x00, 0x00 }),
+            ("hmtx", new byte[] { 0x01, 0xF4, 0x00, 0x00, 0x00, 0x00 }),
             ("loca", new byte[4]),
             ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 })
         };

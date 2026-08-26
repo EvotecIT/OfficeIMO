@@ -186,24 +186,39 @@ public sealed partial class PdfReadDocument {
     }
 
     private static string? ReadElementTextByNamespace(XDocument document, string localName, string namespaceUri) {
-        XElement? element = FindElementByNamespace(document, localName, namespaceUri);
-        string? elementValue = NormalizeXmlText(element?.Value);
-        if (elementValue is not null) return elementValue;
-        XAttribute? attribute = FindRdfDescriptionAttribute(document, localName, namespaceUri);
-        return NormalizeXmlText(attribute?.Value);
+        var values = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement description in FindDocumentSubjectDescriptions(document)) {
+            foreach (XElement element in description.Elements().Where(e =>
+                         e.Name.LocalName == localName &&
+                         string.Equals(e.Name.NamespaceName, namespaceUri, StringComparison.Ordinal))) {
+                string? value = NormalizeXmlText(element.Value);
+                if (value is not null) values.Add(value);
+            }
+            foreach (XAttribute attribute in description.Attributes().Where(a =>
+                         a.Name.LocalName == localName &&
+                         string.Equals(a.Name.NamespaceName, namespaceUri, StringComparison.Ordinal))) {
+                string? value = NormalizeXmlText(attribute.Value);
+                if (value is not null) values.Add(value);
+            }
+        }
+        return values.Count == 1 ? values.Single() : null;
     }
 
     private static XAttribute? FindRdfDescriptionAttribute(
         XDocument document,
         string localName,
         string? namespaceUri) =>
-        document.Descendants().Where(e =>
-                e.Name.LocalName == "Description" &&
-                string.Equals(e.Name.NamespaceName, RdfNamespaceUri, StringComparison.Ordinal))
+        FindDocumentSubjectDescriptions(document)
             .Attributes()
             .FirstOrDefault(a =>
                 a.Name.LocalName == localName &&
                 (namespaceUri is null || string.Equals(a.Name.NamespaceName, namespaceUri, StringComparison.Ordinal)));
+
+    private static IEnumerable<XElement> FindDocumentSubjectDescriptions(XDocument document) =>
+        document.Descendants().Where(e =>
+            e.Name.LocalName == "Description" &&
+            string.Equals(e.Name.NamespaceName, RdfNamespaceUri, StringComparison.Ordinal) &&
+            string.IsNullOrEmpty((string?)e.Attribute(XName.Get("about", RdfNamespaceUri))));
 
     private static int? ReadIntegerElementByNamespace(XDocument document, string localName, string namespaceUri) {
         string? value = ReadElementTextByNamespace(document, localName, namespaceUri);

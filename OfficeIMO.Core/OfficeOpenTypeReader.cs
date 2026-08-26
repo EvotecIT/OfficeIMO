@@ -102,10 +102,14 @@ internal sealed class OfficeOpenTypeReader {
 
     internal int MapGlyph(int scalar) {
         if (scalar < 0 || scalar > 0x10FFFF) return 0;
-        int table = SelectCmapSubtable(preferFormat12: scalar > 0xFFFF);
+        int table = SelectCmapSubtable(preferFormat12: scalar > 0xFFFF, out int cmapEnd);
         if (table < 0) return 0;
         int format = ReadUInt16(table);
-        return format == 12 ? MapFormat12(table, scalar) : format == 4 && scalar <= 0xFFFF ? MapFormat4(table, scalar) : 0;
+        return format == 12
+            ? MapFormat12(table, cmapEnd, scalar)
+            : format == 4 && scalar <= 0xFFFF
+                ? MapFormat4(table, cmapEnd, scalar)
+                : 0;
     }
 
     internal string? ReadDisplayName() => ReadFirstName(4) ?? ReadFirstName(1) ?? ReadFirstName(6) ?? ReadFirstName(2);
@@ -139,7 +143,8 @@ internal sealed class OfficeOpenTypeReader {
         if (offset < 0 || length < 0 || offset > _data.Length - length) throw new InvalidDataException("The OpenType font data is truncated.");
     }
 
-    private int SelectCmapSubtable(bool preferFormat12) {
+    private int SelectCmapSubtable(bool preferFormat12, out int cmapEnd) {
+        cmapEnd = checked(_cmap.Offset + _cmap.Length);
         if (_cmap.Length < 4) return -1;
         int count = ReadUInt16(_cmap.Offset + 2);
         if (count <= 0 || count > MaximumCmapSubtables || _cmap.Length < 4 + count * 8) return -1;
@@ -150,9 +155,9 @@ internal sealed class OfficeOpenTypeReader {
             int platform = ReadUInt16(record);
             int encoding = ReadUInt16(record + 2);
             uint relativeValue = ReadUInt32(record + 4);
-            if (relativeValue > int.MaxValue) continue;
-            int subtable = checked(_cmap.Offset + (int)relativeValue);
-            if (subtable < _cmap.Offset || subtable > _cmap.Offset + _cmap.Length - 2) continue;
+            if (relativeValue > (uint)(_cmap.Length - 2)) continue;
+            int subtable = _cmap.Offset + (int)relativeValue;
+            if (subtable < _cmap.Offset || subtable > cmapEnd - 2) continue;
             int format = ReadUInt16(subtable);
             if (format != 4 && format != 12) continue;
             int score = format == 12 ? 100 : 50;
@@ -168,11 +173,11 @@ internal sealed class OfficeOpenTypeReader {
         return best;
     }
 
-    private int MapFormat4(int table, int scalar) {
-        EnsureAvailable(table, 14);
+    private int MapFormat4(int table, int cmapEnd, int scalar) {
+        if (table < _cmap.Offset || table > cmapEnd - 14) return 0;
         int length = ReadUInt16(table + 2);
         int segmentCount = ReadUInt16(table + 6) / 2;
-        if (length < 16 || segmentCount <= 0 || table > _data.Length - length) return 0;
+        if (length < 16 || segmentCount <= 0 || table > cmapEnd - length) return 0;
         int endCodes = table + 14;
         int startCodes = endCodes + segmentCount * 2 + 2;
         int deltas = startCodes + segmentCount * 2;
@@ -185,22 +190,22 @@ internal sealed class OfficeOpenTypeReader {
             if (scalar < start) return 0;
             int delta = ReadInt16(deltas + index * 2);
             int rangeOffset = ReadUInt16(rangeOffsets + index * 2);
-            if (rangeOffset == 0) return unchecked((ushort)(scalar + delta));
+            if (rangeOffset == 0) return ValidateMappedGlyph(unchecked((ushort)(scalar + delta)));
             int glyphOffset = rangeOffsets + index * 2 + rangeOffset + (scalar - start) * 2;
             if (glyphOffset < table || glyphOffset > table + length - 2) return 0;
             int glyph = ReadUInt16(glyphOffset);
-            return glyph == 0 ? 0 : unchecked((ushort)(glyph + delta));
+            return glyph == 0 ? 0 : ValidateMappedGlyph(unchecked((ushort)(glyph + delta)));
         }
         return 0;
     }
 
-    private int MapFormat12(int table, int scalar) {
-        EnsureAvailable(table, 16);
+    private int MapFormat12(int table, int cmapEnd, int scalar) {
+        if (table < _cmap.Offset || table > cmapEnd - 16) return 0;
         uint lengthValue = ReadUInt32(table + 4);
         uint groupCount = ReadUInt32(table + 12);
         if (lengthValue > int.MaxValue || groupCount > MaximumFormat12Groups) return 0;
         int length = (int)lengthValue;
-        if (length < 16 || table > _data.Length - length || 16L + groupCount * 12L > length) return 0;
+        if (length < 16 || table > cmapEnd - length || 16L + groupCount * 12L > length) return 0;
         int low = 0;
         int high = checked((int)groupCount - 1);
         while (low <= high) {
@@ -212,12 +217,14 @@ internal sealed class OfficeOpenTypeReader {
             else if ((uint)scalar > end) low = middle + 1;
             else {
                 uint startGlyph = ReadUInt32(group + 8);
-                uint glyph = startGlyph + (uint)scalar - start;
-                return glyph < GlyphCount ? checked((int)glyph) : 0;
+                ulong glyph = (ulong)startGlyph + (uint)scalar - start;
+                return glyph < (ulong)GlyphCount ? checked((int)glyph) : 0;
             }
         }
         return 0;
     }
+
+    private int ValidateMappedGlyph(int glyph) => glyph > 0 && glyph < GlyphCount ? glyph : 0;
 
     private string? ReadFirstName(ushort requestedNameId) {
         if (!_name.HasValue) return null;

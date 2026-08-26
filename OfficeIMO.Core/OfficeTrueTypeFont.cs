@@ -26,6 +26,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private static readonly Dictionary<string, FontFamilyResolution> FontFamilyCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly byte[] _data;
     private readonly int _cmap;
+    private readonly int _cmapLength;
     private readonly int _glyf;
     private readonly int _head;
     private readonly int _hhea;
@@ -50,6 +51,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private OfficeTrueTypeFont(
         byte[] data,
         Dictionary<string, int> tables,
+        IReadOnlyDictionary<string, int> tableLengths,
         int? collectionIndex,
         OfficeFontVariationModel? variationModel = null) {
         _data = data;
@@ -58,6 +60,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _collectionIndex = collectionIndex;
         _variationModel = variationModel ?? OfficeFontVariationModel.None;
         _cmap = tables["cmap"];
+        _cmapLength = tableLengths["cmap"];
         _glyf = tables["glyf"];
         _head = tables["head"];
         _hhea = tables["hhea"];
@@ -258,16 +261,23 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         if (count == 0 || count > MaxFontTableRecords) return null;
         if (data.Length < directoryOffset + 12 + count * 16) return null;
         var tables = new Dictionary<string, int>(StringComparer.Ordinal);
+        var tableLengths = new Dictionary<string, int>(StringComparer.Ordinal);
         for (var i = 0; i < count; i++) {
             var record = directoryOffset + 12 + i * 16;
             if (record + 16 > data.Length) return null;
             var tag = ((char)data[record]).ToString() + (char)data[record + 1] + (char)data[record + 2] + (char)data[record + 3];
-            var offset = CheckedOffset(data, ReadUInt32(data, record + 8));
+            uint offsetValue = ReadUInt32(data, record + 8);
+            uint lengthValue = ReadUInt32(data, record + 12);
+            if (offsetValue > int.MaxValue || lengthValue > int.MaxValue || tables.ContainsKey(tag)) return null;
+            var offset = CheckedOffset(data, offsetValue);
+            int length = checked((int)lengthValue);
+            if (offset > data.Length - length) return null;
             tables[tag] = offset;
+            tableLengths[tag] = length;
         }
 
         foreach (var required in new[] { "cmap", "glyf", "head", "hhea", "hmtx", "loca", "maxp" }) if (!tables.ContainsKey(required)) return null;
-        return new OfficeTrueTypeFont(data, tables, collectionIndex, variationModel);
+        return new OfficeTrueTypeFont(data, tables, tableLengths, collectionIndex, variationModel);
     }
 
     public double Measure(string text, double fontSize) {
@@ -464,19 +474,22 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private ushort MapGlyph(int scalar) {
         if (scalar < 0 || scalar > 0x10FFFF) return 0;
         var cmapOffset = _cmap;
-        if (!InBounds(cmapOffset, 4)) return 0;
+        int cmapEnd = checked(cmapOffset + _cmapLength);
+        if (_cmapLength < 4) return 0;
         var subtableCount = ReadUInt16(_data, cmapOffset + 2);
         if (subtableCount == 0 || subtableCount > MaxCmapSubtables) return 0;
-        if (!InBounds(cmapOffset + 4, subtableCount * 8)) return 0;
+        if (cmapOffset + 4 > cmapEnd - subtableCount * 8) return 0;
         var best = 0;
         var bestScore = 0;
         for (var i = 0; i < subtableCount; i++) {
             var record = cmapOffset + 4 + i * 8;
             var platform = ReadUInt16(_data, record);
             var encoding = ReadUInt16(_data, record + 2);
-            if (!TryCheckedOffset(_data, ReadUInt32(_data, record + 4), out var offset)) continue;
+            uint offsetValue = ReadUInt32(_data, record + 4);
+            if (offsetValue > (uint)(_cmapLength - 2)) continue;
+            int offset = checked((int)offsetValue);
             var absolute = cmapOffset + offset;
-            if (absolute < 0 || absolute + 2 > _data.Length) continue;
+            if (absolute < cmapOffset || absolute > cmapEnd - 2) continue;
             var format = ReadUInt16(_data, absolute);
             var score = (platform == 3 && encoding == 10 ? 4 : platform == 3 && encoding == 1 ? 3 : platform == 0 ? 2 : 1);
             if ((format == 4 || format == 12) && score > bestScore) {
@@ -487,14 +500,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
         if (best == 0) return 0;
         var selectedFormat = ReadUInt16(_data, best);
-        return selectedFormat == 12 ? MapFormat12(best, scalar) : MapFormat4(best, scalar);
+        return selectedFormat == 12 ? MapFormat12(best, cmapEnd, scalar) : MapFormat4(best, cmapEnd, scalar);
     }
 
-    private ushort MapFormat4(int table, int scalar) {
+    private ushort MapFormat4(int table, int cmapEnd, int scalar) {
         if (scalar > char.MaxValue) return 0;
-        if (!InBounds(table, 16)) return 0;
+        if (table < _cmap || table > cmapEnd - 16) return 0;
         var length = ReadUInt16(_data, table + 2);
-        if (length < 16 || !InBounds(table, length)) return 0;
+        if (length < 16 || table > cmapEnd - length) return 0;
         var code = scalar;
         var segCount = ReadUInt16(_data, table + 6) / 2;
         if (segCount == 0 || segCount > MaxCmapSubtables * 16) return 0;
@@ -511,20 +524,20 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (code < start) return 0;
             var delta = ReadInt16(_data, idDeltas + i * 2);
             var rangeOffset = ReadUInt16(_data, idRangeOffsets + i * 2);
-            if (rangeOffset == 0) return (ushort)((code + delta) & 0xffff);
+            if (rangeOffset == 0) return ValidateMappedGlyph((ushort)((code + delta) & 0xffff));
             var glyphOffset = idRangeOffsets + i * 2 + rangeOffset + (code - start) * 2;
-            if (glyphOffset < 0 || glyphOffset + 2 > _data.Length) return 0;
+            if (glyphOffset < table || glyphOffset > table + length - 2) return 0;
             var glyph = ReadUInt16(_data, glyphOffset);
-            return glyph == 0 ? (ushort)0 : (ushort)((glyph + delta) & 0xffff);
+            return glyph == 0 ? (ushort)0 : ValidateMappedGlyph((ushort)((glyph + delta) & 0xffff));
         }
 
         return 0;
     }
 
-    private ushort MapFormat12(int table, int scalar) {
-        if (!InBounds(table, 16)) return 0;
+    private ushort MapFormat12(int table, int cmapEnd, int scalar) {
+        if (table < _cmap || table > cmapEnd - 16) return 0;
         var length = ReadUInt32(_data, table + 4);
-        if (length < 16 || length > int.MaxValue || !InBounds(table, (int)length)) return 0;
+        if (length < 16 || length > int.MaxValue || table > cmapEnd - (int)length) return 0;
         uint code = (uint)scalar;
         var groups = ReadUInt32(_data, table + 12);
         if (groups > MaxFormat12Groups || groups > (length - 16U) / 12U) return 0;
@@ -533,12 +546,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             var start = ReadUInt32(_data, groupOffset + i * 12);
             var end = ReadUInt32(_data, groupOffset + i * 12 + 4);
             if (code < start || code > end) continue;
-            var glyph = ReadUInt32(_data, groupOffset + i * 12 + 8) + code - start;
-            return glyph > ushort.MaxValue ? (ushort)0 : (ushort)glyph;
+            ulong glyph = (ulong)ReadUInt32(_data, groupOffset + i * 12 + 8) + code - start;
+            return glyph < _numGlyphs ? checked((ushort)glyph) : (ushort)0;
         }
 
         return 0;
     }
+
+    private ushort ValidateMappedGlyph(ushort glyph) => glyph > 0 && glyph < _numGlyphs ? glyph : (ushort)0;
 
     private int BaseAdvanceWidth(ushort glyph) => glyph < _numHMetrics
             ? ReadUInt16(_data, _hmtx + glyph * 4)
