@@ -255,6 +255,27 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void CffIfElseComparesValuesAndReturnsTheSelectedOperand() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var programBytes = new byte[] {
+            159, 149, // selectors: 20, 10
+            140, 141, // comparison values: 1, 2
+            12, 22,   // ifelse => 20
+            139, 21,  // rmoveto 20 0
+            14
+        };
+        var program = new OfficeCffFontData.CffSlice(programBytes, 0, programBytes.Length);
+        var sink = new CountingCffSink();
+
+        new OfficeType2CharStringInterpreter(cff, 0, sink, CancellationToken.None).Render(program);
+
+        Assert.Equal(20D, sink.LastMoveX, 6);
+        Assert.Equal(0D, sink.LastMoveY, 6);
+    }
+
+    [Fact]
     public void CffTextRunSharesOneCharStringOperationBudgetAcrossGlyphs() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));

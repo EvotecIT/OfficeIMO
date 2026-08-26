@@ -34,13 +34,15 @@ if ($report.schemaVersion -ne 2 -or
 }
 
 $expectedOsFamily = $Platform -eq 'windows' ? 'Windows' : 'Linux'
+$reportedOsFamily = [string] $report.environment.osFamily
 $osDescription = [string] $report.environment.osDescription
-$actualOsFamily = if ($osDescription -match '(?i)windows') {
+$actualOsFamily = if ($reportedOsFamily -in @('Windows', 'Linux', 'macOS')) {
+    $reportedOsFamily
+} elseif ($osDescription -match '(?i)windows') {
     'Windows'
 } elseif ($osDescription -match '(?i)darwin|mac\s*os|osx') {
     'macOS'
-} elseif ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-        [System.Runtime.InteropServices.OSPlatform]::Linux)) {
+} elseif ($osDescription -match '(?i)\blinux\b|\bubuntu\b|\bdebian\b|\balpine\b|\bfedora\b|\brhel\b|\bcentos\b|\barch\b|\bsuse\b') {
     'Linux'
 } else {
     'Unknown'

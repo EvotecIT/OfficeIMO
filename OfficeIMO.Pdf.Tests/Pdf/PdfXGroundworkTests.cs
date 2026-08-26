@@ -677,6 +677,20 @@ public class PdfXGroundworkTests {
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
     }
 
+    [Fact]
+    public void PrintProductionStructureInspectorRestoresSelectedType3FontAfterGraphicsStateRestore() {
+        byte[] pdf = BuildRestoredType3FontInspectionPdf();
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.True(
+            evidence.IsComplete,
+            $"boxes={evidence.ValidProductionPageBoxCount}/{evidence.PageCount}, invalidBoxes={evidence.InvalidProductionPageBoxCount}, fonts={evidence.FontResourceCount}, unembedded={evidence.UnembeddedFontResourceCount}, uninspectable={evidence.UninspectableFontResourceCount}");
+        Assert.Equal(2, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
     [Theory]
     [InlineData("(A) Tj")]
     [InlineData("[(A) 25] TJ")]
@@ -1474,6 +1488,21 @@ public class PdfXGroundworkTests {
         WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n");
         WriteInspectionStream(output, 6, string.Empty, "1 0 0 rg 0 0 500 700 re f");
         WriteInspectionStream(output, 7, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>", "BT (A) Tj ET");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildRestoredType3FontInspectionPdf() {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /TrimBox [0 0 100 100] /Resources << /Font << /F1 5 0 R /F2 7 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf ET q BT /F2 12 Tf ET Q BT (A) Tj ET");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n");
+        WriteInspectionStream(output, 6, string.Empty, "0 0 500 700 re f");
+        WriteAscii(output, "7 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 8 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj\n");
+        WriteInspectionStream(output, 8, string.Empty, "0 0 500 700 re f");
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

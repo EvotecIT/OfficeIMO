@@ -52,6 +52,7 @@ internal static class HtmlPdfEvidenceRunner {
             Scale: scale.ToString(),
             Iterations: iterations,
             Environment: new HtmlPdfEvidenceEnvironment(
+                GetOsFamily(),
                 RuntimeInformation.OSDescription,
                 RuntimeInformation.OSArchitecture.ToString(),
                 RuntimeInformation.ProcessArchitecture.ToString(),
@@ -85,6 +86,19 @@ internal static class HtmlPdfEvidenceRunner {
         Console.WriteLine("HTML_PDF_EVIDENCE_CANCELLATION=" + (cancellationPassed ? "Passed" : "Failed"));
         Console.WriteLine("HTML_PDF_EVIDENCE_PROCESS_TREE_MEMORY=" + (processTreeMemoryPassed ? "Passed" : "Failed"));
         return cancellationPassed && processTreeMemoryPassed ? 0 : 1;
+    }
+
+    private static string GetOsFamily() {
+        if (OperatingSystem.IsWindows()) {
+            return "Windows";
+        }
+        if (OperatingSystem.IsLinux()) {
+            return "Linux";
+        }
+        if (OperatingSystem.IsMacOS()) {
+            return "macOS";
+        }
+        return "Unknown";
     }
 
     private static async Task<HtmlPdfEngineEvidence> RunEngineAsync(

@@ -99,6 +99,7 @@ try {
         scale = 'High'
         iterations = 3
         environment = [ordered]@{
+            osFamily = $isWindowsHost ? 'Windows' : 'Linux'
             osDescription = $osDescription
             externalRasterizer = 'contract-test'
         }
@@ -189,6 +190,7 @@ try {
     }
 
     $chromiumEngine.outputs[0].processTreeMemory.maximumObservedProcessCount = 2
+    $report.environment.osFamily = 'macOS'
     $report.environment.osDescription = 'macOS contract-test host'
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
@@ -206,7 +208,26 @@ try {
         throw 'HTML/PDF artifact exporter mislabeled non-Linux evidence as Linux.'
     }
 
-    $report.environment.osDescription = $osDescription
+    $report.environment.osFamily = 'FreeBSD'
+    $report.environment.osDescription = 'FreeBSD contract-test host'
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $unrecognizedOsRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform linux `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'not a Linux run') { throw }
+        $unrecognizedOsRejected = $true
+    }
+    if (-not $unrecognizedOsRejected) {
+        throw 'HTML/PDF artifact exporter derived Linux provenance from the exporter host instead of the evidence report.'
+    }
+
+    $report.environment.osFamily = $isWindowsHost ? 'Windows' : 'Linux'
+    $report.environment.osDescription = $isWindowsHost ? $osDescription : 'Ubuntu 24.04.3 LTS'
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
     & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `

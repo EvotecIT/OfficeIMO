@@ -599,11 +599,11 @@ internal sealed class OfficeType2CharStringInterpreter {
     }
 
     private void Conditional() {
-        double second = Pop();
-        double first = Pop();
-        double secondValue = Pop();
-        double firstValue = Pop();
-        Push(first <= second ? firstValue : secondValue);
+        double comparisonValue2 = Pop();
+        double comparisonValue1 = Pop();
+        double selector2 = Pop();
+        double selector1 = Pop();
+        Push(comparisonValue1 <= comparisonValue2 ? selector1 : selector2);
     }
 
     private void Exchange() {
