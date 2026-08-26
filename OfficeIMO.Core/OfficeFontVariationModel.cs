@@ -141,7 +141,6 @@ internal sealed class OfficeFontVariationModel {
             if (mapCount > 4096 || cursor > end - mapCount * 4) {
                 throw new InvalidDataException("The OpenType avar segment map is invalid.");
             }
-            if (mapCount == 0) continue;
             var from = new double[mapCount];
             var to = new double[mapCount];
             bool validMap = mapCount >= 3;
@@ -155,7 +154,8 @@ internal sealed class OfficeFontVariationModel {
             validMap &= ContainsMapping(from, to, -1D, -1D)
                 && ContainsMapping(from, to, 0D, 0D)
                 && ContainsMapping(from, to, 1D, 1D);
-            if (validMap) normalized[axisIndex] = MapSegment(normalized[axisIndex], from, to);
+            if (!validMap) throw new InvalidDataException("The OpenType avar segment map is invalid.");
+            normalized[axisIndex] = MapSegment(normalized[axisIndex], from, to);
         }
         if (cursor != end) throw new InvalidDataException("The OpenType avar table contains trailing data.");
     }

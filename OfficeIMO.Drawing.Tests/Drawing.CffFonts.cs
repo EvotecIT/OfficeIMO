@@ -232,6 +232,28 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void CffOutlinedRunsCanShareOneOperationBudgetAcrossCalls() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Source Sans", data).Faces);
+        var cff = Assert.IsAssignableFrom<IOfficeCffBoundedFontProgram>(face.Program);
+        var measuringBudget = new OfficeCffOperationBudget();
+
+        Assert.NotEmpty(cff.GetTextContoursBounded(
+            "A", 0D, 0D, 24D, 100_000, CancellationToken.None, measuringBudget));
+        int operationsForOneRun = 1_000_000 - measuringBudget.RemainingOperations;
+        Assert.True(operationsForOneRun > 0);
+        var sharedBudget = new OfficeCffOperationBudget(operationsForOneRun);
+
+        Assert.NotEmpty(cff.GetTextContoursBounded(
+            "A", 0D, 0D, 24D, 100_000, CancellationToken.None, sharedBudget));
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            cff.GetTextContoursBounded(
+                "A", 0D, 0D, 24D, 100_000, CancellationToken.None, sharedBudget));
+
+        Assert.Contains("operation budget", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CffRandomOperatorProducesADeterministicSequenceWithinTheUnitRange() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));

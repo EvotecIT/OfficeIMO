@@ -8,7 +8,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>First-party managed CFF1/CFF2 measurement and outline program.</summary>
-internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
+internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
     private readonly byte[] _data;
     private readonly OfficeOpenTypeReader _reader;
     private readonly OfficeCffFontData _cff;
@@ -124,16 +124,32 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         double y,
         double fontSize,
         int maximumPointCount,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) => GetTextContoursBounded(
+            text,
+            x,
+            y,
+            fontSize,
+            maximumPointCount,
+            cancellationToken,
+            new OfficeCffOperationBudget());
+
+    public List<List<OfficePoint>> GetTextContoursBounded(
+        string text,
+        double x,
+        double y,
+        double fontSize,
+        int maximumPointCount,
+        CancellationToken cancellationToken,
+        OfficeCffOperationBudget operationBudget) {
         ValidateTextAndSize(text, fontSize);
         ValidatePosition(x, y);
         if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
+        if (operationBudget == null) throw new ArgumentNullException(nameof(operationBudget));
         var contours = new List<List<OfficePoint>>();
         double scale = Scale(fontSize);
         double cursor = x;
         double baseline = EnsureFiniteGeometry(y + _ascender * scale);
         int pointCount = 0;
-        var operationBudget = new OfficeCffOperationBudget();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             int scalar = ReadScalar(text, ref index);
@@ -180,11 +196,30 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         double y,
         double fontSize,
         int maximumPointCount,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) => GetShapedTextContoursBounded(
+            text,
+            result,
+            x,
+            y,
+            fontSize,
+            maximumPointCount,
+            cancellationToken,
+            new OfficeCffOperationBudget());
+
+    public List<List<OfficePoint>> GetShapedTextContoursBounded(
+        string text,
+        OfficeTextShapingResult result,
+        double x,
+        double y,
+        double fontSize,
+        int maximumPointCount,
+        CancellationToken cancellationToken,
+        OfficeCffOperationBudget operationBudget) {
         PositionedGlyph[] glyphs = ValidateShapedGlyphs(text, result);
         ValidateSize(fontSize);
         ValidatePosition(x, y);
         if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
+        if (operationBudget == null) throw new ArgumentNullException(nameof(operationBudget));
         var contours = new List<List<OfficePoint>>();
         double scale = Scale(fontSize);
         long totalAdvance = 0;
@@ -193,7 +228,6 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeBoundedFontProgram, IOffice
         double cursor = negativeDirection ? EnsureFiniteGeometry(x - (totalAdvance * scale)) : x;
         double baseline = EnsureFiniteGeometry(y + _ascender * scale);
         int pointCount = 0;
-        var operationBudget = new OfficeCffOperationBudget();
         for (int index = 0; index < glyphs.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PositionedGlyph glyph = glyphs[index];

@@ -26,6 +26,8 @@ internal sealed class OfficeCffOperationBudget {
         _remaining = maximumOperations;
     }
 
+    internal int RemainingOperations => _remaining;
+
     internal void Consume() {
         if (_remaining-- <= 0) throw new InvalidDataException("The CFF CharString operation budget was exceeded.");
     }

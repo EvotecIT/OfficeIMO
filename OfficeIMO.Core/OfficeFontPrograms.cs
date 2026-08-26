@@ -95,6 +95,28 @@ public interface IOfficeBoundedFontProgram : IOfficeFontProgram {
         CancellationToken cancellationToken);
 }
 
+/// <summary>Internal seam for sharing one CFF interpreter budget across renderer-owned runs.</summary>
+internal interface IOfficeCffBoundedFontProgram : IOfficeBoundedFontProgram {
+    List<List<OfficePoint>> GetTextContoursBounded(
+        string text,
+        double x,
+        double y,
+        double fontSize,
+        int maximumPointCount,
+        CancellationToken cancellationToken,
+        OfficeCffOperationBudget operationBudget);
+
+    List<List<OfficePoint>> GetShapedTextContoursBounded(
+        string text,
+        OfficeTextShapingResult result,
+        double x,
+        double y,
+        double fontSize,
+        int maximumPointCount,
+        CancellationToken cancellationToken,
+        OfficeCffOperationBudget operationBudget);
+}
+
 /// <summary>
 /// Optional vertical-metrics contract for aligning fallback runs from different font faces on one baseline.
 /// </summary>

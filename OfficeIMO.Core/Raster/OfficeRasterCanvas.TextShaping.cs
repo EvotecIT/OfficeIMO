@@ -9,6 +9,7 @@ public sealed partial class OfficeRasterCanvas {
     private const int MaximumTextOutlinePointsPerRun = 1_000_000;
     private Dictionary<ShapedTextKey, OfficeTextShapingResult?>? _shapedTextCache;
     private Dictionary<ShapedTextKey, OfficeManagedTextFallback>? _managedTextCache;
+    private readonly OfficeCffOperationBudget _cffOperationBudget = new OfficeCffOperationBudget();
 
     private bool TryGetShapedTextRun(
         string text,
@@ -69,6 +70,17 @@ public sealed partial class OfficeRasterCanvas {
         }
         if (TryGetShapedTextRun(text, font, out OfficeTextShapingResult run)) {
             string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
+            if (font is IOfficeCffBoundedFontProgram cff) {
+                return cff.GetShapedTextContoursBounded(
+                    logicalText,
+                    run,
+                    x,
+                    y,
+                    fontSize,
+                    MaximumTextOutlinePointsPerRun,
+                    _cancellationToken,
+                    _cffOperationBudget);
+            }
             if (font is IOfficeBoundedFontProgram bounded) {
                 return bounded.GetShapedTextContoursBounded(
                     logicalText,
@@ -99,6 +111,16 @@ public sealed partial class OfficeRasterCanvas {
         double x,
         double y,
         double fontSize) {
+        if (font is IOfficeCffBoundedFontProgram cff) {
+            return cff.GetTextContoursBounded(
+                text,
+                x,
+                y,
+                fontSize,
+                MaximumTextOutlinePointsPerRun,
+                _cancellationToken,
+                _cffOperationBudget);
+        }
         if (font is IOfficeBoundedFontProgram bounded) {
             return bounded.GetTextContoursBounded(
                 text,

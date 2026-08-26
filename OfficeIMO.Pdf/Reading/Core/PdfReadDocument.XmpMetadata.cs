@@ -229,10 +229,28 @@ public sealed partial class PdfReadDocument {
 
     private static DateTimeOffset? ReadDateElementByNamespace(XDocument document, string localName, string namespaceUri) {
         string? value = ReadElementTextByNamespace(document, localName, namespaceUri);
-        return DateTimeOffset.TryParse(
+        if (value is null) return null;
+        string[] formats;
+        System.Globalization.DateTimeStyles styles;
+        if (value.Length > 0 && value[value.Length - 1] == 'Z') {
+            formats = new[] {
+                "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'"
+            };
+            styles = System.Globalization.DateTimeStyles.AssumeUniversal |
+                System.Globalization.DateTimeStyles.AdjustToUniversal;
+        } else {
+            formats = new[] {
+                "yyyy-MM-dd'T'HH:mm:sszzz",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz"
+            };
+            styles = System.Globalization.DateTimeStyles.None;
+        }
+        return DateTimeOffset.TryParseExact(
             value,
+            formats,
             System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.AllowWhiteSpaces | System.Globalization.DateTimeStyles.RoundtripKind,
+            styles,
             out DateTimeOffset result)
             ? result
             : null;

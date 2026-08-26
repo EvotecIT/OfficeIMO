@@ -168,6 +168,20 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void StructureInspectorRejectsProductionBoxesInheritedFromPageTree() {
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            pageTreeEntries: "/TrimBox [10 10 90 90]");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfPrintProductionStructureEvidence evidence = document.InspectPrintProductionStructure();
+
+        Assert.Null(document.Pages[0].GetGeometry().TrimBox);
+        Assert.Equal(0, evidence.ValidProductionPageBoxCount);
+        Assert.Equal(1, evidence.InvalidProductionPageBoxCount);
+    }
+
+    [Fact]
     public void StructureInspectorRejectsNonemptyInvalidEmbeddedFontStream() {
         byte[] pdf = BuildInspectionPdf(
             "BT /F1 12 Tf (A) Tj ET",
@@ -333,16 +347,40 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(PdfTrappingStatus.False, metadata.TrappingStatus);
     }
 
+    [Fact]
+    public void XmpInspectorRejectsNonXmpDateLexicalForms() {
+        const string xmp = """
+            <?xpacket begin="﻿"?>
+            <x:xmpmeta xmlns:x="adobe:ns:meta/">
+              <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                <rdf:Description xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+                  xmp:CreateDate="08/26/2026 12:00:00 +00:00"
+                  xmp:ModifyDate="2026/08/26 12:05:00Z"
+                  xmp:MetadataDate="26 Aug 2026 12:05:00 GMT" />
+              </rdf:RDF>
+            </x:xmpmeta>
+            <?xpacket end="w"?>
+            """;
+
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(
+            PdfReadDocument.Open(BuildXmpInspectionPdf(xmp)).XmpMetadata);
+
+        Assert.Null(metadata.CreationDate);
+        Assert.Null(metadata.ModificationDate);
+        Assert.Null(metadata.MetadataDate);
+    }
+
     private static byte[] BuildInspectionPdf(
         string content,
         string resources = "",
         string pageEntries = "",
-        string extraObjects = "") {
+        string extraObjects = "",
+        string pageTreeEntries = "") {
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] " + pageTreeEntries + " >>\nendobj\n");
         WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << " + resources + " >> " + pageEntries + " /Contents 4 0 R >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);

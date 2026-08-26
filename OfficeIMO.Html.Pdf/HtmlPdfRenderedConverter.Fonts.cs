@@ -377,9 +377,12 @@ internal static partial class HtmlPdfRenderedConverter {
             if (maximumPathCommands <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPathCommands));
             MaximumCharactersPerRun = maximumCharactersPerRun;
             _remainingPathCommands = maximumPathCommands;
+            CffOperationBudget = new OfficeCffOperationBudget();
         }
 
         internal int MaximumCharactersPerRun { get; }
+
+        internal OfficeCffOperationBudget CffOperationBudget { get; }
 
         internal int RemainingPointAllowance {
             get {

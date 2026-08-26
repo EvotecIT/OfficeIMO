@@ -106,22 +106,44 @@ internal static partial class HtmlPdfRenderedConverter {
                 throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
             }
             double runTop = lineMetrics.Baseline - baselineOffsets[runIndex];
-            List<List<OfficePoint>> contours = run.ShapingResult == null
-                ? bounded.GetTextContoursBounded(
-                    run.Text,
-                    cursor,
-                    runTop,
-                    visual.Font.Size,
-                    availablePoints,
-                    cancellationToken)
-                : bounded.GetShapedTextContoursBounded(
-                    run.ShapedText!,
-                    run.ShapingResult,
-                    cursor,
-                    runTop,
-                    visual.Font.Size,
-                    availablePoints,
-                    cancellationToken);
+            List<List<OfficePoint>> contours;
+            if (bounded is IOfficeCffBoundedFontProgram cff) {
+                contours = run.ShapingResult == null
+                    ? cff.GetTextContoursBounded(
+                        run.Text,
+                        cursor,
+                        runTop,
+                        visual.Font.Size,
+                        availablePoints,
+                        cancellationToken,
+                        webFonts.OutlineBudget.CffOperationBudget)
+                    : cff.GetShapedTextContoursBounded(
+                        run.ShapedText!,
+                        run.ShapingResult,
+                        cursor,
+                        runTop,
+                        visual.Font.Size,
+                        availablePoints,
+                        cancellationToken,
+                        webFonts.OutlineBudget.CffOperationBudget);
+            } else {
+                contours = run.ShapingResult == null
+                    ? bounded.GetTextContoursBounded(
+                        run.Text,
+                        cursor,
+                        runTop,
+                        visual.Font.Size,
+                        availablePoints,
+                        cancellationToken)
+                    : bounded.GetShapedTextContoursBounded(
+                        run.ShapedText!,
+                        run.ShapingResult,
+                        cursor,
+                        runTop,
+                        visual.Font.Size,
+                        availablePoints,
+                        cancellationToken);
+            }
             cancellationToken.ThrowIfCancellationRequested();
             int runPointCount = 0;
             foreach (List<OfficePoint> contour in contours) {

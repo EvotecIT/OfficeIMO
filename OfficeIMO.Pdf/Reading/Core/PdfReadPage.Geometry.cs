@@ -12,9 +12,9 @@ public sealed partial class PdfReadPage {
         return new PdfPageGeometry(
             TryReadPageBox("MediaBox", out PdfPageBox? mediaBox) ? mediaBox : null,
             TryReadPageBox("CropBox", out PdfPageBox? cropBox) ? cropBox : null,
-            TryReadPageBox("BleedBox", out PdfPageBox? bleedBox) ? bleedBox : null,
-            TryReadPageBox("TrimBox", out PdfPageBox? trimBox) ? trimBox : null,
-            TryReadPageBox("ArtBox", out PdfPageBox? artBox) ? artBox : null,
+            TryReadDirectPageBox("BleedBox", out PdfPageBox? bleedBox) ? bleedBox : null,
+            TryReadDirectPageBox("TrimBox", out PdfPageBox? trimBox) ? trimBox : null,
+            TryReadDirectPageBox("ArtBox", out PdfPageBox? artBox) ? artBox : null,
             TryReadDirectPositiveNumber("UserUnit"),
             TryReadDirectName("Tabs"),
             TryReadDirectPositiveOrZeroNumber("Dur"),
@@ -25,8 +25,15 @@ public sealed partial class PdfReadPage {
     }
 
     private bool TryReadPageBox(string key, out PdfPageBox? box) {
+        return TryReadPageBox(key, GetInheritedValue(key), out box);
+    }
+
+    private bool TryReadDirectPageBox(string key, out PdfPageBox? box) {
+        return TryReadPageBox(key, GetDirectValue(key), out box);
+    }
+
+    private bool TryReadPageBox(string key, PdfObject? value, out PdfPageBox? box) {
         box = null;
-        PdfObject? value = GetInheritedValue(key);
         var array = ResolveArray(value);
         if (array is null || array.Items.Count < 4) {
             return false;

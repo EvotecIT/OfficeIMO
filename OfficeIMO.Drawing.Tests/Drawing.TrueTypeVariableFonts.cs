@@ -75,6 +75,36 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void VariableAxisSelectionRejectsInvalidAvarSegmentMaps() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        int avarOffset = FindTableOffset(data, "avar");
+        int firstMapCount = ReadUInt16(data, avarOffset + 8);
+        Assert.True(firstMapCount >= 3);
+        bool changedRequiredOrigin = false;
+        for (int index = 0; index < firstMapCount; index++) {
+            int entry = avarOffset + 10 + index * 4;
+            if (ReadUInt16(data, entry) != 0 || ReadUInt16(data, entry + 2) != 0) continue;
+            WriteUInt16(data, entry + 2, 1);
+            changedRequiredOrigin = true;
+            break;
+        }
+        Assert.True(changedRequiredOrigin);
+        var fonts = new OfficeFontFaceCollection {
+            FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 700F }
+        };
+
+        Assert.False(fonts.TryAddBounded(
+            "Roboto Flex",
+            data,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            8 * 1024 * 1024,
+            out _,
+            out string? error));
+        Assert.Contains("avar segment map", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ProviderReceivesTheResolvedVariableFontCoordinates() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         var provider = new CapturingFontProgramProvider();
@@ -231,6 +261,25 @@ public sealed class DrawingTrueTypeVariableFontTests {
         }
         throw new InvalidOperationException("The test font does not contain table " + oldTag + ".");
     }
+
+    private static int FindTableOffset(byte[] data, string tag) {
+        int tableCount = ReadUInt16(data, 4);
+        for (int table = 0; table < tableCount; table++) {
+            int record = 12 + table * 16;
+            if (data[record] != tag[0] || data[record + 1] != tag[1]
+                || data[record + 2] != tag[2] || data[record + 3] != tag[3]) continue;
+            return checked((int)ReadUInt32(data, record + 8));
+        }
+        throw new InvalidOperationException("The test font does not contain table " + tag + ".");
+    }
+
+    private static int ReadUInt16(byte[] data, int offset) => (data[offset] << 8) | data[offset + 1];
+
+    private static uint ReadUInt32(byte[] data, int offset) =>
+        ((uint)data[offset] << 24) |
+        ((uint)data[offset + 1] << 16) |
+        ((uint)data[offset + 2] << 8) |
+        data[offset + 3];
 
     private static byte[] CreateHorizontalMetricsMvar(OfficeFontVariationModel model) {
         const int recordCount = 3;
