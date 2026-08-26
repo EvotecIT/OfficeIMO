@@ -167,6 +167,9 @@ public sealed partial class OfficeTrueTypeFont {
                 throw new InvalidDataException("A variable composite glyph directory is invalid.");
             }
             flags = ReadUInt16(_data, cursor);
+            if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags)) {
+                throw new InvalidDataException("A variable composite glyph declares conflicting transform flags.");
+            }
             ushort componentGlyph = ReadUInt16(_data, cursor + 2);
             if (componentGlyph >= _numGlyphs) {
                 throw new InvalidDataException("A variable composite glyph references an invalid component glyph.");

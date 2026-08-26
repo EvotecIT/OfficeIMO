@@ -149,6 +149,8 @@ public sealed class HtmlFirstPartyFontProgramTests {
         Assert.True(shapingProvider.Requests.Count >= 2);
         Assert.All(shapingProvider.Requests, request => Assert.Equal(725F, request.VariationCoordinates["wght"]));
         Assert.All(shapingProvider.Requests, request => Assert.Equal("pl-PL", request.Language));
+        object cacheKey = Assert.IsAssignableFrom<object>(shapingProvider.Requests[0].FontProgramCacheKeyForShaping);
+        Assert.All(shapingProvider.Requests, request => Assert.Same(cacheKey, request.FontProgramCacheKeyForShaping));
     }
 
     [Fact]

@@ -408,7 +408,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _cancellationToken,
             font.CollectionIndex,
             (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping,
-            cloneFontData: false));
+            cloneFontData: false,
+            fontProgramCacheKey: font));
         if (result == null) {
             measured = 0D;
             return false;

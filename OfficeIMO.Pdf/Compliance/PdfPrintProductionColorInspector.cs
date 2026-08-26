@@ -825,15 +825,18 @@ internal static partial class PdfPrintProductionColorInspector {
         internal ContentStreamContext(
             PdfStream stream,
             ColorSpaceAliases aliases,
-            PdfDictionary? resources) {
+            PdfDictionary? resources,
+            PdfObject? inheritedFontObject) {
             Stream = stream;
             Aliases = aliases;
             Resources = resources;
+            InheritedFontObject = inheritedFontObject;
         }
 
         internal PdfStream Stream { get; }
         internal ColorSpaceAliases Aliases { get; }
         internal PdfDictionary? Resources { get; }
+        internal PdfObject? InheritedFontObject { get; }
         internal bool ResourceInspectionIncomplete { get; set; }
     }
 

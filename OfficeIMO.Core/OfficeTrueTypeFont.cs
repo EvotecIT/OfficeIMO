@@ -36,6 +36,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _loca;
     private readonly int _maxp;
     private readonly int _name;
+    private readonly HashSet<int> _validFormat12Subtables;
     private readonly OfficeTrueTypeVariations? _variations;
     private readonly OfficeFontVariationModel _variationModel;
     private readonly int _unitsPerEm;
@@ -70,6 +71,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _loca = tables["loca"];
         _maxp = tables["maxp"];
         _name = tables.TryGetValue("name", out var name) ? name : -1;
+        _validFormat12Subtables = OfficeOpenTypeCmap.CollectValidFormat12Subtables(
+            _data,
+            _cmap,
+            _cmapLength,
+            MaxCmapSubtables,
+            MaxFormat12Groups);
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         OfficeOpenTypeMvarMetrics? mvar = _variationModel.IsVariable
@@ -492,6 +499,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (absolute < cmapOffset || absolute > cmapEnd - 2) continue;
             var format = ReadUInt16(_data, absolute);
             if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
+            if (format == 12 && !_validFormat12Subtables.Contains(absolute)) continue;
             var score = (platform == 3 && encoding == 10 ? 4 : platform == 3 && encoding == 1 ? 3 : platform == 0 ? 2 : 1);
             if ((format == 4 || format == 12) && score > bestScore) {
                 best = absolute;
@@ -536,6 +544,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private ushort MapFormat12(int table, int cmapEnd, int scalar) {
+        if (!_validFormat12Subtables.Contains(table)) return 0;
         if (table < _cmap || table > cmapEnd - 16) return 0;
         var length = ReadUInt32(_data, table + 4);
         if (length < 16 || length > int.MaxValue || table > cmapEnd - (int)length) return 0;
@@ -856,6 +865,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             cancellationToken.ThrowIfCancellationRequested();
             if (p + 4 > _data.Length) return;
             flags = ReadUInt16(_data, p);
+            if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags)) return;
             var componentGlyph = ReadUInt16(_data, p + 2);
             p += 4;
             double arg1;

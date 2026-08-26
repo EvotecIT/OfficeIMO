@@ -270,6 +270,7 @@ internal static partial class OfficeWoff2Decoder {
         do {
             EnsureAvailable(compositeStream, compositeCursor, 4, "The transformed WOFF 2 composite stream is truncated.");
             ushort flags = ReadUInt16(compositeStream, compositeCursor);
+            ValidateCompositeGlyphTransformFlags(flags);
             ValidateCompositeGlyphReference(compositeStream, compositeCursor, glyphCount);
             int componentLength = 4;
             componentLength += (flags & CompositeArgumentsAreWords) != 0 ? 4 : 2;
@@ -300,6 +301,12 @@ internal static partial class OfficeWoff2Decoder {
         int componentGlyphId = ReadUInt16(compositeStream, componentOffset + 2);
         if (componentGlyphId >= glyphCount) {
             throw new InvalidDataException("A transformed WOFF 2 composite component references a glyph outside maxp.numGlyphs.");
+        }
+    }
+
+    internal static void ValidateCompositeGlyphTransformFlags(ushort flags) {
+        if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags)) {
+            throw new InvalidDataException("A transformed WOFF 2 composite component declares conflicting transform flags.");
         }
     }
 

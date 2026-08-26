@@ -192,6 +192,29 @@ public sealed class DrawingWoff2FontTests {
         Assert.Contains("maxp.numGlyphs", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(0x0008 | 0x0040)]
+    [InlineData(0x0008 | 0x0080)]
+    [InlineData(0x0040 | 0x0080)]
+    [InlineData(0x0008 | 0x0040 | 0x0080)]
+    public void Woff2DecoderRejectsConflictingCompositeTransformFlags(int flags) {
+        Assert.True(OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(checked((ushort)flags)));
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeWoff2Decoder.ValidateCompositeGlyphTransformFlags(checked((ushort)flags)));
+
+        Assert.Contains("conflicting transform", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(0x0008)]
+    [InlineData(0x0040)]
+    [InlineData(0x0080)]
+    public void Woff2DecoderAcceptsAtMostOneCompositeTransformFlag(int flags) {
+        Assert.False(OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(checked((ushort)flags)));
+        OfficeWoff2Decoder.ValidateCompositeGlyphTransformFlags(checked((ushort)flags));
+    }
+
     private static void WriteBigEndianUInt32(byte[] data, int offset, uint value) {
         data[offset] = (byte)(value >> 24);
         data[offset + 1] = (byte)(value >> 16);

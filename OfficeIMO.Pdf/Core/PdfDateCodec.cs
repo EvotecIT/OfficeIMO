@@ -59,7 +59,12 @@ internal static class PdfDateCodec {
         if (!parsed.HasValue || string.IsNullOrWhiteSpace(value)) return false;
 
         string raw = value!.StartsWith("D:", StringComparison.Ordinal) ? value.Substring(2) : value;
-        if (raw.Length <= 14 || (raw[14] != 'Z' && raw[14] != '+' && raw[14] != '-')) return false;
+        bool hasZuluOffset = raw.Length == 15 && raw[14] == 'Z';
+        bool hasSignedOffset = raw.Length == 21 &&
+            (raw[14] == '+' || raw[14] == '-') &&
+            raw[17] == '\'' &&
+            raw[20] == '\'';
+        if (!hasZuluOffset && !hasSignedOffset) return false;
         result = parsed.Value;
         return true;
     }

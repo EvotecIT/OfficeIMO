@@ -665,6 +665,18 @@ public class PdfXGroundworkTests {
         Assert.Equal(1, evidence.DeviceRgbOperatorCount);
     }
 
+    [Fact]
+    public void PrintProductionInspectorPreservesSelectedType3FontInsideFormXObjects() {
+        byte[] pdf = BuildInheritedType3FormInspectionPdf();
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.True(evidence.HasDeviceRgbUsage);
+        Assert.Equal(1, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
     [Theory]
     [InlineData("(A) Tj")]
     [InlineData("[(A) 25] TJ")]
@@ -1006,6 +1018,22 @@ public class PdfXGroundworkTests {
     public void PdfDateCodecDoesNotTreatPartialOrTimezoneLessDatesAsProductionPrecise(string value) {
         Assert.NotNull(PdfDateCodec.TryParse(value));
         Assert.False(PdfDateCodec.TryParseProductionDate(value, out _));
+    }
+
+    [Theory]
+    [InlineData("D:20260824130000+05")]
+    [InlineData("D:20260824130000+05'")]
+    [InlineData("D:20260824130000+05'30")]
+    public void PdfDateCodecDoesNotTreatIncompleteSignedOffsetsAsProductionPrecise(string value) {
+        Assert.NotNull(PdfDateCodec.TryParse(value));
+        Assert.False(PdfDateCodec.TryParseProductionDate(value, out _));
+    }
+
+    [Theory]
+    [InlineData("D:20260824130000Z")]
+    [InlineData("D:20260824130000+05'30'")]
+    public void PdfDateCodecAcceptsCompleteProductionOffsets(string value) {
+        Assert.True(PdfDateCodec.TryParseProductionDate(value, out _));
     }
 
     [Fact]
@@ -1431,6 +1459,20 @@ public class PdfXGroundworkTests {
         WriteInspectionStream(output, 6, string.Empty, "0 0 0 1 k 0 0 500 700 re f");
         WriteInspectionStream(output, 7, string.Empty, "1 0 0 rg 0 0 500 700 re f");
         WriteAscii(output, "8 0 obj\n<< /Filter /Unsupported /Length 3 >>\nstream\nabc\nendstream\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildInheritedType3FormInspectionPdf() {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> /XObject << /Fm1 7 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf ET /Fm1 Do");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n");
+        WriteInspectionStream(output, 6, string.Empty, "1 0 0 rg 0 0 500 700 re f");
+        WriteInspectionStream(output, 7, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>", "BT (A) Tj ET");
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

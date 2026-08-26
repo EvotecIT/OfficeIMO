@@ -3403,6 +3403,27 @@ public partial class DrawingTests {
         Assert.False(font.HasGlyphs("A"));
     }
 
+    [Theory]
+    [InlineData(0x0042, 0x0041, 0x0041, 0x0041)]
+    [InlineData(0x0041, 0x0042, 0x0042, 0x0043)]
+    [InlineData(0x0043, 0x0043, 0x0041, 0x0041)]
+    [InlineData(0x110000, 0x110000, 0x0041, 0x0041)]
+    public void OpenTypeReadersRejectInvalidFormat12GroupSequences(
+        int firstStart,
+        int firstEnd,
+        int secondStart,
+        int secondEnd) {
+        byte[] cmap = CreateFormat12Cmap(
+            (firstStart, firstEnd, 1),
+            (secondStart, secondEnd, 1));
+        byte[] fontData = CreateMinimalTrueTypeFont(cmap);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
     [Fact]
     public void OpenTypeReadersIgnoreNonUnicodeCmapSubtables() {
         byte[] cmap = CreateFormat12Cmap('A');
@@ -3643,18 +3664,23 @@ public partial class DrawingTests {
         return data;
     }
 
-    private static byte[] CreateFormat12Cmap(int scalar) {
-        var data = new byte[40];
+    private static byte[] CreateFormat12Cmap(int scalar) => CreateFormat12Cmap((scalar, scalar, 1));
+
+    private static byte[] CreateFormat12Cmap(params (int Start, int End, int GlyphId)[] groups) {
+        var data = new byte[checked(28 + groups.Length * 12)];
         WriteUInt16(data, 2, 1);
         WriteUInt16(data, 4, 3);
         WriteUInt16(data, 6, 10);
         WriteUInt32(data, 8, 12);
         WriteUInt16(data, 12, 12);
-        WriteUInt32(data, 16, 28);
-        WriteUInt32(data, 24, 1);
-        WriteUInt32(data, 28, (uint)scalar);
-        WriteUInt32(data, 32, (uint)scalar);
-        WriteUInt32(data, 36, 1);
+        WriteUInt32(data, 16, checked((uint)(16 + groups.Length * 12)));
+        WriteUInt32(data, 24, checked((uint)groups.Length));
+        for (int index = 0; index < groups.Length; index++) {
+            int offset = 28 + index * 12;
+            WriteUInt32(data, offset, checked((uint)groups[index].Start));
+            WriteUInt32(data, offset + 4, checked((uint)groups[index].End));
+            WriteUInt32(data, offset + 8, checked((uint)groups[index].GlyphId));
+        }
         return data;
     }
 

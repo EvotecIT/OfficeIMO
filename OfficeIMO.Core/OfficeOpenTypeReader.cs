@@ -18,6 +18,7 @@ internal sealed class OfficeOpenTypeReader {
     private readonly TableRecord _hmtx;
     private readonly TableRecord _maxp;
     private readonly TableRecord? _name;
+    private readonly HashSet<int> _validFormat12Subtables;
 
     private OfficeOpenTypeReader(byte[] data, Dictionary<uint, TableRecord> tables) {
         _data = data;
@@ -42,6 +43,12 @@ internal sealed class OfficeOpenTypeReader {
         }
         int requiredHmtxLength = checked(HorizontalMetricCount * 4 + (GlyphCount - HorizontalMetricCount) * 2);
         if (_hmtx.Length < requiredHmtxLength) throw new InvalidDataException("The OpenType hmtx table is truncated.");
+        _validFormat12Subtables = OfficeOpenTypeCmap.CollectValidFormat12Subtables(
+            _data,
+            _cmap.Offset,
+            _cmap.Length,
+            MaximumCmapSubtables,
+            MaximumFormat12Groups);
     }
 
     internal byte[] Data => _data;
@@ -160,6 +167,7 @@ internal sealed class OfficeOpenTypeReader {
             if (subtable < _cmap.Offset || subtable > cmapEnd - 2) continue;
             int format = ReadUInt16(subtable);
             if (format != 4 && format != 12) continue;
+            if (format == 12 && !_validFormat12Subtables.Contains(subtable)) continue;
             if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
             int score = format == 12 ? 100 : 50;
             if (preferFormat12 && format == 12) score += 100;
@@ -201,6 +209,7 @@ internal sealed class OfficeOpenTypeReader {
     }
 
     private int MapFormat12(int table, int cmapEnd, int scalar) {
+        if (!_validFormat12Subtables.Contains(table)) return 0;
         if (table < _cmap.Offset || table > cmapEnd - 16) return 0;
         uint lengthValue = ReadUInt32(table + 4);
         uint groupCount = ReadUInt32(table + 12);

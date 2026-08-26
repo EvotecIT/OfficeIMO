@@ -7,22 +7,25 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfStream stream,
         ColorSpaceAliases aliases,
         PdfDictionary? resources,
-        List<ContentStreamContext> streams) {
-        if (ContainsContentStreamContext(streams, stream, aliases, resources)) return;
+        List<ContentStreamContext> streams,
+        PdfObject? inheritedFontObject = null) {
+        if (ContainsContentStreamContext(streams, stream, aliases, resources, inheritedFontObject)) return;
 
-        streams.Add(new ContentStreamContext(stream, aliases, resources));
+        streams.Add(new ContentStreamContext(stream, aliases, resources, inheritedFontObject));
     }
 
     private static bool ContainsContentStreamContext(
         IReadOnlyList<ContentStreamContext> contexts,
         PdfStream stream,
         ColorSpaceAliases aliases,
-        PdfDictionary? resources) {
+        PdfDictionary? resources,
+        PdfObject? inheritedFontObject) {
         for (int index = 0; index < contexts.Count; index++) {
             ContentStreamContext existing = contexts[index];
             if (ReferenceEquals(existing.Stream, stream) &&
                 existing.Aliases.SetEquals(aliases) &&
-                ReferenceEquals(existing.Resources, resources)) return true;
+                ReferenceEquals(existing.Resources, resources) &&
+                ReferenceEquals(existing.InheritedFontObject, inheritedFontObject)) return true;
         }
         return false;
     }
@@ -74,8 +77,8 @@ internal static partial class PdfPrintProductionColorInspector {
         for (int index = firstContext; index < streams.Count; index++) contentDepths.Add(0);
 
         int transparencyGroups = 0;
-        string? activePageFontName = null;
-        var pageFontStack = new Stack<string?>();
+        PdfObject? activePageFontObject = null;
+        var pageFontStack = new Stack<PdfObject?>();
         for (int localIndex = 0; localIndex < contentDepths.Count; localIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             ContentStreamContext context = streams[firstContext + localIndex];
@@ -88,8 +91,8 @@ internal static partial class PdfPrintProductionColorInspector {
 
             bool contextWasUninspectable = false;
             bool isPageContent = contentDepths[localIndex] == 0;
-            string? activeFontName = isPageContent ? activePageFontName : null;
-            Stack<string?> fontStack = isPageContent ? pageFontStack : new Stack<string?>();
+            PdfObject? activeFontObject = isPageContent ? activePageFontObject : context.InheritedFontObject;
+            Stack<PdfObject?> fontStack = isPageContent ? pageFontStack : new Stack<PdfObject?>();
             try {
                 PdfContentStreamInterpreter.Interpret(
                     PdfEncoding.Latin1GetString(decoded),
@@ -98,10 +101,10 @@ internal static partial class PdfPrintProductionColorInspector {
                         cancellationToken.ThrowIfCancellationRequested();
                         switch (operation.Name) {
                             case "q":
-                                fontStack.Push(activeFontName);
+                                fontStack.Push(activeFontObject);
                                 break;
                             case "Q":
-                                if (fontStack.Count > 0) activeFontName = fontStack.Pop();
+                                if (fontStack.Count > 0) activeFontObject = fontStack.Pop();
                                 break;
                             case "Do":
                                 if (operation.HasInvalidOperands ||
@@ -142,7 +145,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                         contentDepths,
                                         objects,
                                         limits,
-                                        ref transparencyGroups)) {
+                                        ref transparencyGroups,
+                                        activeFontObject)) {
                                     contextWasUninspectable = true;
                                 }
                                 break;
@@ -224,10 +228,15 @@ internal static partial class PdfPrintProductionColorInspector {
                             case "Tf":
                                 if (operation.HasInvalidOperands ||
                                     operation.Operands.Count != 2 ||
-                                    operation.Operands[0] is not string fontName) {
+                                    operation.Operands[0] is not string fontName ||
+                                    !TryResolveResource(
+                                        context.Resources,
+                                        "Font",
+                                        fontName,
+                                        objects,
+                                        limits.MaxObjectNestingDepth,
+                                        out activeFontObject)) {
                                     contextWasUninspectable = true;
-                                } else {
-                                    activeFontName = fontName;
                                 }
                                 break;
                             case "Tj":
@@ -235,9 +244,9 @@ internal static partial class PdfPrintProductionColorInspector {
                             case "'":
                             case "\"":
                                 if (operation.HasInvalidOperands ||
-                                    string.IsNullOrWhiteSpace(activeFontName) ||
+                                    activeFontObject == null ||
                                     !TryAddShownType3CharProcs(
-                                        activeFontName!,
+                                        activeFontObject,
                                         operation,
                                         context,
                                         contentDepths[localIndex] + 1,
@@ -254,7 +263,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     maxNestingDepth: limits.MaxContentNestingDepth,
                     maxOperands: limits.MaxContentOperands,
                     dispatchInvalidOperations: true);
-                if (isPageContent) activePageFontName = activeFontName;
+                if (isPageContent) activePageFontObject = activeFontObject;
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
                 exception is PdfReadLimitException ||
@@ -278,7 +287,8 @@ internal static partial class PdfPrintProductionColorInspector {
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
-        ref int transparencyGroups) {
+        ref int transparencyGroups,
+        PdfObject? inheritedFontObject = null) {
         if (contentDepth > limits.MaxContentNestingDepth) return false;
 
         PdfDictionary? resources = inheritedResources;
@@ -295,7 +305,7 @@ internal static partial class PdfPrintProductionColorInspector {
         }
 
         int count = streams.Count;
-        AddContentStream(stream, aliases, resources, streams);
+        AddContentStream(stream, aliases, resources, streams, inheritedFontObject);
         if (streams.Count == count) return true;
         contentDepths.Add(contentDepth);
         if (IsTransparencyGroup(stream.Dictionary, objects, limits.MaxObjectNestingDepth)) transparencyGroups++;
@@ -404,7 +414,7 @@ internal static partial class PdfPrintProductionColorInspector {
     }
 
     private static bool TryAddShownType3CharProcs(
-        string fontName,
+        PdfObject fontObject,
         PdfContentOperation operation,
         ContentStreamContext context,
         int contentDepth,
@@ -413,14 +423,7 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
         ref int transparencyGroups) {
-        if (!TryResolveResource(
-                context.Resources,
-                "Font",
-                fontName,
-                objects,
-                limits.MaxObjectNestingDepth,
-                out PdfObject? fontObject) ||
-            ResolveObject(
+        if (ResolveObject(
                 objects,
                 fontObject,
                 0,
