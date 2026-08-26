@@ -1,299 +1,33 @@
+using OfficeIMO.Pdf.Filters;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionColorInspector {
     private static void AddContentStream(
         PdfStream stream,
         ColorSpaceAliases aliases,
+        PdfDictionary? resources,
         List<ContentStreamContext> streams) {
-        if (ContainsContentStreamContext(streams, stream, aliases)) return;
+        if (ContainsContentStreamContext(streams, stream, aliases, resources)) return;
 
-        streams.Add(new ContentStreamContext(stream, aliases));
+        streams.Add(new ContentStreamContext(stream, aliases, resources));
     }
 
     private static bool ContainsContentStreamContext(
         IReadOnlyList<ContentStreamContext> contexts,
         PdfStream stream,
-        ColorSpaceAliases aliases) {
+        ColorSpaceAliases aliases,
+        PdfDictionary? resources) {
         for (int index = 0; index < contexts.Count; index++) {
             ContentStreamContext existing = contexts[index];
-            if (ReferenceEquals(existing.Stream, stream) && existing.Aliases.SetEquals(aliases)) return true;
+            if (ReferenceEquals(existing.Stream, stream) &&
+                existing.Aliases.SetEquals(aliases) &&
+                ReferenceEquals(existing.Resources, resources)) return true;
         }
         return false;
     }
 
-    private static void CollectResourceFormStreams(
-        PdfDictionary rootResources,
-        Dictionary<int, PdfIndirectObject> objects,
-        ColorSpaceAliases inheritedAliases,
-        List<ContentStreamContext> streams,
-        List<ImageContext> images,
-        List<ShadingContext> shadings,
-        int maximumObjectDepth) {
-        var pending = new Stack<(PdfDictionary Resources, ColorSpaceAliases Aliases, int Depth)>();
-        var visitedContexts = new List<ContentStreamContext>();
-        pending.Push((rootResources, inheritedAliases, 0));
-        while (pending.Count > 0) {
-            (PdfDictionary resources, ColorSpaceAliases aliases, int depth) = pending.Pop();
-            ThrowIfObjectDepthExceeded(depth, maximumObjectDepth);
-            CollectResourceShadingContexts(
-                resources,
-                aliases,
-                objects,
-                shadings,
-                depth,
-                maximumObjectDepth);
-            CollectResourceType3Streams(
-                resources,
-                aliases,
-                objects,
-                streams,
-                pending,
-                depth,
-                maximumObjectDepth);
-            CollectResourcePatternStreams(
-                resources,
-                aliases,
-                objects,
-                streams,
-                visitedContexts,
-                pending,
-                depth,
-                maximumObjectDepth);
-            if (resources.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) &&
-                ResolveObject(
-                    objects,
-                    xObjectsObject,
-                    depth + 1,
-                    maximumObjectDepth,
-                    out int xObjectsDepth) is PdfDictionary xObjects) {
-                foreach (PdfObject xObject in xObjects.Items.Values) {
-                    PdfObject? resolved = ResolveObject(
-                        objects,
-                        xObject,
-                        xObjectsDepth + 1,
-                        maximumObjectDepth,
-                        out int formDepth);
-                    if (resolved is PdfStream form) {
-                        string? subtype = ResolveName(
-                            form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
-                                ? subtypeObject
-                                : null,
-                            objects,
-                            maximumObjectDepth);
-                        if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
-                            AddImageContext(form.Dictionary, aliases, images);
-                        } else {
-                            AddInvokedFormContext(
-                                form,
-                                formDepth,
-                                resources,
-                                aliases,
-                                objects,
-                                streams,
-                                visitedContexts,
-                                pending,
-                                maximumObjectDepth);
-                        }
-                    }
-                }
-            }
-
-            if (!resources.Items.TryGetValue("ExtGState", out PdfObject? graphicsStatesObject) ||
-                ResolveObject(
-                    objects,
-                    graphicsStatesObject,
-                    depth + 1,
-                    maximumObjectDepth,
-                    out int graphicsStatesDepth) is not PdfDictionary graphicsStates) continue;
-            foreach (PdfObject graphicsStateObject in graphicsStates.Items.Values) {
-                if (ResolveObject(
-                        objects,
-                        graphicsStateObject,
-                        graphicsStatesDepth + 1,
-                        maximumObjectDepth,
-                        out int graphicsStateDepth) is not PdfDictionary graphicsState ||
-                    !graphicsState.Items.TryGetValue("SMask", out PdfObject? softMaskObject) ||
-                    ResolveObject(
-                        objects,
-                        softMaskObject,
-                        graphicsStateDepth + 1,
-                        maximumObjectDepth,
-                        out int softMaskDepth) is not PdfDictionary softMask ||
-                    !softMask.Items.TryGetValue("G", out PdfObject? groupObject) ||
-                    ResolveObject(
-                        objects,
-                        groupObject,
-                        softMaskDepth + 1,
-                        maximumObjectDepth,
-                        out int groupDepth) is not PdfStream group) continue;
-                AddInvokedFormContext(
-                    group,
-                    groupDepth,
-                    resources,
-                    aliases,
-                    objects,
-                    streams,
-                    visitedContexts,
-                    pending,
-                    maximumObjectDepth);
-            }
-        }
-    }
-
-    private static void CollectResourceType3Streams(
-        PdfDictionary resources,
-        ColorSpaceAliases inheritedAliases,
-        Dictionary<int, PdfIndirectObject> objects,
-        List<ContentStreamContext> streams,
-        Stack<(PdfDictionary Resources, ColorSpaceAliases Aliases, int Depth)> pending,
-        int depth,
-        int maximumObjectDepth) {
-        if (!resources.Items.TryGetValue("Font", out PdfObject? fontsObject) ||
-            ResolveObject(
-                objects,
-                fontsObject,
-                depth + 1,
-                maximumObjectDepth,
-                out int fontsDepth) is not PdfDictionary fonts) return;
-        foreach (PdfObject fontObject in fonts.Items.Values) {
-            if (ResolveObject(
-                    objects,
-                    fontObject,
-                    fontsDepth + 1,
-                    maximumObjectDepth,
-                    out int fontDepth) is not PdfDictionary font ||
-                !string.Equals(
-                    ResolveName(
-                        font.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null,
-                        objects,
-                        maximumObjectDepth),
-                    "Type3",
-                    StringComparison.Ordinal) ||
-                !font.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) ||
-                ResolveObject(
-                    objects,
-                    charProcsObject,
-                    fontDepth + 1,
-                    maximumObjectDepth) is not PdfDictionary charProcs) continue;
-
-            PdfDictionary? fontResources = ResolveResourcesDictionary(
-                font,
-                objects,
-                inheritResources: false,
-                maximumObjectDepth);
-            ColorSpaceAliases aliases = fontResources == null
-                ? inheritedAliases
-                : CreateColorSpaceAliases(fontResources, objects, maximumObjectDepth);
-            foreach (PdfObject charProc in charProcs.Items.Values) {
-                CollectStreams(charProc, objects, aliases, streams, maximumObjectDepth);
-            }
-            if (fontResources != null) pending.Push((fontResources, aliases, fontDepth + 1));
-        }
-    }
-
-    private static void CollectResourcePatternStreams(
-        PdfDictionary resources,
-        ColorSpaceAliases inheritedAliases,
-        Dictionary<int, PdfIndirectObject> objects,
-        List<ContentStreamContext> streams,
-        List<ContentStreamContext> visitedContexts,
-        Stack<(PdfDictionary Resources, ColorSpaceAliases Aliases, int Depth)> pending,
-        int depth,
-        int maximumObjectDepth) {
-        if (!resources.Items.TryGetValue("Pattern", out PdfObject? patternsObject) ||
-            ResolveObject(
-                objects,
-                patternsObject,
-                depth + 1,
-                maximumObjectDepth,
-                out int patternsDepth) is not PdfDictionary patterns) return;
-        foreach (PdfObject patternObject in patterns.Items.Values) {
-            if (ResolveObject(
-                    objects,
-                    patternObject,
-                    patternsDepth + 1,
-                    maximumObjectDepth,
-                    out int patternDepth) is not PdfStream pattern ||
-                !pattern.Dictionary.Items.TryGetValue("PatternType", out PdfObject? patternType) ||
-                ResolveObject(objects, patternType, patternDepth + 1, maximumObjectDepth) is not PdfNumber patternTypeNumber ||
-                patternTypeNumber.Value != 1D) continue;
-
-            ColorSpaceAliases aliases = inheritedAliases;
-            PdfDictionary childResources = resources;
-            if (pattern.Dictionary.Items.TryGetValue("Resources", out PdfObject? patternResourcesObject) &&
-                ResolveObject(
-                    objects,
-                    patternResourcesObject,
-                    patternDepth + 1,
-                    maximumObjectDepth,
-                    out int patternResourcesDepth) is PdfDictionary patternResources) {
-                aliases = CreateColorSpaceAliases(patternResources, objects, maximumObjectDepth);
-                childResources = patternResources;
-                patternDepth = patternResourcesDepth;
-            }
-            if (ContainsContentStreamContext(visitedContexts, pattern, aliases)) continue;
-            visitedContexts.Add(new ContentStreamContext(pattern, aliases));
-            AddContentStream(pattern, aliases, streams);
-            pending.Push((childResources, aliases, patternDepth + 1));
-        }
-    }
-
-    private static void CollectResourceShadingContexts(
-        PdfDictionary resources,
-        ColorSpaceAliases aliases,
-        Dictionary<int, PdfIndirectObject> objects,
-        List<ShadingContext> shadings,
-        int depth,
-        int maximumObjectDepth) {
-        if (resources.Items.TryGetValue("Shading", out PdfObject? shadingResourcesObject) &&
-            ResolveObject(
-                objects,
-                shadingResourcesObject,
-                depth + 1,
-                maximumObjectDepth,
-                out int shadingResourcesDepth) is PdfDictionary shadingResources) {
-            foreach (PdfObject shadingObject in shadingResources.Items.Values) {
-                AddResolvedShadingContext(
-                    shadingObject,
-                    shadingResourcesDepth + 1,
-                    aliases,
-                    objects,
-                    shadings,
-                    maximumObjectDepth);
-            }
-        }
-
-        if (!resources.Items.TryGetValue("Pattern", out PdfObject? patternResourcesObject) ||
-            ResolveObject(
-                objects,
-                patternResourcesObject,
-                depth + 1,
-                maximumObjectDepth,
-                out int patternResourcesDepth) is not PdfDictionary patternResources) return;
-        foreach (PdfObject patternObject in patternResources.Items.Values) {
-            PdfObject? resolvedPattern = ResolveObject(
-                objects,
-                patternObject,
-                patternResourcesDepth + 1,
-                maximumObjectDepth,
-                out int patternDepth);
-            PdfDictionary? pattern = resolvedPattern switch {
-                PdfDictionary dictionary => dictionary,
-                PdfStream stream => stream.Dictionary,
-                _ => null
-            };
-            if (pattern == null || !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject)) continue;
-            AddResolvedShadingContext(
-                shadingObject,
-                patternDepth + 1,
-                aliases,
-                objects,
-                shadings,
-                maximumObjectDepth);
-        }
-    }
-
-    private static void AddResolvedShadingContext(
+    private static bool AddResolvedShadingContext(
         PdfObject value,
         int depth,
         ColorSpaceAliases aliases,
@@ -306,12 +40,13 @@ internal static partial class PdfPrintProductionColorInspector {
             PdfStream stream => stream.Dictionary,
             _ => null
         };
-        if (shading == null) return;
+        if (shading == null) return false;
         for (int index = 0; index < shadings.Count; index++) {
             ShadingContext existing = shadings[index];
-            if (ReferenceEquals(existing.Dictionary, shading) && existing.Aliases.SetEquals(aliases)) return;
+            if (ReferenceEquals(existing.Dictionary, shading) && existing.Aliases.SetEquals(aliases)) return true;
         }
         shadings.Add(new ShadingContext(shading, aliases));
+        return true;
     }
 
     private static void AddImageContext(
@@ -326,41 +61,420 @@ internal static partial class PdfPrintProductionColorInspector {
         images.Add(new ImageContext(image, aliases));
     }
 
-    private static void AddInvokedFormContext(
-        PdfStream form,
-        int formDepth,
-        PdfDictionary inheritedResources,
-        ColorSpaceAliases inheritedAliases,
-        Dictionary<int, PdfIndirectObject> objects,
+    private static ReachableResourceCollection CollectReachableResourceContexts(
         List<ContentStreamContext> streams,
-        List<ContentStreamContext> visitedContexts,
-        Stack<(PdfDictionary Resources, ColorSpaceAliases Aliases, int Depth)> pending,
-        int maximumObjectDepth) {
-        if (!string.Equals(
-                ResolveName(
-                    form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null,
-                    objects,
-                    maximumObjectDepth),
-                "Form",
-                StringComparison.Ordinal)) return;
+        int firstContext,
+        Dictionary<int, PdfIndirectObject> objects,
+        List<ImageContext> images,
+        List<ShadingContext> shadings,
+        HashSet<PdfDictionary> graphicsStates,
+        PdfReadLimits limits,
+        System.Threading.CancellationToken cancellationToken) {
+        var contentDepths = new List<int>();
+        for (int index = firstContext; index < streams.Count; index++) contentDepths.Add(0);
 
-        ColorSpaceAliases formAliases = inheritedAliases;
-        PdfDictionary childResources = inheritedResources;
-        if (form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourcesObject) &&
-            ResolveObject(
-                objects,
-                formResourcesObject,
-                formDepth + 1,
-                maximumObjectDepth,
-                out int formResourcesDepth) is PdfDictionary formResources) {
-            formAliases = CreateColorSpaceAliases(formResources, objects, maximumObjectDepth);
-            childResources = formResources;
-            formDepth = formResourcesDepth;
+        int uninspectable = 0;
+        int transparencyGroups = 0;
+        for (int localIndex = 0; localIndex < contentDepths.Count; localIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ContentStreamContext context = streams[firstContext + localIndex];
+            if (!StreamDecoder.TryDecode(
+                    context.Stream.Dictionary,
+                    context.Stream.Data,
+                    limits.MaxDecodedStreamBytes,
+                    out byte[] decoded,
+                    objects)) continue;
+
+            bool contextWasUninspectable = false;
+            try {
+                PdfContentStreamInterpreter.Interpret(
+                    PdfEncoding.Latin1GetString(decoded),
+                    limits.MaxContentOperations,
+                    operation => {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        switch (operation.Name) {
+                            case "Do":
+                                if (operation.HasInvalidOperands ||
+                                    operation.Operands.Count != 1 ||
+                                    operation.Operands[0] is not string xObjectName ||
+                                    !TryResolveResource(
+                                        context.Resources,
+                                        "XObject",
+                                        xObjectName,
+                                        objects,
+                                        limits.MaxObjectNestingDepth,
+                                        out PdfObject? xObject) ||
+                                    ResolveObject(
+                                        objects,
+                                        xObject,
+                                        0,
+                                        limits.MaxObjectNestingDepth,
+                                        out int xObjectDepth) is not PdfStream xObjectStream) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
+                                string? subtype = ResolveName(
+                                    xObjectStream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
+                                        ? subtypeObject
+                                        : null,
+                                    objects,
+                                    limits.MaxObjectNestingDepth);
+                                if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
+                                    AddImageContext(xObjectStream.Dictionary, context.Aliases, images);
+                                } else if (!string.Equals(subtype, "Form", StringComparison.Ordinal) ||
+                                    !AddNestedStream(
+                                        xObjectStream,
+                                        xObjectDepth,
+                                        context.Resources,
+                                        context.Aliases,
+                                        contentDepths[localIndex] + 1,
+                                        streams,
+                                        contentDepths,
+                                        objects,
+                                        limits,
+                                        ref transparencyGroups)) {
+                                    contextWasUninspectable = true;
+                                }
+                                break;
+                            case "sh":
+                                if (operation.HasInvalidOperands ||
+                                    operation.Operands.Count != 1 ||
+                                    operation.Operands[0] is not string shadingName ||
+                                    !TryResolveResource(
+                                        context.Resources,
+                                        "Shading",
+                                        shadingName,
+                                        objects,
+                                        limits.MaxObjectNestingDepth,
+                                        out PdfObject? shadingObject)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
+                                if (!AddResolvedShadingContext(
+                                        shadingObject!,
+                                        0,
+                                        context.Aliases,
+                                        objects,
+                                        shadings,
+                                        limits.MaxObjectNestingDepth)) {
+                                    contextWasUninspectable = true;
+                                }
+                                break;
+                            case "gs":
+                                if (operation.HasInvalidOperands ||
+                                    operation.Operands.Count != 1 ||
+                                    operation.Operands[0] is not string graphicsStateName ||
+                                    !TryResolveResource(
+                                        context.Resources,
+                                        "ExtGState",
+                                        graphicsStateName,
+                                        objects,
+                                        limits.MaxObjectNestingDepth,
+                                        out PdfObject? graphicsStateObject) ||
+                                    ResolveObject(
+                                        objects,
+                                        graphicsStateObject,
+                                        0,
+                                        limits.MaxObjectNestingDepth,
+                                        out int graphicsStateDepth) is not PdfDictionary graphicsState) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
+                                graphicsStates.Add(graphicsState);
+                                if (!TryAddSoftMaskStream(
+                                        graphicsState,
+                                        graphicsStateDepth,
+                                        context,
+                                        contentDepths[localIndex] + 1,
+                                        streams,
+                                        contentDepths,
+                                        objects,
+                                        limits,
+                                        ref transparencyGroups)) {
+                                    contextWasUninspectable = true;
+                                }
+                                break;
+                            case "scn":
+                            case "SCN":
+                                if (operation.Operands.Count > 0 &&
+                                    operation.Operands[operation.Operands.Count - 1] is string patternName &&
+                                    !TryAddPatternContext(
+                                        patternName,
+                                        context,
+                                        contentDepths[localIndex] + 1,
+                                        streams,
+                                        contentDepths,
+                                        objects,
+                                        shadings,
+                                        limits,
+                                        ref transparencyGroups)) {
+                                    contextWasUninspectable = true;
+                                }
+                                break;
+                            case "Tf":
+                                if (operation.HasInvalidOperands ||
+                                    operation.Operands.Count != 2 ||
+                                    operation.Operands[0] is not string fontName ||
+                                    !TryAddType3CharProcs(
+                                        fontName,
+                                        context,
+                                        contentDepths[localIndex] + 1,
+                                        streams,
+                                        contentDepths,
+                                        objects,
+                                        limits,
+                                        ref transparencyGroups)) {
+                                    contextWasUninspectable = true;
+                                }
+                                break;
+                        }
+                    },
+                    maxNestingDepth: limits.MaxContentNestingDepth,
+                    maxOperands: limits.MaxContentOperands,
+                    dispatchInvalidOperations: true);
+            } catch (Exception exception) when (
+                exception is InvalidDataException ||
+                exception is PdfReadLimitException ||
+                exception is FormatException) {
+                // The normal inspection pass records decoding/interpreter failures once.
+                continue;
+            }
+            if (contextWasUninspectable) uninspectable++;
         }
 
-        if (ContainsContentStreamContext(visitedContexts, form, formAliases)) return;
-        visitedContexts.Add(new ContentStreamContext(form, formAliases));
-        AddContentStream(form, formAliases, streams);
-        pending.Push((childResources, formAliases, formDepth + 1));
+        return new ReachableResourceCollection(uninspectable, transparencyGroups);
     }
+
+    private static bool AddNestedStream(
+        PdfStream stream,
+        int objectDepth,
+        PdfDictionary? inheritedResources,
+        ColorSpaceAliases inheritedAliases,
+        int contentDepth,
+        List<ContentStreamContext> streams,
+        List<int> contentDepths,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        ref int transparencyGroups) {
+        if (contentDepth > limits.MaxContentNestingDepth) return false;
+
+        PdfDictionary? resources = inheritedResources;
+        ColorSpaceAliases aliases = inheritedAliases;
+        if (stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject)) {
+            if (ResolveObject(
+                    objects,
+                    resourcesObject,
+                    objectDepth + 1,
+                    limits.MaxObjectNestingDepth,
+                    out _) is not PdfDictionary directResources) return false;
+            resources = directResources;
+            aliases = CreateColorSpaceAliases(directResources, objects, limits.MaxObjectNestingDepth);
+        }
+
+        int count = streams.Count;
+        AddContentStream(stream, aliases, resources, streams);
+        if (streams.Count == count) return true;
+        contentDepths.Add(contentDepth);
+        if (IsTransparencyGroup(stream.Dictionary, objects, limits.MaxObjectNestingDepth)) transparencyGroups++;
+        return true;
+    }
+
+    private static bool TryAddSoftMaskStream(
+        PdfDictionary graphicsState,
+        int graphicsStateDepth,
+        ContentStreamContext context,
+        int contentDepth,
+        List<ContentStreamContext> streams,
+        List<int> contentDepths,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        ref int transparencyGroups) {
+        if (!graphicsState.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) return true;
+        if (string.Equals(
+                ResolveName(softMaskObject, objects, limits.MaxObjectNestingDepth),
+                "None",
+                StringComparison.Ordinal)) return true;
+        if (ResolveObject(
+                objects,
+                softMaskObject,
+                graphicsStateDepth + 1,
+                limits.MaxObjectNestingDepth,
+                out int softMaskDepth) is not PdfDictionary softMask ||
+            !softMask.Items.TryGetValue("G", out PdfObject? groupObject) ||
+            ResolveObject(
+                objects,
+                groupObject,
+                softMaskDepth + 1,
+                limits.MaxObjectNestingDepth,
+                out int groupDepth) is not PdfStream group) return false;
+        return AddNestedStream(
+            group,
+            groupDepth,
+            context.Resources,
+            context.Aliases,
+            contentDepth,
+            streams,
+            contentDepths,
+            objects,
+            limits,
+            ref transparencyGroups);
+    }
+
+    private static bool TryAddPatternContext(
+        string patternName,
+        ContentStreamContext context,
+        int contentDepth,
+        List<ContentStreamContext> streams,
+        List<int> contentDepths,
+        Dictionary<int, PdfIndirectObject> objects,
+        List<ShadingContext> shadings,
+        PdfReadLimits limits,
+        ref int transparencyGroups) {
+        if (!TryResolveResource(
+                context.Resources,
+                "Pattern",
+                patternName,
+                objects,
+                limits.MaxObjectNestingDepth,
+                out PdfObject? patternObject)) return false;
+        PdfObject? resolved = ResolveObject(
+            objects,
+            patternObject,
+            0,
+            limits.MaxObjectNestingDepth,
+            out int patternDepth);
+        PdfDictionary? pattern = resolved switch {
+            PdfDictionary dictionary => dictionary,
+            PdfStream stream => stream.Dictionary,
+            _ => null
+        };
+        if (pattern == null ||
+            !pattern.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ||
+            ResolveObject(
+                objects,
+                patternTypeObject,
+                patternDepth + 1,
+                limits.MaxObjectNestingDepth) is not PdfNumber patternType) return false;
+        if (patternType.Value == 1D && resolved is PdfStream tilingPattern) {
+            return AddNestedStream(
+                tilingPattern,
+                patternDepth,
+                context.Resources,
+                context.Aliases,
+                contentDepth,
+                streams,
+                contentDepths,
+                objects,
+                limits,
+                ref transparencyGroups);
+        }
+        if (patternType.Value == 2D && pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject)) {
+            return AddResolvedShadingContext(
+                shadingObject,
+                patternDepth + 1,
+                context.Aliases,
+                objects,
+                shadings,
+                limits.MaxObjectNestingDepth);
+        }
+        return false;
+    }
+
+    private static bool TryAddType3CharProcs(
+        string fontName,
+        ContentStreamContext context,
+        int contentDepth,
+        List<ContentStreamContext> streams,
+        List<int> contentDepths,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        ref int transparencyGroups) {
+        if (!TryResolveResource(
+                context.Resources,
+                "Font",
+                fontName,
+                objects,
+                limits.MaxObjectNestingDepth,
+                out PdfObject? fontObject) ||
+            ResolveObject(
+                objects,
+                fontObject,
+                0,
+                limits.MaxObjectNestingDepth,
+                out int fontDepth) is not PdfDictionary font) return false;
+        string? subtype = ResolveName(
+            font.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null,
+            objects,
+            limits.MaxObjectNestingDepth);
+        if (!string.Equals(subtype, "Type3", StringComparison.Ordinal)) return true;
+        if (!font.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) ||
+            ResolveObject(
+                objects,
+                charProcsObject,
+                fontDepth + 1,
+                limits.MaxObjectNestingDepth,
+                out int charProcsDepth) is not PdfDictionary charProcs) return false;
+
+        PdfDictionary? resources = context.Resources;
+        ColorSpaceAliases aliases = context.Aliases;
+        if (font.Items.TryGetValue("Resources", out PdfObject? resourcesObject)) {
+            if (ResolveObject(
+                    objects,
+                    resourcesObject,
+                    fontDepth + 1,
+                    limits.MaxObjectNestingDepth,
+                    out _) is not PdfDictionary fontResources) return false;
+            resources = fontResources;
+            aliases = CreateColorSpaceAliases(fontResources, objects, limits.MaxObjectNestingDepth);
+        }
+        foreach (PdfObject charProcObject in charProcs.Items.Values) {
+            if (ResolveObject(
+                    objects,
+                    charProcObject,
+                    charProcsDepth + 1,
+                    limits.MaxObjectNestingDepth,
+                    out int charProcDepth) is not PdfStream charProc ||
+                !AddNestedStream(
+                    charProc,
+                    charProcDepth,
+                    resources,
+                    aliases,
+                    contentDepth,
+                    streams,
+                    contentDepths,
+                    objects,
+                    limits,
+                    ref transparencyGroups)) return false;
+        }
+        return charProcs.Items.Count > 0;
+    }
+
+    private static bool IsTransparencyGroup(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) =>
+        dictionary.Items.TryGetValue("Group", out PdfObject? groupObject) &&
+        ResolveObject(objects, groupObject, 0, maximumObjectDepth) is PdfDictionary group &&
+        string.Equals(
+            ResolveName(
+                group.Items.TryGetValue("S", out PdfObject? subtypeObject) ? subtypeObject : null,
+                objects,
+                maximumObjectDepth),
+            "Transparency",
+            StringComparison.Ordinal);
+
+    private static bool TryResolveResource(
+        PdfDictionary? resources,
+        string category,
+        string name,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        out PdfObject? resource) {
+        resource = null;
+        return resources != null &&
+            resources.Items.TryGetValue(category, out PdfObject? categoryObject) &&
+            ResolveObject(objects, categoryObject, 0, maximumObjectDepth) is PdfDictionary entries &&
+            entries.Items.TryGetValue(name, out resource);
+    }
+
 }

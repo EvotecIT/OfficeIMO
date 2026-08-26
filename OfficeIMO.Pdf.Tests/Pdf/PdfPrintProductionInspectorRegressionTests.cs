@@ -7,7 +7,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     [Fact]
     public void ColorInspectorFindsDirectResourceAndPatternShadingDictionaries() {
         byte[] pdf = BuildInspectionPdf(
-            "/S1 sh",
+            "/S1 sh /Pattern cs /P1 scn",
             resources:
                 "/Shading << /S1 << /ShadingType 2 /ColorSpace /DeviceRGB >> >> " +
                 "/Pattern << /P1 << /Type /Pattern /PatternType 2 /Shading << /ShadingType 3 /ColorSpace /DeviceCMYK >> >> >>");
@@ -156,6 +156,42 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorIgnoresUnusedImageAndFormXObjects() {
+        const string unusedFormContent = "/DeviceRGB cs 1 0 0 sc";
+        const string unusedPatternContent = "/DeviceRGB cs 1 0 0 sc";
+        const string unusedSoftMaskContent = "/DeviceRGB cs 1 0 0 sc";
+        const string unusedCharProcContent = "/DeviceRGB cs 1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            resources:
+                "/XObject << /UnusedImage 5 0 R /UnusedForm 6 0 R >> " +
+                "/Shading << /UnusedShading << /ShadingType 2 /ColorSpace /DeviceRGB >> >> " +
+                "/Pattern << /UnusedPattern 7 0 R >> " +
+                "/ExtGState << /UnusedState << /ca 0.5 /SMask << /S /Luminosity /G 8 0 R >> >> >> " +
+                "/Font << /UnusedFont 9 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n" +
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+                unusedFormContent.Length + " >>\nstream\n" + unusedFormContent + "\nendstream\nendobj\n" +
+                "7 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Length " +
+                unusedPatternContent.Length + " >>\nstream\n" + unusedPatternContent + "\nendstream\nendobj\n" +
+                "8 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency >> /Length " +
+                unusedSoftMaskContent.Length + " >>\nstream\n" + unusedSoftMaskContent + "\nendstream\nendobj\n" +
+                "9 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+                "/CharProcs << /A 10 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] >>\nendobj\n" +
+                "10 0 obj\n<< /Length " + unusedCharProcContent.Length + " >>\nstream\n" + unusedCharProcContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.Equal(0, evidence.DeviceRgbImageCount);
+        Assert.Equal(0, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.DeviceRgbShadingCount);
+        Assert.Equal(0, evidence.NonOpaqueGraphicsStateCount);
+        Assert.Equal(0, evidence.TransparencyGroupCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void StructureInspectorAcceptsArtBoxWithoutExplicitBleedBox() {
         byte[] pdf = BuildInspectionPdf(
             string.Empty,
@@ -198,6 +234,43 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.FontResourceCount);
         Assert.Equal(1, evidence.UnembeddedFontResourceCount);
         Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void StructureInspectorRejectsType0FontWithoutValidDescendant() {
+        const string type1Program = "%!PS-AdobeFont fixture eexec";
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Fixture /Encoding /Identity-H /FontDescriptor 6 0 R >>\nendobj\n" +
+                "6 0 obj\n<< /Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] " +
+                "/ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile 7 0 R >>\nendobj\n" +
+                "7 0 obj\n<< /Length " + type1Program.Length + " >>\nstream\n" + type1Program + "\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void MetadataInspectorResolvesIndirectInfoValues() {
+        byte[] pdf = BuildIndirectInfoPdf();
+
+        PdfMetadata metadata = PdfReadDocument.Open(pdf).Metadata;
+
+        Assert.Equal("Indirect title", metadata.Title);
+        Assert.Equal("Indirect author", metadata.Author);
+        Assert.Equal("Indirect subject", metadata.Subject);
+        Assert.Equal("alpha, beta", metadata.Keywords);
+        Assert.Equal(PdfTrappingStatus.False, metadata.TrappingStatus);
+        Assert.Equal(new DateTimeOffset(2026, 8, 26, 7, 0, 0, TimeSpan.Zero), metadata.CreationDate);
+        Assert.Equal(new DateTimeOffset(2026, 8, 26, 7, 5, 0, TimeSpan.Zero), metadata.ModificationDate);
+        Assert.Equal("PDF/X-4", metadata.PdfXVersion);
+        Assert.Equal("PDF/X-4", metadata.PdfXConformance);
     }
 
     [Fact]
@@ -399,6 +472,23 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         WriteAscii(output, "5 0 obj\n<< /Type /Metadata /Subtype /XML /Length " + metadataBytes.Length + " >>\nstream\n");
         output.Write(metadataBytes, 0, metadataBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildIndirectInfoPdf() {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n");
+        WriteAscii(output, "5 2 obj\n<< /Title 6 0 R /Author 7 0 R /Subject 8 0 R /Keywords 9 0 R /Trapped 10 0 R " +
+            "/CreationDate 11 0 R /ModDate 12 0 R /GTS_PDFXVersion 13 0 R /GTS_PDFXConformance 14 0 R >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n(Indirect title)\nendobj\n7 0 obj\n(Indirect author)\nendobj\n" +
+            "8 0 obj\n(Indirect subject)\nendobj\n9 0 obj\n(alpha, beta)\nendobj\n10 0 obj\n/False\nendobj\n" +
+            "11 0 obj\n(D:20260826070000Z)\nendobj\n12 0 obj\n(D:20260826070500Z)\nendobj\n" +
+            "13 0 obj\n(PDF/X-4)\nendobj\n14 0 obj\n(PDF/X-4)\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Info 5 2 R >>\n%%EOF\n");
         return output.ToArray();
     }
 

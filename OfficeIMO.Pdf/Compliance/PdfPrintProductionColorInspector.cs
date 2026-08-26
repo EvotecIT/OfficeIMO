@@ -16,7 +16,6 @@ internal static partial class PdfPrintProductionColorInspector {
         var shadingContexts = new List<ShadingContext>();
         var graphicsStateDictionaries = new HashSet<PdfDictionary>();
         var shadingDictionaries = new HashSet<PdfDictionary>();
-        var inspectedDictionaries = new HashSet<PdfDictionary>();
         int rgbImages = 0;
         int cmykImages = 0;
         int rgbShadings = 0;
@@ -25,6 +24,7 @@ internal static partial class PdfPrintProductionColorInspector {
         int transparentImages = 0;
         int nonOpaqueStates = 0;
         int transparencyGroups = 0;
+        int uninspectableResourceContexts = 0;
 
         foreach (PdfReadPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -35,39 +35,33 @@ internal static partial class PdfPrintProductionColorInspector {
                 objects,
                 inheritResources: true,
                 maximumObjectDepth);
-            if (dictionary.Items.TryGetValue("Contents", out PdfObject? contents)) {
-                CollectStreams(
-                    contents,
-                    objects,
-                    pageAliases,
-                    contentStreams,
-                    maximumObjectDepth);
-            }
-
             PdfDictionary? pageResources = ResolveResourcesDictionary(
                 dictionary,
                 objects,
                 inheritResources: true,
                 maximumObjectDepth);
-            if (pageResources != null) {
-                CollectResourceFormStreams(
-                    pageResources,
+            int firstPageContext = contentStreams.Count;
+            if (dictionary.Items.TryGetValue("Contents", out PdfObject? contents)) {
+                CollectStreams(
+                    contents,
                     objects,
                     pageAliases,
+                    pageResources,
                     contentStreams,
-                    imageContexts,
-                    shadingContexts,
                     maximumObjectDepth);
             }
-
-            CollectNestedDictionaryEvidence(
-                dictionary,
+            ReachableResourceCollection reachable = CollectReachableResourceContexts(
+                contentStreams,
+                firstPageContext,
                 objects,
+                imageContexts,
+                shadingContexts,
                 graphicsStateDictionaries,
-                shadingDictionaries,
-                inspectedDictionaries,
-                ref transparencyGroups,
-                maximumObjectDepth);
+                document.ReadOptions.Limits,
+                cancellationToken);
+            uninspectableResourceContexts += reachable.UninspectableContextCount;
+            transparencyGroups += reachable.TransparencyGroupCount;
+            if (IsTransparencyGroup(dictionary, objects, maximumObjectDepth)) transparencyGroups++;
         }
 
         foreach (ImageContext context in imageContexts) imageDictionaries.Add(context.Dictionary);
@@ -159,7 +153,7 @@ internal static partial class PdfPrintProductionColorInspector {
 
         int rgbOperators = 0;
         int cmykOperators = 0;
-        int uninspectable = 0;
+        int uninspectable = uninspectableResourceContexts;
         foreach (ContentStreamContext context in contentStreams) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfStream stream = context.Stream;
@@ -330,6 +324,7 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfObject value,
         Dictionary<int, PdfIndirectObject> objects,
         ColorSpaceAliases aliases,
+        PdfDictionary? resources,
         List<ContentStreamContext> streams,
         int maximumObjectDepth) {
         var pending = new Stack<(PdfObject Value, int Depth)>();
@@ -345,7 +340,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 maximumObjectDepth,
                 out int resolvedDepth);
             if (resolved is PdfStream stream) {
-                AddContentStream(stream, aliases, streams);
+                AddContentStream(stream, aliases, resources, streams);
             } else if (resolved is PdfArray array && inspectedArrays.Add(array)) {
                 for (int index = array.Items.Count - 1; index >= 0; index--) {
                     pending.Push((array.Items[index], resolvedDepth + 1));
@@ -434,79 +429,6 @@ internal static partial class PdfPrintProductionColorInspector {
             if (ContainsColorSpace(entry.Value, "DeviceRGB", objects, maximumObjectDepth)) rgbAliases.Add(entry.Key);
             if (ContainsColorSpace(entry.Value, "DeviceCMYK", objects, maximumObjectDepth)) cmykAliases.Add(entry.Key);
             if (ContainsDeviceIndependentColorSpace(entry.Value, objects, maximumObjectDepth)) deviceIndependentAliases.Add(entry.Key);
-        }
-    }
-
-    private static void CollectNestedDictionaryEvidence(
-        PdfDictionary dictionary,
-        Dictionary<int, PdfIndirectObject> objects,
-        HashSet<PdfDictionary> graphicsStates,
-        HashSet<PdfDictionary> shadings,
-        HashSet<PdfDictionary> inspected,
-        ref int transparencyGroups,
-        int maximumObjectDepth) {
-        var pending = new Stack<(PdfObject Value, int Depth)>();
-        var inspectedArrays = new HashSet<PdfArray>();
-        pending.Push((dictionary, 0));
-        while (pending.Count > 0) {
-            (PdfObject candidate, int depth) = pending.Pop();
-            ThrowIfObjectDepthExceeded(depth, maximumObjectDepth);
-            PdfObject? resolved = ResolveObject(
-                objects,
-                candidate,
-                depth,
-                maximumObjectDepth,
-                out int resolvedDepth);
-            PdfDictionary? current = resolved switch {
-                PdfDictionary resolvedDictionary => resolvedDictionary,
-                PdfStream stream => stream.Dictionary,
-                _ => null
-            };
-            if (current != null) {
-                if (!inspected.Add(current)) continue;
-                CollectGraphicsStates(current, objects, graphicsStates, maximumObjectDepth);
-                if (current.Items.ContainsKey("ShadingType")) shadings.Add(current);
-                if (string.Equals(
-                        ResolveName(
-                            current.Items.TryGetValue("Type", out PdfObject? type) ? type : null,
-                            objects,
-                            maximumObjectDepth),
-                        "ExtGState",
-                        StringComparison.Ordinal)) {
-                    graphicsStates.Add(current);
-                }
-                if (string.Equals(
-                        ResolveName(
-                            current.Items.TryGetValue("S", out PdfObject? subtype) ? subtype : null,
-                            objects,
-                            maximumObjectDepth),
-                        "Transparency",
-                        StringComparison.Ordinal)) {
-                    transparencyGroups++;
-                }
-                foreach (PdfObject child in current.Items.Values) {
-                    pending.Push((child, resolvedDepth + 1));
-                }
-            } else if (resolved is PdfArray array && inspectedArrays.Add(array)) {
-                for (int index = array.Items.Count - 1; index >= 0; index--) {
-                    pending.Push((array.Items[index], resolvedDepth + 1));
-                }
-            }
-        }
-    }
-
-    private static void CollectGraphicsStates(
-        PdfDictionary dictionary,
-        Dictionary<int, PdfIndirectObject> objects,
-        HashSet<PdfDictionary> graphicsStates,
-        int maximumObjectDepth) {
-        if (!dictionary.Items.TryGetValue("ExtGState", out PdfObject? graphicsStatesObject) ||
-            ResolveObject(objects, graphicsStatesObject, 0, maximumObjectDepth) is not PdfDictionary resources) return;
-
-        foreach (PdfObject value in resources.Items.Values) {
-            if (ResolveObject(objects, value, 0, maximumObjectDepth) is PdfDictionary graphicsState) {
-                graphicsStates.Add(graphicsState);
-            }
         }
     }
 
@@ -713,7 +635,14 @@ internal static partial class PdfPrintProductionColorInspector {
             DeviceIndependent.SetEquals(other.DeviceIndependent);
     }
 
-    private sealed record ContentStreamContext(PdfStream Stream, ColorSpaceAliases Aliases);
+    private sealed record ContentStreamContext(
+        PdfStream Stream,
+        ColorSpaceAliases Aliases,
+        PdfDictionary? Resources);
+
+    private sealed record ReachableResourceCollection(
+        int UninspectableContextCount,
+        int TransparencyGroupCount);
 
     private sealed record ImageContext(PdfDictionary Dictionary, ColorSpaceAliases Aliases);
 

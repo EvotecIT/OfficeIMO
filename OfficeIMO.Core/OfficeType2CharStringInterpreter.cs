@@ -127,7 +127,9 @@ internal sealed class OfficeType2CharStringInterpreter {
                 case 7: AlternatingLines(horizontalFirst: false); break;
                 case 8: RelativeCurves(); break;
                 case 10: CallSubroutine(_localSubroutines, depth); break;
-                case 11: return true;
+                case 11:
+                    if (depth == 0) throw new InvalidDataException("A top-level CFF CharString cannot use return.");
+                    return true;
                 case 12:
                     if (offset >= end) throw new InvalidDataException("A CFF escaped operator is truncated.");
                     ExecuteEscaped(data[offset++]);

@@ -232,6 +232,23 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void CffRejectsReturnInTopLevelCharString() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var program = new OfficeCffFontData.CffSlice(new byte[] {
+            139, 139, 21, // rmoveto 0 0
+            11,           // invalid top-level return
+            14
+        }, 0, 5);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new OfficeType2CharStringInterpreter(cff, 0, new CountingCffSink(), CancellationToken.None).Render(program));
+
+        Assert.Contains("top-level", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CffOutlinedRunsCanShareOneOperationBudgetAcrossCalls() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Source Sans", data).Faces);

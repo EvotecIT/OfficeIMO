@@ -108,11 +108,23 @@ internal static partial class PdfPrintProductionStructureInspector {
         }
 
         PdfDictionary fontWithDescriptor = font;
-        if (string.Equals(subtype, "Type0", StringComparison.Ordinal) &&
-            font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject) &&
-            ResolveObject(objects, descendantsObject, 0, maximumObjectDepth, out _) is PdfArray descendants &&
-            descendants.Items.Count > 0 &&
-            ResolveObject(objects, descendants.Items[0], 0, maximumObjectDepth, out _) is PdfDictionary descendant) {
+        if (string.Equals(subtype, "Type0", StringComparison.Ordinal)) {
+            if (!font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject) ||
+                ResolveObject(objects, descendantsObject, 0, maximumObjectDepth, out _) is not PdfArray descendants ||
+                descendants.Items.Count != 1 ||
+                ResolveObject(objects, descendants.Items[0], 0, maximumObjectDepth, out _) is not PdfDictionary descendant) {
+                return false;
+            }
+            string? descendantSubtype = ResolveName(
+                descendant.Items.TryGetValue("Subtype", out PdfObject? descendantSubtypeObject)
+                    ? descendantSubtypeObject
+                    : null,
+                objects,
+                maximumObjectDepth);
+            if (!string.Equals(descendantSubtype, "CIDFontType0", StringComparison.Ordinal) &&
+                !string.Equals(descendantSubtype, "CIDFontType2", StringComparison.Ordinal)) {
+                return false;
+            }
             fontWithDescriptor = descendant;
         }
 

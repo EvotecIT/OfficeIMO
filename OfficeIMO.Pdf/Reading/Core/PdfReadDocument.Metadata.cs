@@ -26,17 +26,24 @@ public sealed partial class PdfReadDocument {
         }
         if (!PdfObjectLookup.TryGet(_objects, infoReference, out var infoObj) ||
             infoObj.Value is not PdfDictionary dict) return new PdfMetadata();
-        string? GetStr(string key) => dict.Get<PdfStringObj>(key)?.Value;
+        string? GetText(string key) =>
+            dict.Items.TryGetValue(key, out PdfObject? value) && ResolveObject(value) is PdfStringObj text
+                ? text.Value
+                : null;
+        string? GetName(string key) =>
+            dict.Items.TryGetValue(key, out PdfObject? value) && ResolveObject(value) is PdfName name
+                ? name.Name
+                : null;
         return new PdfMetadata {
-            Title = GetStr("Title"),
-            Author = GetStr("Author"),
-            Subject = GetStr("Subject"),
-            Keywords = GetStr("Keywords"),
-            TrappingStatus = ParseTrappingStatus(dict.Get<PdfName>("Trapped")?.Name),
-            CreationDate = PdfDateCodec.TryParse(GetStr("CreationDate")),
-            ModificationDate = PdfDateCodec.TryParse(GetStr("ModDate")),
-            PdfXVersion = GetStr("GTS_PDFXVersion"),
-            PdfXConformance = GetStr("GTS_PDFXConformance")
+            Title = GetText("Title"),
+            Author = GetText("Author"),
+            Subject = GetText("Subject"),
+            Keywords = GetText("Keywords"),
+            TrappingStatus = ParseTrappingStatus(GetName("Trapped")),
+            CreationDate = PdfDateCodec.TryParse(GetText("CreationDate")),
+            ModificationDate = PdfDateCodec.TryParse(GetText("ModDate")),
+            PdfXVersion = GetText("GTS_PDFXVersion"),
+            PdfXConformance = GetText("GTS_PDFXConformance")
         };
     }
 
