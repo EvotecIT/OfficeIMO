@@ -53,11 +53,7 @@ public sealed class DrawingRasterCodecRobustnessTests {
             var options = new OfficeRasterDecodeOptions {
                 CancellationToken = cancellation.Token
             };
-            var cancelThread = new Thread(() => {
-                Thread.Sleep(10);
-                cancellation.Cancel();
-            }) { IsBackground = true };
-            cancelThread.Start();
+            Thread cancelThread = StartCancellationThread(cancellation, delayMilliseconds: 10);
 
             try {
                 Assert.Throws<OperationCanceledException>(() =>
@@ -72,11 +68,7 @@ public sealed class DrawingRasterCodecRobustnessTests {
     public void BoundedPngIdentificationObservesCancellationDuringChunkValidation() {
         byte[] png = CreatePngWithLargeAncillaryPayload();
         using var cancellation = new CancellationTokenSource();
-        var cancelThread = new Thread(() => {
-            Thread.Sleep(10);
-            cancellation.Cancel();
-        }) { IsBackground = true };
-        cancelThread.Start();
+        Thread cancelThread = StartCancellationThread(cancellation, delayMilliseconds: 1);
 
         try {
             Assert.Throws<OperationCanceledException>(() =>
@@ -90,11 +82,7 @@ public sealed class DrawingRasterCodecRobustnessTests {
     public void WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops() {
         byte[] bmp = CreateWideBmp32(width: 8 * 1024 * 1024);
         using var cancellation = new CancellationTokenSource();
-        var cancelThread = new Thread(() => {
-            Thread.Sleep(1);
-            cancellation.Cancel();
-        }) { IsBackground = true };
-        cancelThread.Start();
+        Thread cancelThread = StartCancellationThread(cancellation, delayMilliseconds: 1);
 
         try {
             Assert.Throws<OperationCanceledException>(() =>
@@ -120,11 +108,7 @@ public sealed class DrawingRasterCodecRobustnessTests {
         byte[] tiff = CreateWideGrayscaleTiff(width: 8 * 1024 * 1024);
         using var cancellation = new CancellationTokenSource();
         var options = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
-        var cancelThread = new Thread(() => {
-            Thread.Sleep(10);
-            cancellation.Cancel();
-        }) { IsBackground = true };
-        cancelThread.Start();
+        Thread cancelThread = StartCancellationThread(cancellation, delayMilliseconds: 10);
 
         try {
             Assert.Throws<OperationCanceledException>(() =>
@@ -152,6 +136,20 @@ public sealed class DrawingRasterCodecRobustnessTests {
         Buffer.BlockCopy(chunk, 0, result, iendOffset, chunk.Length);
         Buffer.BlockCopy(png, iendOffset, result, iendOffset + chunk.Length, 12);
         return result;
+    }
+
+    private static Thread StartCancellationThread(
+        CancellationTokenSource cancellation,
+        int delayMilliseconds) {
+        using var ready = new ManualResetEventSlim();
+        var thread = new Thread(() => {
+            ready.Set();
+            Thread.Sleep(delayMilliseconds);
+            cancellation.Cancel();
+        }) { IsBackground = true };
+        thread.Start();
+        Assert.True(ready.Wait(TimeSpan.FromSeconds(5)));
+        return thread;
     }
 
     private static byte[] CreateWideBmp32(int width) {
