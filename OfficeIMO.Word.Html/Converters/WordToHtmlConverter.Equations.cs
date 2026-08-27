@@ -90,6 +90,7 @@ namespace OfficeIMO.Word.Html {
 
         private INode CreateEquationAdjacentTextNode(
             IHtmlDocument htmlDocument,
+            WordDocument document,
             WordParagraph run,
             string text,
             WordToHtmlOptions options,
@@ -203,7 +204,8 @@ namespace OfficeIMO.Word.Html {
             if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                 var span = CreateOutputElement(htmlDocument, "span");
                 SetOutputAttribute(span, "class", GetSafeStyleClassName(run.CharacterStyleId), "EquationRunFormatting:class");
-                span.AppendChild(node);
+                span.AppendChild(ApplyStyleDefinitionTextDecorations(
+                    document, htmlDocument, run.CharacterStyleId, node, "EquationRunStyleFormatting"));
                 node = span;
                 runStyles.Add(run.CharacterStyleId!);
             }

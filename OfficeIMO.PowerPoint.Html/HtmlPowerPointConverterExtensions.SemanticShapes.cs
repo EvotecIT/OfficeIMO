@@ -122,8 +122,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
             ApplySemanticList(textBox, semanticBlock, result);
-        } else if (source?.QuerySelector("span") != null) {
-            ApplyTargetSemanticRuns(textBox, source);
+        } else if (source != null && TryApplyTargetSemanticRuns(textBox, source)) {
         } else if (semanticBlock != null && semanticBlock.Runs.Count > 0) {
             if (semanticBlock.Runs.Count == 1) {
                 foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
@@ -149,30 +148,48 @@ public static partial class HtmlPowerPointConverterExtensions {
         return text.ToString();
     }
 
-    private static void ApplyTargetSemanticRuns(PptCore.PowerPointTextBox textBox, IElement source) {
-        var paragraphSpans = new List<List<IElement>> { new List<IElement>() };
-        foreach (IElement child in source.Children) {
-            if (IsElement(child, "br")) {
-                paragraphSpans.Add(new List<IElement>());
-            } else if (IsElement(child, "span")) {
-                paragraphSpans[paragraphSpans.Count - 1].Add(child);
+    private static bool TryApplyTargetSemanticRuns(PptCore.PowerPointTextBox textBox, IElement source) {
+        var paragraphs = new List<List<TargetSemanticInline>> { new List<TargetSemanticInline>() };
+        bool hasExplicitBreakMarkers = source.Children.Any(element => IsElement(element, "br")
+            && (element.HasAttribute("data-officeimo-powerpoint-paragraph-break")
+                || element.HasAttribute("data-officeimo-powerpoint-inline-break")));
+        bool legacyTargetBreaksAreParagraphs = !hasExplicitBreakMarkers
+            && string.Equals(source.GetAttribute("data-officeimo-layer-kind"), "text", StringComparison.OrdinalIgnoreCase)
+            && source.Children.Where(element => !IsElement(element, "br")).All(element => IsElement(element, "span"));
+        foreach (INode child in source.ChildNodes) {
+            if (child is IElement element && IsElement(element, "br")) {
+                bool paragraphBreak = bool.TryParse(
+                    element.GetAttribute("data-officeimo-powerpoint-paragraph-break"), out bool marked) && marked;
+                paragraphBreak |= legacyTargetBreaksAreParagraphs;
+                if (paragraphBreak) paragraphs.Add(new List<TargetSemanticInline>());
+                else paragraphs[paragraphs.Count - 1].Add(TargetSemanticInline.LineBreak());
+            } else if (child is IElement span && IsElement(span, "span")) {
+                paragraphs[paragraphs.Count - 1].Add(TargetSemanticInline.FromSpan(span));
+            } else if (!string.IsNullOrEmpty(child.TextContent)) {
+                return false;
             }
         }
-        if (paragraphSpans.All(spans => spans.Count == 0)) return;
+        if (paragraphs.All(items => items.Count == 0)) return false;
 
-        string combined = string.Join("\n", paragraphSpans.Select(spans =>
-            string.Concat(spans.Select(span => span.TextContent))));
-        if (!string.Equals(combined, ReadTextWithBreaks(source), StringComparison.Ordinal)) return;
+        string projected = string.Join("\n", paragraphs.Select(items => string.Concat(items.Select(item => item.Text))));
+        if (!string.Equals(projected, ReadTextWithBreaks(source), StringComparison.Ordinal)) return false;
 
-        textBox.Text = combined;
+        string paragraphText = string.Join("\n", paragraphs.Select(items =>
+            string.Concat(items.Where(item => !item.IsLineBreak).Select(item => item.Text))));
+        textBox.Text = paragraphText;
         IReadOnlyList<PptCore.PowerPointParagraph> targetParagraphs = textBox.Paragraphs;
-        int paragraphCount = Math.Min(targetParagraphs.Count, paragraphSpans.Count);
+        if (targetParagraphs.Count != paragraphs.Count) return false;
+        int paragraphCount = paragraphs.Count;
         for (int paragraphIndex = 0; paragraphIndex < paragraphCount; paragraphIndex++) {
-            IReadOnlyList<IElement> spans = paragraphSpans[paragraphIndex];
-            if (spans.Count == 0) continue;
+            IReadOnlyList<TargetSemanticInline> items = paragraphs[paragraphIndex];
             PptCore.PowerPointParagraph paragraph = targetParagraphs[paragraphIndex];
             paragraph.ClearInlineContent();
-            foreach (IElement span in spans) {
+            foreach (TargetSemanticInline item in items) {
+                if (item.IsLineBreak) {
+                    paragraph.AddLineBreak();
+                    continue;
+                }
+                IElement span = item.Span!;
                 string fieldMarker = span.GetAttribute("data-officeimo-powerpoint-field") ?? string.Empty;
                 string fieldType = span.GetAttribute("data-officeimo-powerpoint-field-type") ?? string.Empty;
                 if (bool.TryParse(fieldMarker, out bool isField) && isField && !string.IsNullOrWhiteSpace(fieldType)) {
@@ -186,6 +203,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
             }
         }
+        return true;
     }
 
     private static void ApplyTargetSemanticRun(PptCore.PowerPointTextRun target, IElement source) {
@@ -210,7 +228,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                    && transform.Equals("uppercase", StringComparison.OrdinalIgnoreCase)) {
             target.Capitalization = PptCore.PowerPointCapitalization.AllCaps;
         }
-        if (TryGetTargetCss(css, "font-family", out string family)) target.FontName = NormalizeSemanticFontName(family);
+        string exactFontFamily = source.GetAttribute("data-officeimo-powerpoint-font-family") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(exactFontFamily)) target.FontName = exactFontFamily;
+        else if (TryGetTargetCss(css, "font-family", out string family)) target.FontName = NormalizeSemanticFontName(family);
         if (TryParseSemanticPixels(TryGetTargetCss(css, "font-size", out string size) ? size : null, out double pixels)) {
             target.FontSizePoints = Math.Max(1D, pixels * 0.75D);
         }
@@ -433,8 +453,23 @@ public static partial class HtmlPowerPointConverterExtensions {
         return string.Empty;
     }
 
-    private static string NormalizeSemanticFontName(string? value) =>
-        (value ?? string.Empty).Split(',').FirstOrDefault()?.Trim().Trim('\'', '"') ?? string.Empty;
+    private static string NormalizeSemanticFontName(string? value) {
+        string source = (value ?? string.Empty).Trim();
+        if (source.Length == 0) return string.Empty;
+        char quote = source[0] is '\'' or '"' ? source[0] : '\0';
+        var result = new StringBuilder(source.Length);
+        for (int index = quote == '\0' ? 0 : 1; index < source.Length; index++) {
+            char character = source[index];
+            if (quote != '\0' && character == quote) break;
+            if (quote == '\0' && character == ',') break;
+            if (character == '\\' && index + 1 < source.Length) {
+                result.Append(source[++index]);
+            } else {
+                result.Append(character);
+            }
+        }
+        return result.ToString().Trim();
+    }
 
     private static bool TryParseSemanticPixels(string? value, out double pixels) {
         pixels = 0D;
@@ -460,6 +495,19 @@ public static partial class HtmlPowerPointConverterExtensions {
         internal int? Ordinal { get; }
         internal bool ShouldRestart { get; }
         internal int Level { get; }
+    }
+
+    private sealed class TargetSemanticInline {
+        private TargetSemanticInline(IElement? span, bool isLineBreak) {
+            Span = span;
+            IsLineBreak = isLineBreak;
+        }
+
+        internal IElement? Span { get; }
+        internal bool IsLineBreak { get; }
+        internal string Text => IsLineBreak ? "\n" : Span?.TextContent ?? string.Empty;
+        internal static TargetSemanticInline FromSpan(IElement span) => new(span, false);
+        internal static TargetSemanticInline LineBreak() => new(null, true);
     }
 
     private static void ReadSemanticShapeGeometry(

@@ -20,13 +20,13 @@ public static partial class PowerPointHtmlConverterExtensions {
                 AppendSemanticShapeAttributes(body, textBox, "text");
                 body.Append('>');
                 for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
-                    if (paragraphIndex > 0) body.Append("<br>");
+                    if (paragraphIndex > 0) body.Append("<br data-officeimo-powerpoint-paragraph-break=\"true\">");
                     PptCore.PowerPointParagraph paragraph = paragraphs[paragraphIndex];
                     foreach (PptCore.PowerPointParagraphInline node in paragraph.InlineNodes) {
                         if (node.Kind == PptCore.PowerPointParagraphInlineKind.Run && node.Run != null) {
                             AppendSemanticTextRun(body, node.Run);
                         } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.LineBreak) {
-                            body.Append("<br>");
+                            body.Append("<br data-officeimo-powerpoint-inline-break=\"true\">");
                         } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.Field) {
                             body.Append("<span data-officeimo-powerpoint-field=\"true\"");
                             if (!string.IsNullOrWhiteSpace(node.FieldId)) {
@@ -61,7 +61,6 @@ public static partial class PowerPointHtmlConverterExtensions {
         AppendCss(css, "font-size", run.FontSizePoints.HasValue
             ? run.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", !string.IsNullOrWhiteSpace(run.Color) ? "#" + run.Color!.TrimStart('#') : null);
-        AppendPowerPointDecorations(css, run.UnderlineStyle, run.StrikeStyle);
         AppendCss(css, "vertical-align", run.BaselinePercent switch {
             > 0D => "super",
             < 0D => "sub",
@@ -96,19 +95,21 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append(run.BaselinePercent.Value.ToString("0.###", CultureInfo.InvariantCulture))
                 .Append('"');
         }
-        body.Append('>')
-            .Append(OfficeHtmlText.Escape(run.Text))
-            .Append("</span>");
+        if (!string.IsNullOrWhiteSpace(run.FontName)) {
+            body.Append(" data-officeimo-powerpoint-font-family=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(run.FontName!))
+                .Append('"');
+        }
+        body.Append('>');
+        AppendPowerPointDecorationStart(body, "underline", GetPowerPointUnderlineCssStyle(run.UnderlineStyle));
+        AppendPowerPointDecorationStart(body, "line-through", GetPowerPointStrikeCssStyle(run.StrikeStyle));
+        body.Append(OfficeHtmlText.Escape(run.Text));
+        AppendPowerPointDecorationEnd(body, run.StrikeStyle.HasValue && run.StrikeStyle.Value != PptCore.PowerPointStrikeStyle.None);
+        AppendPowerPointDecorationEnd(body, run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != PptCore.PowerPointUnderlineStyle.None);
+        body.Append("</span>");
     }
 
-    private static void AppendPowerPointDecorations(StringBuilder css, PptCore.PowerPointUnderlineStyle? underline,
-        PptCore.PowerPointStrikeStyle? strike) {
-        var lines = new List<string>(2);
-        if (underline.HasValue && underline.Value != PptCore.PowerPointUnderlineStyle.None) lines.Add("underline");
-        if (strike.HasValue && strike.Value != PptCore.PowerPointStrikeStyle.None) lines.Add("line-through");
-        if (lines.Count == 0) return;
-        AppendCss(css, "text-decoration-line", string.Join(" ", lines));
-        AppendCss(css, "text-decoration-style", underline switch {
+    private static string? GetPowerPointUnderlineCssStyle(PptCore.PowerPointUnderlineStyle? underline) => underline switch {
             PptCore.PowerPointUnderlineStyle.Double or PptCore.PowerPointUnderlineStyle.WavyDouble => "double",
             PptCore.PowerPointUnderlineStyle.Dotted or PptCore.PowerPointUnderlineStyle.HeavyDotted => "dotted",
             PptCore.PowerPointUnderlineStyle.Dash or PptCore.PowerPointUnderlineStyle.DashHeavy or
@@ -116,9 +117,27 @@ public static partial class PowerPointHtmlConverterExtensions {
                 PptCore.PowerPointUnderlineStyle.DotDash or PptCore.PowerPointUnderlineStyle.DotDashHeavy or
                 PptCore.PowerPointUnderlineStyle.DotDotDash or PptCore.PowerPointUnderlineStyle.DotDotDashHeavy => "dashed",
             PptCore.PowerPointUnderlineStyle.Wavy or PptCore.PowerPointUnderlineStyle.WavyHeavy => "wavy",
-            _ when strike == PptCore.PowerPointStrikeStyle.Double => "double",
+            PptCore.PowerPointUnderlineStyle.None or null => null,
             _ => "solid"
-        });
+        };
+
+    private static string? GetPowerPointStrikeCssStyle(PptCore.PowerPointStrikeStyle? strike) => strike switch {
+        PptCore.PowerPointStrikeStyle.Double => "double",
+        PptCore.PowerPointStrikeStyle.Single => "solid",
+        _ => null
+    };
+
+    private static void AppendPowerPointDecorationStart(StringBuilder body, string line, string? style) {
+        if (style == null) return;
+        body.Append("<span style=\"text-decoration-line:")
+            .Append(line)
+            .Append(";text-decoration-style:")
+            .Append(style)
+            .Append("\">");
+    }
+
+    private static void AppendPowerPointDecorationEnd(StringBuilder body, bool enabled) {
+        if (enabled) body.Append("</span>");
     }
 
     private static void AppendCss(StringBuilder css, string name, string? value) {

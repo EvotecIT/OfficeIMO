@@ -157,8 +157,7 @@ public sealed class HtmlImportTests {
         OneNoteTextRun run = Assert.Single(Assert.Single(imported.Value.Pages).Outlines
             .SelectMany(outline => outline.Children)
             .OfType<OneNoteParagraph>()
-            .SelectMany(item => item.Runs)
-            .Where(item => item.MathExpression != null));
+            .SelectMany(item => item.Runs), item => item.MathExpression != null);
         Assert.True(run.Style.IsMath);
         Assert.Equal(expected, run.MathExpression);
     }

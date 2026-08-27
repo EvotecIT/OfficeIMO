@@ -1,9 +1,12 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Html;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -41,10 +44,88 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
         string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
 
-        Assert.Contains("Before</span><br><span data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("Before</span><br data-officeimo-powerpoint-inline-break=\"true\"><span data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-field-id=\"{11111111-1111-1111-1111-111111111111}\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-field-type=\"datetime1\"", html, StringComparison.Ordinal);
         Assert.Contains(">27 August 2026</span>", html, StringComparison.Ordinal);
+
+        using PowerPointPresentation imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        PowerPointParagraph actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs);
+        Assert.Collection(actual.InlineNodes,
+            node => Assert.Equal(PowerPointParagraphInlineKind.Run, node.Kind),
+            node => Assert.Equal(PowerPointParagraphInlineKind.LineBreak, node.Kind),
+            node => Assert.Equal(PowerPointParagraphInlineKind.Field, node.Kind));
+    }
+
+    [Fact]
+    public void PowerPointSemanticHtmlKeepsUnderlineStrikeAndEscapedFontFamilyIndependent() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Styled").Paragraphs.Single().Runs.Single();
+        run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
+        run.StrikeStyle = PowerPointStrikeStyle.Double;
+        run.FontName = "O'Brien Sans";
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("data-officeimo-powerpoint-font-family=\"O&#39;Brien Sans\"", html, StringComparison.Ordinal);
+        Assert.Contains("text-decoration-line:underline;text-decoration-style:wavy", html, StringComparison.Ordinal);
+        Assert.Contains("text-decoration-line:line-through;text-decoration-style:double", html, StringComparison.Ordinal);
+
+        using PowerPointPresentation imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        PowerPointTextRun actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs).Runs.Single();
+        Assert.Equal(PowerPointUnderlineStyle.Wavy, actual.UnderlineStyle);
+        Assert.Equal(PowerPointStrikeStyle.Double, actual.StrikeStyle);
+        Assert.Equal("O'Brien Sans", actual.FontName);
+    }
+
+    [Fact]
+    public void PowerPointSemanticHtmlFallsBackForMixedAndNestedOrdinarySpanContent() {
+        const string html = "<section class='officeimo-slide'><p><span><strong>Bold</strong></span> tail</p></section>";
+
+        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+
+        PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
+        Assert.Equal("Bold tail", textBox.Text);
+        Assert.True(textBox.Paragraphs.Single().Runs.First().Bold);
+    }
+
+    [Fact]
+    public void WordStyleDefinitionsRenderUnderlineAndDoubleStrikeWithIndependentPatterns() {
+        using WordDocument source = WordDocument.Create();
+        var style = new Style { Type = StyleValues.Character, StyleId = "Decorated" };
+        style.Append(new StyleName { Val = "Decorated" });
+        var properties = new StyleRunProperties();
+        properties.Append(new Underline { Val = UnderlineValues.Wave });
+        properties.Append(new DoubleStrike());
+        style.Append(properties);
+        source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+        source.AddParagraph().AddText("Styled").SetCharacterStyleId("Decorated");
+
+        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+
+        Assert.Contains("class=\"Decorated\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-word-underline=\"Wave\"", html, StringComparison.Ordinal);
+        Assert.Contains("text-decoration-line:underline;text-decoration-style:wavy", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-word-double-strike=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("text-decoration-line:line-through;text-decoration-style:double", html, StringComparison.Ordinal);
+        string styleRule = Assert.Single(html.Split('\n'), line => line.Contains(".Decorated {", StringComparison.Ordinal));
+        Assert.DoesNotContain("text-decoration", styleRule, StringComparison.Ordinal);
+
+        using WordDocument imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToWordDocumentResult()
+            .RequireValue();
+        WordParagraph actual = Assert.Single(imported.Paragraphs);
+        Assert.Equal(WordUnderlineStyle.Wave, actual.Underline);
+        Assert.True(actual.DoubleStrike);
     }
 
     [Fact]
@@ -68,7 +149,8 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     [Fact]
     public void OneNoteSemanticHtmlRendersInlineMathFromTheExpression() {
         OneNoteSection section = CreateOneNoteSection(out OneNoteParagraph paragraph);
-        paragraph.AddMath(OfficeMath.Fraction(OfficeMath.Identifier("x"), OfficeMath.Number("2")));
+        paragraph.AddMath(OfficeIMO.Drawing.OfficeMath.Fraction(
+            OfficeIMO.Drawing.OfficeMath.Identifier("x"), OfficeIMO.Drawing.OfficeMath.Number("2")));
 
         string html = section.ToHtmlDocument();
 
