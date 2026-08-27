@@ -38,11 +38,4 @@ internal static class OfficeImoPdfGenerator {
             FontFamily = fontFamily
         });
 
-    internal static Task<byte[]> GenerateHtmlAsync(
-        string html,
-        PdfEmbeddedFontFamily? fontFamily = null,
-        CancellationToken cancellationToken = default) =>
-        HtmlConversionDocument.Parse(html).ToPdfAsync(new HtmlPdfSaveOptions {
-            FontFamily = fontFamily
-        }, cancellationToken);
 }

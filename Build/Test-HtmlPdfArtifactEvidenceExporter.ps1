@@ -8,7 +8,10 @@ $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
     'officeimo-html-pdf-artifact-exporter-' + [Guid]::NewGuid().ToString('N'))
 
 function New-TestPdfBytes {
-    param([Parameter(Mandatory)][string] $Text)
+    param(
+        [Parameter(Mandatory)][string] $Text,
+        [int] $Variant = 0
+    )
 
     $content = "BT /F1 12 Tf 72 720 Td ($Text) Tj ET"
     $objects = @(
@@ -24,7 +27,7 @@ function New-TestPdfBytes {
         param([string] $Value)
         $buffer.AddRange([System.Text.Encoding]::ASCII.GetBytes($Value))
     }
-    & $appendAscii "%PDF-1.4`n"
+    & $appendAscii "%PDF-1.4`n% variant $Variant`n"
     for ($index = 0; $index -lt $objects.Count; $index++) {
         $offsets.Add($buffer.Count)
         & $appendAscii "$($index + 1) 0 obj`n$($objects[$index])`nendobj`n"
@@ -55,14 +58,11 @@ try {
                     $pdfRelativePath = "$slug-$iteration.pdf"
                     $managedRelativePath = "$slug-$iteration-managed.png"
                     $externalRelativePath = "$slug-$iteration-external.png"
-                    $pdfText = if ($engineName -eq 'OfficeIMO') {
-                        'BENCHMARKREPORT OfficeIMO'
-                    } else {
-                        "BENCHMARKREPORT $engineName $iteration"
-                    }
+                    $pdfText = "BENCHMARKREPORT $engineName"
+                    $variant = $engineName -eq 'OfficeIMO' ? 0 : $iteration
                     [System.IO.File]::WriteAllBytes(
                         (Join-Path $evidenceRoot $pdfRelativePath),
-                        (New-TestPdfBytes -Text $pdfText))
+                        (New-TestPdfBytes -Text $pdfText -Variant $variant))
                     foreach ($artifact in @(
                             [pscustomobject]@{ Path = $managedRelativePath; Content = "managed-$engineName" },
                             [pscustomobject]@{ Path = $externalRelativePath; Content = "external-$engineName" })) {
@@ -120,6 +120,9 @@ try {
                 cancellation = [ordered]@{
                     apiSupportsCancellation = $engineName -in @('OfficeIMO', 'Chromium')
                     status = $engineName -in @('OfficeIMO', 'Chromium') ? 'Passed' : 'Unsupported'
+                    detail = $engineName -in @('OfficeIMO', 'Chromium') `
+                        ? "An in-flight $engineName PDF request cancelled in 2 ms." `
+                        : 'The compared public conversion entry point does not accept a CancellationToken.'
                 }
                 determinism = [ordered]@{
                     exactBytesIdentical = $engineName -eq 'OfficeIMO'
@@ -247,6 +250,24 @@ try {
 
     $report.engines[0].outputs = $validOutputs
     $officeEngine = $report.engines | Where-Object { $_.engine -eq 'OfficeIMO' }
+    $officeEngine.cancellation.detail = 'A pre-cancelled OfficeIMO request was rejected.'
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $entryOnlyCancellationRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'cancellation') { throw }
+        $entryOnlyCancellationRejected = $true
+    }
+    if (-not $entryOnlyCancellationRejected) {
+        throw 'HTML/PDF artifact exporter accepted entry-only cancellation evidence.'
+    }
+    $officeEngine.cancellation.detail = 'An in-flight OfficeIMO PDF request cancelled in 2 ms.'
+
     $officeEngine.cancellation.apiSupportsCancellation = $false
     $officeEngine.cancellation.status = 'Unsupported'
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
@@ -323,6 +344,36 @@ try {
         throw 'HTML/PDF artifact exporter trusted a false determinism hash count.'
     }
     $officeEngine.determinism.uniqueByteHashCount = 1
+
+    $peachEngine = $report.engines | Where-Object { $_.engine -eq 'PeachPDF' }
+    $semanticOutput = $peachEngine.outputs[1]
+    $semanticPdfPath = Join-Path $evidenceRoot ([string] $semanticOutput.relativePath)
+    $validSemanticPdfBytes = [System.IO.File]::ReadAllBytes($semanticPdfPath)
+    [System.IO.File]::WriteAllBytes(
+        $semanticPdfPath,
+        (New-TestPdfBytes -Text 'BENCHMARKREPORT forged different content' -Variant 2))
+    $semanticPdfItem = Get-Item -LiteralPath $semanticPdfPath
+    $semanticOutput.sizeBytes = $semanticPdfItem.Length
+    $semanticOutput.sha256 = (Get-FileHash -LiteralPath $semanticPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $forgedSemanticHashRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'determinism contract') { throw }
+        $forgedSemanticHashRejected = $true
+    }
+    if (-not $forgedSemanticHashRejected) {
+        throw 'HTML/PDF artifact exporter trusted caller-supplied semantic hashes instead of validated PDF text.'
+    }
+    [System.IO.File]::WriteAllBytes($semanticPdfPath, $validSemanticPdfBytes)
+    $semanticPdfItem = Get-Item -LiteralPath $semanticPdfPath
+    $semanticOutput.sizeBytes = $semanticPdfItem.Length
+    $semanticOutput.sha256 = (Get-FileHash -LiteralPath $semanticPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
 
     $chromiumEngine = $report.engines | Where-Object { $_.engine -eq 'Chromium' }
     $chromiumEngine.outputs[0].processTreeMemory.maximumObservedProcessCount = 1

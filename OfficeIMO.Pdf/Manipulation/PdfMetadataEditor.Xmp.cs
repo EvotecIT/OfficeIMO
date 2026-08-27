@@ -35,11 +35,10 @@ internal static partial class PdfMetadataEditor {
             Subject = subject ?? existing.Subject ?? existingXmp?.Description,
             Keywords = keywords ?? existing.Keywords ?? existingXmp?.Keywords,
             TrappingStatus = existing.TrappingStatus,
-            CreationDate = existing.CreationDate,
-            ModificationDate = existing.ModificationDate,
             PdfXVersion = existing.PdfXVersion,
             PdfXConformance = existing.PdfXConformance
         };
+        updated.CopySourceDatesFrom(existing);
 
         return PdfDocumentObjectGraphRewriter.Rewrite(
             pdf,

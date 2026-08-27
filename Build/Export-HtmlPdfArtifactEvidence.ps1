@@ -110,8 +110,11 @@ foreach ($engine in $engines) {
     }
 
     $cancellation = $expectedCancellation[$engineName]
+    $requiresInFlightCancellation = $cancellation.Supports -eq $true
     if ($engine.cancellation.apiSupportsCancellation -ne $cancellation.Supports -or
         [string] $engine.cancellation.status -ne $cancellation.Status -or
+        ($requiresInFlightCancellation -and
+            [string] $engine.cancellation.detail -notmatch '(?i)\bin-flight\b.*\bcancelled in \d+(?:\.\d+)? ms\b') -or
         $engine.memoryComparable -ne $true) {
         throw "HTML/PDF artifact evidence engine '$engineName' does not satisfy the cancellation, memory, and determinism contract."
     }
@@ -189,6 +192,15 @@ function Assert-PdfArtifactContract {
         if ($actualMarkerCount -ne $ExpectedReportMarkerCount) {
             throw "Executable PDF validation found an unexpected report-marker count for artifact: $RelativePath"
         }
+
+        $semanticText = [regex]::Replace(
+            $text.Normalize([System.Text.NormalizationForm]::FormC).Trim(),
+            '\s+',
+            ' ',
+            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+        return [Convert]::ToHexString(
+            [System.Security.Cryptography.SHA256]::HashData(
+                [System.Text.Encoding]::UTF8.GetBytes($semanticText))).ToLowerInvariant()
     } finally {
         if (Test-Path -LiteralPath $textPath -PathType Leaf) {
             Remove-Item -LiteralPath $textPath -Force
@@ -294,11 +306,10 @@ foreach ($engine in $engines) {
             -RelativePath ([string] $output.relativePath) `
             -ExpectedSize ([long] $output.sizeBytes) `
             -ExpectedSha256 ([string] $output.sha256))) | Out-Null
-        Assert-PdfArtifactContract `
+        $semanticHashes.Add((Assert-PdfArtifactContract `
             -RelativePath ([string] $output.relativePath) `
             -ExpectedPageCount ([int] $output.contract.pageCount) `
-            -ExpectedReportMarkerCount ([int] $output.contract.reportMarkerCount)
-        $semanticHashes.Add(([string] $output.semanticSha256).ToLowerInvariant()) | Out-Null
+            -ExpectedReportMarkerCount ([int] $output.contract.reportMarkerCount))) | Out-Null
         $managedVisualHashes.Add((Add-ValidatedArtifact `
             -Kind ("managed-preview:$($engine.engine)") `
             -RelativePath ([string] $output.managedVisual.relativePath) `

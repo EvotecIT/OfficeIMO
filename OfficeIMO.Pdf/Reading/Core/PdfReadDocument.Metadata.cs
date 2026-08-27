@@ -38,19 +38,24 @@ public sealed partial class PdfReadDocument {
         string? modificationDate = GetText("ModDate");
         bool creationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(creationDate, out DateTimeOffset parsedCreationDate);
         bool modificationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(modificationDate, out DateTimeOffset parsedModificationDate);
-        return new PdfMetadata {
+        var metadata = new PdfMetadata {
             Title = GetText("Title"),
             Author = GetText("Author"),
             Subject = GetText("Subject"),
             Keywords = GetText("Keywords"),
             TrappingStatus = ParseTrappingStatus(GetName("Trapped")),
-            CreationDate = creationDateIsProductionPrecise ? parsedCreationDate : PdfDateCodec.TryParse(creationDate),
-            ModificationDate = modificationDateIsProductionPrecise ? parsedModificationDate : PdfDateCodec.TryParse(modificationDate),
-            CreationDateIsProductionPrecise = creationDateIsProductionPrecise,
-            ModificationDateIsProductionPrecise = modificationDateIsProductionPrecise,
             PdfXVersion = GetText("GTS_PDFXVersion"),
             PdfXConformance = GetText("GTS_PDFXConformance")
         };
+        metadata.SetCreationDateFromSource(
+            creationDateIsProductionPrecise ? parsedCreationDate : PdfDateCodec.TryParse(creationDate),
+            creationDate,
+            creationDateIsProductionPrecise);
+        metadata.SetModificationDateFromSource(
+            modificationDateIsProductionPrecise ? parsedModificationDate : PdfDateCodec.TryParse(modificationDate),
+            modificationDate,
+            modificationDateIsProductionPrecise);
+        return metadata;
     }
 
     private static PdfTrappingStatus? ParseTrappingStatus(string? value) =>

@@ -44,16 +44,21 @@ internal static class PdfInfoDictionaryBuilder {
 
     internal static string Build(PdfMetadata metadata) {
         Guard.NotNull(metadata, nameof(metadata));
-        return BuildCore(
-            metadata.Title,
-            metadata.Author,
-            metadata.Subject,
-            metadata.Keywords,
-            metadata.TrappingStatus,
-            metadata.CreationDate,
-            metadata.ModificationDate,
-            metadata.PdfXVersion,
-            metadata.PdfXConformance);
+        var sb = new StringBuilder("<< ");
+        AppendInfoString(sb, "Title", metadata.Title);
+        AppendInfoString(sb, "Author", metadata.Author);
+        AppendInfoString(sb, "Subject", metadata.Subject);
+        AppendInfoString(sb, "Keywords", metadata.Keywords);
+        sb.Append("/Producer (OfficeIMO.Pdf) ");
+        AppendInfoString(sb, "CreationDate", metadata.CreationDateRaw ??
+            (metadata.CreationDate.HasValue ? PdfDateCodec.Format(metadata.CreationDate.Value) : null));
+        AppendInfoString(sb, "ModDate", metadata.ModificationDateRaw ??
+            (metadata.ModificationDate.HasValue ? PdfDateCodec.Format(metadata.ModificationDate.Value) : null));
+        AppendInfoString(sb, "GTS_PDFXVersion", metadata.PdfXVersion);
+        AppendInfoString(sb, "GTS_PDFXConformance", metadata.PdfXConformance);
+        AppendTrappingStatus(sb, metadata.TrappingStatus);
+        sb.Append(">>\n");
+        return sb.ToString();
     }
 
     internal static PdfDictionary BuildDictionary(PdfMetadata metadata) {
@@ -64,8 +69,10 @@ internal static class PdfInfoDictionaryBuilder {
         AddInfoString(dictionary, "Subject", metadata.Subject);
         AddInfoString(dictionary, "Keywords", metadata.Keywords);
         dictionary.Items["Producer"] = new PdfStringObj("OfficeIMO.Pdf");
-        AddInfoString(dictionary, "CreationDate", metadata.CreationDate.HasValue ? PdfDateCodec.Format(metadata.CreationDate.Value) : null);
-        AddInfoString(dictionary, "ModDate", metadata.ModificationDate.HasValue ? PdfDateCodec.Format(metadata.ModificationDate.Value) : null);
+        AddInfoString(dictionary, "CreationDate", metadata.CreationDateRaw ??
+            (metadata.CreationDate.HasValue ? PdfDateCodec.Format(metadata.CreationDate.Value) : null));
+        AddInfoString(dictionary, "ModDate", metadata.ModificationDateRaw ??
+            (metadata.ModificationDate.HasValue ? PdfDateCodec.Format(metadata.ModificationDate.Value) : null));
         AddInfoString(dictionary, "GTS_PDFXVersion", metadata.PdfXVersion);
         AddInfoString(dictionary, "GTS_PDFXConformance", metadata.PdfXConformance);
         if (metadata.TrappingStatus.HasValue) {

@@ -6,6 +6,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using HtmlTinkerX;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
@@ -14,6 +16,8 @@ internal static class HtmlPdfEvidenceRunner {
     private const int MinimumIterations = 2;
     private const int MaximumIterations = 10;
     private static readonly TimeSpan WorkerTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan CancellationStartTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan CancellationPromptTimeout = TimeSpan.FromSeconds(3);
 
     internal static async Task<int> RunAsync(string[] args) {
         ValidateArguments(args);
@@ -309,15 +313,41 @@ internal static class HtmlPdfEvidenceRunner {
     private static async Task<HtmlPdfCancellationEvidence> ProbeChromiumCancellationAsync(string html) {
         try {
             await using HtmlBrowserSession session = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
-            await HtmlPdfComparisonRenderers.PrepareChromiumPageAsync(session, html).ConfigureAwait(false);
-            using var cancellation = new CancellationTokenSource();
-            cancellation.Cancel();
-            try {
-                _ = await HtmlPdfComparisonRenderers.CaptureChromiumPageAsync(session, cancellation.Token).ConfigureAwait(false);
-                return new HtmlPdfCancellationEvidence(true, "Failed", "A pre-cancelled Chromium PDF request completed instead of cancelling.");
-            } catch (OperationCanceledException) {
-                return new HtmlPdfCancellationEvidence(true, "Passed", "A pre-cancelled Chromium PDF request was rejected through HtmlTinkerX.");
+            string marker = "officeimo-pdf-cancellation-" + Guid.NewGuid().ToString("N");
+            string script = "<script>addEventListener('beforeprint',()=>{console.log('" + marker +
+                "');const end=performance.now()+5000;while(performance.now()<end){}});</script>";
+            int bodyEnd = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+            string probeHtml = bodyEnd >= 0 ? html.Insert(bodyEnd, script) : html + script;
+            var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void ObserveConsole(object? _, Microsoft.Playwright.IConsoleMessage message) {
+                if (string.Equals(message.Text, marker, StringComparison.Ordinal)) started.TrySetResult(true);
             }
+            session.Page.Console += ObserveConsole;
+            using var cancellation = new CancellationTokenSource();
+            try {
+                await HtmlPdfComparisonRenderers.PrepareChromiumPageAsync(session, probeHtml).ConfigureAwait(false);
+                Task<byte[]> capture = HtmlPdfComparisonRenderers.CaptureChromiumPageAsync(session, cancellation.Token);
+                await started.Task.WaitAsync(CancellationStartTimeout).ConfigureAwait(false);
+                var stopwatch = Stopwatch.StartNew();
+                cancellation.Cancel();
+                try {
+                    _ = await capture.WaitAsync(CancellationPromptTimeout).ConfigureAwait(false);
+                    return new HtmlPdfCancellationEvidence(true, "Failed", "An in-flight Chromium PDF request completed instead of cancelling.");
+                } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+                    stopwatch.Stop();
+                    return new HtmlPdfCancellationEvidence(
+                        true,
+                        "Passed",
+                        $"An in-flight Chromium PDF request cancelled in {stopwatch.Elapsed.TotalMilliseconds:0} ms through HtmlTinkerX.");
+                } catch (TimeoutException) {
+                    return new HtmlPdfCancellationEvidence(true, "Failed", "An in-flight Chromium PDF request did not cancel promptly.");
+                }
+            } finally {
+                cancellation.Cancel();
+                session.Page.Console -= ObserveConsole;
+            }
+        } catch (TimeoutException) {
+            return new HtmlPdfCancellationEvidence(true, "Failed", "Chromium PDF work did not reach the observable in-flight state.");
         } catch (Exception exception) {
             return new HtmlPdfCancellationEvidence(true, "Failed", exception.GetType().Name + ": " + exception.Message);
         }
@@ -485,16 +515,43 @@ internal static class HtmlPdfEvidenceRunner {
     }
 
     private static async Task<HtmlPdfCancellationEvidence> ProbeOfficeImoCancellationAsync(string html) {
+        var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
+        PdfResourcePolicy resourcePolicy = PdfResourcePolicy.CreateDefault();
+        resourcePolicy.AllowRemoteResourceResolution = true;
+        var options = new HtmlPdfSaveOptions {
+            ResourcePolicy = resourcePolicy,
+            ResourceResolver = async (_, cancellationToken) => {
+                started.TrySetResult(true);
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+                return null;
+            }
+        };
+        const string probeImage = "<img src=\"https://officeimo.invalid/cancellation-probe.png\" alt=\"cancellation probe\">";
+        int bodyEnd = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+        string probeHtml = bodyEnd >= 0 ? html.Insert(bodyEnd, probeImage) : html + probeImage;
+        Task<byte[]> conversion = HtmlConversionDocument.Parse(probeHtml).ToPdfAsync(options, cancellation.Token);
         try {
-            _ = await OfficeImoPdfGenerator.GenerateHtmlAsync(
-                html,
-                cancellationToken: cancellation.Token).ConfigureAwait(false);
-            return new HtmlPdfCancellationEvidence(true, "Failed", "A pre-cancelled OfficeIMO HTML-to-PDF request completed instead of cancelling.");
-        } catch (OperationCanceledException) {
-            return new HtmlPdfCancellationEvidence(true, "Passed", "A pre-cancelled OfficeIMO HTML-to-PDF request was rejected through ToPdfAsync.");
+            await started.Task.WaitAsync(CancellationStartTimeout).ConfigureAwait(false);
+            var stopwatch = Stopwatch.StartNew();
+            cancellation.Cancel();
+            try {
+                _ = await conversion.WaitAsync(CancellationPromptTimeout).ConfigureAwait(false);
+                return new HtmlPdfCancellationEvidence(true, "Failed", "An in-flight OfficeIMO HTML-to-PDF request completed instead of cancelling.");
+            } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+                stopwatch.Stop();
+                return new HtmlPdfCancellationEvidence(
+                    true,
+                    "Passed",
+                    $"An in-flight OfficeIMO HTML-to-PDF request cancelled in {stopwatch.Elapsed.TotalMilliseconds:0} ms through ToPdfAsync.");
+            } catch (TimeoutException) {
+                return new HtmlPdfCancellationEvidence(true, "Failed", "An in-flight OfficeIMO HTML-to-PDF request did not cancel promptly.");
+            }
+        } catch (TimeoutException) {
+            cancellation.Cancel();
+            return new HtmlPdfCancellationEvidence(true, "Failed", "OfficeIMO HTML-to-PDF work did not reach the observable resource-resolution state.");
         } catch (Exception exception) {
+            cancellation.Cancel();
             return new HtmlPdfCancellationEvidence(true, "Failed", exception.GetType().Name + ": " + exception.Message);
         }
     }
