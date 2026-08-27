@@ -97,7 +97,8 @@ public sealed class OdpParagraph {
     public OdpRun AddRun(string? text = null) { var span = new XElement(OdfNamespaces.Text + "span"); OdfTextCodec.Append(span, text); _element.Add(span); Dirty(); return new OdpRun(_presentation, span); }
     /// <summary>Changes the stored paragraph text casing while preserving the paragraph style.</summary>
     public OdpParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        Dirty();
         return this;
     }
     /// <summary>Adds a hyperlink without resolving or fetching its target.</summary>
@@ -193,7 +194,8 @@ public sealed class OdpRun {
     }
     /// <summary>Changes the stored run text casing while preserving its text style.</summary>
     public OdpRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        Dirty();
         return this;
     }
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");

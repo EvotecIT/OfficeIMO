@@ -24,9 +24,7 @@ public static class OneNoteHtmlConverterExtensions {
         PreparedHtml projection = Prepare(section, projectionOptions);
         return new HtmlTextConversionResult(
             projection.Document.ToHtmlDocument(htmlOptions),
-            projection.Projection.Diagnostics
-                .Where(diagnostic => diagnostic.Code != "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED")
-                .Select(ToHtmlDiagnostic));
+            CreateHtmlDiagnostics(projection, section));
     }
 
     /// <summary>Converts a notebook to a standalone HTML5 document.</summary>
@@ -45,9 +43,7 @@ public static class OneNoteHtmlConverterExtensions {
         PreparedHtml projection = Prepare(notebook, projectionOptions);
         return new HtmlTextConversionResult(
             projection.Document.ToHtmlDocument(htmlOptions),
-            projection.Projection.Diagnostics
-                .Where(diagnostic => diagnostic.Code != "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED")
-                .Select(ToHtmlDiagnostic));
+            CreateHtmlDiagnostics(projection, notebook));
     }
 
     /// <summary>Converts a section to an embeddable HTML fragment.</summary>
@@ -152,14 +148,14 @@ public static class OneNoteHtmlConverterExtensions {
         if (section == null) throw new ArgumentNullException(nameof(section));
         OneNoteMarkdownOptions operation = CreateCachedOptions(options);
         OneNoteMarkdownConversionResult projection = section.ToMarkdownDocumentResult(operation);
-        return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(section, operation), projection);
+        return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(section, operation), projection, operation);
     }
 
     private static PreparedHtml Prepare(OneNoteNotebook notebook, OneNoteMarkdownOptions? options) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
         OneNoteMarkdownOptions operation = CreateCachedOptions(options);
         OneNoteMarkdownConversionResult projection = notebook.ToMarkdownDocumentResult(operation);
-        return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(notebook, operation), projection);
+        return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(notebook, operation), projection, operation);
     }
 
     private static OneNoteMarkdownOptions CreateCachedOptions(OneNoteMarkdownOptions? options) {
@@ -175,6 +171,18 @@ public static class OneNoteHtmlConverterExtensions {
         };
         return operation;
     }
+
+    private static IEnumerable<HtmlDiagnostic> CreateHtmlDiagnostics(PreparedHtml projection, OneNoteSection section) =>
+        projection.Projection.Diagnostics
+            .Where(diagnostic => diagnostic.Code != "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED")
+            .Select(ToHtmlDiagnostic)
+            .Concat(OneNoteHtmlDiagnosticCollector.Collect(section, projection.Options));
+
+    private static IEnumerable<HtmlDiagnostic> CreateHtmlDiagnostics(PreparedHtml projection, OneNoteNotebook notebook) =>
+        projection.Projection.Diagnostics
+            .Where(diagnostic => diagnostic.Code != "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED")
+            .Select(ToHtmlDiagnostic)
+            .Concat(OneNoteHtmlDiagnosticCollector.Collect(notebook, projection.Options));
 
     private static HtmlDiagnostic ToHtmlDiagnostic(OneNoteMarkdownDiagnostic diagnostic) {
         HtmlDiagnosticSeverity severity = diagnostic.Severity == OneNoteDiagnosticSeverity.Error
@@ -207,12 +215,14 @@ public static class OneNoteHtmlConverterExtensions {
     }
 
     private sealed class PreparedHtml {
-        internal PreparedHtml(MarkdownDoc document, OneNoteMarkdownConversionResult projection) {
+        internal PreparedHtml(MarkdownDoc document, OneNoteMarkdownConversionResult projection, OneNoteMarkdownOptions options) {
             Document = document;
             Projection = projection;
+            Options = options;
         }
 
         internal MarkdownDoc Document { get; }
         internal OneNoteMarkdownConversionResult Projection { get; }
+        internal OneNoteMarkdownOptions Options { get; }
     }
 }

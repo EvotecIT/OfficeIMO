@@ -124,8 +124,17 @@ internal static class OneNoteSemanticHtmlRenderer {
             if (style.Length > 0) html.Append(" style=\"").Append(Attribute(style)).Append('"');
             html.Append('>');
         }
-        string normalized = OneNoteTextProjection.Normalize(run.Text);
-        html.Append(Text(normalized).Replace("\r\n", "<br>").Replace("\r", "<br>").Replace("\n", "<br>"));
+        if (run.MathExpression != null || run.Style.IsMath == true) {
+            string math = run.MathExpression != null
+                ? OfficeIMO.Drawing.OfficeMathMarkup.ToLatex(run.MathExpression)
+                : OneNoteTextProjection.Normalize(run.Text);
+            html.Append("<code class=\"officeimo-onenote-math\" data-officeimo-math-format=\"latex\">")
+                .Append(Text(math))
+                .Append("</code>");
+        } else {
+            string normalized = OneNoteTextProjection.Normalize(run.Text);
+            html.Append(Text(normalized).Replace("\r\n", "<br>").Replace("\r", "<br>").Replace("\n", "<br>"));
+        }
         if (tag != null) html.Append("</").Append(tag).Append('>');
         if (run.Style.Strikethrough == true) html.Append("</s>");
         if (run.Style.Underline == true) html.Append("</u>");
@@ -151,7 +160,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     }
 
     private static void AppendImage(StringBuilder html, OneNoteImage image, Func<OneNoteBinaryElement, string?>? resolver) {
-        string source = SafeResource(resolver?.Invoke(image));
+        string source = image.Payload == null ? string.Empty : SafeResource(resolver?.Invoke(image));
         string label = image.AltText ?? image.FileName ?? "image";
         string hyperlink = SafeLink(image.Hyperlink);
         if (hyperlink.Length > 0) html.Append("<a href=\"").Append(Attribute(hyperlink)).Append("\">");
@@ -161,7 +170,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     }
 
     private static void AppendBinary(StringBuilder html, OneNoteBinaryElement element, string label, Func<OneNoteBinaryElement, string?>? resolver) {
-        string target = SafeResource(resolver?.Invoke(element));
+        string target = element.Payload == null ? string.Empty : SafeResource(resolver?.Invoke(element));
         if (target.Length == 0) html.Append("<span class=\"officeimo-onenote-attachment\">[").Append(Text(label)).Append("]</span>");
         else html.Append("<a class=\"officeimo-onenote-attachment\" href=\"").Append(Attribute(target)).Append("\">[").Append(Text(label)).Append("]</a>");
     }

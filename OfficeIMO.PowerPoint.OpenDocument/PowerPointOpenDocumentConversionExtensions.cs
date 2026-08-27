@@ -153,6 +153,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (textState.ApproximatedAlignments > 0) report.Add("paragraph-alignments",
             OdfConversionMappingStatus.Approximated, textState.ApproximatedAlignments,
             "PowerPoint distributed and low-justification variants are represented as ODF justification.");
+        if (textState.ApproximatedTextDecorations > 0) report.Add("text-decorations",
+            OdfConversionMappingStatus.Approximated, textState.ApproximatedTextDecorations,
+            "PowerPoint words-only and heavy underline variants are represented by the nearest ODF line pattern without their word or weight semantics.");
         int totalSkippedBasicFormatting = skippedBasicFormatting + textState.SkippedBasicFormatting;
         if (totalSkippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, totalSkippedBasicFormatting,
             "Common text, fill, and outline formatting was omitted because IncludeBasicFormatting is disabled.");

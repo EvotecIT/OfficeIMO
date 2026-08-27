@@ -1,4 +1,5 @@
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using Xunit;
 
@@ -90,5 +91,69 @@ public class OpenDocumentTextFormattingTests {
         Assert.Equal(OdfTextPosition.Superscript, actual.TextPosition);
         Assert.Equal(OdfTextTransform.Capitalize, actual.TextTransform);
         Assert.True(actual.SmallCaps);
+    }
+
+    [Fact]
+    public void ParagraphCaseTransformsPreserveRunsAndHyperlinks() {
+        OdtDocument odt = OdtDocument.Create();
+        OdtParagraph odtParagraph = odt.AddParagraph().AddText("Plain ");
+        OdtSpan odtSpan = odtParagraph.AddSpan("Styled ");
+        odtSpan.Bold = true;
+        odtParagraph.AddHyperlink("Link", "https://example.test/odt");
+        odtParagraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
+
+        OdtDocument reopenedOdt = OdtDocument.Load(new MemoryStream(odt.ToBytes()));
+        OdtParagraph actualOdt = Assert.Single(reopenedOdt.Paragraphs);
+        Assert.Equal("PLAIN STYLED LINK", actualOdt.Text);
+        Assert.True(Assert.Single(actualOdt.Spans).Bold);
+        Assert.Equal("https://example.test/odt", Assert.Single(actualOdt.Hyperlinks).Href);
+
+        OdpPresentation odp = OdpPresentation.Create();
+        OdpParagraph odpParagraph = odp.AddSlide("Case")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Case")
+            .AddParagraph("Plain ");
+        OdpRun odpRun = odpParagraph.AddRun("Styled ");
+        odpRun.Italic = true;
+        odpParagraph.AddHyperlink("Link", "https://example.test/odp");
+        odpParagraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
+
+        OdpPresentation reopenedOdp = OdpPresentation.Load(new MemoryStream(odp.ToBytes()));
+        OdpParagraph actualOdp = Assert.IsType<OdpTextBox>(Assert.Single(reopenedOdp.Slides[0].Shapes))
+            .Paragraphs.Single();
+        Assert.Equal("PLAIN STYLED LINK", actualOdp.Text);
+        Assert.True(Assert.Single(actualOdp.Runs).Italic);
+        Assert.Equal("https://example.test/odp", Assert.Single(actualOdp.InlineNodes,
+            node => node.Kind == OdpInlineNodeKind.Hyperlink).Hyperlink!.Href);
+    }
+
+    [Fact]
+    public void ContextualCaseTransformsContinueAcrossInlineNodeBoundaries() {
+        OdtDocument odt = OdtDocument.Create();
+        OdtParagraph odtParagraph = odt.AddParagraph().AddText("mi");
+        OdtSpan odtSpan = odtParagraph.AddSpan("XED ti");
+        odtSpan.Bold = true;
+        odtParagraph.AddHyperlink("TLE", "https://example.test/title");
+        odtParagraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.TitleCase, CultureInfo.InvariantCulture);
+
+        OdtParagraph actualOdt = Assert.Single(OdtDocument.Load(new MemoryStream(odt.ToBytes())).Paragraphs);
+        Assert.Equal("Mixed Title", actualOdt.Text);
+        Assert.True(Assert.Single(actualOdt.Spans).Bold);
+        Assert.Equal("https://example.test/title", Assert.Single(actualOdt.Hyperlinks).Href);
+
+        OdpPresentation odp = OdpPresentation.Create();
+        OdpParagraph odpParagraph = odp.AddSlide("Case")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Case")
+            .AddParagraph("he");
+        OdpRun odpRun = odpParagraph.AddRun("LLO. w");
+        odpRun.Italic = true;
+        odpParagraph.AddHyperlink("ORLD", "https://example.test/sentence");
+        odpParagraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+
+        OdpParagraph actualOdp = Assert.IsType<OdpTextBox>(Assert.Single(
+            OdpPresentation.Load(new MemoryStream(odp.ToBytes())).Slides[0].Shapes)).Paragraphs.Single();
+        Assert.Equal("Hello. World", actualOdp.Text);
+        Assert.True(Assert.Single(actualOdp.Runs).Italic);
+        Assert.Equal("https://example.test/sentence", Assert.Single(actualOdp.InlineNodes,
+            node => node.Kind == OdpInlineNodeKind.Hyperlink).Hyperlink!.Href);
     }
 }

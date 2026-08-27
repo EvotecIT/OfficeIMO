@@ -69,7 +69,8 @@ public sealed class OdtSpan {
 
     /// <summary>Changes the stored span text casing while preserving its text style.</summary>
     public OdtSpan TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        Dirty();
         return this;
     }
 

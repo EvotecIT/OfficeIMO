@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Globalization;
 
 namespace OfficeIMO.OneNote.Tests;
 
@@ -610,6 +611,28 @@ public sealed class NativeInkMathWriterTests {
 
         Assert.Same(expression, authoredRun.MathExpression);
         Assert.Equal(expression, Assert.Single(actual.Runs).MathExpression);
+    }
+
+    [Fact]
+    public void MathTextCaseTransformationUpdatesTheExpressionAndPersists() {
+        var section = new OneNoteSection { Name = "Math case" };
+        var page = new OneNotePage { Title = "Math" };
+        var paragraph = new OneNoteParagraph();
+        OneNoteTextRun run = paragraph.AddMath(OfficeMath.Row(
+            OfficeMath.Identifier("alpha"),
+            OfficeMath.Operator("+"),
+            OfficeMath.Function("sin", OfficeMath.Identifier("beta"))));
+        run.TransformTextCase(OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteTextRun actual = Assert.Single(Assert.IsType<OneNoteParagraph>(
+            Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Runs);
+
+        Assert.Equal("ALPHA+SIN(BETA)", run.Text);
+        Assert.Equal("ALPHA+SIN(BETA)", actual.Text);
+        Assert.Equal("ALPHA+SIN(BETA)", actual.MathExpression!.ToPlainText());
     }
 
     [Fact]

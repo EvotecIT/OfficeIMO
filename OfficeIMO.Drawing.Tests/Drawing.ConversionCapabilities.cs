@@ -57,7 +57,7 @@ public sealed class DrawingConversionCapabilities {
         Assert.DoesNotContain(
             OfficeConversionCapabilityCatalog.All,
             static route => route.SupportLevel == OfficeConversionSupportLevel.ReferenceVerified);
-        Assert.Equal(4, OfficeConversionCapabilityCatalog.All.Count(static route => route.SupportLevel == OfficeConversionSupportLevel.Advanced));
+        Assert.Equal(8, OfficeConversionCapabilityCatalog.All.Count(static route => route.SupportLevel == OfficeConversionSupportLevel.Advanced));
     }
 
     [Theory]
@@ -93,7 +93,8 @@ public sealed class DrawingConversionCapabilities {
         Assert.Contains("PdfDocumentConversionResult", first, StringComparison.Ordinal);
         Assert.Contains("What it does", first, StringComparison.Ordinal);
         Assert.Contains("| Support | Evidence | Known limits |", first, StringComparison.Ordinal);
-        Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | Advanced |", first, StringComparison.Ordinal);
+        Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | FixedLayoutAppearance |", first, StringComparison.Ordinal);
+        Assert.Contains("| Advanced | Realistic DOCX fixtures", first, StringComparison.Ordinal);
         Assert.DoesNotContain("RtfDocument.Parse", first, StringComparison.Ordinal);
         Assert.Contains("RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)", first, StringComparison.Ordinal);
     }

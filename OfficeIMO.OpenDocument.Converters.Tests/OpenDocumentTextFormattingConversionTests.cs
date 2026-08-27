@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Excel;
@@ -8,6 +9,8 @@ using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
 using Xunit;
+using OpenXmlSpreadsheetDocument = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument;
+using OpenXmlUnderline = DocumentFormat.OpenXml.Spreadsheet.Underline;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
@@ -89,5 +92,53 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         Assert.Equal(ExcelUnderlineStyle.Double, converted.Style!.UnderlineStyle);
         Assert.True(converted.Style.Strikethrough);
         Assert.Equal(ExcelVerticalTextAlignment.Superscript, converted.Style.VerticalTextAlignment);
+    }
+
+    [Fact]
+    public void ExcelExplicitNoUnderlineRemainsNotUnderlinedInOds() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument created = ExcelDocument.Create(path)) {
+                created.AddWorksheet("Data").CellAt(1, 1).SetValue("Plain").SetBold();
+                created.Save();
+            }
+
+            using (OpenXmlSpreadsheetDocument package = OpenXmlSpreadsheetDocument.Open(path, true)) {
+                DocumentFormat.OpenXml.Packaging.WorkbookPart workbookPart = package.WorkbookPart
+                    ?? throw new InvalidDataException("The test workbook has no workbook part.");
+                DocumentFormat.OpenXml.Packaging.WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+                DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = worksheetPart.Worksheet
+                    ?? throw new InvalidDataException("The test workbook has no worksheet.");
+                DocumentFormat.OpenXml.Spreadsheet.Cell cell = worksheet
+                    .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
+                DocumentFormat.OpenXml.Packaging.WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart
+                    ?? throw new InvalidDataException("The test workbook has no styles part.");
+                DocumentFormat.OpenXml.Spreadsheet.Stylesheet stylesheet = stylesPart.Stylesheet
+                    ?? throw new InvalidDataException("The test workbook has no stylesheet.");
+                DocumentFormat.OpenXml.Spreadsheet.CellFormat format = stylesheet.CellFormats!
+                    .Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>()
+                    .ElementAt((int)(cell.StyleIndex?.Value ?? 0U));
+                DocumentFormat.OpenXml.Spreadsheet.Font font = stylesheet.Fonts!
+                    .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
+                    .ElementAt((int)(format.FontId?.Value ?? 0U));
+                font.RemoveAllChildren<OpenXmlUnderline>();
+                var underline = new OpenXmlUnderline();
+                underline.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute(
+                    string.Empty, "val", string.Empty, "none"));
+                font.Append(underline);
+                stylesheet.Save();
+            }
+
+            using ExcelDocument source = ExcelDocument.Load(path);
+            ExcelCellStyleSnapshot authored = source.Sheets[0].GetCellStyle(1, 1);
+            OdsCell converted = source.ToOpenDocument().Sheets.Single().Cell(0, 0);
+
+            Assert.True(authored.Underline);
+            Assert.Equal(ExcelUnderlineStyle.None, authored.UnderlineStyle);
+            Assert.NotEqual(true, converted.Underline);
+            Assert.NotEqual(OdfTextDecorationStyle.Solid, converted.UnderlineStyle);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 }

@@ -185,6 +185,29 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
     /// <inheritdoc />
     public override string ToString() => ToPlainText();
 
+    /// <summary>Returns a structurally equivalent expression with cased text and identifier tokens transformed.</summary>
+    /// <param name="textCase">Transformation to apply.</param>
+    /// <param name="culture">Culture used for casing. The current culture is used when omitted.</param>
+    public OfficeMathExpression TransformTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        if (textCase == OfficeTextCase.None) return this;
+        string? transformedText = Kind is OfficeMathKind.Text or OfficeMathKind.Identifier or OfficeMathKind.Function
+            ? OfficeTextCaseTransformer.Apply(Text ?? string.Empty, textCase, culture)
+            : Text;
+        OfficeMathExpression[] transformedChildren = _children
+            .Select(child => child.TransformTextCase(textCase, culture))
+            .ToArray();
+        return new OfficeMathExpression(
+            Kind,
+            transformedText,
+            transformedChildren,
+            Character,
+            SecondaryCharacter,
+            RowCount,
+            ColumnCount,
+            SeparatorCharacter,
+            _naryUpperOnly);
+    }
+
     /// <inheritdoc />
     public bool Equals(OfficeMathExpression? other) {
         if (other == null || Kind != other.Kind || Text != other.Text || Character != other.Character ||

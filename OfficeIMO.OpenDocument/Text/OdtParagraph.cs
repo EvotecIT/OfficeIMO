@@ -256,6 +256,13 @@ public sealed class OdtParagraph {
         return this;
     }
 
+    /// <summary>Changes stored paragraph text casing while preserving spans, hyperlinks, bookmarks, and images.</summary>
+    public OdtParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        Dirty();
+        return this;
+    }
+
     /// <summary>Appends a styled text span.</summary>
     public OdtSpan AddSpan(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "span");

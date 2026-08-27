@@ -40,7 +40,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         double pictureTop = 140D;
         double chartTop = 220D;
         HtmlSemanticBlock[] semanticTextBlocks = semanticSection?.Blocks
-            .Where(block => block.Kind is HtmlSemanticBlockKind.Paragraph or HtmlSemanticBlockKind.Heading)
+            .Where(block => block.Kind == HtmlSemanticBlockKind.Paragraph)
             .ToArray() ?? Array.Empty<HtmlSemanticBlock>();
         int semanticTextIndex = 0;
         foreach (PowerPointSemanticImportItem item in items
@@ -80,7 +80,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         double fallbackTop,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget) {
-        string text = PreserveText(paragraph.TextContent);
+        string text = PreserveText(ReadTextWithBreaks(paragraph));
         return ImportTextBox(paragraph, text, slide, fallbackTop, result, budget, 48D, semanticBlock);
     }
 
@@ -123,27 +123,61 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
             ApplySemanticList(textBox, semanticBlock, result);
         } else if (source?.QuerySelector("span") != null) {
-            ApplyTargetSemanticRuns(textBox.Paragraphs[0], source);
+            ApplyTargetSemanticRuns(textBox, source);
         } else if (semanticBlock != null && semanticBlock.Runs.Count > 0) {
-            ApplySemanticRuns(textBox.Paragraphs[0], semanticBlock.Runs);
+            if (semanticBlock.Runs.Count == 1) {
+                foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
+                    foreach (PptCore.PowerPointTextRun run in paragraph.Runs) {
+                        ApplySemanticRun(run, semanticBlock.Runs[0], preserveTargetText: true);
+                    }
+                }
+            } else {
+                ApplySemanticRuns(textBox.Paragraphs[0], semanticBlock.Runs);
+            }
         }
         if (source != null) ApplyShapeTransforms(source, textBox, budget, result);
         result.TextBoxes++;
         return Math.Max(fallbackTop + 58D, top + height + 10D);
     }
 
-    private static void ApplyTargetSemanticRuns(PptCore.PowerPointParagraph paragraph, IElement source) {
-        IElement[] spans = source.QuerySelectorAll("span").ToArray();
-        if (spans.Length == 0) return;
-        string combined = string.Concat(spans.Select(span => span.TextContent));
-        if (!string.Equals(combined, source.TextContent, StringComparison.Ordinal)) return;
+    private static string ReadTextWithBreaks(IElement source) {
+        var text = new StringBuilder();
+        foreach (INode node in source.ChildNodes) {
+            if (node is IElement element && IsElement(element, "br")) text.Append('\n');
+            else text.Append(node.TextContent);
+        }
+        return text.ToString();
+    }
 
-        paragraph.Text = combined;
-        IReadOnlyList<PptCore.PowerPointTextRun> targetRuns = paragraph.Runs;
-        ApplyTargetSemanticRun(targetRuns[0], spans[0]);
-        for (int index = 1; index < spans.Length; index++) {
-            PptCore.PowerPointTextRun target = paragraph.AddRun(spans[index].TextContent);
-            ApplyTargetSemanticRun(target, spans[index]);
+    private static void ApplyTargetSemanticRuns(PptCore.PowerPointTextBox textBox, IElement source) {
+        var paragraphSpans = new List<List<IElement>> { new List<IElement>() };
+        foreach (IElement child in source.Children) {
+            if (IsElement(child, "br")) {
+                paragraphSpans.Add(new List<IElement>());
+            } else if (IsElement(child, "span")) {
+                paragraphSpans[paragraphSpans.Count - 1].Add(child);
+            }
+        }
+        if (paragraphSpans.All(spans => spans.Count == 0)) return;
+
+        string combined = string.Join("\n", paragraphSpans.Select(spans =>
+            string.Concat(spans.Select(span => span.TextContent))));
+        if (!string.Equals(combined, ReadTextWithBreaks(source), StringComparison.Ordinal)) return;
+
+        textBox.Text = combined;
+        IReadOnlyList<PptCore.PowerPointParagraph> targetParagraphs = textBox.Paragraphs;
+        int paragraphCount = Math.Min(targetParagraphs.Count, paragraphSpans.Count);
+        for (int paragraphIndex = 0; paragraphIndex < paragraphCount; paragraphIndex++) {
+            IReadOnlyList<IElement> spans = paragraphSpans[paragraphIndex];
+            if (spans.Count == 0) continue;
+            PptCore.PowerPointParagraph paragraph = targetParagraphs[paragraphIndex];
+            paragraph.Text = string.Concat(spans.Select(span => span.TextContent));
+            IReadOnlyList<PptCore.PowerPointTextRun> targetRuns = paragraph.Runs;
+            ApplyTargetSemanticRun(targetRuns[0], spans[0]);
+            for (int runIndex = 1; runIndex < spans.Count; runIndex++) {
+                PptCore.PowerPointTextRun target = paragraph.AddRun(spans[runIndex].TextContent);
+                ApplyTargetSemanticRun(target, spans[runIndex]);
+            }
         }
     }
 
@@ -306,8 +340,11 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
     }
 
-    private static void ApplySemanticRun(PptCore.PowerPointTextRun target, HtmlSemanticRun source) {
-        target.Text = source.Text;
+    private static void ApplySemanticRun(
+        PptCore.PowerPointTextRun target,
+        HtmlSemanticRun source,
+        bool preserveTargetText = false) {
+        if (!preserveTargetText) target.Text = source.Text;
         target.Bold = source.Bold;
         target.Italic = source.Italic;
         target.UnderlineStyle = ResolvePowerPointUnderline(source);

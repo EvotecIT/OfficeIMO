@@ -423,11 +423,12 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         if (style == OfficeTextDecorationStyle.Wavy) {
-            int steps = Math.Max(4, (int)Math.Ceiling(width / Math.Max(2D, fontHeight * 0.18D)));
+            double wavelength = Math.Max(4D, fontHeight * 0.36D);
+            int steps = Math.Max(4, (int)Math.Ceiling(width / Math.Max(1D, wavelength / 4D)));
             var points = new List<OfficePoint>(steps + 1);
             for (int index = 0; index <= steps; index++) {
                 double offset = width * index / steps;
-                double waveY = y + (Math.Sin(index * Math.PI) * Math.Max(1D, thickness));
+                double waveY = y + (Math.Sin(offset * Math.PI * 2D / wavelength) * Math.Max(1D, thickness));
                 points.Add(TransformFramePoint(new OfficePoint(x + offset, waveY), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical));
             }
             DrawPolyline(points, color, thickness);

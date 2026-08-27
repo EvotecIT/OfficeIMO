@@ -97,6 +97,12 @@ public sealed class OdpHyperlink {
 
     /// <summary>Decoded display text.</summary>
     public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(_element, value); Dirty(); } }
+    /// <summary>Changes the hyperlink display text casing while preserving its target and text style.</summary>
+    public OdpHyperlink TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        Dirty();
+        return this;
+    }
     /// <summary>Link target.</summary>
     public string Href {
         get => (string?)_element.Attribute(OdfNamespaces.XLink + "href") ?? string.Empty;

@@ -109,7 +109,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (paragraphFormatting > 0) report.Add("paragraph-formatting", OdfConversionMappingStatus.Approximated, paragraphFormatting,
             "Patterned shading, line spacing, borders, tab stops, bidirectional layout, and pagination controls outside the shared subset are flattened or omitted.");
         if (runFormatting > 0) report.Add("run-formatting", OdfConversionMappingStatus.Approximated, runFormatting,
-            "Patterned or overlapping shading, capitalization, vertical alignment, double strike, non-single underline variants, and other Word-only run details are simplified or omitted.");
+            "Words-only or heavy underline variants and overlapping highlight/shading details are simplified because ODF has no exact equivalent.");
         if (tableFormatting > 0) report.Add("table-formatting", OdfConversionMappingStatus.Approximated, tableFormatting,
             "Table text and merges are retained; widths, borders, shading, styles, and repeated-header behavior are not fully mapped.");
         if (imageLayout > 0) report.Add("image-layout", OdfConversionMappingStatus.Approximated, imageLayout,
@@ -618,9 +618,10 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static bool HasUnsupportedRunFormatting(WordRunSnapshot run) =>
-        !string.IsNullOrWhiteSpace(run.VerticalTextAlignment) || !string.IsNullOrWhiteSpace(run.CapsStyle) ||
-        run.DoubleStrike || (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != WordUnderlineStyle.None &&
-            run.UnderlineStyle.Value != WordUnderlineStyle.Single) ||
+        run.UnderlineStyle is WordUnderlineStyle.Words or WordUnderlineStyle.Thick or
+            WordUnderlineStyle.DottedHeavy or WordUnderlineStyle.DashedHeavy or
+            WordUnderlineStyle.DashLongHeavy or WordUnderlineStyle.DashDotHeavy or
+            WordUnderlineStyle.DashDotDotHeavy or WordUnderlineStyle.WavyHeavy ||
         (run.RunShadingPattern.HasValue && run.RunShadingPattern.Value != WordShadingPattern.Nil &&
             run.RunShadingPattern.Value != WordShadingPattern.Clear) ||
         (!string.IsNullOrWhiteSpace(run.RunShadingFillColorHex) && !string.IsNullOrWhiteSpace(run.HighlightColor));

@@ -89,6 +89,15 @@ public sealed class OfficeRichTextFormattingTests {
     }
 
     [Fact]
+    public void RasterWavyDecorationDoesNotCollapseToASingleLine() {
+        byte[] single = RenderDecoration(OfficeTextDecorationStyle.Single).GetPixels();
+        byte[] wavy = RenderDecoration(OfficeTextDecorationStyle.Wavy).GetPixels();
+
+        Assert.False(single.SequenceEqual(wavy));
+        Assert.True(CountPaintedRows(wavy, width: 180, minimumY: 27) >= 3);
+    }
+
+    [Fact]
     public void RichTextRejectsUndefinedFormattingValues() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeRichTextRun(
             "Invalid",
@@ -118,4 +127,8 @@ public sealed class OfficeRichTextFormattingTests {
 
     private static int CountPaintedPixels(OfficeRasterImage image) =>
         image.GetPixels().Where((_, index) => index % 4 == 3).Count(alpha => alpha != 0);
+
+    private static int CountPaintedRows(byte[] pixels, int width, int minimumY) =>
+        Enumerable.Range(minimumY, pixels.Length / (width * 4) - minimumY)
+            .Count(y => Enumerable.Range(0, width).Any(x => pixels[((y * width) + x) * 4 + 3] != 0));
 }

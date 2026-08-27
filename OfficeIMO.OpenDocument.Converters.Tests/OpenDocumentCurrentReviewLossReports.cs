@@ -62,7 +62,23 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void WordDecorationVariantsAreSimplifiedAndReported() {
+    public void PowerPointHeavyAndWordsOnlyUnderlinesReportTheirApproximation() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextBox textBox = source.AddSlide().AddTextBoxPoints("Heavy", 10, 10, 200, 40);
+        textBox.Paragraphs[0].Runs[0].UnderlineStyle = PowerPointUnderlineStyle.WavyHeavy;
+        textBox.Paragraphs[0].AddRun(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+
+        OdfConversionMapping mapping = Assert.Single(conversion.Report.Mappings,
+            item => item.Feature == "text-decorations");
+        Assert.Equal(OdfConversionMappingStatus.Approximated, mapping.Status);
+        Assert.Equal(2, mapping.Count);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void WordDecorationVariantsArePreservedWithoutFalseLoss() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Decorated");
         paragraph.Underline = WordUnderlineStyle.Double;
@@ -77,9 +93,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.True(authored.DoubleStrike);
         Assert.True(converted.Underline);
         Assert.True(converted.StrikeThrough);
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
-            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Equal(OdfTextDecorationType.Double, converted.UnderlineType);
+        Assert.Equal(OdfTextDecorationType.Double, converted.LineThroughType);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
+            && mapping.Status != OdfConversionMappingStatus.Converted);
+        conversion.Report.RequireNoLoss();
     }
 
     [Fact]

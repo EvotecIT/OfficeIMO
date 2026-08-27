@@ -67,7 +67,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (style.Bold) target.Bold = true;
         if (style.Italic) target.Italic = true;
         ExcelUnderlineStyle? underlineStyle = style.UnderlineStyle;
-        if (style.Underline || underlineStyle is { } nativeUnderlineStyle && nativeUnderlineStyle != ExcelUnderlineStyle.None) {
+        bool underlined = underlineStyle.HasValue
+            ? underlineStyle.Value != ExcelUnderlineStyle.None
+            : style.Underline;
+        if (underlined) {
             target.Underline = true;
             target.UnderlineStyle = OdfTextDecorationStyle.Solid;
             target.UnderlineType = underlineStyle is ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting

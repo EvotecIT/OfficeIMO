@@ -163,7 +163,18 @@ public sealed class OneNoteTextRun {
 
     /// <summary>Transforms the stored run text while preserving its native formatting, hyperlink, and opaque properties.</summary>
     public OneNoteTextRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+        if (MathExpression == null) {
+            Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+            return this;
+        }
+
+        OfficeIMO.Drawing.OfficeMathExpression transformed = MathExpression.TransformTextCase(textCase, culture);
+        if (!MathExpression.Equals(transformed)) {
+            MathExpression = transformed;
+            PreservedMathExpression = null;
+            PreservedNativeMathRuns = null;
+        }
+        Text = MathExpression.ToPlainText();
         return this;
     }
 

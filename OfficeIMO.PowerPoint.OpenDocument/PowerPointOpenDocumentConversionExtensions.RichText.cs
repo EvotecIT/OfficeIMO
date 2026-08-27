@@ -18,6 +18,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         internal int SkippedBasicFormatting;
         internal int UnsupportedHyperlinkTooltips;
         internal int UnsupportedRunInteractions;
+        internal int ApproximatedTextDecorations;
     }
 
     private static void CopyPowerPointTableCellToOdp(
@@ -64,6 +65,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         continue;
                     }
                     PowerPointTextRun run = inlineNode.Run!;
+                    if (HasApproximatedPowerPointUnderline(run.UnderlineStyle)) {
+                        state.ApproximatedTextDecorations++;
+                    }
                     if (!options.IncludeBasicFormatting && HasBasicFormatting(run)) state.SkippedBasicFormatting++;
                     Uri? hyperlink = run.Hyperlink;
                     bool clickActionRepresented = string.IsNullOrWhiteSpace(run.ClickAction)
@@ -291,6 +295,16 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.FontSizePoints = points;
         return 0;
     }
+
+    private static bool HasApproximatedPowerPointUnderline(PowerPointUnderlineStyle? style) => style is
+        PowerPointUnderlineStyle.Words or
+        PowerPointUnderlineStyle.Heavy or
+        PowerPointUnderlineStyle.HeavyDotted or
+        PowerPointUnderlineStyle.DashHeavy or
+        PowerPointUnderlineStyle.DashLongHeavy or
+        PowerPointUnderlineStyle.DotDashHeavy or
+        PowerPointUnderlineStyle.DotDotDashHeavy or
+        PowerPointUnderlineStyle.WavyHeavy;
 
     private static void ApplyOdpRunSemantics(
         bool? underline,

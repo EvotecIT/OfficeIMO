@@ -70,6 +70,48 @@ internal static class OdfTextCodec {
         flushPlain();
     }
 
+    internal static void TransformTextCase(
+        XElement element,
+        OfficeIMO.Drawing.OfficeTextCase textCase,
+        CultureInfo? culture = null) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        if (textCase == OfficeIMO.Drawing.OfficeTextCase.None) return;
+
+        string source = Read(element);
+        string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(source, textCase, culture);
+        if (transformed.Length == source.Length) {
+            int offset = 0;
+            AssignTransformedText(element.Nodes(), transformed, ref offset);
+            return;
+        }
+
+        // Culture-sensitive casing can occasionally change UTF-16 length. Preserve every
+        // inline node in that uncommon case, even though its casing context is node-local.
+        foreach (XText text in element.DescendantNodes().OfType<XText>().ToList()) {
+            text.Value = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(text.Value, textCase, culture);
+        }
+    }
+
+    private static void AssignTransformedText(IEnumerable<XNode> nodes, string transformed, ref int offset) {
+        foreach (XNode node in nodes) {
+            if (node is XText text) {
+                int length = text.Value.Length;
+                text.Value = transformed.Substring(offset, length);
+                offset += length;
+                continue;
+            }
+            if (!(node is XElement element)) continue;
+            if (element.Name == OdfNamespaces.Text + "s") {
+                offset += ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
+            } else if (element.Name == OdfNamespaces.Text + "tab" ||
+                       element.Name == OdfNamespaces.Text + "line-break") {
+                offset++;
+            } else {
+                AssignTransformedText(element.Nodes(), transformed, ref offset);
+            }
+        }
+    }
+
     private static void AppendValue(IEnumerable<XNode> nodes, StringBuilder builder, int maximumCharacters) {
         foreach (XNode node in nodes) {
             if (node is XText text) {
