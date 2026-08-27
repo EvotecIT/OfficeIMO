@@ -822,10 +822,10 @@ public class PdfXGroundworkTests {
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
-        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.DeviceRgbOperatorCount);
         Assert.Equal(0, evidence.NonOpaqueGraphicsStateCount);
         Assert.Equal(0, evidence.TransparencyGroupCount);
-        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+        Assert.Equal(2, evidence.UninspectableContentStreamCount);
         Assert.False(evidence.IsComplete);
     }
 

@@ -47,6 +47,73 @@ if ($expectedPageCount -lt 1 -or $expectedReportMarkerCount -lt 1) {
     throw 'HTML/PDF artifact evidence input must declare positive expected page and report-marker counts.'
 }
 
+function ConvertTo-SemanticToken {
+    param([Parameter(Mandatory)][string] $Value)
+
+    return [regex]::Replace(
+        [System.Net.WebUtility]::HtmlDecode($Value).ToUpperInvariant(),
+        '[^\p{L}\p{Nd}]',
+        [string]::Empty,
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+}
+
+function Get-RequiredSemanticFragments {
+    param([Parameter(Mandatory)][string] $HtmlPath)
+
+    $html = Get-Content -LiteralPath $HtmlPath -Raw -Encoding UTF8
+    $fragments = [System.Collections.Generic.Dictionary[string, int]]::new(
+        [System.StringComparer]::Ordinal)
+    $addFragment = {
+        param([string] $Value)
+
+        $withoutTags = [regex]::Replace(
+            $Value,
+            '<[^>]+>',
+            [string]::Empty,
+            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+        $fragment = ConvertTo-SemanticToken $withoutTags
+        if ([string]::IsNullOrWhiteSpace($fragment)) { return }
+        $currentCount = 0
+        if ($fragments.TryGetValue($fragment, [ref] $currentCount)) {
+            $fragments[$fragment] = $currentCount + 1
+        } else {
+            $fragments[$fragment] = 1
+        }
+    }
+
+    foreach ($match in [regex]::Matches(
+            $html,
+            '<(?<tag>h1|p)\b[^>]*>(?<value>.*?)</\k<tag>>',
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor
+                [System.Text.RegularExpressions.RegexOptions]::Singleline -bor
+                [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)) {
+        & $addFragment $match.Groups['value'].Value
+    }
+    foreach ($row in [regex]::Matches(
+            $html,
+            '<tr\b[^>]*>(?<value>.*?)</tr>',
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor
+                [System.Text.RegularExpressions.RegexOptions]::Singleline -bor
+                [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)) {
+        $cells = @(
+            foreach ($cell in [regex]::Matches(
+                    $row.Groups['value'].Value,
+                    '<t[dh]\b[^>]*>(?<value>.*?)</t[dh]>',
+                    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor
+                        [System.Text.RegularExpressions.RegexOptions]::Singleline -bor
+                        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)) {
+                $cell.Groups['value'].Value
+            }
+        )
+        if ($cells.Count -gt 0) { & $addFragment ($cells -join [string]::Empty) }
+    }
+
+    if ($fragments.Count -lt 1) {
+        throw 'HTML/PDF artifact evidence input did not expose required narrative or table content.'
+    }
+    return ,$fragments
+}
+
 function Assert-SourceProvenance {
     param(
         [Parameter(Mandatory)][string] $Subject,
@@ -159,7 +226,8 @@ function Assert-PdfArtifactContract {
         [Parameter(Mandatory)][string] $RelativePath,
         [Parameter(Mandatory)][int] $ExpectedPageCount,
         [Parameter(Mandatory)][int] $ExpectedReportMarkerCount,
-        [Parameter(Mandatory)][object] $ExpectedContract
+        [Parameter(Mandatory)][object] $ExpectedContract,
+        [Parameter(Mandatory)][System.Collections.Generic.Dictionary[string, int]] $RequiredSemanticFragments
     )
 
     $pdfInfo = @(Get-Command pdfinfo -CommandType Application -ErrorAction SilentlyContinue) | Select-Object -First 1
@@ -233,6 +301,15 @@ function Assert-PdfArtifactContract {
             [System.Text.RegularExpressions.RegexOptions]::CultureInvariant).Count
         if ($actualMarkerCount -ne $ExpectedReportMarkerCount) {
             throw "Executable PDF validation found an unexpected report-marker count for artifact: $RelativePath"
+        }
+        foreach ($entry in $RequiredSemanticFragments.GetEnumerator()) {
+            $actualCount = [regex]::Matches(
+                $normalizedText,
+                [regex]::Escape($entry.Key),
+                [System.Text.RegularExpressions.RegexOptions]::CultureInvariant).Count
+            if ($actualCount -lt $entry.Value) {
+                throw "Executable PDF validation did not preserve required scenario content '$($entry.Key)' for artifact: $RelativePath"
+            }
         }
 
         $semanticText = [regex]::Replace(
@@ -431,6 +508,8 @@ $null = Add-ValidatedArtifact `
     -RelativePath ([string] $report.input.relativePath) `
     -ExpectedSize ([long] $report.input.sizeBytes) `
     -ExpectedSha256 ([string] $report.input.sha256)
+$inputFullPath = [System.IO.Path]::GetFullPath((Join-Path $evidenceRoot ([string] $report.input.relativePath)))
+$requiredSemanticFragments = Get-RequiredSemanticFragments -HtmlPath $inputFullPath
 
 foreach ($engine in $engines) {
     $byteHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
@@ -447,7 +526,8 @@ foreach ($engine in $engines) {
             -RelativePath ([string] $output.relativePath) `
             -ExpectedPageCount ([int] $output.contract.pageCount) `
             -ExpectedReportMarkerCount ([int] $output.contract.reportMarkerCount) `
-            -ExpectedContract $output.contract)) | Out-Null
+            -ExpectedContract $output.contract `
+            -RequiredSemanticFragments $requiredSemanticFragments)) | Out-Null
         $managedVisualHashes.Add((Add-ValidatedArtifact `
             -Kind ("managed-preview:$($engine.engine)") `
             -RelativePath ([string] $output.managedVisual.relativePath) `

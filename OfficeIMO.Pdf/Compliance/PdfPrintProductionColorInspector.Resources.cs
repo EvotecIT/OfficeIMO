@@ -8,10 +8,11 @@ internal static partial class PdfPrintProductionColorInspector {
         ColorSpaceAliases aliases,
         PdfDictionary? resources,
         List<ContentStreamContext> streams,
-        PdfObject? inheritedFontObject = null) {
-        if (ContainsContentStreamContext(streams, stream, aliases, resources, inheritedFontObject)) return;
+        PdfObject? inheritedFontObject = null,
+        int? pageSequenceId = null) {
+        if (ContainsContentStreamContext(streams, stream, aliases, resources, inheritedFontObject, pageSequenceId)) return;
 
-        streams.Add(new ContentStreamContext(stream, aliases, resources, inheritedFontObject));
+        streams.Add(new ContentStreamContext(stream, aliases, resources, inheritedFontObject, pageSequenceId));
     }
 
     private static bool ContainsContentStreamContext(
@@ -19,13 +20,15 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfStream stream,
         ColorSpaceAliases aliases,
         PdfDictionary? resources,
-        PdfObject? inheritedFontObject) {
+        PdfObject? inheritedFontObject,
+        int? pageSequenceId) {
         for (int index = 0; index < contexts.Count; index++) {
             ContentStreamContext existing = contexts[index];
             if (ReferenceEquals(existing.Stream, stream) &&
                 existing.Aliases.SetEquals(aliases) &&
                 ReferenceEquals(existing.Resources, resources) &&
-                ReferenceEquals(existing.InheritedFontObject, inheritedFontObject)) return true;
+                ReferenceEquals(existing.InheritedFontObject, inheritedFontObject) &&
+                existing.PageSequenceId == pageSequenceId) return true;
         }
         return false;
     }

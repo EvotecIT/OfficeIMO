@@ -99,7 +99,10 @@ try {
     $evidenceRoot = Join-Path $temporaryRoot 'Run'
     New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
     $insidePath = Join-Path $evidenceRoot 'input.html'
-    [System.IO.File]::WriteAllText($insidePath, 'inside', [System.Text.UTF8Encoding]::new($false))
+    $inputHtml = '<!doctype html><html><body><h1>BENCHMARKREPORT</h1><p>Required narrative</p>' +
+        '<table><tr><th>Account</th><th>Status</th></tr><tr><td>ACC-001</td><td>Approved</td></tr></table>' +
+        '</body></html>'
+    [System.IO.File]::WriteAllText($insidePath, $inputHtml, [System.Text.UTF8Encoding]::new($false))
     $insideItem = Get-Item -LiteralPath $insidePath
     $insideHash = (Get-FileHash -LiteralPath $insidePath -Algorithm SHA256).Hash.ToLowerInvariant()
     $reportPath = Join-Path $evidenceRoot 'html-pdf-evidence.json'
@@ -112,7 +115,7 @@ try {
                     $pdfRelativePath = "$slug-$iteration.pdf"
                     $managedRelativePath = "$slug-$iteration-managed.png"
                     $externalRelativePath = "$slug-$iteration-external.png"
-                    $pdfText = "BENCHMARKREPORT $engineName"
+                    $pdfText = "BENCHMARKREPORT Required narrative Account Status ACC-001 Approved $engineName"
                     $variant = $engineName -eq 'OfficeIMO' ? 0 : $iteration
                     [System.IO.File]::WriteAllBytes(
                         (Join-Path $evidenceRoot $pdfRelativePath),
@@ -429,7 +432,7 @@ try {
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
-        if ($_.Exception.Message -notmatch 'determinism contract|preview does not match') { throw }
+        if ($_.Exception.Message -notmatch 'required scenario content|determinism contract|preview does not match') { throw }
         $forgedSemanticHashRejected = $true
     }
     if (-not $forgedSemanticHashRejected) {
@@ -439,6 +442,46 @@ try {
     $semanticPdfItem = Get-Item -LiteralPath $semanticPdfPath
     $semanticOutput.sizeBytes = $semanticPdfItem.Length
     $semanticOutput.sha256 = (Get-FileHash -LiteralPath $semanticPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
+
+    $consistentSemanticArtifacts = @(
+        foreach ($output in $peachEngine.outputs) {
+            $path = Join-Path $evidenceRoot ([string] $output.relativePath)
+            [pscustomobject]@{
+                Output = $output
+                Path = $path
+                Bytes = [System.IO.File]::ReadAllBytes($path)
+            }
+        }
+    )
+    foreach ($artifact in $consistentSemanticArtifacts) {
+        [System.IO.File]::WriteAllBytes(
+            $artifact.Path,
+            (New-TestPdfBytes -Text 'BENCHMARKREPORT forged replacement payload' -Variant 2))
+        $item = Get-Item -LiteralPath $artifact.Path
+        $artifact.Output.sizeBytes = $item.Length
+        $artifact.Output.sha256 = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $consistentSemanticOmissionRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'required scenario content') { throw }
+        $consistentSemanticOmissionRejected = $true
+    }
+    if (-not $consistentSemanticOmissionRejected) {
+        throw 'HTML/PDF artifact exporter accepted one renderer consistently omitting required scenario content.'
+    }
+    foreach ($artifact in $consistentSemanticArtifacts) {
+        [System.IO.File]::WriteAllBytes($artifact.Path, $artifact.Bytes)
+        $item = Get-Item -LiteralPath $artifact.Path
+        $artifact.Output.sizeBytes = $item.Length
+        $artifact.Output.sha256 = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
 
     $chromiumEngine = $report.engines | Where-Object { $_.engine -eq 'Chromium' }
     $chromiumEngine.outputs[0].processTreeMemory.maximumObservedProcessCount = 1

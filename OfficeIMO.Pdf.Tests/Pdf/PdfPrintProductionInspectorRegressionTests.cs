@@ -45,6 +45,34 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorPreservesSelectedColorSpaceAcrossOrderedPageContentStreams() {
+        byte[] pdf = BuildInspectionPdf(
+            "/DeviceRGB cs",
+            contents: "[4 0 R 5 0 R]",
+            extraObjects:
+                "5 0 obj\n<< /Length 8 >>\nstream\n1 0 0 sc\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorRejectsMalformedArrayColorSpaceAliasWithoutClassifyingNestedNames() {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0 0 0 1 sc",
+            resources: "/ColorSpace << /CS1 [/Bogus /DeviceCMYK] >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(0, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void ColorInspectorAppliesDefaultDeviceColorSpaceSubstitutions() {
         byte[] pdf = BuildInspectionPdf(
             "0 0 0 1 k 1 0 0 rg 0.5 g " +
