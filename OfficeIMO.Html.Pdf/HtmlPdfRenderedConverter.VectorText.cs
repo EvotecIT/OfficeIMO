@@ -8,6 +8,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
+    private const double SyntheticItalicShear = 0.22D;
     private static bool TryAddOutlinedText(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderText visual,
@@ -38,7 +39,11 @@ internal static partial class HtmlPdfRenderedConverter {
                 || face == null) {
                 return false;
             }
-            resolvedRuns.Add(new OutlinedFontRun(run.Text, face));
+            bool simulateBold = (requestedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold &&
+                (face.Style & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
+            bool simulateItalic = (requestedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic &&
+                (face.Style & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
+            resolvedRuns.Add(new OutlinedFontRun(run.Text, face, simulateBold, simulateItalic));
             requiresOutlines |= !face.CanEmbedAsStaticPdfFont;
         }
         if (!requiresOutlines) {
@@ -70,15 +75,22 @@ internal static partial class HtmlPdfRenderedConverter {
                 : run.Face.Program.MeasureShapedText(shapedText!, shapingResult, visual.Font.Size);
             cancellationToken.ThrowIfCancellationRequested();
             if (double.IsNaN(advance) || double.IsInfinity(advance) || advance < 0D) return false;
-            runs.Add(new OutlinedFontRun(run.Text, run.Face, advance, shapedText, shapingResult));
+            runs.Add(new OutlinedFontRun(
+                run.Text,
+                run.Face,
+                run.SimulateBold,
+                run.SimulateItalic,
+                advance,
+                shapedText,
+                shapingResult));
         }
 
         double measuredAdvance = runs.Sum(run => run.Advance);
         if (measuredAdvance <= 0D) return false;
-        double resolvedAdvance = visual.TextAdvanceWidth.HasValue
-            && Math.Abs(visual.TextAdvanceWidth.Value) > 0.0001D
-                ? Math.Abs(visual.TextAdvanceWidth.Value)
-                : measuredAdvance;
+        double? paintWidth = visual.TextPaintWidth ?? visual.TextAdvanceWidth;
+        double resolvedAdvance = paintWidth.HasValue && Math.Abs(paintWidth.Value) > 0.0001D
+            ? Math.Abs(paintWidth.Value)
+            : measuredAdvance;
         double scaleX = resolvedAdvance / measuredAdvance;
         double textX = ResolveOutlinedTextX(frameWidth, resolvedAdvance, visual.Alignment);
         var lineHeights = new double[runs.Count];
@@ -146,13 +158,32 @@ internal static partial class HtmlPdfRenderedConverter {
             }
             cancellationToken.ThrowIfCancellationRequested();
             int runPointCount = 0;
+            double italicBottom = runTop + lineHeights[runIndex];
+            double boldOffset = Math.Max(1D, visual.Font.Size / 22D);
+            int copies = run.SimulateBold ? 2 : 1;
             foreach (List<OfficePoint> contour in contours) {
-                if (contour.Count > availablePoints - runPointCount) {
+                int retainedForContour = checked(contour.Count * copies);
+                if (retainedForContour > availablePoints - runPointCount) {
                     throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
                 }
-                runPointCount += contour.Count;
-                retainedPointCount += contour.Count;
-                allContours.Add(contour.Select(point => ScalePointX(point, textX, scaleX)).ToList());
+                runPointCount += retainedForContour;
+                retainedPointCount += retainedForContour;
+                allContours.Add(contour.Select(point => TransformOutlinedPoint(
+                    point,
+                    textX,
+                    scaleX,
+                    italicBottom,
+                    run.SimulateItalic,
+                    0D)).ToList());
+                if (run.SimulateBold) {
+                    allContours.Add(contour.Select(point => TransformOutlinedPoint(
+                        point,
+                        textX,
+                        scaleX,
+                        italicBottom,
+                        run.SimulateItalic,
+                        boldOffset)).ToList());
+                }
             }
             cursor += run.Advance;
         }
@@ -394,8 +425,17 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static OfficePoint ScalePointX(OfficePoint point, double originX, double scaleX) =>
-        new(originX + ((point.X - originX) * scaleX), point.Y);
+    private static OfficePoint TransformOutlinedPoint(
+        OfficePoint point,
+        double originX,
+        double scaleX,
+        double bottom,
+        bool simulateItalic,
+        double boldOffset) {
+        double x = point.X + boldOffset;
+        if (simulateItalic) x += (bottom - point.Y) * SyntheticItalicShear;
+        return new OfficePoint(originX + ((x - originX) * scaleX), point.Y);
+    }
 
     private static OfficePoint TranslatePoint(OfficePoint point, double offsetX, double offsetY) =>
         new(point.X + offsetX, point.Y + offsetY);
@@ -482,18 +522,22 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private readonly struct OutlinedFontRun {
-        internal OutlinedFontRun(string text, OfficeFontFace face)
-            : this(text, face, 0D, null, null) {
+        internal OutlinedFontRun(string text, OfficeFontFace face, bool simulateBold, bool simulateItalic)
+            : this(text, face, simulateBold, simulateItalic, 0D, null, null) {
         }
 
         internal OutlinedFontRun(
             string text,
             OfficeFontFace face,
+            bool simulateBold,
+            bool simulateItalic,
             double advance,
             string? shapedText,
             OfficeTextShapingResult? shapingResult) {
             Text = text;
             Face = face;
+            SimulateBold = simulateBold;
+            SimulateItalic = simulateItalic;
             Advance = advance;
             ShapedText = shapedText;
             ShapingResult = shapingResult;
@@ -501,6 +545,8 @@ internal static partial class HtmlPdfRenderedConverter {
 
         internal string Text { get; }
         internal OfficeFontFace Face { get; }
+        internal bool SimulateBold { get; }
+        internal bool SimulateItalic { get; }
         internal double Advance { get; }
         internal string? ShapedText { get; }
         internal OfficeTextShapingResult? ShapingResult { get; }

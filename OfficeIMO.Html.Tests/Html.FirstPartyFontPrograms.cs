@@ -213,6 +213,43 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlPdfOutlinedGlyphGeometryDoesNotAbsorbCssLetterSpacing() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        string encodedFont = Convert.ToBase64String(fontData);
+        string prefix = "<html><style>@font-face{font-family:'Spacing Variable';src:url('data:font/ttf;base64," +
+            encodedFont + "')}p{font-family:'Spacing Variable';font-size:28px;font-variation-settings:'wght' 725;margin:0";
+        HtmlConversionDocument plain = HtmlConversionDocument.Parse(prefix + "}</style><p>A</p></html>");
+        HtmlConversionDocument spaced = HtmlConversionDocument.Parse(prefix + ";letter-spacing:18px}</style><p>A</p></html>");
+
+        double plainWidth = OutlinedPathWidth(plain.ToPdfDocumentResult().ToBytes());
+        double spacedWidth = OutlinedPathWidth(spaced.ToPdfDocumentResult().ToBytes());
+
+        Assert.Equal(plainWidth, spacedWidth, 3);
+    }
+
+    [Fact]
+    public void HtmlPdfOutlinedFallbackFaceSynthesizesRequestedBoldItalicStyle() {
+        byte[] boldLatin = ReadFont("RobotoFlex.ttf");
+        byte[] regularGreek = ReadFont("RobotoFlex.ttf");
+        string prefix = "<html><style>" +
+            "@font-face{font-family:'Fallback Collection';src:url('data:font/ttf;base64," + Convert.ToBase64String(boldLatin) +
+            "');font-style:normal;font-weight:700;unicode-range:U+0041}" +
+            "@font-face{font-family:'Fallback Collection';src:url('data:font/ttf;base64," + Convert.ToBase64String(regularGreek) +
+            "');font-style:normal;font-weight:400;unicode-range:U+03A9}" +
+            "p{font-family:'Fallback Collection';font-size:28px;margin:0";
+        HtmlConversionDocument regular = HtmlConversionDocument.Parse(prefix + "}</style><p>Ω</p></html>");
+        HtmlConversionDocument requested = HtmlConversionDocument.Parse(prefix + ";font-weight:700;font-style:italic}</style><p>Ω</p></html>");
+
+        IReadOnlyList<OfficePathCommand> regularCommands = Assert.Single(
+            PdfCore.PdfDocument.Open(regular.ToPdfDocumentResult().ToBytes()).Read.Drawing(1).Shapes).Shape.PathCommands;
+        IReadOnlyList<OfficePathCommand> requestedCommands = Assert.Single(
+            PdfCore.PdfDocument.Open(requested.ToPdfDocumentResult().ToBytes()).Read.Drawing(1).Shapes).Shape.PathCommands;
+
+        Assert.Equal(regularCommands.Count * 2, requestedCommands.Count);
+        Assert.True(OutlinedPathWidth(requestedCommands) > OutlinedPathWidth(regularCommands));
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task HtmlPdfOutlinedVariableFontPropagatesCancellationToShaping() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
@@ -325,5 +362,14 @@ public sealed class HtmlFirstPartyFontProgramTests {
                 new OfficeShapedGlyph(glyphId, request.Text, 0, advanceWidth)
             });
         }
+    }
+
+    private static double OutlinedPathWidth(byte[] pdf) => OutlinedPathWidth(Assert.Single(
+        PdfCore.PdfDocument.Open(pdf).Read.Drawing(1).Shapes).Shape.PathCommands);
+
+    private static double OutlinedPathWidth(IReadOnlyList<OfficePathCommand> commands) {
+        double minimum = commands.Where(command => command.Kind != OfficePathCommandKind.Close).Min(command => command.Point.X);
+        double maximum = commands.Where(command => command.Kind != OfficePathCommandKind.Close).Max(command => command.Point.X);
+        return maximum - minimum;
     }
 }

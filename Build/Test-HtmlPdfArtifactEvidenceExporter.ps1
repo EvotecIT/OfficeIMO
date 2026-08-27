@@ -6,6 +6,14 @@ $platform = $isWindowsHost ? 'windows' : 'linux'
 $osDescription = $isWindowsHost ? 'Windows contract-test host' : 'Linux contract-test host'
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
     'officeimo-html-pdf-artifact-exporter-' + [Guid]::NewGuid().ToString('N'))
+$pdfProjectPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj'
+$pdfAssemblyPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Pdf.dll'
+if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf)) {
+    & dotnet build $pdfProjectPath -c Release -f net10.0 --nologo
+    if ($LASTEXITCODE -ne 0) { throw 'Could not build OfficeIMO.Pdf for artifact-exporter contracts.' }
+}
+Add-Type -Path (Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Core.dll')
+Add-Type -Path $pdfAssemblyPath
 
 function New-TestPdfBytes {
     param(
@@ -15,11 +23,15 @@ function New-TestPdfBytes {
 
     $content = "BT /F1 12 Tf 72 720 Td ($Text) Tj ET"
     $objects = @(
-        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Catalog /Pages 2 0 R /Lang (en-US) /MarkInfo << /Marked true >> /StructTreeRoot 6 0 R >>',
         '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
-        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /StructParents 0 /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
         '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-        "<< /Length $([System.Text.Encoding]::ASCII.GetByteCount($content)) >>`nstream`n$content`nendstream"
+        "<< /Length $([System.Text.Encoding]::ASCII.GetByteCount("/P <</MCID 0>> BDC $content EMC")) >>`nstream`n/P <</MCID 0>> BDC $content EMC`nendstream",
+        '<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 8 0 R /ParentTreeNextKey 1 >>',
+        '<< /Type /StructElem /S /Document /P 6 0 R /K [9 0 R] /Lang (en-US) >>',
+        '<< /Nums [0 [9 0 R]] >>',
+        '<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R /K << /Type /MCR /Pg 3 0 R /MCID 0 >> >>'
     )
     $buffer = [System.Collections.Generic.List[byte]]::new()
     $offsets = [System.Collections.Generic.List[int]]::new()
@@ -33,11 +45,11 @@ function New-TestPdfBytes {
         & $appendAscii "$($index + 1) 0 obj`n$($objects[$index])`nendobj`n"
     }
     $xrefOffset = $buffer.Count
-    & $appendAscii "xref`n0 6`n0000000000 65535 f `n"
+    & $appendAscii "xref`n0 $($objects.Count + 1)`n0000000000 65535 f `n"
     foreach ($offset in $offsets) {
         & $appendAscii ($offset.ToString('0000000000') + " 00000 n `n")
     }
-    & $appendAscii "trailer`n<< /Size 6 /Root 1 0 R >>`nstartxref`n$xrefOffset`n%%EOF`n"
+    & $appendAscii "trailer`n<< /Size $($objects.Count + 1) /Root 1 0 R >>`nstartxref`n$xrefOffset`n%%EOF`n"
     return $buffer.ToArray()
 }
 
@@ -63,14 +75,20 @@ try {
                     [System.IO.File]::WriteAllBytes(
                         (Join-Path $evidenceRoot $pdfRelativePath),
                         (New-TestPdfBytes -Text $pdfText -Variant $variant))
-                    foreach ($artifact in @(
-                            [pscustomobject]@{ Path = $managedRelativePath; Content = "managed-$engineName" },
-                            [pscustomobject]@{ Path = $externalRelativePath; Content = "external-$engineName" })) {
-                        [System.IO.File]::WriteAllText(
-                            (Join-Path $evidenceRoot $artifact.Path),
-                            $artifact.Content,
-                            [System.Text.UTF8Encoding]::new($false))
-                    }
+                    $pdfFullPath = Join-Path $evidenceRoot $pdfRelativePath
+                    $renderOptions = [OfficeIMO.Pdf.PdfPageRenderOptions]::new()
+                    $renderOptions.Format = [OfficeIMO.Pdf.PdfPageRenderFormat]::Png
+                    $renderOptions.Dpi = 120D
+                    $renderOptions.ContinueOnError = $false
+                    $renderOptions.MaxPages = 1
+                    $managedRender = @([OfficeIMO.Pdf.PdfDocument]::Open(
+                            [System.IO.File]::ReadAllBytes($pdfFullPath)).Read.RenderPages('1', $renderOptions))[0]
+                    [System.IO.File]::WriteAllBytes(
+                        (Join-Path $evidenceRoot $managedRelativePath),
+                        $managedRender.Bytes)
+                    $externalPrefix = Join-Path $evidenceRoot ([System.IO.Path]::GetFileNameWithoutExtension($externalRelativePath))
+                    $null = & pdftoppm -f 1 -l 1 -singlefile -png -r 120 $pdfFullPath $externalPrefix 2>&1
+                    if ($LASTEXITCODE -ne 0) { throw 'Could not create the artifact-exporter external preview fixture.' }
 
                     $pdfItem = Get-Item -LiteralPath (Join-Path $evidenceRoot $pdfRelativePath)
                     $managedItem = Get-Item -LiteralPath (Join-Path $evidenceRoot $managedRelativePath)
@@ -101,14 +119,19 @@ try {
                             parentTreeEntryCount = 1
                             hasDocumentStructureElement = $true
                             figuresHaveAlternateText = $true
+                            structureTypeCounts = [ordered]@{ Document = 1; P = 1 }
                         }
                         managedVisual = [ordered]@{
                             relativePath = $managedRelativePath
+                            width = $managedRender.Width
+                            height = $managedRender.Height
                             sizeBytes = $managedItem.Length
                             sha256 = (Get-FileHash -LiteralPath $managedItem.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
                         }
                         externalVisual = [ordered]@{
                             relativePath = $externalRelativePath
+                            width = $managedRender.Width
+                            height = $managedRender.Height
                             sizeBytes = $externalItem.Length
                             sha256 = (Get-FileHash -LiteralPath $externalItem.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
                         }
@@ -364,7 +387,7 @@ try {
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
-        if ($_.Exception.Message -notmatch 'determinism contract') { throw }
+        if ($_.Exception.Message -notmatch 'determinism contract|preview does not match') { throw }
         $forgedSemanticHashRejected = $true
     }
     if (-not $forgedSemanticHashRejected) {
@@ -441,6 +464,52 @@ try {
     if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
         throw 'HTML/PDF artifact exporter did not produce the valid in-root summary.'
     }
+
+    $taggedOutput = $report.engines[0].outputs[0]
+    $taggedOutput.contract.structureElementCount = 3
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $forgedTaggedContractRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'tagged-PDF contract') { throw }
+        $forgedTaggedContractRejected = $true
+    }
+    if (-not $forgedTaggedContractRejected) {
+        throw 'HTML/PDF artifact exporter trusted tagged-PDF claims instead of independently inspecting the PDF.'
+    }
+    $taggedOutput.contract.structureElementCount = 2
+
+    $managedPath = Join-Path $evidenceRoot ([string] $taggedOutput.managedVisual.relativePath)
+    $managedBytes = [System.IO.File]::ReadAllBytes($managedPath)
+    $externalPath = Join-Path $evidenceRoot ([string] $taggedOutput.externalVisual.relativePath)
+    [System.IO.File]::WriteAllBytes($managedPath, [System.IO.File]::ReadAllBytes($externalPath))
+    $managedItem = Get-Item -LiteralPath $managedPath
+    $taggedOutput.managedVisual.sizeBytes = $managedItem.Length
+    $taggedOutput.managedVisual.sha256 = (Get-FileHash -LiteralPath $managedPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $unrelatedManagedPreviewRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'Managed preview does not match') { throw }
+        $unrelatedManagedPreviewRejected = $true
+    }
+    if (-not $unrelatedManagedPreviewRejected) {
+        throw 'HTML/PDF artifact exporter accepted an unrelated managed preview.'
+    }
+    [System.IO.File]::WriteAllBytes($managedPath, $managedBytes)
+    $managedItem = Get-Item -LiteralPath $managedPath
+    $taggedOutput.managedVisual.sizeBytes = $managedItem.Length
+    $taggedOutput.managedVisual.sha256 = (Get-FileHash -LiteralPath $managedPath -Algorithm SHA256).Hash.ToLowerInvariant()
 
     $report.input.expectedPageCount = 2
     foreach ($engine in $report.engines) {

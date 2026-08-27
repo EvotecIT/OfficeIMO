@@ -26,6 +26,14 @@ $pathComparison = if ([System.Environment]::OSVersion.Platform -eq [System.Platf
     [System.StringComparison]::Ordinal
 }
 $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+$pdfAssemblyPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Pdf.dll'
+$coreAssemblyPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Core.dll'
+if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $coreAssemblyPath -PathType Leaf)) {
+    throw 'HTML/PDF artifact evidence requires a Release net10.0 OfficeIMO.Pdf build for independent PDF and preview inspection.'
+}
+Add-Type -Path (Resolve-Path -LiteralPath $coreAssemblyPath).Path
+Add-Type -Path (Resolve-Path -LiteralPath $pdfAssemblyPath).Path
 
 if ($report.schemaVersion -ne 2 -or
     [string] $report.scale -ne 'High' -or
@@ -150,7 +158,8 @@ function Assert-PdfArtifactContract {
     param(
         [Parameter(Mandatory)][string] $RelativePath,
         [Parameter(Mandatory)][int] $ExpectedPageCount,
-        [Parameter(Mandatory)][int] $ExpectedReportMarkerCount
+        [Parameter(Mandatory)][int] $ExpectedReportMarkerCount,
+        [Parameter(Mandatory)][object] $ExpectedContract
     )
 
     $pdfInfo = @(Get-Command pdfinfo -CommandType Application -ErrorAction SilentlyContinue) | Select-Object -First 1
@@ -170,6 +179,39 @@ function Assert-PdfArtifactContract {
     if (-not $pageMatch.Success -or
         [int] $pageMatch.Groups['count'].Value -ne $ExpectedPageCount) {
         throw "Executable PDF validation found an unexpected page count for artifact: $RelativePath"
+    }
+
+    $pdfBytes = [System.IO.File]::ReadAllBytes($fullPath)
+    $documentInfo = [OfficeIMO.Pdf.PdfDocument]::Open($pdfBytes).Inspect()
+    $tagged = $documentInfo.TaggedContent
+    $actualTypeCounts = if ($null -eq $tagged) {
+        [string]::Empty
+    } else {
+        (@($tagged.StructureTypeCounts.GetEnumerator() |
+                Sort-Object Key |
+                ForEach-Object { "$($_.Key):$($_.Value)" }) -join ',')
+    }
+    $expectedTypeCounts = if ($null -eq $ExpectedContract.structureTypeCounts) {
+        [string]::Empty
+    } else {
+        (@($ExpectedContract.structureTypeCounts.PSObject.Properties |
+                Sort-Object Name |
+                ForEach-Object { "$($_.Name):$($_.Value)" }) -join ',')
+    }
+    if ($documentInfo.HasTaggedContent -ne [bool] $ExpectedContract.tagged -or
+        $null -eq $tagged -or
+        $tagged.Marked -ne [bool] $ExpectedContract.marked -or
+        -not [string]::Equals(
+            [string] $documentInfo.CatalogLanguage,
+            [string] $ExpectedContract.catalogLanguage,
+            [System.StringComparison]::OrdinalIgnoreCase) -or
+        $tagged.StructureElementCount -ne [int] $ExpectedContract.structureElementCount -or
+        $tagged.MarkedContentReferenceCount -ne [int] $ExpectedContract.markedContentReferenceCount -or
+        $tagged.ParentTreeEntryCount -ne [int] $ExpectedContract.parentTreeEntryCount -or
+        $tagged.HasDocumentStructureElement -ne [bool] $ExpectedContract.hasDocumentStructureElement -or
+        $tagged.FiguresHaveAlternateText -ne [bool] $ExpectedContract.figuresHaveAlternateText -or
+        $actualTypeCounts -ne $expectedTypeCounts) {
+        throw "Independent PDF inspection contradicted the tagged-PDF contract for artifact: $RelativePath"
     }
 
     $textPath = Join-Path ([System.IO.Path]::GetTempPath()) (
@@ -204,6 +246,76 @@ function Assert-PdfArtifactContract {
     } finally {
         if (Test-Path -LiteralPath $textPath -PathType Leaf) {
             Remove-Item -LiteralPath $textPath -Force
+        }
+    }
+}
+
+function Assert-PngPreview {
+    param(
+        [Parameter(Mandatory)][string] $RelativePath,
+        [Parameter(Mandatory)][int] $ExpectedWidth,
+        [Parameter(Mandatory)][int] $ExpectedHeight
+    )
+    $fullPath = [System.IO.Path]::GetFullPath((Join-Path $evidenceRoot $RelativePath))
+    $bytes = [System.IO.File]::ReadAllBytes($fullPath)
+    $image = $null
+    if (-not [OfficeIMO.Drawing.OfficePngReader]::TryDecode($bytes, [ref] $image) -or
+        $null -eq $image -or
+        $image.Width -ne $ExpectedWidth -or
+        $image.Height -ne $ExpectedHeight) {
+        throw "Visual evidence is not a decodable PNG with the declared dimensions: $RelativePath"
+    }
+}
+
+function Assert-ManagedPreviewMatchesPdf {
+    param(
+        [Parameter(Mandatory)][string] $PdfRelativePath,
+        [Parameter(Mandatory)][object] $Preview
+    )
+    $pdfPath = [System.IO.Path]::GetFullPath((Join-Path $evidenceRoot $PdfRelativePath))
+    $options = [OfficeIMO.Pdf.PdfPageRenderOptions]::new()
+    $options.Format = [OfficeIMO.Pdf.PdfPageRenderFormat]::Png
+    $options.Dpi = 120D
+    $options.ContinueOnError = $false
+    $options.MaxPages = 1
+    $rendered = @([OfficeIMO.Pdf.PdfDocument]::Open([System.IO.File]::ReadAllBytes($pdfPath)).Read.RenderPages('1', $options))
+    if ($rendered.Count -ne 1 -or $null -eq $rendered[0].Bytes) {
+        throw "Independent managed rendering failed for artifact: $PdfRelativePath"
+    }
+    $actualHash = [Convert]::ToHexString(
+        [System.Security.Cryptography.SHA256]::HashData($rendered[0].Bytes)).ToLowerInvariant()
+    if ($rendered[0].Width -ne [int] $Preview.width -or
+        $rendered[0].Height -ne [int] $Preview.height -or
+        -not [string]::Equals($actualHash, [string] $Preview.sha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Managed preview does not match an independent page-one rendering of artifact: $PdfRelativePath"
+    }
+}
+
+function Assert-ExternalPreviewMatchesPdf {
+    param(
+        [Parameter(Mandatory)][string] $PdfRelativePath,
+        [Parameter(Mandatory)][object] $Preview
+    )
+    $pdfToPpm = @(Get-Command pdftoppm -CommandType Application -ErrorAction SilentlyContinue) | Select-Object -First 1
+    if ($null -eq $pdfToPpm) {
+        throw 'HTML/PDF artifact evidence requires executable pdftoppm preview validation.'
+    }
+    $pdfPath = [System.IO.Path]::GetFullPath((Join-Path $evidenceRoot $PdfRelativePath))
+    $temporaryPrefix = Join-Path ([System.IO.Path]::GetTempPath()) (
+        'officeimo-html-pdf-preview-' + [Guid]::NewGuid().ToString('N'))
+    $temporaryPng = $temporaryPrefix + '.png'
+    try {
+        $null = & $pdfToPpm.Source -f 1 -l 1 -singlefile -png -r 120 $pdfPath $temporaryPrefix 2>&1
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $temporaryPng -PathType Leaf)) {
+            throw "Independent external rendering failed for artifact: $PdfRelativePath"
+        }
+        $actualHash = (Get-FileHash -LiteralPath $temporaryPng -Algorithm SHA256).Hash.ToLowerInvariant()
+        if (-not [string]::Equals($actualHash, [string] $Preview.sha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "External preview does not match an independent page-one rendering of artifact: $PdfRelativePath"
+        }
+    } finally {
+        if (Test-Path -LiteralPath $temporaryPng -PathType Leaf) {
+            Remove-Item -LiteralPath $temporaryPng -Force
         }
     }
 }
@@ -309,12 +421,20 @@ foreach ($engine in $engines) {
         $semanticHashes.Add((Assert-PdfArtifactContract `
             -RelativePath ([string] $output.relativePath) `
             -ExpectedPageCount ([int] $output.contract.pageCount) `
-            -ExpectedReportMarkerCount ([int] $output.contract.reportMarkerCount))) | Out-Null
+            -ExpectedReportMarkerCount ([int] $output.contract.reportMarkerCount) `
+            -ExpectedContract $output.contract)) | Out-Null
         $managedVisualHashes.Add((Add-ValidatedArtifact `
             -Kind ("managed-preview:$($engine.engine)") `
             -RelativePath ([string] $output.managedVisual.relativePath) `
             -ExpectedSize ([long] $output.managedVisual.sizeBytes) `
             -ExpectedSha256 ([string] $output.managedVisual.sha256))) | Out-Null
+        Assert-PngPreview `
+            -RelativePath ([string] $output.managedVisual.relativePath) `
+            -ExpectedWidth ([int] $output.managedVisual.width) `
+            -ExpectedHeight ([int] $output.managedVisual.height)
+        Assert-ManagedPreviewMatchesPdf `
+            -PdfRelativePath ([string] $output.relativePath) `
+            -Preview $output.managedVisual
         if ($null -eq $output.externalVisual) {
             throw "External visual evidence is missing for $($engine.engine) iteration $($output.iteration)."
         }
@@ -323,6 +443,13 @@ foreach ($engine in $engines) {
             -RelativePath ([string] $output.externalVisual.relativePath) `
             -ExpectedSize ([long] $output.externalVisual.sizeBytes) `
             -ExpectedSha256 ([string] $output.externalVisual.sha256))) | Out-Null
+        Assert-PngPreview `
+            -RelativePath ([string] $output.externalVisual.relativePath) `
+            -ExpectedWidth ([int] $output.externalVisual.width) `
+            -ExpectedHeight ([int] $output.externalVisual.height)
+        Assert-ExternalPreviewMatchesPdf `
+            -PdfRelativePath ([string] $output.relativePath) `
+            -Preview $output.externalVisual
     }
 
     $determinism = $engine.determinism

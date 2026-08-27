@@ -540,10 +540,24 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfDictionary colorSpaces,
         string key,
         Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth) =>
-        colorSpaces.Items.TryGetValue(key, out PdfObject? value)
-            ? ClassifyColorSpace(value, objects, maximumObjectDepth)
-            : null;
+        int maximumObjectDepth) {
+        if (!colorSpaces.Items.TryGetValue(key, out PdfObject? value)) return null;
+        PdfObject? resolved = ResolveObject(objects, value, 0, maximumObjectDepth);
+        if (resolved is PdfArray array &&
+            array.Items.Count > 0 &&
+            ResolveObject(objects, array.Items[0], 0, maximumObjectDepth) is PdfName family &&
+            string.Equals(family.Name, "ICCBased", StringComparison.Ordinal)) {
+            int expectedComponents = string.Equals(key, "DefaultRGB", StringComparison.Ordinal) ? 3 :
+                string.Equals(key, "DefaultCMYK", StringComparison.Ordinal) ? 4 : 1;
+            if (array.Items.Count != 2 ||
+                ResolveObject(objects, array.Items[1], 0, maximumObjectDepth) is not PdfStream profile ||
+                !TryResolveNumber(profile.Dictionary, "N", objects, maximumObjectDepth, out double components) ||
+                components != expectedComponents) {
+                return ColorSpaceUsage.Unknown;
+            }
+        }
+        return ClassifyColorSpace(value, objects, maximumObjectDepth);
+    }
 
     private static ColorSpaceUsage ClassifyColorSpace(
         PdfObject? value,
@@ -955,6 +969,7 @@ internal static partial class PdfPrintProductionColorInspector {
         internal static ColorSpaceUsage DeviceRgb { get; } = new(true, true, false, false);
         internal static ColorSpaceUsage DeviceCmyk { get; } = new(true, false, true, false);
         internal static ColorSpaceUsage DeviceGray { get; } = new(true, false, false, false);
+        internal static ColorSpaceUsage Unknown { get; } = new(false, false, false, false);
 
         internal ColorSpaceUsage ReplaceDeviceRgb(ColorSpaceUsage replacement) =>
             new(

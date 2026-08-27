@@ -527,7 +527,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             textAdvanceWidth: paintSegment.Advance,
                             bidiVisualOrderResolved: segment.BidiResolved,
                             semanticFragmentOrder: segment.Run.SemanticFragmentOrder,
-                            logicalTextOrder: segment.Run.LogicalTextOrder));
+                            logicalTextOrder: segment.Run.LogicalTextOrder,
+                            textPaintWidth: paintSegment.Width));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||

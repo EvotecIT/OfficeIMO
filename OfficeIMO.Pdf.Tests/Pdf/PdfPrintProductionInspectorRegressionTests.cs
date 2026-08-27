@@ -79,6 +79,23 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
+    [Theory]
+    [InlineData("/DefaultRGB [/ICCBased 99 0 R]", "")]
+    [InlineData("/DefaultRGB [/ICCBased 6 0 R]", "6 0 obj\n<< /N 4 /Length 0 >>\nstream\n\nendstream\nendobj\n")]
+    public void ColorInspectorRejectsUnresolvedOrWrongComponentDefaultRgbProfiles(
+        string defaultColorSpace,
+        string extraObjects) {
+        byte[] pdf = BuildInspectionPdf(
+            "1 0 0 rg",
+            resources: "/ColorSpace << " + defaultColorSpace + " >>",
+            extraObjects: extraObjects);
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void ColorInspectorAppliesDefaultRgbToReachableImagesAndShadings() {
         byte[] pdf = BuildInspectionPdf(

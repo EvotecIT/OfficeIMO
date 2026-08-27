@@ -58,8 +58,19 @@ internal sealed class OfficeCffFontData {
                 EnsureRange(topOffset, topLength, 0, tableEnd, "The CFF2 Top DICT is truncated.");
                 CffDictionary topDictionary = CffDictionary.Parse(data, topOffset, topLength);
                 int cursor = checked(topOffset + topLength);
-                _ = CffIndex.Read(data, ref cursor, tableEnd, countSize: 4);
-                return ReadNonEmptyCharStrings(data, tableEnd, topDictionary, cursor, countSize: 4).Count > 0;
+                CffIndex cff2GlobalSubroutines = CffIndex.Read(data, ref cursor, tableEnd, countSize: 4);
+                CffIndex cff2CharStrings = ReadNonEmptyCharStrings(data, tableEnd, topDictionary, cursor, countSize: 4);
+                CffIndex localSubroutines = topDictionary.TryGetPair(18, out int privateSize, out int privateOffset)
+                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: true)
+                    : CffIndex.Empty(data);
+                ValidateFirstCharString(
+                    isCff2: true,
+                    cff2CharStrings,
+                    cff2GlobalSubroutines,
+                    new[] { localSubroutines },
+                    fontDictionaryByGlyph: null,
+                    standardEncodingGlyphs: null);
+                return true;
             }
 
             if (data[3] < 1 || data[3] > 4) return false;
@@ -68,7 +79,7 @@ internal sealed class OfficeCffFontData {
             CffIndex topDictionaries = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
             if (names.Count != 1 || topDictionaries.Count != 1) return false;
             _ = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
-            _ = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
+            CffIndex globalSubroutines = CffIndex.Read(data, ref cff1Cursor, tableEnd, countSize: 2);
             CffSlice top = topDictionaries[0];
             CffDictionary cff1TopDictionary = CffDictionary.Parse(data, top.Offset, top.Length);
             bool isCidKeyed = cff1TopDictionary.ContainsOperation(0x0C1E);
@@ -80,18 +91,48 @@ internal sealed class OfficeCffFontData {
                 cff1TopDictionary,
                 cff1Cursor,
                 countSize: 2);
-            if (!isCidKeyed) return true;
+            if (!isCidKeyed) {
+                CffIndex localSubroutines = cff1TopDictionary.TryGetPair(18, out int privateSize, out int privateOffset)
+                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: false)
+                    : CffIndex.Empty(data);
+                int charset = cff1TopDictionary.TryGetInteger(15, out int selectedCharset) ? selectedCharset : 0;
+                int[] standardEncodingGlyphs = OfficeCffCharset.BuildStandardEncodingGlyphMap(
+                    data,
+                    0,
+                    tableEnd,
+                    charset,
+                    charStrings.Count);
+                ValidateFirstCharString(
+                    isCff2: false,
+                    charStrings,
+                    globalSubroutines,
+                    new[] { localSubroutines },
+                    fontDictionaryByGlyph: null,
+                    standardEncodingGlyphs);
+                return true;
+            }
             if (!cff1TopDictionary.HasNonNegativeIntegerOperands(0x0C1E, 3) ||
                 !cff1TopDictionary.TryGetInteger(0x0C24, out int fdArrayOffset) ||
                 !cff1TopDictionary.TryGetInteger(0x0C25, out int fdSelectOffset) ||
                 fdArrayOffset < cff1Cursor || fdSelectOffset < cff1Cursor) return false;
             CffIndex fdArray = CffIndex.ReadAt(data, fdArrayOffset, tableEnd, countSize: 2);
             if (fdArray.Count <= 0 || fdArray.Count > 256) return false;
+            var localSubroutinesByDictionary = new CffIndex[fdArray.Count];
             for (int index = 0; index < fdArray.Count; index++) {
                 CffSlice fontDictionary = fdArray[index];
-                _ = CffDictionary.Parse(data, fontDictionary.Offset, fontDictionary.Length);
+                CffDictionary dictionary = CffDictionary.Parse(data, fontDictionary.Offset, fontDictionary.Length);
+                localSubroutinesByDictionary[index] = dictionary.TryGetPair(18, out int privateSize, out int privateOffset)
+                    ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: false)
+                    : CffIndex.Empty(data);
             }
-            _ = ReadFdSelect(data, fdSelectOffset, tableEnd, charStrings.Count, fdArray.Count);
+            int[] fontDictionaryByGlyph = ReadFdSelect(data, fdSelectOffset, tableEnd, charStrings.Count, fdArray.Count);
+            ValidateFirstCharString(
+                isCff2: false,
+                charStrings,
+                globalSubroutines,
+                localSubroutinesByDictionary,
+                fontDictionaryByGlyph,
+                standardEncodingGlyphs: null);
             return true;
         } catch (Exception exception) when (
             exception is InvalidDataException ||
@@ -100,6 +141,37 @@ internal sealed class OfficeCffFontData {
             exception is NotSupportedException) {
             return false;
         }
+    }
+
+    private static void ValidateFirstCharString(
+        bool isCff2,
+        CffIndex charStrings,
+        CffIndex globalSubroutines,
+        CffIndex[] localSubroutines,
+        int[]? fontDictionaryByGlyph,
+        int[]? standardEncodingGlyphs) {
+        var font = new OfficeCffFontData(
+            isCff2,
+            isCff2 ? 513 : 48,
+            charStrings,
+            globalSubroutines,
+            localSubroutines,
+            fontDictionaryByGlyph,
+            standardEncodingGlyphs,
+            variationStore: null);
+        new OfficeType2CharStringInterpreter(
+            font,
+            glyphId: 0,
+            StructuralValidationSink.Instance,
+            System.Threading.CancellationToken.None).Render(charStrings[0]);
+    }
+
+    private sealed class StructuralValidationSink : IOfficeCffPathSink {
+        internal static StructuralValidationSink Instance { get; } = new();
+        public void MoveTo(double x, double y) { }
+        public void LineTo(double x, double y) { }
+        public void CurveTo(double control1X, double control1Y, double control2X, double control2Y, double x, double y) { }
+        public void CloseContour() { }
     }
 
     private static CffIndex ReadNonEmptyCharStrings(
