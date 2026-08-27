@@ -77,6 +77,18 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
+    [Theory]
+    [InlineData("q 99 Q 0.5 g")]
+    [InlineData("99 q 0.5 g Q")]
+    public void ColorInspectorRejectsGraphicsStateOperatorsWithOperands(string content) {
+        byte[] pdf = BuildInspectionPdf(content);
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void ColorInspectorRejectsMalformedArrayColorSpaceAliasWithoutClassifyingNestedNames() {
         byte[] pdf = BuildInspectionPdf(
@@ -143,6 +155,23 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Theory]
+    [InlineData("1 0 0 rg", "/DefaultRGB /DeviceCMYK")]
+    [InlineData("0 0 0 1 k", "/DefaultCMYK /DeviceGray")]
+    [InlineData("0.5 g", "/DefaultGray /DeviceRGB")]
+    public void ColorInspectorRejectsDeviceColorSpacesAsDefaultReplacements(
+        string content,
+        string defaultColorSpace) {
+        byte[] pdf = BuildInspectionPdf(
+            content,
+            resources: "/ColorSpace << " + defaultColorSpace + " >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
     [InlineData("ICCBased")]
     [InlineData("CalRGB")]
     [InlineData("CalGray")]
@@ -193,6 +222,41 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
         Assert.Equal(2, evidence.DeviceRgbOperatorCount);
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorAppliesInvokingColorStateToForms() {
+        const string formContent = "1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            "/DeviceRGB cs /Fm Do",
+            resources: "/XObject << /Fm 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+                formContent.Length +
+                " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorInspectsRepeatedFormInvocationsUnderEachColorState() {
+        const string formContent = "1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            "/DeviceRGB cs /Fm Do /DeviceCMYK cs /Fm Do",
+            resources: "/XObject << /Fm 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+                formContent.Length +
+                " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
     [Fact]
@@ -480,6 +544,25 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
         Assert.Equal(0, evidence.FontResourceCount);
         Assert.Equal(1, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void ColorInspectorDoesNotTraverseType3GlyphsAfterMalformedFontSizeOperand() {
+        const string charProc = "/DeviceRGB cs 1 0 0 sc 0 0 500 700 re f";
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 /Bogus Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+                "/CharProcs << /A 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+                "/FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n" +
+                "6 0 obj\n<< /Length " + charProc.Length + " >>\nstream\n" + charProc + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(0, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
     [Theory]

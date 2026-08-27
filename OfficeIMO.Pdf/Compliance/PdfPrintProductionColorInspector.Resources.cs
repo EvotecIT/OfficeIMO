@@ -9,10 +9,24 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfDictionary? resources,
         List<ContentStreamContext> streams,
         PdfObject? inheritedFontObject = null,
-        int? pageSequenceId = null) {
-        if (ContainsContentStreamContext(streams, stream, aliases, resources, inheritedFontObject, pageSequenceId)) return;
+        int? pageSequenceId = null,
+        ContentColorStateSnapshot? initialColorState = null) {
+        if (ContainsContentStreamContext(
+                streams,
+                stream,
+                aliases,
+                resources,
+                inheritedFontObject,
+                pageSequenceId,
+                initialColorState)) return;
 
-        streams.Add(new ContentStreamContext(stream, aliases, resources, inheritedFontObject, pageSequenceId));
+        streams.Add(new ContentStreamContext(
+            stream,
+            aliases,
+            resources,
+            inheritedFontObject,
+            pageSequenceId,
+            initialColorState));
     }
 
     private static bool ContainsContentStreamContext(
@@ -21,14 +35,16 @@ internal static partial class PdfPrintProductionColorInspector {
         ColorSpaceAliases aliases,
         PdfDictionary? resources,
         PdfObject? inheritedFontObject,
-        int? pageSequenceId) {
+        int? pageSequenceId,
+        ContentColorStateSnapshot? initialColorState) {
         for (int index = 0; index < contexts.Count; index++) {
             ContentStreamContext existing = contexts[index];
             if (ReferenceEquals(existing.Stream, stream) &&
                 existing.Aliases.SetEquals(aliases) &&
                 ReferenceEquals(existing.Resources, resources) &&
                 ReferenceEquals(existing.InheritedFontObject, inheritedFontObject) &&
-                existing.PageSequenceId == pageSequenceId) return true;
+                existing.PageSequenceId == pageSequenceId &&
+                existing.InitialColorState == initialColorState) return true;
         }
         return false;
     }
@@ -82,6 +98,7 @@ internal static partial class PdfPrintProductionColorInspector {
         int transparencyGroups = 0;
         PdfObject? activePageFontObject = null;
         var pageFontStack = new Stack<PdfObject?>();
+        var activePageColorState = new ContentColorState();
         for (int localIndex = 0; localIndex < contentDepths.Count; localIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             ContentStreamContext context = streams[firstContext + localIndex];
@@ -96,18 +113,32 @@ internal static partial class PdfPrintProductionColorInspector {
             bool isPageContent = contentDepths[localIndex] == 0;
             PdfObject? activeFontObject = isPageContent ? activePageFontObject : context.InheritedFontObject;
             Stack<PdfObject?> fontStack = isPageContent ? pageFontStack : new Stack<PdfObject?>();
+            ContentColorState colorState = isPageContent
+                ? activePageColorState
+                : new ContentColorState(context.InitialColorState);
             try {
                 PdfContentStreamInterpreter.Interpret(
                     PdfEncoding.Latin1GetString(decoded),
                     limits.MaxContentOperations,
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
+                        if (!TryTrackResourceColorState(operation, context.Aliases, colorState)) {
+                            contextWasUninspectable = true;
+                        }
                         switch (operation.Name) {
                             case "q":
-                                fontStack.Push(activeFontObject);
+                                if (operation.HasInvalidOperands || operation.Operands.Count != 0) {
+                                    contextWasUninspectable = true;
+                                } else {
+                                    fontStack.Push(activeFontObject);
+                                }
                                 break;
                             case "Q":
-                                if (fontStack.Count > 0) activeFontObject = fontStack.Pop();
+                                if (operation.HasInvalidOperands || operation.Operands.Count != 0 || fontStack.Count == 0) {
+                                    contextWasUninspectable = true;
+                                } else {
+                                    activeFontObject = fontStack.Pop();
+                                }
                                 break;
                             case "Do":
                                 if (operation.HasInvalidOperands ||
@@ -149,7 +180,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                         objects,
                                         limits,
                                         ref transparencyGroups,
-                                        activeFontObject)) {
+                                        activeFontObject,
+                                        colorState.Capture())) {
                                     contextWasUninspectable = true;
                                 }
                                 break;
@@ -207,7 +239,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                         contentDepths,
                                         objects,
                                         limits,
-                                        ref transparencyGroups)) {
+                                        ref transparencyGroups,
+                                        colorState.Capture())) {
                                     contextWasUninspectable = true;
                                 }
                                 break;
@@ -224,7 +257,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                         objects,
                                         shadings,
                                         limits,
-                                        ref transparencyGroups)) {
+                                        ref transparencyGroups,
+                                        colorState.Capture())) {
                                     contextWasUninspectable = true;
                                 }
                                 break;
@@ -232,6 +266,9 @@ internal static partial class PdfPrintProductionColorInspector {
                                 if (operation.HasInvalidOperands ||
                                     operation.Operands.Count != 2 ||
                                     operation.Operands[0] is not string fontName ||
+                                    operation.Operands[1] is not double fontSize ||
+                                    double.IsNaN(fontSize) ||
+                                    double.IsInfinity(fontSize) ||
                                     !TryResolveResource(
                                         context.Resources,
                                         "Font",
@@ -257,7 +294,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                         contentDepths,
                                         objects,
                                         limits,
-                                        ref transparencyGroups)) {
+                                        ref transparencyGroups,
+                                        colorState.Capture())) {
                                     contextWasUninspectable = true;
                                 }
                                 break;
@@ -282,6 +320,67 @@ internal static partial class PdfPrintProductionColorInspector {
         return new ReachableResourceCollection(transparencyGroups);
     }
 
+    private static bool TryTrackResourceColorState(
+        PdfContentOperation operation,
+        ColorSpaceAliases aliases,
+        ContentColorState colorState) {
+        if (operation.HasInvalidOperands) return false;
+        switch (operation.Name) {
+            case "q":
+                if (operation.Operands.Count != 0) return false;
+                colorState.Stack.Push(colorState.Capture());
+                return true;
+            case "Q":
+                if (operation.Operands.Count != 0 || colorState.Stack.Count == 0) return false;
+                colorState.Restore(colorState.Stack.Pop());
+                return true;
+            case "rg":
+                return HasNumericColorOperands(operation, 3) &&
+                    SetTrackedColorSpace(colorState, aliases.DefaultRgb ?? ColorSpaceUsage.DeviceRgb, stroke: false);
+            case "RG":
+                return HasNumericColorOperands(operation, 3) &&
+                    SetTrackedColorSpace(colorState, aliases.DefaultRgb ?? ColorSpaceUsage.DeviceRgb, stroke: true);
+            case "k":
+                return HasNumericColorOperands(operation, 4) &&
+                    SetTrackedColorSpace(colorState, aliases.DefaultCmyk ?? ColorSpaceUsage.DeviceCmyk, stroke: false);
+            case "K":
+                return HasNumericColorOperands(operation, 4) &&
+                    SetTrackedColorSpace(colorState, aliases.DefaultCmyk ?? ColorSpaceUsage.DeviceCmyk, stroke: true);
+            case "g":
+                return HasNumericColorOperands(operation, 1) &&
+                    SetTrackedColorSpace(colorState, aliases.DefaultGray ?? ColorSpaceUsage.DeviceGray, stroke: false);
+            case "G":
+                return HasNumericColorOperands(operation, 1) &&
+                    SetTrackedColorSpace(colorState, aliases.DefaultGray ?? ColorSpaceUsage.DeviceGray, stroke: true);
+            case "cs":
+                return SetTrackedColorSpace(colorState, ClassifySelectedColorSpace(operation, aliases), stroke: false);
+            case "CS":
+                return SetTrackedColorSpace(colorState, ClassifySelectedColorSpace(operation, aliases), stroke: true);
+            default:
+                return true;
+        }
+    }
+
+    private static bool SetTrackedColorSpace(
+        ContentColorState state,
+        ColorSpaceUsage usage,
+        bool stroke) {
+        if (stroke) {
+            state.StrokeUsesDeviceRgb = usage.UsesDeviceRgb;
+            state.StrokeUsesDeviceCmyk = usage.UsesDeviceCmyk;
+            state.StrokeUsesDeviceIndependentColor = usage.UsesDeviceIndependent;
+            state.StrokeComponentCount = usage.ComponentCount;
+            state.StrokeUsesPattern = usage.UsesPattern;
+        } else {
+            state.FillUsesDeviceRgb = usage.UsesDeviceRgb;
+            state.FillUsesDeviceCmyk = usage.UsesDeviceCmyk;
+            state.FillUsesDeviceIndependentColor = usage.UsesDeviceIndependent;
+            state.FillComponentCount = usage.ComponentCount;
+            state.FillUsesPattern = usage.UsesPattern;
+        }
+        return usage.IsKnown;
+    }
+
     private static bool AddNestedStream(
         PdfStream stream,
         int objectDepth,
@@ -293,7 +392,8 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
         ref int transparencyGroups,
-        PdfObject? inheritedFontObject = null) {
+        PdfObject? inheritedFontObject = null,
+        ContentColorStateSnapshot? initialColorState = null) {
         if (contentDepth > limits.MaxContentNestingDepth) return false;
 
         PdfDictionary? resources = inheritedResources;
@@ -310,7 +410,13 @@ internal static partial class PdfPrintProductionColorInspector {
         }
 
         int count = streams.Count;
-        AddContentStream(stream, aliases, resources, streams, inheritedFontObject);
+        AddContentStream(
+            stream,
+            aliases,
+            resources,
+            streams,
+            inheritedFontObject,
+            initialColorState: initialColorState);
         if (streams.Count == count) return true;
         contentDepths.Add(contentDepth);
         if (IsTransparencyGroup(stream.Dictionary, objects, limits.MaxObjectNestingDepth)) transparencyGroups++;
@@ -326,7 +432,8 @@ internal static partial class PdfPrintProductionColorInspector {
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
-        ref int transparencyGroups) {
+        ref int transparencyGroups,
+        ContentColorStateSnapshot initialColorState) {
         if (!graphicsState.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) return true;
         if (string.Equals(
                 ResolveName(softMaskObject, objects, limits.MaxObjectNestingDepth),
@@ -379,7 +486,8 @@ internal static partial class PdfPrintProductionColorInspector {
             contentDepths,
             objects,
             limits,
-            ref transparencyGroups);
+            ref transparencyGroups,
+            initialColorState: initialColorState);
     }
 
     private static bool TryAddPatternContext(
@@ -391,7 +499,8 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects,
         List<ShadingContext> shadings,
         PdfReadLimits limits,
-        ref int transparencyGroups) {
+        ref int transparencyGroups,
+        ContentColorStateSnapshot initialColorState) {
         if (!TryResolveResource(
                 context.Resources,
                 "Pattern",
@@ -428,7 +537,8 @@ internal static partial class PdfPrintProductionColorInspector {
                 contentDepths,
                 objects,
                 limits,
-                ref transparencyGroups);
+                ref transparencyGroups,
+                initialColorState: initialColorState);
         }
         if (patternType.Value == 2D && pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject)) {
             return AddResolvedShadingContext(
@@ -451,7 +561,8 @@ internal static partial class PdfPrintProductionColorInspector {
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
-        ref int transparencyGroups) {
+        ref int transparencyGroups,
+        ContentColorStateSnapshot initialColorState) {
         if (ResolveObject(
                 objects,
                 fontObject,
@@ -510,7 +621,8 @@ internal static partial class PdfPrintProductionColorInspector {
                     contentDepths,
                     objects,
                     limits,
-                    ref transparencyGroups)) return false;
+                    ref transparencyGroups,
+                    initialColorState: initialColorState)) return false;
         }
         return true;
     }

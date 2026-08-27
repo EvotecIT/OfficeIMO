@@ -18,8 +18,6 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
-    private const int MaxCmapSubtables = 64;
-    private const uint MaxFormat12Groups = 4096;
     private const int MaxFontCacheEntries = 1024;
     private static readonly object FontCacheLock = new();
     private static readonly Dictionary<string, OfficeTrueTypeFont?> FontCache = new(StringComparer.OrdinalIgnoreCase);
@@ -76,13 +74,13 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             _data,
             _cmap,
             _cmapLength,
-            MaxCmapSubtables);
+            OfficeOpenTypeCmap.MaximumSubtables);
         _validFormat12Subtables = OfficeOpenTypeCmap.CollectValidFormat12Subtables(
             _data,
             _cmap,
             _cmapLength,
-            MaxCmapSubtables,
-            MaxFormat12Groups);
+            OfficeOpenTypeCmap.MaximumSubtables,
+            OfficeOpenTypeCmap.MaximumFormat12Groups);
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         OfficeOpenTypeMvarMetrics? mvar = _variationModel.IsVariable
@@ -478,7 +476,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         int cmapEnd = checked(cmapOffset + _cmapLength);
         if (_cmapLength < 4) return 0;
         var subtableCount = ReadUInt16(_data, cmapOffset + 2);
-        if (subtableCount == 0 || subtableCount > MaxCmapSubtables) return 0;
+        if (subtableCount == 0 || subtableCount > OfficeOpenTypeCmap.MaximumSubtables) return 0;
         if (cmapOffset + 4 > cmapEnd - subtableCount * 8) return 0;
         var best = 0;
         var bestScore = 0;
@@ -495,7 +493,11 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
             if (format == 4 && !_validFormat4Subtables.Contains(absolute)) continue;
             if (format == 12 && !_validFormat12Subtables.Contains(absolute)) continue;
-            var score = ScoreCmapSubtable(platform, encoding);
+            var score = OfficeOpenTypeCmap.ScoreSubtable(
+                format,
+                platform,
+                encoding,
+                preferFormat12: scalar > 0xFFFF);
             if ((format == 4 || format == 12) && score > bestScore) {
                 best = absolute;
                 bestScore = score;
@@ -528,7 +530,11 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (format == 4 && (scalar > 0xFFFF || !_validFormat4Subtables.Contains(table))) continue;
             if (format == 12 && !_validFormat12Subtables.Contains(table)) continue;
             if (format != 4 && format != 12) continue;
-            int score = ScoreCmapSubtable(platform, encoding);
+            int score = OfficeOpenTypeCmap.ScoreSubtable(
+                format,
+                platform,
+                encoding,
+                preferFormat12: scalar > 0xFFFF);
             if (score <= bestScore) continue;
             ushort glyph = MapCmapSubtable(table, cmapEnd, scalar);
             if (glyph == 0) continue;
@@ -538,11 +544,6 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         return bestGlyph;
     }
 
-    private static int ScoreCmapSubtable(int platform, int encoding) =>
-        platform == 3 && encoding == 10 ? 4 :
-        platform == 3 && encoding == 1 ? 3 :
-        platform == 0 ? 2 : 1;
-
     private ushort MapFormat4(int table, int cmapEnd, int scalar) {
         if (!_validFormat4Subtables.Contains(table)) return 0;
         if (scalar > char.MaxValue) return 0;
@@ -551,24 +552,33 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         if (length < 16 || table > cmapEnd - length) return 0;
         var code = scalar;
         var segCount = ReadUInt16(_data, table + 6) / 2;
-        if (segCount == 0 || segCount > MaxCmapSubtables * 16) return 0;
+        if (segCount == 0 || segCount > OfficeOpenTypeCmap.MaximumSubtables * 16) return 0;
         var endCodes = table + 14;
         var startCodes = endCodes + segCount * 2 + 2;
         var idDeltas = startCodes + segCount * 2;
         var idRangeOffsets = idDeltas + segCount * 2;
         if (idRangeOffsets < table || idRangeOffsets + segCount * 2 > table + length) return 0;
 
-        for (var i = 0; i < segCount; i++) {
-            var end = ReadUInt16(_data, endCodes + i * 2);
-            if (code > end) continue;
-            var start = ReadUInt16(_data, startCodes + i * 2);
-            if (code < start) return 0;
-            var delta = ReadInt16(_data, idDeltas + i * 2);
-            var rangeOffset = ReadUInt16(_data, idRangeOffsets + i * 2);
+        int low = 0;
+        int high = segCount - 1;
+        while (low <= high) {
+            int i = low + (high - low) / 2;
+            int end = ReadUInt16(_data, endCodes + i * 2);
+            int start = ReadUInt16(_data, startCodes + i * 2);
+            if (code < start) {
+                high = i - 1;
+                continue;
+            }
+            if (code > end) {
+                low = i + 1;
+                continue;
+            }
+            int delta = ReadInt16(_data, idDeltas + i * 2);
+            int rangeOffset = ReadUInt16(_data, idRangeOffsets + i * 2);
             if (rangeOffset == 0) return ValidateMappedGlyph((ushort)((code + delta) & 0xffff));
-            var glyphOffset = idRangeOffsets + i * 2 + rangeOffset + (code - start) * 2;
+            int glyphOffset = idRangeOffsets + i * 2 + rangeOffset + (code - start) * 2;
             if (glyphOffset < table || glyphOffset > table + length - 2) return 0;
-            var glyph = ReadUInt16(_data, glyphOffset);
+            ushort glyph = ReadUInt16(_data, glyphOffset);
             return glyph == 0 ? (ushort)0 : ValidateMappedGlyph((ushort)((glyph + delta) & 0xffff));
         }
 
@@ -582,13 +592,24 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         if (length < 16 || length > int.MaxValue || table > cmapEnd - (int)length) return 0;
         uint code = (uint)scalar;
         var groups = ReadUInt32(_data, table + 12);
-        if (groups > MaxFormat12Groups || groups > (length - 16U) / 12U) return 0;
+        if (groups > OfficeOpenTypeCmap.MaximumFormat12Groups || groups > (length - 16U) / 12U) return 0;
         var groupOffset = table + 16;
-        for (var i = 0; i < groups; i++) {
-            var start = ReadUInt32(_data, groupOffset + i * 12);
-            var end = ReadUInt32(_data, groupOffset + i * 12 + 4);
-            if (code < start || code > end) continue;
-            ulong glyph = (ulong)ReadUInt32(_data, groupOffset + i * 12 + 8) + code - start;
+        uint low = 0;
+        uint high = groups;
+        while (low < high) {
+            uint middle = low + (high - low) / 2;
+            int current = checked(groupOffset + (int)middle * 12);
+            uint start = ReadUInt32(_data, current);
+            uint end = ReadUInt32(_data, current + 4);
+            if (code < start) {
+                high = middle;
+                continue;
+            }
+            if (code > end) {
+                low = middle + 1;
+                continue;
+            }
+            ulong glyph = (ulong)ReadUInt32(_data, current + 8) + code - start;
             return glyph < _numGlyphs ? checked((ushort)glyph) : (ushort)0;
         }
 

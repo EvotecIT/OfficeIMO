@@ -8,8 +8,6 @@ namespace OfficeIMO.Drawing;
 /// <summary>Validated shared reader for sfnt table directories, cmap data, names, and horizontal metrics.</summary>
 internal sealed class OfficeOpenTypeReader {
     private const int MaximumTables = 512;
-    private const int MaximumCmapSubtables = 64;
-    private const uint MaximumFormat12Groups = 1_000_000;
     private readonly byte[] _data;
     private readonly Dictionary<uint, TableRecord> _tables;
     private readonly TableRecord _cmap;
@@ -48,13 +46,13 @@ internal sealed class OfficeOpenTypeReader {
             _data,
             _cmap.Offset,
             _cmap.Length,
-            MaximumCmapSubtables);
+            OfficeOpenTypeCmap.MaximumSubtables);
         _validFormat12Subtables = OfficeOpenTypeCmap.CollectValidFormat12Subtables(
             _data,
             _cmap.Offset,
             _cmap.Length,
-            MaximumCmapSubtables,
-            MaximumFormat12Groups);
+            OfficeOpenTypeCmap.MaximumSubtables,
+            OfficeOpenTypeCmap.MaximumFormat12Groups);
     }
 
     internal byte[] Data => _data;
@@ -175,7 +173,7 @@ internal sealed class OfficeOpenTypeReader {
         cmapEnd = checked(_cmap.Offset + _cmap.Length);
         if (_cmap.Length < 4) return -1;
         int count = ReadUInt16(_cmap.Offset + 2);
-        if (count <= 0 || count > MaximumCmapSubtables || _cmap.Length < 4 + count * 8) return -1;
+        if (count <= 0 || count > OfficeOpenTypeCmap.MaximumSubtables || _cmap.Length < 4 + count * 8) return -1;
         int best = -1;
         int bestScore = int.MinValue;
         for (int index = 0; index < count; index++) {
@@ -191,7 +189,7 @@ internal sealed class OfficeOpenTypeReader {
             if (format == 4 && !_validFormat4Subtables.Contains(subtable)) continue;
             if (format == 12 && !_validFormat12Subtables.Contains(subtable)) continue;
             if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
-            int score = ScoreCmapSubtable(format, platform, encoding, preferFormat12);
+            int score = OfficeOpenTypeCmap.ScoreSubtable(format, platform, encoding, preferFormat12);
             if (score > bestScore) {
                 best = subtable;
                 bestScore = score;
@@ -216,7 +214,7 @@ internal sealed class OfficeOpenTypeReader {
             if (format == 4 && (scalar > 0xFFFF || !_validFormat4Subtables.Contains(subtable))) continue;
             if (format == 12 && !_validFormat12Subtables.Contains(subtable)) continue;
             if (format != 4 && format != 12 || !OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
-            int score = ScoreCmapSubtable(format, platform, encoding, preferFormat12: scalar > 0xFFFF);
+            int score = OfficeOpenTypeCmap.ScoreSubtable(format, platform, encoding, preferFormat12: scalar > 0xFFFF);
             if (score <= bestScore) continue;
             int glyph = MapCmapSubtable(subtable, cmapEnd, scalar);
             if (glyph == 0) continue;
@@ -224,15 +222,6 @@ internal sealed class OfficeOpenTypeReader {
             bestScore = score;
         }
         return bestGlyph;
-    }
-
-    private static int ScoreCmapSubtable(int format, int platform, int encoding, bool preferFormat12) {
-        int score = format == 12 ? 100 : 50;
-        if (preferFormat12 && format == 12) score += 100;
-        if (platform == 3 && encoding == 10) score += 20;
-        else if (platform == 3 && encoding == 1) score += 10;
-        else if (platform == 0) score += 15;
-        return score;
     }
 
     private int MapFormat4(int table, int cmapEnd, int scalar) {
@@ -267,7 +256,7 @@ internal sealed class OfficeOpenTypeReader {
         if (table < _cmap.Offset || table > cmapEnd - 16) return 0;
         uint lengthValue = ReadUInt32(table + 4);
         uint groupCount = ReadUInt32(table + 12);
-        if (lengthValue > int.MaxValue || groupCount > MaximumFormat12Groups) return 0;
+        if (lengthValue > int.MaxValue || groupCount > OfficeOpenTypeCmap.MaximumFormat12Groups) return 0;
         int length = (int)lengthValue;
         if (length < 16 || table > cmapEnd - length || 16L + groupCount * 12L > length) return 0;
         int low = 0;

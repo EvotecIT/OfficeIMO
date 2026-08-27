@@ -235,7 +235,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     pageColorStates[currentPageSequenceId] = colorState;
                 }
             } else {
-                colorState = new ContentColorState();
+                colorState = new ContentColorState(context.InitialColorState);
             }
             if (!StreamDecoder.TryDecode(
                     stream.Dictionary,
@@ -261,6 +261,10 @@ internal static partial class PdfPrintProductionColorInspector {
 
                         switch (operation.Name) {
                             case "q":
+                                if (operation.Operands.Count != 0) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 colorState.Stack.Push(new ContentColorStateSnapshot(
                                     colorState.FillUsesDeviceRgb,
                                     colorState.StrokeUsesDeviceRgb,
@@ -274,6 +278,10 @@ internal static partial class PdfPrintProductionColorInspector {
                                 colorState.StrokeUsesPattern));
                                 break;
                             case "Q":
+                                if (operation.Operands.Count != 0) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 if (colorState.Stack.Count > 0) {
                                     ContentColorStateSnapshot restored = colorState.Stack.Pop();
                                     colorState.FillUsesDeviceRgb = restored.FillUsesDeviceRgb;
@@ -608,21 +616,15 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth) {
         if (!colorSpaces.Items.TryGetValue(key, out PdfObject? value)) return null;
-        PdfObject? resolved = ResolveObject(objects, value, 0, maximumObjectDepth);
-        if (resolved is PdfArray array &&
-            array.Items.Count > 0 &&
-            ResolveObject(objects, array.Items[0], 0, maximumObjectDepth) is PdfName family &&
-            string.Equals(family.Name, "ICCBased", StringComparison.Ordinal)) {
-            int expectedComponents = string.Equals(key, "DefaultRGB", StringComparison.Ordinal) ? 3 :
-                string.Equals(key, "DefaultCMYK", StringComparison.Ordinal) ? 4 : 1;
-            if (array.Items.Count != 2 ||
-                ResolveObject(objects, array.Items[1], 0, maximumObjectDepth) is not PdfStream profile ||
-                !TryResolveNumber(profile.Dictionary, "N", objects, maximumObjectDepth, out double components) ||
-                components != expectedComponents) {
-                return ColorSpaceUsage.Unknown;
-            }
-        }
-        return ClassifyColorSpace(value, objects, maximumObjectDepth);
+        int expectedComponents = string.Equals(key, "DefaultRGB", StringComparison.Ordinal) ? 3 :
+            string.Equals(key, "DefaultCMYK", StringComparison.Ordinal) ? 4 : 1;
+        ColorSpaceUsage usage = ClassifyColorSpace(value, objects, maximumObjectDepth);
+        return usage.IsKnown &&
+               usage.UsesDeviceIndependent &&
+               !usage.UsesPattern &&
+               usage.ComponentCount == expectedComponents
+            ? usage
+            : ColorSpaceUsage.Unknown;
     }
 
     private static ColorSpaceUsage ClassifyColorSpace(
@@ -1150,12 +1152,14 @@ internal static partial class PdfPrintProductionColorInspector {
             ColorSpaceAliases aliases,
             PdfDictionary? resources,
             PdfObject? inheritedFontObject,
-            int? pageSequenceId) {
+            int? pageSequenceId,
+            ContentColorStateSnapshot? initialColorState) {
             Stream = stream;
             Aliases = aliases;
             Resources = resources;
             InheritedFontObject = inheritedFontObject;
             PageSequenceId = pageSequenceId;
+            InitialColorState = initialColorState;
         }
 
         internal PdfStream Stream { get; }
@@ -1163,10 +1167,15 @@ internal static partial class PdfPrintProductionColorInspector {
         internal PdfDictionary? Resources { get; }
         internal PdfObject? InheritedFontObject { get; }
         internal int? PageSequenceId { get; }
+        internal ContentColorStateSnapshot? InitialColorState { get; }
         internal bool ResourceInspectionIncomplete { get; set; }
     }
 
     private sealed class ContentColorState {
+        internal ContentColorState(ContentColorStateSnapshot? initial = null) {
+            if (initial is ContentColorStateSnapshot snapshot) Restore(snapshot);
+        }
+
         internal bool FillUsesDeviceRgb;
         internal bool StrokeUsesDeviceRgb;
         internal bool FillUsesDeviceCmyk;
@@ -1179,6 +1188,31 @@ internal static partial class PdfPrintProductionColorInspector {
         internal bool StrokeUsesPattern;
         internal bool IsIncomplete;
         internal Stack<ContentColorStateSnapshot> Stack { get; } = new();
+
+        internal ContentColorStateSnapshot Capture() => new(
+            FillUsesDeviceRgb,
+            StrokeUsesDeviceRgb,
+            FillUsesDeviceCmyk,
+            StrokeUsesDeviceCmyk,
+            FillUsesDeviceIndependentColor,
+            StrokeUsesDeviceIndependentColor,
+            FillComponentCount,
+            StrokeComponentCount,
+            FillUsesPattern,
+            StrokeUsesPattern);
+
+        internal void Restore(ContentColorStateSnapshot snapshot) {
+            FillUsesDeviceRgb = snapshot.FillUsesDeviceRgb;
+            StrokeUsesDeviceRgb = snapshot.StrokeUsesDeviceRgb;
+            FillUsesDeviceCmyk = snapshot.FillUsesDeviceCmyk;
+            StrokeUsesDeviceCmyk = snapshot.StrokeUsesDeviceCmyk;
+            FillUsesDeviceIndependentColor = snapshot.FillUsesDeviceIndependentColor;
+            StrokeUsesDeviceIndependentColor = snapshot.StrokeUsesDeviceIndependentColor;
+            FillComponentCount = snapshot.FillComponentCount;
+            StrokeComponentCount = snapshot.StrokeComponentCount;
+            FillUsesPattern = snapshot.FillUsesPattern;
+            StrokeUsesPattern = snapshot.StrokeUsesPattern;
+        }
     }
 
     private readonly record struct ContentColorStateSnapshot(

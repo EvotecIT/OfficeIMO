@@ -4,9 +4,21 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Shared cmap platform and encoding classification.</summary>
 internal static class OfficeOpenTypeCmap {
+    internal const int MaximumSubtables = 64;
+    internal const uint MaximumFormat12Groups = 4096;
+
     internal static bool IsUnicodeEncoding(int platform, int encoding) =>
         platform == 0 ||
         platform == 3 && (encoding == 1 || encoding == 10);
+
+    internal static int ScoreSubtable(int format, int platform, int encoding, bool preferFormat12) {
+        int score = format == 12 ? 100 : 50;
+        if (preferFormat12 && format == 12) score += 100;
+        if (platform == 3 && encoding == 10) score += 20;
+        else if (platform == 0) score += 15;
+        else if (platform == 3 && encoding == 1) score += 10;
+        return score;
+    }
 
     internal static HashSet<int> CollectValidFormat12Subtables(
         byte[] data,

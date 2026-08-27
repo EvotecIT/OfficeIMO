@@ -24,18 +24,39 @@ internal static class ManagedTextShapingTestAssets {
             includeTrailingMetric: true);
     }
 
-    private static byte[] CreateFontFromCmap(byte[] cmap, bool includeTrailingMetric = false) {
+    internal static byte[] CreateFontWithConflictingUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
+        if (bmpScalar < 0 || bmpScalar > 0xFFFF) throw new ArgumentOutOfRangeException(nameof(bmpScalar));
+        if (supplementalScalar <= 0xFFFF || supplementalScalar > 0x10FFFF) {
+            throw new ArgumentOutOfRangeException(nameof(supplementalScalar));
+        }
+        return CreateFontFromCmap(
+            CreateConflictingUnicodeCmapFallback(bmpScalar, supplementalScalar),
+            glyphCount: 3);
+    }
+
+    private static byte[] CreateFontFromCmap(
+        byte[] cmap,
+        bool includeTrailingMetric = false,
+        int glyphCount = 2) {
         byte[] glyph = CreateVisibleGlyph();
+        var glyf = new byte[(glyphCount - 1) * glyph.Length];
+        var loca = new byte[(glyphCount + 1) * 2];
+        var hmtx = new byte[4 + (glyphCount - 1) * 2];
+        Array.Copy(new byte[] { 0x01, 0xF4, 0x00, 0x00 }, hmtx, 4);
+        for (int glyphIndex = 1; glyphIndex < glyphCount; glyphIndex++) {
+            Array.Copy(glyph, 0, glyf, (glyphIndex - 1) * glyph.Length, glyph.Length);
+            WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)(glyphIndex * glyph.Length / 2)));
+        }
+        if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
+        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, checked((byte)glyphCount) };
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
-            ("glyf", glyph),
+            ("glyf", glyf),
             ("head", CreateHeadTable()),
             ("hhea", CreateHheaTable()),
-            ("hmtx", includeTrailingMetric
-                ? new byte[] { 0x01, 0xF4, 0x00, 0x00, 0x00, 0x00 }
-                : new byte[] { 0x01, 0xF4, 0x00, 0x00 }),
-            ("loca", new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, (byte)(glyph.Length / 2) }),
-            ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 }),
+            ("hmtx", hmtx),
+            ("loca", loca),
+            ("maxp", maxp),
             ("name", new byte[6])
         };
 
@@ -230,6 +251,56 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, format4Offset + 24, unchecked((ushort)(1 - bmpScalar)));
         WriteUInt16(data, format4Offset + 26, 1);
         return data;
+    }
+
+    private static byte[] CreateConflictingUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
+        const int recordCount = 3;
+        const int headerLength = 4 + recordCount * 8;
+        const int format12Length = 28;
+        const int format4Length = 32;
+        int selectedFormat12 = headerLength;
+        int format4 = selectedFormat12 + format12Length;
+        int unicodeFormat12 = format4 + format4Length;
+        var data = new byte[unicodeFormat12 + format12Length];
+        WriteUInt16(data, 2, recordCount);
+
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, (uint)selectedFormat12);
+        WriteUInt16(data, 12, 3);
+        WriteUInt16(data, 14, 1);
+        WriteUInt32(data, 16, (uint)format4);
+        WriteUInt16(data, 20, 0);
+        WriteUInt16(data, 22, 4);
+        WriteUInt32(data, 24, (uint)unicodeFormat12);
+
+        WriteFormat12Subtable(data, selectedFormat12, supplementalScalar, 1);
+        WriteFormat4Subtable(data, format4, bmpScalar, 1);
+        WriteFormat12Subtable(data, unicodeFormat12, bmpScalar, 2);
+        return data;
+    }
+
+    private static void WriteFormat12Subtable(byte[] data, int offset, int scalar, int glyph) {
+        WriteUInt16(data, offset, 12);
+        WriteUInt32(data, offset + 4, 28);
+        WriteUInt32(data, offset + 12, 1);
+        WriteUInt32(data, offset + 16, (uint)scalar);
+        WriteUInt32(data, offset + 20, (uint)scalar);
+        WriteUInt32(data, offset + 24, (uint)glyph);
+    }
+
+    private static void WriteFormat4Subtable(byte[] data, int offset, int scalar, int glyph) {
+        WriteUInt16(data, offset, 4);
+        WriteUInt16(data, offset + 2, 32);
+        WriteUInt16(data, offset + 6, 4);
+        WriteUInt16(data, offset + 8, 4);
+        WriteUInt16(data, offset + 10, 1);
+        WriteUInt16(data, offset + 14, (ushort)scalar);
+        WriteUInt16(data, offset + 16, 0xFFFF);
+        WriteUInt16(data, offset + 20, (ushort)scalar);
+        WriteUInt16(data, offset + 22, 0xFFFF);
+        WriteUInt16(data, offset + 24, unchecked((ushort)(glyph - scalar)));
+        WriteUInt16(data, offset + 26, 1);
     }
 
     private static byte[] CreateVisibleGlyph() {
