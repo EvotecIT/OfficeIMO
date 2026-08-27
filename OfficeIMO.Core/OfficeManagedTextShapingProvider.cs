@@ -27,6 +27,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         if (request.IsOpenTypeCff ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
+            OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text))) {

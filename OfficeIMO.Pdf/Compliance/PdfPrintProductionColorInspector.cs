@@ -645,8 +645,10 @@ internal static partial class PdfPrintProductionColorInspector {
             aliases.Gray.Contains(colorSpaceName);
         bool usesPattern = string.Equals(colorSpaceName, "Pattern", StringComparison.Ordinal) ||
             aliases.Pattern.Contains(colorSpaceName);
-        bool usesDeviceIndependent = IsDeviceIndependentColorSpaceName(colorSpaceName) ||
-            aliases.DeviceIndependent.Contains(colorSpaceName);
+        // CalGray, CalRGB, Lab, and ICCBased are array color-space families, not
+        // directly selectable built-in names. They are valid here only through a
+        // resource alias whose array definition was inspected above.
+        bool usesDeviceIndependent = aliases.DeviceIndependent.Contains(colorSpaceName);
         ColorSpaceUsage usage = new(
             usesRgb || usesCmyk || usesGray || usesPattern || usesDeviceIndependent,
             usesRgb,
@@ -728,11 +730,11 @@ internal static partial class PdfPrintProductionColorInspector {
         int maximumObjectDepth,
         HashSet<string>? aliases = null) {
         if (value == null) return false;
-        var pending = new Stack<(PdfObject Value, int Depth)>();
+        var pending = new Stack<(PdfObject Value, int Depth, bool MayBeArrayFamily)>();
         var inspectedArrays = new HashSet<PdfArray>();
-        pending.Push((value, 0));
+        pending.Push((value, 0, false));
         while (pending.Count > 0) {
-            (PdfObject candidate, int depth) = pending.Pop();
+            (PdfObject candidate, int depth, bool mayBeArrayFamily) = pending.Pop();
             ThrowIfObjectDepthExceeded(depth, maximumObjectDepth);
             PdfObject? resolved = ResolveObject(
                 objects,
@@ -741,10 +743,11 @@ internal static partial class PdfPrintProductionColorInspector {
                 maximumObjectDepth,
                 out int resolvedDepth);
             if (resolved is PdfName name) {
-                if (IsDeviceIndependentColorSpaceName(name.Name) || aliases?.Contains(name.Name) == true) return true;
+                if ((mayBeArrayFamily && IsDeviceIndependentColorSpaceName(name.Name)) ||
+                    aliases?.Contains(name.Name) == true) return true;
             } else if (resolved is PdfArray array && inspectedArrays.Add(array)) {
                 for (int index = array.Items.Count - 1; index >= 0; index--) {
-                    pending.Push((array.Items[index], resolvedDepth + 1));
+                    pending.Push((array.Items[index], resolvedDepth + 1, index == 0));
                 }
             }
         }

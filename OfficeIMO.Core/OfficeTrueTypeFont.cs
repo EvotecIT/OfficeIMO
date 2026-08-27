@@ -378,27 +378,15 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 new FontTransform(scale, 0, 0, -scale, cursor, baseline),
                 0,
                 variationWorkBudget,
+                maximumPointCount,
+                ref pointCount,
                 cancellationToken);
-            AddBoundedContours(contours, glyphContours, ref pointCount, maximumPointCount);
+            contours.AddRange(glyphContours);
             cursor += AdvanceWidth(glyph, variationWorkBudget, cancellationToken) * scale;
             previous = glyph;
         }
 
         return contours;
-    }
-
-    private static void AddBoundedContours(
-        ICollection<List<OfficePoint>> target,
-        IEnumerable<List<OfficePoint>> source,
-        ref int pointCount,
-        int maximumPointCount) {
-        foreach (List<OfficePoint> contour in source) {
-            if (contour.Count > maximumPointCount - pointCount) {
-                throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
-            }
-            pointCount += contour.Count;
-            target.Add(contour);
-        }
     }
 
     /// <summary>Best-effort display name read from the font name table.</summary>
@@ -767,6 +755,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         FontTransform transform,
         int depth,
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
+        int maximumPointCount,
+        ref int expandedPointCount,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var contours = new List<List<OfficePoint>>();
@@ -785,6 +775,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 depth,
                 contours,
                 variationWorkBudget,
+                maximumPointCount,
+                ref expandedPointCount,
                 cancellationToken);
             return contours;
         }
@@ -793,29 +785,32 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
         var endPts = new ushort[contourCount];
         for (var i = 0; i < contourCount; i++) endPts[i] = ReadUInt16(_data, offset + 10 + i * 2);
-        var pointCount = endPts[contourCount - 1] + 1;
+        var rawPointCount = endPts[contourCount - 1] + 1;
+        if (rawPointCount > maximumPointCount - expandedPointCount) {
+            throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
+        }
         var instructionLengthOffset = offset + 10 + contourCount * 2;
         var instructionLength = ReadUInt16(_data, instructionLengthOffset);
         var p = instructionLengthOffset + 2 + instructionLength;
-        var flags = new byte[pointCount];
-        for (var i = 0; i < pointCount; i++) {
+        var flags = new byte[rawPointCount];
+        for (var i = 0; i < rawPointCount; i++) {
             var flag = _data[p++];
             flags[i] = flag;
             if ((flag & 8) == 0) continue;
             var repeat = _data[p++];
-            for (var r = 0; r < repeat && i + 1 < pointCount; r++) flags[++i] = flag;
+            for (var r = 0; r < repeat && i + 1 < rawPointCount; r++) flags[++i] = flag;
         }
 
-        var xs = new short[pointCount];
+        var xs = new short[rawPointCount];
         DecodeCoordinates(_data, flags, xs, ref p, true);
-        var ys = new short[pointCount];
+        var ys = new short[rawPointCount];
         DecodeCoordinates(_data, flags, ys, ref p, false);
         double[] variedXs;
         double[] variedYs;
         if (_variations != null) {
-            variedXs = new double[pointCount];
-            variedYs = new double[pointCount];
-            for (int index = 0; index < pointCount; index++) {
+            variedXs = new double[rawPointCount];
+            variedYs = new double[rawPointCount];
+            for (int index = 0; index < rawPointCount; index++) {
                 variedXs[index] = xs[index];
                 variedYs[index] = ys[index];
             }
@@ -827,9 +822,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 variationWorkBudget ?? _variations.CreateWorkBudget(),
                 cancellationToken);
         } else {
-            variedXs = new double[pointCount];
-            variedYs = new double[pointCount];
-            for (int index = 0; index < pointCount; index++) {
+            variedXs = new double[rawPointCount];
+            variedYs = new double[rawPointCount];
+            for (int index = 0; index < rawPointCount; index++) {
                 variedXs[index] = xs[index];
                 variedYs[index] = ys[index];
             }
@@ -844,7 +839,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 points.Add(new GlyphPoint(point.X, point.Y, (flags[i] & 1) != 0));
             }
 
-            AddFlattenedContour(points, contours);
+            AddFlattenedContour(points, contours, ref expandedPointCount, maximumPointCount);
             start = end + 1;
         }
 
@@ -858,6 +853,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         int depth,
         List<List<OfficePoint>> contours,
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
+        int maximumPointCount,
+        ref int expandedPointCount,
         CancellationToken cancellationToken) {
         const ushort argWords = 1;
         const ushort argsAreXy = 2;
@@ -950,6 +947,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 transform.Compose(component.A, component.B, component.C, component.D, component.Dx, component.Dy),
                 depth + 1,
                 variationWorkBudget,
+                maximumPointCount,
+                ref expandedPointCount,
                 cancellationToken));
         }
     }
@@ -981,19 +980,23 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
     }
 
-    private static void AddFlattenedContour(List<GlyphPoint> source, List<List<OfficePoint>> contours) {
+    private static void AddFlattenedContour(
+        List<GlyphPoint> source,
+        List<List<OfficePoint>> contours,
+        ref int expandedPointCount,
+        int maximumPointCount) {
         if (source.Count == 0) return;
         var result = new List<OfficePoint>();
         var last = source[source.Count - 1];
         var first = source[0];
         var current = first.OnCurve ? first : last.OnCurve ? last : Mid(last, first);
-        result.Add(current.Point);
+        AddBoundedOutlinePoint(result, current.Point, ref expandedPointCount, maximumPointCount);
         var index = first.OnCurve ? 1 : 0;
 
         while (index < source.Count) {
             var point = source[index % source.Count];
             if (point.OnCurve) {
-                result.Add(point.Point);
+                AddBoundedOutlinePoint(result, point.Point, ref expandedPointCount, maximumPointCount);
                 current = point;
                 index++;
                 continue;
@@ -1001,7 +1004,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
             var next = source[(index + 1) % source.Count];
             var end = next.OnCurve ? next : Mid(point, next);
-            FlattenQuadratic(current, point, end, result);
+            FlattenQuadratic(current, point, end, result, ref expandedPointCount, maximumPointCount);
             current = end;
             index += next.OnCurve ? 2 : 1;
         }
@@ -1009,15 +1012,37 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         if (result.Count >= 3) contours.Add(result);
     }
 
-    private static void FlattenQuadratic(GlyphPoint start, GlyphPoint control, GlyphPoint end, List<OfficePoint> output) {
+    private static void FlattenQuadratic(
+        GlyphPoint start,
+        GlyphPoint control,
+        GlyphPoint end,
+        List<OfficePoint> output,
+        ref int expandedPointCount,
+        int maximumPointCount) {
         var chord = Math.Sqrt((end.X - start.X) * (end.X - start.X) + (end.Y - start.Y) * (end.Y - start.Y));
         var bend = Math.Sqrt((start.X - 2 * control.X + end.X) * (start.X - 2 * control.X + end.X) + (start.Y - 2 * control.Y + end.Y) * (start.Y - 2 * control.Y + end.Y));
         var steps = Math.Max(6, Math.Min(18, (int)Math.Ceiling((chord + bend * 2.0) / 120.0)));
         for (var i = 1; i <= steps; i++) {
             var t = i / (double)steps;
             var mt = 1 - t;
-            output.Add(new OfficePoint(mt * mt * start.X + 2 * mt * t * control.X + t * t * end.X, mt * mt * start.Y + 2 * mt * t * control.Y + t * t * end.Y));
+            AddBoundedOutlinePoint(
+                output,
+                new OfficePoint(mt * mt * start.X + 2 * mt * t * control.X + t * t * end.X, mt * mt * start.Y + 2 * mt * t * control.Y + t * t * end.Y),
+                ref expandedPointCount,
+                maximumPointCount);
         }
+    }
+
+    private static void AddBoundedOutlinePoint(
+        ICollection<OfficePoint> target,
+        OfficePoint point,
+        ref int expandedPointCount,
+        int maximumPointCount) {
+        if (expandedPointCount >= maximumPointCount) {
+            throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
+        }
+        expandedPointCount++;
+        target.Add(point);
     }
 
     private static GlyphPoint Mid(GlyphPoint left, GlyphPoint right) => new((left.X + right.X) / 2.0, (left.Y + right.Y) / 2.0, true);

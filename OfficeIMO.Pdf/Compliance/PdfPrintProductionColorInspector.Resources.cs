@@ -268,7 +268,9 @@ internal static partial class PdfPrintProductionColorInspector {
                 exception is InvalidDataException ||
                 exception is PdfReadLimitException ||
                 exception is FormatException) {
-                // The normal inspection pass records decoding/interpreter failures once.
+                // Resource traversal owns reachability. If it cannot resolve a referenced
+                // resource, the later color pass cannot recover that missing evidence.
+                context.ResourceInspectionIncomplete = true;
                 continue;
             }
             if (contextWasUninspectable) context.ResourceInspectionIncomplete = true;

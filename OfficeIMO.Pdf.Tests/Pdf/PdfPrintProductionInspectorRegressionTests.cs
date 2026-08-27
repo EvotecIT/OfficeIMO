@@ -96,6 +96,21 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
+    [Theory]
+    [InlineData("ICCBased")]
+    [InlineData("CalRGB")]
+    [InlineData("CalGray")]
+    [InlineData("Lab")]
+    public void ColorInspectorRejectsArrayColorSpaceFamiliesUsedAsDirectNames(string family) {
+        byte[] pdf = BuildInspectionPdf("/" + family + " cs 0 sc");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+        Assert.Equal(0, evidence.DeviceIndependentColorUsageCount);
+    }
+
     [Fact]
     public void ColorInspectorAppliesDefaultRgbToReachableImagesAndShadings() {
         byte[] pdf = BuildInspectionPdf(
@@ -283,6 +298,10 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
     [Theory]
     [InlineData("/Bogus")]
+    [InlineData("/ICCBased")]
+    [InlineData("/CalRGB")]
+    [InlineData("/CalGray")]
+    [InlineData("/Lab")]
     [InlineData("[/Indexed /Bogus 1 <00>]")]
     public void ColorInspectorFailsClosedOnUnclassifiedReachableImageColorSpace(string colorSpace) {
         byte[] pdf = BuildInspectionPdf(
@@ -592,6 +611,34 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(PdfReadLimitKind.ObjectNestingDepth, exception.Kind);
         Assert.Equal(8, exception.Limit);
         Assert.Equal(9, exception.Actual);
+    }
+
+    [Fact]
+    public void ColorInspectorFailsClosedWhenReachableResourceTraversalExceedsObjectDepth() {
+        const int firstObject = 5;
+        const int lastObject = 40;
+        var extraObjects = new StringBuilder();
+        for (int objectNumber = firstObject; objectNumber <= lastObject; objectNumber++) {
+            extraObjects.Append(objectNumber).Append(" 0 obj\n");
+            if (objectNumber < lastObject) {
+                extraObjects.Append(objectNumber + 1).Append(" 0 R");
+            } else {
+                extraObjects.Append("<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 0 >>\nstream\n\nendstream");
+            }
+            extraObjects.Append("\nendobj\n");
+        }
+        byte[] pdf = BuildInspectionPdf(
+            "/Deep Do",
+            resources: "/XObject << /Deep 5 0 R >>",
+            extraObjects: extraObjects.ToString());
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
+        };
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf, options).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
     [Theory]

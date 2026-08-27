@@ -185,8 +185,10 @@ public sealed partial class OfficeTrueTypeFont {
                     new FontTransform(scale, 0D, 0D, -scale, glyphX, glyphBaseline),
                     0,
                     variationWorkBudget,
+                    maximumPointCount,
+                    ref pointCount,
                     cancellationToken);
-                AddBoundedContours(contours, glyphContours, ref pointCount, maximumPointCount);
+                contours.AddRange(glyphContours);
                 if (!negativeDirection) {
                     cursor += glyph.AdvanceWidth * scale;
                 }

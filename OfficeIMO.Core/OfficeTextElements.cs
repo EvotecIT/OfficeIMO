@@ -98,6 +98,17 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>Determines whether text contains a Unicode variation selector.</summary>
+    public static bool ContainsVariationSelector(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalar = ReadScalar(value, ref index);
+            if (scalar >= 0xFE00 && scalar <= 0xFE0F ||
+                scalar >= 0xE0100 && scalar <= 0xE01EF) return true;
+        }
+        return false;
+    }
+
     /// <summary>
     /// Determines whether a scalar is a shaping or directional control that does not require a
     /// standalone glyph during font fallback coverage checks.

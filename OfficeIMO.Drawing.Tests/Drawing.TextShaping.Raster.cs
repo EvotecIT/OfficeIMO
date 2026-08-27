@@ -269,6 +269,27 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void RasterCanvasReportsIncompleteFallbackForUnresolvedVariationSelector() {
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        var fonts = new OfficeFontFaceCollection().Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(0x2764));
+        var canvas = new OfficeRasterCanvas(
+            new OfficeRasterImage(120, 40, OfficeColor.White),
+            font: null,
+            fonts: fonts,
+            diagnosticSink: diagnostics,
+            diagnosticSource: "variation-selector test");
+
+        canvas.MeasureText("\u2764\uFE0F", 18D, ManagedTextShapingTestAssets.FamilyName);
+
+        OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(OfficeImageExportDiagnosticCodes.TextShapingFallback, diagnostic.Code);
+        Assert.Contains("cannot provide complete", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+    }
+
+    [Fact]
     public void RasterCanvas_ReportsOneManagedFallbackApproximation() {
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         var fonts = new OfficeFontFaceCollection().Add(

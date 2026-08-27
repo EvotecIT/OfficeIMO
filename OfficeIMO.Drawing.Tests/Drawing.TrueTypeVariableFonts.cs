@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
 using Xunit;
@@ -196,6 +197,18 @@ public sealed class DrawingTrueTypeVariableFontTests {
         Assert.True(selected.Program.TryGetGlyphMetrics('À', out _, out int compositeAdvance));
         Assert.Equal(componentAdvance, compositeAdvance);
         Assert.Equal(1452, compositeAdvance);
+    }
+
+    [Fact]
+    public void CompositeOutlineExpansionHonorsThePointBudgetInsideRecursiveComponents() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        OfficeFontFace face = Load(data, new Dictionary<string, float> { ["wght"] = 900F });
+        var bounded = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(face.Program);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            bounded.GetTextContoursBounded("À", 0D, 0D, 24D, 8, CancellationToken.None));
+
+        Assert.Contains("point budget", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
