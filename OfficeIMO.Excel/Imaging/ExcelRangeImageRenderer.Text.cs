@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
             }
 
             using (canvas.PushClipRectangle(x, y, w, h)) {
-                if (cell.RichTextRuns.Count > 0) {
+                if (cell.RichTextRuns.Count > 0 || HasAdvancedCellTypography(cell)) {
                     if (richTextSupported && TryDrawRasterRichText(canvas, cell, options, scale, x, y, w, h, textInsets.Left, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, out OfficeRichTextBlockLayout richLayout)) {
                         AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, options.Fonts, diagnostics);
                         AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (cell.RichTextRuns.Count > 0) {
+            if (cell.RichTextRuns.Count > 0 || HasAdvancedCellTypography(cell)) {
                 if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, textInsets.Left, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => MeasureSvgText(textMeasurer, text, size, family), out OfficeRichTextBlockLayout richLayout)) {
                     AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, options.Fonts, diagnostics);
                     AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
@@ -481,9 +481,31 @@ namespace OfficeIMO.Excel {
             OfficeTextOverflowBehavior overflowBehavior,
             Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
-            var runs = new List<OfficeRichTextRun>(cell.RichTextRuns.Count);
+            var runs = new List<OfficeRichTextRun>(Math.Max(1, cell.RichTextRuns.Count));
             OfficeColor fallbackColor = ResolveCellTextColor(cell, options);
             bool fallbackUnderline = ShouldUnderlineText(cell, options);
+            if (cell.RichTextRuns.Count == 0 && !string.IsNullOrEmpty(cell.Text)) {
+                OfficeTextDecorationStyle underlineStyle = MapExcelUnderlineStyle(cell.Style.UnderlineStyle);
+                if (underlineStyle == OfficeTextDecorationStyle.None && fallbackUnderline) {
+                    underlineStyle = OfficeTextDecorationStyle.Single;
+                }
+
+                runs.Add(new OfficeRichTextRun(
+                    cell.Text,
+                    ResolveCellFontSize(cell.Style, scale),
+                    fallbackColor,
+                    cell.Style.Bold,
+                    cell.Style.Italic,
+                    fallbackUnderline,
+                    ResolveCellFontFamily(cell.Style),
+                    strikethrough: cell.Style.Strikethrough,
+                    underlineStyle: underlineStyle,
+                    strikethroughStyle: cell.Style.Strikethrough
+                        ? OfficeTextDecorationStyle.Single
+                        : OfficeTextDecorationStyle.None,
+                    baseline: MapExcelBaseline(cell.Style.VerticalTextAlignment)));
+            }
+
             for (int i = 0; i < cell.RichTextRuns.Count; i++) {
                 ExcelVisualTextRun run = cell.RichTextRuns[i];
                 if (string.IsNullOrEmpty(run.Text)) {
@@ -575,6 +597,11 @@ namespace OfficeIMO.Excel {
         private static bool IsRichTextRenderingSupported(ExcelVisualCell cell, bool rotated) {
             return true;
         }
+
+        private static bool HasAdvancedCellTypography(ExcelVisualCell cell) =>
+            cell.Style.Strikethrough
+            || MapExcelUnderlineStyle(cell.Style.UnderlineStyle) == OfficeTextDecorationStyle.Double
+            || MapExcelBaseline(cell.Style.VerticalTextAlignment) != OfficeTextBaseline.Normal;
 
         private static OfficeTextDecorationStyle MapExcelUnderlineStyle(ExcelUnderlineStyle? style) => style switch {
             ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting => OfficeTextDecorationStyle.Double,

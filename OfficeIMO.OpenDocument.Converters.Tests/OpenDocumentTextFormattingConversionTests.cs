@@ -143,6 +143,24 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     }
 
     [Fact]
+    public void OdtParagraphCapitalizePreservesWordContextAcrossFormattingBoundaries() {
+        OdtDocument odt = OdtDocument.Create();
+        OdtParagraph paragraph = odt.AddParagraph();
+        paragraph.TextTransform = OdfTextTransform.Capitalize;
+        paragraph.AddSpan("he").Bold = true;
+        paragraph.AddSpan("llo world").Italic = true;
+
+        using WordDocument word = odt.ToWordDocument();
+        WordParagraphSnapshot converted = Assert.Single(word.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+
+        Assert.Equal("Hello World", converted.Text);
+        Assert.Equal(new[] { "He", "llo World" }, converted.Runs.Select(run => run.Text).ToArray());
+        Assert.True(converted.Runs[0].Bold);
+        Assert.True(converted.Runs[1].Italic);
+    }
+
+    [Fact]
     public void OdfCapitalizePreservesExistingWordCasingAcrossWordExcelAndPowerPointImports() {
         OdtDocument odt = OdtDocument.Create();
         OdtSpan odtSpan = odt.AddParagraph().AddSpan("iPhone eBOOK");

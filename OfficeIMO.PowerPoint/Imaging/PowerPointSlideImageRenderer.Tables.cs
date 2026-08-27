@@ -167,10 +167,12 @@ namespace OfficeIMO.PowerPoint {
             List<OfficeImageExportDiagnostic> diagnostics,
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme) {
-            string text = cell.Text;
+            string text = ResolvePowerPointDisplayText(cell);
             if (string.IsNullOrEmpty(text)) {
                 return;
             }
+
+            AddSmallCapsApproximationDiagnosticIfNeeded(table, cell, diagnostics);
 
             double marginLeft = mapping.MapHorizontalLength(cell.PaddingLeftPoints ?? 3.6D);
             double marginTop = mapping.MapVerticalLength(cell.PaddingTopPoints ?? 1.8D);
@@ -454,7 +456,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = ResolveTableCellTextRunColor(run, cell, colorScheme);
             OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, colorScheme);
             return new OfficeRichTextRun(
-                text,
+                ResolvePowerPointDisplayText(text, run, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? cell.FontSize ?? 10 : run?.FontSize ?? cell.FontSize ?? 10),
                 color,
                 run?.Bold == true,
@@ -466,6 +468,36 @@ namespace OfficeIMO.PowerPoint {
                 MapUnderlineStyle(run?.UnderlineStyle),
                 MapStrikeStyle(run?.StrikeStyle),
                 MapBaseline(run?.BaselinePercent));
+        }
+
+        private static string ResolvePowerPointDisplayText(PowerPointTableCell cell) {
+            IReadOnlyList<PowerPointParagraph> paragraphs = cell.Paragraphs;
+            if (!paragraphs.SelectMany(paragraph => paragraph.Runs)
+                .Any(run => run.Capitalization is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
+                return cell.Text;
+            }
+
+            return string.Join(Environment.NewLine, paragraphs.Select(paragraph =>
+                string.Concat(paragraph.InlineNodes.Select(node =>
+                    node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run)))));
+        }
+
+        private static void AddSmallCapsApproximationDiagnosticIfNeeded(
+            PowerPointTable table,
+            PowerPointTableCell cell,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            bool hasSmallCaps = cell.Cell.TextBody?.Elements<A.Paragraph>()
+                .SelectMany(paragraph => paragraph.Elements<A.Run>())
+                .Select(run => new PowerPointTextRun(run))
+                .Any(run => run.Capitalization == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text)) == true;
+            if (!hasSmallCaps) return;
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.SmallCapsApproximated,
+                "Rendered native PowerPoint table-cell small caps as uppercase glyphs; reduced small-cap glyph sizing is approximated.",
+                DescribeShape(table),
+                OfficeConversionLossKind.Approximation));
         }
 
         private static OfficeColor ResolveTableCellTextRunColor(PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme) {

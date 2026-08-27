@@ -98,7 +98,8 @@ internal sealed class OfficeMarkupWordExporter {
         if (context.CurrentSection != null) {
             foreach (var entry in OfficeMarkupListTraversal.Enumerate(list)) {
                 string indent = new string(' ', entry.Depth * 2);
-                ApplyTextStyle(context.CurrentSection.AddParagraph(indent + entry.Marker + " " + entry.Item.Text), context.Styles.Resolve("body"));
+                ApplyTextStyle(context.CurrentSection.AddParagraph(indent + entry.Marker + " " + entry.Item.Text),
+                    context.Styles.Resolve("body", entry.SourceList.Attributes));
             }
 
             return;
@@ -116,7 +117,8 @@ internal sealed class OfficeMarkupWordExporter {
                 wordLists.Add(entry.SourceList, wordList);
             }
 
-            ApplyTextStyle(wordList.AddItem(entry.Item.Text, entry.Depth), context.Styles.Resolve("body"));
+            ApplyTextStyle(wordList.AddItem(entry.Item.Text, entry.Depth),
+                context.Styles.Resolve("body", entry.SourceList.Attributes));
         }
     }
 

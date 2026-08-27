@@ -20,5 +20,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The slide background image could not be read and the configured fallback was used.</summary>
         public const string InvalidSlideBackgroundImage = "invalid-slide-background-image";
+
+        /// <summary>Native small caps were rendered as uppercase glyphs because reduced small-cap glyph sizing is unavailable.</summary>
+        public const string SmallCapsApproximated = "powerpoint-small-caps-approximated";
     }
 }

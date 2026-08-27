@@ -7,6 +7,36 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelImageExportRichTextTests {
         [Fact]
+        public void ExcelRange_ImageExportPreservesAdvancedPlainCellTypographyInSvgAndPng() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("PlainStyle");
+            sheet.SetColumnWidth(1, 24);
+            sheet.SetRowHeight(1, 34);
+            sheet.CellAt(1, 1)
+                .SetValue("Styled plain cell")
+                .SetUnderline(ExcelUnderlineStyle.Double)
+                .SetStrikethrough()
+                .SetSuperscript();
+
+            ExcelRange range = sheet.Range("A1:A1");
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = Encoding.UTF8.GetString(svgResult.Bytes);
+
+            Assert.Contains("Styled plain cell", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"line-through\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration-style=\"double\"", svg, StringComparison.Ordinal);
+            Assert.Equal(ExcelVerticalTextAlignment.Superscript,
+                range.CreateVisualSnapshot().Cells.Single().Style.VerticalTextAlignment);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+            Assert.True(OfficePngReader.TryDecode(pngResult.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesSingleLineRichTextRunsInSvg() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

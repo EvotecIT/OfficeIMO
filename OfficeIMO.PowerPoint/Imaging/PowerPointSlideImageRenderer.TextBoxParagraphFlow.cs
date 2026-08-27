@@ -160,7 +160,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string CreateParagraphPlainText(PowerPointParagraph paragraph, string? marker) {
-            string text = string.Concat(paragraph.Runs.Select(run => run.Text).Where(runText => !string.IsNullOrEmpty(runText)));
+            string text = string.Concat(paragraph.InlineNodes.Select(node =>
+                node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run)));
             return string.IsNullOrEmpty(marker) ? text : marker + text;
         }
 

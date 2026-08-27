@@ -295,24 +295,39 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,
         ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
-        foreach (OdtInlineNode node in source.InlineNodes) {
+        string[] sourceTexts = source.InlineNodes.Select(node => node.Text).ToArray();
+        IReadOnlyList<string> capitalizedTexts = OfficeTextCaseTransformer.ApplySegments(
+            sourceTexts,
+            OfficeTextCase.Capitalize);
+        for (int nodeIndex = 0; nodeIndex < source.InlineNodes.Count; nodeIndex++) {
+            OdtInlineNode node = source.InlineNodes[nodeIndex];
+            OdfTextTransform? transform = node.Kind switch {
+                OdtInlineNodeKind.Span => node.Span!.TextTransform ?? source.TextTransform,
+                OdtInlineNodeKind.Hyperlink => node.Hyperlink!.TextTransform ?? source.TextTransform,
+                _ => source.TextTransform
+            };
+            string displayText = transform switch {
+                OdfTextTransform.Capitalize => capitalizedTexts[nodeIndex],
+                OdfTextTransform.Lowercase => OfficeTextCaseTransformer.Apply(node.Text, OfficeTextCase.Lowercase),
+                _ => node.Text
+            };
             switch (node.Kind) {
                 case OdtInlineNodeKind.Text:
-                    unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(node.Text),
+                    unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(displayText),
                         ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     break;
                 case OdtInlineNodeKind.Span:
-                    unsupportedMeasurements += ApplyOdtSpanFormatting(node.Span!, source, target.AddText(node.Text),
+                    unsupportedMeasurements += ApplyOdtSpanFormatting(node.Span!, source, target.AddText(displayText),
                         ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     break;
                 case OdtInlineNodeKind.Hyperlink:
                     OdtHyperlink link = node.Hyperlink!;
                     WordParagraph? hyperlinkRun = null;
                     if (OdfUriReference.TryDecodeFragment(link.Href, out string fragment)) {
-                        hyperlinkRun = target.AddHyperLink(link.Text, fragment, addStyle: true);
+                        hyperlinkRun = target.AddHyperLink(displayText, fragment, addStyle: true);
                     } else if (!link.Href.StartsWith("#", StringComparison.Ordinal)
                         && Uri.TryCreate(link.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                        hyperlinkRun = target.AddHyperLink(link.Text, uri, addStyle: true);
+                        hyperlinkRun = target.AddHyperLink(displayText, uri, addStyle: true);
                     }
                     if (hyperlinkRun != null) {
                         unsupportedMeasurements += ApplyOdtHyperlinkFormatting(link, source, hyperlinkRun,
@@ -320,7 +335,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                         hyperlinks++;
                         if (IsExternalOdfHref(link.Href)) externalHyperlinks++;
                     } else {
-                        unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(link.Text),
+                        unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(displayText),
                             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         approximatedRuns++;
                     }
@@ -353,8 +368,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 case OdtInlineNodeKind.BookmarkEnd:
                     break;
                 case OdtInlineNodeKind.Other:
-                    if (node.Text.Length > 0) unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source,
-                        target.AddText(node.Text), ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                    if (displayText.Length > 0) unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source,
+                        target.AddText(displayText), ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                     approximatedRuns++;
                     break;
             }

@@ -335,7 +335,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
-            string text = textBox.Text;
+            string text = ResolvePowerPointDisplayText(textBox);
             bool hasVisibleFrame = HasVisibleFrame(textBox, colorScheme);
             if (string.IsNullOrEmpty(text) && !hasVisibleFrame) {
                 return;
@@ -355,6 +355,8 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrEmpty(text)) {
                 return;
             }
+
+            AddSmallCapsApproximationDiagnosticIfNeeded(textBox, diagnostics);
 
             double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? 0D);
             double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? 0D);
@@ -828,7 +830,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme);
             OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, colorScheme);
             return new OfficeRichTextRun(
-                text,
+                ResolvePowerPointDisplayText(text, run, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? textBox.FontSize ?? 18 : run?.FontSize ?? textBox.FontSize ?? 18),
                 color,
                 run?.Bold == true,
@@ -840,6 +842,53 @@ namespace OfficeIMO.PowerPoint {
                 MapUnderlineStyle(run?.UnderlineStyle),
                 MapStrikeStyle(run?.StrikeStyle),
                 MapBaseline(run?.BaselinePercent));
+        }
+
+        private static string ResolvePowerPointDisplayText(string text, PowerPointTextRun? run, bool markerRun = false) {
+            if (markerRun || run?.Capitalization is not (PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
+                return text;
+            }
+
+            return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, ResolvePowerPointRunCulture(run.Language));
+        }
+
+        private static string ResolvePowerPointDisplayText(PowerPointTextBox textBox) {
+            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                .Any(run => run.Capitalization is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
+                return textBox.Text;
+            }
+
+            return string.Join(Environment.NewLine, textBox.Paragraphs.Select(paragraph =>
+                string.Concat(paragraph.InlineNodes.Select(node =>
+                    node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run)))));
+        }
+
+        private static CultureInfo ResolvePowerPointRunCulture(string? language) {
+            if (!string.IsNullOrWhiteSpace(language)) {
+                try {
+                    return CultureInfo.GetCultureInfo(language!);
+                } catch (CultureNotFoundException) {
+                    // Invalid or unsupported tags fall back deterministically for image export.
+                }
+            }
+
+            return CultureInfo.InvariantCulture;
+        }
+
+        private static void AddSmallCapsApproximationDiagnosticIfNeeded(
+            PowerPointTextBox textBox,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                .Any(run => run.Capitalization == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text))) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.SmallCapsApproximated,
+                "Rendered native PowerPoint small caps as uppercase glyphs; reduced small-cap glyph sizing is approximated.",
+                DescribeShape(textBox),
+                OfficeConversionLossKind.Approximation));
         }
 
         private static OfficeTextDecorationStyle MapUnderlineStyle(PowerPointUnderlineStyle? style) => style switch {

@@ -44,6 +44,47 @@ public class OfficeMarkupTextFormattingTests {
     }
 
     [Fact]
+    public void WordExporter_AppliesRootAndNestedListTypographyInsideAndOutsideSections() {
+        static OfficeMarkupListBlock CreateList() {
+            var root = new OfficeMarkupListBlock(ordered: false);
+            root.Attributes["font-family"] = "Consolas";
+            root.Attributes["underline"] = "double";
+            var rootItem = new OfficeMarkupListItem("Root item");
+            var nested = new OfficeMarkupListBlock(ordered: false);
+            nested.Attributes["italic"] = "true";
+            nested.Attributes["color"] = "336699";
+            nested.Items.Add(new OfficeMarkupListItem("Nested item"));
+            rootItem.Blocks.Add(nested);
+            root.Items.Add(rootItem);
+            return root;
+        }
+
+        var source = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
+        source.Blocks.Add(CreateList());
+        var section = new OfficeMarkupSectionBlock("Section");
+        section.Blocks.Add(CreateList());
+        source.Blocks.Add(section);
+
+        using WordDocument word = source.ToWordDocumentResult().RequireValue();
+        WordParagraphSnapshot[] paragraphs = word.CreateInspectionSnapshot().Sections
+            .SelectMany(item => item.Elements).OfType<WordParagraphSnapshot>()
+            .Where(item => item.Text.Contains("item", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.Equal(4, paragraphs.Length);
+        Assert.All(paragraphs.Where(item => item.Text.Contains("Root", StringComparison.Ordinal)), paragraph => {
+            WordRunSnapshot run = Assert.Single(paragraph.Runs);
+            Assert.Equal("Consolas", run.FontFamily);
+            Assert.Equal(WordUnderlineStyle.Double, run.UnderlineStyle);
+        });
+        Assert.All(paragraphs.Where(item => item.Text.Contains("Nested", StringComparison.Ordinal)), paragraph => {
+            WordRunSnapshot run = Assert.Single(paragraph.Runs);
+            Assert.True(run.Italic);
+            Assert.Equal("336699", run.ColorHex);
+        });
+    }
+
+    [Fact]
     public void WordExporter_AppliesBlockTypographyAndCase() {
         var paragraph = new OfficeMarkupParagraphBlock("Mixed case");
         AddCommonStyle(paragraph.Attributes, "double", "superscript", "uppercase");

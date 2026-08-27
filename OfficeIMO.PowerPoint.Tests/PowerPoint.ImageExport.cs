@@ -16,6 +16,47 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
+        public void PowerPointSlide_ImageExportMaterializesNativeCapsForTextBoxesAndTableCells() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(320, 140);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 130, 60).Paragraphs[0];
+            PowerPointTextRun textBoxRun = textBoxParagraph.Runs[0];
+            textBoxRun.Language = "tr-TR";
+            textBoxRun.Capitalization = PowerPointCapitalization.AllCaps;
+            textBoxParagraph.AddLineBreak().AddField("TextBoxField", "custom");
+
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 170, 20, 120, 50).GetCell(0, 0);
+            cell.Text = "small caps";
+            cell.Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
+            cell.Paragraphs[0].AddLineBreak().AddField("CellField", "custom");
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                (element is OfficeDrawingRichText richText && richText.PlainText.Contains("İZMİR", StringComparison.Ordinal))
+                || (element is OfficeDrawingText text && text.Text.Contains("İZMİR", StringComparison.Ordinal)));
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                (element is OfficeDrawingRichText richText && richText.PlainText.Contains("TextBoxField", StringComparison.Ordinal))
+                || (element is OfficeDrawingText text && text.Text.Contains("TextBoxField", StringComparison.Ordinal)));
+            Assert.Contains(snapshot.Drawing.Elements, element =>
+                (element is OfficeDrawingRichText richText && richText.PlainText.Contains("SMALL CAPS", StringComparison.Ordinal))
+                || (element is OfficeDrawingText text && text.Text.Contains("SMALL CAPS", StringComparison.Ordinal)));
+            Assert.Contains("İZMİR", svgText, StringComparison.Ordinal);
+            Assert.Contains("SMALL CAPS", svgText, StringComparison.Ordinal);
+            Assert.Contains("CellField", svgText, StringComparison.Ordinal);
+            Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
+            Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
         public void PowerPointSlide_DirectImageExportEnforcesRenderTimeout() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
