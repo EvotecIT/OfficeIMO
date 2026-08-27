@@ -6,14 +6,20 @@ public sealed partial class PdfReadDocument {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
     public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => ReadLogicalContent(_outputIntents);
 
-    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents() {
+    /// <summary>True when every entry in the catalog /OutputIntents array was resolved as an output-intent dictionary.</summary>
+    public bool OutputIntentsAreComplete => ReadLogicalContent(_outputIntentsAreComplete);
+
+    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete) {
+        isComplete = true;
         PdfDictionary? catalog = FindCatalog();
-        if (catalog is null ||
-            !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject) ||
-            ResolveArray(outputIntentsObject) is not PdfArray outputIntentsArray ||
-            outputIntentsArray.Items.Count == 0) {
+        if (catalog is null || !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject)) {
             return Array.Empty<PdfOutputIntentInfo>();
         }
+        if (ResolveArray(outputIntentsObject) is not PdfArray outputIntentsArray) {
+            isComplete = false;
+            return Array.Empty<PdfOutputIntentInfo>();
+        }
+        if (outputIntentsArray.Items.Count == 0) return Array.Empty<PdfOutputIntentInfo>();
 
         var result = new List<PdfOutputIntentInfo>();
         for (int i = 0; i < outputIntentsArray.Items.Count; i++) {
@@ -21,6 +27,7 @@ public sealed partial class PdfReadDocument {
             int? objectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
             PdfDictionary? outputIntent = ResolveDict(item);
             if (outputIntent is null) {
+                isComplete = false;
                 continue;
             }
 

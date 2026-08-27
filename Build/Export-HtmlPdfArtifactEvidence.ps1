@@ -33,6 +33,12 @@ if ($report.schemaVersion -ne 2 -or
     throw 'HTML/PDF artifact evidence must be a schema-v2 High-scale run with at least three iterations.'
 }
 
+$expectedPageCount = [int] $report.input.expectedPageCount
+$expectedReportMarkerCount = [int] $report.input.expectedReportMarkerCount
+if ($expectedPageCount -lt 1 -or $expectedReportMarkerCount -lt 1) {
+    throw 'HTML/PDF artifact evidence input must declare positive expected page and report-marker counts.'
+}
+
 function Assert-SourceProvenance {
     param(
         [Parameter(Mandatory)][string] $Subject,
@@ -120,9 +126,9 @@ foreach ($engine in $engines) {
         }
         $contract = $output.contract
         if ($null -eq $contract -or
-            [int] $contract.pageCount -lt 1 -or
+            [int] $contract.pageCount -ne $expectedPageCount -or
             [int] $contract.textLength -lt 1 -or
-            [int] $contract.reportMarkerCount -lt 1 -or
+            [int] $contract.reportMarkerCount -ne $expectedReportMarkerCount -or
             $contract.tagged -ne $true -or
             $contract.marked -ne $true -or
             [string]::IsNullOrWhiteSpace([string] $contract.catalogLanguage) -or
@@ -133,6 +139,59 @@ foreach ($engine in $engines) {
             $contract.figuresHaveAlternateText -ne $true -or
             [string] $output.semanticSha256 -notmatch '^[0-9a-f]{64}$') {
             throw "HTML/PDF artifact evidence engine '$engineName' contains an output without the required semantic and tagged-PDF contract."
+        }
+    }
+}
+
+function Assert-PdfArtifactContract {
+    param(
+        [Parameter(Mandatory)][string] $RelativePath,
+        [Parameter(Mandatory)][int] $ExpectedPageCount,
+        [Parameter(Mandatory)][int] $ExpectedReportMarkerCount
+    )
+
+    $pdfInfo = @(Get-Command pdfinfo -CommandType Application -ErrorAction SilentlyContinue) | Select-Object -First 1
+    $pdfToText = @(Get-Command pdftotext -CommandType Application -ErrorAction SilentlyContinue) | Select-Object -First 1
+    if ($null -eq $pdfInfo -or $null -eq $pdfToText) {
+        throw 'HTML/PDF artifact evidence requires executable pdfinfo and pdftotext validators.'
+    }
+
+    $fullPath = [System.IO.Path]::GetFullPath((Join-Path $evidenceRoot $RelativePath))
+    $pdfInfoOutput = @(& $pdfInfo.Source $fullPath 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Executable PDF validation failed for artifact: $RelativePath"
+    }
+    $pageMatch = [regex]::Match(
+        ($pdfInfoOutput -join "`n"),
+        '(?m)^Pages:\s+(?<count>\d+)\s*$')
+    if (-not $pageMatch.Success -or
+        [int] $pageMatch.Groups['count'].Value -ne $ExpectedPageCount) {
+        throw "Executable PDF validation found an unexpected page count for artifact: $RelativePath"
+    }
+
+    $textPath = Join-Path ([System.IO.Path]::GetTempPath()) (
+        'officeimo-html-pdf-evidence-' + [Guid]::NewGuid().ToString('N') + '.txt')
+    try {
+        $null = & $pdfToText.Source -enc UTF-8 $fullPath $textPath 2>&1
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $textPath -PathType Leaf)) {
+            throw "Executable PDF text validation failed for artifact: $RelativePath"
+        }
+        $text = Get-Content -LiteralPath $textPath -Raw
+        $normalizedText = [regex]::Replace(
+            $text.ToUpperInvariant(),
+            '[^\p{L}\p{Nd}]',
+            [string]::Empty,
+            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+        $actualMarkerCount = [regex]::Matches(
+            $normalizedText,
+            [regex]::Escape('BENCHMARKREPORT'),
+            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant).Count
+        if ($actualMarkerCount -ne $ExpectedReportMarkerCount) {
+            throw "Executable PDF validation found an unexpected report-marker count for artifact: $RelativePath"
+        }
+    } finally {
+        if (Test-Path -LiteralPath $textPath -PathType Leaf) {
+            Remove-Item -LiteralPath $textPath -Force
         }
     }
 }
@@ -235,6 +294,10 @@ foreach ($engine in $engines) {
             -RelativePath ([string] $output.relativePath) `
             -ExpectedSize ([long] $output.sizeBytes) `
             -ExpectedSha256 ([string] $output.sha256))) | Out-Null
+        Assert-PdfArtifactContract `
+            -RelativePath ([string] $output.relativePath) `
+            -ExpectedPageCount ([int] $output.contract.pageCount) `
+            -ExpectedReportMarkerCount ([int] $output.contract.reportMarkerCount)
         $semanticHashes.Add(([string] $output.semanticSha256).ToLowerInvariant()) | Out-Null
         $managedVisualHashes.Add((Add-ValidatedArtifact `
             -Kind ("managed-preview:$($engine.engine)") `

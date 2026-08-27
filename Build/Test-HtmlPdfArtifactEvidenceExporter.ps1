@@ -7,6 +7,37 @@ $osDescription = $isWindowsHost ? 'Windows contract-test host' : 'Linux contract
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
     'officeimo-html-pdf-artifact-exporter-' + [Guid]::NewGuid().ToString('N'))
 
+function New-TestPdfBytes {
+    param([Parameter(Mandatory)][string] $Text)
+
+    $content = "BT /F1 12 Tf 72 720 Td ($Text) Tj ET"
+    $objects = @(
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+        '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+        "<< /Length $([System.Text.Encoding]::ASCII.GetByteCount($content)) >>`nstream`n$content`nendstream"
+    )
+    $buffer = [System.Collections.Generic.List[byte]]::new()
+    $offsets = [System.Collections.Generic.List[int]]::new()
+    $appendAscii = {
+        param([string] $Value)
+        $buffer.AddRange([System.Text.Encoding]::ASCII.GetBytes($Value))
+    }
+    & $appendAscii "%PDF-1.4`n"
+    for ($index = 0; $index -lt $objects.Count; $index++) {
+        $offsets.Add($buffer.Count)
+        & $appendAscii "$($index + 1) 0 obj`n$($objects[$index])`nendobj`n"
+    }
+    $xrefOffset = $buffer.Count
+    & $appendAscii "xref`n0 6`n0000000000 65535 f `n"
+    foreach ($offset in $offsets) {
+        & $appendAscii ($offset.ToString('0000000000') + " 00000 n `n")
+    }
+    & $appendAscii "trailer`n<< /Size 6 /Root 1 0 R >>`nstartxref`n$xrefOffset`n%%EOF`n"
+    return $buffer.ToArray()
+}
+
 try {
     $evidenceRoot = Join-Path $temporaryRoot 'Run'
     New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
@@ -24,14 +55,19 @@ try {
                     $pdfRelativePath = "$slug-$iteration.pdf"
                     $managedRelativePath = "$slug-$iteration-managed.png"
                     $externalRelativePath = "$slug-$iteration-external.png"
-                    $pdfContent = $engineName -eq 'OfficeIMO' ? "pdf-$engineName" : "pdf-$engineName-$iteration"
+                    $pdfText = if ($engineName -eq 'OfficeIMO') {
+                        'BENCHMARKREPORT OfficeIMO'
+                    } else {
+                        "BENCHMARKREPORT $engineName $iteration"
+                    }
+                    [System.IO.File]::WriteAllBytes(
+                        (Join-Path $evidenceRoot $pdfRelativePath),
+                        (New-TestPdfBytes -Text $pdfText))
                     foreach ($artifact in @(
-                            [pscustomobject]@{ Path = $pdfRelativePath; Content = $pdfContent },
                             [pscustomobject]@{ Path = $managedRelativePath; Content = "managed-$engineName" },
                             [pscustomobject]@{ Path = $externalRelativePath; Content = "external-$engineName" })) {
-                        $artifactPath = Join-Path $evidenceRoot $artifact.Path
                         [System.IO.File]::WriteAllText(
-                            $artifactPath,
+                            (Join-Path $evidenceRoot $artifact.Path),
                             $artifact.Content,
                             [System.Text.UTF8Encoding]::new($false))
                     }
@@ -127,6 +163,8 @@ try {
             relativePath = 'input.html'
             sizeBytes = $insideItem.Length
             sha256 = $insideHash
+            expectedPageCount = 1
+            expectedReportMarkerCount = 1
         }
         engines = $engines
     }
@@ -352,6 +390,84 @@ try {
     if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
         throw 'HTML/PDF artifact exporter did not produce the valid in-root summary.'
     }
+
+    $report.input.expectedPageCount = 2
+    foreach ($engine in $report.engines) {
+        foreach ($output in $engine.outputs) {
+            $output.contract.pageCount = 2
+        }
+    }
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $wrongPageCountRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'unexpected page count') { throw }
+        $wrongPageCountRejected = $true
+    }
+    if (-not $wrongPageCountRejected) {
+        throw 'HTML/PDF artifact exporter accepted a PDF whose page count contradicted the evidence report.'
+    }
+    $report.input.expectedPageCount = 1
+    foreach ($engine in $report.engines) {
+        foreach ($output in $engine.outputs) {
+            $output.contract.pageCount = 1
+        }
+    }
+
+    $firstOutput = $report.engines[0].outputs[0]
+    $firstPdfPath = Join-Path $evidenceRoot ([string] $firstOutput.relativePath)
+    $validPdfBytes = [System.IO.File]::ReadAllBytes($firstPdfPath)
+    [System.IO.File]::WriteAllBytes($firstPdfPath, [System.Text.Encoding]::ASCII.GetBytes('not a PDF'))
+    $firstPdfItem = Get-Item -LiteralPath $firstPdfPath
+    $firstOutput.sizeBytes = $firstPdfItem.Length
+    $firstOutput.sha256 = (Get-FileHash -LiteralPath $firstPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $invalidPdfRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'Executable PDF validation failed') { throw }
+        $invalidPdfRejected = $true
+    }
+    if (-not $invalidPdfRejected) {
+        throw 'HTML/PDF artifact exporter accepted arbitrary bytes as validated PDF evidence.'
+    }
+
+    [System.IO.File]::WriteAllBytes($firstPdfPath, (New-TestPdfBytes -Text 'missing marker'))
+    $firstPdfItem = Get-Item -LiteralPath $firstPdfPath
+    $firstOutput.sizeBytes = $firstPdfItem.Length
+    $firstOutput.sha256 = (Get-FileHash -LiteralPath $firstPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $wrongMarkerCountRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'unexpected report-marker count') { throw }
+        $wrongMarkerCountRejected = $true
+    }
+    if (-not $wrongMarkerCountRejected) {
+        throw 'HTML/PDF artifact exporter accepted a PDF whose report-marker count contradicted the evidence report.'
+    }
+
+    [System.IO.File]::WriteAllBytes($firstPdfPath, $validPdfBytes)
+    $firstPdfItem = Get-Item -LiteralPath $firstPdfPath
+    $firstOutput.sizeBytes = $firstPdfItem.Length
+    $firstOutput.sha256 = (Get-FileHash -LiteralPath $firstPdfPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
 
     foreach ($protectedOutputPath in @($reportPath, $insidePath)) {
         $protectedOutputRejected = $false

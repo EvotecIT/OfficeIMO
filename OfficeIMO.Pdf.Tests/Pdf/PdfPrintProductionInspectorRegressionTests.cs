@@ -181,6 +181,38 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorClassifiesReachableImageSoftMaskColorSpace() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /SMask 6 0 R /Length 4 >>\nstream\ncmyk\nendstream\nendobj\n" +
+                "6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(1, evidence.TransparentImageCount);
+        Assert.Equal(1, evidence.DeviceCmykImageCount);
+        Assert.Equal(1, evidence.DeviceRgbImageCount);
+    }
+
+    [Fact]
+    public void ColorInspectorFailsClosedOnUninspectableImageSoftMask() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /SMask 99 0 R /Length 4 >>\nstream\ncmyk\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.TransparentImageCount);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void ColorInspectorResolvesImageColorSpaceFromInvokingPageResources() {
         byte[] pdf = BuildInspectionPdf(
             "/Im1 Do",
@@ -559,6 +591,32 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.True(evidence.HasDeviceRgbUsage);
         Assert.Equal(1, evidence.DeviceRgbTransparencyGroupCount);
         Assert.Equal(1, evidence.TransparencyGroupCount);
+    }
+
+    [Fact]
+    public void ColorInspectorFailsClosedOnUnknownPageGroupSubtype() {
+        byte[] pdf = BuildInspectionPdf(
+            string.Empty,
+            pageEntries: "/Group << /S /Unknown >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorFailsClosedOnUnknownFormGroupSubtype() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm1 Do",
+            resources: "/XObject << /Fm1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Unknown >> /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
     [Fact]

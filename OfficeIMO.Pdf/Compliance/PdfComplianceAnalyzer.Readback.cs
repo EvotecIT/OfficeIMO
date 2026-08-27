@@ -243,7 +243,8 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF Info dictionary contains matching PDF/X identification.",
             "The saved PDF Info dictionary must contain matching GTS_PDFXVersion and, where required, GTS_PDFXConformance values.");
 
-        PdfOutputIntentInfo? outputIntent = TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? singleOutputIntent)
+        PdfOutputIntentInfo? outputIntent = info.OutputIntentsAreComplete &&
+            TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? singleOutputIntent)
             ? singleOutputIntent
             : null;
         bool hasMatchingProfileSize = outputIntent?.DestinationOutputProfileSizeBytes is int actualProfileSize &&

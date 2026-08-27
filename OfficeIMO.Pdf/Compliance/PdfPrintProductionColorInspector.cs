@@ -98,14 +98,32 @@ internal static partial class PdfPrintProductionColorInspector {
             }
         }
 
+        var softMaskOwners = new HashSet<PdfDictionary>();
+        for (int contextIndex = 0; contextIndex < imageContexts.Count; contextIndex++) {
+            ImageContext context = imageContexts[contextIndex];
+            if (!context.Dictionary.Items.TryGetValue("SMask", out PdfObject? softMask) ||
+                string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            if (softMaskOwners.Add(context.Dictionary)) transparentImages++;
+            if (ResolveObject(objects, softMask, 0, maximumObjectDepth) is not PdfStream softMaskStream ||
+                !string.Equals(
+                    ResolveName(
+                        softMaskStream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null,
+                        objects,
+                        maximumObjectDepth),
+                    "Image",
+                    StringComparison.Ordinal)) {
+                uninspectable++;
+                continue;
+            }
+
+            AddImageContext(softMaskStream.Dictionary, context.Aliases, imageContexts);
+        }
+
         foreach (ImageContext context in imageContexts) imageDictionaries.Add(context.Dictionary);
         foreach (ShadingContext context in shadingContexts) shadingDictionaries.Add(context.Dictionary);
-        foreach (PdfDictionary image in imageDictionaries) {
-            if (image.Items.TryGetValue("SMask", out PdfObject? softMask) &&
-                !string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal)) {
-                transparentImages++;
-            }
-        }
 
         foreach (PdfDictionary image in imageDictionaries) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -778,7 +796,7 @@ internal static partial class PdfPrintProductionColorInspector {
             ResolveName(group.Items.TryGetValue("S", out PdfObject? subtype) ? subtype : null, objects, maximumObjectDepth) is not string subtypeName) {
             return false;
         }
-        if (!string.Equals(subtypeName, "Transparency", StringComparison.Ordinal)) return true;
+        if (!string.Equals(subtypeName, "Transparency", StringComparison.Ordinal)) return false;
         isTransparencyGroup = true;
         if (!group.Items.TryGetValue("CS", out PdfObject? colorSpace)) return true;
         usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, aliases);

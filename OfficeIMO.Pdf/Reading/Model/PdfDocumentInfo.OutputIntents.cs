@@ -15,6 +15,9 @@ public sealed partial class PdfDocumentInfo {
     /// <summary>True when at least one catalog output intent was readable.</summary>
     public bool HasReadableOutputIntents => OutputIntentCount > 0;
 
+    /// <summary>True when every catalog /OutputIntents array entry was resolved as an output-intent dictionary.</summary>
+    public bool OutputIntentsAreComplete { get; }
+
     /// <summary>Distinct output intent subtypes in first-seen order.</summary>
     public IReadOnlyList<string> OutputIntentSubtypes {
         get {

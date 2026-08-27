@@ -472,6 +472,7 @@ internal static class PdfInspector {
         IReadOnlyList<PdfOutputIntentInfo> outputIntents = useDocumentWideObjects
             ? document.UncheckedOutputIntents
             : Array.Empty<PdfOutputIntentInfo>();
+        bool outputIntentsAreComplete = useDocumentWideObjects && document.UncheckedOutputIntentsAreComplete;
         PdfXmpMetadataInfo? xmpMetadata = useDocumentWideObjects
             ? document.UncheckedXmpMetadata
             : null;
@@ -520,7 +521,7 @@ internal static class PdfInspector {
             pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, geometry, links, formWidgets, annotations, actions));
         }
 
-        return new PdfDocumentInfo(pages.AsReadOnly(), document.UncheckedMetadata, outlines, pageLabels, namedDestinations, catalogActions, attachments, outputIntents, xmpMetadata, taggedContent, optionalContent, openAction, document.ViewerPreferences, formFields, document.UncheckedAcroFormDefaultAppearance, document.UncheckedAcroFormQuadding, document.UncheckedAcroFormXfa, document.UncheckedAcroFormNeedAppearances, document.UncheckedAcroFormSignatureFlags, document.Security, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, document.Security.HasSignatures || probe.HasSignatures, probe.HasForms || document.UncheckedAcroFormXfa is not null, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent, useDocumentWideObjects && document.HasOnlyWidgetOwnedActiveContent());
+        return new PdfDocumentInfo(pages.AsReadOnly(), document.UncheckedMetadata, outlines, pageLabels, namedDestinations, catalogActions, attachments, outputIntents, outputIntentsAreComplete, xmpMetadata, taggedContent, optionalContent, openAction, document.ViewerPreferences, formFields, document.UncheckedAcroFormDefaultAppearance, document.UncheckedAcroFormQuadding, document.UncheckedAcroFormXfa, document.UncheckedAcroFormNeedAppearances, document.UncheckedAcroFormSignatureFlags, document.Security, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, document.Security.HasSignatures || probe.HasSignatures, probe.HasForms || document.UncheckedAcroFormXfa is not null, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent, useDocumentWideObjects && document.HasOnlyWidgetOwnedActiveContent());
     }
 
     private static Dictionary<int, IReadOnlyList<PdfFormWidget>> BuildFormWidgetsByPage(IReadOnlyList<PdfFormField> fields) {
