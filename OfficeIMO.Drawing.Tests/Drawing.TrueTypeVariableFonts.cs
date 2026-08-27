@@ -283,6 +283,39 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Theory]
+    [InlineData(1D, 0.5D)]
+    [InlineData(-1D, -0.5D)]
+    public void NonIntermediateGvarTupleClampsSameSignCoordinatesBeyondThePeak(double coordinate, double peak) {
+        Assert.Equal(
+            1D,
+            OfficeOpenTypeVariationRegion.CalculateTupleScalar(
+                coordinate,
+                peak,
+                intermediateStart: null,
+                intermediateEnd: null));
+    }
+
+    [Fact]
+    public void OpenTypeReaderRejectsTablesInsideMisalignedOrOverlappingTheDirectory() {
+        byte[] original = ReadAsset("RobotoFlex.ttf");
+        int firstRecord = FindNonEmptyTableRecords(original).First();
+        int secondRecord = FindNonEmptyTableRecords(original).Skip(1).First();
+        uint firstOffset = ReadUInt32(original, firstRecord + 8);
+
+        byte[] insideDirectory = (byte[])original.Clone();
+        WriteUInt32(insideDirectory, firstRecord + 8, 12U);
+        Assert.Null(OfficeOpenTypeReader.TryCreate(insideDirectory));
+
+        byte[] misaligned = (byte[])original.Clone();
+        WriteUInt32(misaligned, firstRecord + 8, checked(firstOffset + 1U));
+        Assert.Null(OfficeOpenTypeReader.TryCreate(misaligned));
+
+        byte[] overlapping = (byte[])original.Clone();
+        WriteUInt32(overlapping, secondRecord + 8, firstOffset);
+        Assert.Null(OfficeOpenTypeReader.TryCreate(overlapping));
+    }
+
+    [Theory]
     [InlineData(0.5D, 0.25D, 0.75D)]
     [InlineData(-0.5D, 0.75D, 0.5D)]
     [InlineData(-0.5D, 0.25D, 0.5D)]
@@ -376,6 +409,14 @@ public sealed class DrawingTrueTypeVariableFontTests {
             return checked((int)ReadUInt32(data, record + 8));
         }
         throw new InvalidOperationException("The test font does not contain table " + tag + ".");
+    }
+
+    private static IEnumerable<int> FindNonEmptyTableRecords(byte[] data) {
+        int tableCount = ReadUInt16(data, 4);
+        for (int table = 0; table < tableCount; table++) {
+            int record = 12 + table * 16;
+            if (ReadUInt32(data, record + 12) > 0) yield return record;
+        }
     }
 
     private static int ReadUInt16(byte[] data, int offset) => (data[offset] << 8) | data[offset + 1];

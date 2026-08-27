@@ -739,8 +739,10 @@ internal static partial class PdfPrintProductionColorInspector {
         isNonOpaque = false;
         if (!TryInspectAlpha(dictionary, "ca", objects, maximumObjectDepth, ref isNonOpaque) ||
             !TryInspectAlpha(dictionary, "CA", objects, maximumObjectDepth, ref isNonOpaque)) return false;
-        if (dictionary.Items.TryGetValue("BM", out PdfObject? blendObject) &&
-            HasNonNormalBlendMode(blendObject, objects, maximumObjectDepth)) isNonOpaque = true;
+        if (dictionary.Items.TryGetValue("BM", out PdfObject? blendObject)) {
+            if (!TryInspectBlendMode(blendObject, objects, maximumObjectDepth, out bool isNonNormal)) return false;
+            if (isNonNormal) isNonOpaque = true;
+        }
         if (dictionary.Items.TryGetValue("SMask", out PdfObject? softMask) &&
             !string.Equals(ResolveName(softMask, objects, maximumObjectDepth), "None", StringComparison.Ordinal)) {
             isNonOpaque = true;
@@ -794,10 +796,12 @@ internal static partial class PdfPrintProductionColorInspector {
         if (usage.UsesDeviceIndependent) deviceIndependentColorUses++;
     }
 
-    private static bool HasNonNormalBlendMode(
+    private static bool TryInspectBlendMode(
         PdfObject value,
         Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth) {
+        int maximumObjectDepth,
+        out bool isNonNormal) {
+        isNonNormal = false;
         var pending = new Stack<(PdfObject Value, int Depth)>();
         var inspectedArrays = new HashSet<PdfArray>();
         pending.Push((value, 0));
@@ -811,17 +815,46 @@ internal static partial class PdfPrintProductionColorInspector {
                 maximumObjectDepth,
                 out int resolvedDepth);
             if (resolved is PdfName name) {
-                if (!string.Equals(name.Name, "Normal", StringComparison.Ordinal)) return true;
+                if (!TryClassifyBlendModeName(name.Name, out isNonNormal)) continue;
+                return true;
             } else if (resolved is PdfArray array) {
-                if (array.Items.Count == 0 || !inspectedArrays.Add(array)) return true;
+                if (array.Items.Count == 0) return false;
+                if (!inspectedArrays.Add(array)) continue;
                 for (int index = array.Items.Count - 1; index >= 0; index--) {
                     pending.Push((array.Items[index], resolvedDepth + 1));
                 }
             } else {
-                return true;
+                continue;
             }
         }
         return false;
+    }
+
+    private static bool TryClassifyBlendModeName(string name, out bool isNonNormal) {
+        isNonNormal = false;
+        if (string.Equals(name, "Normal", StringComparison.Ordinal) ||
+            string.Equals(name, "Compatible", StringComparison.Ordinal)) return true;
+        switch (name) {
+            case "Multiply":
+            case "Screen":
+            case "Overlay":
+            case "Darken":
+            case "Lighten":
+            case "ColorDodge":
+            case "ColorBurn":
+            case "HardLight":
+            case "SoftLight":
+            case "Difference":
+            case "Exclusion":
+            case "Hue":
+            case "Saturation":
+            case "Color":
+            case "Luminosity":
+                isNonNormal = true;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static void ThrowIfObjectDepthExceeded(int depth, int maximumObjectDepth) {

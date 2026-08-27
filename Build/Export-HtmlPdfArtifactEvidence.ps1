@@ -33,6 +33,31 @@ if ($report.schemaVersion -ne 2 -or
     throw 'HTML/PDF artifact evidence must be a schema-v2 High-scale run with at least three iterations.'
 }
 
+function Assert-SourceProvenance {
+    param(
+        [Parameter(Mandatory)][string] $Subject,
+        [Parameter(Mandatory)][object] $Provenance,
+        [switch] $RequireSource
+    )
+
+    $kind = [string] $Provenance.kind
+    if ($RequireSource -and $kind -ne 'source') {
+        throw "HTML/PDF artifact evidence requires source provenance for $Subject."
+    }
+    if ($kind -eq 'source' -and
+        ([string] $Provenance.commit -notmatch '^[0-9a-fA-F]{40}$' -or
+         $Provenance.worktreeClean -ne $true)) {
+        throw "HTML/PDF artifact evidence requires a clean 40-character source commit for $Subject."
+    }
+}
+
+if ($null -eq $report.provenance -or $null -eq $report.provenance.officeIMO -or
+    $null -eq $report.provenance.htmlTinkerX) {
+    throw 'HTML/PDF artifact evidence is missing producer provenance.'
+}
+Assert-SourceProvenance -Subject 'OfficeIMO' -Provenance $report.provenance.officeIMO -RequireSource
+Assert-SourceProvenance -Subject 'HtmlTinkerX' -Provenance $report.provenance.htmlTinkerX
+
 $expectedOsFamily = $Platform -eq 'windows' ? 'Windows' : 'Linux'
 $reportedOsFamily = [string] $report.environment.osFamily
 $osDescription = [string] $report.environment.osDescription
@@ -78,15 +103,10 @@ foreach ($engine in $engines) {
         throw "HTML/PDF artifact evidence engine '$engineName' must contain exactly one output for every declared iteration."
     }
 
-    $requiresExactBytes = $engineName -eq 'OfficeIMO'
     $cancellation = $expectedCancellation[$engineName]
     if ($engine.cancellation.apiSupportsCancellation -ne $cancellation.Supports -or
         [string] $engine.cancellation.status -ne $cancellation.Status -or
-        $engine.memoryComparable -ne $true -or
-        ($requiresExactBytes -and $engine.determinism.exactBytesIdentical -ne $true) -or
-        $engine.determinism.semanticOutputIdentical -ne $true -or
-        $engine.determinism.managedVisualPreviewIdentical -ne $true -or
-        $engine.determinism.externalVisualPreviewIdentical -ne $true) {
+        $engine.memoryComparable -ne $true) {
         throw "HTML/PDF artifact evidence engine '$engineName' does not satisfy the cancellation, memory, and determinism contract."
     }
 
@@ -194,35 +214,60 @@ function Add-ValidatedArtifact {
             relativePath = $RelativePath.Replace('\', '/')
             sizeBytes = $item.Length
             sha256 = $actualHash
-        })
+        }) | Out-Null
+    return $actualHash
 }
 
-Add-ValidatedArtifact `
+$null = Add-ValidatedArtifact `
     -Kind 'input' `
     -RelativePath ([string] $report.input.relativePath) `
     -ExpectedSize ([long] $report.input.sizeBytes) `
     -ExpectedSha256 ([string] $report.input.sha256)
 
 foreach ($engine in $engines) {
+    $byteHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $semanticHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $managedVisualHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $externalVisualHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($output in @($engine.outputs)) {
-        Add-ValidatedArtifact `
+        $byteHashes.Add((Add-ValidatedArtifact `
             -Kind ("pdf:$($engine.engine)") `
             -RelativePath ([string] $output.relativePath) `
             -ExpectedSize ([long] $output.sizeBytes) `
-            -ExpectedSha256 ([string] $output.sha256)
-        Add-ValidatedArtifact `
+            -ExpectedSha256 ([string] $output.sha256))) | Out-Null
+        $semanticHashes.Add(([string] $output.semanticSha256).ToLowerInvariant()) | Out-Null
+        $managedVisualHashes.Add((Add-ValidatedArtifact `
             -Kind ("managed-preview:$($engine.engine)") `
             -RelativePath ([string] $output.managedVisual.relativePath) `
             -ExpectedSize ([long] $output.managedVisual.sizeBytes) `
-            -ExpectedSha256 ([string] $output.managedVisual.sha256)
+            -ExpectedSha256 ([string] $output.managedVisual.sha256))) | Out-Null
         if ($null -eq $output.externalVisual) {
             throw "External visual evidence is missing for $($engine.engine) iteration $($output.iteration)."
         }
-        Add-ValidatedArtifact `
+        $externalVisualHashes.Add((Add-ValidatedArtifact `
             -Kind ("external-preview:$($engine.engine)") `
             -RelativePath ([string] $output.externalVisual.relativePath) `
             -ExpectedSize ([long] $output.externalVisual.sizeBytes) `
-            -ExpectedSha256 ([string] $output.externalVisual.sha256)
+            -ExpectedSha256 ([string] $output.externalVisual.sha256))) | Out-Null
+    }
+
+    $determinism = $engine.determinism
+    $actualExact = $byteHashes.Count -eq 1
+    $actualSemantic = $semanticHashes.Count -eq 1
+    $actualManaged = $managedVisualHashes.Count -eq 1
+    $actualExternal = $externalVisualHashes.Count -eq 1
+    if ($null -eq $determinism -or
+        $determinism.exactBytesIdentical -ne $actualExact -or
+        $determinism.semanticOutputIdentical -ne $actualSemantic -or
+        $determinism.managedVisualPreviewIdentical -ne $actualManaged -or
+        $determinism.externalVisualPreviewIdentical -ne $actualExternal -or
+        [int] $determinism.uniqueByteHashCount -ne $byteHashes.Count -or
+        [int] $determinism.uniqueSemanticHashCount -ne $semanticHashes.Count -or
+        [int] $determinism.uniqueManagedVisualHashCount -ne $managedVisualHashes.Count -or
+        [int] $determinism.uniqueExternalVisualHashCount -ne $externalVisualHashes.Count -or
+        ([string] $engine.engine -eq 'OfficeIMO' -and -not $actualExact) -or
+        -not $actualSemantic -or -not $actualManaged -or -not $actualExternal) {
+        throw "HTML/PDF artifact evidence engine '$($engine.engine)' does not satisfy the determinism contract derived from its validated hashes."
     }
 }
 

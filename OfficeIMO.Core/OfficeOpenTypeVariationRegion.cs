@@ -25,10 +25,10 @@ internal static class OfficeOpenTypeVariationRegion {
         }
 
         if (peak == 0D) return 1D;
-        // OpenType defines a non-intermediate region's implicit bounds as the zero origin
-        // and the peak tuple. A same-sign coordinate beyond that peak is outside the region.
-        if (coordinate == 0D || coordinate < 0D != peak < 0D || Math.Abs(coordinate) > Math.Abs(peak)) return 0D;
-        return coordinate / peak;
+        // A non-intermediate tuple ramps from the origin to its peak and remains fully
+        // active for same-sign coordinates beyond that peak.
+        if (coordinate == 0D || coordinate < 0D != peak < 0D) return 0D;
+        return Math.Abs(coordinate) < Math.Abs(peak) ? coordinate / peak : 1D;
     }
 
     internal static double CalculateScalar(double coordinate, double start, double peak, double end) {

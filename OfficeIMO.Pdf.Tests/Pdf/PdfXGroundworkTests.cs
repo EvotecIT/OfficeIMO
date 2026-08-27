@@ -777,6 +777,35 @@ public class PdfXGroundworkTests {
         Assert.Equal(1, evidence.NonOpaqueGraphicsStateCount);
     }
 
+    [Theory]
+    [InlineData("/Bogus")]
+    [InlineData("[/Bogus /AlsoBogus]")]
+    public void PrintProductionInspectorFailsClosedForUnknownBlendModes(string blendMode) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Blend gs",
+            resources: "/ExtGState << /Blend 5 0 R >>",
+            extraObjects: "5 0 obj\n<< /BM " + blendMode + " >>\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+        Assert.Equal(0, evidence.NonOpaqueGraphicsStateCount);
+    }
+
+    [Fact]
+    public void PrintProductionInspectorUsesTheFirstSupportedBlendModeFallback() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Blend gs",
+            resources: "/ExtGState << /Blend 5 0 R >>",
+            extraObjects: "5 0 obj\n<< /BM [/Bogus /Normal] >>\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(0, evidence.NonOpaqueGraphicsStateCount);
+    }
+
     [Fact]
     public void PrintProductionInspectorBoundsCyclicIndirectObjectGraphsAndFailsClosed() {
         byte[] pdf = BuildInspectionPdf(
@@ -794,7 +823,7 @@ public class PdfXGroundworkTests {
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
         Assert.Equal(2, evidence.DeviceRgbOperatorCount);
-        Assert.Equal(1, evidence.NonOpaqueGraphicsStateCount);
+        Assert.Equal(0, evidence.NonOpaqueGraphicsStateCount);
         Assert.Equal(0, evidence.TransparencyGroupCount);
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
         Assert.False(evidence.IsComplete);

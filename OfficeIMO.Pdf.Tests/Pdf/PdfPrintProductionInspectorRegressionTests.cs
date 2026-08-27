@@ -353,6 +353,41 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableFontResourceCount);
     }
 
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    public void StructureInspectorRequiresACompleteEncryptedType1Program(bool complete, int expectedUnembedded) {
+        string type1Program = complete
+            ? BuildValidType1Pfa()
+            : "%!PS-AdobeFont-1.0: Fixture 1.0\ncurrentfile eexec\ncleartomark\n";
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Fixture /FontDescriptor 6 0 R >>\nendobj\n" +
+                "6 0 obj\n<< /Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] " +
+                "/ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile 7 0 R >>\nendobj\n" +
+                "7 0 obj\n<< /Length " + type1Program.Length + " >>\nstream\n" + type1Program + "\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(expectedUnembedded, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void StructureInspectorAcceptsACompleteBinaryType1Program() {
+        byte[] pdf = BuildType1InspectionPdf(BuildValidType1Pfb());
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
     [Fact]
     public void MetadataInspectorResolvesIndirectInfoValues() {
         byte[] pdf = BuildIndirectInfoPdf();
@@ -631,6 +666,24 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         return output.ToArray();
     }
 
+    private static byte[] BuildType1InspectionPdf(byte[] type1Program) {
+        byte[] content = Encoding.ASCII.GetBytes("BT /F1 12 Tf (A) Tj ET");
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /TrimBox [10 10 90 90] /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + content.Length + " >>\nstream\n");
+        output.Write(content, 0, content.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Fixture /FontDescriptor 6 0 R >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile 7 0 R >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Length " + type1Program.Length + " >>\nstream\n");
+        output.Write(type1Program, 0, type1Program.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
     private static byte[] BuildXmpInspectionPdf(string xmp) {
         byte[] metadataBytes = Encoding.UTF8.GetBytes(xmp);
         using var output = new MemoryStream();
@@ -660,6 +713,49 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             "13 0 obj\n(PDF/X-4)\nendobj\n14 0 obj\n(PDF/X-4)\nendobj\n");
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Info 5 2 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static string BuildValidType1Pfa() {
+        byte[] encrypted = EncryptType1PrivateProgram();
+        string hex = BitConverter.ToString(encrypted).Replace("-", string.Empty);
+        return "%!PS-AdobeFont-1.0: Fixture 1.0\ncurrentfile eexec\n" + hex + "\ncleartomark\n";
+    }
+
+    private static byte[] BuildValidType1Pfb() {
+        byte[] header = Encoding.ASCII.GetBytes("%!PS-AdobeFont-1.0: Fixture 1.0\ncurrentfile eexec\n");
+        byte[] encrypted = EncryptType1PrivateProgram();
+        byte[] trailer = Encoding.ASCII.GetBytes("\ncleartomark\n");
+        using var output = new MemoryStream();
+        WritePfbSegment(output, 1, header);
+        WritePfbSegment(output, 2, encrypted);
+        WritePfbSegment(output, 1, trailer);
+        output.WriteByte(0x80);
+        output.WriteByte(0x03);
+        return output.ToArray();
+    }
+
+    private static byte[] EncryptType1PrivateProgram() {
+        byte[] privateProgram = Encoding.ASCII.GetBytes(
+            "seed/Private 1 dict dup begin\n/CharStrings 1 dict dup begin\n/.notdef 1 RD x ND\nend\nend\n");
+        var encrypted = new byte[privateProgram.Length];
+        ushort state = 55665;
+        for (int index = 0; index < privateProgram.Length; index++) {
+            byte cipher = (byte)(privateProgram[index] ^ (state >> 8));
+            encrypted[index] = cipher;
+            state = unchecked((ushort)((cipher + state) * 52845 + 22719));
+        }
+        return encrypted;
+    }
+
+    private static void WritePfbSegment(Stream output, byte type, byte[] data) {
+        output.WriteByte(0x80);
+        output.WriteByte(type);
+        uint length = checked((uint)data.Length);
+        output.WriteByte((byte)length);
+        output.WriteByte((byte)(length >> 8));
+        output.WriteByte((byte)(length >> 16));
+        output.WriteByte((byte)(length >> 24));
+        output.Write(data, 0, data.Length);
     }
 
     private static void WriteAscii(Stream stream, string value) {

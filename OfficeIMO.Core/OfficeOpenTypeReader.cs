@@ -73,7 +73,9 @@ internal sealed class OfficeOpenTypeReader {
             if (flavor != 0x00010000 && flavor != 0x74727565 && flavor != 0x4F54544F) return null;
             int tableCount = ReadUInt16(data, 4);
             if (tableCount <= 0 || tableCount > MaximumTables || data.Length < 12 + tableCount * 16) return null;
+            int directoryEnd = checked(12 + tableCount * 16);
             var tables = new Dictionary<uint, TableRecord>(tableCount);
+            var ranges = new List<TableRecord>(tableCount);
             for (int index = 0; index < tableCount; index++) {
                 int recordOffset = 12 + index * 16;
                 uint tag = ReadUInt32(data, recordOffset);
@@ -82,8 +84,16 @@ internal sealed class OfficeOpenTypeReader {
                 if (offsetValue > int.MaxValue || lengthValue > int.MaxValue) return null;
                 int offset = (int)offsetValue;
                 int length = (int)lengthValue;
-                if (offset < 0 || length < 0 || offset > data.Length - length || tables.ContainsKey(tag)) return null;
-                tables.Add(tag, new TableRecord(offset, length));
+                if (offset < 0 || length < 0 || offset > data.Length - length || tables.ContainsKey(tag) ||
+                    (offset & 3) != 0 || length > 0 && offset < directoryEnd) return null;
+                var record = new TableRecord(offset, length);
+                if (length > 0) {
+                    foreach (TableRecord range in ranges) {
+                        if (offset < range.Offset + range.Length && range.Offset < offset + length) return null;
+                    }
+                    ranges.Add(record);
+                }
+                tables.Add(tag, record);
             }
             return new OfficeOpenTypeReader(data, tables);
         } catch (Exception exception) when (exception is InvalidDataException

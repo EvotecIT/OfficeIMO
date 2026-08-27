@@ -24,10 +24,11 @@ try {
                     $pdfRelativePath = "$slug-$iteration.pdf"
                     $managedRelativePath = "$slug-$iteration-managed.png"
                     $externalRelativePath = "$slug-$iteration-external.png"
+                    $pdfContent = $engineName -eq 'OfficeIMO' ? "pdf-$engineName" : "pdf-$engineName-$iteration"
                     foreach ($artifact in @(
-                            [pscustomobject]@{ Path = $pdfRelativePath; Content = "pdf-$engineName-$iteration" },
-                            [pscustomobject]@{ Path = $managedRelativePath; Content = "managed-$engineName-$iteration" },
-                            [pscustomobject]@{ Path = $externalRelativePath; Content = "external-$engineName-$iteration" })) {
+                            [pscustomobject]@{ Path = $pdfRelativePath; Content = $pdfContent },
+                            [pscustomobject]@{ Path = $managedRelativePath; Content = "managed-$engineName" },
+                            [pscustomobject]@{ Path = $externalRelativePath; Content = "external-$engineName" })) {
                         $artifactPath = Join-Path $evidenceRoot $artifact.Path
                         [System.IO.File]::WriteAllText(
                             $artifactPath,
@@ -89,6 +90,10 @@ try {
                     semanticOutputIdentical = $true
                     managedVisualPreviewIdentical = $true
                     externalVisualPreviewIdentical = $true
+                    uniqueByteHashCount = $engineName -eq 'OfficeIMO' ? 1 : 3
+                    uniqueSemanticHashCount = 1
+                    uniqueManagedVisualHashCount = 1
+                    uniqueExternalVisualHashCount = 1
                 }
                 memoryComparable = $true
                 outputs = $outputs
@@ -104,6 +109,20 @@ try {
             osDescription = $osDescription
             externalRasterizer = 'contract-test'
         }
+        provenance = [ordered]@{
+            officeIMO = [ordered]@{
+                kind = 'source'
+                version = '3.2.5+1111111111111111111111111111111111111111'
+                commit = ('1' * 40)
+                worktreeClean = $true
+            }
+            htmlTinkerX = [ordered]@{
+                kind = 'source'
+                version = '3.0.1+2222222222222222222222222222222222222222'
+                commit = ('2' * 40)
+                worktreeClean = $true
+            }
+        }
         input = [ordered]@{
             relativePath = 'input.html'
             sizeBytes = $insideItem.Length
@@ -114,6 +133,42 @@ try {
 
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+
+    $report.provenance.officeIMO.worktreeClean = $false
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $dirtySourceRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'clean 40-character source commit') { throw }
+        $dirtySourceRejected = $true
+    }
+    if (-not $dirtySourceRejected) {
+        throw 'HTML/PDF artifact exporter accepted dirty OfficeIMO source provenance.'
+    }
+    $report.provenance.officeIMO.worktreeClean = $true
+
+    $report.provenance.htmlTinkerX.commit = 'not-a-commit'
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $malformedSourceCommitRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'clean 40-character source commit') { throw }
+        $malformedSourceCommitRejected = $true
+    }
+    if (-not $malformedSourceCommitRejected) {
+        throw 'HTML/PDF artifact exporter accepted malformed HtmlTinkerX source provenance.'
+    }
+    $report.provenance.htmlTinkerX.commit = ('2' * 40)
 
     $validEngines = $report.engines
     $report.engines = @()
@@ -213,6 +268,24 @@ try {
     }
 
     $officeEngine.determinism.exactBytesIdentical = $true
+    $officeEngine.determinism.uniqueByteHashCount = 2
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    $falseUniqueCountRejected = $false
+    try {
+        & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+            -EvidencePath $evidenceRoot `
+            -Platform $platform `
+            -OutputPath $outputPath
+    } catch {
+        if ($_.Exception.Message -notmatch 'validated hashes') { throw }
+        $falseUniqueCountRejected = $true
+    }
+    if (-not $falseUniqueCountRejected) {
+        throw 'HTML/PDF artifact exporter trusted a false determinism hash count.'
+    }
+    $officeEngine.determinism.uniqueByteHashCount = 1
+
     $chromiumEngine = $report.engines | Where-Object { $_.engine -eq 'Chromium' }
     $chromiumEngine.outputs[0].processTreeMemory.maximumObservedProcessCount = 1
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
