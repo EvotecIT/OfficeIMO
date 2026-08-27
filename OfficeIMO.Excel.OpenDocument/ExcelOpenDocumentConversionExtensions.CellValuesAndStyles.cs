@@ -204,7 +204,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         if (style.TextTransform == OdfTextTransform.Uppercase) target.TransformTextCase(OfficeTextCase.Uppercase);
         else if (style.TextTransform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase);
-        else if (style.TextTransform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.TitleCase);
+        else if (style.TextTransform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize);
         if (style.SmallCaps == true) unsupported++;
         if (style.FontSize.HasValue) {
             if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);

@@ -55,7 +55,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         if (depth >= options.MaxPageRelationshipDepth) return;
         AppendHeading(html, headingLevel, string.IsNullOrEmpty(prefix) ? Name(page.Title, "Untitled page") : prefix + ": " + Name(page.Title, "Untitled page"));
         html.Append("<section class=\"officeimo-onenote-page\">");
-        foreach (OneNoteElement element in page.Outlines.Cast<OneNoteElement>().Concat(page.DirectContent)) AppendElement(html, element, options, 0);
+        AppendElements(html, page.Outlines.Cast<OneNoteElement>().Concat(page.DirectContent), options, 0);
         html.Append("</section>");
         int relatedLevel = Math.Min(6, headingLevel + 1);
         if (options.IncludeConflictPages) {
@@ -71,7 +71,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         switch (element) {
             case OneNoteOutline outline:
                 html.Append("<section class=\"officeimo-onenote-outline\">");
-                foreach (OneNoteElement child in outline.Children) AppendElement(html, child, options, depth + 1);
+                AppendElements(html, outline.Children, options, depth + 1);
                 html.Append("</section>");
                 break;
             case OneNoteParagraph paragraph:
@@ -99,14 +99,62 @@ internal static class OneNoteSemanticHtmlRenderer {
     }
 
     private static void AppendParagraph(StringBuilder html, OneNoteParagraph paragraph, OneNoteMarkdownOptions options, int depth) {
+        if (paragraph.List != null) {
+            AppendList(html, new[] { paragraph }, options, depth);
+            return;
+        }
         string tag = HeadingTag(paragraph.Style.StyleId);
-        bool listed = paragraph.List != null;
-        if (listed) html.Append(paragraph.List!.Ordered ? "<ol" : "<ul").Append(" data-level=\"").Append(paragraph.List.Level.ToString(CultureInfo.InvariantCulture)).Append("\"><li>");
-        else html.Append('<').Append(tag).Append(ParagraphStyle(paragraph.Style)).Append('>');
+        html.Append('<').Append(tag).Append(ParagraphStyle(paragraph.Style)).Append('>');
         foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
-        foreach (OneNoteElement child in paragraph.Children) AppendElement(html, child, options, depth + 1);
-        if (listed) html.Append(paragraph.List!.Ordered ? "</li></ol>" : "</li></ul>");
-        else html.Append("</").Append(tag).Append('>');
+        html.Append("</").Append(tag).Append('>');
+        AppendElements(html, paragraph.Children, options, depth + 1);
+    }
+
+    private static void AppendElements(
+        StringBuilder html,
+        IEnumerable<OneNoteElement> elements,
+        OneNoteMarkdownOptions options,
+        int depth) {
+        if (depth >= options.MaxContentDepth) return;
+        OneNoteElement[] items = elements.ToArray();
+        for (int index = 0; index < items.Length;) {
+            if (items[index] is OneNoteParagraph paragraph && paragraph.List != null) {
+                bool ordered = paragraph.List.Ordered;
+                int level = paragraph.List.Level;
+                var group = new List<OneNoteParagraph>();
+                while (index < items.Length
+                       && items[index] is OneNoteParagraph candidate
+                       && candidate.List != null
+                       && candidate.List.Ordered == ordered
+                       && candidate.List.Level == level) {
+                    group.Add(candidate);
+                    index++;
+                }
+                AppendList(html, group, options, depth);
+                continue;
+            }
+            AppendElement(html, items[index], options, depth);
+            index++;
+        }
+    }
+
+    private static void AppendList(
+        StringBuilder html,
+        IReadOnlyList<OneNoteParagraph> paragraphs,
+        OneNoteMarkdownOptions options,
+        int depth) {
+        if (paragraphs.Count == 0) return;
+        OneNoteListInfo list = paragraphs[0].List!;
+        string tag = list.Ordered ? "ol" : "ul";
+        html.Append('<').Append(tag).Append(" data-level=\"")
+            .Append(list.Level.ToString(CultureInfo.InvariantCulture)).Append("\">");
+        foreach (OneNoteParagraph paragraph in paragraphs) {
+            html.Append("<li>");
+            foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
+            AppendElements(html, paragraph.Children, options, depth + 1);
+            html.Append("</li>");
+        }
+        html.Append("</").Append(tag).Append('>');
     }
 
     private static void AppendRun(StringBuilder html, OneNoteTextRun run) {
@@ -151,7 +199,7 @@ internal static class OneNoteSemanticHtmlRenderer {
                 html.Append("<td");
                 if (cell.ShadingColorArgb.HasValue) html.Append(" style=\"background-color:").Append(Color(cell.ShadingColorArgb.Value)).Append("\"");
                 html.Append('>');
-                foreach (OneNoteElement element in cell.Content) AppendElement(html, element, options, depth + 1);
+                AppendElements(html, cell.Content, options, depth + 1);
                 html.Append("</td>");
             }
             html.Append("</tr>");

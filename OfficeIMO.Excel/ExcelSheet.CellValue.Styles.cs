@@ -79,8 +79,10 @@ namespace OfficeIMO.Excel {
         public bool TransformCellTextCase(int row, int column, OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
             IReadOnlyList<ExcelRichTextRun> richText = GetRichText(row, column);
             if (richText.Count > 0) {
-                foreach (ExcelRichTextRun run in richText) {
-                    run.TransformTextCase(textCase, culture);
+                IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(
+                    richText.Select(run => run.Text).ToArray(), textCase, culture);
+                for (int index = 0; index < richText.Count; index++) {
+                    richText[index].Text = transformed[index];
                 }
 
                 SetRichText(row, column, richText);

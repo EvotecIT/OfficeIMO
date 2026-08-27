@@ -11,8 +11,24 @@ public sealed class OfficeTextCaseTests {
     [InlineData(OfficeTextCase.TitleCase, "mIXed api TEXT", "Mixed Api Text")]
     [InlineData(OfficeTextCase.SentenceCase, "hELLO WORLD. aNOTHER SENTENCE! final QUESTION?", "Hello world. Another sentence! Final question?")]
     [InlineData(OfficeTextCase.ToggleCase, "Mixed API 42", "mIXED api 42")]
+    [InlineData(OfficeTextCase.Capitalize, "iPhone eBOOK don't-stop", "IPhone EBOOK Don't-Stop")]
     public void ApplyTransformsTextWithoutFormatDependencies(OfficeTextCase textCase, string input, string expected) {
         Assert.Equal(expected, OfficeTextCaseTransformer.Apply(input, textCase, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void ApplySegmentsPreservesSentenceAndWordContextAcrossFormattingBoundaries() {
+        IReadOnlyList<string> sentence = OfficeTextCaseTransformer.ApplySegments(
+            new[] { "hELLO. ", "aNOTHER", " SENTENCE" },
+            OfficeTextCase.SentenceCase,
+            CultureInfo.InvariantCulture);
+        IReadOnlyList<string> title = OfficeTextCaseTransformer.ApplySegments(
+            new[] { "mIXed ", "caSE" },
+            OfficeTextCase.TitleCase,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal(new[] { "Hello. ", "Another", " sentence" }, sentence);
+        Assert.Equal(new[] { "Mixed ", "Case" }, title);
     }
 
     [Fact]

@@ -336,7 +336,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 ? PowerPointCapitalization.SmallCaps
                 : PowerPointCapitalization.None;
         if (transform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase);
-        else if (transform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.TitleCase);
+        else if (transform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize);
     }
 
     private static PowerPointUnderlineStyle? MapOdfUnderline(

@@ -145,7 +145,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 ? WordCapsStyle.SmallCaps
                 : WordCapsStyle.None;
         if (transform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase);
-        else if (transform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.TitleCase);
+        else if (transform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize);
     }
 
     private static WordUnderlineStyle? MapOdfUnderline(bool? enabled, OdfTextDecorationStyle? style, OdfTextDecorationType? type) {

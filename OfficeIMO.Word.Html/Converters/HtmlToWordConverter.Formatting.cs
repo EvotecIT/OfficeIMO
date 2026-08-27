@@ -531,7 +531,9 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            if (Enum.TryParse(exactUnderline, ignoreCase: true, out WordUnderlineStyle wordUnderline) && wordUnderline != WordUnderlineStyle.None) {
+            if (Enum.TryParse(exactUnderline, ignoreCase: true, out WordUnderlineStyle wordUnderline)
+                && Enum.IsDefined(typeof(WordUnderlineStyle), wordUnderline)
+                && wordUnderline != WordUnderlineStyle.None) {
                 formatting.Underline = true;
                 formatting.UnderlineStyle = wordUnderline.ToOpenXml();
             }
@@ -619,7 +621,9 @@ namespace OfficeIMO.Word.Html {
             if (parsed.Strike.HasValue) {
                 formatting.Strike = parsed.Strike.Value;
             }
-            if (Enum.TryParse(exactUnderline, ignoreCase: true, out WordUnderlineStyle retainedUnderline) && retainedUnderline != WordUnderlineStyle.None) {
+            if (Enum.TryParse(exactUnderline, ignoreCase: true, out WordUnderlineStyle retainedUnderline)
+                && Enum.IsDefined(typeof(WordUnderlineStyle), retainedUnderline)
+                && retainedUnderline != WordUnderlineStyle.None) {
                 formatting.Underline = true;
                 formatting.UnderlineStyle = retainedUnderline.ToOpenXml();
             }

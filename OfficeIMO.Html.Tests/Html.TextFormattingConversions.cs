@@ -148,6 +148,42 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void ExcelSemanticHtmlRoundTripAppliesCellTypographyToRichRuns() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelCell cell = source.AddWorksheet("Text").CellAt(1, 1)
+            .SetRichText(
+                new ExcelRichTextRun("Inherited"),
+                new ExcelRichTextRun(" Override") { Italic = true, FontColor = "CC0000" })
+            .SetBold()
+            .SetUnderline(ExcelUnderlineStyle.Double)
+            .SetStrikethrough()
+            .SetSuperscript()
+            .SetFontName("Aptos")
+            .SetFontSize(15)
+            .SetFontColor("336699");
+
+        string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        using ExcelDocument imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult()
+            .RequireValue();
+
+        ExcelRichTextRun[] runs = imported.Sheets.Single().GetRichText(1, 1).ToArray();
+        Assert.Equal(2, runs.Length);
+        Assert.All(runs, run => {
+            Assert.True(run.Bold);
+            Assert.Equal(ExcelUnderlineStyle.Double, run.UnderlineStyle);
+            Assert.True(run.Strikethrough);
+            Assert.Equal(ExcelVerticalTextAlignment.Superscript, run.VerticalTextAlignment);
+            Assert.Equal("Aptos", run.FontName);
+            Assert.Equal(15D, run.FontSize);
+        });
+        Assert.Equal("FF336699", runs[0].FontColor);
+        Assert.Equal("FFCC0000", runs[1].FontColor);
+        Assert.True(runs[1].Italic);
+    }
+
+    [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsNativeRunTypography() {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointTextRun authored = source.AddSlide().AddTextBox("Styled")
@@ -192,6 +228,59 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void PowerPointSemanticHtmlRoundTripRecreatesDynamicFieldsInAuthoredOrder() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
+        paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}");
+        paragraph.AddRun(" after");
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
+
+        using PowerPointPresentation imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        IReadOnlyList<PowerPointParagraphInline> nodes = imported.Slides.Single().TextBoxes.Single()
+            .Paragraphs.Single().InlineNodes;
+
+        Assert.Equal(new[] { "Before ", "1", " after" }, nodes.Select(node => node.Text));
+        PowerPointParagraphInline field = Assert.Single(nodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
+        Assert.Equal("slidenum", field.FieldType);
+        Assert.Equal("{11111111-1111-1111-1111-111111111111}", field.FieldId);
+    }
+
+    [Fact]
+    public void InvalidNumericNativeStyleMetadataFallsBackWithoutThrowingAcrossOfficeTargets() {
+        using WordDocument word = HtmlConversionDocument.Parse(
+            "<p><span data-officeimo-word-underline=\"999\">Word</span></p>")
+            .ToWordDocumentResult().RequireValue();
+        Assert.Null(Assert.Single(word.Paragraphs).Underline);
+
+        using ExcelDocument excelSource = ExcelDocument.Create();
+        excelSource.AddWorksheet("Text").CellAt(1, 1).SetRichText(
+            new ExcelRichTextRun("Ex") { Bold = true },
+            new ExcelRichTextRun("cel") { Italic = true });
+        string excelHtml = excelSource.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile())
+            .Replace("<span", "<span data-officeimo-excel-underline=\"999\"");
+        using ExcelDocument excel = HtmlConversionDocument.Parse(excelHtml, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult().RequireValue();
+        Assert.All(Assert.Single(excel.Sheets).GetRichText(1, 1), run => Assert.Null(run.UnderlineStyle));
+
+        using PowerPointPresentation powerPointSource = PowerPointPresentation.Create();
+        powerPointSource.AddSlide().AddTextBox("PowerPoint");
+        string powerPointHtml = powerPointSource.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile())
+            .Replace("<span", "<span data-officeimo-powerpoint-underline=\"999\" data-officeimo-powerpoint-strike=\"999\" data-officeimo-powerpoint-capitalization=\"999\"");
+        using PowerPointPresentation powerPoint = HtmlConversionDocument.Parse(
+            powerPointHtml, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult().RequireValue();
+        PowerPointTextRun run = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
+        Assert.Null(run.UnderlineStyle);
+        Assert.Null(run.StrikeStyle);
+        Assert.Null(run.Capitalization);
+    }
+
+    [Fact]
     public void HtmlToOneNoteRetainsRepresentableRunTypography() {
         const string html = """
             <p><span style="font-family:'Aptos';font-size:14pt;color:#336699;background-color:#FFF2CC;"
@@ -212,6 +301,18 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(14D, run.Style.FontSize);
         Assert.Equal(0xFF336699U, run.Style.ColorArgb);
         Assert.Equal(0xFFFFF2CCU, run.Style.HighlightColorArgb);
+    }
+
+    [Fact]
+    public void HtmlBlockBackgroundDoesNotBecomeOneNoteRunHighlightButInlineBackgroundDoes() {
+        const string html = "<p style=\"background-color:#112233\">Plain <span style=\"background-color:#FFF2CC\">Marked</span></p>";
+
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteTextRun[] runs = Assert.Single(Assert.Single(Assert.Single(section.Pages).Outlines).Children
+            .OfType<OneNoteParagraph>()).Runs.ToArray();
+
+        Assert.Null(Assert.Single(runs, run => run.Text == "Plain ").Style.HighlightColorArgb);
+        Assert.Equal(0xFFFFF2CCU, Assert.Single(runs, run => run.Text == "Marked").Style.HighlightColorArgb);
     }
 
     [Fact]

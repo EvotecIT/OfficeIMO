@@ -526,7 +526,8 @@ public static partial class HtmlExcelConverterExtensions {
 
     private static ExcelUnderlineStyle? ResolveExcelUnderlineStyle(HtmlSemanticRun source) {
         if (source.DataAttributes.TryGetValue("data-officeimo-excel-underline", out string? exact)
-            && Enum.TryParse(exact, ignoreCase: true, out ExcelUnderlineStyle native)) {
+            && Enum.TryParse(exact, ignoreCase: true, out ExcelUnderlineStyle native)
+            && Enum.IsDefined(typeof(ExcelUnderlineStyle), native)) {
             return native;
         }
         return MapUnderlineStyle(source.UnderlineStyle);

@@ -232,6 +232,10 @@ public sealed class OfficeMarkupStyleResolver {
             case "togglecase":
                 textCase = OfficeTextCase.ToggleCase;
                 return true;
+            case "capitalize":
+            case "capitalise":
+                textCase = OfficeTextCase.Capitalize;
+                return true;
             default:
                 textCase = OfficeTextCase.None;
                 return false;

@@ -100,4 +100,42 @@ public sealed class HtmlImportTests {
         Assert.True(result.Succeeded);
         Assert.Contains("Page", result.Value);
     }
+
+    [Fact]
+    public void OneNoteHtmlExportGroupsConsecutiveListItemsIntoOneList() {
+        var section = new OneNoteSection { Name = "Lists" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach (string text in new[] { "First", "Second" }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = true, Level = 0 }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+
+        Assert.Equal(1, html.Split(new[] { "<ol data-level=\"0\">" }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, html.Split(new[] { "<li>" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("<ol data-level=\"0\"><li>First</li><li>Second</li></ol>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteHtmlExportClosesParagraphBeforeRenderingChildBlocks() {
+        var section = new OneNoteSection { Name = "Structure" };
+        var page = new OneNotePage { Title = "Page" };
+        var parent = new OneNoteParagraph();
+        parent.Runs.Add(new OneNoteTextRun { Text = "Parent" });
+        var child = new OneNoteParagraph();
+        child.Runs.Add(new OneNoteTextRun { Text = "Child" });
+        parent.Children.Add(child);
+        page.DirectContent.Add(parent);
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+
+        Assert.Contains("<p>Parent</p><p>Child</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<p>Parent<p>", html, StringComparison.Ordinal);
+    }
 }

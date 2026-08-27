@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -84,6 +85,24 @@ public class ExcelTextFormattingTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void RichTextCaseTransformsDoNotResetContextAtRunBoundaries() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Text");
+        sheet.CellAt(1, 1).SetRichText(
+            new ExcelRichTextRun("hELLO. ") { Bold = true },
+            new ExcelRichTextRun("aNOTHER") { Italic = true },
+            new ExcelRichTextRun(" SENTENCE") { Underline = true });
+
+        sheet.CellAt(1, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+
+        ExcelRichTextRun[] actual = sheet.CellAt(1, 1).GetRichText().ToArray();
+        Assert.Equal(new[] { "Hello. ", "Another", " sentence" }, actual.Select(run => run.Text));
+        Assert.True(actual[0].Bold);
+        Assert.True(actual[1].Italic);
+        Assert.True(actual[2].Underline);
     }
 
     private static Font ResolveFont(WorksheetPart worksheet, Stylesheet stylesheet, string reference) {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -870,6 +871,27 @@ public sealed class AdfContractTests {
         Assert.Equal("subsup", mark.Type);
         Assert.Equal(script, mark.GetStringAttribute("type"));
         Assert.Contains(script == "sup" ? "<sup>2</sup>" : "<sub>2</sub>", html.Value);
+    }
+
+    [Theory]
+    [InlineData("sup", "x^y", "^x\\^y^")]
+    [InlineData("sub", "x~y", "~x\\~y~")]
+    public void SubsupProjectionEscapesItsOwnDelimiter(string script, string text, string expectedMarkdown) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = {
+                AdfNode.TextNode(text, new[] { new AdfMark("subsup").SetAttribute("type", script) })
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.Contains(expectedMarkdown, markdown.Value, StringComparison.Ordinal);
+        IReadOnlyList<AdfNode> restored = Assert.Single(roundTrip.Value.Content).Content;
+        Assert.Equal(text, string.Concat(restored.Select(node => node.Text)));
+        Assert.All(restored, node => Assert.Contains(node.Marks,
+            mark => mark.Type == "subsup" && mark.GetStringAttribute("type") == script));
     }
 
     [Fact]

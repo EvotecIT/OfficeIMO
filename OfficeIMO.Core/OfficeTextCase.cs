@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
@@ -24,7 +25,10 @@ public enum OfficeTextCase {
     SentenceCase,
 
     /// <summary>Converts lowercase characters to uppercase and uppercase characters to lowercase.</summary>
-    ToggleCase
+    ToggleCase,
+
+    /// <summary>Uppercases the first cased character of each word while preserving the remaining characters.</summary>
+    Capitalize
 }
 
 /// <summary>
@@ -54,9 +58,40 @@ public static class OfficeTextCaseTransformer {
                 return ToSentenceCase(text, selectedCulture);
             case OfficeTextCase.ToggleCase:
                 return Toggle(text, selectedCulture);
+            case OfficeTextCase.Capitalize:
+                return CapitalizeWords(text, selectedCulture);
             default:
                 throw new ArgumentOutOfRangeException(nameof(textCase), textCase, "Unsupported text casing transformation.");
         }
+    }
+
+    /// <summary>
+    /// Applies one casing transformation across adjacent text segments, then redistributes the result without
+    /// resetting sentence or word context at formatting boundaries.
+    /// </summary>
+    public static IReadOnlyList<string> ApplySegments(
+        IReadOnlyList<string> segments,
+        OfficeTextCase textCase,
+        CultureInfo? culture = null) {
+        if (segments == null) throw new ArgumentNullException(nameof(segments));
+        if (segments.Count == 0) return Array.Empty<string>();
+
+        var source = new StringBuilder();
+        foreach (string segment in segments) source.Append(segment ?? string.Empty);
+        string transformed = Apply(source.ToString(), textCase, culture);
+        var result = new string[segments.Count];
+        int sourceOffset = 0;
+        int transformedOffset = 0;
+        for (int index = 0; index < segments.Count; index++) {
+            sourceOffset += (segments[index] ?? string.Empty).Length;
+            int transformedEnd = index == segments.Count - 1
+                ? transformed.Length
+                : Apply(source.ToString(0, sourceOffset), textCase, culture).Length;
+            transformedEnd = Math.Max(transformedOffset, Math.Min(transformed.Length, transformedEnd));
+            result[index] = transformed.Substring(transformedOffset, transformedEnd - transformedOffset);
+            transformedOffset = transformedEnd;
+        }
+        return result;
     }
 
     private static string ToSentenceCase(string text, CultureInfo culture) {
@@ -99,6 +134,48 @@ public static class OfficeTextCaseTransformer {
             }
         }
         return result.ToString();
+    }
+
+    private static string CapitalizeWords(string text, CultureInfo culture) {
+        if (text.Length == 0) return text;
+        var result = new StringBuilder(text.Length);
+        bool capitalizeNext = true;
+        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext()) {
+            string element = elements.GetTextElement();
+            if (capitalizeNext && IsLetter(element)) {
+                result.Append(element.ToUpper(culture));
+                capitalizeNext = false;
+            } else {
+                result.Append(element);
+                if (IsLetter(element) || IsCombiningMark(element)) capitalizeNext = false;
+            }
+
+            if (IsWordSeparator(element)) capitalizeNext = true;
+        }
+        return result.ToString();
+    }
+
+    private static bool IsWordSeparator(string textElement) {
+        if (textElement == "'" || textElement == "’") return false;
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(textElement, 0);
+        return category == UnicodeCategory.SpaceSeparator ||
+               category == UnicodeCategory.LineSeparator ||
+               category == UnicodeCategory.ParagraphSeparator ||
+               category == UnicodeCategory.Control ||
+               category == UnicodeCategory.DashPunctuation ||
+               category == UnicodeCategory.OpenPunctuation ||
+               category == UnicodeCategory.ClosePunctuation ||
+               category == UnicodeCategory.InitialQuotePunctuation ||
+               category == UnicodeCategory.FinalQuotePunctuation ||
+               category == UnicodeCategory.OtherPunctuation;
+    }
+
+    private static bool IsCombiningMark(string textElement) {
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(textElement, 0);
+        return category == UnicodeCategory.NonSpacingMark ||
+               category == UnicodeCategory.SpacingCombiningMark ||
+               category == UnicodeCategory.EnclosingMark;
     }
 
     private static bool IsLetter(string textElement) {

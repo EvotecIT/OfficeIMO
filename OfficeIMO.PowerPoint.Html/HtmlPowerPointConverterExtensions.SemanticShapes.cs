@@ -171,12 +171,19 @@ public static partial class HtmlPowerPointConverterExtensions {
             IReadOnlyList<IElement> spans = paragraphSpans[paragraphIndex];
             if (spans.Count == 0) continue;
             PptCore.PowerPointParagraph paragraph = targetParagraphs[paragraphIndex];
-            paragraph.Text = string.Concat(spans.Select(span => span.TextContent));
-            IReadOnlyList<PptCore.PowerPointTextRun> targetRuns = paragraph.Runs;
-            ApplyTargetSemanticRun(targetRuns[0], spans[0]);
-            for (int runIndex = 1; runIndex < spans.Count; runIndex++) {
-                PptCore.PowerPointTextRun target = paragraph.AddRun(spans[runIndex].TextContent);
-                ApplyTargetSemanticRun(target, spans[runIndex]);
+            paragraph.ClearInlineContent();
+            foreach (IElement span in spans) {
+                string fieldMarker = span.GetAttribute("data-officeimo-powerpoint-field") ?? string.Empty;
+                string fieldType = span.GetAttribute("data-officeimo-powerpoint-field-type") ?? string.Empty;
+                if (bool.TryParse(fieldMarker, out bool isField) && isField && !string.IsNullOrWhiteSpace(fieldType)) {
+                    paragraph.AddField(
+                        span.TextContent,
+                        fieldType,
+                        span.GetAttribute("data-officeimo-powerpoint-field-id"));
+                } else {
+                    PptCore.PowerPointTextRun target = paragraph.AddRun(span.TextContent);
+                    ApplyTargetSemanticRun(target, span);
+                }
             }
         }
     }
@@ -193,7 +200,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         target.StrikeStyle = ResolveTargetStrike(source, css);
         target.BaselinePercent = ResolveTargetBaseline(source, css);
         if (Enum.TryParse(source.GetAttribute("data-officeimo-powerpoint-capitalization"), true,
-                out PptCore.PowerPointCapitalization capitalization)) {
+                out PptCore.PowerPointCapitalization capitalization)
+            && Enum.IsDefined(typeof(PptCore.PowerPointCapitalization), capitalization)) {
             target.Capitalization = capitalization;
         } else if (TryGetTargetCss(css, "font-variant", out string variant)
                    && variant.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0) {
@@ -214,7 +222,8 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static PptCore.PowerPointUnderlineStyle? ResolveTargetUnderline(IElement source, IReadOnlyDictionary<string, string> css) {
         if (Enum.TryParse(source.GetAttribute("data-officeimo-powerpoint-underline"), true,
-                out PptCore.PowerPointUnderlineStyle native)) return native;
+                out PptCore.PowerPointUnderlineStyle native)
+            && Enum.IsDefined(typeof(PptCore.PowerPointUnderlineStyle), native)) return native;
         if (!HasTargetDecoration(css, "underline")) return null;
         return TryGetTargetCss(css, "text-decoration-style", out string style) ? style.ToLowerInvariant() switch {
             "double" => PptCore.PowerPointUnderlineStyle.Double,
@@ -227,7 +236,8 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static PptCore.PowerPointStrikeStyle? ResolveTargetStrike(IElement source, IReadOnlyDictionary<string, string> css) {
         if (Enum.TryParse(source.GetAttribute("data-officeimo-powerpoint-strike"), true,
-                out PptCore.PowerPointStrikeStyle native)) return native;
+                out PptCore.PowerPointStrikeStyle native)
+            && Enum.IsDefined(typeof(PptCore.PowerPointStrikeStyle), native)) return native;
         if (!HasTargetDecoration(css, "line-through")) return null;
         return TryGetTargetCss(css, "text-decoration-style", out string style)
                && style.Equals("double", StringComparison.OrdinalIgnoreCase)
@@ -351,7 +361,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         target.StrikeStyle = ResolvePowerPointStrike(source);
         target.BaselinePercent = ResolvePowerPointBaseline(source);
         if (source.DataAttributes.TryGetValue("data-officeimo-powerpoint-capitalization", out string? exactCapitalization)
-            && Enum.TryParse(exactCapitalization, ignoreCase: true, out PptCore.PowerPointCapitalization capitalization)) {
+            && Enum.TryParse(exactCapitalization, ignoreCase: true, out PptCore.PowerPointCapitalization capitalization)
+            && Enum.IsDefined(typeof(PptCore.PowerPointCapitalization), capitalization)) {
             target.Capitalization = capitalization;
         } else {
             string fontVariant = source.Style?.GetValue("font-variant") ?? string.Empty;
@@ -377,7 +388,8 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static PptCore.PowerPointUnderlineStyle? ResolvePowerPointUnderline(HtmlSemanticRun source) {
         if (source.DataAttributes.TryGetValue("data-officeimo-powerpoint-underline", out string? exact)
-            && Enum.TryParse(exact, ignoreCase: true, out PptCore.PowerPointUnderlineStyle native)) return native;
+            && Enum.TryParse(exact, ignoreCase: true, out PptCore.PowerPointUnderlineStyle native)
+            && Enum.IsDefined(typeof(PptCore.PowerPointUnderlineStyle), native)) return native;
         return source.UnderlineStyle switch {
             OfficeTextDecorationStyle.None => null,
             OfficeTextDecorationStyle.Double => PptCore.PowerPointUnderlineStyle.Double,
@@ -390,7 +402,8 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static PptCore.PowerPointStrikeStyle? ResolvePowerPointStrike(HtmlSemanticRun source) {
         if (source.DataAttributes.TryGetValue("data-officeimo-powerpoint-strike", out string? exact)
-            && Enum.TryParse(exact, ignoreCase: true, out PptCore.PowerPointStrikeStyle native)) return native;
+            && Enum.TryParse(exact, ignoreCase: true, out PptCore.PowerPointStrikeStyle native)
+            && Enum.IsDefined(typeof(PptCore.PowerPointStrikeStyle), native)) return native;
         return source.StrikethroughStyle switch {
             OfficeTextDecorationStyle.None => null,
             OfficeTextDecorationStyle.Double => PptCore.PowerPointStrikeStyle.Double,

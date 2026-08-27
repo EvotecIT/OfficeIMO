@@ -102,6 +102,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             case "title": case "titlecase": textCase = OfficeTextCase.TitleCase; return true;
             case "sentence": case "sentencecase": textCase = OfficeTextCase.SentenceCase; return true;
             case "toggle": case "togglecase": textCase = OfficeTextCase.ToggleCase; return true;
+            case "capitalize": case "capitalise": textCase = OfficeTextCase.Capitalize; return true;
             default: textCase = OfficeTextCase.None; return false;
         }
     }

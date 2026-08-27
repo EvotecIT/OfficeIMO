@@ -141,4 +141,28 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void OdfCapitalizePreservesExistingWordCasingAcrossWordExcelAndPowerPointImports() {
+        OdtDocument odt = OdtDocument.Create();
+        OdtSpan odtSpan = odt.AddParagraph().AddSpan("iPhone eBOOK");
+        odtSpan.TextTransform = OdfTextTransform.Capitalize;
+        using WordDocument word = odt.ToWordDocument();
+        Assert.Equal("IPhone EBOOK", Assert.Single(word.Paragraphs).Text);
+
+        OdsDocument ods = OdsDocument.Create();
+        OdsCell odsCell = ods.AddSheet("Text").Cell(0, 0);
+        odsCell.SetString("iPhone eBOOK");
+        odsCell.TextTransform = OdfTextTransform.Capitalize;
+        using ExcelDocument excel = ods.ToExcelDocument();
+        Assert.Equal("IPhone EBOOK", Assert.Single(excel.CreateInspectionSnapshot().Worksheets.Single().Cells).Value);
+
+        OdpPresentation odp = OdpPresentation.Create();
+        OdpRun odpRun = odp.AddSlide("Text")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text")
+            .AddParagraph().AddRun("iPhone eBOOK");
+        odpRun.TextTransform = OdfTextTransform.Capitalize;
+        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        Assert.Equal("IPhone EBOOK", powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single().Text);
+    }
 }

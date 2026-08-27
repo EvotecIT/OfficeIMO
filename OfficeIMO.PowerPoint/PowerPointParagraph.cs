@@ -28,22 +28,19 @@ namespace OfficeIMO.PowerPoint {
         public string Text {
             get => string.Concat(InlineNodes.Select(node => node.Text));
             set {
-                string[] discardedSoundIds = PowerPointEmbeddedSound
-                    .GetRelationshipIds(Paragraph);
-                A.EndParagraphRunProperties? endProps = Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
-                endProps?.Remove();
-                Paragraph.RemoveAllChildren<A.Run>();
-                Paragraph.RemoveAllChildren<A.Break>();
-                Paragraph.RemoveAllChildren<A.Field>();
-                A.Run run = new(new A.Text(value ?? string.Empty));
-                Paragraph.Append(run);
-                if (endProps != null) {
-                    Paragraph.Append(endProps);
-                }
-                PowerPointEmbeddedSound.RemoveIfUnused(
-                    _ownerPart as OpenXmlPart ?? _slidePart,
-                    discardedSoundIds);
+                ClearInlineContent();
+                InsertRun(value ?? string.Empty);
             }
+        }
+
+        internal void ClearInlineContent() {
+            string[] discardedSoundIds = PowerPointEmbeddedSound.GetRelationshipIds(Paragraph);
+            Paragraph.RemoveAllChildren<A.Run>();
+            Paragraph.RemoveAllChildren<A.Break>();
+            Paragraph.RemoveAllChildren<A.Field>();
+            PowerPointEmbeddedSound.RemoveIfUnused(
+                _ownerPart as OpenXmlPart ?? _slidePart,
+                discardedSoundIds);
         }
 
         /// <summary>

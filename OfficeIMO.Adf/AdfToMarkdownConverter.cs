@@ -239,11 +239,19 @@ internal static class AdfToMarkdownConverter {
     }
 
     private static string RenderMarkedText(string rawText, IEnumerable<AdfMark> marks, string path, List<AdfConversionDiagnostic> diagnostics) {
-        bool hasCode = marks.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
+        AdfMark[] markList = marks.ToArray();
+        bool hasCode = markList.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
+        string? scriptType = markList
+            .FirstOrDefault(mark => string.Equals(mark.Type, "subsup", StringComparison.Ordinal))
+            ?.GetStringAttribute("type");
         string value = hasCode
             ? MarkdownFence.BuildSafeCodeSpan(rawText)
-            : MarkdownEscaper.EscapeLiteralText(rawText);
-        foreach (AdfMark mark in marks.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
+            : string.Equals(scriptType, "sup", StringComparison.OrdinalIgnoreCase)
+                ? MarkdownEscaper.EscapeLiteralSuperscriptText(rawText)
+                : string.Equals(scriptType, "sub", StringComparison.OrdinalIgnoreCase)
+                    ? MarkdownEscaper.EscapeLiteralSubscriptText(rawText)
+                    : MarkdownEscaper.EscapeLiteralText(rawText);
+        foreach (AdfMark mark in markList.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
             switch (mark.Type) {
                 case "strong": value = "**" + value + "**"; break;
                 case "em": value = "*" + value + "*"; break;

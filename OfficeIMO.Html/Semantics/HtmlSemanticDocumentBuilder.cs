@@ -564,10 +564,13 @@ internal static class HtmlSemanticDocumentBuilder {
                 || (int.TryParse(fontWeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) && weight >= 600);
             string decoration = style?.GetValue("text-decoration-line") ?? style?.GetValue("text-decoration") ?? string.Empty;
             string vertical = style?.GetValue("vertical-align") ?? string.Empty;
-            string backgroundColor = style?.GetValue("background-color") ?? string.Empty;
-            if (backgroundColor.Length == 0
-                || string.Equals(backgroundColor, "transparent", StringComparison.OrdinalIgnoreCase)) {
-                backgroundColor = BackgroundColor ?? string.Empty;
+            string backgroundColor = BackgroundColor ?? string.Empty;
+            if (IsInlineStyleCarrier(element, style)) {
+                string ownBackground = style?.GetValue("background-color") ?? string.Empty;
+                if (ownBackground.Length > 0
+                    && !string.Equals(ownBackground, "transparent", StringComparison.OrdinalIgnoreCase)) {
+                    backgroundColor = ownBackground;
+                }
             }
             return new InlineState(
                 Bold || name == "strong" || name == "b" || cssBold,
@@ -581,6 +584,18 @@ internal static class HtmlSemanticDocumentBuilder {
                 location ?? Location,
                 ReadDataAttributes(element, DataAttributes),
                 backgroundColor.Length == 0 ? null : backgroundColor);
+        }
+
+        private static bool IsInlineStyleCarrier(IElement element, HtmlComputedStyle? style) {
+            string display = (style?.GetValue("display") ?? string.Empty).Trim();
+            if (display.StartsWith("inline", StringComparison.OrdinalIgnoreCase)) return true;
+            string name = element.LocalName.ToLowerInvariant();
+            return name == "a" || name == "abbr" || name == "b" || name == "bdi" || name == "bdo"
+                || name == "big" || name == "cite" || name == "code" || name == "del" || name == "dfn"
+                || name == "em" || name == "i" || name == "ins" || name == "kbd" || name == "label"
+                || name == "mark" || name == "q" || name == "s" || name == "samp" || name == "small"
+                || name == "span" || name == "strike" || name == "strong" || name == "sub" || name == "sup"
+                || name == "time" || name == "u" || name == "var";
         }
 
         private static IReadOnlyDictionary<string, string> ReadDataAttributes(
