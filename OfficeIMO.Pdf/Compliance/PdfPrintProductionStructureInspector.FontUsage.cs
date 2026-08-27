@@ -42,7 +42,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                 PdfDictionary? resources = ResolveInheritedResources(pageDictionary);
                 if (pageDictionary.Items.TryGetValue("Contents", out PdfObject? contents)) {
                     var pageFontState = new PageFontState();
-                    if (!AddContentObject(contents, resources, contentDepth: 0, pageFontState: pageFontState)) {
+                    if (!AddPageContentObject(contents, resources, pageFontState)) {
                         _uninspectableContextCount++;
                     }
                 }
@@ -55,7 +55,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                 _cancellationToken.ThrowIfCancellationRequested();
                 ContentContext context = _pending[0];
                 _pending.RemoveAt(0);
-                if (ContainsContext(_visited, context.Stream, context.Resources, context.SelectedFontObject, context.PageFontState)) continue;
+                if (ContainsContext(_visited, context.Streams, context.Resources, context.SelectedFontObject, context.PageFontState)) continue;
                 _visited.Add(context);
                 InspectContent(context);
             }
@@ -70,12 +70,12 @@ internal static partial class PdfPrintProductionStructureInspector {
                     _limits.MaxContentNestingDepth,
                     context.ContentDepth);
             }
-            if (!StreamDecoder.TryDecode(
-                    context.Stream.Dictionary,
-                    context.Stream.Data,
-                    _limits.MaxDecodedStreamBytes,
-                    out byte[] decoded,
-                    _objects)) {
+            if (!PdfContentStreamSequenceDecoder.TryDecode(
+                    context.Streams,
+                    _objects,
+                    _limits,
+                    enforcePageContentLimit: context.PageFontState != null,
+                    out string decodedContent)) {
                 _uninspectableContextCount++;
                 return;
             }
@@ -84,7 +84,7 @@ internal static partial class PdfPrintProductionStructureInspector {
             PdfObject? activeFontObject = context.PageFontState?.SelectedFontObject ?? context.SelectedFontObject;
             Stack<PdfObject?> fontStack = context.PageFontState?.SavedFontObjects ?? new Stack<PdfObject?>();
             PdfContentStreamInterpreter.Interpret(
-                PdfEncoding.Latin1GetString(decoded),
+                decodedContent,
                 _limits.MaxContentOperations,
                 operation => {
                     _cancellationToken.ThrowIfCancellationRequested();
@@ -291,15 +291,50 @@ internal static partial class PdfPrintProductionStructureInspector {
             return complete;
         }
 
+        private bool AddPageContentObject(
+            PdfObject value,
+            PdfDictionary? resources,
+            PageFontState pageFontState) {
+            var streams = new List<PdfStream>();
+            bool complete = CollectContentStreams(value, streams);
+            if (streams.Count > 0) {
+                _pending.Add(new ContentContext(streams, resources, 0, null, pageFontState));
+            }
+            return complete;
+        }
+
+        private bool CollectContentStreams(PdfObject value, List<PdfStream> streams) {
+            bool complete = true;
+            var pending = new Stack<(PdfObject Value, int Depth)>();
+            var activeArrays = new HashSet<PdfArray>();
+            pending.Push((value, 0));
+            while (pending.Count > 0) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                (PdfObject candidate, int depth) = pending.Pop();
+                PdfObject? resolved = ResolveObject(_objects, candidate, depth, _limits.MaxObjectNestingDepth, out int resolvedDepth);
+                if (resolved is PdfStream stream) {
+                    streams.Add(stream);
+                } else if (resolved is PdfArray array && activeArrays.Add(array)) {
+                    for (int index = array.Items.Count - 1; index >= 0; index--) {
+                        pending.Push((array.Items[index], resolvedDepth + 1));
+                    }
+                } else {
+                    complete = false;
+                }
+            }
+            return complete;
+        }
+
         private void AddStream(
             PdfStream stream,
             PdfDictionary? resources,
             int contentDepth,
             PdfObject? selectedFontObject = null,
             PageFontState? pageFontState = null) {
-            if (ContainsContext(_visited, stream, resources, selectedFontObject, pageFontState) ||
-                ContainsContext(_pending, stream, resources, selectedFontObject, pageFontState)) return;
-            _pending.Add(new ContentContext(stream, resources, contentDepth, selectedFontObject, pageFontState));
+            PdfStream[] streams = { stream };
+            if (ContainsContext(_visited, streams, resources, selectedFontObject, pageFontState) ||
+                ContainsContext(_pending, streams, resources, selectedFontObject, pageFontState)) return;
+            _pending.Add(new ContentContext(streams, resources, contentDepth, selectedFontObject, pageFontState));
         }
 
         private PdfDictionary? ResolveInheritedResources(PdfDictionary page) {
@@ -342,17 +377,27 @@ internal static partial class PdfPrintProductionStructureInspector {
 
         private static bool ContainsContext(
             IReadOnlyList<ContentContext> contexts,
-            PdfStream stream,
+            IReadOnlyList<PdfStream> streams,
             PdfDictionary? resources,
             PdfObject? selectedFontObject,
             PageFontState? pageFontState) {
             for (int index = 0; index < contexts.Count; index++) {
-                if (ReferenceEquals(contexts[index].Stream, stream) &&
+                if (StreamSequencesEqual(contexts[index].Streams, streams) &&
                     ReferenceEquals(contexts[index].Resources, resources) &&
                     ReferenceEquals(contexts[index].SelectedFontObject, selectedFontObject) &&
                     ReferenceEquals(contexts[index].PageFontState, pageFontState)) return true;
             }
             return false;
+        }
+
+        private static bool StreamSequencesEqual(
+            IReadOnlyList<PdfStream> left,
+            IReadOnlyList<PdfStream> right) {
+            if (left.Count != right.Count) return false;
+            for (int index = 0; index < left.Count; index++) {
+                if (!ReferenceEquals(left[index], right[index])) return false;
+            }
+            return true;
         }
 
         private static bool IsFontRelevantOperator(string name) =>
@@ -374,7 +419,7 @@ internal static partial class PdfPrintProductionStructureInspector {
     }
 
     private sealed record ContentContext(
-        PdfStream Stream,
+        IReadOnlyList<PdfStream> Streams,
         PdfDictionary? Resources,
         int ContentDepth,
         PdfObject? SelectedFontObject,

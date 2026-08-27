@@ -69,6 +69,9 @@ internal sealed class OfficeOpenTypeHvarMetrics {
             int entryFormat = reader.Data[offset + 1];
             int entrySize = ((entryFormat >> 4) & 0x03) + 1;
             int innerBits = (entryFormat & 0x0F) + 1;
+            if ((entryFormat & 0xC0) != 0 || innerBits > entrySize * 8) {
+                throw new InvalidDataException("The HVAR DeltaSetIndexMap entry format is invalid.");
+            }
             int count;
             int cursor;
             if (format == 0) {

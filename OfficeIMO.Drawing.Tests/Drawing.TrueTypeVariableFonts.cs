@@ -159,6 +159,21 @@ public sealed class DrawingTrueTypeVariableFontTests {
         Assert.False(fonts.TryAdd("Malformed HVAR", data));
     }
 
+    [Theory]
+    [InlineData(0x08)] // nine inner-index bits cannot fit in a one-byte entry
+    [InlineData(0x40)] // the two high entryFormat bits are reserved
+    public void VariableFontRegistrationRejectsInvalidHvarDeltaSetIndexMapEntryFormats(int entryFormat) {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        int hvar = FindTableOffset(data, "HVAR");
+        uint mapRelative = ReadUInt32(data, hvar + 8);
+        Assert.NotEqual(0U, mapRelative);
+        int map = checked(hvar + (int)mapRelative);
+        data[map + 1] = checked((byte)entryFormat);
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAdd("Malformed HVAR", data));
+    }
+
     [Fact]
     public void VariableFontRegistrationRejectsGvarDataInsideTheOffsetDirectory() {
         byte[] data = ReadAsset("RobotoFlex.ttf");

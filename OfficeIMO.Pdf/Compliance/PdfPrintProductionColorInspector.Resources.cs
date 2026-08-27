@@ -11,7 +11,7 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfObject? inheritedFontObject = null,
         int? pageSequenceId = null,
         ContentColorStateSnapshot? initialColorState = null) {
-        if (ContainsContentStreamContext(
+        if (pageSequenceId == null && ContainsContentStreamContext(
                 streams,
                 stream,
                 aliases,
@@ -102,15 +102,31 @@ internal static partial class PdfPrintProductionColorInspector {
         for (int localIndex = 0; localIndex < contentDepths.Count; localIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             ContentStreamContext context = streams[firstContext + localIndex];
-            if (!StreamDecoder.TryDecode(
-                    context.Stream.Dictionary,
-                    context.Stream.Data,
-                    limits.MaxDecodedStreamBytes,
-                    out byte[] decoded,
-                    objects)) continue;
+            bool isPageContent = contentDepths[localIndex] == 0;
+            int nextLocalIndex = localIndex + 1;
+            var logicalStreams = new List<PdfStream> { context.Stream };
+            if (isPageContent && context.PageSequenceId is int pageSequenceId) {
+                while (nextLocalIndex < contentDepths.Count &&
+                       contentDepths[nextLocalIndex] == 0 &&
+                       streams[firstContext + nextLocalIndex].PageSequenceId == pageSequenceId) {
+                    logicalStreams.Add(streams[firstContext + nextLocalIndex].Stream);
+                    nextLocalIndex++;
+                }
+            }
+            if (!PdfContentStreamSequenceDecoder.TryDecode(
+                    logicalStreams,
+                    objects,
+                    limits,
+                    enforcePageContentLimit: isPageContent,
+                    out string decodedContent)) {
+                for (int index = localIndex; index < nextLocalIndex; index++) {
+                    streams[firstContext + index].ResourceInspectionIncomplete = true;
+                }
+                localIndex = nextLocalIndex - 1;
+                continue;
+            }
 
             bool contextWasUninspectable = false;
-            bool isPageContent = contentDepths[localIndex] == 0;
             PdfObject? activeFontObject = isPageContent ? activePageFontObject : context.InheritedFontObject;
             Stack<PdfObject?> fontStack = isPageContent ? pageFontStack : new Stack<PdfObject?>();
             ContentColorState colorState = isPageContent
@@ -118,7 +134,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 : new ContentColorState(context.InitialColorState);
             try {
                 PdfContentStreamInterpreter.Interpret(
-                    PdfEncoding.Latin1GetString(decoded),
+                    decodedContent,
                     limits.MaxContentOperations,
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -311,10 +327,18 @@ internal static partial class PdfPrintProductionColorInspector {
                 exception is FormatException) {
                 // Resource traversal owns reachability. If it cannot resolve a referenced
                 // resource, the later color pass cannot recover that missing evidence.
-                context.ResourceInspectionIncomplete = true;
+                for (int index = localIndex; index < nextLocalIndex; index++) {
+                    streams[firstContext + index].ResourceInspectionIncomplete = true;
+                }
+                localIndex = nextLocalIndex - 1;
                 continue;
             }
-            if (contextWasUninspectable) context.ResourceInspectionIncomplete = true;
+            if (contextWasUninspectable) {
+                for (int index = localIndex; index < nextLocalIndex; index++) {
+                    streams[firstContext + index].ResourceInspectionIncomplete = true;
+                }
+            }
+            localIndex = nextLocalIndex - 1;
         }
 
         return new ReachableResourceCollection(transparencyGroups);

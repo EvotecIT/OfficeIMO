@@ -59,6 +59,49 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
     }
 
+    [Fact]
+    public void ColorInspectorInterpretsOrderedPageContentStreamsAsOneTokenStream() {
+        byte[] pdf = BuildInspectionPdf(
+            "/DeviceRGB",
+            contents: "[4 0 R 5 0 R]",
+            extraObjects:
+                "5 0 obj\n<< /Length 12 >>\nstream\n cs 1 0 0 sc\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorPreservesRepeatedPageContentStreamReferences() {
+        byte[] pdf = BuildInspectionPdf("1 0 0 rg ", contents: "[4 0 R 4 0 R]");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
+    }
+
+    [Fact]
+    public void StructureInspectorInterpretsOrderedPageContentStreamsAsOneTokenStream() {
+        byte[] pdf = BuildInspectionPdf(
+            "/F1",
+            resources: "/Font << /F1 6 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            contents: "[4 0 R 5 0 R]",
+            extraObjects:
+                "5 0 obj\n<< /Length 6 >>\nstream\n 12 Tf\nendstream\nendobj\n" +
+                "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
     [Theory]
     [InlineData("k")]
     [InlineData("/Bogus k")]

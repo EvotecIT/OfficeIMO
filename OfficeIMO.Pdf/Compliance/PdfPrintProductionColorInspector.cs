@@ -223,35 +223,35 @@ internal static partial class PdfPrintProductionColorInspector {
 
         int rgbOperators = 0;
         int cmykOperators = 0;
-        var pageColorStates = new Dictionary<int, ContentColorState>();
-        foreach (ContentStreamContext context in contentStreams) {
+        for (int contextIndex = 0; contextIndex < contentStreams.Count; contextIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            PdfStream stream = context.Stream;
+            ContentStreamContext context = contentStreams[contextIndex];
             ColorSpaceAliases aliases = context.Aliases;
-            ContentColorState colorState;
-            if (context.PageSequenceId is int currentPageSequenceId) {
-                if (!pageColorStates.TryGetValue(currentPageSequenceId, out colorState!)) {
-                    colorState = new ContentColorState();
-                    pageColorStates[currentPageSequenceId] = colorState;
+            int nextContextIndex = contextIndex + 1;
+            var logicalStreams = new List<PdfStream> { context.Stream };
+            if (context.PageSequenceId is int logicalPageSequenceId) {
+                while (nextContextIndex < contentStreams.Count &&
+                       contentStreams[nextContextIndex].PageSequenceId == logicalPageSequenceId) {
+                    logicalStreams.Add(contentStreams[nextContextIndex].Stream);
+                    nextContextIndex++;
                 }
-            } else {
-                colorState = new ContentColorState(context.InitialColorState);
             }
-            if (!StreamDecoder.TryDecode(
-                    stream.Dictionary,
-                    stream.Data,
-                    document.ReadOptions.Limits.MaxDecodedStreamBytes,
-                    out byte[] decoded,
-                    objects)) {
-                colorState.IsIncomplete = true;
+            var colorState = new ContentColorState(context.InitialColorState);
+            if (!PdfContentStreamSequenceDecoder.TryDecode(
+                    logicalStreams,
+                    objects,
+                    document.ReadOptions.Limits,
+                    enforcePageContentLimit: context.PageSequenceId != null,
+                    out string decodedContent)) {
                 uninspectable++;
+                contextIndex = nextContextIndex - 1;
                 continue;
             }
 
             try {
                 bool contextWasUninspectable = colorState.IsIncomplete;
                 PdfContentStreamInterpreter.Interpret(
-                    PdfEncoding.Latin1GetString(decoded),
+                    decodedContent,
                     document.ReadOptions.Limits.MaxContentOperations,
                     operation => {
                         if (operation.HasInvalidOperands) {
@@ -477,7 +477,11 @@ internal static partial class PdfPrintProductionColorInspector {
                     maxNestingDepth: document.ReadOptions.Limits.MaxContentNestingDepth,
                     maxOperands: document.ReadOptions.Limits.MaxContentOperands,
                     dispatchInvalidOperations: true);
-                if (contextWasUninspectable || context.ResourceInspectionIncomplete) {
+                bool resourceInspectionIncomplete = false;
+                for (int index = contextIndex; index < nextContextIndex; index++) {
+                    resourceInspectionIncomplete |= contentStreams[index].ResourceInspectionIncomplete;
+                }
+                if (contextWasUninspectable || resourceInspectionIncomplete) {
                     colorState.IsIncomplete = true;
                     uninspectable++;
                 }
@@ -488,6 +492,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 colorState.IsIncomplete = true;
                 uninspectable++;
             }
+            contextIndex = nextContextIndex - 1;
         }
 
         return new PdfPrintProductionColorEvidence(
