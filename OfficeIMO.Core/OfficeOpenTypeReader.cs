@@ -235,11 +235,20 @@ internal sealed class OfficeOpenTypeReader {
         int deltas = startCodes + segmentCount * 2;
         int rangeOffsets = deltas + segmentCount * 2;
         if (rangeOffsets > table + length - segmentCount * 2) return 0;
-        for (int index = 0; index < segmentCount; index++) {
+        int low = 0;
+        int high = segmentCount - 1;
+        while (low <= high) {
+            int index = low + (high - low) / 2;
             int end = ReadUInt16(endCodes + index * 2);
-            if (scalar > end) continue;
             int start = ReadUInt16(startCodes + index * 2);
-            if (scalar < start) return 0;
+            if (scalar < start) {
+                high = index - 1;
+                continue;
+            }
+            if (scalar > end) {
+                low = index + 1;
+                continue;
+            }
             int delta = ReadInt16(deltas + index * 2);
             int rangeOffset = ReadUInt16(rangeOffsets + index * 2);
             if (rangeOffset == 0) return ValidateMappedGlyph(unchecked((ushort)(scalar + delta)));
