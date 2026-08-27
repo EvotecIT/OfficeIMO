@@ -19,7 +19,6 @@ internal static class PdfContentStreamSequenceDecoder {
         var builder = new StringBuilder();
         long decodedBytes = 0L;
         for (int index = 0; index < streams.Count; index++) {
-            if (index > 0) builder.Append('\n');
             PdfStream stream = streams[index];
             if (!StreamDecoder.TryDecode(
                     stream.Dictionary,

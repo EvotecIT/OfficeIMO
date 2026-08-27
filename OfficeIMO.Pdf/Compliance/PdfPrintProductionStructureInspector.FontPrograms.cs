@@ -170,6 +170,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         int expectedLocaLength = checked((glyphCount + 1) * entrySize);
         if (locaLength != expectedLocaLength) return false;
 
+        var locations = new uint[glyphCount + 1];
         uint previous = 0;
         for (int index = 0; index <= glyphCount; index++) {
             int entryOffset = checked(locaOffset + index * entrySize);
@@ -177,10 +178,10 @@ internal static partial class PdfPrintProductionStructureInspector {
                 ? checked((uint)ReadUInt16BigEndian(data, entryOffset) * 2U)
                 : ReadUInt32BigEndian(data, entryOffset);
             if (current < previous || current > glyfLength) return false;
-            if (index > 0 && current > previous && current - previous < 10U) return false;
+            locations[index] = current;
             previous = current;
         }
-        return true;
+        return OfficeTrueTypeGlyphData.IsStructurallyValid(data, glyfOffset, glyfLength, locations);
     }
 
     private static bool IsValidCff1Program(byte[] data, bool? requireCidKeyed) {

@@ -109,7 +109,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     [Fact]
     public void ColorInspectorPreservesSelectedColorSpaceAcrossOrderedPageContentStreams() {
         byte[] pdf = BuildInspectionPdf(
-            "/DeviceRGB cs",
+            "/DeviceRGB cs ",
             contents: "[4 0 R 5 0 R]",
             extraObjects:
                 "5 0 obj\n<< /Length 8 >>\nstream\n1 0 0 sc\nendstream\nendobj\n");
@@ -684,6 +684,48 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void StructureInspectorRejectsTruncatedTrueTypeSimpleGlyph() {
+        byte[] pdf = BuildTrueTypeInspectionPdf(BuildMinimalTrueTypeProgram(validLoca: true, glyphData: new byte[10]));
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void StructureInspectorRejectsInvalidTrueTypeCompositeReferences(int componentGlyph) {
+        byte[] pdf = BuildTrueTypeInspectionPdf(BuildMinimalTrueTypeProgram(
+            validLoca: true,
+            glyphData: BuildCompositeGlyph(componentGlyph)));
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void ContentStreamSequenceDecoderPreservesTokenBytesAcrossStreamBoundaries() {
+        var streams = new[] {
+            new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("1")),
+            new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("0 0 m"))
+        };
+
+        Assert.True(PdfContentStreamSequenceDecoder.TryDecode(
+            streams,
+            new Dictionary<int, PdfIndirectObject>(),
+            new PdfReadLimits(),
+            enforcePageContentLimit: true,
+            out string content));
+        Assert.Equal("10 0 m", content);
+    }
+
+    [Fact]
     public void StructureInspectorRejectsType0FontWithoutValidDescendant() {
         const string type1Program = "%!PS-AdobeFont fixture eexec";
         byte[] pdf = BuildInspectionPdf(
@@ -1116,24 +1158,43 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildMinimalTrueTypeProgram(bool validLoca) {
+    private static byte[] BuildMinimalTrueTypeProgram(bool validLoca, byte[]? glyphData = null) {
+        glyphData ??= BuildValidSimpleGlyph();
         const int directoryLength = 12 + 4 * 16;
         const int headOffset = directoryLength;
         const int maxpOffset = 132;
         const int locaOffset = 140;
         int locaLength = validLoca ? 8 : 4;
         int glyfOffset = locaOffset + locaLength;
-        var data = new byte[glyfOffset + 10];
+        var data = new byte[glyfOffset + glyphData.Length];
         WriteUInt32BigEndian(data, 0, 0x00010000U);
         WriteUInt16BigEndian(data, 4, 4);
         WriteTableRecord(data, 12, "head", headOffset, 54);
         WriteTableRecord(data, 28, "maxp", maxpOffset, 6);
         WriteTableRecord(data, 44, "loca", locaOffset, locaLength);
-        WriteTableRecord(data, 60, "glyf", glyfOffset, 10);
+        WriteTableRecord(data, 60, "glyf", glyfOffset, glyphData.Length);
         WriteUInt16BigEndian(data, headOffset + 50, 1); // Long loca offsets.
         WriteUInt16BigEndian(data, maxpOffset + 4, 1); // One glyph plus two loca entries.
-        if (validLoca) WriteUInt32BigEndian(data, locaOffset + 4, 10);
+        if (validLoca) WriteUInt32BigEndian(data, locaOffset + 4, checked((uint)glyphData.Length));
+        Buffer.BlockCopy(glyphData, 0, data, glyfOffset, glyphData.Length);
         return data;
+    }
+
+    private static byte[] BuildValidSimpleGlyph() {
+        var glyph = new byte[16];
+        WriteUInt16BigEndian(glyph, 0, 1); // One contour.
+        WriteUInt16BigEndian(glyph, 10, 0); // The contour ends at the first point.
+        WriteUInt16BigEndian(glyph, 12, 0); // No instructions.
+        glyph[14] = 0x31; // On-curve point with unchanged X/Y coordinates.
+        return glyph;
+    }
+
+    private static byte[] BuildCompositeGlyph(int componentGlyph) {
+        var glyph = new byte[16];
+        WriteUInt16BigEndian(glyph, 0, -1);
+        WriteUInt16BigEndian(glyph, 10, 0); // Final component, byte-sized arguments, no transform.
+        WriteUInt16BigEndian(glyph, 12, componentGlyph);
+        return glyph;
     }
 
     private static void WriteTableRecord(byte[] data, int offset, string tag, int tableOffset, int tableLength) {

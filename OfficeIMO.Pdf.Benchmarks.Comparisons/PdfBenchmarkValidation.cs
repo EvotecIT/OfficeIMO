@@ -21,8 +21,9 @@ internal static class PdfBenchmarkValidation {
             throw new InvalidDataException($"{engine} did not produce a PDF header for {scenario.Scale}.");
         }
 
-        PdfReadObservation observation = ReadWithPdfPig(bytes);
+        PdfReadObservation observation = ReadWithPdfPig(bytes, out IReadOnlyList<string> normalizedPages);
         ValidateRead(observation, scenario, engine);
+        ValidateScenarioPages(normalizedPages, scenario, engine);
         return observation;
     }
 
@@ -97,15 +98,21 @@ internal static class PdfBenchmarkValidation {
         ValidateScenarioContent(observation.NormalizedText, scenario, engine);
     }
 
-    internal static PdfReadObservation ReadWithPdfPig(byte[] bytes) {
+    internal static PdfReadObservation ReadWithPdfPig(byte[] bytes) => ReadWithPdfPig(bytes, out _);
+
+    private static PdfReadObservation ReadWithPdfPig(byte[] bytes, out IReadOnlyList<string> normalizedPages) {
         using var stream = new MemoryStream(bytes, writable: false);
         using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream);
         var text = new StringBuilder();
+        var pages = new List<string>(document.NumberOfPages);
         foreach (var page in document.GetPages()) {
-            text.Append(ContentOrderTextExtractor.GetText(page));
+            string pageText = ContentOrderTextExtractor.GetText(page);
+            pages.Add(Normalize(pageText));
+            text.Append(pageText);
             text.Append('\n');
         }
 
+        normalizedPages = pages;
         return Observe(document.NumberOfPages, text.ToString());
     }
 
@@ -139,6 +146,23 @@ internal static class PdfBenchmarkValidation {
             if (!actual.Contains(fragment, StringComparison.Ordinal)) {
                 throw new InvalidDataException($"{context} did not preserve required content '{fragment}'.");
             }
+        }
+    }
+
+    internal static void ValidateScenarioPages(
+        IReadOnlyList<string> actualPages,
+        PdfBenchmarkScenario scenario,
+        string engine) {
+        if (actualPages.Count != scenario.PageCount) {
+            throw new InvalidDataException(
+                $"{engine} exposed {actualPages.Count} page payloads for {scenario.Scale}; expected {scenario.PageCount}.");
+        }
+
+        for (int page = 1; page <= scenario.PageCount; page++) {
+            ValidatePageContent(
+                actualPages[page - 1],
+                ExpectedPage(scenario, page),
+                $"{engine} page {page}");
         }
     }
 
