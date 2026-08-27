@@ -317,9 +317,19 @@ internal static partial class PdfPrintProductionColorInspector {
                                 break;
                         }
                     },
+                    inlineImageComponentCount: colorSpaceName => ResolveInlineImageComponentCount(
+                        new PdfName(colorSpaceName),
+                        objects,
+                        limits.MaxObjectNestingDepth,
+                        context.Aliases),
                     maxNestingDepth: limits.MaxContentNestingDepth,
                     maxOperands: limits.MaxContentOperands,
-                    dispatchInvalidOperations: true);
+                    dispatchInvalidOperations: true,
+                    inlineImageArrayComponentCount: colorSpace => ResolveInlineImageComponentCount(
+                        colorSpace,
+                        objects,
+                        limits.MaxObjectNestingDepth,
+                        context.Aliases));
                 if (isPageContent) activePageFontObject = activeFontObject;
             } catch (Exception exception) when (
                 exception is InvalidDataException ||

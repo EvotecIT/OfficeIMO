@@ -37,6 +37,12 @@ public sealed class HtmlPdfWorkbenchContractTests {
         Assert.DoesNotContain("Content-Security-Policy", capture, StringComparison.Ordinal);
         Assert.Contains("p{color:blue}", capture, StringComparison.Ordinal);
 
+        string restrictedCapture = HtmlPdfPreviewComposer.ComposeForCapture(
+            "<meta http-equiv=\"Content-Security-Policy\" content=\"style-src 'none'\"><p>Capture</p>",
+            "p{color:green}");
+        Assert.DoesNotContain("Content-Security-Policy", restrictedCapture, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("p{color:green}", restrictedCapture, StringComparison.Ordinal);
+
         string localizedCapture = HtmlPdfPreviewComposer.ComposeForCapture(
             "<!doctype html><html lang=\"en\"><body>Capture</body></html>",
             string.Empty,

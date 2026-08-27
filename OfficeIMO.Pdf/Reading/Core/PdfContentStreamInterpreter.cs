@@ -685,7 +685,9 @@ internal static class PdfContentStreamInterpreter {
                 case "DeviceCMYK":
                     return 4;
                 default:
-                    return Math.Max(1, _inlineImageComponentCount?.Invoke(colorSpace) ?? 1);
+                    return _inlineImageComponentCount == null
+                        ? 1
+                        : Math.Max(0, _inlineImageComponentCount(colorSpace));
             }
         }
 

@@ -825,7 +825,7 @@ public class PdfXGroundworkTests {
         Assert.Equal(0, evidence.DeviceRgbOperatorCount);
         Assert.Equal(0, evidence.NonOpaqueGraphicsStateCount);
         Assert.Equal(0, evidence.TransparencyGroupCount);
-        Assert.Equal(2, evidence.UninspectableContentStreamCount);
+        Assert.Equal(3, evidence.UninspectableContentStreamCount);
         Assert.False(evidence.IsComplete);
     }
 

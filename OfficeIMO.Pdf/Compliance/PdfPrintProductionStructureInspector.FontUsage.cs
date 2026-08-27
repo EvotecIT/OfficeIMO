@@ -83,6 +83,7 @@ internal static partial class PdfPrintProductionStructureInspector {
             bool contextWasUninspectable = false;
             PdfObject? activeFontObject = context.PageFontState?.SelectedFontObject ?? context.SelectedFontObject;
             Stack<PdfObject?> fontStack = context.PageFontState?.SavedFontObjects ?? new Stack<PdfObject?>();
+            bool insideTextObject = false;
             PdfContentStreamInterpreter.Interpret(
                 decodedContent,
                 _limits.MaxContentOperations,
@@ -93,6 +94,20 @@ internal static partial class PdfPrintProductionStructureInspector {
                         return;
                     }
                     switch (operation.Name) {
+                        case "BT":
+                            if (operation.Operands.Count != 0 || insideTextObject) {
+                                contextWasUninspectable = true;
+                                break;
+                            }
+                            insideTextObject = true;
+                            break;
+                        case "ET":
+                            if (operation.Operands.Count != 0 || !insideTextObject) {
+                                contextWasUninspectable = true;
+                                break;
+                            }
+                            insideTextObject = false;
+                            break;
                         case "q":
                             fontStack.Push(activeFontObject);
                             break;
@@ -100,6 +115,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                             if (fontStack.Count > 0) activeFontObject = fontStack.Pop();
                             break;
                         case "Tf" when operation.Operands.Count == 2 &&
+                                            insideTextObject &&
                                             operation.Operands[0] is string fontName &&
                                             operation.Operands[1] is double fontSize &&
                                             !double.IsNaN(fontSize) &&
@@ -151,16 +167,28 @@ internal static partial class PdfPrintProductionStructureInspector {
                         case "TJ":
                         case "'":
                         case "\"":
-                            if (activeFontObject == null ||
+                            if (!insideTextObject ||
+                                activeFontObject == null ||
                                 !TryAddShownType3CharProcs(activeFontObject, operation, context, context.ContentDepth + 1)) {
                                 contextWasUninspectable = true;
                             }
                             break;
                     }
                 },
+                inlineImageComponentCount: colorSpaceName => PdfPrintProductionColorInspector.ResolveInlineImageComponentCountForResources(
+                    new PdfName(colorSpaceName),
+                    context.Resources,
+                    _objects,
+                    _limits.MaxObjectNestingDepth),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
-                dispatchInvalidOperations: true);
+                dispatchInvalidOperations: true,
+                inlineImageArrayComponentCount: colorSpace => PdfPrintProductionColorInspector.ResolveInlineImageComponentCountForResources(
+                    colorSpace,
+                    context.Resources,
+                    _objects,
+                    _limits.MaxObjectNestingDepth));
+            if (insideTextObject) contextWasUninspectable = true;
             if (context.PageFontState != null) context.PageFontState.SelectedFontObject = activeFontObject;
             if (contextWasUninspectable) _uninspectableContextCount++;
         }
@@ -401,6 +429,8 @@ internal static partial class PdfPrintProductionStructureInspector {
         }
 
         private static bool IsFontRelevantOperator(string name) =>
+            string.Equals(name, "BT", StringComparison.Ordinal) ||
+            string.Equals(name, "ET", StringComparison.Ordinal) ||
             string.Equals(name, "Tf", StringComparison.Ordinal) ||
             string.Equals(name, "Do", StringComparison.Ordinal) ||
             string.Equals(name, "gs", StringComparison.Ordinal) ||

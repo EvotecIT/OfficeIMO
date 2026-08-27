@@ -474,9 +474,19 @@ internal static partial class PdfPrintProductionColorInspector {
                             }
                         }
                     },
+                    inlineImageComponentCount: colorSpaceName => ResolveInlineImageComponentCount(
+                        new PdfName(colorSpaceName),
+                        objects,
+                        maximumObjectDepth,
+                        aliases),
                     maxNestingDepth: document.ReadOptions.Limits.MaxContentNestingDepth,
                     maxOperands: document.ReadOptions.Limits.MaxContentOperands,
-                    dispatchInvalidOperations: true);
+                    dispatchInvalidOperations: true,
+                    inlineImageArrayComponentCount: colorSpace => ResolveInlineImageComponentCount(
+                        colorSpace,
+                        objects,
+                        maximumObjectDepth,
+                        aliases));
                 bool resourceInspectionIncomplete = false;
                 for (int index = contextIndex; index < nextContextIndex; index++) {
                     resourceInspectionIncomplete |= contentStreams[index].ResourceInspectionIncomplete;
@@ -965,32 +975,45 @@ internal static partial class PdfPrintProductionColorInspector {
         int maximumObjectDepth,
         out bool isNonNormal) {
         isNonNormal = false;
-        var pending = new Stack<(PdfObject Value, int Depth)>();
-        var inspectedArrays = new HashSet<PdfArray>();
-        pending.Push((value, 0));
-        while (pending.Count > 0) {
-            (PdfObject candidate, int depth) = pending.Pop();
-            ThrowIfObjectDepthExceeded(depth, maximumObjectDepth);
-            PdfObject? resolved = ResolveObject(
+        PdfObject? resolved = ResolveObject(objects, value, 0, maximumObjectDepth, out int resolvedDepth);
+        if (resolved is PdfName name) return TryClassifyBlendModeName(name.Name, out isNonNormal);
+        if (resolved is not PdfArray array || array.Items.Count == 0) return false;
+
+        for (int index = 0; index < array.Items.Count; index++) {
+            PdfObject? candidate = ResolveObject(
                 objects,
-                candidate,
-                depth,
-                maximumObjectDepth,
-                out int resolvedDepth);
-            if (resolved is PdfName name) {
-                if (!TryClassifyBlendModeName(name.Name, out isNonNormal)) continue;
-                return true;
-            } else if (resolved is PdfArray array) {
-                if (array.Items.Count == 0) return false;
-                if (!inspectedArrays.Add(array)) continue;
-                for (int index = array.Items.Count - 1; index >= 0; index--) {
-                    pending.Push((array.Items[index], resolvedDepth + 1));
-                }
-            } else {
-                continue;
-            }
+                array.Items[index],
+                resolvedDepth + 1,
+                maximumObjectDepth);
+            if (candidate is not PdfName fallback) return false;
+            if (TryClassifyBlendModeName(fallback.Name, out isNonNormal)) return true;
         }
         return false;
+    }
+
+    private static int ResolveInlineImageComponentCount(
+        PdfObject colorSpace,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        ColorSpaceAliases aliases) {
+        ColorSpaceUsage usage = ClassifyColorSpace(
+            colorSpace,
+            objects,
+            maximumObjectDepth,
+            aliases,
+            normalizeInlineImageAbbreviations: true);
+        return usage.IsKnown && !usage.UsesPattern ? usage.ComponentCount : 0;
+    }
+
+    internal static int ResolveInlineImageComponentCountForResources(
+        PdfObject colorSpace,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        ColorSpaceAliases aliases = resources == null
+            ? new ColorSpaceAliases()
+            : CreateColorSpaceAliases(resources, objects, maximumObjectDepth);
+        return ResolveInlineImageComponentCount(colorSpace, objects, maximumObjectDepth, aliases);
     }
 
     private static bool TryClassifyBlendModeName(string name, out bool isNonNormal) {

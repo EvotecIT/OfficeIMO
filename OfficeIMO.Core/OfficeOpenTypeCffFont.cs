@@ -14,6 +14,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
     private readonly OfficeCffFontData _cff;
     private readonly OfficeFontVariationModel _variations;
     private readonly OfficeOpenTypeHvarMetrics? _hvar;
+    private readonly OfficeOpenTypeKerning _kerning;
     private readonly int _ascender;
     private readonly int _descender;
     private readonly int _lineGap;
@@ -28,6 +29,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         _reader = reader;
         _cff = cff;
         _variations = variations;
+        _kerning = OfficeOpenTypeKerning.FromReader(reader);
         _hvar = variations.IsVariable
             ? OfficeOpenTypeHvarMetrics.TryParse(reader, variations)
             : null;
@@ -88,11 +90,14 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         ValidateTextAndSize(text, fontSize);
         double scale = Scale(fontSize);
         long width = 0;
+        int? previousGlyph = null;
         for (int index = 0; index < text.Length;) {
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
             int glyphId = _reader.MapGlyph(scalar);
+            if (previousGlyph.HasValue) width = checked(width + _kerning.Adjustment(previousGlyph.Value, glyphId));
             width = checked(width + AdvanceWidth(glyphId));
+            previousGlyph = glyphId;
         }
         return width * scale;
     }
@@ -101,7 +106,21 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         if (elements == null) throw new ArgumentNullException(nameof(elements));
         ValidateSize(fontSize);
         var result = new double[elements.Count];
-        for (int index = 0; index < elements.Count; index++) result[index] = Measure(elements[index], fontSize);
+        double scale = Scale(fontSize);
+        int? previousGlyph = null;
+        for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+            string text = elements[elementIndex];
+            long width = 0;
+            for (int textIndex = 0; textIndex < text.Length;) {
+                int scalar = ReadScalar(text, ref textIndex);
+                if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
+                int glyphId = _reader.MapGlyph(scalar);
+                if (previousGlyph.HasValue) width = checked(width + _kerning.Adjustment(previousGlyph.Value, glyphId));
+                width = checked(width + AdvanceWidth(glyphId));
+                previousGlyph = glyphId;
+            }
+            result[elementIndex] = width * scale;
+        }
         return result;
     }
 
@@ -150,13 +169,18 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         double cursor = x;
         double baseline = EnsureFiniteGeometry(y + _ascender * scale);
         int pointCount = 0;
+        int? previousGlyph = null;
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
             int glyphId = _reader.MapGlyph(scalar);
+            if (previousGlyph.HasValue) {
+                cursor = EnsureFiniteGeometry(cursor + _kerning.Adjustment(previousGlyph.Value, glyphId) * scale);
+            }
             RenderGlyph(glyphId, cursor, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken, operationBudget);
             cursor = EnsureFiniteGeometry(cursor + AdvanceWidth(glyphId) * scale);
+            previousGlyph = glyphId;
         }
         return contours;
     }

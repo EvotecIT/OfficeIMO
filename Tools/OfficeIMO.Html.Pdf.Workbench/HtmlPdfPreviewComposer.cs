@@ -17,12 +17,18 @@ public static class HtmlPdfPreviewComposer {
         IHtmlDocument document = parser.ParseDocument(html ?? string.Empty);
         IElement head = document.Head ?? throw new InvalidOperationException("The HTML parser did not create a head element.");
 
+        foreach (IElement meta in document.QuerySelectorAll("meta[http-equiv]").ToArray()) {
+            string directive = meta.GetAttribute("http-equiv") ?? string.Empty;
+            if (preview || string.Equals(directive, "Content-Security-Policy", StringComparison.OrdinalIgnoreCase)) {
+                meta.Remove();
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(language)) {
             document.DocumentElement.SetAttribute("lang", language.Trim());
         }
 
         if (preview) {
-            foreach (IElement meta in document.QuerySelectorAll("meta[http-equiv]").ToArray()) meta.Remove();
             foreach (IElement activeContainer in document.QuerySelectorAll("base,iframe,frame,object,embed").ToArray()) activeContainer.Remove();
 
             IElement policy = document.CreateElement("meta");

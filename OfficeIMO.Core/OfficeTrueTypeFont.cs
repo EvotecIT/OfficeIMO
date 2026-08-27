@@ -31,6 +31,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _hmtx;
     private readonly int _gpos;
     private readonly int _kern;
+    private readonly OfficeOpenTypeKerning _kerning;
     private readonly int _loca;
     private readonly int _maxp;
     private readonly int _name;
@@ -67,6 +68,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _hmtx = tables["hmtx"];
         _gpos = tables.TryGetValue("GPOS", out var gpos) ? gpos : -1;
         _kern = tables.TryGetValue("kern", out var kern) ? kern : -1;
+        _kerning = new OfficeOpenTypeKerning(_data, _kern, _gpos);
         _loca = tables["loca"];
         _maxp = tables["maxp"];
         _name = tables.TryGetValue("name", out var name) ? name : -1;
@@ -633,178 +635,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private int Kerning(ushort left, ushort right) {
-        return KernPairAdjustment(left, right) + GposPairAdjustment(left, right);
-    }
-
-    private int KernPairAdjustment(ushort left, ushort right) {
-        if (_kern < 0 || _kern + 4 > _data.Length || ReadUInt16(_data, _kern) != 0) return 0;
-        var count = ReadUInt16(_data, _kern + 2);
-        var p = _kern + 4;
-        var adjustment = 0;
-        for (var table = 0; table < count; table++) {
-            if (p + 6 > _data.Length) break;
-            var length = ReadUInt16(_data, p + 2);
-            var coverage = ReadUInt16(_data, p + 4);
-            var next = p + length;
-            if (length < 14 || next <= p || next > _data.Length) break;
-            if ((coverage >> 8) == 0) adjustment += KerningFormat0(p, left, right);
-            p = next;
-        }
-
-        return adjustment;
-    }
-
-    private int KerningFormat0(int table, ushort left, ushort right) {
-        var pairs = ReadUInt16(_data, table + 6);
-        var pairOffset = table + 14;
-        var key = ((uint)left << 16) | right;
-        var low = 0;
-        var high = pairs - 1;
-        while (low <= high) {
-            var mid = low + (high - low) / 2;
-            var record = pairOffset + mid * 6;
-            if (record + 6 > _data.Length) return 0;
-            var candidate = (ReadUInt32(_data, record) & 0xffffffffu);
-            if (candidate == key) return ReadInt16(_data, record + 4);
-            if (candidate < key) low = mid + 1;
-            else high = mid - 1;
-        }
-
-        return 0;
-    }
-
-    private int GposPairAdjustment(ushort left, ushort right) {
-        if (_gpos < 0 || !InBounds(_gpos, 10) || ReadUInt16(_data, _gpos) != 1) return 0;
-        var featureList = _gpos + ReadUInt16(_data, _gpos + 6);
-        var lookupList = _gpos + ReadUInt16(_data, _gpos + 8);
-        if (!InBounds(featureList, 2) || !InBounds(lookupList, 2)) return 0;
-
-        var adjustment = 0;
-        var seen = new HashSet<ushort>();
-        foreach (var lookupIndex in GposFeatureLookupIndexes(featureList, "kern")) {
-            if (seen.Add(lookupIndex)) adjustment += GposPairAdjustmentFromLookup(lookupList, lookupIndex, left, right);
-        }
-
-        return adjustment;
-    }
-
-    private IEnumerable<ushort> GposFeatureLookupIndexes(int featureList, string featureTag) {
-        var featureCount = ReadUInt16(_data, featureList);
-        for (var i = 0; i < featureCount; i++) {
-            var record = featureList + 2 + i * 6;
-            if (!InBounds(record, 6)) yield break;
-            if (!TagEquals(record, featureTag)) continue;
-            var feature = featureList + ReadUInt16(_data, record + 4);
-            if (!InBounds(feature, 4)) yield break;
-            var lookupCount = ReadUInt16(_data, feature + 2);
-            for (var lookup = 0; lookup < lookupCount; lookup++) {
-                var indexOffset = feature + 4 + lookup * 2;
-                if (!InBounds(indexOffset, 2)) yield break;
-                yield return ReadUInt16(_data, indexOffset);
-            }
-        }
-    }
-
-    private int GposPairAdjustmentFromLookup(int lookupList, ushort lookupIndex, ushort left, ushort right) {
-        var lookupCount = ReadUInt16(_data, lookupList);
-        if (lookupIndex >= lookupCount) return 0;
-        var lookupOffset = lookupList + 2 + lookupIndex * 2;
-        if (!InBounds(lookupOffset, 2)) return 0;
-        var lookup = lookupList + ReadUInt16(_data, lookupOffset);
-        if (!InBounds(lookup, 6) || ReadUInt16(_data, lookup) != 2) return 0;
-
-        var adjustment = 0;
-        var subtableCount = ReadUInt16(_data, lookup + 4);
-        for (var i = 0; i < subtableCount; i++) {
-            var subtableOffset = lookup + 6 + i * 2;
-            if (!InBounds(subtableOffset, 2)) break;
-            adjustment += GposPairAdjustmentFromSubtable(lookup + ReadUInt16(_data, subtableOffset), left, right);
-        }
-
-        return adjustment;
-    }
-
-    private int GposPairAdjustmentFromSubtable(int subtable, ushort left, ushort right) {
-        if (!InBounds(subtable, 10) || ReadUInt16(_data, subtable) != 1) return 0;
-        var coverage = subtable + ReadUInt16(_data, subtable + 2);
-        var valueFormat1 = ReadUInt16(_data, subtable + 4);
-        var valueFormat2 = ReadUInt16(_data, subtable + 6);
-        var pairSetCount = ReadUInt16(_data, subtable + 8);
-        var coverageIndex = CoverageIndex(coverage, left);
-        if (coverageIndex < 0 || coverageIndex >= pairSetCount) return 0;
-
-        var pairSetOffset = subtable + 10 + coverageIndex * 2;
-        if (!InBounds(pairSetOffset, 2)) return 0;
-        var pairSet = subtable + ReadUInt16(_data, pairSetOffset);
-        if (!InBounds(pairSet, 2)) return 0;
-
-        var value1Size = ValueRecordSize(valueFormat1);
-        var value2Size = ValueRecordSize(valueFormat2);
-        var recordSize = 2 + value1Size + value2Size;
-        var low = 0;
-        var high = ReadUInt16(_data, pairSet) - 1;
-        while (low <= high) {
-            var mid = low + (high - low) / 2;
-            var record = pairSet + 2 + mid * recordSize;
-            if (!InBounds(record, recordSize)) return 0;
-            var candidate = ReadUInt16(_data, record);
-            if (candidate == right) return ReadValueRecordXAdvance(record + 2, valueFormat1);
-            if (candidate < right) low = mid + 1;
-            else high = mid - 1;
-        }
-
-        return 0;
-    }
-
-    private int CoverageIndex(int coverage, ushort glyph) {
-        if (!InBounds(coverage, 4)) return -1;
-        var format = ReadUInt16(_data, coverage);
-        if (format == 1) {
-            var count = ReadUInt16(_data, coverage + 2);
-            var low = 0;
-            var high = count - 1;
-            while (low <= high) {
-                var mid = low + (high - low) / 2;
-                var offset = coverage + 4 + mid * 2;
-                if (!InBounds(offset, 2)) return -1;
-                var candidate = ReadUInt16(_data, offset);
-                if (candidate == glyph) return mid;
-                if (candidate < glyph) low = mid + 1;
-                else high = mid - 1;
-            }
-
-            return -1;
-        }
-
-        if (format != 2) return -1;
-        var rangeCount = ReadUInt16(_data, coverage + 2);
-        for (var i = 0; i < rangeCount; i++) {
-            var range = coverage + 4 + i * 6;
-            if (!InBounds(range, 6)) return -1;
-            var start = ReadUInt16(_data, range);
-            var end = ReadUInt16(_data, range + 2);
-            if (glyph < start || glyph > end) continue;
-            return ReadUInt16(_data, range + 4) + glyph - start;
-        }
-
-        return -1;
-    }
-
-    private int ReadValueRecordXAdvance(int offset, ushort valueFormat) {
-        if ((valueFormat & 0x0001) != 0) offset += 2;
-        if ((valueFormat & 0x0002) != 0) offset += 2;
-        if ((valueFormat & 0x0004) == 0) return 0;
-        return InBounds(offset, 2) ? ReadInt16(_data, offset) : 0;
-    }
-
-    private static int ValueRecordSize(ushort valueFormat) {
-        var size = 0;
-        for (var bit = 1; bit <= 0x0080; bit <<= 1) if ((valueFormat & bit) != 0) size += 2;
-        return size;
-    }
-
-    private bool TagEquals(int offset, string tag) {
-        return InBounds(offset, 4) && _data[offset] == tag[0] && _data[offset + 1] == tag[1] && _data[offset + 2] == tag[2] && _data[offset + 3] == tag[3];
+        return _kerning.Adjustment(left, right);
     }
 
     private List<List<OfficePoint>> ReadGlyphContours(

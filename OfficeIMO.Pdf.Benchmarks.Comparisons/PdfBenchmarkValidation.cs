@@ -36,8 +36,7 @@ internal static class PdfBenchmarkValidation {
             tagged.StructureElements.Count == 0 ||
             tagged.MarkedContentReferenceCount == 0 ||
             !tagged.HasDocumentStructureElement ||
-            tagged.ParentTreeEntryCount != scenario.PageCount ||
-            !tagged.FiguresHaveAlternateText) {
+            tagged.ParentTreeEntryCount != scenario.PageCount) {
             throw new InvalidDataException($"{engine} did not preserve a complete tagged-document structure tree.");
         }
 
@@ -56,6 +55,15 @@ internal static class PdfBenchmarkValidation {
                 throw new InvalidDataException(
                     $"{engine} preserved {actualCount} {requiredType} accessibility elements; expected {expectedCount}.");
             }
+        }
+
+        tagged.StructureTypeCounts.TryGetValue("Figure", out int figureCount);
+        if (figureCount < scenario.PageCount) {
+            throw new InvalidDataException(
+                $"{engine} preserved {figureCount} Figure accessibility elements; expected at least {scenario.PageCount}.");
+        }
+        if (!tagged.FiguresHaveAlternateText) {
+            throw new InvalidDataException($"{engine} did not preserve alternate text for every tagged Figure element.");
         }
 
         tagged.StructureTypeCounts.TryGetValue("P", out int paragraphCount);

@@ -119,6 +119,23 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void Cff1UnshapedMeasurementAndContoursApplyPairKerning() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Source Sans Pro CFF", data).Faces);
+        const double size = 48D;
+
+        double separateWidth = face.Program.Measure("A", size) + face.Program.Measure("V", size);
+        double pairWidth = face.Program.Measure("AV", size);
+        IReadOnlyList<List<OfficePoint>> pairContours = face.Program.GetTextContours("AV", 0D, 0D, size);
+        IReadOnlyList<List<OfficePoint>> vContours = face.Program.GetTextContours("V", 0D, 0D, size);
+        double unkernedRight = face.Program.Measure("A", size) + vContours.SelectMany(contour => contour).Max(point => point.X);
+        double pairRight = pairContours.SelectMany(contour => contour).Max(point => point.X);
+
+        Assert.True(pairWidth < separateWidth, $"Expected AV kerning to reduce {separateWidth}, observed {pairWidth}.");
+        Assert.True(pairRight < unkernedRight, $"Expected the V outline before {unkernedRight}, observed {pairRight}.");
+    }
+
+    [Fact]
     public void CffScalarRenderingSkipsIgnorableShapingControls() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Source Sans Pro CFF", data).Faces);

@@ -4,6 +4,8 @@ using System.Text;
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 internal static class PdfHtmlScenarioBuilder {
+    private const string ReportImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
+
     internal static string Create(PdfBenchmarkScenario scenario) {
         var html = new StringBuilder();
         AppendLine(html, "<!doctype html><html lang=\"en-US\"><head><meta charset=\"utf-8\"><style>");
@@ -12,12 +14,17 @@ internal static class PdfHtmlScenarioBuilder {
         AppendLine(html, ".report-page { break-after: page; page-break-after: always; }");
         AppendLine(html, ".report-page:last-child { break-after: auto; page-break-after: auto; }");
         AppendLine(html, "h1 { font-size: 18pt; margin: 0 0 8pt; } p { margin: 0 0 5pt; }");
+        AppendLine(html, ".report-illustration { display: block; width: 8pt; height: 8pt; margin: 0 0 5pt; }");
         AppendLine(html, "table { width: 100%; border-collapse: collapse; margin-top: 8pt; }");
         AppendLine(html, "th, td { border: 0.5pt solid #7a8497; padding: 3pt; text-align: left; }");
         AppendLine(html, "th { background: #dceffc; font-weight: 700; }</style></head><body>");
         for (int page = 1; page <= scenario.PageCount; page++) {
             AppendLine(html, "<section class=\"report-page\">");
             html.Append("<h1>").Append(WebUtility.HtmlEncode(scenario.PageTitle(page))).Append("</h1>\n");
+            html.Append("<img class=\"report-illustration\" src=\"").Append(ReportImage)
+                .Append("\" alt=\"Benchmark report illustration for page ")
+                .Append(page.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Append("\">\n");
             for (int paragraph = 0; paragraph < scenario.ParagraphsPerPage; paragraph++) {
                 html.Append("<p>").Append(WebUtility.HtmlEncode(scenario.Narrative(page, paragraph))).Append("</p>\n");
             }

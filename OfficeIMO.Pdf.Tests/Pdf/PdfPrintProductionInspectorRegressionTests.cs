@@ -45,6 +45,68 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorFramesRawInlineImagesUsingResourceAliasComponents() {
+        byte[] pdf = BuildInspectionPdf(
+            "BI /W 1 /H 1 /BPC 8 /CS /PrintCmyk ID abcd EI 0 0 0 1 k",
+            resources: "/ColorSpace << /PrintCmyk /DeviceCMYK >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(1, evidence.DeviceCmykImageCount);
+        Assert.Equal(1, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("[99 0 R /Normal]")]
+    [InlineData("[[/Normal] /Multiply]")]
+    [InlineData("[1 /Normal]")]
+    public void ColorInspectorRejectsMalformedBlendModeArrayEntries(string blendMode) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Blend gs",
+            resources: "/ExtGState << /Blend << /BM " + blendMode + " >> >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("/F1 12 Tf (A) Tj")]
+    [InlineData("BT /F1 12 Tf ET (A) Tj")]
+    [InlineData("BT BT /F1 12 Tf (A) Tj ET")]
+    [InlineData("BT /F1 12 Tf (A) Tj")]
+    public void StructureInspectorRejectsTextOperatorsOutsideBalancedTextObjects(string content) {
+        byte[] pdf = BuildInspectionPdf(
+            content,
+            resources: "/Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects: "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.False(evidence.IsComplete);
+        Assert.True(evidence.UninspectableFontResourceCount > 0);
+    }
+
+    [Fact]
+    public void StructureInspectorFramesRawInlineImagesUsingResourceAliasComponents() {
+        byte[] pdf = BuildInspectionPdf(
+            "BI /W 1 /H 1 /BPC 8 /CS /PrintCmyk ID abcd EI BT /F1 12 Tf (A) Tj ET",
+            resources: "/ColorSpace << /PrintCmyk /DeviceCMYK >> /Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects: "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
     public void ColorInspectorPreservesSelectedColorSpaceAcrossOrderedPageContentStreams() {
         byte[] pdf = BuildInspectionPdf(
             "/DeviceRGB cs",
@@ -87,12 +149,12 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     [Fact]
     public void StructureInspectorInterpretsOrderedPageContentStreamsAsOneTokenStream() {
         byte[] pdf = BuildInspectionPdf(
-            "/F1",
+            "BT /F1",
             resources: "/Font << /F1 6 0 R >>",
             pageEntries: "/TrimBox [10 10 90 90]",
             contents: "[4 0 R 5 0 R]",
             extraObjects:
-                "5 0 obj\n<< /Length 6 >>\nstream\n 12 Tf\nendstream\nendobj\n" +
+                "5 0 obj\n<< /Length 9 >>\nstream\n 12 Tf ET\nendstream\nendobj\n" +
                 "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
 
         PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
