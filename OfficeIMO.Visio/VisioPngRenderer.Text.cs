@@ -70,7 +70,7 @@ namespace OfficeIMO.Visio {
             }
 
             return style?.Capitalization == VisioTextCapitalization.InitialCaps
-                ? OfficeTextCaseTransformer.Apply(text, OfficeTextCase.TitleCase, System.Globalization.CultureInfo.InvariantCulture)
+                ? OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Capitalize, System.Globalization.CultureInfo.InvariantCulture)
                 : text;
         }
 

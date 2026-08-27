@@ -1,6 +1,7 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
@@ -174,10 +175,20 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static string GetGoogleText(PowerPointTextRun run) =>
-            run.Capitalization == PowerPointCapitalization.AllCaps
-                ? (run.Text ?? string.Empty).ToUpperInvariant()
-                : run.Text ?? string.Empty;
+        private static string GetGoogleText(PowerPointTextRun run) {
+            string text = run.Text ?? string.Empty;
+            if (run.Capitalization != PowerPointCapitalization.AllCaps) return text;
+            return text.ToUpper(ResolveRunCulture(run.Language));
+        }
+
+        private static CultureInfo ResolveRunCulture(string? language) {
+            if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
+            try {
+                return CultureInfo.GetCultureInfo(language);
+            } catch (CultureNotFoundException) {
+                return CultureInfo.InvariantCulture;
+            }
+        }
 
         private static string? ToGoogleBaselineOffset(double? baselinePercent) => baselinePercent switch {
             > 0 => "SUPERSCRIPT",

@@ -124,7 +124,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
                 ReportUnsupportedBidi(textNode, inheritedStyle);
-                runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle.TextTransform), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement));
+                runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement));
             }
 
             return;
@@ -1195,10 +1195,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (token.Length > 0) yield return token.ToString();
     }
 
-    private static string ApplyTextTransform(string text, string transform) {
+    private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) {
+        string transform = style.TextTransform;
+        string transformed;
         if (transform == "uppercase") return text.ToUpperInvariant();
-        if (transform == "lowercase") return text.ToLowerInvariant();
-        if (transform == "capitalize") {
+        if (transform == "lowercase") {
+            transformed = text.ToLowerInvariant();
+        } else if (transform == "capitalize") {
             var builder = new StringBuilder(text.Length);
             bool capitalize = true;
             foreach (char character in text) {
@@ -1206,10 +1209,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 capitalize = char.IsWhiteSpace(character);
             }
 
-            return builder.ToString();
+            transformed = builder.ToString();
+        } else {
+            transformed = text;
         }
 
-        return text;
+        return style.ApproximateSmallCaps ? transformed.ToUpperInvariant() : transformed;
     }
 
     private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);

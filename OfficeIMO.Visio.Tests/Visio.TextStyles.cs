@@ -200,6 +200,24 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-variant=\"small-caps\"", svg, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void VisioInitialCapsPreservesExistingMixedCaseInRenderedOutputs() {
+            using var stream = new MemoryStream();
+            VisioDocument document = VisioDocument.Create(stream);
+            document.AddPage("InitialCaps").Size(4, 2)
+                .AddRectangle(2, 1, 3, 1, "iPhone PRO")
+                .ApplyTextStyle(new VisioTextStyle {
+                    Capitalization = VisioTextCapitalization.InitialCaps
+                });
+
+            string svg = document.Pages[0].ToSvg();
+            OfficeImageExportResult png = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+
+            Assert.Contains(">IPhone PRO<", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("Iphone Pro", svg, StringComparison.Ordinal);
+            Assert.True(png.Bytes.Length > 32);
+        }
+
         [Theory]
         [InlineData(OfficeImageExportFormat.Png)]
         [InlineData(OfficeImageExportFormat.Svg)]

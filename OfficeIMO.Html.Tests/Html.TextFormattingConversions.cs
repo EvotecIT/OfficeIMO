@@ -18,6 +18,25 @@ namespace OfficeIMO.Tests;
 
 public class HtmlTextFormattingConversionTests {
     [Fact]
+    public void ManagedHtmlRenderingComposesNestedScriptsAndSmallCapsAfterTextTransform() {
+        const string html = """
+            <p><sup><strong>Nested</strong></sup>
+            <span style="font-variant:small-caps;text-transform:lowercase">MiXeD</span></p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions());
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        HtmlRenderText nested = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Nested");
+        HtmlRenderText smallCaps = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "MIXED");
+
+        Assert.Equal(OfficeTextBaseline.Superscript, nested.Baseline);
+        Assert.True((nested.Font.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold);
+        Assert.Equal("MIXED", smallCaps.Text);
+    }
+
+    [Fact]
     public void ManagedHtmlRenderingPreservesDecorationPatternsAndScriptsAcrossDrawingSvgAndRasterFormats() {
         const string html = """
             <p style="font-family:'Aptos';font-size:20px;color:#336699;font-weight:700;font-style:italic">
@@ -145,6 +164,36 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(13D, runs[0].FontSize);
         Assert.Equal(ExcelVerticalTextAlignment.Subscript, runs[1].VerticalTextAlignment);
         Assert.True(runs[1].Strikethrough);
+    }
+
+    [Fact]
+    public void ExcelSemanticHtmlRoundTripRetainsTypographyOnEmptyTemplateCells() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Template");
+        sheet.CellAt(1, 1).SetValue("Anchor");
+        sheet.CellAt(1, 2).SetBold().SetItalic()
+            .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
+            .SetSubscript().SetFontName("Aptos").SetFontSize(14).SetFontColor("336699");
+
+        string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        Assert.Contains("data-officeimo-empty=\"true\"", html, StringComparison.Ordinal);
+
+        using ExcelDocument imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult()
+            .RequireValue();
+        ExcelSheet actualSheet = Assert.Single(imported.Sheets);
+        ExcelCellStyleSnapshot style = actualSheet.GetCellStyle(1, 2);
+
+        Assert.False(actualSheet.TryGetCellValueSnapshot(1, 2, out _));
+        Assert.True(style.Bold);
+        Assert.True(style.Italic);
+        Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, style.UnderlineStyle);
+        Assert.True(style.Strikethrough);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript, style.VerticalTextAlignment);
+        Assert.Equal("Aptos", style.FontName);
+        Assert.Equal(14D, style.FontSize);
+        Assert.Equal("336699", style.FontColorHex);
     }
 
     [Fact]

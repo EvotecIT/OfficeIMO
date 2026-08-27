@@ -99,7 +99,6 @@ internal sealed partial class HtmlRenderStyleResolver {
             ? parent?.TextTransform ?? "none"
             : computed.GetValue("text-transform").Trim().ToLowerInvariant();
         bool approximateSmallCaps = fontVariant.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
-        if (approximateSmallCaps && textTransform == "none") textTransform = "uppercase";
 
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
@@ -112,7 +111,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             StrikethroughStyle = (fontStyle & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
                 ? decorationStyle
                 : OfficeTextDecorationStyle.None,
-            Baseline = ResolveTextBaseline(pseudoElement ? string.Empty : tag, computed.GetValue("vertical-align")),
+            Baseline = ResolveTextBaseline(
+                pseudoElement ? string.Empty : tag,
+                computed.GetValue("vertical-align"),
+                parent?.Baseline ?? OfficeTextBaseline.Normal),
             Color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
@@ -127,6 +129,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             ListStyleType = ResolveListStyleType(computed),
             FontVariant = fontVariant,
             TextTransform = textTransform,
+            ApproximateSmallCaps = approximateSmallCaps,
             Direction = direction,
             OverflowWrap = ResolveOverflowWrap(computed.GetValue("overflow-wrap"), parent?.OverflowWrap),
             WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
@@ -520,10 +523,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         _ => OfficeTextDecorationStyle.Single
     };
 
-    private static OfficeTextBaseline ResolveTextBaseline(string tag, string value) {
+    private static OfficeTextBaseline ResolveTextBaseline(string tag, string value, OfficeTextBaseline inherited) {
         string normalized = value.Trim().ToLowerInvariant();
         if (tag == "sup" || normalized == "super") return OfficeTextBaseline.Superscript;
         if (tag == "sub" || normalized == "sub") return OfficeTextBaseline.Subscript;
+        if (normalized.Length == 0) return inherited;
         return OfficeTextBaseline.Normal;
     }
 

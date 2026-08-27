@@ -171,7 +171,7 @@ namespace OfficeIMO.Visio {
 
         private static string ResolveSvgDisplayText(string text, VisioTextStyle? style) => style?.Capitalization switch {
             VisioTextCapitalization.AllCaps => OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, CultureInfo.InvariantCulture),
-            VisioTextCapitalization.InitialCaps => OfficeTextCaseTransformer.Apply(text, OfficeTextCase.TitleCase, CultureInfo.InvariantCulture),
+            VisioTextCapitalization.InitialCaps => OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Capitalize, CultureInfo.InvariantCulture),
             _ => text
         };
 

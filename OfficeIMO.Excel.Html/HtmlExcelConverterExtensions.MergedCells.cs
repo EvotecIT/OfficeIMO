@@ -85,12 +85,13 @@ public static partial class HtmlExcelConverterExtensions {
                 ReserveSpan(occupiedCells, cellRow, cellColumn, rowSpan, columnSpan);
 
                 string text = NormalizeText(cell.TextContent);
+                ExcelCell targetCell = sheet.CellAt(cellRow, cellColumn);
                 if (!IsSemanticEmptyCell(cell) && (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null)) {
                     if (SetCellValue(sheet, cellRow, cellColumn, cell, text, result, options, budget, importedFormulaCells, useSemanticValues)) {
-                        ApplyImportedCellTextFormatting(cell, sheet.CellAt(cellRow, cellColumn));
                         result.Cells++;
                     }
                 }
+                ApplyImportedCellTextFormatting(cell, targetCell);
 
                 if (rowSpan > 1 || columnSpan > 1) {
                     sheet.MergeRange(BuildRangeReference(cellRow, cellColumn, cellRow + rowSpan - 1, cellColumn + columnSpan - 1));

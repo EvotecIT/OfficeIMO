@@ -141,6 +141,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_MaterializesAllCapsUsingTheRunLanguage() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextRun run = presentation.AddSlide()
+                .AddTextBoxPoints("i", 20, 30, 300, 80)
+                .Paragraphs[0].Runs[0];
+            run.Capitalization = PowerPointCapitalization.AllCaps;
+            run.Language = "tr-TR";
+
+            GoogleSlidesTextBox compiled = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTextBox>());
+
+            Assert.Equal("İ", compiled.Text);
+        }
+
+        [Fact]
         public void BatchCompiler_DoesNotSendUnsupportedNativeImageFormats() {
             string svgPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
             try {

@@ -29,12 +29,12 @@ internal static class OneNoteSemanticHtmlRenderer {
 
     private static void AppendHierarchy(StringBuilder html, IList<OneNoteSection> sections, IList<OneNoteSectionGroup> groups,
         int headingLevel, OneNoteMarkdownOptions options, int depth) {
-        if (depth >= options.MaxSectionGroupDepth) return;
         foreach (HierarchyItem item in Order(sections, groups)) {
             if (item.Section != null) {
                 AppendHeading(html, headingLevel, Name(item.Section.Name, "OneNote section"));
                 foreach (OneNotePage page in item.Section.Pages) AppendPageWithRelated(html, page, Math.Min(6, headingLevel + 1), null, options, 0);
             } else {
+                if (depth >= options.MaxSectionGroupDepth) continue;
                 OneNoteSectionGroup group = item.Group!;
                 AppendHeading(html, headingLevel, Name(group.Name, "Section group"));
                 AppendHierarchy(html, group.Sections, group.SectionGroups, Math.Min(6, headingLevel + 1), options, depth + 1);

@@ -104,7 +104,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        var run = new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style.TextTransform), style, item.Link, item.Source);
+        var run = new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source);
         HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
@@ -148,6 +148,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         StrikethroughStyle = parentStyle.StrikethroughStyle,
         Baseline = parentStyle.Baseline,
         FontVariant = parentStyle.FontVariant,
+        ApproximateSmallCaps = parentStyle.ApproximateSmallCaps,
         Color = parentStyle.Color,
         Alignment = parentStyle.Alignment,
         LineHeight = parentStyle.LineHeight,
