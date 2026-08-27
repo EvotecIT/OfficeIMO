@@ -146,13 +146,34 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
                 "/ColorSpace << /PrintRgb /DeviceRGB >> " +
                 "/ExtGState << /GS1 << /SMask << /S /Luminosity /G 5 0 R >> >> >>",
             extraObjects:
-                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency >> /Length " +
                 formContent.Length + " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
         Assert.Equal(2, evidence.DeviceRgbOperatorCount);
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("/G 5 0 R", "/Group << /S /Transparency >>")]
+    [InlineData("/S /Bogus /G 5 0 R", "/Group << /S /Transparency >>")]
+    [InlineData("/S /Alpha /G 5 0 R", "")]
+    [InlineData("/S /Luminosity /G 5 0 R", "/Group << /S /Bogus >>")]
+    public void ColorInspectorFailsClosedOnMalformedReachableSoftMask(
+        string softMaskEntries,
+        string formGroup) {
+        byte[] pdf = BuildInspectionPdf(
+            "/GS1 gs",
+            resources: "/ExtGState << /GS1 << /SMask << " + softMaskEntries + " >> >> >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " + formGroup +
+                " /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
     [Fact]
@@ -365,6 +386,19 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableFontResourceCount);
     }
 
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public void StructureInspectorValidatesTrueTypeGlyphLocations(bool validLoca, int expectedUnembedded) {
+        byte[] pdf = BuildTrueTypeInspectionPdf(BuildMinimalTrueTypeProgram(validLoca));
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(expectedUnembedded, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
     [Fact]
     public void StructureInspectorRejectsType0FontWithoutValidDescendant() {
         const string type1Program = "%!PS-AdobeFont fixture eexec";
@@ -560,6 +594,16 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.True(structure.UninspectableFontResourceCount > 0);
     }
 
+    [Fact]
+    public void ColorInspectorFailsClosedOnUnterminatedContentString() {
+        byte[] pdf = BuildInspectionPdf("(unterminated");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Theory]
     [InlineData("/ca /Bogus")]
     [InlineData("/CA 2")]
@@ -740,6 +784,62 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         output.Write(type1Program, 0, type1Program.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static byte[] BuildTrueTypeInspectionPdf(byte[] trueTypeProgram) {
+        byte[] content = Encoding.ASCII.GetBytes("BT /F1 12 Tf (A) Tj ET");
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /TrimBox [10 10 90 90] /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + content.Length + " >>\nstream\n");
+        output.Write(content, 0, content.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /TrueType /BaseFont /Fixture /FontDescriptor 6 0 R >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 7 0 R >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Length " + trueTypeProgram.Length + " >>\nstream\n");
+        output.Write(trueTypeProgram, 0, trueTypeProgram.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildMinimalTrueTypeProgram(bool validLoca) {
+        const int directoryLength = 12 + 4 * 16;
+        const int headOffset = directoryLength;
+        const int maxpOffset = 132;
+        const int locaOffset = 140;
+        int locaLength = validLoca ? 8 : 4;
+        int glyfOffset = locaOffset + locaLength;
+        var data = new byte[glyfOffset + 10];
+        WriteUInt32BigEndian(data, 0, 0x00010000U);
+        WriteUInt16BigEndian(data, 4, 4);
+        WriteTableRecord(data, 12, "head", headOffset, 54);
+        WriteTableRecord(data, 28, "maxp", maxpOffset, 6);
+        WriteTableRecord(data, 44, "loca", locaOffset, locaLength);
+        WriteTableRecord(data, 60, "glyf", glyfOffset, 10);
+        WriteUInt16BigEndian(data, headOffset + 50, 1); // Long loca offsets.
+        WriteUInt16BigEndian(data, maxpOffset + 4, 1); // One glyph plus two loca entries.
+        if (validLoca) WriteUInt32BigEndian(data, locaOffset + 4, 10);
+        return data;
+    }
+
+    private static void WriteTableRecord(byte[] data, int offset, string tag, int tableOffset, int tableLength) {
+        for (int index = 0; index < 4; index++) data[offset + index] = (byte)tag[index];
+        WriteUInt32BigEndian(data, offset + 8, checked((uint)tableOffset));
+        WriteUInt32BigEndian(data, offset + 12, checked((uint)tableLength));
+    }
+
+    private static void WriteUInt16BigEndian(byte[] data, int offset, int value) {
+        data[offset] = (byte)(value >> 8);
+        data[offset + 1] = (byte)value;
+    }
+
+    private static void WriteUInt32BigEndian(byte[] data, int offset, uint value) {
+        data[offset] = (byte)(value >> 24);
+        data[offset + 1] = (byte)(value >> 16);
+        data[offset + 2] = (byte)(value >> 8);
+        data[offset + 3] = (byte)value;
     }
 
     private static byte[] BuildXmpInspectionPdf(string xmp) {

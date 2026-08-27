@@ -199,7 +199,7 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
-    public void ItemVariationStoreAllowsNullDataOffsetsAsAbsentSelections() {
+    public void ItemVariationStoreRejectsNullDataOffsets() {
         byte[] source = ReadAsset("RobotoFlex.ttf");
         byte[] data = new byte[source.Length + 16];
         Buffer.BlockCopy(source, 0, data, 0, source.Length);
@@ -207,7 +207,7 @@ public sealed class DrawingTrueTypeVariableFontTests {
         WriteUInt16(data, store, 1); // format
         WriteUInt32(data, store + 2, 12); // VariationRegionList offset
         WriteUInt16(data, store + 6, 1); // ItemVariationData count
-        WriteUInt32(data, store + 8, 0); // valid NULL ItemVariationData offset
+        WriteUInt32(data, store + 8, 0); // ItemVariationData offsets are not nullable.
 
         OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
         OfficeFontVariationModel model = OfficeFontVariationModel.Create(
@@ -216,14 +216,11 @@ public sealed class DrawingTrueTypeVariableFontTests {
         WriteUInt16(data, store + 12, model.AxisCount);
         WriteUInt16(data, store + 14, 0); // no regions are required by an absent selection
 
-        OfficeOpenTypeItemVariationStore variationStore = OfficeOpenTypeItemVariationStore.Parse(
+        Assert.Throws<InvalidDataException>(() => OfficeOpenTypeItemVariationStore.Parse(
             reader,
             store,
             data.Length,
-            model);
-
-        Assert.Equal(0, variationStore.Evaluate(0, 0));
-        Assert.Throws<InvalidDataException>(() => variationStore.Evaluate(1, 0));
+            model));
     }
 
     [Theory]

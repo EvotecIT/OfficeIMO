@@ -69,8 +69,7 @@ internal sealed class OfficeOpenTypeItemVariationStore {
         for (int dataIndex = 0; dataIndex < dataCount; dataIndex++) {
             uint relativeValue = reader.ReadUInt32(offset + 8 + dataIndex * 4);
             if (relativeValue == 0) {
-                dataSets[dataIndex] = default;
-                continue;
+                throw new InvalidDataException("An ItemVariationData offset cannot be zero.");
             }
             if (relativeValue > int.MaxValue) throw new InvalidDataException("An ItemVariationData offset is invalid.");
             int dataOffset = checked(offset + (int)relativeValue);

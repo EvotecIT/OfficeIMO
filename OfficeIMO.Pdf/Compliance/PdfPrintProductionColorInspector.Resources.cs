@@ -333,6 +333,13 @@ internal static partial class PdfPrintProductionColorInspector {
                 graphicsStateDepth + 1,
                 limits.MaxObjectNestingDepth,
                 out int softMaskDepth) is not PdfDictionary softMask ||
+            ResolveName(
+                softMask.Items.TryGetValue("S", out PdfObject? softMaskSubtypeObject)
+                    ? softMaskSubtypeObject
+                    : null,
+                objects,
+                limits.MaxObjectNestingDepth) is not string softMaskSubtype ||
+            softMaskSubtype is not ("Alpha" or "Luminosity") ||
             !softMask.Items.TryGetValue("G", out PdfObject? groupObject) ||
             ResolveObject(
                 objects,
@@ -340,6 +347,23 @@ internal static partial class PdfPrintProductionColorInspector {
                 softMaskDepth + 1,
                 limits.MaxObjectNestingDepth,
                 out int groupDepth) is not PdfStream group) return false;
+        if (!string.Equals(
+                ResolveName(
+                    group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? groupSubtypeObject)
+                        ? groupSubtypeObject
+                        : null,
+                    objects,
+                    limits.MaxObjectNestingDepth),
+                "Form",
+                StringComparison.Ordinal) ||
+            !TryClassifyTransparencyGroup(
+                group.Dictionary,
+                context.Aliases,
+                objects,
+                limits.MaxObjectNestingDepth,
+                out bool isTransparencyGroup,
+                out _) ||
+            !isTransparencyGroup) return false;
         return AddNestedStream(
             group,
             groupDepth,

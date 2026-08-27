@@ -61,6 +61,14 @@ internal static partial class PdfPrintProductionStructureInspector {
         bool hasLoca = false;
         bool hasCff = false;
         bool cffIsVersion2 = false;
+        int headOffset = 0;
+        int headLength = 0;
+        int maxpOffset = 0;
+        int maxpLength = 0;
+        int glyfOffset = 0;
+        int glyfLength = 0;
+        int locaOffset = 0;
+        int locaLength = 0;
         int cffOffset = 0;
         int cffLength = 0;
         var tableRanges = new List<(uint Offset, uint Length)>(tableCount);
@@ -85,10 +93,26 @@ internal static partial class PdfPrintProductionStructureInspector {
             });
             if (!tableTags.Add(tag)) return false;
             switch (tag) {
-                case "head": hasHead = tableLength >= 54; break;
-                case "maxp": hasMaxp = tableLength >= 6; break;
-                case "glyf": hasGlyf = tableLength > 0; break;
-                case "loca": hasLoca = tableLength >= 4; break;
+                case "head":
+                    hasHead = tableLength >= 54;
+                    headOffset = (int)tableOffset;
+                    headLength = (int)tableLength;
+                    break;
+                case "maxp":
+                    hasMaxp = tableLength >= 6;
+                    maxpOffset = (int)tableOffset;
+                    maxpLength = (int)tableLength;
+                    break;
+                case "glyf":
+                    hasGlyf = tableLength > 0;
+                    glyfOffset = (int)tableOffset;
+                    glyfLength = (int)tableLength;
+                    break;
+                case "loca":
+                    hasLoca = tableLength >= 4;
+                    locaOffset = (int)tableOffset;
+                    locaLength = (int)tableLength;
+                    break;
                 case "CFF ":
                 case "CFF2":
                     hasCff = tableLength >= 4;
@@ -100,7 +124,18 @@ internal static partial class PdfPrintProductionStructureInspector {
         }
 
         if (!hasHead || !hasMaxp) return false;
-        if (isTrueType) return hasGlyf && hasLoca;
+        if (isTrueType) {
+            return hasGlyf && hasLoca && IsValidTrueTypeGlyphLocations(
+                data,
+                headOffset,
+                headLength,
+                maxpOffset,
+                maxpLength,
+                glyfOffset,
+                glyfLength,
+                locaOffset,
+                locaLength);
+        }
         if (!hasCff) return false;
         var cff = new byte[cffLength];
         Buffer.BlockCopy(data, cffOffset, cff, 0, cffLength);
@@ -109,6 +144,43 @@ internal static partial class PdfPrintProductionStructureInspector {
             ? false
             : null;
         return IsValidCff1Program(cff, requireCidKeyed);
+    }
+
+    private static bool IsValidTrueTypeGlyphLocations(
+        byte[] data,
+        int headOffset,
+        int headLength,
+        int maxpOffset,
+        int maxpLength,
+        int glyfOffset,
+        int glyfLength,
+        int locaOffset,
+        int locaLength) {
+        if (headLength < 54 || maxpLength < 6 || glyfLength <= 0 || locaLength < 4 ||
+            headOffset < 0 || headOffset > data.Length - headLength ||
+            maxpOffset < 0 || maxpOffset > data.Length - maxpLength ||
+            glyfOffset < 0 || glyfOffset > data.Length - glyfLength ||
+            locaOffset < 0 || locaOffset > data.Length - locaLength) return false;
+
+        short indexToLocFormat = unchecked((short)ReadUInt16BigEndian(data, headOffset + 50));
+        if (indexToLocFormat != 0 && indexToLocFormat != 1) return false;
+        int glyphCount = ReadUInt16BigEndian(data, maxpOffset + 4);
+        if (glyphCount <= 0) return false;
+        int entrySize = indexToLocFormat == 0 ? 2 : 4;
+        int expectedLocaLength = checked((glyphCount + 1) * entrySize);
+        if (locaLength != expectedLocaLength) return false;
+
+        uint previous = 0;
+        for (int index = 0; index <= glyphCount; index++) {
+            int entryOffset = checked(locaOffset + index * entrySize);
+            uint current = indexToLocFormat == 0
+                ? checked((uint)ReadUInt16BigEndian(data, entryOffset) * 2U)
+                : ReadUInt32BigEndian(data, entryOffset);
+            if (current < previous || current > glyfLength) return false;
+            if (index > 0 && current > previous && current - previous < 10U) return false;
+            previous = current;
+        }
+        return true;
     }
 
     private static bool IsValidCff1Program(byte[] data, bool? requireCidKeyed) {

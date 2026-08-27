@@ -390,8 +390,8 @@ internal sealed class OfficeType2CharStringInterpreter {
         double dx = _stack[0] + _stack[2] + _stack[4] + _stack[6] + _stack[8];
         double dy = _stack[1] + _stack[3] + _stack[5] + _stack[7] + _stack[9];
         bool horizontallyDominant = Math.Abs(dx) > Math.Abs(dy);
-        double dx6 = horizontallyDominant ? -dx : _stack[10];
-        double dy6 = horizontallyDominant ? _stack[10] : -dy;
+        double dx6 = horizontallyDominant ? _stack[10] : -dx;
+        double dy6 = horizontallyDominant ? -dy : _stack[10];
         CurveBy(0);
         CurveBy(_stack[6], _stack[7], _stack[8], _stack[9], dx6, dy6);
         _stack.Clear();

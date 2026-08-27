@@ -476,9 +476,9 @@ public sealed class DrawingCffFontTests {
     }
 
     [Theory]
-    [InlineData(true, 0D, 12D)]
-    [InlineData(false, 12D, 0D)]
-    public void CffFlex1AppliesTheFinalDeltaToTheMinorAxis(
+    [InlineData(true, 57D, 0D)]
+    [InlineData(false, 0D, 57D)]
+    public void CffFlex1AppliesTheFinalDeltaToTheDominantAxis(
         bool horizontallyDominant,
         double expectedX,
         double expectedY) {
