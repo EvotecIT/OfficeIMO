@@ -264,10 +264,14 @@ internal static partial class PdfPrintProductionColorInspector {
                                 colorState.Stack.Push(new ContentColorStateSnapshot(
                                     colorState.FillUsesDeviceRgb,
                                     colorState.StrokeUsesDeviceRgb,
-                                    colorState.FillUsesDeviceCmyk,
-                                    colorState.StrokeUsesDeviceCmyk,
-                                    colorState.FillUsesDeviceIndependentColor,
-                                    colorState.StrokeUsesDeviceIndependentColor));
+                                colorState.FillUsesDeviceCmyk,
+                                colorState.StrokeUsesDeviceCmyk,
+                                colorState.FillUsesDeviceIndependentColor,
+                                colorState.StrokeUsesDeviceIndependentColor,
+                                colorState.FillComponentCount,
+                                colorState.StrokeComponentCount,
+                                colorState.FillUsesPattern,
+                                colorState.StrokeUsesPattern));
                                 break;
                             case "Q":
                                 if (colorState.Stack.Count > 0) {
@@ -278,71 +282,111 @@ internal static partial class PdfPrintProductionColorInspector {
                                     colorState.StrokeUsesDeviceCmyk = restored.StrokeUsesDeviceCmyk;
                                     colorState.FillUsesDeviceIndependentColor = restored.FillUsesDeviceIndependentColor;
                                     colorState.StrokeUsesDeviceIndependentColor = restored.StrokeUsesDeviceIndependentColor;
+                                    colorState.FillComponentCount = restored.FillComponentCount;
+                                    colorState.StrokeComponentCount = restored.StrokeComponentCount;
+                                    colorState.FillUsesPattern = restored.FillUsesPattern;
+                                    colorState.StrokeUsesPattern = restored.StrokeUsesPattern;
                                 } else {
                                     contextWasUninspectable = true;
                                 }
                                 break;
                             case "rg":
+                                if (!HasNumericColorOperands(operation, 3)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 ApplyColorSpaceUsage(
                                     aliases.DefaultRgb ?? ColorSpaceUsage.DeviceRgb,
                                     ref colorState.FillUsesDeviceRgb,
                                     ref colorState.FillUsesDeviceCmyk,
                                     ref colorState.FillUsesDeviceIndependentColor,
+                                    ref colorState.FillComponentCount,
+                                    ref colorState.FillUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
                                     ref contextWasUninspectable);
                                 break;
                             case "RG":
+                                if (!HasNumericColorOperands(operation, 3)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 ApplyColorSpaceUsage(
                                     aliases.DefaultRgb ?? ColorSpaceUsage.DeviceRgb,
                                     ref colorState.StrokeUsesDeviceRgb,
                                     ref colorState.StrokeUsesDeviceCmyk,
                                     ref colorState.StrokeUsesDeviceIndependentColor,
+                                    ref colorState.StrokeComponentCount,
+                                    ref colorState.StrokeUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
                                     ref contextWasUninspectable);
                                 break;
                             case "k":
+                                if (!HasNumericColorOperands(operation, 4)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 ApplyColorSpaceUsage(
                                     aliases.DefaultCmyk ?? ColorSpaceUsage.DeviceCmyk,
                                     ref colorState.FillUsesDeviceRgb,
                                     ref colorState.FillUsesDeviceCmyk,
                                     ref colorState.FillUsesDeviceIndependentColor,
+                                    ref colorState.FillComponentCount,
+                                    ref colorState.FillUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
                                     ref contextWasUninspectable);
                                 break;
                             case "K":
+                                if (!HasNumericColorOperands(operation, 4)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 ApplyColorSpaceUsage(
                                     aliases.DefaultCmyk ?? ColorSpaceUsage.DeviceCmyk,
                                     ref colorState.StrokeUsesDeviceRgb,
                                     ref colorState.StrokeUsesDeviceCmyk,
                                     ref colorState.StrokeUsesDeviceIndependentColor,
+                                    ref colorState.StrokeComponentCount,
+                                    ref colorState.StrokeUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
                                     ref contextWasUninspectable);
                                 break;
                             case "g":
+                                if (!HasNumericColorOperands(operation, 1)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 ApplyColorSpaceUsage(
                                     aliases.DefaultGray ?? ColorSpaceUsage.DeviceGray,
                                     ref colorState.FillUsesDeviceRgb,
                                     ref colorState.FillUsesDeviceCmyk,
                                     ref colorState.FillUsesDeviceIndependentColor,
+                                    ref colorState.FillComponentCount,
+                                    ref colorState.FillUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
                                     ref contextWasUninspectable);
                                 break;
                             case "G":
+                                if (!HasNumericColorOperands(operation, 1)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 ApplyColorSpaceUsage(
                                     aliases.DefaultGray ?? ColorSpaceUsage.DeviceGray,
                                     ref colorState.StrokeUsesDeviceRgb,
                                     ref colorState.StrokeUsesDeviceCmyk,
                                     ref colorState.StrokeUsesDeviceIndependentColor,
+                                    ref colorState.StrokeComponentCount,
+                                    ref colorState.StrokeUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
@@ -354,6 +398,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                     ref colorState.FillUsesDeviceRgb,
                                     ref colorState.FillUsesDeviceCmyk,
                                     ref colorState.FillUsesDeviceIndependentColor,
+                                    ref colorState.FillComponentCount,
+                                    ref colorState.FillUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
@@ -365,6 +411,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                     ref colorState.StrokeUsesDeviceRgb,
                                     ref colorState.StrokeUsesDeviceCmyk,
                                     ref colorState.StrokeUsesDeviceIndependentColor,
+                                    ref colorState.StrokeComponentCount,
+                                    ref colorState.StrokeUsesPattern,
                                     ref rgbOperators,
                                     ref cmykOperators,
                                     ref deviceIndependentColorUses,
@@ -372,12 +420,26 @@ internal static partial class PdfPrintProductionColorInspector {
                                 break;
                             case "sc":
                             case "scn":
+                                if (!HasSelectedColorOperands(
+                                        operation,
+                                        colorState.FillComponentCount,
+                                        colorState.FillUsesPattern)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 if (colorState.FillUsesDeviceRgb) rgbOperators++;
                                 if (colorState.FillUsesDeviceCmyk) cmykOperators++;
                                 if (colorState.FillUsesDeviceIndependentColor) deviceIndependentColorUses++;
                                 break;
                             case "SC":
                             case "SCN":
+                                if (!HasSelectedColorOperands(
+                                        operation,
+                                        colorState.StrokeComponentCount,
+                                        colorState.StrokeUsesPattern)) {
+                                    contextWasUninspectable = true;
+                                    break;
+                                }
                                 if (colorState.StrokeUsesDeviceRgb) rgbOperators++;
                                 if (colorState.StrokeUsesDeviceCmyk) cmykOperators++;
                                 if (colorState.StrokeUsesDeviceIndependentColor) deviceIndependentColorUses++;
@@ -529,11 +591,7 @@ internal static partial class PdfPrintProductionColorInspector {
         CollectResourceColorSpaces(
             resources,
             objects,
-            aliases.Rgb,
-            aliases.Cmyk,
-            aliases.Gray,
-            aliases.Pattern,
-            aliases.DeviceIndependent,
+            aliases,
             maximumObjectDepth);
         if (resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) &&
             ResolveObject(objects, colorSpacesObject, 0, maximumObjectDepth) is PdfDictionary colorSpaces) {
@@ -603,17 +661,11 @@ internal static partial class PdfPrintProductionColorInspector {
             string colorSpaceName = normalizeInlineImageAbbreviations
                 ? NormalizeInlineImageColorSpaceName(name.Name)
                 : name.Name;
-            if (string.Equals(colorSpaceName, "DeviceRGB", StringComparison.Ordinal) ||
-                aliases?.Rgb.Contains(colorSpaceName) == true) return ColorSpaceUsage.DeviceRgb;
-            if (string.Equals(colorSpaceName, "DeviceCMYK", StringComparison.Ordinal) ||
-                aliases?.Cmyk.Contains(colorSpaceName) == true) return ColorSpaceUsage.DeviceCmyk;
-            if (string.Equals(colorSpaceName, "DeviceGray", StringComparison.Ordinal) ||
-                aliases?.Gray.Contains(colorSpaceName) == true) return ColorSpaceUsage.DeviceGray;
-            if (string.Equals(colorSpaceName, "Pattern", StringComparison.Ordinal) ||
-                aliases?.Pattern.Contains(colorSpaceName) == true) return ColorSpaceUsage.Pattern;
-            if (aliases?.DeviceIndependent.Contains(colorSpaceName) == true) {
-                return ColorSpaceUsage.DeviceIndependent;
-            }
+            if (string.Equals(colorSpaceName, "DeviceRGB", StringComparison.Ordinal)) return ColorSpaceUsage.DeviceRgb;
+            if (string.Equals(colorSpaceName, "DeviceCMYK", StringComparison.Ordinal)) return ColorSpaceUsage.DeviceCmyk;
+            if (string.Equals(colorSpaceName, "DeviceGray", StringComparison.Ordinal)) return ColorSpaceUsage.DeviceGray;
+            if (string.Equals(colorSpaceName, "Pattern", StringComparison.Ordinal)) return ColorSpaceUsage.Pattern;
+            if (aliases?.Named.TryGetValue(colorSpaceName, out ColorSpaceUsage? namedUsage) == true) return namedUsage;
             return ColorSpaceUsage.Unknown;
         }
         if (resolved is not PdfArray array || !activeArrays.Add(array)) return ColorSpaceUsage.Unknown;
@@ -626,11 +678,15 @@ internal static partial class PdfPrintProductionColorInspector {
 
             switch (family.Name) {
                 case "CalGray":
+                    return array.Items.Count == 2 &&
+                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary
+                        ? ColorSpaceUsage.DeviceIndependentWithComponents(1)
+                        : ColorSpaceUsage.Unknown;
                 case "CalRGB":
                 case "Lab":
                     return array.Items.Count == 2 &&
                         ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary
-                        ? ColorSpaceUsage.DeviceIndependent
+                        ? ColorSpaceUsage.DeviceIndependentWithComponents(3)
                         : ColorSpaceUsage.Unknown;
                 case "ICCBased":
                     if (array.Items.Count != 2 ||
@@ -639,7 +695,7 @@ internal static partial class PdfPrintProductionColorInspector {
                         (components != 1D && components != 3D && components != 4D)) {
                         return ColorSpaceUsage.Unknown;
                     }
-                    return ColorSpaceUsage.DeviceIndependent;
+                    return ColorSpaceUsage.DeviceIndependentWithComponents((int)components);
                 case "Indexed":
                 case "I":
                     if (array.Items.Count != 4 ||
@@ -649,7 +705,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     }
                     return ClassifyColorSpaceCore(
                         array.Items[1], objects, maximumObjectDepth, aliases, normalizeInlineImageAbbreviations,
-                        activeArrays, resolvedDepth + 1);
+                        activeArrays, resolvedDepth + 1).WithComponentCount(1);
                 case "Separation":
                     if (array.Items.Count != 4 ||
                         ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is not PdfName ||
@@ -658,7 +714,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     }
                     return ClassifyColorSpaceCore(
                         array.Items[2], objects, maximumObjectDepth, aliases, normalizeInlineImageAbbreviations,
-                        activeArrays, resolvedDepth + 1);
+                        activeArrays, resolvedDepth + 1).WithComponentCount(1);
                 case "DeviceN":
                     if ((array.Items.Count != 4 && array.Items.Count != 5) ||
                         ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is not PdfArray colorants ||
@@ -671,7 +727,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     }
                     return ClassifyColorSpaceCore(
                         array.Items[2], objects, maximumObjectDepth, aliases, normalizeInlineImageAbbreviations,
-                        activeArrays, resolvedDepth + 1);
+                        activeArrays, resolvedDepth + 1).WithComponentCount(colorants.Items.Count);
                 case "Pattern":
                     if (array.Items.Count == 1) return ColorSpaceUsage.Pattern;
                     if (array.Items.Count != 2) return ColorSpaceUsage.Unknown;
@@ -723,6 +779,8 @@ internal static partial class PdfPrintProductionColorInspector {
         ref bool usesRgb,
         ref bool usesCmyk,
         ref bool usesDeviceIndependent,
+        ref int componentCount,
+        ref bool usesPattern,
         ref int rgbOperators,
         ref int cmykOperators,
         ref int deviceIndependentColorUses,
@@ -730,10 +788,37 @@ internal static partial class PdfPrintProductionColorInspector {
         usesRgb = usage.UsesDeviceRgb;
         usesCmyk = usage.UsesDeviceCmyk;
         usesDeviceIndependent = usage.UsesDeviceIndependent;
+        componentCount = usage.ComponentCount;
+        usesPattern = usage.UsesPattern;
         if (!usage.IsKnown) contextWasUninspectable = true;
         if (usesRgb) rgbOperators++;
         if (usesCmyk) cmykOperators++;
         if (usesDeviceIndependent) deviceIndependentColorUses++;
+    }
+
+    private static bool HasNumericColorOperands(PdfContentOperation operation, int expectedCount) {
+        if (operation.Operands.Count != expectedCount) return false;
+        for (int index = 0; index < operation.Operands.Count; index++) {
+            if (operation.Operands[index] is not double) return false;
+        }
+        return true;
+    }
+
+    private static bool HasSelectedColorOperands(
+        PdfContentOperation operation,
+        int componentCount,
+        bool usesPattern) {
+        if (componentCount < 0) return false;
+        int expectedCount = componentCount + (usesPattern ? 1 : 0);
+        if (operation.Operands.Count != expectedCount) return false;
+        if (usesPattern &&
+            ((!string.Equals(operation.Name, "scn", StringComparison.Ordinal) &&
+              !string.Equals(operation.Name, "SCN", StringComparison.Ordinal)) ||
+             operation.Operands[expectedCount - 1] is not string)) return false;
+        for (int index = 0; index < componentCount; index++) {
+            if (operation.Operands[index] is not double) return false;
+        }
+        return true;
     }
 
     private static ColorSpaceUsage ClassifySelectedColorSpace(
@@ -743,45 +828,26 @@ internal static partial class PdfPrintProductionColorInspector {
             return ColorSpaceUsage.Unknown;
         }
 
-        bool usesRgb = string.Equals(colorSpaceName, "DeviceRGB", StringComparison.Ordinal) ||
-            aliases.Rgb.Contains(colorSpaceName);
-        bool usesCmyk = string.Equals(colorSpaceName, "DeviceCMYK", StringComparison.Ordinal) ||
-            aliases.Cmyk.Contains(colorSpaceName);
-        bool usesGray = string.Equals(colorSpaceName, "DeviceGray", StringComparison.Ordinal) ||
-            aliases.Gray.Contains(colorSpaceName);
-        bool usesPattern = string.Equals(colorSpaceName, "Pattern", StringComparison.Ordinal) ||
-            aliases.Pattern.Contains(colorSpaceName);
-        // CalGray, CalRGB, Lab, and ICCBased are array color-space families, not
-        // directly selectable built-in names. They are valid here only through a
-        // resource alias whose array definition was inspected above.
-        bool usesDeviceIndependent = aliases.DeviceIndependent.Contains(colorSpaceName);
-        ColorSpaceUsage usage = new(
-            usesRgb || usesCmyk || usesGray || usesPattern || usesDeviceIndependent,
-            usesRgb,
-            usesCmyk,
-            usesGray,
-            usesPattern,
-            usesDeviceIndependent);
-        if (usesRgb && aliases.DefaultRgb != null) usage = usage.ReplaceDeviceRgb(aliases.DefaultRgb);
-        if (usesCmyk && aliases.DefaultCmyk != null) usage = usage.ReplaceDeviceCmyk(aliases.DefaultCmyk);
-        if (usesGray && aliases.DefaultGray != null) usage = usage.ReplaceDeviceGray(aliases.DefaultGray);
+        ColorSpaceUsage usage;
+        if (string.Equals(colorSpaceName, "DeviceRGB", StringComparison.Ordinal)) usage = ColorSpaceUsage.DeviceRgb;
+        else if (string.Equals(colorSpaceName, "DeviceCMYK", StringComparison.Ordinal)) usage = ColorSpaceUsage.DeviceCmyk;
+        else if (string.Equals(colorSpaceName, "DeviceGray", StringComparison.Ordinal)) usage = ColorSpaceUsage.DeviceGray;
+        else if (string.Equals(colorSpaceName, "Pattern", StringComparison.Ordinal)) usage = ColorSpaceUsage.Pattern;
+        else if (!aliases.Named.TryGetValue(colorSpaceName, out usage!)) usage = ColorSpaceUsage.Unknown;
+        if (usage.UsesDeviceRgb && aliases.DefaultRgb != null) usage = usage.ReplaceDeviceRgb(aliases.DefaultRgb);
+        if (usage.UsesDeviceCmyk && aliases.DefaultCmyk != null) usage = usage.ReplaceDeviceCmyk(aliases.DefaultCmyk);
+        if (usage.UsesDeviceGray && aliases.DefaultGray != null) usage = usage.ReplaceDeviceGray(aliases.DefaultGray);
         return usage;
     }
 
     private static void CollectResourceColorSpaces(
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects,
-        HashSet<string> rgbAliases,
-        HashSet<string> cmykAliases,
-        HashSet<string> grayAliases,
-        HashSet<string> patternAliases,
-        HashSet<string> deviceIndependentAliases,
+        ColorSpaceAliases aliases,
         int maximumObjectDepth) {
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
             ResolveObject(objects, colorSpacesObject, 0, maximumObjectDepth) is not PdfDictionary colorSpaces) return;
 
-        var aliases = new ColorSpaceAliases();
-        CopyAliases(rgbAliases, cmykAliases, grayAliases, patternAliases, deviceIndependentAliases, aliases);
         bool changed;
         do {
             changed = false;
@@ -792,8 +858,6 @@ internal static partial class PdfPrintProductionColorInspector {
             }
         } while (changed);
 
-        CopyAliases(aliases.Rgb, aliases.Cmyk, aliases.Gray, aliases.Pattern, aliases.DeviceIndependent,
-            rgbAliases, cmykAliases, grayAliases, patternAliases, deviceIndependentAliases);
     }
 
     private static string NormalizeInlineImageColorSpaceName(string name) => name switch {
@@ -803,40 +867,12 @@ internal static partial class PdfPrintProductionColorInspector {
         _ => name
     };
 
-    private static void CopyAliases(
-        HashSet<string> rgb,
-        HashSet<string> cmyk,
-        HashSet<string> gray,
-        HashSet<string> pattern,
-        HashSet<string> deviceIndependent,
-        ColorSpaceAliases target) {
-        target.Rgb.UnionWith(rgb);
-        target.Cmyk.UnionWith(cmyk);
-        target.Gray.UnionWith(gray);
-        target.Pattern.UnionWith(pattern);
-        target.DeviceIndependent.UnionWith(deviceIndependent);
-    }
-
-    private static void CopyAliases(
-        HashSet<string> rgb,
-        HashSet<string> cmyk,
-        HashSet<string> gray,
-        HashSet<string> pattern,
-        HashSet<string> deviceIndependent,
-        HashSet<string> targetRgb,
-        HashSet<string> targetCmyk,
-        HashSet<string> targetGray,
-        HashSet<string> targetPattern,
-        HashSet<string> targetDeviceIndependent) {
-        targetRgb.UnionWith(rgb);
-        targetCmyk.UnionWith(cmyk);
-        targetGray.UnionWith(gray);
-        targetPattern.UnionWith(pattern);
-        targetDeviceIndependent.UnionWith(deviceIndependent);
-    }
-
     private static bool AddAliasUsage(string name, ColorSpaceUsage usage, ColorSpaceAliases aliases) {
         bool changed = false;
+        if (!aliases.Named.TryGetValue(name, out ColorSpaceUsage? existing) || existing != usage) {
+            aliases.Named[name] = usage;
+            changed = true;
+        }
         if (usage.UsesDeviceRgb) changed |= aliases.Rgb.Add(name);
         if (usage.UsesDeviceCmyk) changed |= aliases.Cmyk.Add(name);
         if (usage.UsesDeviceGray) changed |= aliases.Gray.Add(name);
@@ -1029,6 +1065,7 @@ internal static partial class PdfPrintProductionColorInspector {
     }
 
     private sealed class ColorSpaceAliases {
+        internal Dictionary<string, ColorSpaceUsage> Named { get; } = new(StringComparer.Ordinal);
         internal HashSet<string> Rgb { get; } = new(StringComparer.Ordinal);
         internal HashSet<string> Cmyk { get; } = new(StringComparer.Ordinal);
         internal HashSet<string> Gray { get; } = new(StringComparer.Ordinal);
@@ -1039,6 +1076,8 @@ internal static partial class PdfPrintProductionColorInspector {
         internal ColorSpaceUsage? DefaultGray { get; set; }
 
         internal bool SetEquals(ColorSpaceAliases other) =>
+            Named.Count == other.Named.Count && Named.All(entry =>
+                other.Named.TryGetValue(entry.Key, out ColorSpaceUsage? usage) && usage == entry.Value) &&
             Rgb.SetEquals(other.Rgb) &&
             Cmyk.SetEquals(other.Cmyk) &&
             Gray.SetEquals(other.Gray) &&
@@ -1055,13 +1094,16 @@ internal static partial class PdfPrintProductionColorInspector {
         bool UsesDeviceCmyk,
         bool UsesDeviceGray,
         bool UsesPattern,
-        bool UsesDeviceIndependent) {
-        internal static ColorSpaceUsage DeviceRgb { get; } = new(true, true, false, false, false, false);
-        internal static ColorSpaceUsage DeviceCmyk { get; } = new(true, false, true, false, false, false);
-        internal static ColorSpaceUsage DeviceGray { get; } = new(true, false, false, true, false, false);
-        internal static ColorSpaceUsage Pattern { get; } = new(true, false, false, false, true, false);
-        internal static ColorSpaceUsage DeviceIndependent { get; } = new(true, false, false, false, false, true);
-        internal static ColorSpaceUsage Unknown { get; } = new(false, false, false, false, false, false);
+        bool UsesDeviceIndependent,
+        int ComponentCount) {
+        internal static ColorSpaceUsage DeviceRgb { get; } = new(true, true, false, false, false, false, 3);
+        internal static ColorSpaceUsage DeviceCmyk { get; } = new(true, false, true, false, false, false, 4);
+        internal static ColorSpaceUsage DeviceGray { get; } = new(true, false, false, true, false, false, 1);
+        internal static ColorSpaceUsage Pattern { get; } = new(true, false, false, false, true, false, 0);
+        internal static ColorSpaceUsage Unknown { get; } = new(false, false, false, false, false, false, -1);
+
+        internal static ColorSpaceUsage DeviceIndependentWithComponents(int componentCount) =>
+            new(true, false, false, false, false, true, componentCount);
 
         internal ColorSpaceUsage ReplaceDeviceRgb(ColorSpaceUsage replacement) =>
             new(
@@ -1070,7 +1112,8 @@ internal static partial class PdfPrintProductionColorInspector {
                 UsesDeviceCmyk || replacement.UsesDeviceCmyk,
                 UsesDeviceGray || replacement.UsesDeviceGray,
                 UsesPattern || replacement.UsesPattern,
-                UsesDeviceIndependent || replacement.UsesDeviceIndependent);
+                UsesDeviceIndependent || replacement.UsesDeviceIndependent,
+                ComponentCount);
 
         internal ColorSpaceUsage ReplaceDeviceCmyk(ColorSpaceUsage replacement) =>
             new(
@@ -1079,7 +1122,8 @@ internal static partial class PdfPrintProductionColorInspector {
                 replacement.UsesDeviceCmyk,
                 UsesDeviceGray || replacement.UsesDeviceGray,
                 UsesPattern || replacement.UsesPattern,
-                UsesDeviceIndependent || replacement.UsesDeviceIndependent);
+                UsesDeviceIndependent || replacement.UsesDeviceIndependent,
+                ComponentCount);
 
         internal ColorSpaceUsage ReplaceDeviceGray(ColorSpaceUsage replacement) =>
             new(
@@ -1088,10 +1132,16 @@ internal static partial class PdfPrintProductionColorInspector {
                 UsesDeviceCmyk || replacement.UsesDeviceCmyk,
                 replacement.UsesDeviceGray,
                 UsesPattern || replacement.UsesPattern,
-                UsesDeviceIndependent || replacement.UsesDeviceIndependent);
+                UsesDeviceIndependent || replacement.UsesDeviceIndependent,
+                ComponentCount);
+
+        internal ColorSpaceUsage WithComponentCount(int componentCount) =>
+            IsKnown
+                ? new(IsKnown, UsesDeviceRgb, UsesDeviceCmyk, UsesDeviceGray, UsesPattern, UsesDeviceIndependent, componentCount)
+                : Unknown;
 
         internal ColorSpaceUsage WithPattern() =>
-            new(IsKnown, UsesDeviceRgb, UsesDeviceCmyk, UsesDeviceGray, true, UsesDeviceIndependent);
+            new(IsKnown, UsesDeviceRgb, UsesDeviceCmyk, UsesDeviceGray, true, UsesDeviceIndependent, ComponentCount);
     }
 
     private sealed class ContentStreamContext {
@@ -1123,6 +1173,10 @@ internal static partial class PdfPrintProductionColorInspector {
         internal bool StrokeUsesDeviceCmyk;
         internal bool FillUsesDeviceIndependentColor;
         internal bool StrokeUsesDeviceIndependentColor;
+        internal int FillComponentCount = 1;
+        internal int StrokeComponentCount = 1;
+        internal bool FillUsesPattern;
+        internal bool StrokeUsesPattern;
         internal bool IsIncomplete;
         internal Stack<ContentColorStateSnapshot> Stack { get; } = new();
     }
@@ -1133,7 +1187,11 @@ internal static partial class PdfPrintProductionColorInspector {
         bool FillUsesDeviceCmyk,
         bool StrokeUsesDeviceCmyk,
         bool FillUsesDeviceIndependentColor,
-        bool StrokeUsesDeviceIndependentColor);
+        bool StrokeUsesDeviceIndependentColor,
+        int FillComponentCount,
+        int StrokeComponentCount,
+        bool FillUsesPattern,
+        bool StrokeUsesPattern);
 
     private sealed record ReachableResourceCollection(int TransparencyGroupCount);
 

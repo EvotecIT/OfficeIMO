@@ -495,7 +495,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
             if (format == 4 && !_validFormat4Subtables.Contains(absolute)) continue;
             if (format == 12 && !_validFormat12Subtables.Contains(absolute)) continue;
-            var score = (platform == 3 && encoding == 10 ? 4 : platform == 3 && encoding == 1 ? 3 : platform == 0 ? 2 : 1);
+            var score = ScoreCmapSubtable(platform, encoding);
             if ((format == 4 || format == 12) && score > bestScore) {
                 best = absolute;
                 bestScore = score;
@@ -503,9 +503,45 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
 
         if (best == 0) return 0;
-        var selectedFormat = ReadUInt16(_data, best);
-        return selectedFormat == 12 ? MapFormat12(best, cmapEnd, scalar) : MapFormat4(best, cmapEnd, scalar);
+        ushort glyph = MapCmapSubtable(best, cmapEnd, scalar);
+        return glyph != 0 ? glyph : MapFallbackCmapSubtable(best, cmapEnd, scalar, subtableCount);
     }
+
+    private ushort MapCmapSubtable(int table, int cmapEnd, int scalar) =>
+        ReadUInt16(_data, table) == 12
+            ? MapFormat12(table, cmapEnd, scalar)
+            : MapFormat4(table, cmapEnd, scalar);
+
+    private ushort MapFallbackCmapSubtable(int selectedTable, int cmapEnd, int scalar, int subtableCount) {
+        int bestScore = 0;
+        ushort bestGlyph = 0;
+        for (int index = 0; index < subtableCount; index++) {
+            int record = _cmap + 4 + index * 8;
+            int platform = ReadUInt16(_data, record);
+            int encoding = ReadUInt16(_data, record + 2);
+            uint offsetValue = ReadUInt32(_data, record + 4);
+            if (offsetValue > (uint)(_cmapLength - 2)) continue;
+            int table = _cmap + checked((int)offsetValue);
+            if (table == selectedTable || table < _cmap || table > cmapEnd - 2 ||
+                !OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
+            int format = ReadUInt16(_data, table);
+            if (format == 4 && (scalar > 0xFFFF || !_validFormat4Subtables.Contains(table))) continue;
+            if (format == 12 && !_validFormat12Subtables.Contains(table)) continue;
+            if (format != 4 && format != 12) continue;
+            int score = ScoreCmapSubtable(platform, encoding);
+            if (score <= bestScore) continue;
+            ushort glyph = MapCmapSubtable(table, cmapEnd, scalar);
+            if (glyph == 0) continue;
+            bestGlyph = glyph;
+            bestScore = score;
+        }
+        return bestGlyph;
+    }
+
+    private static int ScoreCmapSubtable(int platform, int encoding) =>
+        platform == 3 && encoding == 10 ? 4 :
+        platform == 3 && encoding == 1 ? 3 :
+        platform == 0 ? 2 : 1;
 
     private ushort MapFormat4(int table, int cmapEnd, int scalar) {
         if (!_validFormat4Subtables.Contains(table)) return 0;

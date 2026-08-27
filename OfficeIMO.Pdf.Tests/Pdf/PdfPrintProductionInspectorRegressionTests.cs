@@ -59,6 +59,24 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
     }
 
+    [Theory]
+    [InlineData("k")]
+    [InlineData("/Bogus k")]
+    [InlineData("1 0 rg")]
+    [InlineData("1 0 /Bogus RG")]
+    [InlineData("g")]
+    [InlineData("/DeviceRGB cs 1 0 sc")]
+    [InlineData("/DeviceCMYK CS 0 0 0 /Bogus SCN")]
+    [InlineData("/Pattern cs /P1 sc")]
+    public void ColorInspectorRejectsMalformedColorSettingOperands(string content) {
+        byte[] pdf = BuildInspectionPdf(content);
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void ColorInspectorRejectsMalformedArrayColorSpaceAliasWithoutClassifyingNestedNames() {
         byte[] pdf = BuildInspectionPdf(
@@ -448,6 +466,20 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.FontResourceCount);
         Assert.Equal(1, evidence.UnembeddedFontResourceCount);
         Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Theory]
+    [InlineData("/F1 /Bogus Tf")]
+    [InlineData("/F1 [12] Tf")]
+    public void StructureInspectorRejectsMalformedFontSizeOperands(string selectFont) {
+        byte[] pdf = BuildInspectionPdf(
+            "BT " + selectFont + " (A) Tj ET",
+            resources: "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(0, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UninspectableFontResourceCount);
     }
 
     [Theory]

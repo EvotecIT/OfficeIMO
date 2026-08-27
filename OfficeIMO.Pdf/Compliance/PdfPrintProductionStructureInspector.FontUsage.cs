@@ -99,7 +99,11 @@ internal static partial class PdfPrintProductionStructureInspector {
                         case "Q":
                             if (fontStack.Count > 0) activeFontObject = fontStack.Pop();
                             break;
-                        case "Tf" when operation.Operands.Count == 2 && operation.Operands[0] is string fontName:
+                        case "Tf" when operation.Operands.Count == 2 &&
+                                            operation.Operands[0] is string fontName &&
+                                            operation.Operands[1] is double fontSize &&
+                                            !double.IsNaN(fontSize) &&
+                                            !double.IsInfinity(fontSize):
                             if (!TryResolveResource(context.Resources, "Font", fontName, out PdfObject? fontObject) ||
                                 ResolveObject(_objects, fontObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfDictionary font) {
                                 contextWasUninspectable = true;

@@ -11,14 +11,29 @@ internal static class ManagedTextShapingTestAssets {
 
     internal static byte[] CreateFont(params int[] scalars) {
         if (scalars == null || scalars.Length == 0) throw new ArgumentException("At least one scalar is required.", nameof(scalars));
-        byte[] cmap = CreateFormat12Cmap(scalars);
+        return CreateFontFromCmap(CreateFormat12Cmap(scalars));
+    }
+
+    internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
+        if (bmpScalar < 0 || bmpScalar > 0xFFFF) throw new ArgumentOutOfRangeException(nameof(bmpScalar));
+        if (supplementalScalar <= 0xFFFF || supplementalScalar > 0x10FFFF) {
+            throw new ArgumentOutOfRangeException(nameof(supplementalScalar));
+        }
+        return CreateFontFromCmap(
+            CreateUnicodeCmapWithFallback(bmpScalar, supplementalScalar),
+            includeTrailingMetric: true);
+    }
+
+    private static byte[] CreateFontFromCmap(byte[] cmap, bool includeTrailingMetric = false) {
         byte[] glyph = CreateVisibleGlyph();
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
             ("glyf", glyph),
             ("head", CreateHeadTable()),
             ("hhea", CreateHheaTable()),
-            ("hmtx", new byte[] { 0x01, 0xF4, 0x00, 0x00 }),
+            ("hmtx", includeTrailingMetric
+                ? new byte[] { 0x01, 0xF4, 0x00, 0x00, 0x00, 0x00 }
+                : new byte[] { 0x01, 0xF4, 0x00, 0x00 }),
             ("loca", new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, (byte)(glyph.Length / 2) }),
             ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 }),
             ("name", new byte[6])
@@ -185,6 +200,35 @@ internal static class ManagedTextShapingTestAssets {
             WriteUInt32(data, offset + 8, 1);
             offset += 12;
         }
+        return data;
+    }
+
+    private static byte[] CreateUnicodeCmapWithFallback(int bmpScalar, int supplementalScalar) {
+        byte[] format12 = CreateFormat12Cmap(new[] { supplementalScalar });
+        const int cmapHeaderLength = 20;
+        const int format4Length = 32;
+        var data = new byte[cmapHeaderLength + (format12.Length - 12) + format4Length];
+        WriteUInt16(data, 2, 2);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, cmapHeaderLength);
+        WriteUInt16(data, 12, 3);
+        WriteUInt16(data, 14, 1);
+        int format4Offset = cmapHeaderLength + format12.Length - 12;
+        WriteUInt32(data, 16, (uint)format4Offset);
+        Array.Copy(format12, 12, data, cmapHeaderLength, format12.Length - 12);
+
+        WriteUInt16(data, format4Offset, 4);
+        WriteUInt16(data, format4Offset + 2, format4Length);
+        WriteUInt16(data, format4Offset + 6, 4);
+        WriteUInt16(data, format4Offset + 8, 4);
+        WriteUInt16(data, format4Offset + 10, 1);
+        WriteUInt16(data, format4Offset + 14, (ushort)bmpScalar);
+        WriteUInt16(data, format4Offset + 16, 0xFFFF);
+        WriteUInt16(data, format4Offset + 20, (ushort)bmpScalar);
+        WriteUInt16(data, format4Offset + 22, 0xFFFF);
+        WriteUInt16(data, format4Offset + 24, unchecked((ushort)(1 - bmpScalar)));
+        WriteUInt16(data, format4Offset + 26, 1);
         return data;
     }
 
