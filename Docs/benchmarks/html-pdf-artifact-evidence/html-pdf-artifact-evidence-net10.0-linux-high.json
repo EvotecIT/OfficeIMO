@@ -5,7 +5,7 @@
   "artifactBundle": {
     "artifactCount": 37,
     "totalBytes": 28979824,
-    "manifestSha256": "2dff644e4d95847425c8dbe66ad99f0198be14dccfa2f9d82cfc639e0f49abb9",
+    "manifestSha256": "4d89f8ddc7c9e90936fbac41c0593f8ef52eea3416c359b3fdfcd5d470584fca",
     "artifacts": [
       {
         "kind": "external-preview:Chromium",
@@ -23,7 +23,7 @@
         "kind": "pdf:Chromium",
         "relativePath": "chromium-htmltinkerx-01.pdf",
         "sizeBytes": 2075718,
-        "sha256": "eec43decb6a1221a5500d710a5add0aa7e928bd0e4ba9efe11515f9742e407ff"
+        "sha256": "1af3843fab50fb0701c2492c3301f5d3fe037be0acaa0d63b5be967044cd6853"
       },
       {
         "kind": "external-preview:Chromium",
@@ -41,7 +41,7 @@
         "kind": "pdf:Chromium",
         "relativePath": "chromium-htmltinkerx-02.pdf",
         "sizeBytes": 2075718,
-        "sha256": "fb023182a7d34528e158aa2890bbba9c2deaa3502144d081168e0a8239165caf"
+        "sha256": "d8e417fca8ab87260e651ec24070cdf4ab44ec0b87308f240d7d0c6cf7f60ce8"
       },
       {
         "kind": "external-preview:Chromium",
@@ -59,7 +59,7 @@
         "kind": "pdf:Chromium",
         "relativePath": "chromium-htmltinkerx-03.pdf",
         "sizeBytes": 2075718,
-        "sha256": "199a5b75167ad406db7f37a64413bc711fa2fe77aa822176202a9d0cf0eface9"
+        "sha256": "781b92727d741c9bf67f2b2f54625324f6f0fe4f66ff9fc143495e6f374a2e0e"
       },
       {
         "kind": "external-preview:ITextPdfHtml",
@@ -77,7 +77,7 @@
         "kind": "pdf:ITextPdfHtml",
         "relativePath": "itext-pdfhtml-01.pdf",
         "sizeBytes": 3240891,
-        "sha256": "7b61b85389d0bbeb88f57b9c74f01aae9252716406c3b0fa13a0f5a079cece6c"
+        "sha256": "25e17f8d3bee9e9cb048b5875eddff31709346bc8e8189c836972393ecad33c4"
       },
       {
         "kind": "external-preview:ITextPdfHtml",
@@ -95,7 +95,7 @@
         "kind": "pdf:ITextPdfHtml",
         "relativePath": "itext-pdfhtml-02.pdf",
         "sizeBytes": 3240891,
-        "sha256": "112a8f09814fb2e8268fcbc90383af82a2e4e187d1b2449629ee4fbfc87eb273"
+        "sha256": "4bf9117027405233e372e07b1e22f0f7564e9016f9b254de9efd7c294058399a"
       },
       {
         "kind": "external-preview:ITextPdfHtml",
@@ -113,7 +113,7 @@
         "kind": "pdf:ITextPdfHtml",
         "relativePath": "itext-pdfhtml-03.pdf",
         "sizeBytes": 3240891,
-        "sha256": "e9f61869692aa2f3b3810c79616d689631a285b965e00f5d5492b45d76bdf9de"
+        "sha256": "dda26c24ed325bcad8ddf92201c2dcf28190a0628415b36776bf98257ceef447"
       },
       {
         "kind": "external-preview:OfficeIMO",
@@ -185,7 +185,7 @@
         "kind": "pdf:PeachPDF",
         "relativePath": "peachpdf-01.pdf",
         "sizeBytes": 1689099,
-        "sha256": "66e063a401172c3552140b944d9b98e6418f1ff1953fdcbc4159a04667f7e353"
+        "sha256": "032d0e811b10479611ac7782b72b88f2a335e58656a8363fbaf288bdcd415484"
       },
       {
         "kind": "external-preview:PeachPDF",
@@ -203,7 +203,7 @@
         "kind": "pdf:PeachPDF",
         "relativePath": "peachpdf-02.pdf",
         "sizeBytes": 1689099,
-        "sha256": "7e322ec6002c96a822fba19fa691f1f5e86583ee1e0b9068e2e04b0a907783b3"
+        "sha256": "89faa1208e3b7d222b67bf717f9c492eac301aff28c89bcd840a00026c145ad2"
       },
       {
         "kind": "external-preview:PeachPDF",
@@ -221,7 +221,7 @@
         "kind": "pdf:PeachPDF",
         "relativePath": "peachpdf-03.pdf",
         "sizeBytes": 1689099,
-        "sha256": "5c19b30df7a2567f08bd91cbe2befa0061ed273430f89e67a07792f45c9248e7"
+        "sha256": "e070a49dc80d999aa8e8566b9fbfbe358a4166fd570359596ace8baddfc5aace"
       },
       {
         "kind": "input",
@@ -233,7 +233,7 @@
   },
   "report": {
     "schemaVersion": 2,
-    "generatedUtc": "2026-08-27T01:20:57.1134851+02:00",
+    "generatedUtc": "2026-08-27T03:15:14.1653642+02:00",
     "scale": "High",
     "iterations": 3,
     "environment": {
@@ -248,8 +248,8 @@
     "provenance": {
       "officeIMO": {
         "kind": "source",
-        "version": "3.2.5+995170925dcd27ce19942a3cebb4511adb1b58c4",
-        "commit": "995170925dcd27ce19942a3cebb4511adb1b58c4",
+        "version": "3.2.5+91bbd7d31eadb949d875b33ed525ce1e99cca82a",
+        "commit": "91bbd7d31eadb949d875b33ed525ce1e99cca82a",
         "worktreeClean": true
       },
       "htmlTinkerX": {
@@ -270,7 +270,7 @@
       {
         "engine": "OfficeIMO",
         "owner": "OfficeIMO.Html.Pdf",
-        "assemblyVersion": "3.2.5+995170925dcd27ce19942a3cebb4511adb1b58c4",
+        "assemblyVersion": "3.2.5+91bbd7d31eadb949d875b33ed525ce1e99cca82a",
         "executionKind": "Fresh managed worker process",
         "cancellation": {
           "apiSupportsCancellation": true,
@@ -293,14 +293,14 @@
           {
             "iteration": 1,
             "relativePath": "officeimo-01.pdf",
-            "durationMilliseconds": 2481.4771,
+            "durationMilliseconds": 2416.3848,
             "sizeBytes": 1941444,
             "sha256": "5f31a57296d22a3f5ae00f36e76fa4875434654043d1c7e2ee7d4cd0b67a50d7",
             "semanticSha256": "f7753820059c54d169d165266e27426a7d792205b27e126d191772d28c3a53f3",
-            "managedAllocatedBytes": 647986104,
+            "managedAllocatedBytes": 647986584,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 224841728,
-              "sampleCount": 195,
+              "peakWorkingSetBytes": 225005568,
+              "sampleCount": 203,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -358,14 +358,14 @@
           {
             "iteration": 2,
             "relativePath": "officeimo-02.pdf",
-            "durationMilliseconds": 2029.8846,
+            "durationMilliseconds": 1966.3369,
             "sizeBytes": 1941444,
             "sha256": "5f31a57296d22a3f5ae00f36e76fa4875434654043d1c7e2ee7d4cd0b67a50d7",
             "semanticSha256": "f7753820059c54d169d165266e27426a7d792205b27e126d191772d28c3a53f3",
-            "managedAllocatedBytes": 647990752,
+            "managedAllocatedBytes": 647981944,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 224985088,
-              "sampleCount": 172,
+              "peakWorkingSetBytes": 225198080,
+              "sampleCount": 167,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -423,14 +423,14 @@
           {
             "iteration": 3,
             "relativePath": "officeimo-03.pdf",
-            "durationMilliseconds": 2033.6068,
+            "durationMilliseconds": 2097.9866,
             "sizeBytes": 1941444,
             "sha256": "5f31a57296d22a3f5ae00f36e76fa4875434654043d1c7e2ee7d4cd0b67a50d7",
             "semanticSha256": "f7753820059c54d169d165266e27426a7d792205b27e126d191772d28c3a53f3",
-            "managedAllocatedBytes": 647998400,
+            "managedAllocatedBytes": 647986312,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 224841728,
-              "sampleCount": 174,
+              "peakWorkingSetBytes": 225357824,
+              "sampleCount": 180,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -513,14 +513,14 @@
           {
             "iteration": 1,
             "relativePath": "peachpdf-01.pdf",
-            "durationMilliseconds": 3380.009,
+            "durationMilliseconds": 3523.7348,
             "sizeBytes": 1689099,
-            "sha256": "66e063a401172c3552140b944d9b98e6418f1ff1953fdcbc4159a04667f7e353",
+            "sha256": "032d0e811b10479611ac7782b72b88f2a335e58656a8363fbaf288bdcd415484",
             "semanticSha256": "6c7ceaaadf725c618e8a0606624e5c01ff7c56406822fd4a87e231186168155d",
-            "managedAllocatedBytes": 4167587056,
+            "managedAllocatedBytes": 4171310640,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 267374592,
-              "sampleCount": 281,
+              "peakWorkingSetBytes": 266948608,
+              "sampleCount": 299,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -580,14 +580,14 @@
           {
             "iteration": 2,
             "relativePath": "peachpdf-02.pdf",
-            "durationMilliseconds": 3680.8872,
+            "durationMilliseconds": 3364.6772,
             "sizeBytes": 1689099,
-            "sha256": "7e322ec6002c96a822fba19fa691f1f5e86583ee1e0b9068e2e04b0a907783b3",
+            "sha256": "89faa1208e3b7d222b67bf717f9c492eac301aff28c89bcd840a00026c145ad2",
             "semanticSha256": "6c7ceaaadf725c618e8a0606624e5c01ff7c56406822fd4a87e231186168155d",
-            "managedAllocatedBytes": 4168906496,
+            "managedAllocatedBytes": 4173509664,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 267423744,
-              "sampleCount": 311,
+              "peakWorkingSetBytes": 267108352,
+              "sampleCount": 283,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -647,14 +647,14 @@
           {
             "iteration": 3,
             "relativePath": "peachpdf-03.pdf",
-            "durationMilliseconds": 3433.2819,
+            "durationMilliseconds": 3621.0862,
             "sizeBytes": 1689099,
-            "sha256": "5c19b30df7a2567f08bd91cbe2befa0061ed273430f89e67a07792f45c9248e7",
+            "sha256": "e070a49dc80d999aa8e8566b9fbfbe358a4166fd570359596ace8baddfc5aace",
             "semanticSha256": "6c7ceaaadf725c618e8a0606624e5c01ff7c56406822fd4a87e231186168155d",
-            "managedAllocatedBytes": 4170186416,
+            "managedAllocatedBytes": 4173390224,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 267292672,
-              "sampleCount": 285,
+              "peakWorkingSetBytes": 267571200,
+              "sampleCount": 302,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -739,14 +739,14 @@
           {
             "iteration": 1,
             "relativePath": "itext-pdfhtml-01.pdf",
-            "durationMilliseconds": 2957.4873,
+            "durationMilliseconds": 3138.0625,
             "sizeBytes": 3240891,
-            "sha256": "7b61b85389d0bbeb88f57b9c74f01aae9252716406c3b0fa13a0f5a079cece6c",
+            "sha256": "25e17f8d3bee9e9cb048b5875eddff31709346bc8e8189c836972393ecad33c4",
             "semanticSha256": "3be5ff48dc5334d3096a0519c6f550a077a1169156b139122ef11f402c3a3340",
-            "managedAllocatedBytes": 1127485248,
+            "managedAllocatedBytes": 1127545736,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 228745216,
-              "sampleCount": 251,
+              "peakWorkingSetBytes": 231800832,
+              "sampleCount": 262,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -806,14 +806,14 @@
           {
             "iteration": 2,
             "relativePath": "itext-pdfhtml-02.pdf",
-            "durationMilliseconds": 2955.2903,
+            "durationMilliseconds": 3029.4488,
             "sizeBytes": 3240891,
-            "sha256": "112a8f09814fb2e8268fcbc90383af82a2e4e187d1b2449629ee4fbfc87eb273",
+            "sha256": "4bf9117027405233e372e07b1e22f0f7564e9016f9b254de9efd7c294058399a",
             "semanticSha256": "3be5ff48dc5334d3096a0519c6f550a077a1169156b139122ef11f402c3a3340",
-            "managedAllocatedBytes": 1132174440,
+            "managedAllocatedBytes": 1115316664,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 226193408,
-              "sampleCount": 249,
+              "peakWorkingSetBytes": 225783808,
+              "sampleCount": 255,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -873,14 +873,14 @@
           {
             "iteration": 3,
             "relativePath": "itext-pdfhtml-03.pdf",
-            "durationMilliseconds": 3046.4288,
+            "durationMilliseconds": 3010.7968,
             "sizeBytes": 3240891,
-            "sha256": "e9f61869692aa2f3b3810c79616d689631a285b965e00f5d5492b45d76bdf9de",
+            "sha256": "dda26c24ed325bcad8ddf92201c2dcf28190a0628415b36776bf98257ceef447",
             "semanticSha256": "3be5ff48dc5334d3096a0519c6f550a077a1169156b139122ef11f402c3a3340",
-            "managedAllocatedBytes": 1113478224,
+            "managedAllocatedBytes": 1126058200,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 223842304,
-              "sampleCount": 256,
+              "peakWorkingSetBytes": 225873920,
+              "sampleCount": 254,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 1,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -965,14 +965,14 @@
           {
             "iteration": 1,
             "relativePath": "chromium-htmltinkerx-01.pdf",
-            "durationMilliseconds": 1649.8123,
+            "durationMilliseconds": 1585.7193,
             "sizeBytes": 2075718,
-            "sha256": "eec43decb6a1221a5500d710a5add0aa7e928bd0e4ba9efe11515f9742e407ff",
+            "sha256": "1af3843fab50fb0701c2492c3301f5d3fe037be0acaa0d63b5be967044cd6853",
             "semanticSha256": "2fdc475663efe8c0fb6254581ef6b8133b1e820919996bf2dd5bcd997e18b634",
-            "managedAllocatedBytes": 29290752,
+            "managedAllocatedBytes": 29146576,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 845066240,
-              "sampleCount": 132,
+              "peakWorkingSetBytes": 848203776,
+              "sampleCount": 128,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 8,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -1026,14 +1026,14 @@
           {
             "iteration": 2,
             "relativePath": "chromium-htmltinkerx-02.pdf",
-            "durationMilliseconds": 1336.7617,
+            "durationMilliseconds": 1275.3582,
             "sizeBytes": 2075718,
-            "sha256": "fb023182a7d34528e158aa2890bbba9c2deaa3502144d081168e0a8239165caf",
+            "sha256": "d8e417fca8ab87260e651ec24070cdf4ab44ec0b87308f240d7d0c6cf7f60ce8",
             "semanticSha256": "2fdc475663efe8c0fb6254581ef6b8133b1e820919996bf2dd5bcd997e18b634",
-            "managedAllocatedBytes": 29116872,
+            "managedAllocatedBytes": 28096864,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 846176256,
-              "sampleCount": 109,
+              "peakWorkingSetBytes": 847949824,
+              "sampleCount": 104,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 8,
               "sampler": "/proc parent map + Process.WorkingSet64"
@@ -1087,14 +1087,14 @@
           {
             "iteration": 3,
             "relativePath": "chromium-htmltinkerx-03.pdf",
-            "durationMilliseconds": 1301.8657,
+            "durationMilliseconds": 1336.7998,
             "sizeBytes": 2075718,
-            "sha256": "199a5b75167ad406db7f37a64413bc711fa2fe77aa822176202a9d0cf0eface9",
+            "sha256": "781b92727d741c9bf67f2b2f54625324f6f0fe4f66ff9fc143495e6f374a2e0e",
             "semanticSha256": "2fdc475663efe8c0fb6254581ef6b8133b1e820919996bf2dd5bcd997e18b634",
-            "managedAllocatedBytes": 29200480,
+            "managedAllocatedBytes": 28104408,
             "processTreeMemory": {
-              "peakWorkingSetBytes": 846163968,
-              "sampleCount": 101,
+              "peakWorkingSetBytes": 847966208,
+              "sampleCount": 107,
               "minimumObservedProcessCount": 1,
               "maximumObservedProcessCount": 8,
               "sampler": "/proc parent map + Process.WorkingSet64"
