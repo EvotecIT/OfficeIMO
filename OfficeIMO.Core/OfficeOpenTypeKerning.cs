@@ -28,8 +28,9 @@ internal sealed class OfficeOpenTypeKerning {
 
     internal int Adjustment(int left, int right) {
         if ((uint)left > ushort.MaxValue || (uint)right > ushort.MaxValue) return 0;
-        return checked(KernPairAdjustment((ushort)left, (ushort)right) +
-                       GposPairAdjustment((ushort)left, (ushort)right));
+        return TryGposPairAdjustment((ushort)left, (ushort)right, out int gposAdjustment)
+            ? gposAdjustment
+            : KernPairAdjustment((ushort)left, (ushort)right);
     }
 
     private int KernPairAdjustment(ushort left, ushort right) {
@@ -67,20 +68,23 @@ internal sealed class OfficeOpenTypeKerning {
         return 0;
     }
 
-    private int GposPairAdjustment(ushort left, ushort right) {
-        if (_gpos < 0 || !InBounds(_gpos, 10) || ReadUInt16(_gpos) != 1) return 0;
+    private bool TryGposPairAdjustment(ushort left, ushort right, out int adjustment) {
+        adjustment = 0;
+        if (_gpos < 0 || !InBounds(_gpos, 10) || ReadUInt16(_gpos) != 1) return false;
         int featureList = checked(_gpos + ReadUInt16(_gpos + 6));
         int lookupList = checked(_gpos + ReadUInt16(_gpos + 8));
-        if (!InBounds(featureList, 2) || !InBounds(lookupList, 2)) return 0;
+        if (!InBounds(featureList, 2) || !InBounds(lookupList, 2)) return false;
 
-        int adjustment = 0;
+        bool applied = false;
         var seen = new HashSet<ushort>();
         foreach (ushort lookupIndex in GposFeatureLookupIndexes(featureList, "kern")) {
-            if (seen.Add(lookupIndex)) {
-                adjustment = checked(adjustment + GposPairAdjustmentFromLookup(lookupList, lookupIndex, left, right));
+            if (seen.Add(lookupIndex) &&
+                TryGposPairAdjustmentFromLookup(lookupList, lookupIndex, left, right, out int lookupAdjustment)) {
+                adjustment = checked(adjustment + lookupAdjustment);
+                applied = true;
             }
         }
-        return adjustment;
+        return applied;
     }
 
     private IEnumerable<ushort> GposFeatureLookupIndexes(int featureList, string featureTag) {
@@ -100,18 +104,24 @@ internal sealed class OfficeOpenTypeKerning {
         }
     }
 
-    private int GposPairAdjustmentFromLookup(int lookupList, ushort lookupIndex, ushort left, ushort right) {
+    private bool TryGposPairAdjustmentFromLookup(
+        int lookupList,
+        ushort lookupIndex,
+        ushort left,
+        ushort right,
+        out int adjustment) {
+        adjustment = 0;
         int lookupCount = ReadUInt16(lookupList);
-        if (lookupIndex >= lookupCount) return 0;
+        if (lookupIndex >= lookupCount) return false;
         int lookupOffset = checked(lookupList + 2 + (lookupIndex * 2));
-        if (!InBounds(lookupOffset, 2)) return 0;
+        if (!InBounds(lookupOffset, 2)) return false;
         int lookup = checked(lookupList + ReadUInt16(lookupOffset));
-        if (!InBounds(lookup, 6)) return 0;
+        if (!InBounds(lookup, 6)) return false;
         ushort lookupType = ReadUInt16(lookup);
-        if (lookupType != 2 && lookupType != 9) return 0;
-        if (lookupType == 9 && !_includeExtendedGpos) return 0;
+        if (lookupType != 2 && lookupType != 9) return false;
+        if (lookupType == 9 && !_includeExtendedGpos) return false;
 
-        int adjustment = 0;
+        bool applied = false;
         int subtableCount = ReadUInt16(lookup + 4);
         for (int index = 0; index < subtableCount; index++) {
             int subtableOffset = checked(lookup + 6 + (index * 2));
@@ -123,27 +133,38 @@ internal sealed class OfficeOpenTypeKerning {
                 if (extensionOffset > int.MaxValue) continue;
                 subtable = checked(subtable + (int)extensionOffset);
             }
-            adjustment = checked(adjustment + GposPairAdjustmentFromSubtable(subtable, left, right));
+            if (TryGposPairAdjustmentFromSubtable(subtable, left, right, out int subtableAdjustment)) {
+                adjustment = checked(adjustment + subtableAdjustment);
+                applied = true;
+            }
         }
-        return adjustment;
+        return applied;
     }
 
-    private int GposPairAdjustmentFromSubtable(int subtable, ushort left, ushort right) {
-        if (!InBounds(subtable, 10)) return 0;
+    private bool TryGposPairAdjustmentFromSubtable(
+        int subtable,
+        ushort left,
+        ushort right,
+        out int adjustment) {
+        adjustment = 0;
+        if (!InBounds(subtable, 10)) return false;
         ushort format = ReadUInt16(subtable);
-        if (format == 2) return _includeExtendedGpos ? GposClassPairAdjustment(subtable, left, right) : 0;
-        if (format != 1) return 0;
+        if (format == 2) {
+            return _includeExtendedGpos &&
+                   TryGposClassPairAdjustment(subtable, left, right, out adjustment);
+        }
+        if (format != 1) return false;
         int coverage = checked(subtable + ReadUInt16(subtable + 2));
         ushort valueFormat1 = ReadUInt16(subtable + 4);
         ushort valueFormat2 = ReadUInt16(subtable + 6);
         int pairSetCount = ReadUInt16(subtable + 8);
         int coverageIndex = CoverageIndex(coverage, left);
-        if (coverageIndex < 0 || coverageIndex >= pairSetCount) return 0;
+        if (coverageIndex < 0 || coverageIndex >= pairSetCount) return false;
 
         int pairSetOffset = checked(subtable + 10 + (coverageIndex * 2));
-        if (!InBounds(pairSetOffset, 2)) return 0;
+        if (!InBounds(pairSetOffset, 2)) return false;
         int pairSet = checked(subtable + ReadUInt16(pairSetOffset));
-        if (!InBounds(pairSet, 2)) return 0;
+        if (!InBounds(pairSet, 2)) return false;
 
         int value1Size = ValueRecordSize(valueFormat1);
         int value2Size = ValueRecordSize(valueFormat2);
@@ -153,19 +174,23 @@ internal sealed class OfficeOpenTypeKerning {
         while (low <= high) {
             int mid = low + ((high - low) / 2);
             int record = checked(pairSet + 2 + (mid * recordSize));
-            if (!InBounds(record, recordSize)) return 0;
+            if (!InBounds(record, recordSize)) return false;
             ushort candidate = ReadUInt16(record);
-            if (candidate == right) return ReadValueRecordXAdvance(record + 2, valueFormat1);
+            if (candidate == right) {
+                adjustment = ReadValueRecordXAdvance(record + 2, valueFormat1);
+                return true;
+            }
             if (candidate < right) low = mid + 1;
             else high = mid - 1;
         }
-        return 0;
+        return false;
     }
 
-    private int GposClassPairAdjustment(int subtable, ushort left, ushort right) {
-        if (!InBounds(subtable, 16)) return 0;
+    private bool TryGposClassPairAdjustment(int subtable, ushort left, ushort right, out int adjustment) {
+        adjustment = 0;
+        if (!InBounds(subtable, 16)) return false;
         int coverage = checked(subtable + ReadUInt16(subtable + 2));
-        if (CoverageIndex(coverage, left) < 0) return 0;
+        if (CoverageIndex(coverage, left) < 0) return false;
 
         ushort valueFormat1 = ReadUInt16(subtable + 4);
         ushort valueFormat2 = ReadUInt16(subtable + 6);
@@ -175,15 +200,17 @@ internal sealed class OfficeOpenTypeKerning {
         int class2Count = ReadUInt16(subtable + 14);
         int class1 = ClassDefinition(classDef1, left);
         int class2 = ClassDefinition(classDef2, right);
-        if (class1 < 0 || class2 < 0 || class1 >= class1Count || class2 >= class2Count) return 0;
+        if (class1 < 0 || class2 < 0 || class1 >= class1Count || class2 >= class2Count) return false;
 
         int value1Size = ValueRecordSize(valueFormat1);
         int value2Size = ValueRecordSize(valueFormat2);
         int recordSize = checked(value1Size + value2Size);
-        if (recordSize == 0) return 0;
+        if (recordSize == 0) return false;
         int recordIndex = checked((class1 * class2Count) + class2);
         int record = checked(subtable + 16 + (recordIndex * recordSize));
-        return InBounds(record, recordSize) ? ReadValueRecordXAdvance(record, valueFormat1) : 0;
+        if (!InBounds(record, recordSize)) return false;
+        adjustment = ReadValueRecordXAdvance(record, valueFormat1);
+        return true;
     }
 
     private int ClassDefinition(int classDef, ushort glyph) {
