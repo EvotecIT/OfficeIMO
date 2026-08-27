@@ -105,6 +105,70 @@ public class ExcelTextFormattingTests {
         Assert.True(actual[2].Underline);
     }
 
+    [Fact]
+    public void ExplicitlyDisabledOpenXmlFontPropertiesRemainDisabledAcrossStyleSnapshots() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument created = ExcelDocument.Create(path)) {
+                created.AddWorksheet("Text").CellAt(1, 1).SetValue("Plain")
+                    .SetBold().SetItalic().SetUnderline().SetStrikethrough();
+                created.Sheets[0].CellAt(2, 1).SetRichText(
+                    new ExcelRichTextRun("Rich") {
+                        Bold = true,
+                        Italic = true,
+                        Underline = true,
+                        Strikethrough = true,
+                    });
+                created.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                WorkbookPart workbook = package.WorkbookPart!;
+                WorksheetPart worksheet = workbook.WorksheetParts.Single();
+                Stylesheet stylesheet = workbook.WorkbookStylesPart!.Stylesheet!;
+                Font font = ResolveFont(worksheet, stylesheet, "A1");
+                font.Bold = new Bold { Val = false };
+                font.Italic = new Italic { Val = false };
+                font.Underline = new Underline { Val = UnderlineValues.None };
+                font.Strike = new Strike { Val = false };
+
+                Cell richCell = worksheet.Worksheet.Descendants<Cell>()
+                    .Single(item => item.CellReference?.Value == "A2");
+                RunProperties runProperties = richCell.InlineString!.Elements<Run>().Single().RunProperties!;
+                runProperties.GetFirstChild<Bold>()!.Val = false;
+                runProperties.GetFirstChild<Italic>()!.Val = false;
+                runProperties.GetFirstChild<Underline>()!.Val = UnderlineValues.None;
+                runProperties.GetFirstChild<Strike>()!.Val = false;
+                stylesheet.Save();
+            }
+
+            using ExcelDocument loaded = ExcelDocument.Load(path);
+            ExcelCellStyleSnapshot direct = loaded.Sheets[0].CellAt(1, 1).GetStyle();
+            ExcelWorksheetSnapshot worksheetSnapshot = Assert.Single(loaded.CreateInspectionSnapshot().Worksheets);
+            ExcelCellStyleSnapshot inspected = worksheetSnapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style!;
+            foreach (ExcelCellStyleSnapshot style in new[] { direct, inspected }) {
+                Assert.False(style.Bold);
+                Assert.False(style.Italic);
+                Assert.False(style.Underline);
+                Assert.Equal(ExcelUnderlineStyle.None, style.UnderlineStyle);
+                Assert.False(style.Strikethrough);
+            }
+
+            ExcelRichTextRun directRun = Assert.Single(loaded.Sheets[0].CellAt(2, 1).GetRichText());
+            ExcelRichTextRun inspectedRun = Assert.Single(
+                worksheetSnapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).RichTextRuns);
+            foreach (ExcelRichTextRun run in new[] { directRun, inspectedRun }) {
+                Assert.False(run.Bold);
+                Assert.False(run.Italic);
+                Assert.False(run.Underline);
+                Assert.Equal(ExcelUnderlineStyle.None, run.UnderlineStyle);
+                Assert.False(run.Strikethrough);
+            }
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static Font ResolveFont(WorksheetPart worksheet, Stylesheet stylesheet, string reference) {
         Cell cell = worksheet.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == reference);
         CellFormat format = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt(checked((int)cell.StyleIndex!.Value));

@@ -314,7 +314,7 @@ namespace OfficeIMO.Excel {
             int hyperlinkFontIndex = -1;
             int idx = 0;
             foreach (var f in fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()) {
-                bool hasUnderline = f.Underline != null;
+                bool hasUnderline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(f.Underline);
                 string rgb = f.Color?.Rgb?.Value ?? string.Empty;
                 if (hasUnderline && string.Equals(rgb, hyperlinkRgb, StringComparison.OrdinalIgnoreCase)) {
                     hyperlinkFontIndex = idx;

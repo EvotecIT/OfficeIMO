@@ -138,4 +138,28 @@ public sealed class HtmlImportTests {
         Assert.Contains("<p>Parent</p><p>Child</p>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<p>Parent<p>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void OneNoteHtmlRoundTripReconstructsStructuredInlineMath() {
+        var section = new OneNoteSection { Name = "Math" };
+        var page = new OneNotePage { Title = "Page" };
+        var paragraph = new OneNoteParagraph();
+        OfficeIMO.Drawing.OfficeMathExpression expected = OfficeIMO.Drawing.OfficeMath.Fraction(
+            OfficeIMO.Drawing.OfficeMath.Identifier("x"),
+            OfficeIMO.Drawing.OfficeMath.Number("2"));
+        paragraph.AddMath(expected);
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+        HtmlToOneNoteSectionResult imported = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+
+        OneNoteTextRun run = Assert.Single(Assert.Single(imported.Value.Pages).Outlines
+            .SelectMany(outline => outline.Children)
+            .OfType<OneNoteParagraph>()
+            .SelectMany(item => item.Runs)
+            .Where(item => item.MathExpression != null));
+        Assert.True(run.Style.IsMath);
+        Assert.Equal(expected, run.MathExpression);
+    }
 }

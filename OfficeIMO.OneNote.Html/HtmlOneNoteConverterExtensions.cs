@@ -181,6 +181,17 @@ public static class HtmlOneNoteConverterExtensions {
         var paragraph = new OneNoteParagraph();
         foreach (HtmlSemanticRun sourceRun in runs) {
             var run = new OneNoteTextRun { Text = sourceRun.Text, Hyperlink = sourceRun.Hyperlink };
+            if (sourceRun.DataAttributes.TryGetValue("data-officeimo-math-format", out string? mathFormat)
+                && string.Equals(mathFormat, "latex", StringComparison.OrdinalIgnoreCase)) {
+                try {
+                    run.SetMathExpression(OfficeMathMarkup.FromLatex(sourceRun.Text));
+                } catch (Exception exception) when (exception is FormatException || exception is ArgumentException) {
+                    Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                        "Inline mathematical markup was retained as plain text because its LaTeX payload could not be parsed.",
+                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
+                        exception.Message);
+                }
+            }
             run.Style.Bold = sourceRun.Bold ? true : null;
             run.Style.Italic = sourceRun.Italic ? true : null;
             run.Style.Underline = sourceRun.Underline ? true : null;

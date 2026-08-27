@@ -311,7 +311,13 @@ public sealed class OdfStyle {
         if (normalized == null) return null;
         if (normalized.StartsWith("super", StringComparison.OrdinalIgnoreCase)) return OdfTextPosition.Superscript;
         if (normalized.StartsWith("sub", StringComparison.OrdinalIgnoreCase)) return OdfTextPosition.Subscript;
-        if (normalized.StartsWith("0%", StringComparison.OrdinalIgnoreCase)) return OdfTextPosition.Normal;
+        string offset = normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+        if (offset.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(offset.Substring(0, offset.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
+            if (percentage > 0D) return OdfTextPosition.Superscript;
+            if (percentage < 0D) return OdfTextPosition.Subscript;
+            return OdfTextPosition.Normal;
+        }
         return null;
     }
 

@@ -63,9 +63,7 @@ public static partial class OfficeTextBlockRenderer {
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
 
     /// <summary>Draws a measured text block with native decoration and baseline styling.</summary>
-    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
-    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
-    /// <param name="baseline">Vertical baseline placement.</param>
+    /// <remarks><paramref name="underlineStyle"/> and <paramref name="strikethroughStyle"/> take precedence over their legacy Boolean switches; <paramref name="baseline"/> controls subscript and superscript placement.</remarks>
     public static void DrawRasterTextBlock(
         OfficeRasterCanvas canvas,
         OfficeTextBlockLayout layout,
@@ -193,9 +191,7 @@ public static partial class OfficeTextBlockRenderer {
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
 
     /// <summary>Draws a measured text-box plan with native decoration and baseline styling.</summary>
-    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
-    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
-    /// <param name="baseline">Vertical baseline placement.</param>
+    /// <remarks><paramref name="underlineStyle"/> and <paramref name="strikethroughStyle"/> take precedence over their legacy Boolean switches; <paramref name="baseline"/> controls subscript and superscript placement.</remarks>
     public static void DrawRasterTextBox(
         OfficeRasterCanvas canvas,
         OfficeTextBlockRenderPlan plan,
@@ -661,9 +657,7 @@ public static partial class OfficeTextBlockRenderer {
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
 
     /// <summary>Appends one SVG text element with native decoration and baseline styling.</summary>
-    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
-    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
-    /// <param name="baseline">Vertical baseline placement.</param>
+    /// <remarks><paramref name="underlineStyle"/> and <paramref name="strikethroughStyle"/> take precedence over their legacy Boolean switches; <paramref name="baseline"/> controls subscript and superscript placement.</remarks>
     public static StringBuilder AppendSvgTextElement(
         this StringBuilder builder,
         string text,
@@ -1018,9 +1012,7 @@ public static partial class OfficeTextBlockRenderer {
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
 
     /// <summary>Writes an SVG text block with native decoration and baseline styling.</summary>
-    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
-    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
-    /// <param name="baseline">Vertical baseline placement.</param>
+    /// <remarks><paramref name="underlineStyle"/> and <paramref name="strikethroughStyle"/> take precedence over their legacy Boolean switches; <paramref name="baseline"/> controls subscript and superscript placement.</remarks>
     public static void WriteSvgTextBlock(
         XmlWriter writer,
         OfficeTextBlockLayout layout,
@@ -1165,9 +1157,7 @@ public static partial class OfficeTextBlockRenderer {
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
 
     /// <summary>Writes an SVG text-box plan with native decoration and baseline styling.</summary>
-    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
-    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
-    /// <param name="baseline">Vertical baseline placement.</param>
+    /// <remarks><paramref name="underlineStyle"/> and <paramref name="strikethroughStyle"/> take precedence over their legacy Boolean switches; <paramref name="baseline"/> controls subscript and superscript placement.</remarks>
     public static void WriteSvgTextBox(
         XmlWriter writer,
         OfficeTextBlockRenderPlan plan,

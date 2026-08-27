@@ -427,7 +427,7 @@ public static class OfficeConversionCapabilityCatalog {
         AddImageRoutes(routes, "xlsx", "XLSX", OfficeConversionInputKind.File, new[] { ".xlsx" }, "OfficeIMO.Excel", "ExcelDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "pptx", "PPTX", OfficeConversionInputKind.File, new[] { ".pptx" }, "OfficeIMO.PowerPoint", "PowerPointPresentation.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "html", "HTML", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, "OfficeIMO.Html", "HtmlConversionDocument.Parse(html).ExportImages(format, options)");
-        AddImageRoutes(routes, "onenote", "OneNote", OfficeConversionInputKind.File, new[] { ".one" }, "OfficeIMO.OneNote", "section.ExportImages(format, options)");
+        AddImageRoutes(routes, "onenote", "OneNote", OfficeConversionInputKind.File, new[] { ".one" }, "OfficeIMO.OneNote", "OneNoteSectionReader.Read(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "visio", "Visio", OfficeConversionInputKind.File, new[] { ".vsdx" }, "OfficeIMO.Visio", "VisioDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "email", "Email", OfficeConversionInputKind.File, new[] { ".eml" }, "OfficeIMO.Email.Image", "EmailDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "epub", "EPUB", OfficeConversionInputKind.File, new[] { ".epub" }, "OfficeIMO.Epub.Image", "EpubDocument.Load(stream, readOptions).ExportImages(format, options)");

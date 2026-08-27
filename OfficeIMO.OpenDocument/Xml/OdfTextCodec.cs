@@ -85,11 +85,7 @@ internal static class OdfTextCodec {
             return;
         }
 
-        // Culture-sensitive casing can occasionally change UTF-16 length. Preserve every
-        // inline node in that uncommon case, even though its casing context is node-local.
-        foreach (XText text in element.DescendantNodes().OfType<XText>().ToList()) {
-            text.Value = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(text.Value, textCase, culture);
-        }
+        AssignVariableLengthTransformedText(new[] { element }, textCase, culture);
     }
 
     internal static void TransformTextCase(
@@ -119,9 +115,53 @@ internal static class OdfTextCodec {
             return;
         }
 
-        // Preserve each paragraph's inline nodes when culture-sensitive casing changes UTF-16 length.
-        // Sentence and word context remains shared in the common length-preserving path above.
-        foreach (XElement element in elements) TransformTextCase(element, textCase, culture);
+        AssignVariableLengthTransformedText(elements, textCase, culture);
+    }
+
+    private static void AssignVariableLengthTransformedText(
+        IReadOnlyList<XElement> elements,
+        OfficeIMO.Drawing.OfficeTextCase textCase,
+        CultureInfo? culture) {
+        var segments = new List<string>();
+        var targets = new List<XText?>();
+        for (int index = 0; index < elements.Count; index++) {
+            if (index > 0) {
+                segments.Add("\n");
+                targets.Add(null);
+            }
+            CollectTransformSegments(elements[index].Nodes(), segments, targets);
+        }
+
+        IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
+        for (int index = 0; index < targets.Count; index++) {
+            if (targets[index] != null) targets[index]!.Value = transformed[index];
+        }
+    }
+
+    private static void CollectTransformSegments(
+        IEnumerable<XNode> nodes,
+        IList<string> segments,
+        IList<XText?> targets) {
+        foreach (XNode node in nodes) {
+            if (node is XText text) {
+                segments.Add(text.Value);
+                targets.Add(text);
+                continue;
+            }
+            if (!(node is XElement element)) continue;
+            if (element.Name == OdfNamespaces.Text + "s") {
+                segments.Add(new string(' ', ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"))));
+                targets.Add(null);
+            } else if (element.Name == OdfNamespaces.Text + "tab") {
+                segments.Add("\t");
+                targets.Add(null);
+            } else if (element.Name == OdfNamespaces.Text + "line-break") {
+                segments.Add("\n");
+                targets.Add(null);
+            } else {
+                CollectTransformSegments(element.Nodes(), segments, targets);
+            }
+        }
     }
 
     private static void AssignTransformedText(IEnumerable<XNode> nodes, string transformed, ref int offset) {

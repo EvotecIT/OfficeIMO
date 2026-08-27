@@ -156,4 +156,28 @@ public class OpenDocumentTextFormattingTests {
         Assert.Equal("https://example.test/sentence", Assert.Single(actualOdp.InlineNodes,
             node => node.Kind == OdpInlineNodeKind.Hyperlink).Hyperlink!.Href);
     }
+
+    [Fact]
+    public void PercentageTextPositionsMapToNativeBaselineValues() {
+        OdtDocument document = OdtDocument.Create();
+        OdtParagraph paragraph = document.AddParagraph();
+        OdtSpan raised = paragraph.AddSpan("raised");
+        OdtSpan lowered = paragraph.AddSpan("lowered");
+        OdtSpan normal = paragraph.AddSpan("normal");
+        raised.TextPosition = OdfTextPosition.Normal;
+        lowered.TextPosition = OdfTextPosition.Normal;
+        normal.TextPosition = OdfTextPosition.Superscript;
+
+        OdfStyle raisedStyle = document.Styles.FindInPart(OdfStyleFamily.Text, raised.StyleName!, "content.xml")!;
+        OdfStyle loweredStyle = document.Styles.FindInPart(OdfStyleFamily.Text, lowered.StyleName!, "content.xml")!;
+        OdfStyle normalStyle = document.Styles.FindInPart(OdfStyleFamily.Text, normal.StyleName!, "content.xml")!;
+        raisedStyle.TextProperties!.SetAttributeValue(OdfNamespaces.Style + "text-position", "33% 58%");
+        loweredStyle.TextProperties!.SetAttributeValue(OdfNamespaces.Style + "text-position", "-25% 58%");
+        normalStyle.TextProperties!.SetAttributeValue(OdfNamespaces.Style + "text-position", "0% 100%");
+
+        OdtParagraph actual = Assert.Single(OdtDocument.Load(new MemoryStream(document.ToBytes())).Paragraphs);
+        Assert.Equal(OdfTextPosition.Superscript, actual.Spans[0].TextPosition);
+        Assert.Equal(OdfTextPosition.Subscript, actual.Spans[1].TextPosition);
+        Assert.Equal(OdfTextPosition.Normal, actual.Spans[2].TextPosition);
+    }
 }

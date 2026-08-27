@@ -507,19 +507,19 @@ namespace OfficeIMO.Excel {
             foreach (var run in commentText.Elements<Run>()) {
                 var properties = run.RunProperties;
                 runs.Add(new ExcelRichTextRun(run.Text?.Text ?? string.Empty) {
-                    Bold = properties?.GetFirstChild<Bold>() != null,
-                    Italic = properties?.GetFirstChild<Italic>() != null,
-                    Underline = properties?.GetFirstChild<Underline>() != null,
-                    Strikethrough = properties?.GetFirstChild<Strike>() != null,
+                    Bold = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Bold>()),
+                    Italic = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Italic>()),
+                    Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(properties?.GetFirstChild<Underline>()),
+                    Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Strike>()),
                     UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
                     FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
                     FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
                     FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
                     VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
-                    Outline = properties?.GetFirstChild<Outline>() != null,
-                    Shadow = properties?.GetFirstChild<Shadow>() != null,
-                    Condense = properties?.GetFirstChild<Condense>() != null,
-                    Extend = properties?.GetFirstChild<Extend>() != null,
+                    Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
+                    Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),
+                    Condense = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Condense>()),
+                    Extend = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Extend>()),
                     FontFamily = ExcelRichTextRun.GetFontFamily(properties),
                     FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties)
                 });

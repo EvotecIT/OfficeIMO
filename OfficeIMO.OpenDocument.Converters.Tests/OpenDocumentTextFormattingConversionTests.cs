@@ -133,7 +133,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             ExcelCellStyleSnapshot authored = source.Sheets[0].GetCellStyle(1, 1);
             OdsCell converted = source.ToOpenDocument().Sheets.Single().Cell(0, 0);
 
-            Assert.True(authored.Underline);
+            Assert.False(authored.Underline);
             Assert.Equal(ExcelUnderlineStyle.None, authored.UnderlineStyle);
             Assert.NotEqual(true, converted.Underline);
             Assert.NotEqual(OdfTextDecorationStyle.Solid, converted.UnderlineStyle);
