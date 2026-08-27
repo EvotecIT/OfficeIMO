@@ -12,7 +12,7 @@ public static partial class PowerPointHtmlConverterExtensions {
 
             if (shape is PptCore.PowerPointTextBox textBox) {
                 IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = textBox.Paragraphs;
-                if (paragraphs.All(paragraph => paragraph.Runs.All(run => string.IsNullOrEmpty(run.Text)))) {
+                if (paragraphs.All(paragraph => paragraph.InlineNodes.All(node => string.IsNullOrEmpty(node.Text)))) {
                     continue;
                 }
 
@@ -22,8 +22,27 @@ public static partial class PowerPointHtmlConverterExtensions {
                 for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                     if (paragraphIndex > 0) body.Append("<br>");
                     PptCore.PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-                    foreach (PptCore.PowerPointTextRun run in paragraph.Runs) {
-                        AppendSemanticTextRun(body, run);
+                    foreach (PptCore.PowerPointParagraphInline node in paragraph.InlineNodes) {
+                        if (node.Kind == PptCore.PowerPointParagraphInlineKind.Run && node.Run != null) {
+                            AppendSemanticTextRun(body, node.Run);
+                        } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.LineBreak) {
+                            body.Append("<br>");
+                        } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.Field) {
+                            body.Append("<span data-officeimo-powerpoint-field=\"true\"");
+                            if (!string.IsNullOrWhiteSpace(node.FieldId)) {
+                                body.Append(" data-officeimo-powerpoint-field-id=\"")
+                                    .Append(OfficeHtmlText.EscapeAttribute(node.FieldId!))
+                                    .Append('"');
+                            }
+                            if (!string.IsNullOrWhiteSpace(node.FieldType)) {
+                                body.Append(" data-officeimo-powerpoint-field-type=\"")
+                                    .Append(OfficeHtmlText.EscapeAttribute(node.FieldType!))
+                                    .Append('"');
+                            }
+                            body.Append('>')
+                                .Append(OfficeHtmlText.Escape(node.Text))
+                                .Append("</span>");
+                        }
                     }
                 }
                 body.Append("</p>");

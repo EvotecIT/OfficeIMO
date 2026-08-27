@@ -64,16 +64,18 @@ public static class OfficeTextCaseTransformer {
         string normalized = text.ToLower(culture);
         var result = new StringBuilder(normalized.Length);
         bool capitalizeNext = true;
-        for (int index = 0; index < normalized.Length; index++) {
-            char character = normalized[index];
-            if (capitalizeNext && char.IsLetter(character)) {
-                result.Append(char.ToUpper(character, culture));
+        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(normalized);
+        while (elements.MoveNext()) {
+            string element = elements.GetTextElement();
+            if (capitalizeNext && IsLetter(element)) {
+                result.Append(element.ToUpper(culture));
                 capitalizeNext = false;
             } else {
-                result.Append(character);
+                result.Append(element);
             }
 
-            if (character == '.' || character == '!' || character == '?' || character == '\r' || character == '\n') {
+            if (element.IndexOf('.') >= 0 || element.IndexOf('!') >= 0 || element.IndexOf('?') >= 0 ||
+                element.IndexOf('\r') >= 0 || element.IndexOf('\n') >= 0) {
                 capitalizeNext = true;
             }
         }
@@ -83,12 +85,28 @@ public static class OfficeTextCaseTransformer {
     private static string Toggle(string text, CultureInfo culture) {
         if (text.Length == 0) return text;
         var result = new StringBuilder(text.Length);
-        for (int index = 0; index < text.Length; index++) {
-            char character = text[index];
-            if (char.IsUpper(character)) result.Append(char.ToLower(character, culture));
-            else if (char.IsLower(character)) result.Append(char.ToUpper(character, culture));
-            else result.Append(character);
+        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext()) {
+            string element = elements.GetTextElement();
+            string upper = element.ToUpper(culture);
+            string lower = element.ToLower(culture);
+            if (string.Equals(element, upper, StringComparison.Ordinal) && !string.Equals(element, lower, StringComparison.Ordinal)) {
+                result.Append(lower);
+            } else if (string.Equals(element, lower, StringComparison.Ordinal) && !string.Equals(element, upper, StringComparison.Ordinal)) {
+                result.Append(upper);
+            } else {
+                result.Append(element);
+            }
         }
         return result.ToString();
+    }
+
+    private static bool IsLetter(string textElement) {
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(textElement, 0);
+        return category == UnicodeCategory.UppercaseLetter ||
+               category == UnicodeCategory.LowercaseLetter ||
+               category == UnicodeCategory.TitlecaseLetter ||
+               category == UnicodeCategory.ModifierLetter ||
+               category == UnicodeCategory.OtherLetter;
     }
 }

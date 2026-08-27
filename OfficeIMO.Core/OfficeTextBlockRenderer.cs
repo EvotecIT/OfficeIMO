@@ -491,6 +491,11 @@ public static partial class OfficeTextBlockRenderer {
         }
 
         string textAnchor = GetSvgTextAnchor(horizontalAlignment);
+        OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
+            ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
+            ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        bool splitDecorations = RequiresSeparateSvgDecorations(resolvedUnderlineStyle, resolvedStrikethroughStyle);
         double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
         for (int i = 0; i < layout.Lines.Count; i++) {
             OfficeTextLine line = layout.Lines[i];
@@ -532,16 +537,24 @@ public static partial class OfficeTextBlockRenderer {
 
             AppendSvgTextDecorationAttribute(
                 builder,
-                underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
-                strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
+                splitDecorations ? OfficeTextDecorationStyle.None : resolvedUnderlineStyle,
+                resolvedStrikethroughStyle);
 
             if (Math.Abs(rotationDegrees) > 0.000001D) {
                 builder.AppendRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
             }
 
-            builder.Append(">")
-                .Append(OfficeSvgFormatting.Escape(line.Text))
-                .Append("</text>");
+            builder.Append('>');
+            if (splitDecorations) {
+                builder.Append("<tspan");
+                AppendSvgTextDecorationAttribute(builder, resolvedUnderlineStyle, OfficeTextDecorationStyle.None);
+                builder.Append('>')
+                    .Append(OfficeSvgFormatting.Escape(line.Text))
+                    .Append("</tspan>");
+            } else {
+                builder.Append(OfficeSvgFormatting.Escape(line.Text));
+            }
+            builder.Append("</text>");
         }
 
         return builder;
@@ -656,6 +669,11 @@ public static partial class OfficeTextBlockRenderer {
             ? y - (fontSize * 0.30D)
             : baseline == OfficeTextBaseline.Subscript ? y + (fontSize * 0.15D) : y;
         string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
+            ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
+            ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        bool splitDecorations = RequiresSeparateSvgDecorations(resolvedUnderlineStyle, resolvedStrikethroughStyle);
         builder.Append("<text")
             .AppendNumberAttribute("x", x)
             .AppendNumberAttribute("y", renderedY)
@@ -683,14 +701,27 @@ public static partial class OfficeTextBlockRenderer {
 
         AppendSvgTextDecorationAttribute(
             builder,
-            underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
-            strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
+            splitDecorations ? OfficeTextDecorationStyle.None : resolvedUnderlineStyle,
+            resolvedStrikethroughStyle);
 
         if (Math.Abs(rotationDegrees) > 0.000001D) {
             builder.AppendRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
         }
 
         builder.Append('>');
+        if (splitDecorations) {
+            for (int i = 0; i < lines.Length; i++) {
+                builder.Append("<tspan")
+                    .AppendNumberAttribute("x", x)
+                    .AppendNumberAttribute("dy", i == 0 ? 0D : lineHeight);
+                AppendSvgTextDecorationAttribute(builder, resolvedUnderlineStyle, OfficeTextDecorationStyle.None);
+                builder.Append('>')
+                    .Append(OfficeSvgFormatting.Escape(lines[i]))
+                    .Append("</tspan>");
+            }
+            builder.Append("</text>");
+            return builder;
+        }
         for (int i = 0; i < lines.Length; i++) {
             if (i == 0) {
                 builder.Append(OfficeSvgFormatting.Escape(lines[i]));
@@ -917,6 +948,11 @@ public static partial class OfficeTextBlockRenderer {
         }
 
         double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
+            ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
+            ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        bool splitDecorations = RequiresSeparateSvgDecorations(resolvedUnderlineStyle, resolvedStrikethroughStyle);
         double firstAnchorX = OfficeTextPlacement.ResolveAnchorX(left + layout.Lines[0].OffsetX, Math.Max(0D, width - layout.Lines[0].OffsetX), horizontalAlignment);
         writer.WriteStartElement("text", svgNamespace);
         configureTextAttributes?.Invoke(writer);
@@ -945,8 +981,8 @@ public static partial class OfficeTextBlockRenderer {
 
         WriteSvgTextDecorationAttribute(
             writer,
-            underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
-            strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
+            splitDecorations ? OfficeTextDecorationStyle.None : resolvedUnderlineStyle,
+            resolvedStrikethroughStyle);
 
         if (Math.Abs(rotationDegrees) > 0.000001D) {
             writer.WriteRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
@@ -956,6 +992,9 @@ public static partial class OfficeTextBlockRenderer {
             OfficeTextLine line = layout.Lines[i];
             double lineAnchorX = OfficeTextPlacement.ResolveAnchorX(left + line.OffsetX, Math.Max(0D, width - line.OffsetX), horizontalAlignment);
             writer.WriteStartElement("tspan", svgNamespace);
+            if (splitDecorations) {
+                WriteSvgTextDecorationAttribute(writer, resolvedUnderlineStyle, OfficeTextDecorationStyle.None);
+            }
             writer.WriteNumberAttribute("x", lineAnchorX);
             writer.WriteNumberAttribute("dy", i == 0 ? 0D : layout.LineHeight);
             double lineWidth = Math.Max(0D, width - line.OffsetX);
@@ -1170,6 +1209,11 @@ public static partial class OfficeTextBlockRenderer {
             underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
             strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
     }
+
+    private static bool RequiresSeparateSvgDecorations(OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle) =>
+        underlineStyle != OfficeTextDecorationStyle.None &&
+        strikethroughStyle != OfficeTextDecorationStyle.None &&
+        underlineStyle != strikethroughStyle;
 
     private static void AppendSvgTextDecorationAttribute(StringBuilder builder, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle) {
         bool underline = underlineStyle != OfficeTextDecorationStyle.None;

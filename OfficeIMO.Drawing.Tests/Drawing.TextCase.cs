@@ -23,6 +23,20 @@ public sealed class OfficeTextCaseTests {
     }
 
     [Fact]
+    public void ApplyTransformsSupplementaryUnicodeLettersAsWholeTextElements() {
+        const string deseretCapitalLongI = "\U00010400";
+        const string deseretSmallLongI = "\U00010428";
+
+        Assert.Equal(deseretSmallLongI,
+            OfficeTextCaseTransformer.Apply(deseretCapitalLongI, OfficeTextCase.ToggleCase, CultureInfo.InvariantCulture));
+        Assert.Equal(deseretCapitalLongI + "bc. " + deseretCapitalLongI + "ef",
+            OfficeTextCaseTransformer.Apply(
+                deseretSmallLongI + "BC. " + deseretSmallLongI + "EF",
+                OfficeTextCase.SentenceCase,
+                CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public void RichTextRunCopyPreservesDrawingStyle() {
         OfficeRichTextRun source = new("Styled", 14, OfficeColor.FromRgb(51, 102, 153),
             bold: true, italic: true, fontFamily: "Aptos",

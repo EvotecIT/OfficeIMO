@@ -302,7 +302,11 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        double fontSize = Math.Max(1D, text.Font.Size * scale);
+        double sourceFontSize = Math.Max(1D, text.Font.Size * scale);
+        double fontSize = text.Baseline == OfficeTextBaseline.Normal ? sourceFontSize : sourceFontSize * 0.65D;
+        double baselineOffset = text.Baseline == OfficeTextBaseline.Superscript
+            ? -(sourceFontSize * 0.30D)
+            : text.Baseline == OfficeTextBaseline.Subscript ? sourceFontSize * 0.15D : 0D;
         OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)
@@ -346,7 +350,7 @@ public static partial class OfficeDrawingRasterRenderer {
             canvas,
             layout,
             contentX,
-            contentY,
+            contentY + baselineOffset,
             contentWidth,
             contentHeight,
             text.Color ?? OfficeColor.Black,
@@ -364,7 +368,7 @@ public static partial class OfficeDrawingRasterRenderer {
             flipVertical: text.FlipVertical,
             underlineStyle: text.UnderlineStyle,
             strikethroughStyle: text.StrikethroughStyle,
-            baseline: text.Baseline);
+            baseline: OfficeTextBaseline.Normal);
     }
 
     private static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {

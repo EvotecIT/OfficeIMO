@@ -56,4 +56,16 @@ public class PowerPointRichRunNativeTextFormattingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => run.BaselinePercent = 100.1D);
         Assert.Throws<ArgumentOutOfRangeException>(() => run.BaselinePercent = double.NaN);
     }
+
+    [Fact]
+    public void SetBaselineWritesAnExplicitNormalValue() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointTextRun run = presentation.AddSlide().AddTextBox("Styled")
+            .Paragraphs.Single().Runs.Single();
+        run.SetSuperscript();
+
+        run.SetBaseline();
+
+        Assert.Equal(0D, run.BaselinePercent);
+    }
 }

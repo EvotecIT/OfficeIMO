@@ -63,6 +63,12 @@ public sealed class PdfTextRun {
         : this(text, bold, underline, color, italic, strike, fontSize, font, linkUri, linkContents, baseline, linkDestinationName, tabLeader, PdfTabAlignment.Left, backgroundColor, fontFamily) {
     }
 
+    /// <summary>Create a run using the pre-typography constructor signature with tab alignment.</summary>
+    public PdfTextRun(string text, bool bold, bool underline, PdfColor? color, bool italic, bool strike, double? fontSize, PdfStandardFont? font, string? linkUri, string? linkContents, PdfTextBaseline baseline, string? linkDestinationName, PdfTabLeaderStyle tabLeader, PdfTabAlignment tabAlignment, PdfColor? backgroundColor, string? fontFamily)
+        : this(text, bold, underline, color, italic, strike, fontSize, font, linkUri, linkContents, baseline, linkDestinationName, tabLeader, tabAlignment, backgroundColor, fontFamily,
+            OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle.None) {
+    }
+
     /// <summary>Create a new run with the specified styles and tab alignment.</summary>
     public PdfTextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) {
         Guard.NotNull(text, nameof(text));

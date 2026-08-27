@@ -1,11 +1,23 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using System.Text;
+using System.Reflection;
 using Xunit;
 
 namespace OfficeIMO.Pdf.Tests;
 
 public class PdfTextCaseTests {
+    [Fact]
+    public void PreTypographyTabAlignedConstructorRemainsBinaryDiscoverable() {
+        ConstructorInfo? constructor = typeof(PdfTextRun).GetConstructor(new[] {
+            typeof(string), typeof(bool), typeof(bool), typeof(PdfColor?), typeof(bool), typeof(bool),
+            typeof(double?), typeof(PdfStandardFont?), typeof(string), typeof(string), typeof(PdfTextBaseline),
+            typeof(string), typeof(PdfTabLeaderStyle), typeof(PdfTabAlignment), typeof(PdfColor?), typeof(string)
+        });
+
+        Assert.NotNull(constructor);
+    }
+
     [Fact]
     public void WithTextCasePreservesImmutableRunFormatting() {
         PdfTextRun source = new("Styled", bold: true,

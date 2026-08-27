@@ -1,11 +1,27 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Drawing.Tests;
 
 public sealed class OfficeRichTextFormattingTests {
+    [Fact]
+    public void PreTypographyConstructorsRemainBinaryDiscoverable() {
+        ConstructorInfo? run = typeof(OfficeRichTextRun).GetConstructor(new[] {
+            typeof(string), typeof(double), typeof(OfficeColor), typeof(bool), typeof(bool),
+            typeof(bool), typeof(string), typeof(bool), typeof(OfficeColor?)
+        });
+        ConstructorInfo? segment = typeof(OfficeRichTextSegment).GetConstructor(new[] {
+            typeof(string), typeof(double), typeof(double), typeof(OfficeColor), typeof(bool),
+            typeof(bool), typeof(bool), typeof(string), typeof(bool), typeof(OfficeColor?)
+        });
+
+        Assert.NotNull(run);
+        Assert.NotNull(segment);
+    }
+
     [Fact]
     public void RichTextRunKeepsCompatibilityBooleansAndCanonicalStyles() {
         var run = new OfficeRichTextRun(
@@ -75,6 +91,56 @@ public sealed class OfficeRichTextFormattingTests {
         Assert.Contains("text-decoration-style=\"wavy\"", svg, StringComparison.Ordinal);
         Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
         Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgKeepsIndependentUnderlineAndStrikethroughPatterns() {
+        var layout = new OfficeTextBlockLayout(
+            new[] { new OfficeTextLine("Styled", 60D) },
+            fontSize: 16D,
+            lineHeight: 20D,
+            width: 60D,
+            height: 20D);
+        var builder = new StringBuilder();
+
+        builder.AppendSvgStyledTextBlock(
+            layout, 0D, 0D, 100D, 30D, OfficeColor.Black,
+            "Aptos", OfficeTextAlignment.Left, OfficeTextVerticalAlignment.Top,
+            bold: false, italic: false, underline: true,
+            rotationDegrees: 0D,
+            rotationCenterX: 0D,
+            rotationCenterY: 0D,
+            centerLineInLineHeight: true,
+            underlineStyle: OfficeTextDecorationStyle.Double,
+            strikethrough: true,
+            strikethroughStyle: OfficeTextDecorationStyle.Dotted,
+            baseline: OfficeTextBaseline.Normal);
+
+        string svg = builder.ToString();
+        Assert.Contains("text-decoration=\"line-through\"", svg, StringComparison.Ordinal);
+        Assert.Contains("text-decoration-style=\"dotted\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<tspan text-decoration=\"underline\" text-decoration-style=\"double\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BaselineTextBlockLayoutsUseTheRenderedFontSize() {
+        var drawing = new OfficeDrawing(80D, 30D)
+            .AddStyledText(
+                "123456", 0D, 0D, 40D, 24D,
+                new OfficeFontInfo("Aptos", 20D, OfficeFontStyle.Regular), OfficeColor.Black,
+                OfficeTextAlignment.Left, null, OfficeTextVerticalAlignment.Top,
+                0D, null, null,
+                true, false, false, false, false,
+                null, null,
+                OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None,
+                OfficeTextBaseline.Superscript);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Contains("font-size=\"13\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("font-size=\"8.45\"", svg, StringComparison.Ordinal);
+        Assert.True(CountPaintedPixels(raster) > 0);
     }
 
     [Fact]

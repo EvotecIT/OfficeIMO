@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Restores the run to the normal text baseline.</summary>
         public PowerPointTextRun SetBaseline() {
-            BaselinePercent = null;
+            BaselinePercent = 0D;
             return this;
         }
 

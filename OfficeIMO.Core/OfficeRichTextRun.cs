@@ -4,6 +4,12 @@ namespace OfficeIMO.Drawing;
 /// Describes one styled text run for shared rich text layout and rendering.
 /// </summary>
 public sealed class OfficeRichTextRun {
+    /// <summary>Creates a styled text run using the pre-typography constructor signature.</summary>
+    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string? fontFamily, bool strikethrough, OfficeColor? backgroundColor)
+        : this(text, fontSize, color, bold, italic, underline, fontFamily, strikethrough, backgroundColor,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal) {
+    }
+
     /// <summary>
     /// Creates a styled text run.
     /// </summary>

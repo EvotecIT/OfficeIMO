@@ -577,7 +577,11 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, bool useFrameTransform = false) {
-        double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        double fontSize = text.Baseline == OfficeTextBaseline.Normal ? sourceFontSize : sourceFontSize * 0.65D;
+        double baselineOffset = text.Baseline == OfficeTextBaseline.Superscript
+            ? -(sourceFontSize * 0.30D)
+            : text.Baseline == OfficeTextBaseline.Subscript ? sourceFontSize * 0.15D : 0D;
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, text.LineHeight.Value / fontSize)
             : 1.2D;
@@ -630,7 +634,7 @@ public static partial class OfficeDrawingSvgExporter {
         sb.AppendSvgStyledTextBlock(
             layout,
             contentX,
-            contentY,
+            contentY + baselineOffset,
             contentWidth,
             contentHeight,
             text.Color ?? OfficeColor.Black,
@@ -647,7 +651,7 @@ public static partial class OfficeDrawingSvgExporter {
             strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
             underlineStyle: text.UnderlineStyle,
             strikethroughStyle: text.StrikethroughStyle,
-            baseline: text.Baseline);
+            baseline: OfficeTextBaseline.Normal);
     }
 
     private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text) {

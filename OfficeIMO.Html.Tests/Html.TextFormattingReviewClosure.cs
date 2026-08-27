@@ -32,6 +32,22 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     }
 
     [Fact]
+    public void PowerPointSemanticHtmlIncludesExplicitLineBreaksAndFieldsInOrder() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before")
+            .Paragraphs.Single();
+        paragraph.AddLineBreak();
+        paragraph.AddField("27 August 2026", "datetime1", "{11111111-1111-1111-1111-111111111111}");
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("Before</span><br><span data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-field-id=\"{11111111-1111-1111-1111-111111111111}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-field-type=\"datetime1\"", html, StringComparison.Ordinal);
+        Assert.Contains(">27 August 2026</span>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LegacyPowerPointSemanticHeadingIsNotPairedWithATextBox() {
         const string html = """
             <section class="officeimo-slide">
