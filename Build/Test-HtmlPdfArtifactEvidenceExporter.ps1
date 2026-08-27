@@ -53,6 +53,48 @@ function New-TestPdfBytes {
     return $buffer.ToArray()
 }
 
+function Add-PngTextChunk {
+    param([Parameter(Mandatory)][byte[]] $Bytes)
+
+    if ($Bytes.Length -lt 20 -or
+        [System.Text.Encoding]::ASCII.GetString($Bytes, $Bytes.Length - 8, 4) -ne 'IEND') {
+        throw 'PNG fixture does not end with an IEND chunk.'
+    }
+
+    [byte[]] $type = [System.Text.Encoding]::ASCII.GetBytes('tEXt')
+    [byte[]] $data = [System.Text.Encoding]::ASCII.GetBytes("Comment`0independent-preview")
+    [uint64] $crc = 4294967295
+    foreach ($value in [byte[]] ($type + $data)) {
+        $crc = ($crc -bxor [uint64] $value) -band 4294967295
+        foreach ($bit in 1..8) {
+            $crc = if (($crc -band 1) -ne 0) {
+                (($crc -shr 1) -bxor 3988292384) -band 4294967295
+            } else {
+                ($crc -shr 1) -band 4294967295
+            }
+        }
+    }
+    $crc = ($crc -bxor 4294967295) -band 4294967295
+
+    $result = [System.Collections.Generic.List[byte]]::new($Bytes.Length + 12 + $data.Length)
+    $iendOffset = $Bytes.Length - 12
+    $result.AddRange([byte[]] $Bytes[0..($iendOffset - 1)])
+    $result.AddRange([byte[]] @(
+            [byte] (($data.Length -shr 24) -band 0xff),
+            [byte] (($data.Length -shr 16) -band 0xff),
+            [byte] (($data.Length -shr 8) -band 0xff),
+            [byte] ($data.Length -band 0xff)))
+    $result.AddRange($type)
+    $result.AddRange($data)
+    $result.AddRange([byte[]] @(
+            [byte] (($crc -shr 24) -band 0xff),
+            [byte] (($crc -shr 16) -band 0xff),
+            [byte] (($crc -shr 8) -band 0xff),
+            [byte] ($crc -band 0xff)))
+    $result.AddRange([byte[]] $Bytes[$iendOffset..($Bytes.Length - 1)])
+    return $result.ToArray()
+}
+
 try {
     $evidenceRoot = Join-Path $temporaryRoot 'Run'
     New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
@@ -485,7 +527,42 @@ try {
     $taggedOutput.contract.structureElementCount = 2
 
     $managedPath = Join-Path $evidenceRoot ([string] $taggedOutput.managedVisual.relativePath)
-    $managedBytes = [System.IO.File]::ReadAllBytes($managedPath)
+    $originalManagedArtifacts = [System.Collections.Generic.Dictionary[string, byte[]]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($candidateOutput in @($report.engines[0].outputs)) {
+        $candidatePath = Join-Path $evidenceRoot ([string] $candidateOutput.managedVisual.relativePath)
+        $candidateBytes = [System.IO.File]::ReadAllBytes($candidatePath)
+        $originalManagedArtifacts.Add($candidatePath, $candidateBytes)
+        $repackedManagedBytes = Add-PngTextChunk -Bytes $candidateBytes
+        $managedHash = [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData($candidateBytes))
+        $repackedManagedHash = [Convert]::ToHexString(
+            [System.Security.Cryptography.SHA256]::HashData($repackedManagedBytes))
+        if ([string]::Equals($managedHash, $repackedManagedHash, [System.StringComparison]::Ordinal)) {
+            throw 'PNG contract fixture did not change the encoded artifact.'
+        }
+        [System.IO.File]::WriteAllBytes($candidatePath, $repackedManagedBytes)
+        $candidateItem = Get-Item -LiteralPath $candidatePath
+        $candidateOutput.managedVisual.sizeBytes = $candidateItem.Length
+        $candidateOutput.managedVisual.sha256 = (Get-FileHash -LiteralPath $candidatePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+    [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+    & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+        -EvidencePath $evidenceRoot `
+        -Platform $platform `
+        -OutputPath $outputPath
+    if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
+        throw 'HTML/PDF artifact exporter rejected a byte-distinct PNG with identical decoded pixels.'
+    }
+    foreach ($candidateOutput in @($report.engines[0].outputs)) {
+        $candidatePath = Join-Path $evidenceRoot ([string] $candidateOutput.managedVisual.relativePath)
+        [System.IO.File]::WriteAllBytes($candidatePath, $originalManagedArtifacts[$candidatePath])
+        $candidateItem = Get-Item -LiteralPath $candidatePath
+        $candidateOutput.managedVisual.sizeBytes = $candidateItem.Length
+        $candidateOutput.managedVisual.sha256 = (Get-FileHash -LiteralPath $candidatePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    $managedBytes = $originalManagedArtifacts[$managedPath]
+
     $externalPath = Join-Path $evidenceRoot ([string] $taggedOutput.externalVisual.relativePath)
     [System.IO.File]::WriteAllBytes($managedPath, [System.IO.File]::ReadAllBytes($externalPath))
     $managedItem = Get-Item -LiteralPath $managedPath

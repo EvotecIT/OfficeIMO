@@ -282,11 +282,36 @@ function Assert-ManagedPreviewMatchesPdf {
     if ($rendered.Count -ne 1 -or $null -eq $rendered[0].Bytes) {
         throw "Independent managed rendering failed for artifact: $PdfRelativePath"
     }
-    $actualHash = [Convert]::ToHexString(
-        [System.Security.Cryptography.SHA256]::HashData($rendered[0].Bytes)).ToLowerInvariant()
+
+    $previewPath = [System.IO.Path]::GetFullPath((Join-Path $evidenceRoot ([string] $Preview.relativePath)))
+    $expectedImage = $null
+    $actualImage = $null
+    if (-not [OfficeIMO.Drawing.OfficePngReader]::TryDecode(
+            [System.IO.File]::ReadAllBytes($previewPath),
+            [ref] $expectedImage) -or
+        $null -eq $expectedImage -or
+        -not [OfficeIMO.Drawing.OfficePngReader]::TryDecode(
+            $rendered[0].Bytes,
+            [ref] $actualImage) -or
+        $null -eq $actualImage) {
+        throw "Managed preview comparison could not decode page-one rendering of artifact: $PdfRelativePath"
+    }
+
+    $expectedPixels = $expectedImage.GetPixels()
+    $actualPixels = $actualImage.GetPixels()
+    $expectedPixelHash = [Convert]::ToHexString(
+        [System.Security.Cryptography.SHA256]::HashData($expectedPixels))
+    $actualPixelHash = [Convert]::ToHexString(
+        [System.Security.Cryptography.SHA256]::HashData($actualPixels))
     if ($rendered[0].Width -ne [int] $Preview.width -or
         $rendered[0].Height -ne [int] $Preview.height -or
-        -not [string]::Equals($actualHash, [string] $Preview.sha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $expectedImage.Width -ne $actualImage.Width -or
+        $expectedImage.Height -ne $actualImage.Height -or
+        $expectedPixels.Length -ne $actualPixels.Length -or
+        -not [string]::Equals(
+            $expectedPixelHash,
+            $actualPixelHash,
+            [System.StringComparison]::Ordinal)) {
         throw "Managed preview does not match an independent page-one rendering of artifact: $PdfRelativePath"
     }
 }
