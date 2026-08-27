@@ -70,9 +70,7 @@ namespace OfficeIMO.PowerPoint {
                 wrapper.Italic = true;
             }
             if (underline != null) {
-                wrapper.Underline = true;
-                wrapper.Run.RunProperties ??= new A.RunProperties();
-                wrapper.Run.RunProperties.Underline = underline.Value.ToOpenXml();
+                wrapper.UnderlineStyle = underline;
             }
             if (strikethrough) {
                 wrapper.Strikethrough = true;

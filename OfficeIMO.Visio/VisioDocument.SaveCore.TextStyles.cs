@@ -109,6 +109,23 @@ namespace OfficeIMO.Visio {
                 WriteCell(writer, ns, "Style", styleValue);
             }
 
+            if (textStyle.UnderlineStyle.HasValue) {
+                WriteCell(writer, ns, "DblUnderline", textStyle.UnderlineStyle.Value == OfficeIMO.Drawing.OfficeTextDecorationStyle.Double ? 1 : 0);
+            }
+
+            if (textStyle.StrikethroughStyle.HasValue) {
+                WriteCell(writer, ns, "Strikethru", textStyle.StrikethroughStyle.Value == OfficeIMO.Drawing.OfficeTextDecorationStyle.Single ? 1 : 0);
+                WriteCell(writer, ns, "DoubleStrikethrough", textStyle.StrikethroughStyle.Value == OfficeIMO.Drawing.OfficeTextDecorationStyle.Double ? 1 : 0);
+            }
+
+            if (textStyle.Capitalization.HasValue) {
+                WriteCell(writer, ns, "Case", (int)textStyle.Capitalization.Value);
+            }
+
+            if (textStyle.Baseline.HasValue) {
+                WriteCell(writer, ns, "Pos", (int)textStyle.Baseline.Value);
+            }
+
             writer.WriteEndElement();
             writer.WriteEndElement();
         }
@@ -135,7 +152,11 @@ namespace OfficeIMO.Visio {
                     textStyle.Size.HasValue ||
                     textStyle.Bold.HasValue ||
                     textStyle.Italic.HasValue ||
-                    textStyle.Underline.HasValue);
+                    textStyle.UnderlineStyle.HasValue ||
+                    textStyle.StrikethroughStyle.HasValue ||
+                    textStyle.SmallCaps.HasValue ||
+                    textStyle.Capitalization.HasValue ||
+                    textStyle.Baseline.HasValue);
         }
 
         private static bool TryGetCharStyleValue(VisioTextStyle textStyle, out int styleValue) {
@@ -155,10 +176,17 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            if (textStyle.Underline.HasValue) {
+            if (textStyle.UnderlineStyle.HasValue) {
                 hasAny = true;
-                if (textStyle.Underline.Value) {
+                if (textStyle.UnderlineStyle.Value == OfficeIMO.Drawing.OfficeTextDecorationStyle.Single) {
                     styleValue |= 4;
+                }
+            }
+
+            if (textStyle.SmallCaps.HasValue) {
+                hasAny = true;
+                if (textStyle.SmallCaps.Value) {
+                    styleValue |= 8;
                 }
             }
 

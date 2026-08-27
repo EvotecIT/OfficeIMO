@@ -99,7 +99,9 @@ public sealed partial class OfficeRasterCanvas {
         bool strikethrough,
         string? fontFamily,
         bool flipHorizontal,
-        bool flipVertical) {
+        bool flipVertical,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle) {
         if (_fonts == null) return false;
         OfficeFontStyle style = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -126,7 +128,9 @@ public sealed partial class OfficeRasterCanvas {
                 strikethrough,
                 run.FamilyName,
                 flipHorizontal,
-                flipVertical);
+                flipVertical,
+                underlineStyle,
+                strikethroughStyle);
             cursor += runWidth;
         }
         return true;

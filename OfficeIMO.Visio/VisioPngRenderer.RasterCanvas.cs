@@ -111,7 +111,10 @@ namespace OfficeIMO.Visio {
                 double rotationCenterY,
                 Color? backgroundColor,
                 double backgroundPaddingX,
-                double backgroundPaddingY) {
+                double backgroundPaddingY,
+                OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+                OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
+                OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
                 OfficeTextBlockRenderer.DrawRasterTextBox(
                     _canvas,
                     plan,
@@ -127,7 +130,11 @@ namespace OfficeIMO.Visio {
                     backgroundPaddingY: backgroundPaddingY,
                     centerLineInLineHeight: false,
                     underlineOffsetFactor: 0.92D,
-                    fontFamily: fontFamily);
+                    strikethrough: strikethroughStyle != OfficeTextDecorationStyle.None,
+                    fontFamily: fontFamily,
+                    underlineStyle: underlineStyle,
+                    strikethroughStyle: strikethroughStyle,
+                    baseline: baseline);
             }
 
             internal byte[] Resolve() {

@@ -1,5 +1,6 @@
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word.OpenDocument;
 
@@ -12,6 +13,17 @@ public static partial class WordOpenDocumentConversionExtensions {
             ? WordUnderlineStyle.Single
             : (WordUnderlineStyle?)null;
         target.Strike = (source.StrikeThrough ?? paragraph.StrikeThrough) == true;
+        ApplyOdfRunSemantics(
+            source.Underline ?? paragraph.Underline,
+            source.UnderlineStyle ?? paragraph.UnderlineStyle,
+            source.UnderlineType ?? paragraph.UnderlineType,
+            source.StrikeThrough ?? paragraph.StrikeThrough,
+            source.LineThroughStyle ?? paragraph.LineThroughStyle,
+            source.LineThroughType ?? paragraph.LineThroughType,
+            source.TextPosition ?? paragraph.TextPosition,
+            source.TextTransform ?? paragraph.TextTransform,
+            source.SmallCaps ?? paragraph.SmallCaps,
+            target);
         OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
         int unsupported = ApplyOdtFontSize(fontSize, target);
         string? selectedFontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
@@ -29,6 +41,17 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Italic = source.Italic == true;
         target.Underline = source.Underline == true ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null;
         target.Strike = source.StrikeThrough == true;
+        ApplyOdfRunSemantics(
+            source.Underline,
+            source.UnderlineStyle,
+            source.UnderlineType,
+            source.StrikeThrough,
+            source.LineThroughStyle,
+            source.LineThroughType,
+            source.TextPosition,
+            source.TextTransform,
+            source.SmallCaps,
+            target);
         int unsupported = ApplyOdtFontSize(source.FontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
@@ -46,6 +69,17 @@ public static partial class WordOpenDocumentConversionExtensions {
             ? WordUnderlineStyle.Single
             : (WordUnderlineStyle?)null;
         target.Strike = (source.StrikeThrough ?? paragraph.StrikeThrough) == true;
+        ApplyOdfRunSemantics(
+            source.Underline ?? paragraph.Underline,
+            source.UnderlineStyle ?? paragraph.UnderlineStyle,
+            source.UnderlineType ?? paragraph.UnderlineType,
+            source.StrikeThrough ?? paragraph.StrikeThrough,
+            source.LineThroughStyle ?? paragraph.LineThroughStyle,
+            source.LineThroughType ?? paragraph.LineThroughType,
+            source.TextPosition ?? paragraph.TextPosition,
+            source.TextTransform ?? paragraph.TextTransform,
+            source.SmallCaps ?? paragraph.SmallCaps,
+            target);
         OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
         int unsupported = ApplyOdtFontSize(fontSize, target);
         string? selectedFontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
@@ -82,5 +116,52 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (!source.HasValue) return;
         if (TryMapOdfHighlight(source.Value, out WordHighlightColor highlight)) target.Highlight = highlight;
         else target.RunShadingFillColorHex = source.Value.ToString();
+    }
+
+    private static void ApplyOdfRunSemantics(
+        bool? underline,
+        OdfTextDecorationStyle? underlineStyle,
+        OdfTextDecorationType? underlineType,
+        bool? strike,
+        OdfTextDecorationStyle? strikeStyle,
+        OdfTextDecorationType? strikeType,
+        OdfTextPosition? position,
+        OdfTextTransform? transform,
+        bool? smallCaps,
+        WordParagraph target) {
+        target.Underline = MapOdfUnderline(underline, underlineStyle, underlineType);
+        bool hasStrike = strike == true && strikeStyle != OdfTextDecorationStyle.None && strikeType != OdfTextDecorationType.None;
+        target.DoubleStrike = hasStrike && strikeType == OdfTextDecorationType.Double;
+        target.Strike = hasStrike && !target.DoubleStrike;
+        target.VerticalTextAlignment = position switch {
+            OdfTextPosition.Superscript => WordVerticalTextPosition.Superscript,
+            OdfTextPosition.Subscript => WordVerticalTextPosition.Subscript,
+            OdfTextPosition.Normal => WordVerticalTextPosition.Baseline,
+            _ => null
+        };
+        target.CapsStyle = transform == OdfTextTransform.Uppercase
+            ? WordCapsStyle.Caps
+            : smallCaps == true
+                ? WordCapsStyle.SmallCaps
+                : WordCapsStyle.None;
+        if (transform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase);
+        else if (transform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.TitleCase);
+    }
+
+    private static WordUnderlineStyle? MapOdfUnderline(bool? enabled, OdfTextDecorationStyle? style, OdfTextDecorationType? type) {
+        if (enabled != true || style == OdfTextDecorationStyle.None || type == OdfTextDecorationType.None) return null;
+        if (type == OdfTextDecorationType.Double) {
+            return style == OdfTextDecorationStyle.Wave ? WordUnderlineStyle.WavyDouble : WordUnderlineStyle.Double;
+        }
+
+        return style switch {
+            OdfTextDecorationStyle.Dotted => WordUnderlineStyle.Dotted,
+            OdfTextDecorationStyle.Dash => WordUnderlineStyle.Dash,
+            OdfTextDecorationStyle.LongDash => WordUnderlineStyle.DashLong,
+            OdfTextDecorationStyle.DotDash => WordUnderlineStyle.DotDash,
+            OdfTextDecorationStyle.DotDotDash => WordUnderlineStyle.DotDotDash,
+            OdfTextDecorationStyle.Wave => WordUnderlineStyle.Wave,
+            _ => WordUnderlineStyle.Single
+        };
     }
 }

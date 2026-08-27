@@ -161,6 +161,12 @@ public sealed class OneNoteTextRun {
     /// <summary>Run formatting.</summary>
     public OneNoteTextStyle Style { get; } = new OneNoteTextStyle();
 
+    /// <summary>Transforms the stored run text while preserving its native formatting, hyperlink, and opaque properties.</summary>
+    public OneNoteTextRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+        return this;
+    }
+
     /// <summary>Optional hyperlink URI.</summary>
     public string? Hyperlink { get; set; }
 

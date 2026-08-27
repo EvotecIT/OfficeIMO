@@ -16,6 +16,7 @@ namespace OfficeIMO.Visio {
             double maxHeight,
             double rotateRadians,
             bool drawLabelBackground) {
+            text = ResolveRasterDisplayText(text, style);
             double pointSize = style?.Size ?? defaultSize;
             double pixelHeight = Math.Max(canvas.Supersampling * 7D, pointSize * canvas.Scale / 72D);
             Color color = style?.Color ?? Color.FromRgb(17, 24, 39);
@@ -57,7 +58,20 @@ namespace OfficeIMO.Visio {
                 centerY,
                 backgroundColor,
                 padX,
-                padY);
+                padY,
+                style?.UnderlineStyle ?? OfficeTextDecorationStyle.None,
+                style?.StrikethroughStyle ?? OfficeTextDecorationStyle.None,
+                style?.Baseline ?? OfficeTextBaseline.Normal);
+        }
+
+        private static string ResolveRasterDisplayText(string text, VisioTextStyle? style) {
+            if (style?.SmallCaps == true || style?.Capitalization == VisioTextCapitalization.AllCaps) {
+                return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            return style?.Capitalization == VisioTextCapitalization.InitialCaps
+                ? OfficeTextCaseTransformer.Apply(text, OfficeTextCase.TitleCase, System.Globalization.CultureInfo.InvariantCulture)
+                : text;
         }
 
         private static Color? ResolveTextBackground(VisioTextStyle? style, bool drawLabelBackground) {

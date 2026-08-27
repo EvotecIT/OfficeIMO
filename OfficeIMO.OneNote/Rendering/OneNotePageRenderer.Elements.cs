@@ -649,7 +649,10 @@ public static partial class OneNotePageRenderer {
             run.Style.Underline == true || !string.IsNullOrWhiteSpace(run.Hyperlink),
             run.Style.FontFamily ?? _options.DefaultFont.FamilyName,
             run.Style.Strikethrough == true,
-            run.Style.HighlightColorArgb.HasValue ? ResolveColor(run.Style.HighlightColorArgb) : (OfficeColor?)null);
+            run.Style.HighlightColorArgb.HasValue ? ResolveColor(run.Style.HighlightColorArgb) : (OfficeColor?)null,
+            baseline: run.Style.Superscript == true
+                ? OfficeTextBaseline.Superscript
+                : run.Style.Subscript == true ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal);
 
         private OfficeFontInfo CreateFont(OneNoteTextRun run) {
             OfficeFontStyle style = OfficeFontStyle.Regular;

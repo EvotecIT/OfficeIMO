@@ -33,6 +33,9 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="fontFamily">Requested font family fallback list.</param>
     /// <param name="flipHorizontal">Whether to mirror each rendered line horizontally around the rotation center before rotation.</param>
     /// <param name="flipVertical">Whether to mirror each rendered line vertically around the rotation center before rotation.</param>
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
+    /// <param name="baseline">Vertical baseline placement.</param>
     public static void DrawRasterTextBlock(
         OfficeRasterCanvas canvas,
         OfficeTextBlockLayout layout,
@@ -54,7 +57,10 @@ public static partial class OfficeTextBlockRenderer {
         bool strikethrough = false,
         string? fontFamily = null,
         bool flipHorizontal = false,
-        bool flipVertical = false) {
+        bool flipVertical = false,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
+        OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
         if (canvas == null) {
             throw new ArgumentNullException(nameof(canvas));
         }
@@ -77,6 +83,10 @@ public static partial class OfficeTextBlockRenderer {
             double runTop = centerLineInLineHeight
                 ? lineTop + Math.Max(0D, (layout.LineHeight - layout.FontSize) / 2D)
                 : lineTop;
+            double renderedFontSize = baseline == OfficeTextBaseline.Normal ? layout.FontSize : layout.FontSize * 0.65D;
+            runTop += baseline == OfficeTextBaseline.Superscript
+                ? -(layout.FontSize * 0.30D)
+                : baseline == OfficeTextBaseline.Subscript ? layout.FontSize * 0.15D : 0D;
             if (ShouldJustifyLine(line, i, layout.Lines.Count, lineWidth, horizontalAlignment)) {
                 DrawRasterJustifiedTextLine(
                     canvas,
@@ -84,7 +94,7 @@ public static partial class OfficeTextBlockRenderer {
                     lineLeft,
                     lineWidth,
                     runTop,
-                    layout.FontSize,
+                    renderedFontSize,
                     color,
                     bold,
                     italic,
@@ -95,11 +105,13 @@ public static partial class OfficeTextBlockRenderer {
                     strikethrough,
                     fontFamily,
                     flipHorizontal,
-                    flipVertical);
+                    flipVertical,
+                    underlineStyle,
+                    strikethroughStyle);
                 continue;
             }
 
-            canvas.DrawTextLine(line.Text, anchorX, runTop, layout.FontSize, color, bold, italic, horizontalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical);
+            canvas.DrawTextLine(line.Text, anchorX, runTop, renderedFontSize, color, bold, italic, horizontalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical, underlineStyle, strikethroughStyle);
         }
     }
 
@@ -124,6 +136,9 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="underlineOffsetFactor">Underline baseline offset as a factor of the resolved font size.</param>
     /// <param name="strikethrough">Whether to render a strikethrough for each visible line.</param>
     /// <param name="fontFamily">Requested font family fallback list.</param>
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
+    /// <param name="baseline">Vertical baseline placement.</param>
     public static void DrawRasterTextBox(
         OfficeRasterCanvas canvas,
         OfficeTextBlockRenderPlan plan,
@@ -142,7 +157,10 @@ public static partial class OfficeTextBlockRenderer {
         bool centerLineInLineHeight = true,
         double underlineOffsetFactor = 0.86D,
         bool strikethrough = false,
-        string? fontFamily = null) {
+        string? fontFamily = null,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
+        OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
         if (canvas == null) {
             throw new ArgumentNullException(nameof(canvas));
         }
@@ -179,7 +197,10 @@ public static partial class OfficeTextBlockRenderer {
             centerLineInLineHeight,
             underlineOffsetFactor,
             strikethrough,
-            fontFamily);
+            fontFamily,
+            underlineStyle: underlineStyle,
+            strikethroughStyle: strikethroughStyle,
+            baseline: baseline);
     }
 
     /// <summary>
@@ -262,13 +283,15 @@ public static partial class OfficeTextBlockRenderer {
             double cursor = OfficeTextPlacement.ResolveLineLeft(lineLeft, lineWidth, line.Width, horizontalAlignment);
             for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
                 OfficeRichTextSegment segment = line.Segments[segmentIndex];
-                double segmentTop = baseline - (segment.FontSize * 0.84D);
+                double renderedFontSize = ResolveRichTextRenderedFontSize(segment);
+                double renderedBaseline = ResolveRichTextRenderedBaseline(segment, baseline);
+                double segmentTop = renderedBaseline - (renderedFontSize * 0.84D);
                 DrawRasterRichTextSegmentBackground(canvas, segment, cursor, segmentTop, rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                 canvas.DrawTextLine(
                     segment.Text,
                     cursor,
                     segmentTop,
-                    segment.FontSize,
+                    renderedFontSize,
                     segment.Color,
                     segment.Bold,
                     segment.Italic,
@@ -280,7 +303,9 @@ public static partial class OfficeTextBlockRenderer {
                     segment.Strikethrough,
                     segment.FontFamily,
                     flipHorizontal,
-                    flipVertical);
+                    flipVertical,
+                    segment.UnderlineStyle,
+                    segment.StrikethroughStyle);
                 cursor += segment.Width;
             }
 
@@ -489,6 +514,9 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="rotationCenterX">Rotation center X coordinate.</param>
     /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
     /// <param name="strikethrough">Whether to render strikethrough text.</param>
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
+    /// <param name="baseline">Vertical baseline placement.</param>
     /// <returns>The supplied builder for call chaining.</returns>
     public static StringBuilder AppendSvgTextElement(
         this StringBuilder builder,
@@ -506,8 +534,11 @@ public static partial class OfficeTextBlockRenderer {
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
         double rotationCenterY = 0D,
-        bool strikethrough = false) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null);
+        bool strikethrough = false,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
+        OfficeTextBaseline baseline = OfficeTextBaseline.Normal) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null, underlineStyle, strikethroughStyle, baseline);
 
     internal static StringBuilder AppendSvgPositionedTextElement(
         this StringBuilder builder,
@@ -527,7 +558,7 @@ public static partial class OfficeTextBlockRenderer {
         double rotationCenterY,
         bool strikethrough,
         double textAdvanceWidth) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth);
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -546,7 +577,10 @@ public static partial class OfficeTextBlockRenderer {
         double rotationCenterX,
         double rotationCenterY,
         bool strikethrough,
-        double? textAdvanceWidth) {
+        double? textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeTextBaseline baseline) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -562,12 +596,16 @@ public static partial class OfficeTextBlockRenderer {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
         }
 
+        double renderedFontSize = baseline == OfficeTextBaseline.Normal ? fontSize : fontSize * 0.65D;
+        double renderedY = baseline == OfficeTextBaseline.Superscript
+            ? y - (fontSize * 0.30D)
+            : baseline == OfficeTextBaseline.Subscript ? y + (fontSize * 0.15D) : y;
         string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         builder.Append("<text")
             .AppendNumberAttribute("x", x)
-            .AppendNumberAttribute("y", y)
+            .AppendNumberAttribute("y", renderedY)
             .AppendAttribute("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily)
-            .AppendNumberAttribute("font-size", fontSize)
+            .AppendNumberAttribute("font-size", renderedFontSize)
             .AppendAttribute("text-anchor", GetSvgTextAnchor(horizontalAlignment))
             .AppendPaintAttribute("fill", color);
 
@@ -588,7 +626,10 @@ public static partial class OfficeTextBlockRenderer {
             builder.Append(" font-style=\"italic\"");
         }
 
-        AppendSvgTextDecorationAttribute(builder, underline, strikethrough);
+        AppendSvgTextDecorationAttribute(
+            builder,
+            underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
+            strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
 
         if (Math.Abs(rotationDegrees) > 0.000001D) {
             builder.AppendRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
@@ -650,7 +691,10 @@ public static partial class OfficeTextBlockRenderer {
             rotationDegrees,
             rotationCenterX,
             rotationCenterY,
-            strikethrough: segment.Strikethrough);
+            strikethrough: segment.Strikethrough,
+            underlineStyle: segment.UnderlineStyle,
+            strikethroughStyle: segment.StrikethroughStyle,
+            baseline: segment.Baseline);
     }
 
     private static void DrawRasterRichTextSegmentBackground(
@@ -667,7 +711,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        double height = Math.Max(1D, segment.FontSize * 1.05D);
+        double height = Math.Max(1D, ResolveRichTextRenderedFontSize(segment) * 1.05D);
         if (Math.Abs(rotationDegrees) <= 0.000001D && !flipHorizontal && !flipVertical) {
             canvas.FillRectangle(x, top, segment.Width, height, segment.BackgroundColor.Value);
             return;
@@ -690,8 +734,10 @@ public static partial class OfficeTextBlockRenderer {
             return builder;
         }
 
-        double top = baseline - (segment.FontSize * 0.84D);
-        double height = Math.Max(1D, segment.FontSize * 1.05D);
+        double renderedFontSize = ResolveRichTextRenderedFontSize(segment);
+        double renderedBaseline = ResolveRichTextRenderedBaseline(segment, baseline);
+        double top = renderedBaseline - (renderedFontSize * 0.84D);
+        double height = Math.Max(1D, renderedFontSize * 1.05D);
         builder.Append("<rect")
             .AppendNumberAttribute("x", x)
             .AppendNumberAttribute("y", top)
@@ -705,6 +751,14 @@ public static partial class OfficeTextBlockRenderer {
             .Append("/>");
         return builder;
     }
+
+    private static double ResolveRichTextRenderedFontSize(OfficeRichTextSegment segment) =>
+        segment.Baseline == OfficeTextBaseline.Normal ? segment.FontSize : segment.FontSize * 0.65D;
+
+    private static double ResolveRichTextRenderedBaseline(OfficeRichTextSegment segment, double baseline) =>
+        segment.Baseline == OfficeTextBaseline.Superscript
+            ? baseline - (segment.FontSize * 0.30D)
+            : segment.Baseline == OfficeTextBaseline.Subscript ? baseline + (segment.FontSize * 0.15D) : baseline;
 
     private static IReadOnlyList<OfficePoint> CreateTransformedTextRectangle(
         double x,
@@ -769,6 +823,9 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="svgNamespace">SVG namespace URI. Pass <c>null</c> to write elements without a namespace.</param>
     /// <param name="configureTextAttributes">Optional callback for adapter-specific attributes on the <c>text</c> element.</param>
     /// <param name="strikethrough">Whether to render strikethrough text.</param>
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
+    /// <param name="baseline">Vertical baseline placement.</param>
     public static void WriteSvgTextBlock(
         XmlWriter writer,
         OfficeTextBlockLayout layout,
@@ -788,7 +845,10 @@ public static partial class OfficeTextBlockRenderer {
         double rotationCenterY = 0D,
         string? svgNamespace = null,
         Action<XmlWriter>? configureTextAttributes = null,
-        bool strikethrough = false) {
+        bool strikethrough = false,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
+        OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
         if (writer == null) {
             throw new ArgumentNullException(nameof(writer));
         }
@@ -806,9 +866,13 @@ public static partial class OfficeTextBlockRenderer {
         writer.WriteStartElement("text", svgNamespace);
         configureTextAttributes?.Invoke(writer);
         writer.WriteNumberAttribute("x", firstAnchorX);
-        writer.WriteNumberAttribute("y", textTop + (layout.FontSize / 2D));
+        double renderedFontSize = baseline == OfficeTextBaseline.Normal ? layout.FontSize : layout.FontSize * 0.65D;
+        double baselineOffset = baseline == OfficeTextBaseline.Superscript
+            ? -(layout.FontSize * 0.30D)
+            : baseline == OfficeTextBaseline.Subscript ? layout.FontSize * 0.15D : 0D;
+        writer.WriteNumberAttribute("y", textTop + (layout.FontSize / 2D) + baselineOffset);
         writer.WriteAttributeString("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily);
-        writer.WriteNumberAttribute("font-size", layout.FontSize);
+        writer.WriteNumberAttribute("font-size", renderedFontSize);
         writer.WriteAttributeString("text-anchor", GetSvgTextAnchor(horizontalAlignment));
         writer.WriteAttributeString("dominant-baseline", "middle");
         if (RequiresSvgWhitespacePreserve(layout)) {
@@ -824,7 +888,10 @@ public static partial class OfficeTextBlockRenderer {
             writer.WriteAttributeString("font-style", "italic");
         }
 
-        WriteSvgTextDecorationAttribute(writer, underline, strikethrough);
+        WriteSvgTextDecorationAttribute(
+            writer,
+            underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
+            strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
 
         if (Math.Abs(rotationDegrees) > 0.000001D) {
             writer.WriteRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
@@ -869,6 +936,9 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="configureTextAttributes">Optional callback for adapter-specific attributes on the <c>text</c> element.</param>
     /// <param name="configureBackgroundAttributes">Optional callback for adapter-specific attributes on the background <c>rect</c> element.</param>
     /// <param name="strikethrough">Whether to render strikethrough text.</param>
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
+    /// <param name="baseline">Vertical baseline placement.</param>
     public static void WriteSvgTextBox(
         XmlWriter writer,
         OfficeTextBlockRenderPlan plan,
@@ -886,7 +956,10 @@ public static partial class OfficeTextBlockRenderer {
         double backgroundPaddingY = 0D,
         Action<XmlWriter>? configureTextAttributes = null,
         Action<XmlWriter>? configureBackgroundAttributes = null,
-        bool strikethrough = false) {
+        bool strikethrough = false,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
+        OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
         if (writer == null) {
             throw new ArgumentNullException(nameof(writer));
         }
@@ -930,7 +1003,10 @@ public static partial class OfficeTextBlockRenderer {
             rotationCenterY,
             svgNamespace,
             configureTextAttributes,
-            strikethrough);
+            strikethrough,
+            underlineStyle,
+            strikethroughStyle,
+            baseline);
     }
 
     private static string GetSvgTextAnchor(OfficeTextAlignment alignment) {
@@ -968,10 +1044,12 @@ public static partial class OfficeTextBlockRenderer {
         bool strikethrough,
         string? fontFamily,
         bool flipHorizontal,
-        bool flipVertical) {
+        bool flipVertical,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None) {
         string[] words = SplitJustifiableWords(text);
         if (words.Length <= 1) {
-            canvas.DrawTextLine(text, left, top, fontSize, color, bold, italic, OfficeTextAlignment.Left, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical);
+            canvas.DrawTextLine(text, left, top, fontSize, color, bold, italic, OfficeTextAlignment.Left, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical, underlineStyle, strikethroughStyle);
             return;
         }
 
@@ -985,7 +1063,7 @@ public static partial class OfficeTextBlockRenderer {
         double gap = Math.Max(0D, (availableWidth - wordsWidth) / Math.Max(1, words.Length - 1));
         double cursor = left;
         for (int i = 0; i < words.Length; i++) {
-            canvas.DrawTextLine(words[i], cursor, top, fontSize, color, bold, italic, OfficeTextAlignment.Left, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical);
+            canvas.DrawTextLine(words[i], cursor, top, fontSize, color, bold, italic, OfficeTextAlignment.Left, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily, flipHorizontal, flipVertical, underlineStyle, strikethroughStyle);
             cursor += widths[i] + gap;
         }
     }
@@ -1032,6 +1110,15 @@ public static partial class OfficeTextBlockRenderer {
     }
 
     private static void AppendSvgTextDecorationAttribute(StringBuilder builder, bool underline, bool strikethrough) {
+        AppendSvgTextDecorationAttribute(
+            builder,
+            underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
+            strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
+    }
+
+    private static void AppendSvgTextDecorationAttribute(StringBuilder builder, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle) {
+        bool underline = underlineStyle != OfficeTextDecorationStyle.None;
+        bool strikethrough = strikethroughStyle != OfficeTextDecorationStyle.None;
         if (!underline && !strikethrough) {
             return;
         }
@@ -1050,6 +1137,18 @@ public static partial class OfficeTextBlockRenderer {
         }
 
         builder.Append('"');
+        OfficeTextDecorationStyle pattern = underline ? underlineStyle : strikethroughStyle;
+        if (pattern == OfficeTextDecorationStyle.Single) {
+            return;
+        }
+        string svgStyle = pattern switch {
+            OfficeTextDecorationStyle.Double => "double",
+            OfficeTextDecorationStyle.Dotted => "dotted",
+            OfficeTextDecorationStyle.Dashed => "dashed",
+            OfficeTextDecorationStyle.Wavy => "wavy",
+            _ => "solid"
+        };
+        builder.AppendAttribute("text-decoration-style", svgStyle);
     }
 
     private static void WriteSvgTextDecorationAttribute(XmlWriter writer, bool underline, bool strikethrough) {
@@ -1061,5 +1160,24 @@ public static partial class OfficeTextBlockRenderer {
             ? "underline line-through"
             : underline ? "underline" : "line-through";
         writer.WriteAttributeString("text-decoration", value);
+    }
+
+    private static void WriteSvgTextDecorationAttribute(XmlWriter writer, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle) {
+        bool underline = underlineStyle != OfficeTextDecorationStyle.None;
+        bool strikethrough = strikethroughStyle != OfficeTextDecorationStyle.None;
+        if (!underline && !strikethrough) return;
+
+        writer.WriteAttributeString("text-decoration", underline && strikethrough
+            ? "underline line-through"
+            : underline ? "underline" : "line-through");
+        OfficeTextDecorationStyle pattern = underline ? underlineStyle : strikethroughStyle;
+        if (pattern == OfficeTextDecorationStyle.Single) return;
+        writer.WriteAttributeString("text-decoration-style", pattern switch {
+            OfficeTextDecorationStyle.Double => "double",
+            OfficeTextDecorationStyle.Dotted => "dotted",
+            OfficeTextDecorationStyle.Dashed => "dashed",
+            OfficeTextDecorationStyle.Wavy => "wavy",
+            _ => "solid"
+        });
     }
 }

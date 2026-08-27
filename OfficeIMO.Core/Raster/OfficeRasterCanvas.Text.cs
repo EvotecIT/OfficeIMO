@@ -207,6 +207,8 @@ public sealed partial class OfficeRasterCanvas {
     /// <param name="fontFamily">Requested font family fallback list.</param>
     /// <param name="flipHorizontal">Whether to mirror the rendered line horizontally around the rotation center before rotation.</param>
     /// <param name="flipVertical">Whether to mirror the rendered line vertically around the rotation center before rotation.</param>
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
     public void DrawTextLine(
         string? text,
         double anchorX,
@@ -223,7 +225,9 @@ public sealed partial class OfficeRasterCanvas {
         bool strikethrough = false,
         string? fontFamily = null,
         bool flipHorizontal = false,
-        bool flipVertical = false) {
+        bool flipVertical = false,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
             return;
         }
@@ -248,7 +252,9 @@ public sealed partial class OfficeRasterCanvas {
             strikethrough,
             fontFamily,
             flipHorizontal,
-            flipVertical)) {
+            flipVertical,
+            underlineStyle,
+            strikethroughStyle)) {
             return;
         }
         OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
@@ -282,12 +288,12 @@ public sealed partial class OfficeRasterCanvas {
                 FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
 
-            DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
+            DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
             return;
         }
 
         DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-        DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
+        DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
     }
 
     /// <summary>
@@ -379,20 +385,63 @@ public sealed partial class OfficeRasterCanvas {
         double rotationRadians,
         double rotationCenterX,
         double rotationCenterY,
-        bool underline,
-        bool strikethrough,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
         bool flipHorizontal,
         bool flipVertical) {
         if (width <= 0D || color.A == 0) {
             return;
         }
 
-        if (underline) {
-            DrawTransformedTextDecorationLine(x, width, top + (fontHeight * 0.86D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        if (underlineStyle != OfficeTextDecorationStyle.None) {
+            DrawTransformedTextDecoration(x, width, top + (fontHeight * 0.86D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle, flipHorizontal, flipVertical);
         }
 
-        if (strikethrough) {
-            DrawTransformedTextDecorationLine(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        if (strikethroughStyle != OfficeTextDecorationStyle.None) {
+            DrawTransformedTextDecoration(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, strikethroughStyle, flipHorizontal, flipVertical);
+        }
+    }
+
+    private void DrawTransformedTextDecoration(
+        double x,
+        double width,
+        double y,
+        OfficeColor color,
+        double fontHeight,
+        double rotationRadians,
+        double rotationCenterX,
+        double rotationCenterY,
+        OfficeTextDecorationStyle style,
+        bool flipHorizontal,
+        bool flipVertical) {
+        double thickness = Math.Max(1D, fontHeight / 16D);
+        double separation = Math.Max(2D, thickness * 1.8D);
+        if (style == OfficeTextDecorationStyle.Double) {
+            DrawTransformedTextDecoration(x, width, y - (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);
+            DrawTransformedTextDecoration(x, width, y + (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);
+            return;
+        }
+
+        if (style == OfficeTextDecorationStyle.Wavy) {
+            int steps = Math.Max(4, (int)Math.Ceiling(width / Math.Max(2D, fontHeight * 0.18D)));
+            var points = new List<OfficePoint>(steps + 1);
+            for (int index = 0; index <= steps; index++) {
+                double offset = width * index / steps;
+                double waveY = y + (Math.Sin(index * Math.PI) * Math.Max(1D, thickness));
+                points.Add(TransformFramePoint(new OfficePoint(x + offset, waveY), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical));
+            }
+            DrawPolyline(points, color, thickness);
+            return;
+        }
+
+        OfficePoint start = TransformFramePoint(new OfficePoint(x, y), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        OfficePoint end = TransformFramePoint(new OfficePoint(x + width, y), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        if (style == OfficeTextDecorationStyle.Dashed) {
+            DrawDashedLine(start.X, start.Y, end.X, end.Y, color, thickness, Math.Max(2D, fontHeight * 0.22D), Math.Max(1D, fontHeight * 0.12D));
+        } else if (style == OfficeTextDecorationStyle.Dotted) {
+            DrawDashedLine(start.X, start.Y, end.X, end.Y, color, thickness, thickness, Math.Max(thickness, fontHeight * 0.12D));
+        } else {
+            DrawLine(start.X, start.Y, end.X, end.Y, color, thickness);
         }
     }
 

@@ -1307,7 +1307,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void OdtNonSolidDecorationsAreFlattenedAndReported() {
+    public void OdtPatternedUnderlineIsPreservedWhilePatternedStrikeIsReported() {
         OdtDocument source = OdtDocument.Create();
         OdfStyle style = source.Styles.CreateNamed("WaveText", OdfStyleFamily.Text);
         style.Underline = true;
@@ -1327,7 +1327,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void OdpFractionalFontSizeIsPreservedWhileNonSolidDecorationsAreReported() {
+    public void OdpFractionalFontSizeAndWaveUnderlineArePreservedWithoutLoss() {
         OdpPresentation source = OdpPresentation.Create();
         OdpRun run = source.AddSlide("Styled")
             .AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2)).AddParagraph().AddRun("Precise");
@@ -1347,9 +1347,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
         Assert.Equal(10.5D, reopened.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().Runs.Single().FontSizePoints);
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
-            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Equal(PowerPointUnderlineStyle.Wavy, converted.UnderlineStyle);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations");
     }
 
     [Fact]

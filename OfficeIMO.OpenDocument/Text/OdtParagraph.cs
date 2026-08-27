@@ -110,6 +110,16 @@ public sealed class OdtParagraph {
         get => ResolveStyleValue(style => style.Underline);
         set => EnsureStyle().Underline = value;
     }
+    /// <summary>Explicit or inherited native underline style.</summary>
+    public OdfTextDecorationStyle? UnderlineStyle {
+        get => ResolveStyleValue(style => style.UnderlineStyle);
+        set => EnsureStyle().UnderlineStyle = value;
+    }
+    /// <summary>Explicit or inherited native underline line count.</summary>
+    public OdfTextDecorationType? UnderlineType {
+        get => ResolveStyleValue(style => style.UnderlineType);
+        set => EnsureStyle().UnderlineType = value;
+    }
     /// <summary>Whether the effective underline uses a non-solid ODF decoration style.</summary>
     public bool UsesNonSolidUnderlineStyle =>
         ResolveStyleValue(style => style.UsesNonSolidUnderlineStyle) == true;
@@ -119,6 +129,16 @@ public sealed class OdtParagraph {
         get => ResolveStyleValue(style => style.StrikeThrough);
         set => EnsureStyle().StrikeThrough = value;
     }
+    /// <summary>Explicit or inherited native line-through style.</summary>
+    public OdfTextDecorationStyle? LineThroughStyle {
+        get => ResolveStyleValue(style => style.LineThroughStyle);
+        set => EnsureStyle().LineThroughStyle = value;
+    }
+    /// <summary>Explicit or inherited native line-through line count.</summary>
+    public OdfTextDecorationType? LineThroughType {
+        get => ResolveStyleValue(style => style.LineThroughType);
+        set => EnsureStyle().LineThroughType = value;
+    }
     /// <summary>Whether the effective line-through uses a non-solid ODF decoration style.</summary>
     public bool UsesNonSolidLineThroughStyle =>
         ResolveStyleValue(style => style.UsesNonSolidLineThroughStyle) == true;
@@ -127,6 +147,22 @@ public sealed class OdtParagraph {
     public OdfLength? FontSize {
         get => ResolveStyleValue(style => style.FontSize);
         set => EnsureStyle().FontSize = value;
+    }
+    /// <summary>Explicit or inherited baseline placement.</summary>
+    public OdfTextPosition? TextPosition {
+        get => ResolveStyleValue(style => style.TextPosition);
+        set => EnsureStyle().TextPosition = value;
+    }
+    /// <summary>Explicit or inherited display-time case transformation.</summary>
+    public OdfTextTransform? TextTransform {
+        get => ResolveStyleValue(style => style.TextTransform);
+        set => EnsureStyle().TextTransform = value;
+    }
+
+    /// <summary>Explicit or inherited small-cap display formatting.</summary>
+    public bool? SmallCaps {
+        get => ResolveStyleValue(style => style.SmallCaps);
+        set => EnsureStyle().SmallCaps = value;
     }
 
     /// <summary>Explicit or inherited text color.</summary>

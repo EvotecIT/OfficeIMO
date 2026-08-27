@@ -836,8 +836,35 @@ namespace OfficeIMO.PowerPoint {
                 run?.Underline == true,
                 markerRun ? paragraph?.BulletFontName ?? run?.FontName ?? textBox.FontName ?? "Calibri" : run?.FontName ?? textBox.FontName ?? "Calibri",
                 run?.Strikethrough == true,
-                backgroundColor);
+                backgroundColor,
+                MapUnderlineStyle(run?.UnderlineStyle),
+                MapStrikeStyle(run?.StrikeStyle),
+                MapBaseline(run?.BaselinePercent));
         }
+
+        private static OfficeTextDecorationStyle MapUnderlineStyle(PowerPointUnderlineStyle? style) => style switch {
+            null or PowerPointUnderlineStyle.None => OfficeTextDecorationStyle.None,
+            PowerPointUnderlineStyle.Double or PowerPointUnderlineStyle.WavyDouble => OfficeTextDecorationStyle.Double,
+            PowerPointUnderlineStyle.Dotted or PowerPointUnderlineStyle.HeavyDotted => OfficeTextDecorationStyle.Dotted,
+            PowerPointUnderlineStyle.Dash or PowerPointUnderlineStyle.DashHeavy or
+                PowerPointUnderlineStyle.DashLong or PowerPointUnderlineStyle.DashLongHeavy or
+                PowerPointUnderlineStyle.DotDash or PowerPointUnderlineStyle.DotDashHeavy or
+                PowerPointUnderlineStyle.DotDotDash or PowerPointUnderlineStyle.DotDotDashHeavy => OfficeTextDecorationStyle.Dashed,
+            PowerPointUnderlineStyle.Wavy or PowerPointUnderlineStyle.WavyHeavy => OfficeTextDecorationStyle.Wavy,
+            _ => OfficeTextDecorationStyle.Single
+        };
+
+        private static OfficeTextDecorationStyle MapStrikeStyle(PowerPointStrikeStyle? style) => style switch {
+            PowerPointStrikeStyle.Double => OfficeTextDecorationStyle.Double,
+            PowerPointStrikeStyle.Single => OfficeTextDecorationStyle.Single,
+            _ => OfficeTextDecorationStyle.None
+        };
+
+        private static OfficeTextBaseline MapBaseline(double? baselinePercent) => baselinePercent switch {
+            > 0D => OfficeTextBaseline.Superscript,
+            < 0D => OfficeTextBaseline.Subscript,
+            _ => OfficeTextBaseline.Normal
+        };
 
         private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
             OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -179,6 +180,17 @@ namespace OfficeIMO.Word {
         /// <returns>The current paragraph instance.</returns>
         public WordParagraph SetText(string text) {
             this.Text = text;
+            return this;
+        }
+
+        /// <summary>
+        /// Changes the stored run text casing while preserving run formatting.
+        /// </summary>
+        /// <param name="textCase">Casing transformation to apply.</param>
+        /// <param name="culture">Culture used for casing. The current culture is used when omitted.</param>
+        /// <returns>The current paragraph instance.</returns>
+        public WordParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
+            Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
             return this;
         }
         /// <summary>

@@ -254,7 +254,7 @@ public static partial class OfficeTextLayoutEngine {
             lines.Add(new OfficeRichTextLine(new[] {
                 new OfficeRichTextSegment(
                     run.Text,
-                    Measure(run.Text, run.FontSize, run.FontFamily, measure),
+                    Measure(run.Text, run.EffectiveFontSize, run.FontFamily, measure),
                     run.FontSize,
                     run.Color,
                     run.Bold,
@@ -262,7 +262,10 @@ public static partial class OfficeTextLayoutEngine {
                     run.Underline,
                     run.FontFamily,
                     run.Strikethrough,
-                    run.BackgroundColor)
+                    run.BackgroundColor,
+                    run.UnderlineStyle,
+                    run.StrikethroughStyle,
+                    run.Baseline)
             }, lineHeight));
         }
 
@@ -338,7 +341,10 @@ public static partial class OfficeTextLayoutEngine {
                     run.Underline,
                     run.FontFamily,
                     run.Strikethrough,
-                    run.BackgroundColor));
+                    run.BackgroundColor,
+                    run.UnderlineStyle,
+                    run.StrikethroughStyle,
+                    run.Baseline));
             }
         }
 

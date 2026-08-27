@@ -33,13 +33,24 @@ public static partial class WordOpenDocumentConversionExtensions {
         && !string.Equals(writingMode, "rl-tb", StringComparison.OrdinalIgnoreCase);
 
     private static int CountNonSolidTextDecorations(OdtParagraph paragraph) {
-        int count = paragraph.UsesNonSolidUnderlineStyle || paragraph.UsesNonSolidLineThroughStyle ? 1 : 0;
+        int count = RequiresDecorationApproximation(
+            paragraph.UnderlineStyle,
+            paragraph.UnderlineType,
+            paragraph.LineThroughStyle) ? 1 : 0;
         foreach (OdtInlineNode node in paragraph.InlineNodes) {
             if (node.Span is OdtSpan span &&
-                (span.UsesNonSolidUnderlineStyle || span.UsesNonSolidLineThroughStyle)) count++;
+                RequiresDecorationApproximation(span.UnderlineStyle, span.UnderlineType, span.LineThroughStyle)) count++;
             if (node.Hyperlink is OdtHyperlink hyperlink &&
-                (hyperlink.UsesNonSolidUnderlineStyle || hyperlink.UsesNonSolidLineThroughStyle)) count++;
+                RequiresDecorationApproximation(hyperlink.UnderlineStyle, hyperlink.UnderlineType, hyperlink.LineThroughStyle)) count++;
         }
         return count;
     }
+
+    private static bool RequiresDecorationApproximation(
+        OdfTextDecorationStyle? underlineStyle,
+        OdfTextDecorationType? underlineType,
+        OdfTextDecorationStyle? lineThroughStyle) =>
+        lineThroughStyle is not (null or OdfTextDecorationStyle.None or OdfTextDecorationStyle.Solid) ||
+        underlineType == OdfTextDecorationType.Double &&
+        underlineStyle is not (null or OdfTextDecorationStyle.None or OdfTextDecorationStyle.Solid or OdfTextDecorationStyle.Wave);
 }

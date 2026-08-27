@@ -367,8 +367,20 @@ namespace OfficeIMO.Excel.Pdf {
                 ? authoredFontSize * fontScale
                 : null;
             string? fontFamily = string.IsNullOrWhiteSpace(style?.FontName) ? null : style!.FontName;
-            IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
-                ? new[] { new PdfCore.PdfTextRun(text, bold: bold, underline: style?.Underline == true, color: textColor, italic: style?.Italic == true, strike: style?.Strikethrough == true, fontSize: fontSize, font: font, fontFamily: fontFamily) }
+            IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || style.VerticalTextAlignment.HasValue || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
+                ? new[] { new PdfCore.PdfTextRun(
+                    text,
+                    bold: bold,
+                    underline: style?.Underline == true,
+                    color: textColor,
+                    italic: style?.Italic == true,
+                    strike: style?.Strikethrough == true,
+                    fontSize: fontSize,
+                    font: font,
+                    baseline: MapExcelPdfBaseline(style?.VerticalTextAlignment),
+                    fontFamily: fontFamily,
+                    underlineStyle: MapExcelPdfUnderline(style?.UnderlineStyle),
+                    strikeStyle: style?.Strikethrough == true ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None) }
                 : new[] { PdfCore.PdfTextRun.Normal(text) };
 
             PdfCore.PdfTableCell cell = new PdfCore.PdfTableCell(
@@ -382,6 +394,18 @@ namespace OfficeIMO.Excel.Pdf {
                 namedDestinationName: cellDestinationName);
             return preserveWorksheetNoWrap ? cell.WithNoWrap(style?.WrapText != true) : cell;
         }
+
+        private static OfficeTextDecorationStyle MapExcelPdfUnderline(ExcelUnderlineStyle? style) => style switch {
+            ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting => OfficeTextDecorationStyle.Double,
+            ExcelUnderlineStyle.Single or ExcelUnderlineStyle.SingleAccounting => OfficeTextDecorationStyle.Single,
+            _ => OfficeTextDecorationStyle.None
+        };
+
+        private static PdfCore.PdfTextBaseline MapExcelPdfBaseline(ExcelVerticalTextAlignment? alignment) => alignment switch {
+            ExcelVerticalTextAlignment.Superscript => PdfCore.PdfTextBaseline.Superscript,
+            ExcelVerticalTextAlignment.Subscript => PdfCore.PdfTextBaseline.Subscript,
+            _ => PdfCore.PdfTextBaseline.Normal
+        };
 
         private static PdfCore.PdfStandardFont? MapFont(string? fontName, PdfCore.PdfStandardFont defaultFontFamily) {
             if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(fontName, out PdfCore.PdfStandardFont font)) {

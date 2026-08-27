@@ -462,7 +462,10 @@ namespace OfficeIMO.PowerPoint {
                 run?.Underline == true,
                 markerRun ? paragraph?.BulletFontName ?? run?.FontName ?? cell.FontName ?? "Calibri" : run?.FontName ?? cell.FontName ?? "Calibri",
                 run?.Strikethrough == true,
-                backgroundColor);
+                backgroundColor,
+                MapUnderlineStyle(run?.UnderlineStyle),
+                MapStrikeStyle(run?.StrikeStyle),
+                MapBaseline(run?.BaselinePercent));
         }
 
         private static OfficeColor ResolveTableCellTextRunColor(PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme) {

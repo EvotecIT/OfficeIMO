@@ -29,7 +29,8 @@ public sealed partial class OfficeDrawing {
                     runs.Add(new OfficeRichTextRun(
                         run.Text, run.FontSize, WithTint(run.Color, tint), run.Bold, run.Italic, run.Underline,
                         run.FontFamily, run.Strikethrough,
-                        run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null));
+                        run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null,
+                        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline));
                 }
                 replacement = new OfficeDrawingRichText(
                     runs, richText.X, richText.Y, richText.Width, richText.Height, richText.Alignment,

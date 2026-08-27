@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Globalization;
+using OfficeIMO.Drawing;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -32,6 +34,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Changes the stored run text casing while preserving run formatting.
+        /// </summary>
+        public PowerPointTextRun TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
+            Text = OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+            return this;
+        }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the run is bold.
         /// </summary>
         public bool Bold {
@@ -57,10 +67,20 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets a value indicating whether the run is underlined.
         /// </summary>
         public bool Underline {
-            get => Run.RunProperties?.Underline?.Value == A.TextUnderlineValues.Single;
+            get => UnderlineStyle is { } style && style != PowerPointUnderlineStyle.None;
+            set {
+                UnderlineStyle = value ? PowerPointUnderlineStyle.Single : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the native DrawingML underline variant.
+        /// </summary>
+        public PowerPointUnderlineStyle? UnderlineStyle {
+            get => Run.RunProperties?.Underline?.Value.ToOfficeEnum();
             set {
                 A.RunProperties props = EnsureRunProperties();
-                props.Underline = value ? A.TextUnderlineValues.Single : null;
+                props.Underline = value?.ToOpenXml();
             }
         }
 
@@ -68,11 +88,95 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets a value indicating whether the run is strikethrough.
         /// </summary>
         public bool Strikethrough {
-            get => Run.RunProperties?.Strike?.Value == A.TextStrikeValues.SingleStrike;
+            get => StrikeStyle is { } style && style != PowerPointStrikeStyle.None;
+            set {
+                StrikeStyle = value ? PowerPointStrikeStyle.Single : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the native DrawingML strike-through variant.
+        /// </summary>
+        public PowerPointStrikeStyle? StrikeStyle {
+            get {
+                A.TextStrikeValues? value = Run.RunProperties?.Strike?.Value;
+                if (!value.HasValue) return null;
+                if (value.Value == A.TextStrikeValues.NoStrike) return PowerPointStrikeStyle.None;
+                if (value.Value == A.TextStrikeValues.SingleStrike) return PowerPointStrikeStyle.Single;
+                if (value.Value == A.TextStrikeValues.DoubleStrike) return PowerPointStrikeStyle.Double;
+                throw new InvalidOperationException($"Unsupported DrawingML strike value '{value.Value}'.");
+            }
             set {
                 A.RunProperties props = EnsureRunProperties();
-                props.Strike = value ? A.TextStrikeValues.SingleStrike : null;
+                props.Strike = value switch {
+                    null => null,
+                    PowerPointStrikeStyle.None => A.TextStrikeValues.NoStrike,
+                    PowerPointStrikeStyle.Single => A.TextStrikeValues.SingleStrike,
+                    PowerPointStrikeStyle.Double => A.TextStrikeValues.DoubleStrike,
+                    _ => throw new ArgumentOutOfRangeException(nameof(value))
+                };
             }
+        }
+
+        /// <summary>
+        /// Gets or sets native DrawingML capitalization without changing the stored characters.
+        /// </summary>
+        public PowerPointCapitalization? Capitalization {
+            get {
+                A.TextCapsValues? value = Run.RunProperties?.Capital?.Value;
+                if (!value.HasValue) return null;
+                if (value.Value == A.TextCapsValues.None) return PowerPointCapitalization.None;
+                if (value.Value == A.TextCapsValues.Small) return PowerPointCapitalization.SmallCaps;
+                if (value.Value == A.TextCapsValues.All) return PowerPointCapitalization.AllCaps;
+                throw new InvalidOperationException($"Unsupported DrawingML capitalization value '{value.Value}'.");
+            }
+            set {
+                A.RunProperties props = EnsureRunProperties();
+                props.Capital = value switch {
+                    null => null,
+                    PowerPointCapitalization.None => A.TextCapsValues.None,
+                    PowerPointCapitalization.SmallCaps => A.TextCapsValues.Small,
+                    PowerPointCapitalization.AllCaps => A.TextCapsValues.All,
+                    _ => throw new ArgumentOutOfRangeException(nameof(value))
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the DrawingML baseline shift in percent, from -100 through 100.
+        /// Positive values create superscript and negative values create subscript.
+        /// </summary>
+        public double? BaselinePercent {
+            get => Run.RunProperties?.Baseline?.Value is int value ? value / 1000D : null;
+            set {
+                if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value)
+                    || value.Value < -100D || value.Value > 100D)) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Baseline percent must be between -100 and 100.");
+                }
+
+                A.RunProperties props = EnsureRunProperties();
+                props.Baseline = value.HasValue
+                    ? checked((int)Math.Round(value.Value * 1000D, MidpointRounding.AwayFromZero))
+                    : null;
+            }
+        }
+
+        /// <summary>Applies superscript using a 30 percent baseline shift.</summary>
+        public PowerPointTextRun SetSuperscript(double baselinePercent = 30D) {
+            BaselinePercent = Math.Abs(baselinePercent);
+            return this;
+        }
+
+        /// <summary>Applies subscript using a 25 percent baseline shift.</summary>
+        public PowerPointTextRun SetSubscript(double baselinePercent = 25D) {
+            BaselinePercent = -Math.Abs(baselinePercent);
+            return this;
+        }
+
+        /// <summary>Restores the run to the normal text baseline.</summary>
+        public PowerPointTextRun SetBaseline() {
+            BaselinePercent = null;
+            return this;
         }
 
         /// <summary>

@@ -495,7 +495,26 @@ namespace OfficeIMO.Excel {
                 bool bold = cell.Style.Bold || run.Bold;
                 bool italic = cell.Style.Italic || run.Italic;
                 bool underline = fallbackUnderline || run.Underline;
-                runs.Add(new OfficeRichTextRun(run.Text, fontSize, color, bold, italic, underline, ResolveRunFontFamily(run, cell.Style), strikethrough: run.Strikethrough));
+                OfficeTextDecorationStyle underlineStyle = MapExcelUnderlineStyle(run.UnderlineStyle);
+                if (underlineStyle == OfficeTextDecorationStyle.None && fallbackUnderline) {
+                    underlineStyle = MapExcelUnderlineStyle(cell.Style.UnderlineStyle);
+                    if (underlineStyle == OfficeTextDecorationStyle.None) underlineStyle = OfficeTextDecorationStyle.Single;
+                }
+                OfficeTextBaseline baseline = MapExcelBaseline(run.VerticalTextAlignment ?? cell.Style.VerticalTextAlignment);
+                runs.Add(new OfficeRichTextRun(
+                    run.Text,
+                    fontSize,
+                    color,
+                    bold,
+                    italic,
+                    underline,
+                    ResolveRunFontFamily(run, cell.Style),
+                    strikethrough: run.Strikethrough || cell.Style.Strikethrough,
+                    underlineStyle: underlineStyle,
+                    strikethroughStyle: run.Strikethrough || cell.Style.Strikethrough
+                        ? OfficeTextDecorationStyle.Single
+                        : OfficeTextDecorationStyle.None,
+                    baseline: baseline));
             }
 
             if (runs.Count == 0) {
@@ -556,6 +575,18 @@ namespace OfficeIMO.Excel {
         private static bool IsRichTextRenderingSupported(ExcelVisualCell cell, bool rotated) {
             return true;
         }
+
+        private static OfficeTextDecorationStyle MapExcelUnderlineStyle(ExcelUnderlineStyle? style) => style switch {
+            ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting => OfficeTextDecorationStyle.Double,
+            ExcelUnderlineStyle.Single or ExcelUnderlineStyle.SingleAccounting => OfficeTextDecorationStyle.Single,
+            _ => OfficeTextDecorationStyle.None
+        };
+
+        private static OfficeTextBaseline MapExcelBaseline(ExcelVerticalTextAlignment? alignment) => alignment switch {
+            ExcelVerticalTextAlignment.Superscript => OfficeTextBaseline.Superscript,
+            ExcelVerticalTextAlignment.Subscript => OfficeTextBaseline.Subscript,
+            _ => OfficeTextBaseline.Normal
+        };
 
         private static CellTextViewport ReserveConditionalIconTextSpace(CellTextViewport viewport, ExcelVisualConditionalIcon icon, double scale) {
             IconBounds bounds = GetConditionalIconBounds(icon, scale);

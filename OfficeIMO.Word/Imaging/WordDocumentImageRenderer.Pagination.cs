@@ -453,7 +453,10 @@ namespace OfficeIMO.Word {
                         segment.Underline,
                         segment.FontFamily,
                         segment.Strikethrough,
-                        segment.BackgroundColor));
+                        segment.BackgroundColor,
+                        segment.UnderlineStyle,
+                        segment.StrikethroughStyle,
+                        segment.Baseline));
                 }
 
                 if (i < lastIndex - 1) {
@@ -470,7 +473,10 @@ namespace OfficeIMO.Word {
                             style.Underline,
                             style.FontFamily,
                             style.Strikethrough,
-                            style.BackgroundColor));
+                            style.BackgroundColor,
+                            style.UnderlineStyle,
+                            style.StrikethroughStyle,
+                            style.Baseline));
                     }
                 }
             }

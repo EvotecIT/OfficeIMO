@@ -649,8 +649,31 @@ namespace OfficeIMO.Word {
                 paragraph.Underline.HasValue && paragraph.Underline.Value != WordUnderlineStyle.None,
                 paragraph.FontFamily ?? "Calibri",
                 paragraph.Strike || paragraph.DoubleStrike,
-                ResolveRunBackgroundColor(paragraph, colorScheme));
+                ResolveRunBackgroundColor(paragraph, colorScheme),
+                MapWordUnderlineStyle(paragraph.Underline),
+                paragraph.DoubleStrike
+                    ? OfficeTextDecorationStyle.Double
+                    : paragraph.Strike
+                        ? OfficeTextDecorationStyle.Single
+                        : OfficeTextDecorationStyle.None,
+                paragraph.VerticalTextAlignment == WordVerticalTextPosition.Superscript
+                    ? OfficeTextBaseline.Superscript
+                    : paragraph.VerticalTextAlignment == WordVerticalTextPosition.Subscript
+                        ? OfficeTextBaseline.Subscript
+                        : OfficeTextBaseline.Normal);
         }
+
+        private static OfficeTextDecorationStyle MapWordUnderlineStyle(WordUnderlineStyle? style) => style switch {
+            null or WordUnderlineStyle.None => OfficeTextDecorationStyle.None,
+            WordUnderlineStyle.Double or WordUnderlineStyle.WavyDouble => OfficeTextDecorationStyle.Double,
+            WordUnderlineStyle.Dotted or WordUnderlineStyle.DottedHeavy => OfficeTextDecorationStyle.Dotted,
+            WordUnderlineStyle.Dash or WordUnderlineStyle.DashedHeavy or
+                WordUnderlineStyle.DashLong or WordUnderlineStyle.DashLongHeavy or
+                WordUnderlineStyle.DotDash or WordUnderlineStyle.DashDotHeavy or
+                WordUnderlineStyle.DotDotDash or WordUnderlineStyle.DashDotDotHeavy => OfficeTextDecorationStyle.Dashed,
+            WordUnderlineStyle.Wave or WordUnderlineStyle.WavyHeavy => OfficeTextDecorationStyle.Wavy,
+            _ => OfficeTextDecorationStyle.Single
+        };
 
         private static OfficeFontInfo CreateFont(WordParagraph paragraph) {
             OfficeFontStyle style = OfficeFontStyle.Regular;

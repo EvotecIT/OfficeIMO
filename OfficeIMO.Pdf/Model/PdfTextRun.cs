@@ -9,9 +9,13 @@ public sealed class PdfTextRun {
     /// <summary>True when bold style is applied.</summary>
     public bool Bold { get; }
     /// <summary>True when underline is applied.</summary>
-    public bool Underline { get; }
+    public bool Underline => UnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+    /// <summary>Underline pattern rendered by the PDF writer.</summary>
+    public OfficeIMO.Drawing.OfficeTextDecorationStyle UnderlineStyle { get; }
     /// <summary>True when strikethrough is applied.</summary>
-    public bool Strike { get; }
+    public bool Strike => StrikeStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+    /// <summary>Strikethrough pattern rendered by the PDF writer.</summary>
+    public OfficeIMO.Drawing.OfficeTextDecorationStyle StrikeStyle { get; }
     /// <summary>True when italic style is applied.</summary>
     public bool Italic { get; }
     /// <summary>Run foreground color (if any).</summary>
@@ -60,11 +64,17 @@ public sealed class PdfTextRun {
     }
 
     /// <summary>Create a new run with the specified styles and tab alignment.</summary>
-    public PdfTextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null, string? fontFamily = null) {
+    public PdfTextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) {
         Guard.NotNull(text, nameof(text));
         Guard.TextBaseline(baseline, nameof(baseline));
         Guard.TabLeaderStyle(tabLeader, nameof(tabLeader));
         Guard.TabAlignment(tabAlignment, nameof(tabAlignment));
+        if (underlineStyle < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || underlineStyle > OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+            throw new System.ArgumentOutOfRangeException(nameof(underlineStyle));
+        }
+        if (strikeStyle < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || strikeStyle > OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+            throw new System.ArgumentOutOfRangeException(nameof(strikeStyle));
+        }
         if (fontSize.HasValue) {
             Guard.Positive(fontSize.Value, nameof(fontSize));
         }
@@ -103,9 +113,13 @@ public sealed class PdfTextRun {
 
         Text = text;
         Bold = bold;
-        Underline = underline;
+        UnderlineStyle = underlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
+            ? underlineStyle
+            : underline ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
         Italic = italic;
-        Strike = strike;
+        StrikeStyle = strikeStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
+            ? strikeStyle
+            : strike ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
         Color = color;
         BackgroundColor = backgroundColor;
         FontSize = fontSize;
@@ -151,6 +165,12 @@ public sealed class PdfTextRun {
     public static PdfTextRun Superscript(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new PdfTextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, baseline: PdfTextBaseline.Superscript, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create a subscript run.</summary>
     public static PdfTextRun Subscript(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new PdfTextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, baseline: PdfTextBaseline.Subscript, backgroundColor: backgroundColor, fontFamily: fontFamily);
+    /// <summary>Create a copy with transformed text casing while preserving all run formatting and link metadata.</summary>
+    public PdfTextRun WithTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        if (InlineElement != null) return this;
+        string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle);
+    }
     /// <summary>Create a hyperlink run that points to a URI.</summary>
     /// <param name="text">Link text.</param>
     /// <param name="uri">Absolute URI or catalog-base-relative URI.</param>
@@ -162,9 +182,11 @@ public sealed class PdfTextRun {
     /// <param name="backgroundColor">Optional run background color.</param>
     /// <param name="font">Optional standard font family for this run.</param>
     /// <param name="fontFamily">Optional registered embedded family name. <paramref name="font"/> remains its fallback.</param>
-    public static PdfTextRun Link(string text, string uri, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) {
+    /// <param name="underlineStyle">Optional underline pattern.</param>
+    /// <param name="strikeStyle">Optional strikethrough pattern.</param>
+    public static PdfTextRun Link(string text, string uri, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) {
         Guard.UriAction(uri, nameof(uri));
-        return new PdfTextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkUri: uri, linkContents: contents, baseline: baseline, backgroundColor: backgroundColor, fontFamily: fontFamily);
+        return new PdfTextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkUri: uri, linkContents: contents, baseline: baseline, backgroundColor: backgroundColor, fontFamily: fontFamily, underlineStyle: underlineStyle, strikeStyle: strikeStyle);
     }
     /// <summary>Create a hyperlink run that points to a document bookmark.</summary>
     /// <param name="text">Link text.</param>
@@ -177,8 +199,10 @@ public sealed class PdfTextRun {
     /// <param name="backgroundColor">Optional run background color.</param>
     /// <param name="font">Optional standard font family for this run.</param>
     /// <param name="fontFamily">Optional registered embedded family name. <paramref name="font"/> remains its fallback.</param>
-    public static PdfTextRun LinkToBookmark(string text, string bookmarkName, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) {
+    /// <param name="underlineStyle">Optional underline pattern.</param>
+    /// <param name="strikeStyle">Optional strikethrough pattern.</param>
+    public static PdfTextRun LinkToBookmark(string text, string bookmarkName, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) {
         Guard.NotNullOrWhiteSpace(bookmarkName, nameof(bookmarkName));
-        return new PdfTextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkContents: contents, baseline: baseline, linkDestinationName: bookmarkName, backgroundColor: backgroundColor, fontFamily: fontFamily);
+        return new PdfTextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkContents: contents, baseline: baseline, linkDestinationName: bookmarkName, backgroundColor: backgroundColor, fontFamily: fontFamily, underlineStyle: underlineStyle, strikeStyle: strikeStyle);
     }
 }

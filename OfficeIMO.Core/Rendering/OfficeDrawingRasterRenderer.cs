@@ -422,7 +422,10 @@ public static partial class OfficeDrawingRasterRenderer {
                 run.Underline,
                 run.FontFamily,
                 run.Strikethrough,
-                run.BackgroundColor));
+                run.BackgroundColor,
+                run.UnderlineStyle,
+                run.StrikethroughStyle,
+                run.Baseline));
         }
 
         return scaled;

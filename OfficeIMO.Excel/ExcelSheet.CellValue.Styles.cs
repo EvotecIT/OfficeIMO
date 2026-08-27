@@ -45,6 +45,14 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>Applies a native Excel underline style to a single cell.</summary>
+        public void CellUnderline(int row, int column, ExcelUnderlineStyle underlineStyle) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontUnderline(cell, underlineStyle);
+            });
+        }
+
         /// <summary>
         /// Applies strikethrough font styling to a single cell.
         /// </summary>
@@ -53,6 +61,40 @@ namespace OfficeIMO.Excel {
                 var cell = GetCell(row, column);
                 ApplyFontStrikethrough(cell, strikethrough);
             });
+        }
+
+        /// <summary>Applies baseline, superscript, or subscript alignment to a single cell.</summary>
+        public void CellVerticalTextAlignment(int row, int column, ExcelVerticalTextAlignment alignment) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontVerticalTextAlignment(cell, alignment);
+            });
+        }
+
+        /// <summary>
+        /// Changes stored text casing in a cell while preserving cell or rich-run formatting.
+        /// Formulas and non-text values are left unchanged.
+        /// </summary>
+        /// <returns><see langword="true"/> when text was transformed; otherwise <see langword="false"/>.</returns>
+        public bool TransformCellTextCase(int row, int column, OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
+            IReadOnlyList<ExcelRichTextRun> richText = GetRichText(row, column);
+            if (richText.Count > 0) {
+                foreach (ExcelRichTextRun run in richText) {
+                    run.TransformTextCase(textCase, culture);
+                }
+
+                SetRichText(row, column, richText);
+                return true;
+            }
+
+            if (!TryGetCellValueSnapshot(row, column, out ExcelCellValueSnapshot? snapshot) ||
+                snapshot == null ||
+                snapshot.Kind != ExcelCellValueKind.Text) {
+                return false;
+            }
+
+            CellValue(row, column, OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(snapshot.Text, textCase, culture));
+            return true;
         }
 
         /// <summary>
@@ -745,6 +787,23 @@ namespace OfficeIMO.Excel {
             stylesPart.Stylesheet.Save();
         }
 
+        private void ApplyFontUnderline(Cell cell, ExcelUnderlineStyle underlineStyle) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId),
+                font => SetUnderline(font, underlineStyle.ToOpenXml()));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = fontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
         private void ApplyFontStrikethrough(Cell cell, bool strikethrough) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -754,6 +813,23 @@ namespace OfficeIMO.Excel {
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
             var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
             var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetStrike(font, strikethrough));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = fontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void ApplyFontVerticalTextAlignment(Cell cell, ExcelVerticalTextAlignment alignment) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId),
+                font => SetVerticalTextAlignment(font, alignment.ToOpenXml()));
             ApplyCellFormatOverride(stylesheet, cell, format => {
                 format.FontId = fontId;
                 format.ApplyFont = true;

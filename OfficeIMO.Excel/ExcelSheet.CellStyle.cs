@@ -48,6 +48,11 @@ namespace OfficeIMO.Excel {
                 Bold = font?.Bold != null,
                 Italic = font?.Italic != null,
                 Underline = font?.Underline != null,
+                UnderlineStyle = font?.Underline == null
+                    ? null
+                    : (font.Underline.Val?.Value ?? UnderlineValues.Single).ToOfficeEnum(),
+                Strikethrough = font?.Strike != null,
+                VerticalTextAlignment = font?.VerticalTextAlignment?.Val?.Value.ToOfficeEnum(),
                 FontName = font?.FontName?.Val?.Value,
                 IsFontFamilyExplicit = (format.FontId?.Value ?? 0U) != 0U,
                 FontSize = font?.FontSize?.Val?.Value,

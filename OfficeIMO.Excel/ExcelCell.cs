@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -123,6 +124,48 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelCell SetUnderline(bool underline = true) {
             Sheet.CellUnderline(Row, Column, underline);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the native Excel underline style.
+        /// </summary>
+        public ExcelCell SetUnderline(ExcelUnderlineStyle underlineStyle) {
+            Sheet.CellUnderline(Row, Column, underlineStyle);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets or clears strikethrough font style.
+        /// </summary>
+        public ExcelCell SetStrikethrough(bool strikethrough = true) {
+            Sheet.CellStrikethrough(Row, Column, strikethrough);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the native Excel baseline, superscript, or subscript alignment.
+        /// </summary>
+        public ExcelCell SetVerticalTextAlignment(ExcelVerticalTextAlignment alignment) {
+            Sheet.CellVerticalTextAlignment(Row, Column, alignment);
+            return this;
+        }
+
+        /// <summary>Formats the cell text as superscript.</summary>
+        public ExcelCell SetSuperscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Superscript);
+
+        /// <summary>Formats the cell text as subscript.</summary>
+        public ExcelCell SetSubscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Subscript);
+
+        /// <summary>Restores the cell text to the normal baseline.</summary>
+        public ExcelCell SetBaseline() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Baseline);
+
+        /// <summary>
+        /// Changes stored text casing while preserving cell or rich-run formatting.
+        /// Formulas and non-text values are left unchanged.
+        /// </summary>
+        public ExcelCell TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
+            Sheet.TransformCellTextCase(Row, Column, textCase, culture);
             return this;
         }
 
@@ -440,6 +483,54 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Sets or clears italic font style for every cell in the range.</summary>
+        public ExcelRange SetItalic(bool italic = true) {
+            ForEachCell((row, column) => Sheet.CellItalic(row, column, italic));
+            return this;
+        }
+
+        /// <summary>Sets or clears single underline font style for every cell in the range.</summary>
+        public ExcelRange SetUnderline(bool underline = true) {
+            ForEachCell((row, column) => Sheet.CellUnderline(row, column, underline));
+            return this;
+        }
+
+        /// <summary>Sets the native Excel underline style for every cell in the range.</summary>
+        public ExcelRange SetUnderline(ExcelUnderlineStyle underlineStyle) {
+            ForEachCell((row, column) => Sheet.CellUnderline(row, column, underlineStyle));
+            return this;
+        }
+
+        /// <summary>Sets or clears strikethrough font style for every cell in the range.</summary>
+        public ExcelRange SetStrikethrough(bool strikethrough = true) {
+            ForEachCell((row, column) => Sheet.CellStrikethrough(row, column, strikethrough));
+            return this;
+        }
+
+        /// <summary>Sets the native Excel baseline, superscript, or subscript alignment for every cell in the range.</summary>
+        public ExcelRange SetVerticalTextAlignment(ExcelVerticalTextAlignment alignment) {
+            ForEachCell((row, column) => Sheet.CellVerticalTextAlignment(row, column, alignment));
+            return this;
+        }
+
+        /// <summary>Formats every cell in the range as superscript.</summary>
+        public ExcelRange SetSuperscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Superscript);
+
+        /// <summary>Formats every cell in the range as subscript.</summary>
+        public ExcelRange SetSubscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Subscript);
+
+        /// <summary>Restores every cell in the range to the normal baseline.</summary>
+        public ExcelRange SetBaseline() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Baseline);
+
+        /// <summary>
+        /// Changes stored text casing in text cells while preserving cell and rich-run formatting.
+        /// Formulas and non-text values are left unchanged.
+        /// </summary>
+        public ExcelRange TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
+            ForEachCell((row, column) => Sheet.TransformCellTextCase(row, column, textCase, culture));
+            return this;
+        }
+
         /// <summary>
         /// Sets or clears shrink-to-fit text alignment for every cell in the range.
         /// </summary>
@@ -671,6 +762,14 @@ namespace OfficeIMO.Excel {
         /// Creates a plain rich text run.
         /// </summary>
         public static ExcelRichTextRun Plain(string text) => new ExcelRichTextRun(text);
+
+        /// <summary>
+        /// Changes the stored run text casing while preserving rich-text formatting.
+        /// </summary>
+        public ExcelRichTextRun TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
+            Text = OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+            return this;
+        }
 
         internal static void AppendFontMetadata(RunProperties properties, ExcelRichTextRun run) {
             if (run.VerticalTextAlignment.HasValue) {

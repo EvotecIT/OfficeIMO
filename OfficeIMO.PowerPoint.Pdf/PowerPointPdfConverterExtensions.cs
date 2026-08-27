@@ -847,7 +847,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static PdfCore.PdfTextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
-        string text = run.Text ?? string.Empty;
+        string text = ApplyPowerPointDisplayCase(run.Text ?? string.Empty, run.Capitalization, options, slideNumber);
         PdfCore.PdfColor? color = ParsePdfColor(run.Color ?? textBox.Color);
         string? fontFamily = run.FontName ?? ResolveTextBoxFontFamily(textBox, options);
         PdfCore.PdfStandardFont? font = MapFont(fontFamily);
@@ -864,11 +864,68 @@ public static partial class PowerPointPdfConverterExtensions {
             underline: run.Underline || linkUri != null,
             color: color,
             italic: run.Italic,
+            strike: run.Strikethrough,
             fontSize: fontSize,
             font: font,
             linkUri: linkUri,
-            fontFamily: fontFamily);
+            baseline: MapPowerPointBaseline(run.BaselinePercent),
+            fontFamily: fontFamily,
+            underlineStyle: linkUri != null && !run.Underline
+                ? OfficeTextDecorationStyle.Single
+                : MapPowerPointUnderline(run.UnderlineStyle),
+            strikeStyle: MapPowerPointStrike(run.StrikeStyle));
     }
+
+    private static string ApplyPowerPointDisplayCase(string text, PptCore.PowerPointCapitalization? capitalization, PowerPointPdfSaveOptions options, int slideNumber) {
+        if (capitalization is not (PptCore.PowerPointCapitalization.AllCaps or PptCore.PowerPointCapitalization.SmallCaps)) {
+            return text;
+        }
+
+        if (capitalization == PptCore.PowerPointCapitalization.SmallCaps) {
+            AddWarning(options, slideNumber, "small-caps-approximation", "Rendered PowerPoint small caps as uppercase because PDF text runs do not provide native small-cap glyph substitution.");
+        }
+
+        return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
+    }
+
+    private static OfficeTextDecorationStyle MapPowerPointUnderline(PptCore.PowerPointUnderlineStyle? style) => style switch {
+        null or PptCore.PowerPointUnderlineStyle.None => OfficeTextDecorationStyle.None,
+        PptCore.PowerPointUnderlineStyle.Double or PptCore.PowerPointUnderlineStyle.WavyDouble => OfficeTextDecorationStyle.Double,
+        PptCore.PowerPointUnderlineStyle.Dotted or PptCore.PowerPointUnderlineStyle.HeavyDotted => OfficeTextDecorationStyle.Dotted,
+        PptCore.PowerPointUnderlineStyle.Dash or PptCore.PowerPointUnderlineStyle.DashHeavy or
+            PptCore.PowerPointUnderlineStyle.DashLong or PptCore.PowerPointUnderlineStyle.DashLongHeavy or
+            PptCore.PowerPointUnderlineStyle.DotDash or PptCore.PowerPointUnderlineStyle.DotDashHeavy or
+            PptCore.PowerPointUnderlineStyle.DotDotDash or PptCore.PowerPointUnderlineStyle.DotDotDashHeavy => OfficeTextDecorationStyle.Dashed,
+        PptCore.PowerPointUnderlineStyle.Wavy or PptCore.PowerPointUnderlineStyle.WavyHeavy => OfficeTextDecorationStyle.Wavy,
+        _ => OfficeTextDecorationStyle.Single
+    };
+
+    private static OfficeTextDecorationStyle MapPowerPointUnderline(TextUnderlineValues? style) {
+        if (!style.HasValue || style.Value == TextUnderlineValues.None) return OfficeTextDecorationStyle.None;
+        if (style.Value == TextUnderlineValues.Double || style.Value == TextUnderlineValues.WavyDouble) return OfficeTextDecorationStyle.Double;
+        if (style.Value == TextUnderlineValues.Dotted || style.Value == TextUnderlineValues.HeavyDotted) return OfficeTextDecorationStyle.Dotted;
+        if (style.Value == TextUnderlineValues.Wavy || style.Value == TextUnderlineValues.WavyHeavy) return OfficeTextDecorationStyle.Wavy;
+        if (style.Value == TextUnderlineValues.Dash || style.Value == TextUnderlineValues.DashHeavy ||
+            style.Value == TextUnderlineValues.DashLong || style.Value == TextUnderlineValues.DashLongHeavy ||
+            style.Value == TextUnderlineValues.DotDash || style.Value == TextUnderlineValues.DotDashHeavy ||
+            style.Value == TextUnderlineValues.DotDotDash || style.Value == TextUnderlineValues.DotDotDashHeavy) {
+            return OfficeTextDecorationStyle.Dashed;
+        }
+
+        return OfficeTextDecorationStyle.Single;
+    }
+
+    private static OfficeTextDecorationStyle MapPowerPointStrike(PptCore.PowerPointStrikeStyle? style) => style switch {
+        PptCore.PowerPointStrikeStyle.Double => OfficeTextDecorationStyle.Double,
+        PptCore.PowerPointStrikeStyle.Single => OfficeTextDecorationStyle.Single,
+        _ => OfficeTextDecorationStyle.None
+    };
+
+    private static PdfCore.PdfTextBaseline MapPowerPointBaseline(double? baselinePercent) => baselinePercent switch {
+        > 0D => PdfCore.PdfTextBaseline.Superscript,
+        < 0D => PdfCore.PdfTextBaseline.Subscript,
+        _ => PdfCore.PdfTextBaseline.Normal
+    };
 
     private static string? ResolveTextBoxFontFamily(PptCore.PowerPointTextBox textBox, PowerPointPdfSaveOptions options) {
         if (!string.IsNullOrWhiteSpace(textBox.FontName)) {

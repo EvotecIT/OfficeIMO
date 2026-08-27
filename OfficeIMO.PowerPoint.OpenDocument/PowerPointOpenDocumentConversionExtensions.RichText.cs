@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
 
@@ -206,8 +207,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold ?? paragraph.Bold ?? false;
         target.Italic = source.Italic ?? paragraph.Italic ?? false;
-        target.Underline = source.Underline ?? paragraph.Underline ?? false;
-        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
+        ApplyOdpRunSemantics(
+            source.Underline ?? paragraph.Underline,
+            source.UnderlineStyle ?? paragraph.UnderlineStyle,
+            source.UnderlineType ?? paragraph.UnderlineType,
+            source.StrikeThrough ?? paragraph.StrikeThrough,
+            source.LineThroughStyle ?? paragraph.LineThroughStyle,
+            source.LineThroughType ?? paragraph.LineThroughType,
+            source.TextPosition ?? paragraph.TextPosition,
+            source.TextTransform ?? paragraph.TextTransform,
+            source.SmallCaps ?? paragraph.SmallCaps,
+            target);
         OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
@@ -226,8 +236,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold ?? paragraph.Bold ?? false;
         target.Italic = source.Italic ?? paragraph.Italic ?? false;
-        target.Underline = source.Underline ?? paragraph.Underline ?? false;
-        target.Strikethrough = source.StrikeThrough ?? paragraph.StrikeThrough ?? false;
+        ApplyOdpRunSemantics(
+            source.Underline ?? paragraph.Underline,
+            source.UnderlineStyle ?? paragraph.UnderlineStyle,
+            source.UnderlineType ?? paragraph.UnderlineType,
+            source.StrikeThrough ?? paragraph.StrikeThrough,
+            source.LineThroughStyle ?? paragraph.LineThroughStyle,
+            source.LineThroughType ?? paragraph.LineThroughType,
+            source.TextPosition ?? paragraph.TextPosition,
+            source.TextTransform ?? paragraph.TextTransform,
+            source.SmallCaps ?? paragraph.SmallCaps,
+            target);
         OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
@@ -246,8 +265,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold == true;
         target.Italic = source.Italic == true;
-        target.Underline = source.Underline == true;
-        target.Strikethrough = source.StrikeThrough == true;
+        ApplyOdpRunSemantics(
+            source.Underline,
+            source.UnderlineStyle,
+            source.UnderlineType,
+            source.StrikeThrough,
+            source.LineThroughStyle,
+            source.LineThroughType,
+            source.TextPosition,
+            source.TextTransform,
+            source.SmallCaps,
+            target);
         int unsupported = ApplyOdpFontSize(source.FontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
@@ -262,6 +290,62 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!fontSize.Value.TryToPoints(out double points)) return 1;
         target.FontSizePoints = points;
         return 0;
+    }
+
+    private static void ApplyOdpRunSemantics(
+        bool? underline,
+        OdfTextDecorationStyle? underlineStyle,
+        OdfTextDecorationType? underlineType,
+        bool? strike,
+        OdfTextDecorationStyle? strikeStyle,
+        OdfTextDecorationType? strikeType,
+        OdfTextPosition? position,
+        OdfTextTransform? transform,
+        bool? smallCaps,
+        PowerPointTextRun target) {
+        target.UnderlineStyle = MapOdfUnderline(underline, underlineStyle, underlineType);
+        bool hasStrike = strike == true && strikeStyle != OdfTextDecorationStyle.None && strikeType != OdfTextDecorationType.None;
+        target.StrikeStyle = !hasStrike
+            ? PowerPointStrikeStyle.None
+            : strikeType == OdfTextDecorationType.Double
+                ? PowerPointStrikeStyle.Double
+                : PowerPointStrikeStyle.Single;
+        target.BaselinePercent = position switch {
+            OdfTextPosition.Superscript => 30D,
+            OdfTextPosition.Subscript => -25D,
+            OdfTextPosition.Normal => 0D,
+            _ => null
+        };
+        target.Capitalization = transform == OdfTextTransform.Uppercase
+            ? PowerPointCapitalization.AllCaps
+            : smallCaps == true
+                ? PowerPointCapitalization.SmallCaps
+                : PowerPointCapitalization.None;
+        if (transform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase);
+        else if (transform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.TitleCase);
+    }
+
+    private static PowerPointUnderlineStyle? MapOdfUnderline(
+        bool? enabled,
+        OdfTextDecorationStyle? style,
+        OdfTextDecorationType? type) {
+        if (enabled != true || style == OdfTextDecorationStyle.None || type == OdfTextDecorationType.None) {
+            return PowerPointUnderlineStyle.None;
+        }
+        if (type == OdfTextDecorationType.Double) {
+            return style == OdfTextDecorationStyle.Wave
+                ? PowerPointUnderlineStyle.WavyDouble
+                : PowerPointUnderlineStyle.Double;
+        }
+        return style switch {
+            OdfTextDecorationStyle.Dotted => PowerPointUnderlineStyle.Dotted,
+            OdfTextDecorationStyle.Dash => PowerPointUnderlineStyle.Dash,
+            OdfTextDecorationStyle.LongDash => PowerPointUnderlineStyle.DashLong,
+            OdfTextDecorationStyle.DotDash => PowerPointUnderlineStyle.DotDash,
+            OdfTextDecorationStyle.DotDotDash => PowerPointUnderlineStyle.DotDotDash,
+            OdfTextDecorationStyle.Wave => PowerPointUnderlineStyle.Wavy,
+            _ => PowerPointUnderlineStyle.Single
+        };
     }
 
     private static string? SelectOdfFontFamily(string? value,
