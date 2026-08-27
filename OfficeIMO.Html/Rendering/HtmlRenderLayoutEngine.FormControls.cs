@@ -461,7 +461,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             lineHeight,
             visuals.Count,
             source: source,
-            semanticRole: "form-control"));
+            semanticRole: "form-control",
+            underlineStyle: style.UnderlineStyle,
+            strikethroughStyle: style.StrikethroughStyle,
+            baseline: style.Baseline));
     }
 
     private void AddMultilineControlText(
@@ -494,7 +497,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 lineHeight,
                 visuals.Count,
                 source: source,
-                semanticRole: "form-control"));
+                semanticRole: "form-control",
+                underlineStyle: style.UnderlineStyle,
+                strikethroughStyle: style.StrikethroughStyle,
+                baseline: style.Baseline));
         }
     }
 

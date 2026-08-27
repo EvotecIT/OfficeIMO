@@ -268,7 +268,10 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
+        bool supportsLegacyFastPath = text.Baseline == OfficeTextBaseline.Normal &&
+            (text.UnderlineStyle == OfficeTextDecorationStyle.None || text.UnderlineStyle == OfficeTextDecorationStyle.Single) &&
+            (text.StrikethroughStyle == OfficeTextDecorationStyle.None || text.StrikethroughStyle == OfficeTextDecorationStyle.Single);
+        if (supportsLegacyFastPath && !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
             if (text.TextAdvanceWidth.HasValue) {
                 canvas.DrawPositionedText(
                     text.Text,
@@ -358,7 +361,10 @@ public static partial class OfficeDrawingRasterRenderer {
             strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
             fontFamily: text.Font.FamilyName,
             flipHorizontal: text.FlipHorizontal,
-            flipVertical: text.FlipVertical);
+            flipVertical: text.FlipVertical,
+            underlineStyle: text.UnderlineStyle,
+            strikethroughStyle: text.StrikethroughStyle,
+            baseline: text.Baseline);
     }
 
     private static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {

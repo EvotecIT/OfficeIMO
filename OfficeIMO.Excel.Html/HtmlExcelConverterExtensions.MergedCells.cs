@@ -87,6 +87,7 @@ public static partial class HtmlExcelConverterExtensions {
                 string text = NormalizeText(cell.TextContent);
                 if (!IsSemanticEmptyCell(cell) && (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null)) {
                     if (SetCellValue(sheet, cellRow, cellColumn, cell, text, result, options, budget, importedFormulaCells, useSemanticValues)) {
+                        ApplyImportedCellTextFormatting(cell, sheet.CellAt(cellRow, cellColumn));
                         result.Cells++;
                     }
                 }
@@ -101,6 +102,116 @@ public static partial class HtmlExcelConverterExtensions {
 
             rowOffset++;
         }
+    }
+
+    private static void ApplyImportedCellTextFormatting(IElement source, ExcelCell target) {
+        IElement[] spans = source.QuerySelectorAll("span").ToArray();
+        if (spans.Length > 0) {
+            var runs = new List<ExcelRichTextRun>(spans.Length);
+            foreach (IElement span in spans) {
+                ExcelRichTextRun run = CreateImportedRichTextRun(span);
+                if (run.Text.Length > 0) runs.Add(run);
+            }
+            if (runs.Count > 0 && string.Equals(string.Concat(runs.Select(run => run.Text)), source.TextContent, StringComparison.Ordinal)) {
+                target.SetRichText(runs.ToArray());
+                return;
+            }
+        }
+
+        IReadOnlyDictionary<string, string> css = ParseInlineStyle(source.GetAttribute("style"));
+        if (IsCssBold(css)) target.SetBold();
+        if (IsCssItalic(css)) target.SetItalic();
+        ExcelUnderlineStyle? underline = ResolveImportedUnderline(source, css);
+        if (underline.HasValue && underline.Value != ExcelUnderlineStyle.None) target.SetUnderline(underline.Value);
+        if (HasDecoration(css, "line-through")) target.SetStrikethrough();
+        if (TryGetCss(css, "vertical-align", out string verticalAlign)) {
+            if (verticalAlign.Equals("super", StringComparison.OrdinalIgnoreCase)) target.SetSuperscript();
+            if (verticalAlign.Equals("sub", StringComparison.OrdinalIgnoreCase)) target.SetSubscript();
+        }
+        if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontName(NormalizeCssFontFamily(fontFamily));
+        if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(fontSize);
+        if (TryGetCss(css, "color", out string color) && TryNormalizeCssHex(color, out string fontColor)) target.SetFontColor(fontColor);
+    }
+
+    private static ExcelRichTextRun CreateImportedRichTextRun(IElement source) {
+        IReadOnlyDictionary<string, string> css = ParseInlineStyle(source.GetAttribute("style"));
+        ExcelUnderlineStyle? underline = ResolveImportedUnderline(source, css);
+        var run = new ExcelRichTextRun(source.TextContent) {
+            Bold = IsCssBold(css),
+            Italic = IsCssItalic(css),
+            Underline = underline.HasValue && underline.Value != ExcelUnderlineStyle.None,
+            UnderlineStyle = underline,
+            Strikethrough = HasDecoration(css, "line-through")
+        };
+        if (TryGetCss(css, "vertical-align", out string verticalAlign)) {
+            if (verticalAlign.Equals("super", StringComparison.OrdinalIgnoreCase)) run.VerticalTextAlignment = ExcelVerticalTextAlignment.Superscript;
+            if (verticalAlign.Equals("sub", StringComparison.OrdinalIgnoreCase)) run.VerticalTextAlignment = ExcelVerticalTextAlignment.Subscript;
+        }
+        if (TryGetCss(css, "font-family", out string fontFamily)) run.FontName = NormalizeCssFontFamily(fontFamily);
+        if (TryGetCssPoints(css, "font-size", out double fontSize)) run.FontSize = fontSize;
+        if (TryGetCss(css, "color", out string color) && TryNormalizeCssHex(color, out string fontColor)) run.FontColor = fontColor;
+        return run;
+    }
+
+    private static ExcelUnderlineStyle? ResolveImportedUnderline(IElement source, IReadOnlyDictionary<string, string> css) {
+        string exact = (source.GetAttribute("data-officeimo-excel-underline") ?? string.Empty).Trim();
+        if (Enum.TryParse(exact, ignoreCase: true, out ExcelUnderlineStyle native)) return native;
+        if (!HasDecoration(css, "underline")) return null;
+        return TryGetCss(css, "text-decoration-style", out string style)
+            && style.Equals("double", StringComparison.OrdinalIgnoreCase)
+            ? ExcelUnderlineStyle.Double
+            : ExcelUnderlineStyle.Single;
+    }
+
+    private static IReadOnlyDictionary<string, string> ParseInlineStyle(string? value) {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string declaration in (value ?? string.Empty).Split(';')) {
+            int separator = declaration.IndexOf(':');
+            if (separator <= 0) continue;
+            string name = declaration.Substring(0, separator).Trim();
+            string content = declaration.Substring(separator + 1).Trim();
+            if (name.Length > 0 && content.Length > 0) result[name] = content;
+        }
+        return result;
+    }
+
+    private static bool TryGetCss(IReadOnlyDictionary<string, string> css, string name, out string value) =>
+        css.TryGetValue(name, out value!);
+
+    private static bool IsCssBold(IReadOnlyDictionary<string, string> css) =>
+        TryGetCss(css, "font-weight", out string value)
+        && (value.Equals("bold", StringComparison.OrdinalIgnoreCase)
+            || int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) && weight >= 600);
+
+    private static bool IsCssItalic(IReadOnlyDictionary<string, string> css) =>
+        TryGetCss(css, "font-style", out string value)
+        && (value.Equals("italic", StringComparison.OrdinalIgnoreCase) || value.Equals("oblique", StringComparison.OrdinalIgnoreCase));
+
+    private static bool HasDecoration(IReadOnlyDictionary<string, string> css, string decoration) =>
+        (TryGetCss(css, "text-decoration-line", out string lines) || TryGetCss(css, "text-decoration", out lines))
+        && lines.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(value => value.Equals(decoration, StringComparison.OrdinalIgnoreCase));
+
+    private static bool TryGetCssPoints(IReadOnlyDictionary<string, string> css, string name, out double points) {
+        points = 0D;
+        if (!TryGetCss(css, name, out string value)) return false;
+        string normalized = value.Trim();
+        double multiplier = 1D;
+        if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) multiplier = 0.75D;
+        else if (!normalized.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) return false;
+        normalized = normalized.Substring(0, normalized.Length - 2);
+        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            && parsed > 0D && (points = parsed * multiplier) > 0D;
+    }
+
+    private static string NormalizeCssFontFamily(string value) =>
+        value.Split(',').FirstOrDefault()?.Trim().Trim('\'', '"') ?? string.Empty;
+
+    private static bool TryNormalizeCssHex(string value, out string color) {
+        color = value.Trim().TrimStart('#');
+        if (color.Length == 3) color = string.Concat(color[0], color[0], color[1], color[1], color[2], color[2]);
+        if (color.Length == 8) color = color.Substring(2);
+        return color.Length == 6 && color.All(Uri.IsHexDigit);
     }
 
     private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {

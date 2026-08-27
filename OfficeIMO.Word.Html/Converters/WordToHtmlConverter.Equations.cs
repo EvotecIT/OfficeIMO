@@ -110,16 +110,14 @@ namespace OfficeIMO.Word.Html {
                 emphasis.AppendChild(node);
                 node = emphasis;
             }
-            if ((run.Strike || run.DoubleStrike) && !isHtmlDeletedText) {
-                var strike = CreateOutputElement(htmlDocument, "s");
-                strike.AppendChild(node);
-                node = strike;
-            }
-            if (run.Underline != null && !isHtmlInsertedText) {
-                var underline = CreateOutputElement(htmlDocument, "u");
-                underline.AppendChild(node);
-                node = underline;
-            }
+            node = ApplyWordTextDecorations(
+                htmlDocument,
+                run,
+                node,
+                options,
+                suppressUnderline: isHtmlInsertedText,
+                suppressStrikethrough: isHtmlDeletedText,
+                source: "word:equation-run");
             if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                 var superscript = CreateOutputElement(htmlDocument, "sup");
                 superscript.AppendChild(node);

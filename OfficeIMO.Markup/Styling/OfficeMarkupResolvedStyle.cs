@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Markup;
 
 public sealed class OfficeMarkupResolvedStyle {
@@ -6,7 +8,13 @@ public sealed class OfficeMarkupResolvedStyle {
     public int? FontSize { get; set; }
     public bool? Bold { get; set; }
     public bool? Italic { get; set; }
+    public OfficeTextDecorationStyle? UnderlineStyle { get; set; }
+    public OfficeTextDecorationStyle? StrikethroughStyle { get; set; }
+    public OfficeTextBaseline? Baseline { get; set; }
+    public OfficeTextCase? TextCase { get; set; }
+    public bool? SmallCaps { get; set; }
     public string? TextColor { get; set; }
+    public string? HighlightColor { get; set; }
     public string? FillColor { get; set; }
     public string? BorderColor { get; set; }
     public string? TextAlign { get; set; }
@@ -16,7 +24,13 @@ public sealed class OfficeMarkupResolvedStyle {
         || FontSize != null
         || Bold != null
         || Italic != null
+        || UnderlineStyle != null
+        || StrikethroughStyle != null
+        || Baseline != null
+        || TextCase != null
+        || SmallCaps != null
         || !string.IsNullOrWhiteSpace(TextColor)
+        || !string.IsNullOrWhiteSpace(HighlightColor)
         || !string.IsNullOrWhiteSpace(FillColor)
         || !string.IsNullOrWhiteSpace(BorderColor)
         || !string.IsNullOrWhiteSpace(TextAlign);
@@ -28,7 +42,13 @@ public sealed class OfficeMarkupResolvedStyle {
             FontSize = FontSize,
             Bold = Bold,
             Italic = Italic,
+            UnderlineStyle = UnderlineStyle,
+            StrikethroughStyle = StrikethroughStyle,
+            Baseline = Baseline,
+            TextCase = TextCase,
+            SmallCaps = SmallCaps,
             TextColor = TextColor,
+            HighlightColor = HighlightColor,
             FillColor = FillColor,
             BorderColor = BorderColor,
             TextAlign = TextAlign

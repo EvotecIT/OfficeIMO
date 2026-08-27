@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel.Html;
 
@@ -501,7 +502,13 @@ public static partial class HtmlExcelConverterExtensions {
             Bold = source.Bold,
             Italic = source.Italic,
             Underline = source.Underline,
-            Strikethrough = source.Strikethrough
+            UnderlineStyle = ResolveExcelUnderlineStyle(source),
+            Strikethrough = source.Strikethrough,
+            VerticalTextAlignment = source.Baseline switch {
+                OfficeTextBaseline.Superscript => ExcelVerticalTextAlignment.Superscript,
+                OfficeTextBaseline.Subscript => ExcelVerticalTextAlignment.Subscript,
+                _ => (ExcelVerticalTextAlignment?)null
+            }
         };
         string color = NormalizeHexColor(source.Style?.GetValue("color"));
         if (color.Length > 0) run.FontColor = color;
@@ -509,6 +516,20 @@ public static partial class HtmlExcelConverterExtensions {
         if (fontName.Length > 0) run.FontName = fontName;
         if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = pixels * 0.75D;
         return run;
+    }
+
+    private static ExcelUnderlineStyle? MapUnderlineStyle(OfficeTextDecorationStyle style) => style switch {
+        OfficeTextDecorationStyle.None => null,
+        OfficeTextDecorationStyle.Double => ExcelUnderlineStyle.Double,
+        _ => ExcelUnderlineStyle.Single
+    };
+
+    private static ExcelUnderlineStyle? ResolveExcelUnderlineStyle(HtmlSemanticRun source) {
+        if (source.DataAttributes.TryGetValue("data-officeimo-excel-underline", out string? exact)
+            && Enum.TryParse(exact, ignoreCase: true, out ExcelUnderlineStyle native)) {
+            return native;
+        }
+        return MapUnderlineStyle(source.UnderlineStyle);
     }
 
     private static string NormalizeHexColor(string? value) {
@@ -528,8 +549,11 @@ public static partial class HtmlExcelConverterExtensions {
     private static bool TryParseCssPixels(string? value, out double pixels) {
         pixels = 0D;
         string text = (value ?? string.Empty).Trim();
-        if (!text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return false;
-        return double.TryParse(text.Substring(0, text.Length - 2), System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out pixels) && pixels > 0D;
+        bool points = text.EndsWith("pt", StringComparison.OrdinalIgnoreCase);
+        if (!points && !text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!double.TryParse(text.Substring(0, text.Length - 2), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out pixels) || pixels <= 0D) return false;
+        if (points) pixels /= 0.75D;
+        return true;
     }
 }

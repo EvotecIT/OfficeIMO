@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -186,6 +187,16 @@ public static class HtmlOneNoteConverterExtensions {
             run.Style.Strikethrough = sourceRun.Strikethrough ? true : null;
             run.Style.Superscript = sourceRun.Superscript ? true : null;
             run.Style.Subscript = sourceRun.Subscript ? true : null;
+            run.Style.FontFamily = NormalizeFontFamily(sourceRun.Style?.GetValue("font-family"));
+            if (TryParseCssPoints(sourceRun.Style?.GetValue("font-size"), out double fontSize)) {
+                run.Style.FontSize = fontSize;
+            }
+            if (TryParseArgb(sourceRun.Style?.GetValue("color"), out uint foreground)) {
+                run.Style.ColorArgb = foreground;
+            }
+            if (TryParseArgb(sourceRun.BackgroundColor, out uint highlight)) {
+                run.Style.HighlightColorArgb = highlight;
+            }
             paragraph.Runs.Add(run);
         }
         if (paragraph.Runs.Count == 0) paragraph.Runs.Add(new OneNoteTextRun { Text = plainText });
@@ -193,6 +204,36 @@ public static class HtmlOneNoteConverterExtensions {
         if (headingLevel > 0) paragraph.Style.StyleId = "Heading" + Math.Min(6, headingLevel);
         result.Elements++;
         return paragraph;
+    }
+
+    private static string? NormalizeFontFamily(string? value) {
+        string family = (value ?? string.Empty).Split(',').FirstOrDefault()?.Trim().Trim('\'', '"') ?? string.Empty;
+        return family.Length == 0 ? null : family;
+    }
+
+    private static bool TryParseCssPoints(string? value, out double points) {
+        points = 0D;
+        string text = (value ?? string.Empty).Trim().ToLowerInvariant();
+        double multiplier;
+        if (text.EndsWith("pt", StringComparison.Ordinal)) {
+            multiplier = 1D;
+            text = text.Substring(0, text.Length - 2).Trim();
+        } else if (text.EndsWith("px", StringComparison.Ordinal)) {
+            multiplier = 0.75D;
+            text = text.Substring(0, text.Length - 2).Trim();
+        } else {
+            return false;
+        }
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            && parsed > 0D
+            && (points = parsed * multiplier) > 0D;
+    }
+
+    private static bool TryParseArgb(string? value, out uint argb) {
+        argb = 0U;
+        if (!OfficeColor.TryParseCss(value, out OfficeColor color)) return false;
+        argb = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+        return true;
     }
 
     private static void ImportTable(

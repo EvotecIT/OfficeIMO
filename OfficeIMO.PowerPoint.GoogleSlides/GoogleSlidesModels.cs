@@ -50,6 +50,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public bool Bold { get; internal set; }
         public bool Italic { get; internal set; }
         public bool Underline { get; internal set; }
+        public bool Strikethrough { get; internal set; }
+        public bool SmallCaps { get; internal set; }
+        public string? BaselineOffset { get; internal set; }
         public int? FontSize { get; internal set; }
         public string? FontFamily { get; internal set; }
         public string? ForegroundColorHex { get; internal set; }
@@ -65,6 +68,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         internal bool Bold { get; set; }
         internal bool Italic { get; set; }
         internal bool Underline { get; set; }
+        internal bool Strikethrough { get; set; }
+        internal bool SmallCaps { get; set; }
+        internal string? BaselineOffset { get; set; }
         internal int? FontSize { get; set; }
         internal string? FontFamily { get; set; }
         internal string? ForegroundColorHex { get; set; }

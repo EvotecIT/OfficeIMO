@@ -69,7 +69,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     PowerPointTextRun? firstRun = (shape as PowerPointTextBox)?.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                     string textStyle = firstRun == null
                         ? string.Empty
-                        : $"{firstRun.Bold}|{firstRun.Italic}|{firstRun.Underline}|{firstRun.FontSize}|{firstRun.FontName}|{firstRun.Color}|{firstRun.Hyperlink?.AbsoluteUri}";
+                        : $"{firstRun.Bold}|{firstRun.Italic}|{firstRun.Underline}|{firstRun.StrikeStyle}|{firstRun.Capitalization}|{firstRun.BaselinePercent}|{firstRun.FontSizePoints}|{firstRun.FontName}|{firstRun.Color}|{firstRun.Hyperlink?.AbsoluteUri}";
                     string picture = shape is PowerPointPicture image
                         ? $"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}"
                         : string.Empty;

@@ -431,7 +431,53 @@ public static partial class OfficeTextBlockRenderer {
         double rotationCenterX = 0D,
         double rotationCenterY = 0D,
         bool centerLineInLineHeight = true,
-        bool strikethrough = false) {
+        bool strikethrough = false) =>
+        AppendSvgStyledTextBlock(
+            builder,
+            layout,
+            left,
+            top,
+            width,
+            height,
+            color,
+            fontFamily,
+            horizontalAlignment,
+            verticalAlignment,
+            bold,
+            italic,
+            underline,
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            centerLineInLineHeight,
+            strikethrough,
+            OfficeTextDecorationStyle.None,
+            OfficeTextDecorationStyle.None,
+            OfficeTextBaseline.Normal);
+
+    /// <summary>Appends a measured SVG text block with typed decoration and baseline styling.</summary>
+    public static StringBuilder AppendSvgStyledTextBlock(
+        this StringBuilder builder,
+        OfficeTextBlockLayout layout,
+        double left,
+        double top,
+        double width,
+        double height,
+        OfficeColor color,
+        string? fontFamily,
+        OfficeTextAlignment horizontalAlignment,
+        OfficeTextVerticalAlignment verticalAlignment,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool centerLineInLineHeight,
+        bool strikethrough,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeTextBaseline baseline) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -455,14 +501,17 @@ public static partial class OfficeTextBlockRenderer {
             double runTop = centerLineInLineHeight
                 ? lineTop + Math.Max(0D, (layout.LineHeight - layout.FontSize) / 2D)
                 : lineTop;
-            double baseline = runTop + (layout.FontSize * 0.84D);
+            double renderedFontSize = baseline == OfficeTextBaseline.Normal ? layout.FontSize : layout.FontSize * 0.65D;
+            double renderedBaseline = runTop + (layout.FontSize * 0.84D) + (baseline == OfficeTextBaseline.Superscript
+                ? -(layout.FontSize * 0.30D)
+                : baseline == OfficeTextBaseline.Subscript ? layout.FontSize * 0.15D : 0D);
             bool justifyLine = ShouldJustifyLine(line, i, layout.Lines.Count, lineWidth, horizontalAlignment);
             builder.Append("<text")
                 .AppendNumberAttribute("x", anchorX)
-                .AppendNumberAttribute("y", baseline)
+                .AppendNumberAttribute("y", renderedBaseline)
                 .AppendPaintAttribute("fill", color)
                 .AppendAttribute("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily)
-                .AppendNumberAttribute("font-size", layout.FontSize)
+                .AppendNumberAttribute("font-size", renderedFontSize)
                 .AppendAttribute("text-anchor", textAnchor);
             if (justifyLine) {
                 builder.AppendNumberAttribute("textLength", lineWidth)
@@ -481,7 +530,10 @@ public static partial class OfficeTextBlockRenderer {
                 builder.Append(" font-style=\"italic\"");
             }
 
-            AppendSvgTextDecorationAttribute(builder, underline, strikethrough);
+            AppendSvgTextDecorationAttribute(
+                builder,
+                underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
+                strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
 
             if (Math.Abs(rotationDegrees) > 0.000001D) {
                 builder.AppendRotateTransformAttribute(rotationDegrees, rotationCenterX, rotationCenterY);
@@ -557,8 +609,11 @@ public static partial class OfficeTextBlockRenderer {
         double rotationCenterX,
         double rotationCenterY,
         bool strikethrough,
-        double textAdvanceWidth) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+        double textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
+        OfficeTextBaseline baseline) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,

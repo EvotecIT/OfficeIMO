@@ -21,7 +21,10 @@ internal static partial class PdfWriter {
                 text.Font.IsItalic,
                 text.Font.IsUnderline,
                 text.Font.FamilyName,
-                text.Font.IsStrikethrough);
+                text.Font.IsStrikethrough,
+                underlineStyle: text.UnderlineStyle,
+                strikethroughStyle: text.StrikethroughStyle,
+                baseline: text.Baseline);
             var richText = new OfficeDrawingRichText(
                 new[] { run },
                 text.X,

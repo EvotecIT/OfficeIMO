@@ -112,6 +112,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_PreservesSupportedTypographyAndMaterializesAllCaps() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Normal", 20, 30, 300, 80);
+            PowerPointTextRun first = textBox.Paragraphs[0].Runs[0];
+            first.Strikethrough = true;
+            first.Capitalization = PowerPointCapitalization.SmallCaps;
+            first.SetSuperscript();
+            PowerPointTextRun second = textBox.Paragraphs[0].AddRun(" caps");
+            second.Capitalization = PowerPointCapitalization.AllCaps;
+            second.SetSubscript();
+
+            GoogleSlidesTextBox compiled = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTextBox>());
+
+            Assert.Equal("Normal CAPS", compiled.Text);
+            Assert.Collection(compiled.TextRuns,
+                run => {
+                    Assert.True(run.Strikethrough);
+                    Assert.True(run.SmallCaps);
+                    Assert.Equal("SUPERSCRIPT", run.BaselineOffset);
+                },
+                run => {
+                    Assert.False(run.SmallCaps);
+                    Assert.Equal("SUBSCRIPT", run.BaselineOffset);
+                });
+        }
+
+        [Fact]
         public void BatchCompiler_DoesNotSendUnsupportedNativeImageFormats() {
             string svgPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
             try {
@@ -232,7 +261,12 @@ namespace OfficeIMO.Tests {
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
             PowerPointTextBox mixedText = authoredSlide.AddTextBoxPoints("Hello ", 20, 30, 300, 80);
-            mixedText.Paragraphs[0].AddRun("Slides", run => run.Bold = true);
+            mixedText.Paragraphs[0].AddRun("Slides", run => {
+                run.Bold = true;
+                run.Strikethrough = true;
+                run.Capitalization = PowerPointCapitalization.SmallCaps;
+                run.SetSuperscript();
+            });
             authoredSlide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 340, 30, 160, 80);
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
@@ -289,6 +323,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FIXED_RANGE", textStyle.GetProperty("textRange").GetProperty("type").GetString());
                 Assert.Equal(6, textStyle.GetProperty("textRange").GetProperty("startIndex").GetInt32());
                 Assert.Equal(12, textStyle.GetProperty("textRange").GetProperty("endIndex").GetInt32());
+                JsonElement style = textStyle.GetProperty("style");
+                Assert.True(style.GetProperty("strikethrough").GetBoolean());
+                Assert.True(style.GetProperty("smallCaps").GetBoolean());
+                Assert.Equal("SUPERSCRIPT", style.GetProperty("baselineOffset").GetString());
             }
             Assert.Contains("\"createShape\"", body);
             Assert.Contains("Hello Slides", body);
@@ -657,7 +695,7 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDownloadIsAllowed() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":true}}"));
-                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported \",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}},{\"textRun\":{\"content\":\"text\\n\",\"style\":{\"italic\":true,\"underline\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.8,\"green\":0.2,\"blue\":0.1}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
+                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported \",\"style\":{\"bold\":true,\"strikethrough\":true,\"smallCaps\":true,\"baselineOffset\":\"SUPERSCRIPT\",\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}},{\"textRun\":{\"content\":\"text\\n\",\"style\":{\"italic\":true,\"underline\":true,\"baselineOffset\":\"SUBSCRIPT\",\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.8,\"green\":0.2,\"blue\":0.1}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -672,12 +710,16 @@ namespace OfficeIMO.Tests {
                     run => {
                         Assert.Equal("Imported ", run.Text);
                         Assert.True(run.Bold);
+                        Assert.True(run.Strikethrough);
+                        Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
+                        Assert.True(run.BaselinePercent > 0);
                         Assert.Equal("336699", run.Color);
                     },
                     run => {
                         Assert.Equal("text", run.Text);
                         Assert.True(run.Italic);
                         Assert.True(run.Underline);
+                        Assert.True(run.BaselinePercent < 0);
                         Assert.Equal("CC331A", run.Color);
                     });
                 GoogleSlidesTextBox roundTripText = Assert.Single(
@@ -688,6 +730,9 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(0, run.StartIndex);
                         Assert.Equal(9, run.EndIndex);
                         Assert.True(run.Bold);
+                        Assert.True(run.Strikethrough);
+                        Assert.True(run.SmallCaps);
+                        Assert.Equal("SUPERSCRIPT", run.BaselineOffset);
                         Assert.Equal("336699", run.ForegroundColorHex);
                     },
                     run => {
@@ -695,6 +740,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(13, run.EndIndex);
                         Assert.True(run.Italic);
                         Assert.True(run.Underline);
+                        Assert.Equal("SUBSCRIPT", run.BaselineOffset);
                         Assert.Equal("CC331A", run.ForegroundColorHex);
                     });
                 PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());

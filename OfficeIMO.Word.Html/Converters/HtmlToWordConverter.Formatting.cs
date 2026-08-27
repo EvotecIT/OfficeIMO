@@ -24,6 +24,7 @@ namespace OfficeIMO.Word.Html {
                 Underline = underline;
                 UnderlineStyle = underline ? UnderlineValues.Single : null;
                 Strike = strike;
+                DoubleStrike = false;
                 Superscript = superscript;
                 Subscript = subscript;
                 ColorHex = colorHex;
@@ -43,6 +44,7 @@ namespace OfficeIMO.Word.Html {
             internal bool Underline { get; set; }
             internal UnderlineValues? UnderlineStyle { get; set; }
             internal bool Strike { get; set; }
+            internal bool DoubleStrike { get; set; }
             internal bool Superscript { get; set; }
             internal bool Subscript { get; set; }
             internal string? ColorHex { get; set; }
@@ -489,6 +491,7 @@ namespace OfficeIMO.Word.Html {
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline((GetUnderlineValue(formatting) ?? UnderlineValues.Single).ToOfficeEnum());
             if (formatting.Strike) run.SetStrike();
+            if (formatting.DoubleStrike) run.SetDoubleStrike();
             if (formatting.Superscript) run.SetSuperScript();
             if (formatting.Subscript) run.SetSubScript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
@@ -518,12 +521,23 @@ namespace OfficeIMO.Word.Html {
             var styleText = element.GetAttribute("style") ?? string.Empty;
             var parsed = CssStyleMapper.ParseStyles(styleText);
             var declaration = ParseInlineDeclaration(styleText);
+            string exactUnderline = element.GetAttribute("data-officeimo-word-underline") ?? string.Empty;
+            string exactDoubleStrike = element.GetAttribute("data-officeimo-word-double-strike") ?? string.Empty;
             var language = GetElementLanguage(element);
             if (!string.IsNullOrWhiteSpace(language)) {
                 formatting.Language = language;
             }
-            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline.HasValue && !parsed.Strike.HasValue && !parsed.UnderlineStyle.HasValue) {
+            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline.HasValue && !parsed.Strike.HasValue && !parsed.UnderlineStyle.HasValue && string.IsNullOrWhiteSpace(exactUnderline) && string.IsNullOrWhiteSpace(exactDoubleStrike)) {
                 return;
+            }
+
+            if (Enum.TryParse(exactUnderline, ignoreCase: true, out WordUnderlineStyle wordUnderline) && wordUnderline != WordUnderlineStyle.None) {
+                formatting.Underline = true;
+                formatting.UnderlineStyle = wordUnderline.ToOpenXml();
+            }
+            if (bool.TryParse(exactDoubleStrike, out bool doubleStrike) && doubleStrike) {
+                formatting.Strike = false;
+                formatting.DoubleStrike = true;
             }
 
             var fontShorthand = GetInlinePropertyValue(declaration, styleText, "font");
@@ -597,13 +611,21 @@ namespace OfficeIMO.Word.Html {
             if (parsed.Underline.HasValue) {
                 formatting.Underline = parsed.Underline.Value;
             }
-            if (parsed.UnderlineStyle.HasValue) {
+            if (parsed.UnderlineStyle.HasValue && (parsed.Underline == true || parsed.Strike != true)) {
                 formatting.UnderlineStyle = parsed.UnderlineStyle.Value;
             } else if (formatting.Underline && !formatting.UnderlineStyle.HasValue) {
                 formatting.UnderlineStyle = UnderlineValues.Single;
             }
             if (parsed.Strike.HasValue) {
                 formatting.Strike = parsed.Strike.Value;
+            }
+            if (Enum.TryParse(exactUnderline, ignoreCase: true, out WordUnderlineStyle retainedUnderline) && retainedUnderline != WordUnderlineStyle.None) {
+                formatting.Underline = true;
+                formatting.UnderlineStyle = retainedUnderline.ToOpenXml();
+            }
+            if (bool.TryParse(exactDoubleStrike, out bool retainedDoubleStrike) && retainedDoubleStrike) {
+                formatting.Strike = false;
+                formatting.DoubleStrike = true;
             }
             if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
                 double alpha = parsed.BackgroundColorAlpha ?? 1d;

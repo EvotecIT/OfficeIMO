@@ -368,12 +368,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             measured = 0D;
             return false;
         }
-        if (_shapedTextMeasurementCache.TryGet(text, style.Font, out measured)) return true;
+        OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
+        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, out measured)) return true;
 
         OfficeTrueTypeFont? font = _fonts.ResolveForText(
             text,
-            style.Font.FamilyName,
-            style.Font.Style,
+            effectiveFont.FamilyName,
+            effectiveFont.Style,
             out OfficeFontStyle _);
         if (font == null) {
             measured = 0D;
@@ -384,7 +385,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
         OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             logicalText,
-            font.DisplayName ?? style.Font.FamilyName,
+            font.DisplayName ?? effectiveFont.FamilyName,
             font.FontDataForShaping,
             isOpenTypeCff: false,
             font.UnitsPerEm,
@@ -398,8 +399,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return false;
         }
 
-        measured = font.CreateShapedTextRun(logicalText, result).Measure(style.Font.Size);
-        _shapedTextMeasurementCache.Store(text, style.Font, measured);
+        measured = font.CreateShapedTextRun(logicalText, result).Measure(effectiveFont.Size);
+        _shapedTextMeasurementCache.Store(text, effectiveFont, measured);
         return true;
     }
 
@@ -1124,7 +1125,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
         double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
             ? shapedWidth
-            : MeasureText(value, style.Font);
+            : MeasureText(value, GetEffectiveTextFont(style));
         if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
             return Math.Max(0.01D, measured);
         }
@@ -1382,7 +1383,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static double ResolveTextAscent(HtmlRenderBoxStyle style) {
-        double leading = Math.Max(0D, style.LineHeight - style.Font.Size);
-        return Math.Min(style.LineHeight, leading / 2D + style.Font.Size * 0.8D);
+        double effectiveSize = GetEffectiveTextFont(style).Size;
+        double leading = Math.Max(0D, style.LineHeight - effectiveSize);
+        return Math.Min(style.LineHeight, leading / 2D + effectiveSize * 0.8D);
     }
+
+    private static OfficeFontInfo GetEffectiveTextFont(HtmlRenderBoxStyle style) =>
+        style.Baseline == OfficeTextBaseline.Normal
+            ? style.Font
+            : style.Font.WithSize(style.Font.Size * 0.65D);
 }

@@ -128,7 +128,37 @@ public sealed class HtmlRenderPage {
                     text.Color,
                     text.Alignment,
                     text.LineHeight,
-                    textAdvanceWidth: text.TextAdvanceWidth.Value > 0D ? text.TextAdvanceWidth.Value : text.Width);
+                    textAdvanceWidth: text.TextAdvanceWidth.Value > 0D ? text.TextAdvanceWidth.Value : text.Width,
+                    underlineStyle: text.UnderlineStyle,
+                    strikethroughStyle: text.StrikethroughStyle,
+                    baseline: text.Baseline);
+            } else if (text.UnderlineStyle != OfficeTextDecorationStyle.None ||
+                       text.StrikethroughStyle != OfficeTextDecorationStyle.None ||
+                       text.Baseline != OfficeTextBaseline.Normal) {
+                drawing.AddStyledText(
+                    drawingText,
+                    text.X,
+                    text.Y,
+                    text.Width,
+                    text.Height,
+                    text.Font,
+                    text.Color,
+                    text.Alignment,
+                    text.LineHeight,
+                    OfficeTextVerticalAlignment.Top,
+                    0D,
+                    null,
+                    null,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    null,
+                    null,
+                    text.UnderlineStyle,
+                    text.StrikethroughStyle,
+                    text.Baseline);
             } else {
                 drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }

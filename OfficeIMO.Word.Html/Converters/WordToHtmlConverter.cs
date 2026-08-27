@@ -526,17 +526,14 @@ namespace OfficeIMO.Word.Html {
                         node = em;
                     }
 
-                    if ((run.Strike || run.DoubleStrike) && !isHtmlDeletedText) {
-                        var s = CreateOutputElement(htmlDoc, "s");
-                        s.AppendChild(node);
-                        node = s;
-                    }
-
-                    if (run.Underline != null && !isHtmlInsertedText) {
-                        var u = CreateOutputElement(htmlDoc, "u");
-                        u.AppendChild(node);
-                        node = u;
-                    }
+                    node = ApplyWordTextDecorations(
+                        htmlDoc,
+                        run,
+                        node,
+                        options,
+                        suppressUnderline: isHtmlInsertedText,
+                        suppressStrikethrough: isHtmlDeletedText,
+                        source: "word:run");
 
                     if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                         var sup = CreateOutputElement(htmlDoc, "sup");

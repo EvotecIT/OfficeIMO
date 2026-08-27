@@ -545,7 +545,10 @@ public static partial class OfficeDrawingSvgExporter {
                 useFrameTransform ? 0D : text.RotationCenterX,
                 useFrameTransform ? 0D : text.RotationCenterY,
                 (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
-                text.TextAdvanceWidth.Value);
+                text.TextAdvanceWidth.Value,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                text.Baseline);
         } else {
             sb.AppendSvgTextElement(
                 text.Text,
@@ -562,7 +565,10 @@ public static partial class OfficeDrawingSvgExporter {
                 useFrameTransform ? 0D : text.RotationDegrees,
                 useFrameTransform ? 0D : text.RotationCenterX,
                 useFrameTransform ? 0D : text.RotationCenterY,
-                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                text.Baseline);
         }
 
         if (useFrameTransform) {
@@ -621,7 +627,7 @@ public static partial class OfficeDrawingSvgExporter {
                 wrap: text.WrapText,
                 shrinkToFit: text.ShrinkToFit,
                 paragraphIndent: text.ParagraphIndent);
-        sb.AppendSvgTextBlock(
+        sb.AppendSvgStyledTextBlock(
             layout,
             contentX,
             contentY,
@@ -637,7 +643,11 @@ public static partial class OfficeDrawingSvgExporter {
             useFrameTransform ? 0D : text.RotationDegrees,
             useFrameTransform ? 0D : text.RotationCenterX,
             useFrameTransform ? 0D : text.RotationCenterY,
-            strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+            centerLineInLineHeight: true,
+            strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+            underlineStyle: text.UnderlineStyle,
+            strikethroughStyle: text.StrikethroughStyle,
+            baseline: text.Baseline);
     }
 
     private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text) {

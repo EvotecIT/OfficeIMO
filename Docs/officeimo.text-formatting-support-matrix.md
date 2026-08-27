@@ -42,6 +42,38 @@ HTML keeps CSS text semantics in `OfficeIMO.Html`, including font properties, co
 
 The Word↔ODT, PowerPoint↔ODP, and Excel↔ODS adapters preserve the destination format's native underline counts or patterns, strike counts, and script placement where an exact representation exists. Excel accounting underlines, ODF decoration patterns unsupported by Excel, and ODF small caps in Excel are reported as approximations or unsupported semantics instead of being silently presented as exact round trips.
 
+## Conversion graph
+
+Text formatting is verified at the reusable owner and at multi-hop boundaries. The contract depends on the destination:
+
+- Editable Office targets retain native family, size, color, bold, italic, underline, strike, and script semantics where that target has an equivalent. Converter metadata retains richer source variants, such as Word wavy-double underline, Excel accounting underline, and PowerPoint capitalization or baseline percentage, across OfficeIMO-generated HTML round trips.
+- Semantic HTML retains CSS typography and native converter metadata. Word, Excel, PowerPoint, and OneNote HTML adapters restore their representable native run styles. Managed HTML rendering applies the same style model to PDF, SVG, and raster output.
+- Markdown, AsciiDoc, and LaTeX preserve only formatting represented by their supported syntax profiles. Font family, point size, arbitrary color, and underline variants are intentionally diagnosed rather than encoded as nonportable syntax.
+- PDF output preserves the rendered appearance and text-run styling supported by the managed PDF engine. Importing PDF back into Word, Excel, PowerPoint, HTML, RTF, or OpenDocument is reconstruction from PDF logical or positioned content; it cannot recover source-only font semantics that were not encoded in the PDF.
+- Image output is deliberately flattened. PNG, JPEG, TIFF, and WebP preserve pixels; SVG preserves the emitted vector text and decoration attributes. Image conversions do not claim editable font semantics.
+
+| Conversion family | Text-formatting contract |
+| --- | --- |
+| Word ↔ HTML | Native family, size, color, bold, italic, highlight, underline variants, single/double strike, scripts, and native caps metadata where representable |
+| Excel ↔ HTML | Cell and rich-run family, size, color, bold, italic, accounting/single/double underline metadata, strike, and scripts |
+| PowerPoint ↔ HTML | Per-run family, size, color, bold, italic, DrawingML underline/strike variants, capitalization, and baseline percentage metadata |
+| OneNote ↔ HTML | Native family, size, foreground/highlight colors, bold, italic, underline, strike, and scripts; OneNote has Boolean rather than patterned decorations |
+| Word ↔ RTF and RTF ↔ HTML | Native RTF character formatting and supported decoration variants, scripts, caps, family, size, and color |
+| Word ↔ ODT, Excel ↔ ODS, PowerPoint ↔ ODP | Exact native mappings where available, with explicit approximation or omission diagnostics for target gaps |
+| Word/Excel/PowerPoint/HTML/RTF/Markdown/AsciiDoc/LaTeX/OneNote/ODT/ODS/ODP/MHTML/Visio → PDF | Fixed-layout style projection through the owning native or semantic adapter and shared PDF text model |
+| PDF → Word/Excel/PowerPoint/HTML/RTF/ODT/ODS/ODP | Bounded editable or semantic reconstruction; visual fidelity and recoverable text properties depend on PDF content |
+| Word/Excel/PowerPoint/HTML/OneNote/Visio/email/EPUB/ODT/ODS/ODP/PDF → image | All five shared formats: PNG, SVG, JPEG, TIFF, and WebP; visual style retention, not editable typography |
+| Word ↔ Google Docs | Native family, size, color, bold, italic, single underline/strike, highlight, small caps, superscript, and subscript; all-caps is materialized and richer Word variants are diagnosed or handled by Drive fallback |
+| Excel ↔ Google Sheets | Native cell and rich-run family, size, color, bold, italic, single underline, and strike; the Sheets API has no script, casing, or underline-variant fields |
+| PowerPoint ↔ Google Slides | Native per-run family, size, color, bold, italic, single underline/strike, small caps, superscript, and subscript; all-caps is materialized and richer DrawingML variants use their closest supported appearance |
+| ADF ↔ Markdown/HTML and Confluence bodies | Strong, emphasis, strike, underline, subscript, and superscript survive the supported syntax pipeline; ADF text/background colors and richer marks without a portable Markdown equivalent remain diagnosed limitations |
+| OfficeIMO Markup → Word/Excel/PowerPoint | Block- or target-range family, size, color/highlight, bold, italic, underline variants, strike, scripts, case transforms, and small caps where the destination has a native representation; Excel additionally accepts accounting underline variants |
+| CSV ↔ Excel | Values and records only. CSV/TSV has no font, decoration, script, case-metadata, formula, drawing, layout, or multi-sheet model, so typography is intentionally not a portable contract |
+
+`OfficeConversionCapabilityCatalog` exposes every image source/format pair; authenticated Google Docs, Sheets, and Slides import/export pairs; ADF and Confluence content projections; CSV/Excel interchange; and OfficeIMO Markup authoring routes, in addition to the local document, semantic, and PDF routes. Remote imports are marked `RemoteResource` because they accept a service document identifier, while materialized Confluence pages are marked `ObjectModel`. Each route also declares a machine-readable typography contract: editable equivalent, semantic equivalent, syntax subset, fixed-layout appearance, PDF reconstruction, vector appearance, flattened raster, or data-only. This makes PDF→SVG/JPEG/TIFF/WebP and the Word, Excel, PowerPoint, OneNote, Visio, HTML, email, EPUB, OpenDocument, Google Workspace, ADF/Confluence, CSV, and OfficeIMO Markup paths discoverable without overstating editable fidelity.
+
+The chain-level regression suite includes HTML→PDF→all image formats, Word→PDF→all image formats, and MHTML→PDF→all image formats in addition to direct source exports. Runtime tests exercise all five image formats for Word, Excel, PowerPoint, HTML, OneNote, Visio, email, EPUB, ODT, ODS, ODP, and PDF. Source-specific tests verify that native and semantic styles reach the shared Drawing/PDF owners before those common encoders run.
+
 ## Usage
 
 Shared rendering and PDF use the same decoration and baseline enums:

@@ -67,4 +67,41 @@ public sealed class OneNoteTextFormattingTests {
 
         Assert.Equal(expected, Assert.Single(richText.Runs).Baseline);
     }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Svg)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void NativeTypographyExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
+        var run = new OneNoteTextRun { Text = "Styled" };
+        run.Style.FontFamily = "Aptos";
+        run.Style.FontSize = 16D;
+        run.Style.ColorArgb = 0xFF336699U;
+        run.Style.Bold = true;
+        run.Style.Italic = true;
+        run.Style.Underline = true;
+        run.Style.Strikethrough = true;
+        run.Style.Superscript = true;
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(run);
+        var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.2, Y = 0.5, Width = 3 } };
+        outline.Children.Add(paragraph);
+        var page = new OneNotePage { Title = "Typography", PageSize = OneNotePageSize.IndexCard };
+        page.Outlines.Add(outline);
+        var section = new OneNoteSection { Name = "Typography" };
+        section.Pages.Add(page);
+
+        OfficeImageExportResult result = Assert.Single(section.ExportImages(format));
+
+        Assert.Equal(format, result.Format);
+        Assert.True(result.Bytes.Length > 32);
+        if (format == OfficeImageExportFormat.Svg) {
+            string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+            Assert.Contains("Styled", svg, System.StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-decoration=\"underline line-through\"", svg, System.StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }

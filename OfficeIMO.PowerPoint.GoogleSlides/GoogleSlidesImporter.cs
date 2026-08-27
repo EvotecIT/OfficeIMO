@@ -213,6 +213,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             run.Bold = style.Bold == true;
             run.Italic = style.Italic == true;
             run.Underline = style.Underline == true;
+            run.Strikethrough = style.Strikethrough == true;
+            run.Capitalization = style.SmallCaps == true ? PowerPointCapitalization.SmallCaps : null;
+            run.BaselinePercent = style.BaselineOffset switch {
+                "SUPERSCRIPT" => 30D,
+                "SUBSCRIPT" => -25D,
+                _ => null,
+            };
             if (style.FontSize != null) run.FontSize = (int)Math.Round(ToPoints(style.FontSize));
             if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontName = style.FontFamily;
             if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);

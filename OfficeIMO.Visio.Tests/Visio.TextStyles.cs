@@ -200,6 +200,39 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-variant=\"small-caps\"", svg, StringComparison.Ordinal);
         }
 
+        [Theory]
+        [InlineData(OfficeImageExportFormat.Png)]
+        [InlineData(OfficeImageExportFormat.Svg)]
+        [InlineData(OfficeImageExportFormat.Jpeg)]
+        [InlineData(OfficeImageExportFormat.Tiff)]
+        [InlineData(OfficeImageExportFormat.Webp)]
+        public void NativeTypographyExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
+            VisioDocument document = VisioDocument.Create(new MemoryStream());
+            document.AddPage("Typography").Size(3, 1.5)
+                .AddRectangle(1.5, 0.75, 2.5, 0.8, "Styled")
+                .ApplyTextStyle(new VisioTextStyle {
+                    FontFamily = "Aptos",
+                    Size = 14,
+                    Color = Color.FromRgb(0x33, 0x66, 0x99),
+                    Bold = true,
+                    Italic = true,
+                    UnderlineStyle = OfficeTextDecorationStyle.Double,
+                    StrikethroughStyle = OfficeTextDecorationStyle.Single,
+                    Baseline = OfficeTextBaseline.Superscript
+                });
+
+            OfficeImageExportResult result = Assert.Single(document.ExportImages(format));
+
+            Assert.Equal(format, result.Format);
+            Assert.True(result.Bytes.Length > 32);
+            if (format == OfficeImageExportFormat.Svg) {
+                string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+                Assert.Contains("Styled", svg, StringComparison.Ordinal);
+                Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("text-decoration=\"underline line-through\"", svg, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
         [Fact]
         public void ConnectorLabelTextStyleWritesCharacterParagraphAndTextBlockCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

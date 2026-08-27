@@ -144,6 +144,15 @@ internal static class MarkdownToAdfConverter {
                 case StrikethroughInline strike:
                     target.Add(AdfNode.TextNode(strike.Text, AddMark(inheritedMarks, new AdfMark("strike"))));
                     break;
+                case UnderlineInline underline:
+                    target.Add(AdfNode.TextNode(underline.Text, AddMark(inheritedMarks, new AdfMark("underline"))));
+                    break;
+                case SuperscriptInline superscript:
+                    target.Add(AdfNode.TextNode(superscript.Text, AddMark(inheritedMarks, ScriptMark("sup"))));
+                    break;
+                case SubscriptInline subscript:
+                    target.Add(AdfNode.TextNode(subscript.Text, AddMark(inheritedMarks, ScriptMark("sub"))));
+                    break;
                 case CodeSpanInline code:
                     target.Add(AdfNode.TextNode(code.Text, AddMark(inheritedMarks, new AdfMark("code"))));
                     break;
@@ -158,6 +167,21 @@ internal static class MarkdownToAdfConverter {
                     break;
                 case StrikethroughSequenceInline strikeSequence:
                     AppendInlines(target, strikeSequence.Inlines, AddMark(inheritedMarks, new AdfMark("strike")), inlinePath, diagnostics);
+                    break;
+                case SuperscriptSequenceInline superscriptSequence:
+                    AppendInlines(target, superscriptSequence.Inlines, AddMark(inheritedMarks, ScriptMark("sup")), inlinePath, diagnostics);
+                    break;
+                case SubscriptSequenceInline subscriptSequence:
+                    AppendInlines(target, subscriptSequence.Inlines, AddMark(inheritedMarks, ScriptMark("sub")), inlinePath, diagnostics);
+                    break;
+                case HtmlTagSequenceInline htmlTag when htmlTag.TagName == "u":
+                    AppendInlines(target, htmlTag.Inlines, AddMark(inheritedMarks, new AdfMark("underline")), inlinePath, diagnostics);
+                    break;
+                case HtmlTagSequenceInline htmlTag when htmlTag.TagName == "sup":
+                    AppendInlines(target, htmlTag.Inlines, AddMark(inheritedMarks, ScriptMark("sup")), inlinePath, diagnostics);
+                    break;
+                case HtmlTagSequenceInline htmlTag when htmlTag.TagName == "sub":
+                    AppendInlines(target, htmlTag.Inlines, AddMark(inheritedMarks, ScriptMark("sub")), inlinePath, diagnostics);
                     break;
                 case LinkInline link:
                     var linkMark = new AdfMark("link").SetAttribute("href", link.Url);
@@ -183,6 +207,8 @@ internal static class MarkdownToAdfConverter {
         result.Add(added);
         return result;
     }
+
+    private static AdfMark ScriptMark(string type) => new AdfMark("subsup").SetAttribute("type", type);
 
     private static IReadOnlyList<AdfMark> CloneMarks(IReadOnlyList<AdfMark> marks) {
         var result = new List<AdfMark>(marks.Count);

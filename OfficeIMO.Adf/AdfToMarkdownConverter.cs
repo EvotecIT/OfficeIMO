@@ -248,6 +248,13 @@ internal static class AdfToMarkdownConverter {
                 case "strong": value = "**" + value + "**"; break;
                 case "em": value = "*" + value + "*"; break;
                 case "strike": value = "~~" + value + "~~"; break;
+                case "underline": value = "<u>" + value + "</u>"; break;
+                case "subsup":
+                    string? script = mark.GetStringAttribute("type");
+                    if (string.Equals(script, "sup", StringComparison.OrdinalIgnoreCase)) value = "^" + value + "^";
+                    else if (string.Equals(script, "sub", StringComparison.OrdinalIgnoreCase)) value = "~" + value + "~";
+                    else diagnostics.Add(Warning("ADF_SUBSUP_TYPE_UNSUPPORTED", path, "ADF subsup marks require attrs.type 'sup' or 'sub'; the invalid mark was flattened."));
+                    break;
                 case "link":
                     string? href = mark.GetStringAttribute("href");
                     string? title = mark.GetStringAttribute("title");

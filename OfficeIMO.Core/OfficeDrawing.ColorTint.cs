@@ -21,7 +21,8 @@ public sealed partial class OfficeDrawing {
                     WithTint(text.Color ?? OfficeColor.Black, tint), text.Alignment, text.LineHeight,
                     text.VerticalAlignment, text.RotationDegrees, text.RotationCenterX, text.RotationCenterY,
                     text.WrapText, text.ShrinkToFit, text.StackedText, text.FlipHorizontal, text.FlipVertical,
-                    text.Padding, text.ParagraphIndent, text.OverflowBehavior, text.TextAdvanceWidth);
+                    text.Padding, text.ParagraphIndent, text.OverflowBehavior, text.TextAdvanceWidth,
+                    text.UnderlineStyle, text.StrikethroughStyle, text.Baseline);
             } else if (current is OfficeDrawingRichText richText) {
                 var runs = new List<OfficeRichTextRun>(richText.Runs.Count);
                 for (int runIndex = 0; runIndex < richText.Runs.Count; runIndex++) {

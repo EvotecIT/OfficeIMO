@@ -850,6 +850,45 @@ public sealed class AdfContractTests {
         Assert.Contains(text.Marks, mark => mark.Type == "code");
     }
 
+    [Theory]
+    [InlineData("sup", "^2^")]
+    [InlineData("sub", "~2~")]
+    public void SubsupProjection_RoundTripsThroughMarkdownAndHtml(string script, string expectedMarkdown) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = {
+                AdfNode.TextNode("2", new[] { new AdfMark("subsup").SetAttribute("type", script) })
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+        AdfConversionResult<string> html = AdfConverter.ToHtml(document);
+
+        Assert.Contains(expectedMarkdown, markdown.Value);
+        AdfMark mark = Assert.Single(Assert.Single(Assert.Single(roundTrip.Value.Content).Content).Marks);
+        Assert.Equal("subsup", mark.Type);
+        Assert.Equal(script, mark.GetStringAttribute("type"));
+        Assert.Contains(script == "sup" ? "<sup>2</sup>" : "<sub>2</sub>", html.Value);
+    }
+
+    [Fact]
+    public void UnderlineProjection_RoundTripsThroughMarkdownAndHtml() {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = { AdfNode.TextNode("underlined", new[] { new AdfMark("underline") }) }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+        AdfConversionResult<string> html = AdfConverter.ToHtml(document);
+
+        Assert.Contains("<u>underlined</u>", markdown.Value);
+        Assert.Contains("<u>underlined</u>", html.Value);
+        Assert.Contains(Assert.Single(Assert.Single(roundTrip.Value.Content).Content).Marks,
+            mark => mark.Type == "underline");
+    }
+
     private static AdfNode TableCell(string type, string text) => new AdfNode(type) {
         Content = { new AdfNode("paragraph") { Content = { AdfNode.TextNode(text) } } }
     };

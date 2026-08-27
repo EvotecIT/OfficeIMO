@@ -363,7 +363,7 @@ namespace OfficeIMO.Tests {
                     return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":7,\"capabilities\":{\"canDownload\":true}}"));
                 }
                 if (request.RequestUri.Host == "docs.googleapis.com") {
-                    const string json = "{\"documentId\":\"doc-import\",\"title\":\"Import\",\"revisionId\":\"revision-7\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"one\",\"title\":\"Tab One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":7,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Alpha\\n\",\"textStyle\":{\"bold\":true}}}]}}]}}},{\"tabProperties\":{\"tabId\":\"two\",\"title\":\"Tab Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Beta\\n\"}}]}}]}}}]}";
+                    const string json = "{\"documentId\":\"doc-import\",\"title\":\"Import\",\"revisionId\":\"revision-7\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"one\",\"title\":\"Tab One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":7,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Alpha\\n\",\"textStyle\":{\"bold\":true,\"smallCaps\":true,\"baselineOffset\":\"SUPERSCRIPT\"}}}]}}]}}},{\"tabProperties\":{\"tabId\":\"two\",\"title\":\"Tab Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Beta\\n\",\"textStyle\":{\"baselineOffset\":\"SUBSCRIPT\"}}}]}}]}}}]}";
                     return Task.FromResult(CreateJsonResponse(json));
                 }
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
@@ -379,6 +379,13 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Alpha", text);
                 Assert.Contains("Tab Two", text);
                 Assert.Contains("Beta", text);
+                WordParagraphSnapshot alpha = snapshot.Sections.SelectMany(section => section.Elements)
+                    .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Alpha");
+                Assert.Equal(nameof(WordCapsStyle.SmallCaps), Assert.Single(alpha.Runs).CapsStyle);
+                Assert.Equal(nameof(WordVerticalTextPosition.Superscript), Assert.Single(alpha.Runs).VerticalTextAlignment);
+                WordParagraphSnapshot beta = snapshot.Sections.SelectMany(section => section.Elements)
+                    .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Beta");
+                Assert.Equal(nameof(WordVerticalTextPosition.Subscript), Assert.Single(beta.Runs).VerticalTextAlignment);
                 Assert.Equal("revision-7", imported.Source.RevisionId);
                 Assert.Equal(7, imported.Source.DriveVersion);
             }

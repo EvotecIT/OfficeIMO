@@ -275,7 +275,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     if (!string.IsNullOrEmpty(text.Text)) requests.Add(Obj(("insertText", Obj(("objectId", text.ObjectId), ("text", text.Text)))));
                     if (text.TextRuns.Count > 0) {
                         foreach (GoogleSlidesTextStyleRun run in text.TextRuns) {
-                            JsonObject style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
+                            JsonObject style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.Strikethrough, run.SmallCaps, run.BaselineOffset, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
                             if (style.Count > 0 && run.EndIndex > run.StartIndex) {
                                 requests.Add(Obj(("updateTextStyle", Obj(
                                     ("objectId", text.ObjectId),
@@ -285,7 +285,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                         }
                     } else {
-                        JsonObject style = BuildTextStyle(text.Bold, text.Italic, text.Underline, text.FontSize, text.FontFamily, text.ForegroundColorHex, text.Hyperlink, scale);
+                        JsonObject style = BuildTextStyle(text.Bold, text.Italic, text.Underline, text.Strikethrough, text.SmallCaps, text.BaselineOffset, text.FontSize, text.FontFamily, text.ForegroundColorHex, text.Hyperlink, scale);
                         if (style.Count > 0 && text.Text.Length > 0) {
                             requests.Add(Obj(("updateTextStyle", Obj(
                                 ("objectId", text.ObjectId),
@@ -319,6 +319,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             bool bold,
             bool italic,
             bool underline,
+            bool strikethrough,
+            bool smallCaps,
+            string? baselineOffset,
             int? fontSize,
             string? fontFamily,
             string? foregroundColorHex,
@@ -328,6 +331,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (bold) style["bold"] = true;
             if (italic) style["italic"] = true;
             if (underline) style["underline"] = true;
+            if (strikethrough) style["strikethrough"] = true;
+            if (smallCaps) style["smallCaps"] = true;
+            if (!string.IsNullOrWhiteSpace(baselineOffset)) style["baselineOffset"] = baselineOffset;
             if (fontSize.HasValue) style["fontSize"] = Obj(("magnitude", Math.Max(1, fontSize.Value * scale)), ("unit", "PT"));
             if (!string.IsNullOrWhiteSpace(fontFamily)) style["fontFamily"] = fontFamily;
             if (!string.IsNullOrWhiteSpace(foregroundColorHex)) style["foregroundColor"] = Obj(("opaqueColor", Obj(("rgbColor", Rgb(foregroundColorHex!)))));

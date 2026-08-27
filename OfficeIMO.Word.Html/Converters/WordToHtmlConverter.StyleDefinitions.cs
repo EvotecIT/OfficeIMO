@@ -65,7 +65,24 @@ namespace OfficeIMO.Word.Html {
                         }
                         var underline = rPr.Underline?.Val?.Value;
                         if (underline != null && underline != UnderlineValues.None) {
-                            props["text-decoration"] = "underline";
+                            props["text-decoration-line"] = "underline";
+                            props["text-decoration-style"] = MapWordUnderlineToCssStyle(underline.Value.ToOfficeEnum());
+                        }
+                        if (IsEnabled(rPr.DoubleStrike)) {
+                            props["text-decoration-line"] = AppendCssToken(props, "text-decoration-line", "line-through");
+                            props["text-decoration-style"] = "double";
+                        } else if (IsEnabled(rPr.Strike)) {
+                            props["text-decoration-line"] = AppendCssToken(props, "text-decoration-line", "line-through");
+                        }
+                        if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Superscript) {
+                            props["vertical-align"] = "super";
+                        } else if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Subscript) {
+                            props["vertical-align"] = "sub";
+                        }
+                        if (IsEnabled(rPr.SmallCaps)) {
+                            props["font-variant"] = "small-caps";
+                        } else if (IsEnabled(rPr.Caps)) {
+                            props["text-transform"] = "uppercase";
                         }
                         var colorVal = rPr.Color?.Val?.Value;
                         if (!string.IsNullOrEmpty(colorVal) &&
@@ -89,6 +106,11 @@ namespace OfficeIMO.Word.Html {
 
                 return string.Join(" ", props.Select(kv => kv.Key + ':' + kv.Value + ';'));
             }
+
+            static string AppendCssToken(IReadOnlyDictionary<string, string> properties, string name, string token) =>
+                properties.TryGetValue(name, out string? value) && !string.IsNullOrWhiteSpace(value)
+                    ? value + " " + token
+                    : token;
 
             var styleElement = CreateOutputElement(htmlDoc, "style");
             var sb = new StringBuilder();

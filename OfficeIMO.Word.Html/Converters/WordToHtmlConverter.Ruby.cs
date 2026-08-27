@@ -50,9 +50,31 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (IsEnabled(properties.Bold)) node = WrapRubyNode(htmlDoc, "strong", node);
                 if (IsEnabled(properties.Italic)) node = WrapRubyNode(htmlDoc, "em", node);
-                if (IsEnabled(properties.Strike)) node = WrapRubyNode(htmlDoc, "s", node);
-                if (properties.Underline != null && properties.Underline.Val?.Value != UnderlineValues.None) {
-                    node = WrapRubyNode(htmlDoc, "u", node);
+                if (IsEnabled(properties.DoubleStrike)) {
+                    var span = CreateOutputElement(htmlDoc, "span");
+                    SetOutputAttribute(htmlDoc, span, "style", "text-decoration-line:line-through;text-decoration-style:double", "RubyRunFormatting:double-strike");
+                    SetOutputAttribute(htmlDoc, span, "data-officeimo-word-double-strike", "true", "RubyRunFormatting:double-strike-metadata");
+                    span.AppendChild(node);
+                    node = span;
+                } else if (IsEnabled(properties.Strike)) {
+                    node = WrapRubyNode(htmlDoc, "s", node);
+                }
+                UnderlineValues? underline = properties.Underline?.Val?.Value;
+                if (underline.HasValue && underline.Value != UnderlineValues.None) {
+                    WordUnderlineStyle wordUnderline = underline.Value.ToOfficeEnum();
+                    if (wordUnderline == WordUnderlineStyle.Single) {
+                        node = WrapRubyNode(htmlDoc, "u", node);
+                    } else {
+                        string cssStyle = MapWordUnderlineToCssStyle(wordUnderline);
+                        var span = CreateOutputElement(htmlDoc, "span");
+                        SetOutputAttribute(htmlDoc, span, "style", "text-decoration-line:underline;text-decoration-style:" + cssStyle, "RubyRunFormatting:underline");
+                        SetOutputAttribute(htmlDoc, span, "data-officeimo-word-underline", wordUnderline.ToString(), "RubyRunFormatting:underline-metadata");
+                        span.AppendChild(node);
+                        node = span;
+                        if (!IsExactCssUnderline(wordUnderline)) {
+                            AddWordTextStyleApproximation(options, "WordUnderlineStyleApproximated", "Word underline style '" + wordUnderline + "' uses the closest CSS " + cssStyle + " pattern; private round-trip metadata retains the exact Word value.", "word:ruby-run");
+                        }
+                    }
                 }
                 if (properties.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Superscript) {
                     node = WrapRubyNode(htmlDoc, "sup", node);

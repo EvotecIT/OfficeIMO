@@ -84,6 +84,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             PowerPointTextRun? firstRun = textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (firstRun != null) {
                                 text.Bold = firstRun.Bold; text.Italic = firstRun.Italic; text.Underline = firstRun.Underline;
+                                text.Strikethrough = firstRun.Strikethrough;
+                                text.SmallCaps = firstRun.Capitalization == PowerPointCapitalization.SmallCaps;
+                                text.BaselineOffset = ToGoogleBaselineOffset(firstRun.BaselinePercent);
                                 text.FontSize = firstRun.FontSize; text.FontFamily = firstRun.FontName; text.ForegroundColorHex = NormalizeColorHex(firstRun.Color);
                                 text.Hyperlink = firstRun.Hyperlink?.AbsoluteUri;
                             }
@@ -140,14 +143,15 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
         private static string BuildTextContent(PowerPointTextBox textBox) => string.Join(
             "\n",
-            textBox.Paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
+            textBox.Paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(GetGoogleText))));
 
         private static void PopulateTextRuns(GoogleSlidesTextBox target, PowerPointTextBox source) {
             IReadOnlyList<PowerPointParagraph> paragraphs = source.Paragraphs;
             int offset = 0;
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 foreach (PowerPointTextRun run in paragraphs[paragraphIndex].Runs) {
-                    int endIndex = offset + run.Text.Length;
+                    string text = GetGoogleText(run);
+                    int endIndex = offset + text.Length;
                     if (endIndex > offset) {
                         target.TextRuns.Add(new GoogleSlidesTextStyleRun {
                             StartIndex = offset,
@@ -155,6 +159,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             Bold = run.Bold,
                             Italic = run.Italic,
                             Underline = run.Underline,
+                            Strikethrough = run.Strikethrough,
+                            SmallCaps = run.Capitalization == PowerPointCapitalization.SmallCaps,
+                            BaselineOffset = ToGoogleBaselineOffset(run.BaselinePercent),
                             FontSize = run.FontSize,
                             FontFamily = run.FontName,
                             ForegroundColorHex = NormalizeColorHex(run.Color),
@@ -166,6 +173,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 if (paragraphIndex + 1 < paragraphs.Count) offset++;
             }
         }
+
+        private static string GetGoogleText(PowerPointTextRun run) =>
+            run.Capitalization == PowerPointCapitalization.AllCaps
+                ? (run.Text ?? string.Empty).ToUpperInvariant()
+                : run.Text ?? string.Empty;
+
+        private static string? ToGoogleBaselineOffset(double? baselinePercent) => baselinePercent switch {
+            > 0 => "SUPERSCRIPT",
+            < 0 => "SUBSCRIPT",
+            _ => null,
+        };
 
         private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && (!IsSupportedSlidesImage(picture) || HasImageCrop(picture)))
             || (shape is PowerPointAutoShape autoShape && !TryMapShape(autoShape, out _))

@@ -231,7 +231,7 @@ internal static class HtmlSemanticDocumentBuilder {
             if (text.Data.Length == 0) return;
             runs.Add(new HtmlSemanticRun(text.Data, state.Hyperlink, state.Bold, state.Italic,
                 state.Underline, state.Strikethrough, state.Superscript, state.Subscript,
-                state.Style, state.Location, isLineBreak: false));
+                state.Style, state.Location, isLineBreak: false, state.DataAttributes, state.BackgroundColor));
             return;
         }
         if (!(node is IElement element)) return;
@@ -240,7 +240,7 @@ internal static class HtmlSemanticDocumentBuilder {
         if (Is(element, "br")) {
             runs.Add(new HtmlSemanticRun("\n", state.Hyperlink, state.Bold, state.Italic,
                 state.Underline, state.Strikethrough, state.Superscript, state.Subscript,
-                state.Style, HtmlSemanticSourceLocation.FromElement(element), isLineBreak: true));
+                state.Style, HtmlSemanticSourceLocation.FromElement(element), isLineBreak: true, state.DataAttributes, state.BackgroundColor));
             return;
         }
 
@@ -253,7 +253,8 @@ internal static class HtmlSemanticDocumentBuilder {
 
     private static HtmlSemanticRun CopyRun(HtmlSemanticRun run, string text) =>
         new HtmlSemanticRun(text, run.Hyperlink, run.Bold, run.Italic, run.Underline,
-            run.Strikethrough, run.Superscript, run.Subscript, run.Style, run.SourceLocation, run.IsLineBreak);
+            run.Strikethrough, run.Superscript, run.Subscript, run.Style, run.SourceLocation, run.IsLineBreak,
+            run.DataAttributes, run.BackgroundColor);
 
     private static IReadOnlyList<HtmlSemanticRun> NormalizeRuns(
         IReadOnlyList<HtmlSemanticRun> source,
@@ -535,10 +536,14 @@ internal static class HtmlSemanticDocumentBuilder {
         internal string? Hyperlink { get; }
         internal HtmlComputedStyle? Style { get; }
         internal HtmlSemanticSourceLocation? Location { get; }
+        internal IReadOnlyDictionary<string, string> DataAttributes { get; }
+        internal string? BackgroundColor { get; }
 
         private InlineState(bool bold, bool italic, bool underline, bool strikethrough,
             bool superscript, bool subscript, string? hyperlink, HtmlComputedStyle? style,
-            HtmlSemanticSourceLocation? location) {
+            HtmlSemanticSourceLocation? location,
+            IReadOnlyDictionary<string, string>? dataAttributes = null,
+            string? backgroundColor = null) {
             Bold = bold;
             Italic = italic;
             Underline = underline;
@@ -548,6 +553,8 @@ internal static class HtmlSemanticDocumentBuilder {
             Hyperlink = hyperlink;
             Style = style;
             Location = location;
+            DataAttributes = dataAttributes ?? new Dictionary<string, string>();
+            BackgroundColor = backgroundColor;
         }
 
         internal InlineState With(IElement element, HtmlComputedStyle? style, HtmlSemanticSourceLocation? location) {
@@ -557,6 +564,11 @@ internal static class HtmlSemanticDocumentBuilder {
                 || (int.TryParse(fontWeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) && weight >= 600);
             string decoration = style?.GetValue("text-decoration-line") ?? style?.GetValue("text-decoration") ?? string.Empty;
             string vertical = style?.GetValue("vertical-align") ?? string.Empty;
+            string backgroundColor = style?.GetValue("background-color") ?? string.Empty;
+            if (backgroundColor.Length == 0
+                || string.Equals(backgroundColor, "transparent", StringComparison.OrdinalIgnoreCase)) {
+                backgroundColor = BackgroundColor ?? string.Empty;
+            }
             return new InlineState(
                 Bold || name == "strong" || name == "b" || cssBold,
                 Italic || name == "em" || name == "i" || (style?.GetValue("font-style") ?? string.Empty).IndexOf("italic", StringComparison.OrdinalIgnoreCase) >= 0,
@@ -566,7 +578,24 @@ internal static class HtmlSemanticDocumentBuilder {
                 Subscript || name == "sub" || string.Equals(vertical, "sub", StringComparison.OrdinalIgnoreCase),
                 name == "a" ? element.GetAttribute("href") : Hyperlink,
                 style ?? Style,
-                location ?? Location);
+                location ?? Location,
+                ReadDataAttributes(element, DataAttributes),
+                backgroundColor.Length == 0 ? null : backgroundColor);
+        }
+
+        private static IReadOnlyDictionary<string, string> ReadDataAttributes(
+            IElement element,
+            IReadOnlyDictionary<string, string> inherited) {
+            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (inherited != null) {
+                foreach (KeyValuePair<string, string> pair in inherited) values[pair.Key] = pair.Value;
+            }
+            foreach (IAttr attribute in element.Attributes) {
+                if (attribute.Name.StartsWith("data-officeimo-", StringComparison.OrdinalIgnoreCase)) {
+                    values[attribute.Name.ToLowerInvariant()] = attribute.Value;
+                }
+            }
+            return new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(values);
         }
     }
 }

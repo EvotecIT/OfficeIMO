@@ -144,6 +144,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlRenderBoxStyle CreateAnonymousFlexStyle(HtmlRenderBoxStyle parentStyle) => new HtmlRenderBoxStyle {
         Display = "block",
         Font = parentStyle.Font,
+        UnderlineStyle = parentStyle.UnderlineStyle,
+        StrikethroughStyle = parentStyle.StrikethroughStyle,
+        Baseline = parentStyle.Baseline,
+        FontVariant = parentStyle.FontVariant,
         Color = parentStyle.Color,
         Alignment = parentStyle.Alignment,
         LineHeight = parentStyle.LineHeight,
