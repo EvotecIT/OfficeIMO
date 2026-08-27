@@ -178,6 +178,22 @@ public sealed class PdfTextRun {
         return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle);
     }
     /// <summary>Create a hyperlink run that points to a URI.</summary>
+    public static PdfTextRun Link(
+        string text,
+        string uri,
+        PdfColor? color,
+        bool underline,
+        string? contents,
+        PdfTextBaseline baseline,
+        double? fontSize,
+        PdfColor? backgroundColor,
+        PdfStandardFont? font,
+        string? fontFamily) =>
+        Link(text, uri, color, underline, contents, baseline, fontSize, backgroundColor, font, fontFamily,
+            OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+            OfficeIMO.Drawing.OfficeTextDecorationStyle.None);
+
+    /// <summary>Create a hyperlink run with native decoration styles.</summary>
     /// <param name="text">Link text.</param>
     /// <param name="uri">Absolute URI or catalog-base-relative URI.</param>
     /// <param name="color">Optional link color.</param>
@@ -195,6 +211,22 @@ public sealed class PdfTextRun {
         return new PdfTextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkUri: uri, linkContents: contents, baseline: baseline, backgroundColor: backgroundColor, fontFamily: fontFamily, underlineStyle: underlineStyle, strikeStyle: strikeStyle);
     }
     /// <summary>Create a hyperlink run that points to a document bookmark.</summary>
+    public static PdfTextRun LinkToBookmark(
+        string text,
+        string bookmarkName,
+        PdfColor? color,
+        bool underline,
+        string? contents,
+        PdfTextBaseline baseline,
+        double? fontSize,
+        PdfColor? backgroundColor,
+        PdfStandardFont? font,
+        string? fontFamily) =>
+        LinkToBookmark(text, bookmarkName, color, underline, contents, baseline, fontSize, backgroundColor, font, fontFamily,
+            OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+            OfficeIMO.Drawing.OfficeTextDecorationStyle.None);
+
+    /// <summary>Create a hyperlink run that points to a document bookmark with native decoration styles.</summary>
     /// <param name="text">Link text.</param>
     /// <param name="bookmarkName">Named destination created with <see cref="PdfDocument.Bookmark(string)"/>.</param>
     /// <param name="color">Optional link color.</param>

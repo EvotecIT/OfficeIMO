@@ -25,4 +25,33 @@ public partial class Word {
         Assert.Equal(WordVerticalTextPosition.Superscript, actual.VerticalTextAlignment);
         Assert.Equal("Aptos", actual.FontFamily);
     }
+
+    [Fact]
+    public void TransformTextCasePreservesStructuredEquationMarkup() {
+        string path = Path.Combine(_directoryWithFiles, "EquationTextCase.docx");
+        OfficeMathExpression expression = OfficeMath.Fraction(
+            OfficeMath.Text("MIXED Case"),
+            OfficeMath.Radical(OfficeMath.Text("OTHER Text")));
+
+        using (WordDocument document = WordDocument.Create(path)) {
+            WordParagraph paragraph = document.AddEquation(expression);
+            paragraph.TransformTextCase(OfficeTextCase.Lowercase);
+
+            WordEquation equation = Assert.Single(document.Equations);
+            Assert.Equal(OfficeMath.Fraction(
+                OfficeMath.Text("mixed case"),
+                OfficeMath.Radical(OfficeMath.Text("other text"))), equation.ToExpression());
+            Assert.Contains("<m:f>", equation.Omml, StringComparison.Ordinal);
+            Assert.Contains("<m:rad>", equation.Omml, StringComparison.Ordinal);
+            document.Save();
+        }
+
+        using WordDocument reopened = WordDocument.Load(path);
+        WordEquation actual = Assert.Single(reopened.Equations);
+        Assert.Contains("<m:f>", actual.Omml, StringComparison.Ordinal);
+        Assert.Contains("<m:rad>", actual.Omml, StringComparison.Ordinal);
+        Assert.Equal(OfficeMath.Fraction(
+            OfficeMath.Text("mixed case"),
+            OfficeMath.Radical(OfficeMath.Text("other text"))), actual.ToExpression());
+    }
 }

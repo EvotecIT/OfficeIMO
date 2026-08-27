@@ -190,6 +190,11 @@ namespace OfficeIMO.Word {
         /// <param name="culture">Culture used for casing. The current culture is used when omitted.</param>
         /// <returns>The current paragraph instance.</returns>
         public WordParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
+            WordEquation? equation = Equation;
+            if (equation?.Representation == WordEquationRepresentation.Omml) {
+                equation.SetExpression(equation.ToExpression().TransformTextCase(textCase, culture));
+                return this;
+            }
             Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
             return this;
         }

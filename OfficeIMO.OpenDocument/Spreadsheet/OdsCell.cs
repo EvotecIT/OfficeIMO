@@ -127,7 +127,7 @@ public sealed class OdsCell {
     public bool TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
         if (Formula != null || Value.Kind != OdsCellValueKind.String) return false;
         EnsureEditable();
-        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        OdfTextCodec.TransformTextCase(_element.Elements(OdfNamespaces.Text + "p").ToList(), textCase, culture);
         string transformed = Text;
         if (_element.Attribute(OdfNamespaces.Office + "string-value") != null) {
             _element.SetAttributeValue(OdfNamespaces.Office + "string-value", transformed);

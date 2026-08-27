@@ -229,7 +229,8 @@ namespace OfficeIMO.Tests {
                 string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
                 Assert.Contains("Styled", svg, StringComparison.Ordinal);
                 Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("text-decoration=\"underline line-through\"", svg, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("text-decoration=\"line-through\"", svg, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("<tspan text-decoration=\"underline\" text-decoration-style=\"double\"", svg, StringComparison.OrdinalIgnoreCase);
             }
         }
 

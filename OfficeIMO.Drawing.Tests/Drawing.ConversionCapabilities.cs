@@ -23,6 +23,27 @@ public sealed class DrawingConversionCapabilities {
         ];
 
         Assert.NotNull(typeof(OfficeConversionCapability).GetConstructor(originalParameters));
+
+        Type[] originalExplicitAssessmentParameters = [
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(OfficeConversionInputKind),
+            typeof(IEnumerable<string>),
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(OfficeConversionFidelityKind),
+            typeof(string),
+            typeof(bool),
+            typeof(bool),
+            typeof(OfficeConversionSupportLevel),
+            typeof(string),
+            typeof(string)
+        ];
+
+        Assert.NotNull(typeof(OfficeConversionCapability).GetConstructor(originalExplicitAssessmentParameters));
     }
 
     [Fact]

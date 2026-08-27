@@ -115,6 +115,45 @@ public sealed class OfficeConversionCapability {
         bool agentDiscoverable,
         OfficeConversionSupportLevel supportLevel,
         string supportEvidence,
+        string knownLimitations)
+        : this(
+            id,
+            source,
+            target,
+            inputKind,
+            sourceExtensions,
+            targetExtension,
+            packageId,
+            api,
+            description,
+            fidelity,
+            resultContract,
+            browserAvailable,
+            agentDiscoverable,
+            supportLevel,
+            supportEvidence,
+            knownLimitations,
+            OfficeConversionTextFormattingKind.Unspecified,
+            null) {
+    }
+
+    /// <summary>Creates a conversion capability with an explicit evidence-based support and text-formatting assessment.</summary>
+    public OfficeConversionCapability(
+        string id,
+        string source,
+        string target,
+        OfficeConversionInputKind inputKind,
+        IEnumerable<string> sourceExtensions,
+        string targetExtension,
+        string packageId,
+        string api,
+        string description,
+        OfficeConversionFidelityKind fidelity,
+        string resultContract,
+        bool browserAvailable,
+        bool agentDiscoverable,
+        OfficeConversionSupportLevel supportLevel,
+        string supportEvidence,
         string knownLimitations,
         OfficeConversionTextFormattingKind textFormatting = OfficeConversionTextFormattingKind.Unspecified,
         string? textFormattingContract = null) {

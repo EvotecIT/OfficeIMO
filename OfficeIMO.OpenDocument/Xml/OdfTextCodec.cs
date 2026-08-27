@@ -92,6 +92,38 @@ internal static class OdfTextCodec {
         }
     }
 
+    internal static void TransformTextCase(
+        IReadOnlyList<XElement> elements,
+        OfficeIMO.Drawing.OfficeTextCase textCase,
+        CultureInfo? culture = null) {
+        if (elements == null) throw new ArgumentNullException(nameof(elements));
+        if (textCase == OfficeIMO.Drawing.OfficeTextCase.None || elements.Count == 0) return;
+
+        var source = new StringBuilder();
+        for (int index = 0; index < elements.Count; index++) {
+            if (elements[index] == null) throw new ArgumentException("Text elements cannot contain null entries.", nameof(elements));
+            string paragraphText = Read(elements[index]);
+            int separatorLength = index > 0 ? 1 : 0;
+            EnsureCapacity(source, separatorLength + paragraphText.Length, MaximumDecodedCharacters);
+            if (separatorLength != 0) source.Append('\n');
+            source.Append(paragraphText);
+        }
+
+        string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(source.ToString(), textCase, culture);
+        if (transformed.Length == source.Length) {
+            int offset = 0;
+            for (int index = 0; index < elements.Count; index++) {
+                AssignTransformedText(elements[index].Nodes(), transformed, ref offset);
+                if (index < elements.Count - 1) offset++;
+            }
+            return;
+        }
+
+        // Preserve each paragraph's inline nodes when culture-sensitive casing changes UTF-16 length.
+        // Sentence and word context remains shared in the common length-preserving path above.
+        foreach (XElement element in elements) TransformTextCase(element, textCase, culture);
+    }
+
     private static void AssignTransformedText(IEnumerable<XNode> nodes, string transformed, ref int offset) {
         foreach (XNode node in nodes) {
             if (node is XText text) {

@@ -19,6 +19,17 @@ public class PdfTextCaseTests {
     }
 
     [Fact]
+    public void PreTypographyLinkFactoriesRemainBinaryDiscoverable() {
+        Type[] parameters = {
+            typeof(string), typeof(string), typeof(PdfColor?), typeof(bool), typeof(string),
+            typeof(PdfTextBaseline), typeof(double?), typeof(PdfColor?), typeof(PdfStandardFont?), typeof(string)
+        };
+
+        Assert.NotNull(typeof(PdfTextRun).GetMethod(nameof(PdfTextRun.Link), parameters));
+        Assert.NotNull(typeof(PdfTextRun).GetMethod(nameof(PdfTextRun.LinkToBookmark), parameters));
+    }
+
+    [Fact]
     public void WithTextCasePreservesImmutableRunFormatting() {
         PdfTextRun source = new("Styled", bold: true,
             color: PdfColor.FromRgb(51, 102, 153), italic: true,

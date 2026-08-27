@@ -23,6 +23,36 @@ public sealed class OfficeRichTextFormattingTests {
     }
 
     [Fact]
+    public void PreTypographyRendererMethodsRemainBinaryDiscoverable() {
+        AssertMethod(nameof(OfficeTextBlockRenderer.DrawRasterTextBlock),
+            typeof(OfficeRasterCanvas), typeof(OfficeTextBlockLayout),
+            typeof(double), typeof(double), typeof(double), typeof(double), typeof(OfficeColor),
+            typeof(OfficeTextAlignment), typeof(OfficeTextVerticalAlignment),
+            typeof(bool), typeof(bool), typeof(bool),
+            typeof(double), typeof(double), typeof(double), typeof(bool), typeof(double), typeof(bool), typeof(string),
+            typeof(bool), typeof(bool));
+        AssertMethod(nameof(OfficeTextBlockRenderer.DrawRasterTextBox),
+            typeof(OfficeRasterCanvas), typeof(OfficeTextBlockRenderPlan), typeof(OfficeColor),
+            typeof(bool), typeof(bool), typeof(bool), typeof(OfficeTextAlignment?), typeof(OfficeTextVerticalAlignment?),
+            typeof(double), typeof(double), typeof(double), typeof(OfficeColor?), typeof(double), typeof(double),
+            typeof(bool), typeof(double), typeof(bool), typeof(string));
+        AssertMethod(nameof(OfficeTextBlockRenderer.AppendSvgTextElement),
+            typeof(StringBuilder), typeof(string), typeof(double), typeof(double), typeof(double), typeof(OfficeColor),
+            typeof(string), typeof(double), typeof(OfficeTextAlignment), typeof(bool), typeof(bool), typeof(bool),
+            typeof(double), typeof(double), typeof(double), typeof(bool));
+        AssertMethod(nameof(OfficeTextBlockRenderer.WriteSvgTextBlock),
+            typeof(System.Xml.XmlWriter), typeof(OfficeTextBlockLayout),
+            typeof(double), typeof(double), typeof(double), typeof(double), typeof(OfficeColor), typeof(string),
+            typeof(OfficeTextAlignment), typeof(OfficeTextVerticalAlignment), typeof(bool), typeof(bool), typeof(bool),
+            typeof(double), typeof(double), typeof(double), typeof(string), typeof(Action<System.Xml.XmlWriter>), typeof(bool));
+        AssertMethod(nameof(OfficeTextBlockRenderer.WriteSvgTextBox),
+            typeof(System.Xml.XmlWriter), typeof(OfficeTextBlockRenderPlan), typeof(OfficeColor), typeof(string),
+            typeof(bool), typeof(bool), typeof(bool), typeof(double), typeof(double), typeof(double), typeof(string),
+            typeof(OfficeColor?), typeof(double), typeof(double),
+            typeof(Action<System.Xml.XmlWriter>), typeof(Action<System.Xml.XmlWriter>), typeof(bool));
+    }
+
+    [Fact]
     public void RichTextRunKeepsCompatibilityBooleansAndCanonicalStyles() {
         var run = new OfficeRichTextRun(
             "Styled",
@@ -190,6 +220,9 @@ public sealed class OfficeRichTextFormattingTests {
             underlineStyle: style);
         return image;
     }
+
+    private static void AssertMethod(string name, params Type[] parameters) =>
+        Assert.NotNull(typeof(OfficeTextBlockRenderer).GetMethod(name, parameters));
 
     private static int CountPaintedPixels(OfficeRasterImage image) =>
         image.GetPixels().Where((_, index) => index % 4 == 3).Count(alpha => alpha != 0);

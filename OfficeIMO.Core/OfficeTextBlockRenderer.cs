@@ -33,6 +33,36 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="fontFamily">Requested font family fallback list.</param>
     /// <param name="flipHorizontal">Whether to mirror each rendered line horizontally around the rotation center before rotation.</param>
     /// <param name="flipVertical">Whether to mirror each rendered line vertically around the rotation center before rotation.</param>
+    public static void DrawRasterTextBlock(
+        OfficeRasterCanvas canvas,
+        OfficeTextBlockLayout layout,
+        double left,
+        double top,
+        double width,
+        double height,
+        OfficeColor color,
+        OfficeTextAlignment horizontalAlignment,
+        OfficeTextVerticalAlignment verticalAlignment,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool centerLineInLineHeight,
+        double underlineOffsetFactor,
+        bool strikethrough,
+        string? fontFamily,
+        bool flipHorizontal,
+        bool flipVertical) =>
+        DrawRasterTextBlock(
+            canvas, layout, left, top, width, height, color, horizontalAlignment, verticalAlignment,
+            bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY,
+            centerLineInLineHeight, underlineOffsetFactor, strikethrough, fontFamily,
+            flipHorizontal, flipVertical,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+
+    /// <summary>Draws a measured text block with native decoration and baseline styling.</summary>
     /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
     /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
     /// <param name="baseline">Vertical baseline placement.</param>
@@ -136,6 +166,33 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="underlineOffsetFactor">Underline baseline offset as a factor of the resolved font size.</param>
     /// <param name="strikethrough">Whether to render a strikethrough for each visible line.</param>
     /// <param name="fontFamily">Requested font family fallback list.</param>
+    public static void DrawRasterTextBox(
+        OfficeRasterCanvas canvas,
+        OfficeTextBlockRenderPlan plan,
+        OfficeColor color,
+        bool bold,
+        bool italic,
+        bool underline,
+        OfficeTextAlignment? horizontalAlignment,
+        OfficeTextVerticalAlignment? verticalAlignment,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        OfficeColor? backgroundColor,
+        double backgroundPaddingX,
+        double backgroundPaddingY,
+        bool centerLineInLineHeight,
+        double underlineOffsetFactor,
+        bool strikethrough,
+        string? fontFamily) =>
+        DrawRasterTextBox(
+            canvas, plan, color, bold, italic, underline, horizontalAlignment, verticalAlignment,
+            rotationDegrees, rotationCenterX, rotationCenterY, backgroundColor,
+            backgroundPaddingX, backgroundPaddingY, centerLineInLineHeight,
+            underlineOffsetFactor, strikethrough, fontFamily,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+
+    /// <summary>Draws a measured text-box plan with native decoration and baseline styling.</summary>
     /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
     /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
     /// <param name="baseline">Vertical baseline placement.</param>
@@ -579,10 +636,34 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="rotationCenterX">Rotation center X coordinate.</param>
     /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
     /// <param name="strikethrough">Whether to render strikethrough text.</param>
+    /// <returns>The supplied builder for call chaining.</returns>
+    public static StringBuilder AppendSvgTextElement(
+        this StringBuilder builder,
+        string text,
+        double x,
+        double y,
+        double lineHeight,
+        OfficeColor color,
+        string? fontFamily,
+        double fontSize,
+        OfficeTextAlignment horizontalAlignment,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool strikethrough) =>
+        AppendSvgTextElement(
+            builder, text, x, y, lineHeight, color, fontFamily, fontSize,
+            horizontalAlignment, bold, italic, underline, rotationDegrees,
+            rotationCenterX, rotationCenterY, strikethrough,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+
+    /// <summary>Appends one SVG text element with native decoration and baseline styling.</summary>
     /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
     /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
     /// <param name="baseline">Vertical baseline placement.</param>
-    /// <returns>The supplied builder for call chaining.</returns>
     public static StringBuilder AppendSvgTextElement(
         this StringBuilder builder,
         string text,
@@ -909,6 +990,34 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="svgNamespace">SVG namespace URI. Pass <c>null</c> to write elements without a namespace.</param>
     /// <param name="configureTextAttributes">Optional callback for adapter-specific attributes on the <c>text</c> element.</param>
     /// <param name="strikethrough">Whether to render strikethrough text.</param>
+    public static void WriteSvgTextBlock(
+        XmlWriter writer,
+        OfficeTextBlockLayout layout,
+        double left,
+        double top,
+        double width,
+        double height,
+        OfficeColor color,
+        string? fontFamily,
+        OfficeTextAlignment horizontalAlignment,
+        OfficeTextVerticalAlignment verticalAlignment,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        string? svgNamespace,
+        Action<XmlWriter>? configureTextAttributes,
+        bool strikethrough) =>
+        WriteSvgTextBlock(
+            writer, layout, left, top, width, height, color, fontFamily,
+            horizontalAlignment, verticalAlignment, bold, italic, underline,
+            rotationDegrees, rotationCenterX, rotationCenterY, svgNamespace,
+            configureTextAttributes, strikethrough,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+
+    /// <summary>Writes an SVG text block with native decoration and baseline styling.</summary>
     /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
     /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
     /// <param name="baseline">Vertical baseline placement.</param>
@@ -1030,6 +1139,32 @@ public static partial class OfficeTextBlockRenderer {
     /// <param name="configureTextAttributes">Optional callback for adapter-specific attributes on the <c>text</c> element.</param>
     /// <param name="configureBackgroundAttributes">Optional callback for adapter-specific attributes on the background <c>rect</c> element.</param>
     /// <param name="strikethrough">Whether to render strikethrough text.</param>
+    public static void WriteSvgTextBox(
+        XmlWriter writer,
+        OfficeTextBlockRenderPlan plan,
+        OfficeColor color,
+        string? fontFamily,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        string? svgNamespace,
+        OfficeColor? backgroundColor,
+        double backgroundPaddingX,
+        double backgroundPaddingY,
+        Action<XmlWriter>? configureTextAttributes,
+        Action<XmlWriter>? configureBackgroundAttributes,
+        bool strikethrough) =>
+        WriteSvgTextBox(
+            writer, plan, color, fontFamily, bold, italic, underline,
+            rotationDegrees, rotationCenterX, rotationCenterY, svgNamespace,
+            backgroundColor, backgroundPaddingX, backgroundPaddingY,
+            configureTextAttributes, configureBackgroundAttributes, strikethrough,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+
+    /// <summary>Writes an SVG text-box plan with native decoration and baseline styling.</summary>
     /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
     /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
     /// <param name="baseline">Vertical baseline placement.</param>
