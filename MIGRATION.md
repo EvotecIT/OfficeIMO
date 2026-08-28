@@ -9,6 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: bounded email body resource projections
+
+`EmailBodyProjection.Create(...)` now indexes at most 128 resources, accepts at most 128 MiB from one resource, and reads or declares at most 256 MiB across one projection by default. Older versions had no resource-count or projection-wide byte ceiling. Exceeding a ceiling throws `EmailLimitExceededException`; repeated and parallel reads share the same projection-wide budget.
+
+Trusted applications that must process larger messages can set explicit, application-owned values through `EmailBodyProjectionOptions.MaxResourceCount`, `MaxResourceBytes`, and `MaxTotalResourceBytes`. Body-only consumers should set `IncludeResources = false` so attachments are not indexed. Prefer `OpenReadStream`, `CopyTo`, or their asynchronous counterparts when content does not need to be materialized as a byte array.
+
 ## OfficeIMO 3.2: deterministic Reader export destinations
 
 `WriteAssetsToDirectory`, `WriteTableExportsToDirectory`, and `WriteVisualExportsToDirectory` now reject duplicate destination filenames before creating or replacing any output. The comparison uses the destination filesystem's case and Unicode-normalization behavior after applying the materializer's filename sanitization. It also treats trailing dots and spaces as aliases when the destination filesystem applies Windows filename semantics, so names such as `report`, `report.`, and `report ` cannot target one output. Older versions could write or skip colliding entries according to `Overwrite`, making the surviving payload depend on enumeration order.

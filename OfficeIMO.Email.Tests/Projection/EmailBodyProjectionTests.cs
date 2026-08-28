@@ -290,6 +290,28 @@ public sealed class EmailBodyProjectionTests {
     }
 
     [Fact]
+    public async Task Per_read_cancellation_does_not_poison_the_resource_stream() {
+        var content = new ControlledContentSource(new byte[] { 7 });
+        EmailDocument document = CreateInlineResourceDocument(new byte[] { 0 });
+        document.Attachments[0].Content = null;
+        document.Attachments[0].ContentSource = content;
+        document.Attachments[0].Length = 0;
+        EmailBodyResource resource = EmailBodyProjection.Create(document).Resources[0];
+        using Stream source = await resource.OpenReadStreamAsync();
+        using var cancellation = new CancellationTokenSource();
+
+        Task<int> canceledRead = source.ReadAsync(new byte[1], 0, 1, cancellation.Token);
+        await content.ReadStarted;
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => canceledRead);
+
+        content.ReleaseRead();
+        var buffer = new byte[1];
+        Assert.Equal(1, await source.ReadAsync(buffer, 0, 1, CancellationToken.None));
+        Assert.Equal(7, buffer[0]);
+    }
+
+    [Fact]
     public async Task Concurrent_reads_wait_for_reservations_before_deciding_aggregate_exhaustion() {
         var firstContent = new ControlledContentSource(new byte[] { 1 });
         var secondContent = new TrackingContentSource(new byte[] { 2 });

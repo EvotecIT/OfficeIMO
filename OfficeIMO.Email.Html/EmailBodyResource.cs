@@ -111,8 +111,9 @@ public sealed class EmailBodyResource {
 
     private MemoryStream CreateOutputBuffer() {
         EnsureDeclaredLengthAllowed();
-        int capacity = Length > 0 && Length <= int.MaxValue ? checked((int)Length) : 0;
-        return capacity > 0 ? new MemoryStream(capacity) : new MemoryStream();
+        _limitState.ThrowIfExceeded();
+        _budget.ThrowIfExceeded();
+        return new MemoryStream();
     }
 
     private void EnsureDeclaredLengthAllowed() {
@@ -360,6 +361,9 @@ internal sealed class EmailBodyResourceReadStream : Stream {
             _bytesRead += read;
             if (read == 0) _endOfStream = true;
             return read;
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            _budget.Release(reserved);
+            throw;
         } catch {
             _budget.Release(reserved);
             _sourceFailed = true;
@@ -394,6 +398,9 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         int read;
         try {
             read = await _source.ReadAsync(probe, 0, 1, cancellationToken).ConfigureAwait(false);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            _budget.Release(1);
+            throw;
         } catch {
             _budget.Release(1);
             _sourceFailed = true;
@@ -431,6 +438,8 @@ internal sealed class EmailBodyResourceReadStream : Stream {
                 return 0;
             }
             return FailAggregateLimit();
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch {
             _sourceFailed = true;
             throw;
