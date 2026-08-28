@@ -140,7 +140,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             ApplyTransform(table, geometry);
                             for (int row = 0; row < Math.Min(table.RowItems.Count, element.Table.TableRows.Count); row++) {
                                 for (int column = 0; column < Math.Min(table.RowItems[row].Cells.Count, element.Table.TableRows[row].TableCells.Count); column++) {
-                                    table.RowItems[row].Cells[column].Text = ExtractText(element.Table.TableRows[row].TableCells[column].Text);
+                                    GoogleSlidesApiTextContent? cellText = element.Table.TableRows[row].TableCells[column].Text;
+                                    PowerPointTableCell cell = table.RowItems[row].Cells[column];
+                                    cell.Text = ExtractText(cellText);
+                                    if (cellText != null) ApplyTextRuns(cell.Paragraphs.FirstOrDefault(), cellText);
                                 }
                             }
                         } else if (element.Image?.ContentUrl is string url && !string.IsNullOrWhiteSpace(url)) {
@@ -182,6 +185,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         private static void ApplyTextRuns(PowerPointTextBox box, GoogleSlidesApiTextContent text) {
+            ApplyTextRuns(box.Paragraphs.FirstOrDefault() ?? box.AddParagraph(), text);
+        }
+
+        private static void ApplyTextRuns(PowerPointParagraph? paragraph, GoogleSlidesApiTextContent text) {
+            if (paragraph == null) return;
             List<GoogleSlidesApiTextRun> sourceRuns = text.TextElements
                 .Select(element => element.TextRun)
                 .Where(run => run != null)
@@ -190,7 +198,6 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (sourceRuns.Count == 0) return;
 
             int lastContentRun = sourceRuns.FindLastIndex(run => !string.IsNullOrEmpty(run.Content));
-            PowerPointParagraph paragraph = box.Paragraphs.FirstOrDefault() ?? box.AddParagraph();
             PowerPointTextRun targetRun = paragraph.Runs.FirstOrDefault() ?? paragraph.AddRun(string.Empty);
             for (int index = 0; index < sourceRuns.Count; index++) {
                 GoogleSlidesApiTextRun sourceRun = sourceRuns[index];

@@ -10,16 +10,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <returns><see langword="true"/> when text was transformed; otherwise <see langword="false"/>.</returns>
         public bool TransformCellTextCase(int row, int column, OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
-            bool transformedRichText = false;
-            WriteLockConditional(() => transformedRichText = TransformRichTextCaseCore(row, column, textCase, culture));
-            if (transformedRichText) {
-                return true;
-            }
-
             if (!TryGetCellValueSnapshot(row, column, out ExcelCellValueSnapshot? snapshot) ||
                 snapshot == null ||
                 snapshot.Kind != ExcelCellValueKind.Text) {
                 return false;
+            }
+
+            bool transformedRichText = false;
+            WriteLockConditional(() => transformedRichText = TransformRichTextCaseCore(row, column, textCase, culture));
+            if (transformedRichText) {
+                return true;
             }
 
             CellValue(row, column, OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(snapshot.Text, textCase, culture));

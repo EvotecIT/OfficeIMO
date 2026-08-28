@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTextRun {
         /// <summary>Gets or sets the BCP 47 language tag applied to this text run.</summary>
         public string? Language {
-            get => Run.RunProperties?.Language?.Value;
+            get => RunProperties?.Language?.Value;
             set {
                 A.RunProperties properties = EnsureRunProperties();
                 properties.Language = NormalizeLanguage(value);
@@ -15,9 +15,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Gets or sets the accessible tooltip associated with this run's click hyperlink.</summary>
         public string? HyperlinkTooltip {
-            get => Run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Tooltip?.Value;
+            get => RunProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Tooltip?.Value;
             set {
-                A.HyperlinkOnClick? hyperlink = Run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>();
+                A.HyperlinkOnClick? hyperlink = RunProperties?.GetFirstChild<A.HyperlinkOnClick>();
                 if (hyperlink == null) {
                     if (value == null) return;
                     throw new InvalidOperationException("A hyperlink must be assigned before setting its tooltip.");

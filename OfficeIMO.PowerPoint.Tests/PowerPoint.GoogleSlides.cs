@@ -66,6 +66,7 @@ namespace OfficeIMO.Tests {
             hiddenText.Hidden = true;
             PowerPointTable table = slide.AddTablePoints(2, 2, 40, 140, 400, 160);
             table.RowItems[0].Cells[0].Text = "A1";
+            table.RowItems[0].Cells[0].Runs[0].Italic = true;
             slide.Notes.Text = "Speaker note";
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch(new GoogleSlidesSaveOptions { Title = "Deck" });
@@ -76,6 +77,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(batch.Slides[0].Elements, element => element is GoogleSlidesTextBox text && text.Text == "Hello Slides" && text.Bold);
             Assert.DoesNotContain(batch.Slides[0].Elements, element => element is GoogleSlidesTextBox text && text.Text == "Hidden shape");
             Assert.Contains(batch.Slides[0].Elements, element => element is GoogleSlidesTable grid && grid.Cells[0][0] == "A1");
+            Assert.True(Assert.Single(Assert.IsType<GoogleSlidesTable>(batch.Slides[0].Elements.Single(element => element is GoogleSlidesTable))
+                .StyledCells[0][0].TextRuns).Italic);
             Assert.Equal("Speaker note", batch.Slides[0].SpeakerNotes);
             Assert.Equal(1, batch.Plan.NativeTextBoxCount);
             Assert.Equal(1, batch.Plan.NativeTableCount);
@@ -284,6 +287,10 @@ namespace OfficeIMO.Tests {
                 run.SetSuperscript();
             });
             authoredSlide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 340, 30, 160, 80);
+            PowerPointTableCell styledCell = authoredSlide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            styledCell.Text = "Styled cell";
+            styledCell.Runs[0].Italic = true;
+            styledCell.Runs[0].Underline = true;
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -334,6 +341,7 @@ namespace OfficeIMO.Tests {
                     && slideProperties.GetProperty("fields").GetString() == "background");
                 JsonElement textStyle = Assert.Single(requests, request =>
                     request.TryGetProperty("updateTextStyle", out JsonElement updateTextStyle)
+                    && !updateTextStyle.TryGetProperty("cellLocation", out _)
                     && updateTextStyle.GetProperty("style").TryGetProperty("bold", out _))
                     .GetProperty("updateTextStyle");
                 Assert.Equal("FIXED_RANGE", textStyle.GetProperty("textRange").GetProperty("type").GetString());
@@ -343,6 +351,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(style.GetProperty("strikethrough").GetBoolean());
                 Assert.True(style.GetProperty("smallCaps").GetBoolean());
                 Assert.Equal("SUPERSCRIPT", style.GetProperty("baselineOffset").GetString());
+                JsonElement tableTextStyle = Assert.Single(requests, request =>
+                    request.TryGetProperty("updateTextStyle", out JsonElement updateTextStyle)
+                    && updateTextStyle.TryGetProperty("cellLocation", out _))
+                    .GetProperty("updateTextStyle");
+                Assert.Equal(0, tableTextStyle.GetProperty("cellLocation").GetProperty("rowIndex").GetInt32());
+                Assert.Equal(0, tableTextStyle.GetProperty("cellLocation").GetProperty("columnIndex").GetInt32());
+                Assert.True(tableTextStyle.GetProperty("style").GetProperty("italic").GetBoolean());
+                Assert.True(tableTextStyle.GetProperty("style").GetProperty("underline").GetBoolean());
             }
             Assert.Contains("\"createShape\"", body);
             Assert.Contains("Hello Slides", body);
@@ -985,6 +1001,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task NativeImporter_PreservesStyledTableCellRuns() {
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-table-style\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
+                const string slides = "{\"presentationId\":\"deck-table-style\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Styled \",\"style\":{\"bold\":true,\"smallCaps\":true}}},{\"textRun\":{\"content\":\"cell\\n\",\"style\":{\"italic\":true,\"underline\":true,\"baselineOffset\":\"SUBSCRIPT\"}}}]}}]}]}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-table-style", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
+            using (imported.Presentation) {
+                IReadOnlyList<PowerPointTextRun> runs = imported.Presentation.Slides.Single().Tables.Single().GetCell(0, 0).Runs;
+                Assert.Collection(runs,
+                    run => {
+                        Assert.Equal("Styled ", run.Text);
+                        Assert.True(run.Bold);
+                        Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
+                    },
+                    run => {
+                        Assert.Equal("cell", run.Text);
+                        Assert.True(run.Italic);
+                        Assert.True(run.Underline);
+                        Assert.True(run.BaselinePercent < 0);
+                    });
+            }
+        }
+
+        [Fact]
         public void DiffPlanner_HashesEveryTextRunBoundaryAndSynchronizedStyle() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointParagraph paragraph = presentation.AddSlide()
@@ -998,6 +1040,30 @@ namespace OfficeIMO.Tests {
             string styled = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
             Assert.NotEqual(baseline, styled);
+        }
+
+        [Fact]
+        public void DiffPlanner_UsesGoogleProjectedValuesAndIncludesTableRuns() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextRun textRun = slide.AddTextBox("mixed").Paragraphs.Single().Runs.Single();
+            textRun.Capitalization = PowerPointCapitalization.AllCaps;
+            textRun.BaselinePercent = 80D;
+            textRun.FontSizePoints = 12.75D;
+            string projected = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            textRun.Text = "MIXED";
+            textRun.Capitalization = null;
+            textRun.BaselinePercent = 30D;
+            textRun.FontSize = 12;
+            Assert.Equal(projected, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
+
+            using PowerPointPresentation tablePresentation = PowerPointPresentation.Create();
+            PowerPointTextRun tableRun = tablePresentation.AddSlide().AddTablePoints(1, 1, 10, 80, 200, 50).GetCell(0, 0).Runs.Single();
+            tableRun.Text = "Cell";
+            string tableBaseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(tablePresentation));
+            tableRun.Strikethrough = true;
+            Assert.NotEqual(tableBaseline, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(tablePresentation)));
         }
 
         [Fact]

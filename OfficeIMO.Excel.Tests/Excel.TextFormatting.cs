@@ -88,6 +88,39 @@ public class ExcelTextFormattingTests {
     }
 
     [Fact]
+    public void FormulaWithCachedStringResultIsNeverRewrittenByCaseTransforms() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("Text").CellAt(1, 1).SetFormula("\"mixed Case\"");
+                document.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                Cell cell = package.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();
+                cell.DataType = CellValues.String;
+                cell.CellValue = new CellValue("mixed Case");
+                package.WorkbookPart.WorksheetParts.Single().Worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(path)) {
+                ExcelSheet sheet = document.Sheets[0];
+                Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+                Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
+                Assert.False(sheet.TransformCellTextCase(1, 1, OfficeTextCase.Uppercase));
+                document.Save();
+            }
+
+            using SpreadsheetDocument verified = SpreadsheetDocument.Open(path, false);
+            Cell actual = verified.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();
+            Assert.Equal("\"mixed Case\"", actual.CellFormula!.Text);
+            Assert.Equal("mixed Case", actual.CellValue!.Text);
+            Assert.Equal(CellValues.String, actual.DataType!.Value);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void RichTextCaseTransformsDoNotResetContextAtRunBoundaries() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Text");

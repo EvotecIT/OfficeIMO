@@ -77,9 +77,22 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         internal string? Hyperlink { get; set; }
     }
 
+    internal sealed class GoogleSlidesTableCell {
+        internal GoogleSlidesTableCell(string text, IReadOnlyList<GoogleSlidesTextStyleRun> textRuns) {
+            Text = text;
+            TextRuns = textRuns;
+        }
+        internal string Text { get; }
+        internal IReadOnlyList<GoogleSlidesTextStyleRun> TextRuns { get; }
+    }
+
     public sealed class GoogleSlidesTable : GoogleSlidesElement {
-        internal GoogleSlidesTable(string id, double left, double top, double width, double height, IReadOnlyList<IReadOnlyList<string>> cells) : base(id, left, top, width, height) { Cells = cells; }
+        internal GoogleSlidesTable(string id, double left, double top, double width, double height, IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> cells) : base(id, left, top, width, height) {
+            StyledCells = cells;
+            Cells = cells.Select(row => (IReadOnlyList<string>)row.Select(cell => cell.Text).ToArray()).ToArray();
+        }
         public IReadOnlyList<IReadOnlyList<string>> Cells { get; }
+        internal IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> StyledCells { get; }
     }
 
     public sealed class GoogleSlidesImage : GoogleSlidesElement {

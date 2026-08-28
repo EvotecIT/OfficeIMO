@@ -264,7 +264,9 @@ namespace OfficeIMO.Excel {
 
                 DocumentFormat.OpenXml.Spreadsheet.CellValues? dataType = cell.DataType?.Value;
                 ExcelCellValueKind kind;
-                if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString ||
+                if (cell.CellFormula != null) {
+                    kind = ExcelCellValueKind.Formula;
+                } else if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString ||
                     dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String ||
                     dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
                     kind = ExcelCellValueKind.Text;
@@ -274,8 +276,6 @@ namespace OfficeIMO.Excel {
                     kind = ExcelCellValueKind.Boolean;
                 } else if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
                     kind = ExcelCellValueKind.Error;
-                } else if (cell.CellFormula != null) {
-                    kind = ExcelCellValueKind.Formula;
                 } else {
                     kind = dataType == null ? ExcelCellValueKind.Number : ExcelCellValueKind.Other;
                 }

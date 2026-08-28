@@ -400,7 +400,13 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointParagraph noteParagraph = slide.Notes.SetParagraphs(new[] { "Before" }).Single();
 
         foreach (PowerPointParagraph paragraph in new[] { textBoxParagraph, tableParagraph, noteParagraph }) {
-            paragraph.AddLineBreak().AddField("1", "slidenum").AddRun("After");
+            paragraph.AddLineBreak().AddField("1", "slidenum", fieldId: null, configure: run => {
+                run.Bold = true;
+                run.Italic = true;
+                run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
+                run.SetSuperscript();
+                run.Color = "336699";
+            }).AddRun("After");
             Assert.Equal(new[] {
                 PowerPointParagraphInlineKind.Run,
                 PowerPointParagraphInlineKind.LineBreak,
@@ -421,6 +427,19 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             && mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 3);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "paragraph-fields"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 3);
+        foreach (OdpParagraph paragraph in new[] {
+            Assert.IsType<OdpTextBox>(convertedSlide.Shapes[0]).Paragraphs.Single(),
+            Assert.IsType<OdpTable>(convertedSlide.Shapes[1]).Cell(0, 0).Paragraphs.Single(),
+            convertedSlide.SpeakerNotes!.Paragraphs.Single()
+        }) {
+            OdpRun field = Assert.Single(paragraph.InlineNodes, node => node.Kind == OdpInlineNodeKind.Run && node.Text == "1").Run!;
+            Assert.Equal("1", field.Text);
+            Assert.True(field.Bold);
+            Assert.True(field.Italic);
+            Assert.True(field.Underline);
+            Assert.Equal(OdfTextPosition.Superscript, field.TextPosition);
+            Assert.Equal("#336699", field.Color?.ToString());
+        }
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
         Assert.True(OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes())).Validate().IsValid);
 
@@ -612,6 +631,25 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void OdsDecorationAndSmallCapsLossesUseSpecificDiagnostics() {
+        OdsDocument source = OdsDocument.Create();
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Styled");
+        cell.Underline = true;
+        cell.UnderlineStyle = OdfTextDecorationStyle.Wave;
+        cell.SmallCaps = true;
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-capitalization"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements");
     }
 
     [Fact]

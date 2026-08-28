@@ -236,7 +236,7 @@ public static partial class OfficeTextLayoutEngine {
         cancellationToken.ThrowIfCancellationRequested();
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
-        double maxFontSize = ResolveMaxRichTextFontSize(runs);
+        double maxFontSize = ResolveMaxEffectiveRichTextFontSize(runs);
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
         double lineHeight = Math.Max(1D, Math.Ceiling(maxFontSize * lineFactor));
         var lines = new List<OfficeRichTextLine>();
@@ -418,6 +418,15 @@ public static partial class OfficeTextLayoutEngine {
         double max = 1D;
         for (int i = 0; i < runs.Count; i++) {
             max = Math.Max(max, NormalizePositive(runs[i].FontSize, 1D));
+        }
+
+        return max;
+    }
+
+    private static double ResolveMaxEffectiveRichTextFontSize(IReadOnlyList<OfficeRichTextRun> runs) {
+        double max = 1D;
+        for (int i = 0; i < runs.Count; i++) {
+            max = Math.Max(max, NormalizePositive(runs[i].EffectiveFontSize, 1D));
         }
 
         return max;
@@ -611,7 +620,11 @@ public static partial class OfficeTextLayoutEngine {
             return line.LineHeight;
         }
 
-        double fontSize = line.FontSize > 0D ? line.FontSize : Math.Max(1D, fallbackFontSize);
+        double fontSize = 0D;
+        for (int i = 0; i < line.Segments.Count; i++) {
+            fontSize = Math.Max(fontSize, EffectiveFontSize(line.Segments[i]));
+        }
+        if (fontSize <= 0D) fontSize = Math.Max(1D, fallbackFontSize);
         return Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
     }
 

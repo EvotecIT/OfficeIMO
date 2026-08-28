@@ -94,7 +94,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             target.Add(text); plan.NativeTextBoxCount++;
                             break;
                         case PowerPointTable table when !HasMergedCells(table):
-                            IReadOnlyList<IReadOnlyList<string>> cells = table.RowItems.Select(row => (IReadOnlyList<string>)row.Cells.Select(cell => cell.Text).ToArray()).ToArray();
+                            IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> cells = table.RowItems
+                                .Select(row => (IReadOnlyList<GoogleSlidesTableCell>)row.Cells
+                                    .Select(cell => BuildTableCell(cell.Paragraphs)).ToArray()).ToArray();
                             target.Add(PreserveTransform(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells), shape));
                             plan.NativeTableCount++;
                             break;
@@ -142,19 +144,30 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return batch;
         }
 
-        private static string BuildTextContent(PowerPointTextBox textBox) => string.Join(
+        private static string BuildTextContent(PowerPointTextBox textBox) => BuildTextContent(textBox.Paragraphs);
+
+        private static string BuildTextContent(IReadOnlyList<PowerPointParagraph> paragraphs) => string.Join(
             "\n",
-            textBox.Paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(GetGoogleText))));
+            paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(GetGoogleText))));
 
         private static void PopulateTextRuns(GoogleSlidesTextBox target, PowerPointTextBox source) {
-            IReadOnlyList<PowerPointParagraph> paragraphs = source.Paragraphs;
+            PopulateTextRuns(target.TextRuns, source.Paragraphs);
+        }
+
+        private static GoogleSlidesTableCell BuildTableCell(IReadOnlyList<PowerPointParagraph> paragraphs) {
+            var textRuns = new List<GoogleSlidesTextStyleRun>();
+            PopulateTextRuns(textRuns, paragraphs);
+            return new GoogleSlidesTableCell(BuildTextContent(paragraphs), textRuns);
+        }
+
+        private static void PopulateTextRuns(ICollection<GoogleSlidesTextStyleRun> target, IReadOnlyList<PowerPointParagraph> paragraphs) {
             int offset = 0;
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 foreach (PowerPointTextRun run in paragraphs[paragraphIndex].Runs) {
                     string text = GetGoogleText(run);
                     int endIndex = offset + text.Length;
                     if (endIndex > offset) {
-                        target.TextRuns.Add(new GoogleSlidesTextStyleRun {
+                        target.Add(new GoogleSlidesTextStyleRun {
                             StartIndex = offset,
                             EndIndex = endIndex,
                             Bold = run.Bold,
@@ -175,7 +188,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static string GetGoogleText(PowerPointTextRun run) {
+        internal static string GetGoogleText(PowerPointTextRun run) {
             string text = run.Text ?? string.Empty;
             if (run.Capitalization != PowerPointCapitalization.AllCaps) return text;
             return text.ToUpper(ResolveRunCulture(run.Language));
@@ -190,7 +203,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static string? ToGoogleBaselineOffset(double? baselinePercent) => baselinePercent switch {
+        internal static string? ToGoogleBaselineOffset(double? baselinePercent) => baselinePercent switch {
             > 0 => "SUPERSCRIPT",
             < 0 => "SUBSCRIPT",
             _ => null,

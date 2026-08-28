@@ -61,9 +61,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         continue;
                     }
                     if (inlineNode.Kind == PowerPointParagraphInlineKind.Field) {
-                        targetParagraph.AddText(inlineNode.Text);
                         state.Fields++;
-                        continue;
+                        if (inlineNode.Run == null) {
+                            targetParagraph.AddText(inlineNode.Text);
+                            continue;
+                        }
                     }
                     PowerPointTextRun run = inlineNode.Run!;
                     if (HasApproximatedPowerPointUnderline(run.UnderlineStyle)) {
@@ -84,7 +86,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     } else {
                         ApplyPowerPointRun(run, targetParagraph.AddRun(run.Text), options);
                     }
-                    state.TextRuns++;
+                    if (inlineNode.Kind != PowerPointParagraphInlineKind.Field) state.TextRuns++;
                 }
             }
             if (sourceParagraph.BulletCharacter != null || sourceParagraph.IsNumbered) state.ListParagraphs++;

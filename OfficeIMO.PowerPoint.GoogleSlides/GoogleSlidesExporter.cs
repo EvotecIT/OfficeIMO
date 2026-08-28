@@ -299,11 +299,25 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     int rows = table.Cells.Count; int columns = table.Cells.Select(row => row.Count).DefaultIfEmpty(0).Max();
                     if (rows == 0 || columns == 0) break;
                     requests.Add(Obj(("createTable", Obj(("objectId", table.ObjectId), ("rows", rows), ("columns", columns), ("elementProperties", properties)))));
-                    for (int row = 0; row < rows; row++) for (int column = 0; column < table.Cells[row].Count; column++) if (!string.IsNullOrEmpty(table.Cells[row][column]))
-                        requests.Add(Obj(("insertText", Obj(
-                            ("objectId", table.ObjectId),
-                            ("cellLocation", Obj(("rowIndex", row), ("columnIndex", column))),
-                            ("text", table.Cells[row][column])))));
+                    for (int row = 0; row < rows; row++) for (int column = 0; column < table.StyledCells[row].Count; column++) {
+                        GoogleSlidesTableCell cell = table.StyledCells[row][column];
+                        if (!string.IsNullOrEmpty(cell.Text)) {
+                            requests.Add(Obj(("insertText", Obj(
+                                ("objectId", table.ObjectId),
+                                ("cellLocation", Obj(("rowIndex", row), ("columnIndex", column))),
+                                ("text", cell.Text)))));
+                        }
+                        foreach (GoogleSlidesTextStyleRun run in cell.TextRuns) {
+                            JsonObject style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.Strikethrough, run.SmallCaps, run.BaselineOffset, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
+                            if (style.Count == 0 || run.EndIndex <= run.StartIndex) continue;
+                            requests.Add(Obj(("updateTextStyle", Obj(
+                                ("objectId", table.ObjectId),
+                                ("cellLocation", Obj(("rowIndex", row), ("columnIndex", column))),
+                                ("textRange", Obj(("type", "FIXED_RANGE"), ("startIndex", run.StartIndex), ("endIndex", run.EndIndex))),
+                                ("style", style),
+                                ("fields", string.Join(",", style.Select(pair => pair.Key)))))));
+                        }
+                    }
                     break;
                 case GoogleSlidesImage image:
                     requests.Add(Obj(("createImage", Obj(("objectId", image.ObjectId), ("url", imageUrls[image.ObjectId]), ("elementProperties", properties)))));

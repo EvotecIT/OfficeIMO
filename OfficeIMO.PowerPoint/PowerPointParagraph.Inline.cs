@@ -19,13 +19,13 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointParagraphInline(PowerPointTextRun run) {
             Kind = PowerPointParagraphInlineKind.Run;
             Run = run;
-            Text = run.Text;
+            _text = run.Text;
         }
 
         internal PowerPointParagraphInline(PowerPointParagraphInlineKind kind, string text,
             string? fieldId = null, string? fieldType = null, PowerPointTextRun? run = null) {
             Kind = kind;
-            Text = text;
+            _text = text;
             FieldId = fieldId;
             FieldType = fieldType;
             Run = run;
@@ -34,7 +34,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Node kind.</summary>
         public PowerPointParagraphInlineKind Kind { get; }
         /// <summary>Displayed text contributed by the node; a line break contributes a newline.</summary>
-        public string Text { get; }
+        public string Text => Run?.Text ?? _text;
+        private readonly string _text;
         /// <summary>Formatted text properties for a normal run or dynamic field.</summary>
         public PowerPointTextRun? Run { get; }
         /// <summary>DrawingML field identifier when <see cref="Kind"/> is <see cref="PowerPointParagraphInlineKind.Field"/>.</summary>
@@ -58,17 +59,12 @@ namespace OfficeIMO.PowerPoint {
                         result.Add(new PowerPointParagraphInline(
                             PowerPointParagraphInlineKind.LineBreak, Environment.NewLine));
                     } else if (child is A.Field textField) {
-                        var formattingRun = new A.Run();
-                        if (textField.RunProperties != null) {
-                            formattingRun.Append(textField.RunProperties.CloneNode(true));
-                        }
-                        formattingRun.Append(new A.Text(textField.Text?.Text ?? textField.InnerText ?? string.Empty));
                         result.Add(new PowerPointParagraphInline(
                             PowerPointParagraphInlineKind.Field,
                             textField.Text?.Text ?? textField.InnerText ?? string.Empty,
                             textField.Id?.Value,
                             textField.Type?.Value,
-                            new PowerPointTextRun(formattingRun, _slidePart, _ownerPart)));
+                            new PowerPointTextRun(textField, _slidePart, _ownerPart)));
                     }
                 }
                 return result;
@@ -103,11 +99,7 @@ namespace OfficeIMO.PowerPoint {
                 Type = fieldType
             };
             if (configure != null) {
-                var formattingRun = new A.Run(new A.Text(displayText ?? string.Empty));
-                configure(new PowerPointTextRun(formattingRun, _slidePart, _ownerPart));
-                if (formattingRun.RunProperties != null) {
-                    field.PrependChild((A.RunProperties)formattingRun.RunProperties.CloneNode(true));
-                }
+                configure(new PowerPointTextRun(field, _slidePart, _ownerPart));
             }
             A.EndParagraphRunProperties? endProps =
                 Paragraph.GetFirstChild<A.EndParagraphRunProperties>();

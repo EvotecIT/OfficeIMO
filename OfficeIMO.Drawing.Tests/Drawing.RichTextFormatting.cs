@@ -103,6 +103,23 @@ public sealed class OfficeRichTextFormattingTests {
     }
 
     [Fact]
+    public void ScriptOnlyLinesUseTheirEffectiveRenderedHeight() {
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            new[] { new OfficeRichTextRun("2", 20D, OfficeColor.Black, baseline: OfficeTextBaseline.Superscript) },
+            maxWidth: 100D,
+            maxHeight: 13D,
+            lineHeightFactor: 1D,
+            measure: static (text, size, _) => (text?.Length ?? 0) * size,
+            wrap: false);
+
+        OfficeRichTextLine line = Assert.Single(layout.Lines);
+        Assert.Equal(13D, line.LineHeight);
+        Assert.Equal(13D, layout.LineHeight);
+        Assert.Equal(13D, layout.Height);
+        Assert.False(layout.Clipped);
+    }
+
+    [Fact]
     public void ScriptEllipsisUsesTheRenderedFontSizeWhenNoSourceTextFits() {
         OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
             new[] { new OfficeRichTextRun("WWWW", 10D, OfficeColor.Black, baseline: OfficeTextBaseline.Superscript) },

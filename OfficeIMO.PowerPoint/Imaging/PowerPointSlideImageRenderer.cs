@@ -982,7 +982,7 @@ namespace OfficeIMO.PowerPoint {
         };
 
         private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             if (runColor.HasValue) {
                 return runColor.Value;
             }
@@ -1001,7 +1001,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, A.ColorScheme? colorScheme) {
-            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
         }
 
         private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {

@@ -61,7 +61,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 PowerPointSlide slide = presentation.Slides[index]; string root = $"slide/{index + 1}";
                 PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash($"{slide.Hidden}|{BackgroundFingerprint(background)}");
                 foreach (PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
-                    string text = shape is PowerPointTextBox box ? box.Text : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany(row => row.Cells).Select(cell => cell.Text)) : string.Empty;
+                    string text = shape is PowerPointTextBox box ? ProjectedText(box.Paragraphs)
+                        : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany(row => row.Cells).Select(cell => ProjectedText(cell.Paragraphs)))
+                        : string.Empty;
                     string geometry = shape switch {
                         PowerPointTextBox textBox when textBox.ShapeType.HasValue => ((DocumentFormat.OpenXml.IEnumValue)textBox.ShapeType.Value.ToOpenXml()).Value,
                         PowerPointAutoShape autoShape when autoShape.ShapeType.HasValue => ((DocumentFormat.OpenXml.IEnumValue)autoShape.ShapeType.Value.ToOpenXml()).Value,
@@ -79,27 +81,38 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return result;
         }
         private static string TextStyleFingerprint(PowerPointShape shape) {
-            if (shape is not PowerPointTextBox textBox) return string.Empty;
             var result = new StringBuilder();
-            AppendFingerprintValue(result, textBox.Paragraphs.Count);
-            foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
+            if (shape is PowerPointTextBox textBox) {
+                AppendParagraphFingerprint(result, textBox.Paragraphs);
+            } else if (shape is PowerPointTable table) {
+                AppendFingerprintValue(result, table.RowItems.Count);
+                foreach (PowerPointTableRow row in table.RowItems) {
+                    AppendFingerprintValue(result, row.Cells.Count);
+                    foreach (PowerPointTableCell cell in row.Cells) AppendParagraphFingerprint(result, cell.Paragraphs);
+                }
+            }
+            return result.ToString();
+        }
+        private static string ProjectedText(IReadOnlyList<PowerPointParagraph> paragraphs) => string.Join(
+            "\n", paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(GoogleSlidesBatchCompiler.GetGoogleText))));
+        private static void AppendParagraphFingerprint(StringBuilder result, IReadOnlyList<PowerPointParagraph> paragraphs) {
+            AppendFingerprintValue(result, paragraphs.Count);
+            foreach (PowerPointParagraph paragraph in paragraphs) {
                 AppendFingerprintValue(result, paragraph.Runs.Count);
                 foreach (PowerPointTextRun run in paragraph.Runs) {
-                    AppendFingerprintValue(result, run.Text);
+                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.GetGoogleText(run));
                     AppendFingerprintValue(result, run.Bold);
                     AppendFingerprintValue(result, run.Italic);
                     AppendFingerprintValue(result, run.UnderlineStyle);
                     AppendFingerprintValue(result, run.StrikeStyle);
-                    AppendFingerprintValue(result, run.Capitalization);
-                    AppendFingerprintValue(result, run.BaselinePercent);
-                    AppendFingerprintValue(result, run.FontSizePoints);
+                    AppendFingerprintValue(result, run.Capitalization == PowerPointCapitalization.SmallCaps);
+                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.ToGoogleBaselineOffset(run.BaselinePercent));
+                    AppendFingerprintValue(result, run.FontSize);
                     AppendFingerprintValue(result, run.FontName);
                     AppendFingerprintValue(result, run.Color);
                     AppendFingerprintValue(result, run.Hyperlink?.AbsoluteUri);
-                    AppendFingerprintValue(result, run.Language);
                 }
             }
-            return result.ToString();
         }
         private static void AppendFingerprintValue(StringBuilder target, object? value) {
             string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;

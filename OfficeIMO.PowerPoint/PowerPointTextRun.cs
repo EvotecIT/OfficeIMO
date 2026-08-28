@@ -13,6 +13,7 @@ namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTextRun {
         private readonly SlidePart? _slidePart;
         private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly A.Field? _field;
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Run = run;
@@ -20,14 +21,27 @@ namespace OfficeIMO.PowerPoint {
             _ownerPart = ownerPart ?? slidePart;
         }
 
+        internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
+            _field = field;
+            Run = new A.Run();
+            _slidePart = slidePart;
+            _ownerPart = ownerPart ?? slidePart;
+        }
+
         internal A.Run Run { get; }
+        internal A.RunProperties? RunProperties => _field?.RunProperties ?? Run.RunProperties;
 
         /// <summary>
         /// Text content of the run.
         /// </summary>
         public string Text {
-            get => Run.Text?.Text ?? string.Empty;
+            get => (_field?.Text ?? Run.Text)?.Text ?? string.Empty;
             set {
+                if (_field != null) {
+                    _field.Text ??= new A.Text();
+                    _field.Text.Text = value ?? string.Empty;
+                    return;
+                }
                 Run.Text ??= new A.Text();
                 Run.Text.Text = value ?? string.Empty;
             }
@@ -45,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets a value indicating whether the run is bold.
         /// </summary>
         public bool Bold {
-            get => Run.RunProperties?.Bold?.Value == true;
+            get => RunProperties?.Bold?.Value == true;
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Bold = value ? true : null;
@@ -56,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets a value indicating whether the run is italic.
         /// </summary>
         public bool Italic {
-            get => Run.RunProperties?.Italic?.Value == true;
+            get => RunProperties?.Italic?.Value == true;
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Italic = value ? true : null;
@@ -77,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the native DrawingML underline variant.
         /// </summary>
         public PowerPointUnderlineStyle? UnderlineStyle {
-            get => Run.RunProperties?.Underline?.Value.ToOfficeEnum();
+            get => RunProperties?.Underline?.Value.ToOfficeEnum();
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Underline = value?.ToOpenXml();
@@ -99,7 +113,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointStrikeStyle? StrikeStyle {
             get {
-                A.TextStrikeValues? value = Run.RunProperties?.Strike?.Value;
+                A.TextStrikeValues? value = RunProperties?.Strike?.Value;
                 if (!value.HasValue) return null;
                 if (value.Value == A.TextStrikeValues.NoStrike) return PowerPointStrikeStyle.None;
                 if (value.Value == A.TextStrikeValues.SingleStrike) return PowerPointStrikeStyle.Single;
@@ -123,7 +137,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointCapitalization? Capitalization {
             get {
-                A.TextCapsValues? value = Run.RunProperties?.Capital?.Value;
+                A.TextCapsValues? value = RunProperties?.Capital?.Value;
                 if (!value.HasValue) return null;
                 if (value.Value == A.TextCapsValues.None) return PowerPointCapitalization.None;
                 if (value.Value == A.TextCapsValues.Small) return PowerPointCapitalization.SmallCaps;
@@ -147,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
         /// Positive values create superscript and negative values create subscript.
         /// </summary>
         public double? BaselinePercent {
-            get => Run.RunProperties?.Baseline?.Value is int value ? value / 1000D : null;
+            get => RunProperties?.Baseline?.Value is int value ? value / 1000D : null;
             set {
                 if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value)
                     || value.Value < -100D || value.Value > 100D)) {
@@ -184,7 +198,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int? FontSize {
             get {
-                int? size = Run.RunProperties?.FontSize?.Value;
+                int? size = RunProperties?.FontSize?.Value;
                 return size != null ? size / 100 : null;
             }
             set {
@@ -197,7 +211,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public double? FontSizePoints {
             get {
-                int? size = Run.RunProperties?.FontSize?.Value;
+                int? size = RunProperties?.FontSize?.Value;
                 return size.HasValue ? size.Value / 100D : (double?)null;
             }
             set {
@@ -210,7 +224,7 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the font name (Latin).
         /// </summary>
         public string? FontName {
-            get => Run.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
+            get => RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.RemoveAllChildren<A.LatinFont>();
@@ -224,7 +238,7 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the text color in hexadecimal format (e.g. "FF0000").  
         /// </summary>
         public string? Color {
-            get => Run.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+            get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
             set {
                 A.RunProperties props = EnsureRunProperties();
                 var latin = props.GetFirstChild<A.LatinFont>();
@@ -250,7 +264,7 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the highlight color in hexadecimal format (e.g. "FFFF00").
         /// </summary>
         public string? HighlightColor {
-            get => Run.RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
+            get => RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.RemoveAllChildren<A.Highlight>();
@@ -271,7 +285,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 return PowerPointHyperlinkResolver.Resolve(_ownerPart,
-                    _slidePart, Run.RunProperties?
+                    _slidePart, RunProperties?
                         .GetFirstChild<A.HyperlinkOnClick>());
             }
             set {
@@ -373,7 +387,7 @@ namespace OfficeIMO.PowerPoint {
         /// Removes any hyperlink from this run.
         /// </summary>
         public void ClearHyperlink() {
-            A.RunProperties? props = Run.RunProperties;
+            A.RunProperties? props = RunProperties;
             if (props != null) ReplaceClickHyperlink(props, replacement: null);
         }
 
@@ -470,6 +484,7 @@ namespace OfficeIMO.PowerPoint {
                             StringComparison.Ordinal))));
 
         private A.RunProperties EnsureRunProperties() {
+            if (_field != null) return _field.RunProperties ??= new A.RunProperties();
             return Run.RunProperties ??= new A.RunProperties();
         }
     }

@@ -179,6 +179,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         out bool unsupportedDataStyleFormat,
         ref int approximatedFontFamilyLists,
         ref int unsupportedFontFamilies,
+        ref int approximatedTextDecorations,
+        ref int unsupportedCapitalization,
         CultureInfo textCaseCulture) {
         int unsupported = 0;
         unsupportedDataStyleFormat = false;
@@ -190,13 +192,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             style.UnderlineType,
             out bool approximatedUnderline);
         if (underline.HasValue) target.SetUnderline(underline.Value);
-        if (approximatedUnderline) unsupported++;
+        if (approximatedUnderline) approximatedTextDecorations++;
         bool hasStrike = style.StrikeThrough == true &&
             style.LineThroughStyle != OdfTextDecorationStyle.None &&
             style.LineThroughType != OdfTextDecorationType.None;
         if (hasStrike) target.SetStrikethrough();
         if (hasStrike && (style.LineThroughStyle is not null and not OdfTextDecorationStyle.Solid ||
-                          style.LineThroughType == OdfTextDecorationType.Double)) unsupported++;
+                          style.LineThroughType == OdfTextDecorationType.Double)) approximatedTextDecorations++;
         if (style.TextPosition.HasValue) {
             target.SetVerticalTextAlignment(style.TextPosition.Value switch {
                 OdfTextPosition.Superscript => ExcelVerticalTextAlignment.Superscript,
@@ -207,7 +209,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (style.TextTransform == OdfTextTransform.Uppercase) target.TransformTextCase(OfficeTextCase.Uppercase, textCaseCulture);
         else if (style.TextTransform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase, textCaseCulture);
         else if (style.TextTransform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize, textCaseCulture);
-        if (style.SmallCaps == true) unsupported++;
+        if (style.SmallCaps == true) unsupportedCapitalization++;
         if (style.FontSize.HasValue) {
             if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);
             else unsupported++;

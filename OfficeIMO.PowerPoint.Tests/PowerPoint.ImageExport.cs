@@ -16,6 +16,33 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
+        public void FieldInlineRunMutationsPersistToThePresentationPackage() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                    PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Before").Paragraphs.Single();
+                    paragraph.AddField("Field", "custom");
+                    PowerPointParagraphInline authoredField = Assert.Single(paragraph.InlineNodes,
+                        node => node.Kind == PowerPointParagraphInlineKind.Field);
+                    authoredField.Run!.Text = "Changed";
+                    authoredField.Run.Bold = true;
+                    authoredField.Run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
+                    Assert.Equal("Changed", authoredField.Text);
+                    presentation.Save();
+                }
+
+                using PowerPointPresentation reloaded = PowerPointPresentation.Load(path);
+                PowerPointParagraphInline reloadedField = Assert.Single(reloaded.Slides.Single().TextBoxes.Single()
+                    .Paragraphs.Single().InlineNodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
+                Assert.Equal("Changed", reloadedField.Text);
+                Assert.True(reloadedField.Run!.Bold);
+                Assert.Equal(PowerPointUnderlineStyle.Wavy, reloadedField.Run.UnderlineStyle);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void PowerPointSlide_ImageExportMaterializesNativeCapsForTextBoxesAndTableCells() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
