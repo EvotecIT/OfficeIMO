@@ -545,18 +545,11 @@ internal static partial class PdfComplianceAnalyzer {
         IReadOnlyList<PdfOutputIntentInfo> outputIntents,
         out PdfOutputIntentInfo? outputIntent) {
         outputIntent = null;
-        int count = 0;
-        for (int index = 0; index < outputIntents.Count; index++) {
-            PdfOutputIntentInfo candidate = outputIntents[index];
-            if (!string.Equals(candidate.Subtype, "GTS_PDFX", StringComparison.Ordinal)) continue;
-            count++;
-            if (count > 1) {
-                outputIntent = null;
-                return false;
-            }
-            outputIntent = candidate;
-        }
-        return count == 1;
+        if (outputIntents.Count != 1) return false;
+        PdfOutputIntentInfo candidate = outputIntents[0];
+        if (!string.Equals(candidate.Subtype, "GTS_PDFX", StringComparison.Ordinal)) return false;
+        outputIntent = candidate;
+        return true;
     }
 
     private static PdfComplianceRequirement BuildReadbackPdfAEmbeddedFileModificationDateRequirement(PdfDocumentInfo info) {

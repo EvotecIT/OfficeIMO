@@ -578,10 +578,15 @@ public class PdfXGroundworkTests {
             "FOGRA51");
         PdfDocumentInfo info = PdfInspector.Inspect(PdfDocument.Create(options).ToBytes());
         PdfOutputIntentInfo intent = Assert.Single(info.OutputIntents);
+        PdfOutputIntentInfo pdfAIntent = Assert.Single(PdfInspector.Inspect(
+            PdfDocument.Create(new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)).ToBytes())
+            .OutputIntents);
 
         Assert.True(PdfComplianceAnalyzer.TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? selected));
         Assert.Same(intent, selected);
         Assert.False(PdfComplianceAnalyzer.TryGetSinglePdfXOutputIntent(new[] { intent, intent }, out selected));
+        Assert.Null(selected);
+        Assert.False(PdfComplianceAnalyzer.TryGetSinglePdfXOutputIntent(new[] { intent, pdfAIntent }, out selected));
         Assert.Null(selected);
     }
 

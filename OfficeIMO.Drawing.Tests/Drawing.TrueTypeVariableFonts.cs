@@ -149,6 +149,34 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void ManagedShapingUsesTheSelectedVariableFontAdvances() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        var axes = new Dictionary<string, float> { ["wdth"] = 125F };
+        OfficeFontFace selected = Load(data, axes);
+        OfficeFontFace defaultFace = Load(data, new Dictionary<string, float>());
+        const string logical = "\u202Eiii\u202C";
+        var request = new OfficeTextShapingRequest(
+            logical,
+            "Roboto Flex",
+            data,
+            isOpenTypeCff: false,
+            unitsPerEm: selected.Program.UnitsPerEm,
+            direction: OfficeTextDirection.RightToLeft,
+            language: null,
+            cancellationToken: CancellationToken.None,
+            fontCollectionIndex: null,
+            variationCoordinates: axes);
+
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(
+            OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+
+        Assert.All(result.Glyphs, static glyph => Assert.Null(glyph.AdvanceWidth));
+        double expected = selected.Program.Measure("iii", 24D);
+        Assert.NotEqual(defaultFace.Program.Measure("iii", 24D), expected);
+        Assert.Equal(expected, selected.Program.MeasureShapedText(logical, result, 24D), 6);
+    }
+
+    [Fact]
     public void VariableFontRegistrationRejectsAnImplicitHvarMapOutsideTheVariationStore() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         int hvar = FindTableOffset(data, "HVAR");

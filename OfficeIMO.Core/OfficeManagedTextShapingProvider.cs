@@ -90,7 +90,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             int visualScalar = ReadScalar(element.VisualText, ref visualIndex);
             int logicalStart = logicalOffset;
             int logicalScalar = ReadScalar(element.LogicalText, ref logicalOffset);
-            if (!font.TryGetGlyphMetrics(visualScalar, out int glyphId, out int advanceWidth)) {
+            if (!font.TryGetGlyphMetrics(visualScalar, out int glyphId, out _)) {
                 return false;
             }
 
@@ -98,8 +98,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             glyphs.Add(new OfficeShapedGlyph(
                 glyphId,
                 unicodeText,
-                element.LogicalIndex + logicalStart,
-                advanceWidth));
+                element.LogicalIndex + logicalStart));
         }
 
         return true;
