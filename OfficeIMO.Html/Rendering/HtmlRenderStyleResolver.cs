@@ -95,10 +95,13 @@ internal sealed partial class HtmlRenderStyleResolver {
         string fontVariant = string.IsNullOrWhiteSpace(computed.GetValue("font-variant"))
             ? parent?.FontVariant ?? "normal"
             : computed.GetValue("font-variant").Trim().ToLowerInvariant();
+        string fontVariantCaps = string.IsNullOrWhiteSpace(computed.GetValue("font-variant-caps"))
+            ? fontVariant
+            : computed.GetValue("font-variant-caps").Trim().ToLowerInvariant();
         string textTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform"))
             ? parent?.TextTransform ?? "none"
             : computed.GetValue("text-transform").Trim().ToLowerInvariant();
-        bool approximateSmallCaps = fontVariant.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
 
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
@@ -127,7 +130,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
-            FontVariant = fontVariant,
+            FontVariant = fontVariantCaps,
             TextTransform = textTransform,
             ApproximateSmallCaps = approximateSmallCaps,
             Direction = direction,
@@ -146,7 +149,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 "CSS small-caps used an uppercase managed-rendering approximation because synthetic small-cap glyph sizing is not available.",
                 HtmlDiagnosticSeverity.Warning,
                 DescribeSource(element),
-                "font-variant=" + fontVariant,
+                "font-variant-caps=" + fontVariantCaps,
                 OfficeConversionLossKind.Approximation);
         }
         ResolveTabSize(

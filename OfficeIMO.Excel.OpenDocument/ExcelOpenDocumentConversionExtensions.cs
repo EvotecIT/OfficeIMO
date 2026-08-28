@@ -1,6 +1,7 @@
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Spreadsheet;
+using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Excel.OpenDocument;
@@ -383,6 +384,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges);
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
@@ -487,7 +489,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
                                 unsupportedMeasurements += ApplyOdsStyle(converted, cellRun, dataStyles,
                                     out bool unsupportedDataStyleFormat, ref approximatedFontFamilyLists,
-                                    ref unsupportedFontFamilies);
+                                    ref unsupportedFontFamilies, textCaseCulture);
                                 if (unsupportedDataStyleFormat) unsupportedDataStyleFormats++;
                                 styles++;
                             } else if (cellRun.StyleName != null) {

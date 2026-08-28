@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Spreadsheet;
+using System.Globalization;
 
 namespace OfficeIMO.Excel.OpenDocument;
 
@@ -177,7 +178,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         IReadOnlyDictionary<string, OdsDataStyle> dataStyles,
         out bool unsupportedDataStyleFormat,
         ref int approximatedFontFamilyLists,
-        ref int unsupportedFontFamilies) {
+        ref int unsupportedFontFamilies,
+        CultureInfo textCaseCulture) {
         int unsupported = 0;
         unsupportedDataStyleFormat = false;
         if (style.Bold == true) target.SetBold();
@@ -202,9 +204,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 _ => ExcelVerticalTextAlignment.Baseline
             });
         }
-        if (style.TextTransform == OdfTextTransform.Uppercase) target.TransformTextCase(OfficeTextCase.Uppercase);
-        else if (style.TextTransform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase);
-        else if (style.TextTransform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize);
+        if (style.TextTransform == OdfTextTransform.Uppercase) target.TransformTextCase(OfficeTextCase.Uppercase, textCaseCulture);
+        else if (style.TextTransform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase, textCaseCulture);
+        else if (style.TextTransform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize, textCaseCulture);
         if (style.SmallCaps == true) unsupported++;
         if (style.FontSize.HasValue) {
             if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);

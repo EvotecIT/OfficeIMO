@@ -52,6 +52,22 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void ManagedHtmlRenderingRecognizesInheritedFontVariantCapsLonghand() {
+        const string html = "<p style=\"font-variant-caps:small-caps\"><span>Longhand</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions());
+        HtmlRenderText text = Assert.Single(Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>(),
+            item => item.Text == "LONGHAND");
+
+        Assert.Equal("LONGHAND", text.Text);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FontVariantApproximated
+            && diagnostic.Detail.Contains("font-variant-caps=small-caps", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ManagedHtmlRenderingPreservesDecorationPatternsAndScriptsAcrossDrawingSvgAndRasterFormats() {
         const string html = """
             <p style="font-family:'Aptos';font-size:20px;color:#336699;font-weight:700;font-style:italic">
@@ -229,6 +245,33 @@ public class HtmlTextFormattingConversionTests {
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
             .RequireValue();
         Assert.Equal("112233", Assert.Single(generic.Sheets).GetCellStyle(1, 1).FontColorHex);
+    }
+
+    [Fact]
+    public void ExcelHtmlImportWalksPlainAndNestedStyledTextInDomOrder() {
+        using ExcelDocument source = ExcelDocument.Create();
+        source.AddWorksheet("Text").CellAt(1, 1).SetValue("Placeholder");
+        ExcelHtmlSaveOptions options = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
+        options.HeaderMode = ExcelHtmlHeaderMode.None;
+        string html = source.ToHtml(options)
+            .Replace("data-officeimo-value=\"Placeholder\"", "data-officeimo-value=\"plain bold nested tail\"")
+            .Replace(">Placeholder</td>",
+                ">plain <span style=\"font-weight:700\">bold <span style=\"font-style:italic\">nested</span></span> tail</td>");
+        Assert.DoesNotContain(">Placeholder</td>", html, StringComparison.Ordinal);
+        Assert.Contains(">plain <span", html, StringComparison.Ordinal);
+
+        using ExcelDocument imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult()
+            .RequireValue();
+        ExcelSheet importedSheet = Assert.Single(imported.Sheets);
+        ExcelRichTextRun[] runs = importedSheet.GetRichText(1, 1).ToArray();
+
+        Assert.Equal("plain bold nested tail", string.Concat(runs.Select(run => run.Text)));
+        Assert.Contains(runs, run => run.Text == "plain " && !run.Bold && !run.Italic);
+        Assert.Contains(runs, run => run.Text == "bold " && run.Bold && !run.Italic);
+        Assert.Contains(runs, run => run.Text == "nested" && run.Bold && run.Italic);
+        Assert.Contains(runs, run => run.Text == " tail" && !run.Bold && !run.Italic);
     }
 
     [Fact]
@@ -469,6 +512,38 @@ public class HtmlTextFormattingConversionTests {
         PowerPointParagraphInline field = Assert.Single(nodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
         Assert.Equal("slidenum", field.FieldType);
         Assert.Equal("{11111111-1111-1111-1111-111111111111}", field.FieldId);
+    }
+
+    [Fact]
+    public void PowerPointSemanticHtmlRoundTripRetainsDynamicFieldTypography() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
+        paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}", run => {
+            run.Bold = true;
+            run.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
+            run.BaselinePercent = 30D;
+            run.FontName = "Aptos";
+            run.Color = "336699";
+        });
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-underline=\"WavyDouble\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-baseline-percent=\"30\"", html, StringComparison.Ordinal);
+
+        using PowerPointPresentation imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        PowerPointParagraphInline field = Assert.Single(imported.Slides.Single().TextBoxes.Single()
+            .Paragraphs.Single().InlineNodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
+        PowerPointTextRun formatting = Assert.IsType<PowerPointTextRun>(field.Run);
+
+        Assert.True(formatting.Bold);
+        Assert.Equal(PowerPointUnderlineStyle.WavyDouble, formatting.UnderlineStyle);
+        Assert.Equal(30D, formatting.BaselinePercent);
+        Assert.Equal("Aptos", formatting.FontName);
+        Assert.Equal("336699", formatting.Color);
     }
 
     [Fact]

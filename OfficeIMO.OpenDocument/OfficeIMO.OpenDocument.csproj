@@ -62,6 +62,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Converters.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.OpenDocument" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.OpenDocument" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Word.OpenDocument" />

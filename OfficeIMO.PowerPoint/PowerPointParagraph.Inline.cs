@@ -23,18 +23,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointParagraphInline(PowerPointParagraphInlineKind kind, string text,
-            string? fieldId = null, string? fieldType = null) {
+            string? fieldId = null, string? fieldType = null, PowerPointTextRun? run = null) {
             Kind = kind;
             Text = text;
             FieldId = fieldId;
             FieldType = fieldType;
+            Run = run;
         }
 
         /// <summary>Node kind.</summary>
         public PowerPointParagraphInlineKind Kind { get; }
         /// <summary>Displayed text contributed by the node; a line break contributes a newline.</summary>
         public string Text { get; }
-        /// <summary>Formatted run when <see cref="Kind"/> is <see cref="PowerPointParagraphInlineKind.Run"/>.</summary>
+        /// <summary>Formatted text properties for a normal run or dynamic field.</summary>
         public PowerPointTextRun? Run { get; }
         /// <summary>DrawingML field identifier when <see cref="Kind"/> is <see cref="PowerPointParagraphInlineKind.Field"/>.</summary>
         public string? FieldId { get; }
@@ -57,11 +58,17 @@ namespace OfficeIMO.PowerPoint {
                         result.Add(new PowerPointParagraphInline(
                             PowerPointParagraphInlineKind.LineBreak, Environment.NewLine));
                     } else if (child is A.Field textField) {
+                        var formattingRun = new A.Run();
+                        if (textField.RunProperties != null) {
+                            formattingRun.Append(textField.RunProperties.CloneNode(true));
+                        }
+                        formattingRun.Append(new A.Text(textField.Text?.Text ?? textField.InnerText ?? string.Empty));
                         result.Add(new PowerPointParagraphInline(
                             PowerPointParagraphInlineKind.Field,
                             textField.Text?.Text ?? textField.InnerText ?? string.Empty,
                             textField.Id?.Value,
-                            textField.Type?.Value));
+                            textField.Type?.Value,
+                            new PowerPointTextRun(formattingRun, _slidePart, _ownerPart)));
                     }
                 }
                 return result;
@@ -80,6 +87,12 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Adds a dynamic DrawingML field with its current displayed text.</summary>
         public PowerPointParagraph AddField(string displayText, string fieldType, string? fieldId = null) {
+            return AddField(displayText, fieldType, fieldId, configure: null);
+        }
+
+        /// <summary>Adds a formatted dynamic DrawingML field with its current displayed text.</summary>
+        public PowerPointParagraph AddField(string displayText, string fieldType, string? fieldId,
+            Action<PowerPointTextRun>? configure) {
             if (string.IsNullOrWhiteSpace(fieldType)) {
                 throw new ArgumentException("Field type cannot be empty.", nameof(fieldType));
             }
@@ -89,6 +102,13 @@ namespace OfficeIMO.PowerPoint {
                     : fieldId,
                 Type = fieldType
             };
+            if (configure != null) {
+                var formattingRun = new A.Run(new A.Text(displayText ?? string.Empty));
+                configure(new PowerPointTextRun(formattingRun, _slidePart, _ownerPart));
+                if (formattingRun.RunProperties != null) {
+                    field.PrependChild((A.RunProperties)formattingRun.RunProperties.CloneNode(true));
+                }
+            }
             A.EndParagraphRunProperties? endProps =
                 Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
             if (endProps != null) Paragraph.InsertBefore(field, endProps);

@@ -1,8 +1,32 @@
 using OfficeIMO.Drawing;
+using System.Globalization;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
+        private static void ReportAccountingUnderlineApproximations(
+            IReadOnlyList<WorksheetPdfExportPlan> plans,
+            ExcelPdfSaveOptions options) {
+            foreach (WorksheetPdfExportPlan plan in plans) {
+                ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                if (styles == null) continue;
+                int count = 0;
+                for (int row = 0; row < styles.GetLength(0); row++) {
+                    for (int column = 0; column < styles.GetLength(1); column++) {
+                        if (styles[row, column]?.UnderlineStyle is ExcelUnderlineStyle.SingleAccounting
+                            or ExcelUnderlineStyle.DoubleAccounting) count++;
+                    }
+                }
+                if (count == 0) continue;
+                AddWarning(
+                    options,
+                    plan.SheetName,
+                    "AccountingUnderlineApproximation",
+                    count.ToString(CultureInfo.InvariantCulture)
+                    + " accounting underline cell(s) use a glyph-width line in PDF output instead of Excel's cell-width accounting line.");
+            }
+        }
+
         private static IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>> CreateWorksheetImageMap(WorksheetPdfExportPlan plan) {
             if (!plan.HasTable || plan.Images.Count == 0 || plan.ExportData.CellReferences == null) {
                 return new Dictionary<string, IReadOnlyList<WorksheetImageExportData>>(StringComparer.Ordinal);

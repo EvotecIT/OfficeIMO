@@ -246,7 +246,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                     paragraph.AddField(
                         span.TextContent,
                         fieldType,
-                        span.GetAttribute("data-officeimo-powerpoint-field-id"));
+                        span.GetAttribute("data-officeimo-powerpoint-field-id"),
+                        run => ApplyTargetSemanticRun(run, span));
                 } else {
                     PptCore.PowerPointTextRun target = paragraph.AddRun(span.TextContent);
                     ApplyTargetSemanticRun(target, span);

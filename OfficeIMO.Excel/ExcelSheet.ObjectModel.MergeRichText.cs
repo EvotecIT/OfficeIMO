@@ -96,6 +96,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SetRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs) {
             if (runs == null) throw new ArgumentNullException(nameof(runs));
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                MaterializeDeferredDataSetImportIfNeeded();
+            }
             WriteLock(() => {
                 var cell = GetCell(row, column);
                 ClearCellValueMetadata(cell);

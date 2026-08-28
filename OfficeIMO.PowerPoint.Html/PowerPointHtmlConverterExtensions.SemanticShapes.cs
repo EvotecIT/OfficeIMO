@@ -49,9 +49,11 @@ public static partial class PowerPointHtmlConverterExtensions {
                             .Append(OfficeHtmlText.EscapeAttribute(node.FieldType!))
                             .Append('"');
                     }
-                    body.Append('>')
-                        .Append(OfficeHtmlText.Escape(node.Text))
-                        .Append("</span>");
+                    if (node.Run != null) AppendSemanticTextStyleAttributes(body, node.Run);
+                    body.Append('>');
+                    if (node.Run != null) AppendSemanticTextRunContent(body, node.Run);
+                    else body.Append(OfficeHtmlText.Escape(node.Text));
+                    body.Append("</span>");
                 }
             }
         }
@@ -76,6 +78,14 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendSemanticTextRun(StringBuilder body, PptCore.PowerPointTextRun run) {
+        body.Append("<span data-officeimo-powerpoint-run=\"true\"");
+        AppendSemanticTextStyleAttributes(body, run);
+        body.Append('>');
+        AppendSemanticTextRunContent(body, run);
+        body.Append("</span>");
+    }
+
+    private static void AppendSemanticTextStyleAttributes(StringBuilder body, PptCore.PowerPointTextRun run) {
         var css = new StringBuilder();
         AppendCss(css, "font-weight", run.Bold ? "700" : null);
         AppendCss(css, "font-style", run.Italic ? "italic" : null);
@@ -92,7 +102,6 @@ public static partial class PowerPointHtmlConverterExtensions {
         AppendCss(css, "font-variant", run.Capitalization == PptCore.PowerPointCapitalization.SmallCaps ? "small-caps" : null);
         AppendCss(css, "text-transform", run.Capitalization == PptCore.PowerPointCapitalization.AllCaps ? "uppercase" : null);
 
-        body.Append("<span data-officeimo-powerpoint-run=\"true\"");
         if (css.Length > 0) {
             body.Append(" style=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(css.ToString()))
@@ -133,13 +142,14 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append(OfficeHtmlText.EscapeAttribute(run.Hyperlink.ToString()))
                 .Append('"');
         }
-        body.Append('>');
+    }
+
+    private static void AppendSemanticTextRunContent(StringBuilder body, PptCore.PowerPointTextRun run) {
         AppendPowerPointDecorationStart(body, "underline", GetPowerPointUnderlineCssStyle(run.UnderlineStyle));
         AppendPowerPointDecorationStart(body, "line-through", GetPowerPointStrikeCssStyle(run.StrikeStyle));
         body.Append(OfficeHtmlText.Escape(run.Text));
         AppendPowerPointDecorationEnd(body, run.StrikeStyle.HasValue && run.StrikeStyle.Value != PptCore.PowerPointStrikeStyle.None);
         AppendPowerPointDecorationEnd(body, run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != PptCore.PowerPointUnderlineStyle.None);
-        body.Append("</span>");
     }
 
     private static string? GetPowerPointUnderlineCssStyle(PptCore.PowerPointUnderlineStyle? underline) => underline switch {
