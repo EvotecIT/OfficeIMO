@@ -30,6 +30,23 @@ public sealed class HtmlUrlPolicy {
     };
 
     /// <summary>
+    /// Creates a resource policy that accepts only HTTP and HTTPS network references.
+    /// Mail, telephone, script, file, and data URLs are rejected.
+    /// </summary>
+    public static HtmlUrlPolicy CreateWebResourceProfile() {
+        var policy = new HtmlUrlPolicy {
+            DisallowFileUrls = true,
+            AllowMailtoUrls = false,
+            AllowDataUrls = false,
+            RestrictUrlSchemes = true
+        };
+        policy.AllowedUrlSchemes.Clear();
+        policy.AllowedUrlSchemes.Add(Uri.UriSchemeHttp);
+        policy.AllowedUrlSchemes.Add(Uri.UriSchemeHttps);
+        return policy;
+    }
+
+    /// <summary>
     /// Creates an offline resource policy that accepts bounded embedded data while rejecting file and network schemes.
     /// </summary>
     public static HtmlUrlPolicy CreateEmbeddedResourceProfile() {

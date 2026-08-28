@@ -1,3 +1,4 @@
+using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 
@@ -28,11 +29,19 @@ public sealed class EmailHtmlImageDocument {
     private readonly IHtmlDocument _document;
     private readonly IElement[] _images;
     private readonly bool _preserveDocumentEnvelope;
+    private readonly string[] _leadingDocumentNodes;
+    private readonly string[] _trailingDocumentNodes;
 
-    private EmailHtmlImageDocument(IHtmlDocument document, bool preserveDocumentEnvelope) {
+    private EmailHtmlImageDocument(
+        IHtmlDocument document,
+        bool preserveDocumentEnvelope,
+        string[] leadingDocumentNodes,
+        string[] trailingDocumentNodes) {
         _document = document;
         _images = document.QuerySelectorAll("img[src]").ToArray();
         _preserveDocumentEnvelope = preserveDocumentEnvelope;
+        _leadingDocumentNodes = leadingDocumentNodes;
+        _trailingDocumentNodes = trailingDocumentNodes;
         Images = _images
             .Select((image, index) => new EmailHtmlImageReference(index, image.GetAttribute("src") ?? string.Empty))
             .ToArray();
@@ -55,8 +64,23 @@ public sealed class EmailHtmlImageDocument {
         options.ResourceUrlPolicy = compatibleResources;
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html, options);
         IHtmlDocument document = conversion.CreateDocumentForConversion();
+        IHtmlDocument sourceDocument = conversion.CreateSourceDocumentForConversion();
+        var leadingNodes = new List<string>();
+        var trailingNodes = new List<string>();
+        bool passedDocumentElement = false;
+        foreach (INode node in sourceDocument.ChildNodes) {
+            if (ReferenceEquals(node, sourceDocument.DocumentElement)) {
+                passedDocumentElement = true;
+            } else {
+                (passedDocumentElement ? trailingNodes : leadingNodes).Add(node.ToHtml());
+            }
+        }
         bool preserveEnvelope = conversion.HasExplicitDocumentEnvelope;
-        return new EmailHtmlImageDocument(document, preserveEnvelope);
+        return new EmailHtmlImageDocument(
+            document,
+            preserveEnvelope,
+            leadingNodes.ToArray(),
+            trailingNodes.ToArray());
     }
 
     /// <summary>Rewrites one image source selected by its stable document-order index.</summary>
@@ -70,8 +94,27 @@ public sealed class EmailHtmlImageDocument {
 
     /// <summary>Serializes the current DOM while retaining fragment versus document shape.</summary>
     public string ToHtml() {
-        if (_preserveDocumentEnvelope) return _document.DocumentElement?.OuterHtml ?? string.Empty;
-        return _document.Body?.InnerHtml ?? _document.DocumentElement?.InnerHtml ?? string.Empty;
+        if (_preserveDocumentEnvelope) {
+            return string.Concat(_leadingDocumentNodes) +
+                (_document.DocumentElement?.OuterHtml ?? string.Empty) +
+                string.Concat(_trailingDocumentNodes);
+        }
+
+        var output = new StringBuilder();
+        foreach (string node in _leadingDocumentNodes) output.Append(node);
+        foreach (INode node in _document.ChildNodes) {
+            if (!ReferenceEquals(node, _document.DocumentElement)) {
+                continue;
+            }
+            if (_document.Head != null) {
+                foreach (INode headNode in _document.Head.ChildNodes) output.Append(headNode.ToHtml());
+            }
+            if (_document.Body != null) {
+                foreach (INode bodyNode in _document.Body.ChildNodes) output.Append(bodyNode.ToHtml());
+            }
+        }
+        foreach (string node in _trailingDocumentNodes) output.Append(node);
+        return output.ToString();
     }
 
 }

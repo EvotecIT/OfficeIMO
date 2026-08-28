@@ -45,6 +45,32 @@ public sealed class EmailBodyProjectionTests {
         Assert.Contains("<body>", rendered, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ImageDocument_PreservesDoctypeForDocuments() {
+        EmailHtmlImageDocument document = EmailHtmlImageDocument.Parse(
+            "<!DOCTYPE html><html><head><title>Mail</title></head><body><img src='one.png'></body></html>");
+
+        document.SetImageSource(0, "cid:one.png");
+        string rendered = document.ToHtml();
+
+        Assert.StartsWith("<!DOCTYPE html>", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("src=\"cid:one.png\"", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ImageDocument_PreservesHeadAndDocumentLevelFragmentNodes() {
+        EmailHtmlImageDocument document = EmailHtmlImageDocument.Parse(
+            "<!--before--><style>.mail{color:red}</style><img class='mail' src='one.png'>");
+
+        document.SetImageSource(0, "cid:one.png");
+        string rendered = document.ToHtml();
+
+        Assert.DoesNotContain("<html", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<!--before-->", rendered, StringComparison.Ordinal);
+        Assert.Contains("<style>.mail{color:red}</style>", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("src=\"cid:one.png\"", rendered, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("<!-- <html><body>comment</body></html> --><img src='one.png'>")]
     [InlineData("<bodyguard><img src='one.png'></bodyguard>")]
@@ -56,7 +82,7 @@ public sealed class EmailBodyProjectionTests {
         document.SetImageSource(0, "cid:one.png");
         string rendered = document.ToHtml();
 
-        Assert.DoesNotContain("<html", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.False(rendered.TrimStart().StartsWith("<html", StringComparison.OrdinalIgnoreCase));
         Assert.Contains("src=\"cid:one.png\"", rendered, StringComparison.Ordinal);
     }
 
@@ -92,6 +118,108 @@ public sealed class EmailBodyProjectionTests {
         Assert.Same(cid, result.ResolveResource("images/logo.png"));
         Assert.Equal(new byte[] { 1, 2, 3 }, cid.ReadAllBytes());
         Assert.Equal(new byte[] { 1, 2, 3 }, cid.ReadAllBytes());
+    }
+
+    [Fact]
+    public void Offline_projection_rewrites_relative_content_location_before_blocking_network_urls() {
+        var document = new EmailDocument();
+        document.Body.HtmlContentLocation = "https://mail.example/messages/1/";
+        document.Body.Html = "<img src='images/logo.png'>" +
+            "<img src='https://assets.example/banner.png'>" +
+            "<img src='https://tracking.example/pixel'>";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            ContentId = "logo@example.test",
+            ContentLocation = "images/logo.png",
+            IsInline = true,
+            Content = new byte[] { 1, 2, 3 },
+            Length = 3
+        });
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "banner.png",
+            ContentType = "image/png",
+            ContentId = "banner@example.test",
+            ContentLocation = "https://assets.example/banner.png",
+            IsInline = true,
+            Content = new byte[] { 4, 5 },
+            Length = 2
+        });
+
+        EmailBodyProjectionResult result = EmailBodyProjection.Create(document);
+
+        Assert.Contains("src=\"cid:logo@example.test\"", result.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("src=\"cid:banner@example.test\"", result.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tracking.example", result.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(result.ResolveResource("cid:logo@example.test"));
+        Assert.NotNull(result.ResolveResource("cid:banner@example.test"));
+        Assert.NotNull(result.ResolveResource("https://mail.example/messages/1/images/logo.png",
+            new Uri("https://mail.example/messages/1/images/logo.png")));
+    }
+
+    [Fact]
+    public void Offline_projection_assigns_a_safe_alias_to_content_location_only_resources() {
+        var document = new EmailDocument();
+        document.Body.HtmlContentLocation = "https://mail.example/messages/1/";
+        document.Body.Html = "<img src='images/logo.png'>";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            ContentLocation = "images/logo.png",
+            IsInline = true,
+            Content = new byte[] { 1 },
+            Length = 1
+        });
+
+        EmailBodyProjectionResult result = EmailBodyProjection.Create(document);
+        string alias = Assert.Single(result.Document.CreateDocumentForConversion()
+            .QuerySelectorAll("img[src]")).GetAttribute("src")!;
+
+        Assert.StartsWith("cid:officeimo-resource-", alias, StringComparison.OrdinalIgnoreCase);
+        Assert.Same(result.Resources[0], result.ResolveResource(alias));
+    }
+
+    [Fact]
+    public void Offline_projection_rewrites_filename_only_resources_with_a_base_uri() {
+        var document = new EmailDocument();
+        document.Body.HtmlContentLocation = "https://mail.example/messages/1/";
+        document.Body.Html = "<img src='logo.png'>";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            IsInline = true,
+            Content = new byte[] { 1 },
+            Length = 1
+        });
+
+        EmailBodyProjectionResult result = EmailBodyProjection.Create(document);
+        string alias = Assert.Single(result.Document.CreateDocumentForConversion()
+            .QuerySelectorAll("img[src]")).GetAttribute("src")!;
+
+        Assert.StartsWith("cid:officeimo-resource-", alias, StringComparison.OrdinalIgnoreCase);
+        Assert.Same(result.Resources[0], result.ResolveResource(alias));
+    }
+
+    [Fact]
+    public void Consumer_resolver_policy_allows_only_web_and_embedded_resource_schemes() {
+        var document = new EmailDocument();
+        document.Body.Html = "<img id='web' src='https://cdn.example/image.png'>" +
+            "<img id='mail' src='mailto:user@example.test'><img id='phone' src='tel:+123'>" +
+            "<img id='file' src='file:///tmp/image.png'><img id='cid' src='cid:logo'>" +
+            "<img id='data' src='data:image/png;base64,AQ=='>";
+
+        EmailBodyProjectionResult result = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions {
+                RemoteResourcePolicy = EmailRemoteResourcePolicy.AllowByConsumerResolver
+            });
+        AngleSharp.Html.Dom.IHtmlDocument html = result.Document.CreateDocumentForConversion();
+
+        Assert.Equal("https://cdn.example/image.png", html.QuerySelector("#web")!.GetAttribute("src"));
+        Assert.False(html.QuerySelector("#mail")!.HasAttribute("src"));
+        Assert.False(html.QuerySelector("#phone")!.HasAttribute("src"));
+        Assert.False(html.QuerySelector("#file")!.HasAttribute("src"));
+        Assert.Equal("cid:logo", html.QuerySelector("#cid")!.GetAttribute("src"));
+        Assert.Equal("data:image/png;base64,AQ==", html.QuerySelector("#data")!.GetAttribute("src"));
     }
 
     [Fact]

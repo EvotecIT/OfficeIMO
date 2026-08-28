@@ -108,8 +108,7 @@ public sealed class EmailBodyProjectionResult {
         string value = (reference ?? resolvedUri!.OriginalString).Trim();
         if (value.StartsWith("cid:", StringComparison.OrdinalIgnoreCase)) {
             string id = Uri.UnescapeDataString(value.Substring(4)).Trim().Trim('<', '>');
-            return _resources.FirstOrDefault(resource => string.Equals(resource.ContentId, id,
-                StringComparison.OrdinalIgnoreCase));
+            return _resources.FirstOrDefault(resource => resource.MatchesContentId(id));
         }
         foreach (EmailBodyResource resource in _resources) {
             if (string.Equals(resource.ContentLocation, value, StringComparison.OrdinalIgnoreCase) ||
@@ -160,21 +159,6 @@ public static class EmailBodyProjection {
                 EmailDiagnosticSeverity.Warning, "message/body"));
         }
 
-        Uri? baseUri = effective.BaseUri ?? ResolveBaseUri(source.Body.HtmlContentLocation);
-        HtmlConversionDocumentOptions htmlOptions = effective.HtmlOptions?.Clone() ??
-            HtmlConversionDocumentOptions.CreateUntrustedProfile();
-        htmlOptions.BaseUri ??= baseUri;
-        htmlOptions.UseBodyContentsOnly = true;
-        HtmlUrlPolicy resources = effective.RemoteResourcePolicy == EmailRemoteResourcePolicy.Block
-            ? HtmlUrlPolicy.CreateEmbeddedResourceProfile()
-            : HtmlUrlPolicy.CreateWebOnlyProfile();
-        resources.AllowDataUrls = true;
-        resources.AllowedUrlSchemes.Add("data");
-        resources.AllowedUrlSchemes.Add("cid");
-        htmlOptions.ResourceUrlPolicy = resources;
-        HtmlConversionDocument sourceDocument = HtmlConversionDocument.Parse(selectedHtml, htmlOptions);
-        string safeHtml = CreateSafeEmailHtml(sourceDocument);
-        HtmlConversionDocument document = HtmlConversionDocument.Parse(safeHtml, htmlOptions);
         EmailAttachment[] resourceAttachments = effective.IncludeResources
             ? source.Attachments
                 .Where(attachment => attachment.IsInline ||
@@ -186,6 +170,29 @@ public static class EmailBodyProjection {
             throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxResourceCount",
                 resourceAttachments.Length, effective.MaxResourceCount);
         }
+
+        Uri? baseUri = effective.BaseUri ?? ResolveBaseUri(source.Body.HtmlContentLocation);
+        string[] projectionContentIds = CreateProjectionContentIds(resourceAttachments);
+        HtmlConversionDocumentOptions htmlOptions = effective.HtmlOptions?.Clone() ??
+            HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        htmlOptions.BaseUri ??= baseUri;
+        baseUri = htmlOptions.BaseUri;
+        htmlOptions.UseBodyContentsOnly = true;
+        HtmlUrlPolicy resources = HtmlUrlPolicy.CreateWebResourceProfile();
+        resources.AllowDataUrls = true;
+        resources.AllowedUrlSchemes.Add("data");
+        resources.AllowedUrlSchemes.Add("cid");
+        if (effective.RemoteResourcePolicy == EmailRemoteResourcePolicy.Block) {
+            resources.ResolvedUrlTransform = value => ResolveEmbeddedResourceUrl(
+                value,
+                baseUri,
+                resourceAttachments,
+                projectionContentIds);
+        }
+        htmlOptions.ResourceUrlPolicy = resources;
+        HtmlConversionDocument sourceDocument = HtmlConversionDocument.Parse(selectedHtml, htmlOptions);
+        string safeHtml = CreateSafeEmailHtml(sourceDocument);
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(safeHtml, htmlOptions);
         long declaredResourceBytes = 0;
         foreach (EmailAttachment attachment in resourceAttachments) {
             if (attachment.Length <= 0) continue;
@@ -197,10 +204,11 @@ public static class EmailBodyProjection {
         }
         var resourceBudget = new EmailBodyResourceBudget(effective.MaxTotalResourceBytes);
         EmailBodyResource[] projectedResources = resourceAttachments
-            .Select(attachment => new EmailBodyResource(
+            .Select((attachment, index) => new EmailBodyResource(
                 attachment,
                 effective.MaxResourceBytes,
-                resourceBudget))
+                resourceBudget,
+                projectionContentIds[index]))
             .ToArray();
         return new EmailBodyProjectionResult(sourceKind, safeHtml, source.Body.Text,
             document, projectedResources, diagnostics.AsReadOnly(), baseUri);
@@ -237,6 +245,60 @@ public static class EmailBodyProjection {
 
     private static Uri? ResolveBaseUri(string? value) =>
         Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) ? uri : null;
+
+    private static string[] CreateProjectionContentIds(IReadOnlyList<EmailAttachment> attachments) {
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (EmailAttachment attachment in attachments) {
+            string? contentId = EmailBodyResource.NormalizeContentId(attachment.ContentId);
+            if (!string.IsNullOrWhiteSpace(contentId)) used.Add(contentId!);
+        }
+
+        var aliases = new string[attachments.Count];
+        for (int index = 0; index < attachments.Count; index++) {
+            string? contentId = EmailBodyResource.NormalizeContentId(attachments[index].ContentId);
+            if (!string.IsNullOrWhiteSpace(contentId)) {
+                aliases[index] = contentId!;
+                continue;
+            }
+
+            string candidate = "officeimo-resource-" + index + "@officeimo.invalid";
+            int suffix = 1;
+            while (!used.Add(candidate)) {
+                candidate = "officeimo-resource-" + index + "-" + suffix++ + "@officeimo.invalid";
+            }
+            aliases[index] = candidate;
+        }
+        return aliases;
+    }
+
+    private static string? ResolveEmbeddedResourceUrl(
+        string value,
+        Uri? baseUri,
+        IReadOnlyList<EmailAttachment> attachments,
+        IReadOnlyList<string> projectionContentIds) {
+        if (value.StartsWith("cid:", StringComparison.OrdinalIgnoreCase) ||
+            value.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return value;
+
+        for (int index = 0; index < attachments.Count; index++) {
+            EmailAttachment attachment = attachments[index];
+            if (MatchesResourceLocation(value, attachment.ContentLocation, baseUri) ||
+                MatchesResourceLocation(value, attachment.FileName, baseUri)) {
+                return "cid:" + projectionContentIds[index];
+            }
+        }
+        return null;
+    }
+
+    private static bool MatchesResourceLocation(string candidate, string? resourceLocation, Uri? baseUri) {
+        if (string.IsNullOrWhiteSpace(resourceLocation)) return false;
+        string location = resourceLocation!.Trim();
+        if (string.Equals(candidate, location, StringComparison.OrdinalIgnoreCase)) return true;
+        if (baseUri == null ||
+            !Uri.TryCreate(baseUri, candidate, out Uri? candidateUri) ||
+            !Uri.TryCreate(baseUri, location, out Uri? resourceUri)) return false;
+        return string.Equals(candidateUri.AbsoluteUri, resourceUri.AbsoluteUri,
+            StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string CreateSafeEmailHtml(HtmlConversionDocument document) {
         AngleSharp.Html.Dom.IHtmlDocument safe = document.CreateDocumentForConversion();

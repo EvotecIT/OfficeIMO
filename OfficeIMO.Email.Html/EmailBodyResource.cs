@@ -6,14 +6,17 @@ public sealed class EmailBodyResource {
     private readonly long _maximumBytes;
     private readonly EmailBodyResourceBudget _budget;
     private readonly EmailBodyResourceLimitState _limitState;
+    private readonly string _projectionContentId;
 
     internal EmailBodyResource(
         EmailAttachment attachment,
         long maximumBytes,
-        EmailBodyResourceBudget budget) {
+        EmailBodyResourceBudget budget,
+        string projectionContentId) {
         _attachment = attachment ?? throw new ArgumentNullException(nameof(attachment));
         _maximumBytes = maximumBytes;
         _budget = budget ?? throw new ArgumentNullException(nameof(budget));
+        _projectionContentId = projectionContentId ?? throw new ArgumentNullException(nameof(projectionContentId));
         _limitState = new EmailBodyResourceLimitState(maximumBytes);
     }
 
@@ -126,12 +129,17 @@ public sealed class EmailBodyResource {
     internal static string? NormalizeContentId(string? value) => string.IsNullOrWhiteSpace(value)
         ? null
         : value!.Trim().Trim('<', '>');
+
+    internal bool MatchesContentId(string value) =>
+        string.Equals(ContentId, value, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(_projectionContentId, value, StringComparison.OrdinalIgnoreCase);
 }
 
 internal sealed class EmailBodyResourceBudget {
     private readonly object _gate = new object();
-    private readonly SemaphoreSlim _readGate = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _aggregateProbeGate = new SemaphoreSlim(1, 1);
     private readonly long _maximumBytes;
+    private TaskCompletionSource<bool> _reservationChanged = CreateReservationSignal();
     private long _consumedBytes;
     private long _reservedBytes;
     private long? _exceededActualValue;
@@ -140,30 +148,57 @@ internal sealed class EmailBodyResourceBudget {
         _maximumBytes = maximumBytes;
     }
 
-    internal int Reserve(int requestedCount) {
+    internal int Reserve(int requestedCount, CancellationToken cancellationToken) {
         if (requestedCount <= 0) return 0;
-        lock (_gate) {
-            ThrowIfExceededLocked();
-            long available = _maximumBytes - _consumedBytes - _reservedBytes;
-            if (available <= 0) return 0;
-            int reserved = (int)Math.Min(requestedCount, available);
-            _reservedBytes += reserved;
-            return reserved;
+        while (true) {
+            Task reservationChanged;
+            lock (_gate) {
+                ThrowIfExceededLocked();
+                long available = _maximumBytes - _consumedBytes - _reservedBytes;
+                if (available > 0) {
+                    int reserved = (int)Math.Min(requestedCount, available);
+                    _reservedBytes += reserved;
+                    return reserved;
+                }
+                if (_reservedBytes == 0) return 0;
+                reservationChanged = _reservationChanged.Task;
+            }
+            reservationChanged.Wait(cancellationToken);
         }
     }
 
-    internal void EnterRead(CancellationToken cancellationToken) =>
-        _readGate.Wait(cancellationToken);
+    internal async Task<int> ReserveAsync(int requestedCount, CancellationToken cancellationToken) {
+        if (requestedCount <= 0) return 0;
+        while (true) {
+            Task reservationChanged;
+            lock (_gate) {
+                ThrowIfExceededLocked();
+                long available = _maximumBytes - _consumedBytes - _reservedBytes;
+                if (available > 0) {
+                    int reserved = (int)Math.Min(requestedCount, available);
+                    _reservedBytes += reserved;
+                    return reserved;
+                }
+                if (_reservedBytes == 0) return 0;
+                reservationChanged = _reservationChanged.Task;
+            }
+            await WaitWithCancellationAsync(reservationChanged, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
-    internal Task EnterReadAsync(CancellationToken cancellationToken) =>
-        _readGate.WaitAsync(cancellationToken);
+    internal void EnterAggregateProbe(CancellationToken cancellationToken) =>
+        _aggregateProbeGate.Wait(cancellationToken);
 
-    internal void ExitRead() => _readGate.Release();
+    internal Task EnterAggregateProbeAsync(CancellationToken cancellationToken) =>
+        _aggregateProbeGate.WaitAsync(cancellationToken);
+
+    internal void ExitAggregateProbe() => _aggregateProbeGate.Release();
 
     internal void Commit(int reservedCount, int consumedCount) {
         lock (_gate) {
             _reservedBytes -= reservedCount;
             _consumedBytes += consumedCount;
+            SignalReservationChangedLocked();
         }
     }
 
@@ -171,6 +206,7 @@ internal sealed class EmailBodyResourceBudget {
         if (reservedCount <= 0) return;
         lock (_gate) {
             _reservedBytes -= reservedCount;
+            SignalReservationChangedLocked();
         }
     }
 
@@ -196,10 +232,31 @@ internal sealed class EmailBodyResourceBudget {
                 _maximumBytes);
         }
     }
+
+    private void SignalReservationChangedLocked() {
+        TaskCompletionSource<bool> signal = _reservationChanged;
+        _reservationChanged = CreateReservationSignal();
+        signal.TrySetResult(true);
+    }
+
+    private static TaskCompletionSource<bool> CreateReservationSignal() =>
+        new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private static async Task WaitWithCancellationAsync(Task operation, CancellationToken cancellationToken) {
+        if (!cancellationToken.CanBeCanceled) {
+            await operation.ConfigureAwait(false);
+            return;
+        }
+        var canceled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(() => canceled.TrySetCanceled())) {
+            await await Task.WhenAny(operation, canceled.Task).ConfigureAwait(false);
+        }
+    }
 }
 
 internal sealed class EmailBodyResourceLimitState {
     private readonly object _gate = new object();
+    private readonly SemaphoreSlim _readGate = new SemaphoreSlim(1, 1);
     private readonly long _maximumBytes;
     private long? _exceededActualValue;
 
@@ -223,6 +280,14 @@ internal sealed class EmailBodyResourceLimitState {
             }
         }
     }
+
+    internal void EnterRead(CancellationToken cancellationToken) =>
+        _readGate.Wait(cancellationToken);
+
+    internal Task EnterReadAsync(CancellationToken cancellationToken) =>
+        _readGate.WaitAsync(cancellationToken);
+
+    internal void ExitRead() => _readGate.Release();
 }
 
 internal sealed class EmailBodyResourceReadStream : Stream {
@@ -264,11 +329,12 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         ThrowIfUnavailable();
         _operationCancellationToken.ThrowIfCancellationRequested();
         if (count == 0 || _endOfStream) return 0;
-        _budget.EnterRead(_operationCancellationToken);
+        _limitState.EnterRead(_operationCancellationToken);
         try {
+            ThrowIfUnavailable();
             return ReadCore(buffer, offset, count);
         } finally {
-            _budget.ExitRead();
+            _limitState.ExitRead();
         }
     }
 
@@ -296,15 +362,16 @@ internal sealed class EmailBodyResourceReadStream : Stream {
             effectiveCancellationToken = linkedCancellation.Token;
         }
         try {
-            await _budget.EnterReadAsync(effectiveCancellationToken).ConfigureAwait(false);
+            await _limitState.EnterReadAsync(effectiveCancellationToken).ConfigureAwait(false);
             try {
+                ThrowIfUnavailable();
                 return await ReadCoreAsync(
                     buffer,
                     offset,
                     count,
                     effectiveCancellationToken).ConfigureAwait(false);
             } finally {
-                _budget.ExitRead();
+                _limitState.ExitRead();
             }
         } finally {
             linkedCancellation?.Dispose();
@@ -327,7 +394,7 @@ internal sealed class EmailBodyResourceReadStream : Stream {
     private int ReadCore(byte[] buffer, int offset, int count) {
         int allowed = GetAllowedReadCount(count);
         if (allowed == 0) return ProbeBoundary();
-        int reserved = _budget.Reserve(allowed);
+        int reserved = _budget.Reserve(allowed, _operationCancellationToken);
         if (reserved == 0) return ProbeAggregateBoundary();
         try {
             int read = _source.Read(buffer, offset, reserved);
@@ -349,7 +416,7 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         CancellationToken cancellationToken) {
         int allowed = GetAllowedReadCount(count);
         if (allowed == 0) return await ProbeBoundaryAsync(cancellationToken).ConfigureAwait(false);
-        int reserved = _budget.Reserve(allowed);
+        int reserved = await _budget.ReserveAsync(allowed, cancellationToken).ConfigureAwait(false);
         if (reserved == 0) return await ProbeAggregateBoundaryAsync(cancellationToken).ConfigureAwait(false);
         try {
             int read = await _source.ReadAsync(
@@ -372,7 +439,7 @@ internal sealed class EmailBodyResourceReadStream : Stream {
     }
 
     private int ProbeBoundary() {
-        int reserved = _budget.Reserve(1);
+        int reserved = _budget.Reserve(1, _operationCancellationToken);
         if (reserved == 0) return ProbeAggregateBoundary();
         var probe = new byte[1];
         int read;
@@ -392,7 +459,7 @@ internal sealed class EmailBodyResourceReadStream : Stream {
     }
 
     private async Task<int> ProbeBoundaryAsync(CancellationToken cancellationToken) {
-        int reserved = _budget.Reserve(1);
+        int reserved = await _budget.ReserveAsync(1, cancellationToken).ConfigureAwait(false);
         if (reserved == 0) return await ProbeAggregateBoundaryAsync(cancellationToken).ConfigureAwait(false);
         var probe = new byte[1];
         int read;
@@ -415,8 +482,10 @@ internal sealed class EmailBodyResourceReadStream : Stream {
     }
 
     private int ProbeAggregateBoundary() {
-        var probe = new byte[1];
+        _budget.EnterAggregateProbe(_operationCancellationToken);
         try {
+            _budget.ThrowIfExceeded();
+            var probe = new byte[1];
             int read = _source.Read(probe, 0, 1);
             if (read == 0) {
                 _endOfStream = true;
@@ -426,12 +495,16 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         } catch {
             _sourceFailed = true;
             throw;
+        } finally {
+            _budget.ExitAggregateProbe();
         }
     }
 
     private async Task<int> ProbeAggregateBoundaryAsync(CancellationToken cancellationToken) {
-        var probe = new byte[1];
+        await _budget.EnterAggregateProbeAsync(cancellationToken).ConfigureAwait(false);
         try {
+            _budget.ThrowIfExceeded();
+            var probe = new byte[1];
             int read = await _source.ReadAsync(probe, 0, 1, cancellationToken).ConfigureAwait(false);
             if (read == 0) {
                 _endOfStream = true;
@@ -443,6 +516,8 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         } catch {
             _sourceFailed = true;
             throw;
+        } finally {
+            _budget.ExitAggregateProbe();
         }
     }
 
