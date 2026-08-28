@@ -163,6 +163,92 @@ public sealed class EmailBodyProjectionTests {
             resource.OpenReadStreamAsync(cancellation.Token));
     }
 
+    [Fact]
+    public void Direct_reads_never_write_rejected_bytes_and_poison_an_oversized_resource() {
+        var content = new TrackingContentSource(new byte[] { 1, 2, 3, 4 });
+        EmailDocument document = CreateInlineResourceDocument(new byte[] { 0 });
+        document.Attachments[0].Content = null;
+        document.Attachments[0].ContentSource = content;
+        document.Attachments[0].Length = 0;
+        EmailBodyResource resource = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions { MaxResourceBytes = 3 }).Resources[0];
+        var buffer = new byte[] { 9, 9, 9, 9 };
+
+        using Stream source = resource.OpenReadStream();
+        Assert.Equal(3, source.Read(buffer, 0, buffer.Length));
+        Assert.Equal(new byte[] { 1, 2, 3, 9 }, buffer);
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            source.Read(buffer, 0, buffer.Length));
+        int readsAfterFailure = content.ReadCount;
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxResourceBytes", exception.LimitName);
+        Assert.Throws<EmailLimitExceededException>(() => source.Read(buffer, 0, buffer.Length));
+        Assert.Throws<EmailLimitExceededException>(() => resource.OpenReadStream());
+        Assert.Equal(readsAfterFailure, content.ReadCount);
+        source.Dispose();
+        Assert.Equal(1, content.DisposeCount);
+    }
+
+    [Fact]
+    public void Aggregate_failure_poisoning_prevents_reopening_other_resources() {
+        var firstContent = new TrackingContentSource(new byte[] { 1, 2, 3 });
+        var secondContent = new TrackingContentSource(new byte[] { 4, 5, 6 });
+        EmailDocument document = CreateInlineResourceDocument(new byte[] { 0 }, new byte[] { 0 });
+        document.Attachments[0].Content = null;
+        document.Attachments[0].ContentSource = firstContent;
+        document.Attachments[0].Length = 0;
+        document.Attachments[1].Content = null;
+        document.Attachments[1].ContentSource = secondContent;
+        document.Attachments[1].Length = 0;
+        EmailBodyProjectionResult projection = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions { MaxTotalResourceBytes = 3 });
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, projection.Resources[0].ReadAllBytes());
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            projection.Resources[1].ReadAllBytes());
+        int opensAfterFailure = secondContent.OpenCount;
+        int readsAfterFailure = secondContent.ReadCount;
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxTotalResourceBytes", exception.LimitName);
+        Assert.Throws<EmailLimitExceededException>(() => projection.Resources[1].OpenReadStream());
+        Assert.Equal(opensAfterFailure, secondContent.OpenCount);
+        Assert.Equal(readsAfterFailure, secondContent.ReadCount);
+    }
+
+    [Fact]
+    public async Task Operation_cancellation_interrupts_an_active_async_source_read() {
+        var content = new BlockingContentSource();
+        EmailDocument document = CreateInlineResourceDocument(new byte[] { 0 });
+        document.Attachments[0].Content = null;
+        document.Attachments[0].ContentSource = content;
+        document.Attachments[0].Length = 0;
+        EmailBodyResource resource = EmailBodyProjection.Create(document).Resources[0];
+        using var cancellation = new CancellationTokenSource();
+        using Stream source = await resource.OpenReadStreamAsync(cancellation.Token);
+        Task<int> read = source.ReadAsync(new byte[1], 0, 1, CancellationToken.None);
+        await content.ReadStarted;
+
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => read);
+    }
+
+    [Fact]
+    public void Resource_indexing_can_be_disabled_for_body_only_consumers() {
+        EmailDocument document = CreateInlineResourceDocument(
+            new byte[] { 1, 2 },
+            new byte[] { 3, 4 });
+
+        EmailBodyProjectionResult projection = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions {
+                IncludeResources = false,
+                MaxResourceCount = 1,
+                MaxTotalResourceBytes = 1
+            });
+
+        Assert.Empty(projection.Resources);
+    }
+
     private static EmailDocument CreateInlineResourceDocument(params byte[][] resources) {
         var document = new EmailDocument { Body = { Html = "<p>inline resources</p>" } };
         for (int index = 0; index < resources.Length; index++) {
@@ -177,5 +263,122 @@ public sealed class EmailBodyProjectionTests {
             });
         }
         return document;
+    }
+
+    private sealed class TrackingContentSource : IEmailContentSource {
+        private readonly byte[] _content;
+
+        internal TrackingContentSource(byte[] content) {
+            _content = (byte[])content.Clone();
+        }
+
+        public long? Length => null;
+        internal int OpenCount { get; private set; }
+        internal int ReadCount { get; private set; }
+        internal int DisposeCount { get; private set; }
+
+        public Stream OpenRead() {
+            OpenCount++;
+            return new TrackingReadStream(
+                _content,
+                () => ReadCount++,
+                () => DisposeCount++);
+        }
+
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
+    private sealed class TrackingReadStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly Action _onRead;
+        private readonly Action _onDispose;
+        private bool _disposed;
+
+        internal TrackingReadStream(byte[] content, Action onRead, Action onDispose) {
+            _inner = new MemoryStream(content, writable: false);
+            _onRead = onRead;
+            _onDispose = onDispose;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            _onRead();
+            return _inner.Read(buffer, offset, count);
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Read(buffer, offset, count));
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing) {
+            if (disposing && !_disposed) {
+                _disposed = true;
+                _inner.Dispose();
+                _onDispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class BlockingContentSource : IEmailContentSource {
+        private readonly TaskCompletionSource<bool> _readStarted =
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public long? Length => null;
+        internal Task ReadStarted => _readStarted.Task;
+        public Stream OpenRead() => new BlockingReadStream(_readStarted);
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
+    private sealed class BlockingReadStream : Stream {
+        private readonly TaskCompletionSource<bool> _readStarted;
+
+        internal BlockingReadStream(TaskCompletionSource<bool> readStarted) {
+            _readStarted = readStarted;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken) {
+            _readStarted.TrySetResult(true);
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return 0;
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

@@ -205,6 +205,49 @@ public sealed class HtmlEmailImageExportTests {
     }
 
     [Fact]
+    public void DisabledInlineResourcesBypassResourceInventoryLimits() {
+        var email = new EmailDocument { Subject = "Body-only image" };
+        email.Body.Html = "<p>No inline resources are needed.</p>";
+        email.Attachments.Add(CreateInlineImage("first@example"));
+        email.Attachments.Add(CreateInlineImage("second@example"));
+
+        OfficeImageExportResult result = email.ExportImage(
+            OfficeImageExportFormat.Svg,
+            new EmailImageExportOptions {
+                IncludeInlineResources = false,
+                MaxInlineResourceCount = 1,
+                MaxTotalInlineResourceBytes = 1
+            });
+
+        Assert.NotEmpty(result.Bytes);
+    }
+
+    [Fact]
+    public async Task AggregateInlineReadFailureUsesTheOperationWideDiagnostic() {
+        var email = new EmailDocument { Subject = "Aggregate inline limit" };
+        email.Body.Html = "<img src=\"cid:logo@example\" alt=\"Logo\">";
+        EmailAttachment attachment = CreateInlineImage("logo@example");
+        attachment.Length = 0;
+        email.Attachments.Add(attachment);
+
+        OfficeImageExportPolicyException exception = await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() =>
+            email.ExportImageAsync(
+                OfficeImageExportFormat.Png,
+                new EmailImageExportOptions {
+                    MaxTotalInlineResourceBytes = PixelPng.LongLength - 1L
+                }));
+
+        Assert.Contains(
+            exception.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded);
+        Assert.DoesNotContain(
+            exception.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
+    }
+
+    [Fact]
     public void EmailSyncBatchCancellationReachesRetainedResourceRead() {
         using var cancellation = new CancellationTokenSource();
         var email = new EmailDocument { Subject = "Cancelable inline image" };

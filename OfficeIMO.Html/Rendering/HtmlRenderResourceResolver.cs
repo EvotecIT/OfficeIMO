@@ -21,6 +21,14 @@ internal sealed class HtmlRenderResourceByteLimitException : Exception {
     internal long ActualBytes { get; }
 }
 
+internal sealed class HtmlRenderTotalResourceByteLimitException : Exception {
+    internal HtmlRenderTotalResourceByteLimitException(long actualBytes) {
+        ActualBytes = actualBytes;
+    }
+
+    internal long ActualBytes { get; }
+}
+
 /// <summary>
 /// Policy-approved resource request passed to an application-supplied resolver.
 /// </summary>

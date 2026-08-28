@@ -32,6 +32,8 @@ public enum EmailRemoteResourcePolicy {
 
 /// <summary>Options for the dependency-isolated email body projection.</summary>
 public sealed class EmailBodyProjectionOptions {
+    /// <summary>Controls whether inline attachment resources are indexed.</summary>
+    public bool IncludeResources { get; set; } = true;
     /// <summary>Body preference.</summary>
     public EmailBodySelectionPolicy SelectionPolicy { get; set; } = EmailBodySelectionPolicy.Richest;
     /// <summary>Remote resource policy. Network access is never performed by this package.</summary>
@@ -58,6 +60,7 @@ public sealed class EmailBodyProjectionOptions {
         if (MaxResourceCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceCount));
         if (MaxTotalResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalResourceBytes));
         return new EmailBodyProjectionOptions {
+            IncludeResources = IncludeResources,
             SelectionPolicy = SelectionPolicy,
             RemoteResourcePolicy = RemoteResourcePolicy,
             MaxResourceBytes = MaxResourceBytes,
@@ -172,11 +175,13 @@ public static class EmailBodyProjection {
         HtmlConversionDocument sourceDocument = HtmlConversionDocument.Parse(selectedHtml, htmlOptions);
         string safeHtml = CreateSafeEmailHtml(sourceDocument);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(safeHtml, htmlOptions);
-        EmailAttachment[] resourceAttachments = source.Attachments
-            .Where(attachment => attachment.IsInline ||
-                !string.IsNullOrWhiteSpace(attachment.ContentId) ||
-                !string.IsNullOrWhiteSpace(attachment.ContentLocation))
-            .ToArray();
+        EmailAttachment[] resourceAttachments = effective.IncludeResources
+            ? source.Attachments
+                .Where(attachment => attachment.IsInline ||
+                    !string.IsNullOrWhiteSpace(attachment.ContentId) ||
+                    !string.IsNullOrWhiteSpace(attachment.ContentLocation))
+                .ToArray()
+            : Array.Empty<EmailAttachment>();
         if (resourceAttachments.Length > effective.MaxResourceCount) {
             throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxResourceCount",
                 resourceAttachments.Length, effective.MaxResourceCount);

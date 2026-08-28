@@ -124,6 +124,7 @@ public static class EmailImageExportExtensions {
             options?.CloneEmail() ?? new EmailImageExportOptions();
         EmailBodyProjectionResult bodyProjection = EmailBodyProjection.Create(source,
             new EmailBodyProjectionOptions {
+                IncludeResources = effective.IncludeInlineResources,
                 SelectionPolicy = effective.PreferHtmlBody
                     ? EmailBodySelectionPolicy.Richest
                     : EmailBodySelectionPolicy.RtfFirst,
@@ -284,7 +285,7 @@ public static class EmailImageExportExtensions {
                 try {
                     bytes = attachment.ReadAllBytes(cancellationToken);
                 } catch (EmailLimitExceededException exception) {
-                    throw new HtmlRenderResourceByteLimitException(exception.ActualValue);
+                    throw MapResourceLimit(exception);
                 }
                 resource = bytes.Length > 0
                     ? new HtmlResolvedResource(
@@ -320,7 +321,7 @@ public static class EmailImageExportExtensions {
                 try {
                     bytes = await attachment.ReadAllBytesAsync(cancellationToken).ConfigureAwait(false);
                 } catch (EmailLimitExceededException exception) {
-                    throw new HtmlRenderResourceByteLimitException(exception.ActualValue);
+                    throw MapResourceLimit(exception);
                 }
                 if (bytes.Length > 0) {
                     return new HtmlResolvedResource(
@@ -338,6 +339,14 @@ public static class EmailImageExportExtensions {
                 .ConfigureAwait(false);
         };
     }
+
+    private static Exception MapResourceLimit(EmailLimitExceededException exception) =>
+        string.Equals(
+            exception.LimitName,
+            "EmailBodyProjectionOptions.MaxTotalResourceBytes",
+            StringComparison.Ordinal)
+            ? new HtmlRenderTotalResourceByteLimitException(exception.ActualValue)
+            : new HtmlRenderResourceByteLimitException(exception.ActualValue);
 
     private static OfficeImageExportDiagnostic MapBodyDiagnostic(EmailDiagnostic diagnostic) {
         string code;
