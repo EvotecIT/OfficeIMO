@@ -70,6 +70,9 @@ internal static partial class HtmlPdfRenderedConverter {
                 webFonts,
                 cancellationToken,
                 out string? shapedText);
+            if (shapingResult == null) {
+                ReportDeclinedOutlinedShaping(webFonts, visual, run);
+            }
             double advance = shapingResult == null
                 ? run.Face.Program.Measure(run.Text, visual.Font.Size)
                 : run.Face.Program.MeasureShapedText(shapedText!, shapingResult, visual.Font.Size);
@@ -325,6 +328,33 @@ internal static partial class HtmlPdfRenderedConverter {
         if (shapingResult == null) shapedText = null;
         return shapingResult;
     }
+
+    private static void ReportDeclinedOutlinedShaping(
+        RegisteredWebFonts webFonts,
+        HtmlRenderText visual,
+        OutlinedFontRun run) {
+        if (webFonts.TextShapingProvider == null
+            || run.Face.Program.ProvidesComplexTextLayout
+            || !RequiresConfiguredTextShaping(run.Text)) return;
+        string source = visual.Source ?? "html-text";
+        if (webFonts.Diagnostics.Any(diagnostic =>
+                string.Equals(diagnostic.Code, HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, StringComparison.Ordinal)
+                && string.Equals(diagnostic.Source, source, StringComparison.Ordinal))) return;
+        webFonts.Diagnostics.Add(
+            "OfficeIMO.Html.Pdf",
+            HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
+            "A complex-script outlined run required provider-owned shaping, but the configured provider declined it; scalar outlines were used.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "provider-declined",
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private static bool RequiresConfiguredTextShaping(string text) =>
+        OfficeTextElements.ContainsShapingRequiredScript(text)
+        || OfficeTextElements.ContainsVariationSelector(text)
+        || OfficeTextElements.ContainsJoiningScript(text)
+            && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text);
 
     private static double ResolveOutlinedTextX(
         double frameWidth,

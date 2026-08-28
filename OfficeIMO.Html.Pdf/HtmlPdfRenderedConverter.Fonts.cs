@@ -32,6 +32,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static RegisteredWebFonts RegisterWebFonts(
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
+        HtmlDiagnosticReport diagnostics,
         int maxOutlinedTextCharactersPerRun,
         int maxOutlinedTextPathCommands,
         IOfficeTextShapingProvider? textShapingProvider,
@@ -50,6 +51,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (byFamily.Count == 0) return new RegisteredWebFonts(
             mappings,
             faces,
+            diagnostics,
             outlineBudget,
             textShapingProvider,
             textShapingLanguage);
@@ -75,6 +77,7 @@ internal static partial class HtmlPdfRenderedConverter {
         return new RegisteredWebFonts(
             mappings,
             faces,
+            diagnostics,
             outlineBudget,
             textShapingProvider,
             textShapingLanguage);
@@ -350,11 +353,13 @@ internal static partial class HtmlPdfRenderedConverter {
         internal RegisteredWebFonts(
             IReadOnlyDictionary<string, PdfCore.PdfStandardFont> slots,
             OfficeFontFaceCollection faces,
+            HtmlDiagnosticReport diagnostics,
             OutlinedTextBudget outlineBudget,
             IOfficeTextShapingProvider? textShapingProvider,
             string? textShapingLanguage) {
             Slots = slots;
             Faces = faces;
+            Diagnostics = diagnostics;
             OutlineBudget = outlineBudget;
             TextShapingProvider = textShapingProvider;
             TextShapingLanguage = textShapingLanguage;
@@ -362,6 +367,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
         internal IReadOnlyDictionary<string, PdfCore.PdfStandardFont> Slots { get; }
         internal OfficeFontFaceCollection Faces { get; }
+        internal HtmlDiagnosticReport Diagnostics { get; }
         internal OutlinedTextBudget OutlineBudget { get; }
         internal IOfficeTextShapingProvider? TextShapingProvider { get; }
         internal string? TextShapingLanguage { get; }

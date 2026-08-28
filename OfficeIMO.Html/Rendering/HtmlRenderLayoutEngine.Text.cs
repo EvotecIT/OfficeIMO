@@ -138,7 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
-                ReportUnsupportedBidi(textNode, inheritedStyle);
+                ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
                 runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle.TextTransform), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement));
             }
 
@@ -345,20 +345,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (style.SemanticGroupRoleOverride.HasValue) run.AssignInlineSemanticGroup(style.SemanticGroupRoleOverride.Value, structureElementKey);
     }
 
-    private void ReportUnsupportedBidi(IText textNode, HtmlRenderBoxStyle style) {
+    private void ReportUnsupportedComplexTextShaping(IText textNode, HtmlRenderBoxStyle style) {
         IElement? element = textNode.ParentElement;
-        if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedBidiElements.Contains(element)) return;
-        bool joiningScript = OfficeTextElements.ContainsJoiningScript(textNode.Data)
-            && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(textNode.Data);
-        if (!joiningScript) return;
+        if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedComplexTextShapingElements.Contains(element)) return;
+        if (!RequiresConfiguredTextShaping(textNode.Data)) return;
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
             textNode.Data,
             style.Font.FamilyName,
             style.Font.Style);
         bool allUnsupportedRunsShaped = true;
         foreach (OfficeFontFallbackRun fallback in fallbackRuns) {
-            if (!OfficeTextElements.ContainsJoiningScript(fallback.Text)
-                || OfficeArabicTextShaper.CanShapeAllJoiningCharacters(fallback.Text)) continue;
+            if (!RequiresConfiguredTextShaping(fallback.Text)) continue;
             HtmlRenderBoxStyle fallbackStyle = style.Clone();
             fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(fallback.FamilyName);
             if (!TryMeasureWithConfiguredProvider(fallback.Text, fallbackStyle, out _)) {
@@ -367,15 +364,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         if (allUnsupportedRunsShaped) return;
-        _reportedBidiElements.Add(element);
+        _reportedComplexTextShapingElements.Add(element);
         _diagnostics.Add(
             ComponentName,
             HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
-            "A joining script outside the bounded core-Arabic shaper used scalar glyphs.",
+            "A complex-script run required provider-owned shaping, but no configured provider accepted it; scalar glyphs were used.",
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
-            "joining-script");
+            "provider-declined",
+            OfficeConversionLossKind.Approximation);
     }
+
+    private static bool RequiresConfiguredTextShaping(string text) =>
+        OfficeTextElements.ContainsShapingRequiredScript(text)
+        || OfficeTextElements.ContainsVariationSelector(text)
+        || OfficeTextElements.ContainsJoiningScript(text)
+            && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text);
 
     private bool TryMeasureWithConfiguredProvider(string text, HtmlRenderBoxStyle style, out double measured) {
         IOfficeTextShapingProvider? provider = _options.TextShapingProvider;

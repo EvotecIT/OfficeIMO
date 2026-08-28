@@ -175,6 +175,38 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlPdfOutlinedRunReportsProviderDeclineAfterSuccessfulLayoutShaping() {
+        const string text = "A\uFE0F";
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            FontHtml("Roboto Flex", "font/ttf", fontData, text, link: false));
+        var provider = new AcceptOnceThenDeclineTextShapingProvider();
+        var options = new HtmlPdfSaveOptions {
+            TextShapingProvider = provider,
+            TextShapingLanguage = "hi"
+        };
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
+
+        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(options);
+
+        Assert.True(provider.Requests.Count >= 2);
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
+            && warning.Details.TryGetValue("Detail", out string? detail)
+            && detail == "provider-declined");
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+
+        var strictProvider = new AcceptOnceThenDeclineTextShapingProvider();
+        options.TextShapingProvider = strictProvider;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        HtmlConversionException strict = Assert.Throws<HtmlConversionException>(() =>
+            source.ToPdfDocumentResult(options));
+        Assert.True(strictProvider.Requests.Count >= 2);
+        Assert.Contains(strict.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+    }
+
+    [Fact]
     public void HtmlPdfOutlinedTextNormalizationPreservesVisualAndDecorationOrigins() {
         HtmlPdfRenderedConverter.OutlinedTextFrame frame = HtmlPdfRenderedConverter.ResolveOutlinedTextFrame(
             visualX: 40D,
@@ -360,6 +392,18 @@ public sealed class HtmlFirstPartyFontProgramTests {
             Assert.True(face.Program.TryGetGlyphMetrics('A', out int glyphId, out int advanceWidth));
             return new OfficeTextShapingResult(new[] {
                 new OfficeShapedGlyph(glyphId, request.Text, 0, advanceWidth)
+            });
+        }
+    }
+
+    private sealed class AcceptOnceThenDeclineTextShapingProvider : IOfficeTextShapingProvider {
+        internal List<OfficeTextShapingRequest> Requests { get; } = new List<OfficeTextShapingRequest>();
+
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+            Requests.Add(request);
+            if (Requests.Count > 1) return null;
+            return new OfficeTextShapingResult(new[] {
+                new OfficeShapedGlyph(1, request.Text, 0, advanceWidth: 500)
             });
         }
     }

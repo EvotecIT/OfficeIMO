@@ -157,7 +157,7 @@ var options = new HtmlPdfSaveOptions {
 options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 ```
 
-If a configured provider declines a joining-script run, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback.
+If no configured provider accepts a run that requires provider-owned complex shaping, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback, including outlined-font output.
 
 Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That bridge adds MIME parsing and embedded-resource resolution without putting `OfficeIMO.Email` into ordinary HTML/PDF applications.
 

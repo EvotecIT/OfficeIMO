@@ -118,6 +118,7 @@ internal static partial class HtmlPdfRenderedConverter {
         RegisteredWebFonts webFonts = RegisterWebFonts(
             pdf,
             rendered,
+            diagnostics,
             options.MaxOutlinedTextCharactersPerRun,
             options.MaxOutlinedTextPathCommands,
             options.TextShapingProvider,
@@ -167,6 +168,14 @@ internal static partial class HtmlPdfRenderedConverter {
                     AddPageVisuals(canvas, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken);
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, cancellationToken);
                 }));
+        }
+
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
+            && diagnostics.Any(static diagnostic =>
+                diagnostic.LossKind != OfficeConversionLossKind.None
+                || diagnostic.Severity == HtmlDiagnosticSeverity.Warning
+                || diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
+            throw new HtmlConversionException(diagnostics);
         }
 
         cancellationToken.ThrowIfCancellationRequested();

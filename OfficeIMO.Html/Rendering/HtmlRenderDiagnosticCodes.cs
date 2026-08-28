@@ -48,7 +48,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>Legacy diagnostic retained for source compatibility; bounded bidi positioning is active.</summary>
     public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
-    /// <summary>A joining script is outside the bounded core-Arabic contextual shaper.</summary>
+    /// <summary>A complex-script run requires provider-owned shaping that no configured provider accepted.</summary>
     public const string ComplexTextShapingUnsupported = "HtmlRenderComplexTextShapingUnsupported";
     /// <summary>Legacy diagnostic retained for source compatibility; inline paint effects are rendered by the shared effect model.</summary>
     public const string InlinePaintEffectUnsupported = "HtmlRenderInlinePaintEffectUnsupported";

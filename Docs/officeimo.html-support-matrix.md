@@ -283,7 +283,7 @@ The shared projector accepts only bounded single-surface, single-semantic-sectio
 | SemanticImport | `SemanticSchemaUnsupported` | Error | The semantic source or schema version is unsupported. | Use a matching OfficeIMO adapter and supported semantic schema version. |
 | SemanticImport | `SemanticValueInvalid` | Warning | A semantic value could not be parsed safely. | Use finite, target-valid values in OfficeIMO semantic metadata. |
 | TableFidelity | `TableSpanInvalid` | Warning | An invalid or overlapping HTML table span was normalized. | Use positive, non-overlapping rowspan and colspan values. |
-| Typography | `HtmlRenderComplexTextShapingUnsupported` | Warning | A joining alphabet outside the bounded core-Arabic contextual shaper used scalar glyphs. | Configure OfficeIMO.Drawing.HarfBuzz for broader joining alphabets, bidirectional layout, and OpenType mark positioning. |
+| Typography | `HtmlRenderComplexTextShapingUnsupported` | Warning | A complex-script run required provider-owned shaping, but no configured provider accepted it. | Configure a shaping provider that supports the required script, bidirectional layout, and OpenType substitutions or positioning. |
 | Typography | `HtmlRenderFontDataUriInvalid` | Warning | A font data URI could not be decoded. | Provide a valid percent-encoded or base64 font data URI. |
 | Typography | `HtmlRenderFontFaceInvalid` | Warning | An @font-face rule has no usable family descriptor. | Provide a font-family descriptor and at least one usable src entry. |
 | Typography | `HtmlRenderFontFaceUnavailable` | Warning | No source from an @font-face rule was available. | Use an allowed data URI or resolve the external font through RenderAsync. |
