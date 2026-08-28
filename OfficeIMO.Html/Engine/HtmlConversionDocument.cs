@@ -76,7 +76,7 @@ public sealed partial class HtmlConversionDocument {
     /// Gets whether the parsed source contained an actual document envelope tag or doctype.
     /// Text in comments, escaped markup, and prefix tags such as <c>bodyguard</c> do not count.
     /// </summary>
-    public bool HasExplicitDocumentEnvelope { get; }
+    internal bool HasExplicitDocumentEnvelope { get; }
 
     /// <summary>
     /// Creates an independent policy-normalized DOM for the conversion profile's default media context.
