@@ -269,8 +269,8 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         bool supportsLegacyFastPath = text.Baseline == OfficeTextBaseline.Normal &&
-            (text.UnderlineStyle == OfficeTextDecorationStyle.None || text.UnderlineStyle == OfficeTextDecorationStyle.Single) &&
-            (text.StrikethroughStyle == OfficeTextDecorationStyle.None || text.StrikethroughStyle == OfficeTextDecorationStyle.Single);
+            text.UnderlineStyle == OfficeTextDecorationStyle.None &&
+            text.StrikethroughStyle == OfficeTextDecorationStyle.None;
         if (supportsLegacyFastPath && !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
             if (text.TextAdvanceWidth.HasValue) {
                 canvas.DrawPositionedText(

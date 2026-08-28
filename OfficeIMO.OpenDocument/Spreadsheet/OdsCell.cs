@@ -127,11 +127,17 @@ public sealed class OdsCell {
     public bool TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
         if (Formula != null || Value.Kind != OdsCellValueKind.String) return false;
         EnsureEditable();
-        OdfTextCodec.TransformTextCase(_element.Elements(OdfNamespaces.Text + "p").ToList(), textCase, culture);
-        string transformed = Text;
-        if (_element.Attribute(OdfNamespaces.Office + "string-value") != null) {
-            _element.SetAttributeValue(OdfNamespaces.Office + "string-value", transformed);
+        List<XElement> paragraphs = _element.Elements(OdfNamespaces.Text + "p").ToList();
+        XAttribute? storedValue = _element.Attribute(OdfNamespaces.Office + "string-value");
+        if (paragraphs.Count == 0 && storedValue != null) {
+            storedValue.Value = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(storedValue.Value, textCase, culture);
+            Dirty();
+            return true;
         }
+
+        OdfTextCodec.TransformTextCase(paragraphs, textCase, culture);
+        string transformed = Text;
+        if (storedValue != null) storedValue.Value = transformed;
         Dirty();
         return true;
     }

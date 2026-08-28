@@ -205,6 +205,22 @@ public sealed class OfficeRichTextFormattingTests {
         Assert.True(doublePixels > singlePixels, $"Expected a double underline to paint more pixels than a single underline ({doublePixels} <= {singlePixels}).");
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void RasterRendererPreservesTypedSingleDecorationOnPlainText(bool positioned, bool strikethrough) {
+        OfficeDrawing decorated = CreatePlainTextDrawing(positioned, strikethrough);
+        OfficeDrawing undecorated = CreatePlainTextDrawing(positioned, null);
+
+        OfficeRasterImage decoratedRaster = OfficeDrawingRasterRenderer.Render(decorated);
+        OfficeRasterImage undecoratedRaster = OfficeDrawingRasterRenderer.Render(undecorated);
+
+        Assert.False(decoratedRaster.GetPixels().SequenceEqual(undecoratedRaster.GetPixels()));
+        Assert.True(CountPaintedPixels(decoratedRaster) > 0);
+    }
+
     [Fact]
     public void RasterWavyDecorationDoesNotCollapseToASingleLine() {
         byte[] single = RenderDecoration(OfficeTextDecorationStyle.Single).GetPixels();
@@ -251,6 +267,30 @@ public sealed class OfficeRichTextFormattingTests {
             style,
             OfficeTextDecorationStyle.None);
         return image;
+    }
+
+    private static OfficeDrawing CreatePlainTextDrawing(bool positioned, bool? strikethrough) {
+        var drawing = new OfficeDrawing(180D, 50D);
+        var font = new OfficeFontInfo("Aptos", 24D, OfficeFontStyle.Regular);
+        OfficeTextDecorationStyle underlineStyle = strikethrough == false
+            ? OfficeTextDecorationStyle.Single
+            : OfficeTextDecorationStyle.None;
+        OfficeTextDecorationStyle strikethroughStyle = strikethrough == true
+            ? OfficeTextDecorationStyle.Single
+            : OfficeTextDecorationStyle.None;
+        if (positioned) {
+            return drawing.AddPositionedText(
+                "Decoration", 8D, 8D, 160D, 34D, font, OfficeColor.Black,
+                OfficeTextAlignment.Left, null, 150D,
+                underlineStyle, strikethroughStyle, OfficeTextBaseline.Normal);
+        }
+
+        return drawing.AddStyledText(
+            "Decoration", 8D, 8D, 160D, 34D, font, OfficeColor.Black,
+            OfficeTextAlignment.Left, null, OfficeTextVerticalAlignment.Top,
+            0D, null, null, false, false, false, false, false,
+            null, null, underlineStyle, strikethroughStyle,
+            OfficeTextBaseline.Normal);
     }
 
     private static void AssertMethod(string name, params Type[] parameters) =>

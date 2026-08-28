@@ -57,6 +57,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ImageExportReportsDoubleWavyUnderlineApproximationForTextBoxesAndTableCells() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(320, 140);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            PowerPointTextRun textBoxRun = slide.AddTextBoxPoints("text box", 20, 20, 130, 50).Paragraphs[0].Runs[0];
+            textBoxRun.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 170, 20, 120, 50).GetCell(0, 0);
+            cell.Text = "table cell";
+            cell.Runs[0].UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
+
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+
+            Assert.Equal(2, svg.Diagnostics.Count(diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.WavyDoubleUnderlineApproximated));
+            Assert.Equal(2, png.Diagnostics.Count(diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.WavyDoubleUnderlineApproximated));
+            Assert.Contains("text-decoration-style=\"double\"", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
         public void PowerPointSlide_DirectImageExportEnforcesRenderTimeout() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

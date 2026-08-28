@@ -23,5 +23,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Native small caps were rendered as uppercase glyphs because reduced small-cap glyph sizing is unavailable.</summary>
         public const string SmallCapsApproximated = "powerpoint-small-caps-approximated";
+
+        /// <summary>Native double-wavy underline was rendered as a double solid underline by the shared drawing model.</summary>
+        public const string WavyDoubleUnderlineApproximated = "powerpoint-wavy-double-underline-approximated";
     }
 }

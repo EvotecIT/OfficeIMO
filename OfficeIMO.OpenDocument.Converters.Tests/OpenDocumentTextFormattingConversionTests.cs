@@ -161,6 +161,25 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     }
 
     [Fact]
+    public void OdpParagraphCapitalizePreservesWordContextAcrossFormattingBoundaries() {
+        OdpPresentation odp = OdpPresentation.Create();
+        OdpParagraph paragraph = odp.AddSlide("Text")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text")
+            .AddParagraph();
+        paragraph.TextTransform = OdfTextTransform.Capitalize;
+        paragraph.AddRun("he").Bold = true;
+        paragraph.AddRun("llo world").Italic = true;
+
+        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        PowerPointParagraph converted = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single();
+
+        Assert.Equal("Hello World", converted.Text);
+        Assert.Equal(new[] { "He", "llo World" }, converted.Runs.Select(run => run.Text).ToArray());
+        Assert.True(converted.Runs[0].Bold);
+        Assert.True(converted.Runs[1].Italic);
+    }
+
+    [Fact]
     public void OdfCapitalizePreservesExistingWordCasingAcrossWordExcelAndPowerPointImports() {
         OdtDocument odt = OdtDocument.Create();
         OdtSpan odtSpan = odt.AddParagraph().AddSpan("iPhone eBOOK");

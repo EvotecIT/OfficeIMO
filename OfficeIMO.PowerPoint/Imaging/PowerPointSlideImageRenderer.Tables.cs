@@ -173,6 +173,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             AddSmallCapsApproximationDiagnosticIfNeeded(table, cell, diagnostics);
+            AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(table, cell, diagnostics);
 
             double marginLeft = mapping.MapHorizontalLength(cell.PaddingLeftPoints ?? 3.6D);
             double marginTop = mapping.MapVerticalLength(cell.PaddingTopPoints ?? 1.8D);
@@ -496,6 +497,24 @@ namespace OfficeIMO.PowerPoint {
                 OfficeImageExportDiagnosticSeverity.Warning,
                 PowerPointImageExportDiagnosticCodes.SmallCapsApproximated,
                 "Rendered native PowerPoint table-cell small caps as uppercase glyphs; reduced small-cap glyph sizing is approximated.",
+                DescribeShape(table),
+                OfficeConversionLossKind.Approximation));
+        }
+
+        private static void AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(
+            PowerPointTable table,
+            PowerPointTableCell cell,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            bool hasWavyDoubleUnderline = cell.Cell.TextBody?.Elements<A.Paragraph>()
+                .SelectMany(paragraph => paragraph.Elements<A.Run>())
+                .Select(run => new PowerPointTextRun(run))
+                .Any(run => run.UnderlineStyle == PowerPointUnderlineStyle.WavyDouble && !string.IsNullOrEmpty(run.Text)) == true;
+            if (!hasWavyDoubleUnderline) return;
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.WavyDoubleUnderlineApproximated,
+                "Rendered native PowerPoint table-cell double-wavy underline as a double solid underline because the shared Drawing model cannot represent the compound pattern.",
                 DescribeShape(table),
                 OfficeConversionLossKind.Approximation));
         }

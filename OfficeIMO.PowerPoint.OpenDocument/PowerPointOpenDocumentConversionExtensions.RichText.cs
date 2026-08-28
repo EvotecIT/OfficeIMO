@@ -124,6 +124,18 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             IReadOnlyList<OdpInlineNode> inlineNodes = sourceParagraph.InlineNodes;
             IReadOnlyList<PowerPointTextRun> existingRuns = targetParagraph.Runs;
             bool useExistingRun = existingRuns.Count > 0;
+            var capitalizeRunGroup = new List<PowerPointTextRun>();
+
+            void FlushCapitalizeRunGroup() {
+                if (capitalizeRunGroup.Count == 0) return;
+                IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(
+                    capitalizeRunGroup.Select(run => run.Text).ToList(),
+                    OfficeTextCase.Capitalize);
+                for (int runIndex = 0; runIndex < capitalizeRunGroup.Count; runIndex++) {
+                    capitalizeRunGroup[runIndex].Text = transformed[runIndex];
+                }
+                capitalizeRunGroup.Clear();
+            }
 
             PowerPointTextRun AddInlineRun(string text) {
                 PowerPointTextRun result = useExistingRun
@@ -155,9 +167,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     : targetParagraph.AddRun(string.Empty);
                 unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                if (options.IncludeBasicFormatting && sourceParagraph.TextTransform == OdfTextTransform.Capitalize) {
+                    capitalizeRunGroup.Add(run);
+                }
             } else {
                 foreach (OdpInlineNode node in inlineNodes) {
                     IReadOnlyList<PowerPointTextRun> targetRuns = AddInlineRuns(node.Text);
+                    OdfTextTransform? effectiveTransform = node.Kind switch {
+                        OdpInlineNodeKind.Run => node.Run!.TextTransform ?? sourceParagraph.TextTransform,
+                        OdpInlineNodeKind.Hyperlink => node.Hyperlink!.TextTransform ?? sourceParagraph.TextTransform,
+                        _ => sourceParagraph.TextTransform
+                    };
                     if (node.Kind == OdpInlineNodeKind.Run) {
                         foreach (PowerPointTextRun targetRun in targetRuns) {
                             unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, options,
@@ -196,9 +216,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         }
                         if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
                     }
+                    if (options.IncludeBasicFormatting && effectiveTransform == OdfTextTransform.Capitalize) {
+                        if (node.Text.IndexOfAny(new[] { '\r', '\n' }) >= 0) {
+                            FlushCapitalizeRunGroup();
+                            foreach (PowerPointTextRun targetRun in targetRuns) {
+                                capitalizeRunGroup.Add(targetRun);
+                                FlushCapitalizeRunGroup();
+                            }
+                        } else {
+                            capitalizeRunGroup.AddRange(targetRuns);
+                        }
+                    } else {
+                        FlushCapitalizeRunGroup();
+                    }
                     textRuns += targetRuns.Count;
                 }
             }
+            FlushCapitalizeRunGroup();
             if (!options.IncludeBasicFormatting && HasBasicFormatting(sourceParagraph)) skippedBasicFormatting++;
             paragraphs++;
         }
@@ -336,7 +370,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 ? PowerPointCapitalization.SmallCaps
                 : PowerPointCapitalization.None;
         if (transform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase);
-        else if (transform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize);
     }
 
     private static PowerPointUnderlineStyle? MapOdfUnderline(
