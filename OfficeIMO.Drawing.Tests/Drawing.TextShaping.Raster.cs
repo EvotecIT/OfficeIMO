@@ -290,6 +290,24 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void ManagedFallbackReportsIncompleteFallbackForZeroWidthJoinerSequence() {
+        const string sequence = "\U0001F469\u200D\U0001F4BB";
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont(0x1F469, 0x1F4BB);
+        OfficeManagedTextFallback fallback = OfficeManagedTextShaper.Resolve(sequence, OfficeTrueTypeFont.TryLoad(fontData)!);
+        OfficeTextShapingResult? managedResult = OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest(
+                sequence,
+                ManagedTextShapingTestAssets.FamilyName,
+                fontData,
+                isOpenTypeCff: false,
+                unitsPerEm: 1000));
+
+        Assert.True(OfficeManagedTextShaper.RequiresComplexLayout(sequence));
+        Assert.True(fallback.Incomplete);
+        Assert.Null(managedResult);
+    }
+
+    [Fact]
     public void RasterCanvas_ReportsOneManagedFallbackApproximation() {
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         var fonts = new OfficeFontFaceCollection().Add(

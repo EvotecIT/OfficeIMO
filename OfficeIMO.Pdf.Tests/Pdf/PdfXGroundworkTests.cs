@@ -621,6 +621,37 @@ public class PdfXGroundworkTests {
         Assert.Equal(1, evidence.DeviceRgbImageCount);
     }
 
+    [Fact]
+    public void PrintProductionInspectorAcceptsStructurallyValidReachableShading() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Sh1 sh",
+            resources: "/Shading << /Sh1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceCMYK /Coords [0 0 100 0] " +
+                "/Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >> >>\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(1, evidence.DeviceCmykShadingCount);
+    }
+
+    [Theory]
+    [InlineData("/ColorSpace /DeviceCMYK /Coords [0 0 100 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>")]
+    [InlineData("/ShadingType 2 /ColorSpace /DeviceCMYK /Coords [0 0 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>")]
+    [InlineData("/ShadingType 2 /ColorSpace /DeviceCMYK /Coords [0 0 100 0]")]
+    public void PrintProductionInspectorFailsClosedOnMalformedReachableShading(string shadingEntries) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Sh1 sh",
+            resources: "/Shading << /Sh1 5 0 R >>",
+            extraObjects: "5 0 obj\n<< " + shadingEntries + " >>\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Theory]
     [InlineData("BI /W 1 /H 1 /BPC 8 ID A EI", false)]
     [InlineData("BI /W 1 /H 1 /IM true /BPC 1 ID A EI", true)]

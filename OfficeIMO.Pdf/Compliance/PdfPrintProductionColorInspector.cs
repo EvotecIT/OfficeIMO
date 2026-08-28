@@ -196,14 +196,26 @@ internal static partial class PdfPrintProductionColorInspector {
                     maximumObjectDepth,
                     maximumDecodedStreamBytes,
                     context.Aliases);
-                hasUnknownContext |= !usage.IsKnown;
+                hasUnknownContext |= !usage.IsKnown ||
+                    !IsStructurallyInspectableShading(
+                        context,
+                        usage.ComponentCount,
+                        objects,
+                        maximumObjectDepth,
+                        maximumDecodedStreamBytes);
                 usesRgb |= usage.UsesDeviceRgb;
                 usesCmyk |= usage.UsesDeviceCmyk;
                 usesDeviceIndependentColor |= usage.UsesDeviceIndependent;
             }
             if (!hasContext) {
                 ColorSpaceUsage usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, maximumDecodedStreamBytes);
-                hasUnknownContext = !usage.IsKnown;
+                hasUnknownContext = !usage.IsKnown ||
+                    !IsStructurallyInspectableShading(
+                        new ShadingContext(shading, null, new ColorSpaceAliases()),
+                        usage.ComponentCount,
+                        objects,
+                        maximumObjectDepth,
+                        maximumDecodedStreamBytes);
                 usesRgb = usage.UsesDeviceRgb;
                 usesCmyk = usage.UsesDeviceCmyk;
                 usesDeviceIndependentColor = usage.UsesDeviceIndependent;
@@ -1287,5 +1299,5 @@ internal static partial class PdfPrintProductionColorInspector {
 
     private sealed record ImageContext(PdfDictionary Dictionary, ColorSpaceAliases Aliases);
 
-    private sealed record ShadingContext(PdfDictionary Dictionary, ColorSpaceAliases Aliases);
+    private sealed record ShadingContext(PdfDictionary Dictionary, PdfStream? Stream, ColorSpaceAliases Aliases);
 }

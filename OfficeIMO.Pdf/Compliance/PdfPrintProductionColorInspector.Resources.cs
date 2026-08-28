@@ -63,11 +63,14 @@ internal static partial class PdfPrintProductionColorInspector {
             _ => null
         };
         if (shading == null) return false;
+        PdfStream? shadingStream = resolved as PdfStream;
         for (int index = 0; index < shadings.Count; index++) {
             ShadingContext existing = shadings[index];
-            if (ReferenceEquals(existing.Dictionary, shading) && existing.Aliases.SetEquals(aliases)) return true;
+            if (ReferenceEquals(existing.Dictionary, shading) &&
+                ReferenceEquals(existing.Stream, shadingStream) &&
+                existing.Aliases.SetEquals(aliases)) return true;
         }
-        shadings.Add(new ShadingContext(shading, aliases));
+        shadings.Add(new ShadingContext(shading, shadingStream, aliases));
         return true;
     }
 

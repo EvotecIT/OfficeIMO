@@ -109,6 +109,15 @@ public static class OfficeTextElements {
         return false;
     }
 
+    internal static bool ContainsZeroWidthJoinerSequence(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalar = ReadScalar(value, ref index);
+            if (scalar == 0x200D && index < value.Length) return true;
+        }
+        return false;
+    }
+
     /// <summary>
     /// Determines whether a scalar is a shaping or directional control that does not require a
     /// standalone glyph during font fallback coverage checks.

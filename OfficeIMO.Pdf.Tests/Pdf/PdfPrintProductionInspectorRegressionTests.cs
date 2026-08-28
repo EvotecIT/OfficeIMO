@@ -290,7 +290,8 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             resources:
                 "/ColorSpace << /DefaultRGB [/ICCBased 6 0 R] >> " +
                 "/XObject << /Im1 5 0 R >> " +
-                "/Shading << /S1 << /ShadingType 2 /ColorSpace /DeviceRGB >> >>",
+                "/Shading << /S1 << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 10 0] " +
+                "/Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >> >> >>",
             extraObjects:
                 "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
                 "/BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n" +

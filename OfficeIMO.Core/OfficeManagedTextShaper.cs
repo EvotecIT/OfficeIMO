@@ -18,6 +18,7 @@ internal static class OfficeManagedTextShaper {
         bool incomplete =
             OfficeTextElements.ContainsShapingRequiredScript(text) ||
             OfficeTextElements.ContainsVariationSelector(text) ||
+            OfficeTextElements.ContainsZeroWidthJoinerSequence(text) ||
             (OfficeTextElements.ContainsJoiningScript(text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text));
         string contextual = OfficeArabicTextShaper.Shape(text);
@@ -43,7 +44,8 @@ internal static class OfficeManagedTextShaper {
         OfficeTextElements.ContainsJoiningScript(text) ||
         OfficeTextElements.ContainsShapingRequiredScript(text) ||
         OfficeTextElements.ContainsBidiControl(text) ||
-        OfficeTextElements.ContainsVariationSelector(text);
+        OfficeTextElements.ContainsVariationSelector(text) ||
+        OfficeTextElements.ContainsZeroWidthJoinerSequence(text);
 
     internal static string ToVisualOrder(
         string? value,

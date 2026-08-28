@@ -19,7 +19,9 @@ public static class HtmlPdfPreviewComposer {
 
         foreach (IElement meta in document.QuerySelectorAll("meta[http-equiv]").ToArray()) {
             string directive = meta.GetAttribute("http-equiv") ?? string.Empty;
-            if (preview || string.Equals(directive, "Content-Security-Policy", StringComparison.OrdinalIgnoreCase)) {
+            if (preview ||
+                string.Equals(directive, "Content-Security-Policy", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(directive, "Refresh", StringComparison.OrdinalIgnoreCase)) {
                 meta.Remove();
             }
         }

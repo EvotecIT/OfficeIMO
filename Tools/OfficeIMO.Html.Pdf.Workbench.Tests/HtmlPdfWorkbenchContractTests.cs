@@ -43,12 +43,40 @@ public sealed class HtmlPdfWorkbenchContractTests {
         Assert.DoesNotContain("Content-Security-Policy", restrictedCapture, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("p{color:green}", restrictedCapture, StringComparison.Ordinal);
 
+        string navigatingCapture = HtmlPdfPreviewComposer.ComposeForCapture(
+            "<meta http-equiv=\"refresh\" content=\"0;url=https://example.com\"><meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\"><p>Capture</p>",
+            string.Empty);
+        Assert.DoesNotContain("http-equiv=\"refresh\"", navigatingCapture, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("http-equiv=\"Content-Type\"", navigatingCapture, StringComparison.OrdinalIgnoreCase);
+
         string localizedCapture = HtmlPdfPreviewComposer.ComposeForCapture(
             "<!doctype html><html lang=\"en\"><body>Capture</body></html>",
             string.Empty,
             "pl-PL");
         Assert.Contains("lang=\"pl-PL\"", localizedCapture, StringComparison.Ordinal);
         Assert.DoesNotContain("lang=\"en\"", localizedCapture, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EditorSnapshotSynchronizationReadsHtmlAndCssTogether() {
+        int htmlReads = 0;
+        int cssReads = 0;
+
+        (string html, string css) = await HtmlPdfEditorSnapshotSynchronizer.ReadBothAsync(
+            _ => {
+                htmlReads++;
+                return Task.FromResult("<p>latest</p>");
+            },
+            _ => {
+                cssReads++;
+                return Task.FromResult("p{color:green}");
+            },
+            CancellationToken.None);
+
+        Assert.Equal("<p>latest</p>", html);
+        Assert.Equal("p{color:green}", css);
+        Assert.Equal(1, htmlReads);
+        Assert.Equal(1, cssReads);
     }
 
     [Fact]

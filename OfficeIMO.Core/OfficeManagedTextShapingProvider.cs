@@ -28,6 +28,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
             OfficeTextElements.ContainsVariationSelector(request.Text) ||
+            OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text))) {
