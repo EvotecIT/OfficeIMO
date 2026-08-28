@@ -50,6 +50,17 @@ public static partial class HtmlPowerPointConverterExtensions {
                 : null;
             semanticTextIndex++;
         }
+        HtmlSemanticBlock[] semanticTableBlocks = semanticSection?.Blocks
+            .Where(block => block.Kind == HtmlSemanticBlockKind.Table)
+            .ToArray() ?? Array.Empty<HtmlSemanticBlock>();
+        int semanticTableIndex = 0;
+        foreach (PowerPointSemanticImportItem item in items.OrderBy(item => item.FallbackOrder)) {
+            if (item.Kind != PowerPointSemanticImportKind.Table) continue;
+            item.SemanticBlock = semanticTableIndex < semanticTableBlocks.Length
+                ? semanticTableBlocks[semanticTableIndex]
+                : null;
+            semanticTableIndex++;
+        }
         foreach (PowerPointSemanticImportItem item in items
             .OrderBy(item => item.LayerIndex ?? item.FallbackOrder)
             .ThenBy(item => item.FallbackOrder)) {
@@ -58,7 +69,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     contentTop = ImportSemanticTextBox(item.Element, item.SemanticBlock, slide, contentTop, result, budget);
                     break;
                 case PowerPointSemanticImportKind.Table:
-                    contentTop = ImportTable(item.Element, slide, contentTop, result, budget);
+                    contentTop = ImportTable(item.Element, slide, contentTop, result, budget, item.SemanticBlock);
                     break;
                 case PowerPointSemanticImportKind.Picture:
                     ImportPicture(item.Element, slide, result, budget, ref pictureTop);
@@ -152,11 +163,46 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static bool TryApplyTargetSemanticRuns(PptCore.PowerPointTextBox textBox, IElement source) {
-        var paragraphs = new List<List<TargetSemanticInline>> { new List<TargetSemanticInline>() };
+        if (!TryReadTargetSemanticInlines(source, allowLegacyParagraphBreaks: true, out List<List<TargetSemanticInline>> paragraphs)) {
+            return false;
+        }
+
+        string paragraphText = string.Join("\n", paragraphs.Select(items =>
+            string.Concat(items.Where(item => !item.IsLineBreak).Select(item => item.Text))));
+        textBox.Text = paragraphText;
+        return ApplyTargetSemanticInlines(textBox.Paragraphs, paragraphs);
+    }
+
+    private static bool TryApplyTargetSemanticRuns(PptCore.PowerPointTableCell cell, IElement source) {
+        IElement[] inlineElements = source.Children
+            .Where(element => IsElement(element, "span") || IsElement(element, "br"))
+            .ToArray();
+        if (inlineElements.Length == 0
+            || inlineElements.Any(element => IsElement(element, "span")
+                ? !string.Equals(element.GetAttribute("data-officeimo-powerpoint-run"), "true", StringComparison.OrdinalIgnoreCase)
+                  && !string.Equals(element.GetAttribute("data-officeimo-powerpoint-field"), "true", StringComparison.OrdinalIgnoreCase)
+                : !element.HasAttribute("data-officeimo-powerpoint-paragraph-break")
+                  && !element.HasAttribute("data-officeimo-powerpoint-inline-break"))) {
+            return false;
+        }
+        if (!TryReadTargetSemanticInlines(source, allowLegacyParagraphBreaks: false, out List<List<TargetSemanticInline>> paragraphs)) {
+            return false;
+        }
+
+        cell.SetParagraphs(paragraphs.Select(items =>
+            string.Concat(items.Where(item => !item.IsLineBreak).Select(item => item.Text))));
+        return ApplyTargetSemanticInlines(cell.Paragraphs, paragraphs);
+    }
+
+    private static bool TryReadTargetSemanticInlines(
+        IElement source,
+        bool allowLegacyParagraphBreaks,
+        out List<List<TargetSemanticInline>> paragraphs) {
+        paragraphs = new List<List<TargetSemanticInline>> { new List<TargetSemanticInline>() };
         bool hasExplicitBreakMarkers = source.Children.Any(element => IsElement(element, "br")
             && (element.HasAttribute("data-officeimo-powerpoint-paragraph-break")
                 || element.HasAttribute("data-officeimo-powerpoint-inline-break")));
-        bool legacyTargetBreaksAreParagraphs = !hasExplicitBreakMarkers
+        bool legacyTargetBreaksAreParagraphs = allowLegacyParagraphBreaks && !hasExplicitBreakMarkers
             && string.Equals(source.GetAttribute("data-officeimo-layer-kind"), "text", StringComparison.OrdinalIgnoreCase)
             && source.Children.Where(element => !IsElement(element, "br")).All(element => IsElement(element, "span"));
         foreach (INode child in source.ChildNodes) {
@@ -176,11 +222,12 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         string projected = string.Join("\n", paragraphs.Select(items => string.Concat(items.Select(item => item.Text))));
         if (!string.Equals(projected, ReadTextWithBreaks(source), StringComparison.Ordinal)) return false;
+        return true;
+    }
 
-        string paragraphText = string.Join("\n", paragraphs.Select(items =>
-            string.Concat(items.Where(item => !item.IsLineBreak).Select(item => item.Text))));
-        textBox.Text = paragraphText;
-        IReadOnlyList<PptCore.PowerPointParagraph> targetParagraphs = textBox.Paragraphs;
+    private static bool ApplyTargetSemanticInlines(
+        IReadOnlyList<PptCore.PowerPointParagraph> targetParagraphs,
+        IReadOnlyList<List<TargetSemanticInline>> paragraphs) {
         if (targetParagraphs.Count != paragraphs.Count) return false;
         int paragraphCount = paragraphs.Count;
         for (int paragraphIndex = 0; paragraphIndex < paragraphCount; paragraphIndex++) {
@@ -240,6 +287,13 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (TryGetTargetCss(css, "color", out string color)) {
             string normalized = NormalizeSemanticColor(color);
             if (normalized.Length > 0) target.Color = normalized;
+        }
+        string language = source.GetAttribute("data-officeimo-powerpoint-language") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(language)) target.Language = language;
+        string hyperlink = source.GetAttribute("data-officeimo-powerpoint-hyperlink") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(hyperlink)
+            && Uri.TryCreate(hyperlink, UriKind.RelativeOrAbsolute, out Uri? targetUri)) {
+            target.Hyperlink = targetUri;
         }
     }
 

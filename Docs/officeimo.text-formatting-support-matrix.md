@@ -57,16 +57,16 @@ Text formatting is verified at the reusable owner and at multi-hop boundaries. T
 | --- | --- |
 | Word ↔ HTML | Native family, size, color, bold, italic, highlight, underline variants, single/double strike, scripts, and native caps metadata where representable |
 | Excel ↔ HTML | Cell and rich-run family, size, color, bold, italic, accounting/single/double underline metadata, strike, and scripts |
-| PowerPoint ↔ HTML | Per-run family, size, color, bold, italic, DrawingML underline/strike variants, capitalization, and baseline percentage metadata |
-| OneNote ↔ HTML | Native family, size, foreground/highlight colors, bold, italic, underline, strike, and scripts; OneNote has Boolean rather than patterned decorations |
+| PowerPoint ↔ HTML | Per-run family, size, color, bold, italic, DrawingML underline/strike variants, capitalization, baseline percentage, language, and hyperlinks in text boxes and table cells; generic nested table-cell HTML keeps its computed inline semantics |
+| OneNote ↔ HTML | Native family, size, alpha-bearing foreground/highlight and table-shading colors, bold, italic, underline, strike, and scripts; OneNote has Boolean rather than patterned decorations |
 | Word ↔ RTF and RTF ↔ HTML | Native RTF character formatting and supported decoration variants, scripts, caps, family, size, and color |
 | Word ↔ ODT, Excel ↔ ODS, PowerPoint ↔ ODP | Exact native mappings where available, with explicit approximation or omission diagnostics for target gaps |
-| Word/Excel/PowerPoint/HTML/RTF/Markdown/AsciiDoc/LaTeX/OneNote/ODT/ODS/ODP/MHTML/Visio → PDF | Fixed-layout style projection through the owning native or semantic adapter and shared PDF text model |
+| Word/Excel/PowerPoint/HTML/RTF/Markdown/AsciiDoc/LaTeX/OneNote/ODT/ODS/ODP/MHTML/Visio → PDF | Fixed-layout style projection through the owning native or semantic adapter and shared PDF text model; PowerPoint table runs and fields resolve paragraph, list, `otherStyle`, theme font/color, language, and casing defaults before projection |
 | PDF → Word/Excel/PowerPoint/HTML/RTF/ODT/ODS/ODP | Bounded editable or semantic reconstruction; visual fidelity and recoverable text properties depend on PDF content |
 | Word/Excel/PowerPoint/HTML/OneNote/Visio/email/EPUB/ODT/ODS/ODP/PDF → image | All five shared formats: PNG, SVG, JPEG, TIFF, and WebP; visual style retention, not editable typography |
 | Word ↔ Google Docs | Native family, size, color, bold, italic, single underline/strike, highlight, small caps, superscript, and subscript; all-caps is materialized and richer Word variants are diagnosed or handled by Drive fallback |
 | Excel ↔ Google Sheets | Native cell and rich-run family, size, color, bold, italic, single underline, and strike; the Sheets API has no script, casing, or underline-variant fields |
-| PowerPoint ↔ Google Slides | Native per-run family, size, color, bold, italic, single underline/strike, small caps, superscript, and subscript; all-caps is materialized and richer DrawingML variants use their closest supported appearance |
+| PowerPoint ↔ Google Slides | Native per-run family, size, color, bold, italic, single underline/strike, small caps, superscript, and subscript; all-caps is materialized with run-language casing, richer DrawingML variants use their closest supported appearance, and checkpoints fingerprint every run boundary and synchronized style |
 | ADF ↔ Markdown/HTML and Confluence bodies | Strong, emphasis, strike, underline, subscript, and superscript survive the supported syntax pipeline; ADF text/background colors and richer marks without a portable Markdown equivalent remain diagnosed limitations |
 | OfficeIMO Markup → Word/Excel/PowerPoint | Block- or target-range family, size, color/highlight, bold, italic, underline variants, strike, scripts, case transforms, and small caps where the destination has a native representation; Excel additionally accepts accounting underline variants |
 | CSV ↔ Excel | Values and records only. CSV/TSV has no font, decoration, script, case-metadata, formula, drawing, layout, or multi-sheet model, so typography is intentionally not a portable contract |

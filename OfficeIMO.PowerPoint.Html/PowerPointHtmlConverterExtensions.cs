@@ -707,7 +707,13 @@ public static partial class PowerPointHtmlConverterExtensions {
                     body.Append(" colspan=\"").Append(columns.ToString(CultureInfo.InvariantCulture)).Append('"');
                 }
 
-                body.Append('>').Append(OfficeHtmlText.Escape(NormalizeText(cell.Text))).Append("</td>");
+                body.Append('>');
+                if (includeShapeMetadata && RequiresSemanticTableCellContent(cell)) {
+                    AppendSemanticParagraphContent(body, cell.Paragraphs);
+                } else {
+                    body.Append(OfficeHtmlText.Escape(NormalizeText(cell.Text)));
+                }
+                body.Append("</td>");
             }
 
             body.Append("</tr>");

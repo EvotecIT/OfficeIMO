@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.PowerPoint;
 
@@ -66,10 +67,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         PowerPointAutoShape autoShape when autoShape.ShapeType.HasValue => ((DocumentFormat.OpenXml.IEnumValue)autoShape.ShapeType.Value.ToOpenXml()).Value,
                         _ => string.Empty,
                     };
-                    PowerPointTextRun? firstRun = (shape as PowerPointTextBox)?.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
-                    string textStyle = firstRun == null
-                        ? string.Empty
-                        : $"{firstRun.Bold}|{firstRun.Italic}|{firstRun.Underline}|{firstRun.StrikeStyle}|{firstRun.Capitalization}|{firstRun.BaselinePercent}|{firstRun.FontSizePoints}|{firstRun.FontName}|{firstRun.Color}|{firstRun.Hyperlink?.AbsoluteUri}";
+                    string textStyle = TextStyleFingerprint(shape);
                     string picture = shape is PowerPointPicture image
                         ? $"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}"
                         : string.Empty;
@@ -79,6 +77,33 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }
             return result;
+        }
+        private static string TextStyleFingerprint(PowerPointShape shape) {
+            if (shape is not PowerPointTextBox textBox) return string.Empty;
+            var result = new StringBuilder();
+            AppendFingerprintValue(result, textBox.Paragraphs.Count);
+            foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
+                AppendFingerprintValue(result, paragraph.Runs.Count);
+                foreach (PowerPointTextRun run in paragraph.Runs) {
+                    AppendFingerprintValue(result, run.Text);
+                    AppendFingerprintValue(result, run.Bold);
+                    AppendFingerprintValue(result, run.Italic);
+                    AppendFingerprintValue(result, run.UnderlineStyle);
+                    AppendFingerprintValue(result, run.StrikeStyle);
+                    AppendFingerprintValue(result, run.Capitalization);
+                    AppendFingerprintValue(result, run.BaselinePercent);
+                    AppendFingerprintValue(result, run.FontSizePoints);
+                    AppendFingerprintValue(result, run.FontName);
+                    AppendFingerprintValue(result, run.Color);
+                    AppendFingerprintValue(result, run.Hyperlink?.AbsoluteUri);
+                    AppendFingerprintValue(result, run.Language);
+                }
+            }
+            return result.ToString();
+        }
+        private static void AppendFingerprintValue(StringBuilder target, object? value) {
+            string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            target.Append(text.Length).Append(':').Append(text).Append('|');
         }
         private static string BackgroundFingerprint(PowerPointSlideBackground background) => background.Kind switch {
             PowerPointSlideBackgroundKind.Image => $"{background.Kind}|{Hash(background.ImageBytes ?? Array.Empty<byte>())}|{background.ImageContentType}|{background.ImageCropLeft}|{background.ImageCropTop}|{background.ImageCropRight}|{background.ImageCropBottom}",

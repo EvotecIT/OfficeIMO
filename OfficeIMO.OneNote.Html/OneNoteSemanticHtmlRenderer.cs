@@ -291,7 +291,13 @@ internal static class OneNoteSemanticHtmlRenderer {
     private static string Text(string? value) => WebUtility.HtmlEncode(OneNoteTextProjection.Normalize(value));
     private static string Attribute(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
     private static string CssString(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ");
-    private static string Color(uint argb) => "#" + (argb & 0x00FFFFFFU).ToString("X6", CultureInfo.InvariantCulture);
+    private static string Color(uint argb) {
+        string rgb = (argb & 0x00FFFFFFU).ToString("X6", CultureInfo.InvariantCulture);
+        byte alpha = (byte)(argb >> 24);
+        return alpha == 255
+            ? "#" + rgb
+            : "#" + rgb + alpha.ToString("X2", CultureInfo.InvariantCulture);
+    }
 
     private static string EncodeUrl(string? value) {
         if (string.IsNullOrEmpty(value)) return string.Empty;

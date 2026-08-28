@@ -148,6 +148,58 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void OneNoteSemanticHtmlRoundTripPreservesArgbAlpha() {
+        var section = new OneNoteSection { Name = "Alpha" };
+        var page = new OneNotePage { Title = "Page" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun {
+            Text = "Styled",
+            Style = {
+                ColorArgb = 0x80336699U,
+                HighlightColorArgb = 0x40FFF2CCU
+            }
+        });
+        paragraph.Runs.Add(new OneNoteTextRun {
+            Text = "Transparent",
+            Style = { ColorArgb = 0x00336699U }
+        });
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        var cell = new OneNoteTableCell { ShadingColorArgb = 0xA0112233U };
+        cell.Content.Add(new OneNoteParagraph { Runs = { new OneNoteTextRun { Text = "Cell" } } });
+        row.Cells.Add(cell);
+        table.Rows.Add(row);
+        page.DirectContent.Add(paragraph);
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+        Assert.Contains("#33669980", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#FFF2CC40", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#112233A0", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#33669900", html, StringComparison.OrdinalIgnoreCase);
+
+        OneNoteSection imported = HtmlConversionDocument.Parse(
+                html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToOneNoteSectionResult()
+            .RequireValue();
+        OneNoteOutline outline = Assert.Single(Assert.Single(imported.Pages).Outlines);
+        OneNoteTextRun run = Assert.Single(
+            outline.Children.OfType<OneNoteParagraph>().SelectMany(item => item.Runs),
+            item => item.Text == "Styled");
+        OneNoteTableCell importedCell = Assert.Single(Assert.Single(
+            outline.Children.OfType<OneNoteTable>().Single().Rows).Cells);
+
+        Assert.Equal(0x80336699U, run.Style.ColorArgb);
+        Assert.Equal(0x40FFF2CCU, run.Style.HighlightColorArgb);
+        OneNoteTextRun transparent = Assert.Single(
+            outline.Children.OfType<OneNoteParagraph>().SelectMany(item => item.Runs),
+            item => item.Text == "Transparent");
+        Assert.Equal(0x00336699U, transparent.Style.ColorArgb);
+        Assert.Equal(0xA0112233U, importedCell.ShadingColorArgb);
+    }
+
+    [Fact]
     public void OneNoteHtmlExportClosesParagraphBeforeRenderingChildBlocks() {
         var section = new OneNoteSection { Name = "Structure" };
         var page = new OneNotePage { Title = "Page" };

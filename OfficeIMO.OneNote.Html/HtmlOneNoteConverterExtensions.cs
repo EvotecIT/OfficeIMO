@@ -277,6 +277,9 @@ public static class HtmlOneNoteConverterExtensions {
                     break;
                 }
                 var cell = new OneNoteTableCell();
+                if (TryParseArgb(cellElement.Style?.GetValue("background-color"), out uint shading)) {
+                    cell.ShadingColorArgb = shading;
+                }
                 OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, result, budget);
                 if (paragraph != null) cell.Content.Add(paragraph);
                 if (options.ImportImages) {

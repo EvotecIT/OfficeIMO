@@ -985,6 +985,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DiffPlanner_HashesEveryTextRunBoundaryAndSynchronizedStyle() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointParagraph paragraph = presentation.AddSlide()
+                .AddTextBox("First")
+                .Paragraphs.Single();
+            PowerPointTextRun second = paragraph.AddRun("Second");
+            string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            second.Capitalization = PowerPointCapitalization.SmallCaps;
+            second.BaselinePercent = 30D;
+            string styled = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            Assert.NotEqual(baseline, styled);
+        }
+
+        [Fact]
         public async Task DiffPlanner_ReportsDriveVersionChanges() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             presentation.AddSlide().AddTextBox("Same");

@@ -847,7 +847,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static PdfCore.PdfTextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
-        string text = ApplyPowerPointDisplayCase(run.Text ?? string.Empty, run.Capitalization, options, slideNumber);
+        string text = ApplyPowerPointDisplayCase(run.Text ?? string.Empty, run.Capitalization, run.Language, options, slideNumber);
         PdfCore.PdfColor? color = ParsePdfColor(run.Color ?? textBox.Color);
         string? fontFamily = run.FontName ?? ResolveTextBoxFontFamily(textBox, options);
         PdfCore.PdfStandardFont? font = MapFont(fontFamily);
@@ -876,7 +876,12 @@ public static partial class PowerPointPdfConverterExtensions {
             strikeStyle: MapPowerPointStrike(run.StrikeStyle));
     }
 
-    private static string ApplyPowerPointDisplayCase(string text, PptCore.PowerPointCapitalization? capitalization, PowerPointPdfSaveOptions options, int slideNumber) {
+    private static string ApplyPowerPointDisplayCase(
+        string text,
+        PptCore.PowerPointCapitalization? capitalization,
+        string? language,
+        PowerPointPdfSaveOptions options,
+        int slideNumber) {
         if (capitalization is not (PptCore.PowerPointCapitalization.AllCaps or PptCore.PowerPointCapitalization.SmallCaps)) {
             return text;
         }
@@ -885,7 +890,16 @@ public static partial class PowerPointPdfConverterExtensions {
             AddWarning(options, slideNumber, "small-caps-approximation", "Rendered PowerPoint small caps as uppercase because PDF text runs do not provide native small-cap glyph substitution.");
         }
 
-        return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
+        return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, ResolvePowerPointRunCulture(language));
+    }
+
+    private static CultureInfo ResolvePowerPointRunCulture(string? language) {
+        if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
+        try {
+            return CultureInfo.GetCultureInfo(language);
+        } catch (CultureNotFoundException) {
+            return CultureInfo.InvariantCulture;
+        }
     }
 
     private static OfficeTextDecorationStyle MapPowerPointUnderline(PptCore.PowerPointUnderlineStyle? style) => style switch {

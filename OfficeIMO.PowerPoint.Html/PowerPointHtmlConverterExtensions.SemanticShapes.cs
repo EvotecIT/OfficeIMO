@@ -19,37 +19,60 @@ public static partial class PowerPointHtmlConverterExtensions {
                 body.Append("<p");
                 AppendSemanticShapeAttributes(body, textBox, "text");
                 body.Append('>');
-                for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
-                    if (paragraphIndex > 0) body.Append("<br data-officeimo-powerpoint-paragraph-break=\"true\">");
-                    PptCore.PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-                    foreach (PptCore.PowerPointParagraphInline node in paragraph.InlineNodes) {
-                        if (node.Kind == PptCore.PowerPointParagraphInlineKind.Run && node.Run != null) {
-                            AppendSemanticTextRun(body, node.Run);
-                        } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.LineBreak) {
-                            body.Append("<br data-officeimo-powerpoint-inline-break=\"true\">");
-                        } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.Field) {
-                            body.Append("<span data-officeimo-powerpoint-field=\"true\"");
-                            if (!string.IsNullOrWhiteSpace(node.FieldId)) {
-                                body.Append(" data-officeimo-powerpoint-field-id=\"")
-                                    .Append(OfficeHtmlText.EscapeAttribute(node.FieldId!))
-                                    .Append('"');
-                            }
-                            if (!string.IsNullOrWhiteSpace(node.FieldType)) {
-                                body.Append(" data-officeimo-powerpoint-field-type=\"")
-                                    .Append(OfficeHtmlText.EscapeAttribute(node.FieldType!))
-                                    .Append('"');
-                            }
-                            body.Append('>')
-                                .Append(OfficeHtmlText.Escape(node.Text))
-                                .Append("</span>");
-                        }
-                    }
-                }
+                AppendSemanticParagraphContent(body, paragraphs);
                 body.Append("</p>");
             } else if (shape is PptCore.PowerPointTable table && options.IncludeTables) {
                 AppendTable(body, table, includeShapeMetadata: true);
             }
         }
+    }
+
+    private static void AppendSemanticParagraphContent(
+        StringBuilder body,
+        IReadOnlyList<PptCore.PowerPointParagraph> paragraphs) {
+        for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
+            if (paragraphIndex > 0) body.Append("<br data-officeimo-powerpoint-paragraph-break=\"true\">");
+            foreach (PptCore.PowerPointParagraphInline node in paragraphs[paragraphIndex].InlineNodes) {
+                if (node.Kind == PptCore.PowerPointParagraphInlineKind.Run && node.Run != null) {
+                    AppendSemanticTextRun(body, node.Run);
+                } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.LineBreak) {
+                    body.Append("<br data-officeimo-powerpoint-inline-break=\"true\">");
+                } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.Field) {
+                    body.Append("<span data-officeimo-powerpoint-field=\"true\"");
+                    if (!string.IsNullOrWhiteSpace(node.FieldId)) {
+                        body.Append(" data-officeimo-powerpoint-field-id=\"")
+                            .Append(OfficeHtmlText.EscapeAttribute(node.FieldId!))
+                            .Append('"');
+                    }
+                    if (!string.IsNullOrWhiteSpace(node.FieldType)) {
+                        body.Append(" data-officeimo-powerpoint-field-type=\"")
+                            .Append(OfficeHtmlText.EscapeAttribute(node.FieldType!))
+                            .Append('"');
+                    }
+                    body.Append('>')
+                        .Append(OfficeHtmlText.Escape(node.Text))
+                        .Append("</span>");
+                }
+            }
+        }
+    }
+
+    private static bool RequiresSemanticTableCellContent(PptCore.PowerPointTableCell cell) {
+        IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = cell.Paragraphs;
+        if (paragraphs.Count != 1) return true;
+        IReadOnlyList<PptCore.PowerPointParagraphInline> nodes = paragraphs[0].InlineNodes;
+        if (nodes.Count != 1 || nodes[0].Kind != PptCore.PowerPointParagraphInlineKind.Run || nodes[0].Run == null) {
+            return true;
+        }
+
+        PptCore.PowerPointTextRun run = nodes[0].Run!;
+        return run.Bold || run.Italic || run.UnderlineStyle.HasValue || run.StrikeStyle.HasValue
+            || run.Capitalization.HasValue || run.BaselinePercent.HasValue
+            || run.FontSizePoints.HasValue || !string.IsNullOrWhiteSpace(run.FontName)
+            || !string.IsNullOrWhiteSpace(run.Color)
+            || !string.IsNullOrWhiteSpace(run.Language)
+               && !string.Equals(run.Language, PptCore.PowerPointTableTextDefaults.Language, StringComparison.OrdinalIgnoreCase)
+            || run.Hyperlink != null;
     }
 
     private static void AppendSemanticTextRun(StringBuilder body, PptCore.PowerPointTextRun run) {
@@ -69,7 +92,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         AppendCss(css, "font-variant", run.Capitalization == PptCore.PowerPointCapitalization.SmallCaps ? "small-caps" : null);
         AppendCss(css, "text-transform", run.Capitalization == PptCore.PowerPointCapitalization.AllCaps ? "uppercase" : null);
 
-        body.Append("<span");
+        body.Append("<span data-officeimo-powerpoint-run=\"true\"");
         if (css.Length > 0) {
             body.Append(" style=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(css.ToString()))
@@ -98,6 +121,16 @@ public static partial class PowerPointHtmlConverterExtensions {
         if (!string.IsNullOrWhiteSpace(run.FontName)) {
             body.Append(" data-officeimo-powerpoint-font-family=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(run.FontName!))
+                .Append('"');
+        }
+        if (!string.IsNullOrWhiteSpace(run.Language)) {
+            body.Append(" data-officeimo-powerpoint-language=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(run.Language!))
+                .Append('"');
+        }
+        if (run.Hyperlink != null) {
+            body.Append(" data-officeimo-powerpoint-hyperlink=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(run.Hyperlink.ToString()))
                 .Append('"');
         }
         body.Append('>');

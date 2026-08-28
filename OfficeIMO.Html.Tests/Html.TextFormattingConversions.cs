@@ -277,6 +277,104 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void PowerPointSemanticHtmlRoundTripRetainsTableCellRunTypography() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTableCell cell = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60).GetCell(0, 0);
+        cell.Text = "First";
+        PowerPointParagraph paragraph = Assert.Single(cell.Paragraphs);
+        PowerPointTextRun first = Assert.Single(paragraph.Runs);
+        first.Bold = true;
+        first.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
+        first.Capitalization = PowerPointCapitalization.SmallCaps;
+        first.Language = "pl-PL";
+        PowerPointTextRun second = paragraph.AddRun("Second");
+        second.Italic = true;
+        second.StrikeStyle = PowerPointStrikeStyle.Double;
+        second.BaselinePercent = -25D;
+        second.FontName = "Aptos";
+        second.Color = "336699";
+        second.Hyperlink = new Uri("https://example.com/styled", UriKind.Absolute);
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        Assert.Contains("data-officeimo-layer-kind=\"table\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-underline=\"WavyDouble\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-strike=\"Double\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-run=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-language=\"pl-PL\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-hyperlink=\"https://example.com/styled\"", html, StringComparison.Ordinal);
+
+        HtmlConversionDocument prepared = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile());
+        HtmlSemanticTableCell semanticCell = Assert.Single(Assert.Single(Assert.Single(
+            prepared.CreateSemanticDocumentForConversion(HtmlCssMediaContext.Screen)
+                .Sections.SelectMany(section => section.Blocks),
+            block => block.Table != null).Table!.Rows).Cells);
+        Assert.Equal(2, semanticCell.Runs.Count);
+
+        using PowerPointPresentation imported = prepared
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        PowerPointTextRun[] runs = imported.Slides.Single().Tables.Single().GetCell(0, 0)
+            .Paragraphs.Single().Runs.ToArray();
+
+        Assert.Equal(2, runs.Length);
+        Assert.True(runs[0].Bold);
+        Assert.Equal(PowerPointUnderlineStyle.WavyDouble, runs[0].UnderlineStyle);
+        Assert.Equal(PowerPointCapitalization.SmallCaps, runs[0].Capitalization);
+        Assert.Equal("pl-PL", runs[0].Language);
+        Assert.True(runs[1].Italic);
+        Assert.Equal(PowerPointStrikeStyle.Double, runs[1].StrikeStyle);
+        Assert.Equal(-25D, runs[1].BaselinePercent);
+        Assert.Equal("Aptos", runs[1].FontName);
+        Assert.Equal("336699", runs[1].Color);
+        Assert.Equal(new Uri("https://example.com/styled", UriKind.Absolute), runs[1].Hyperlink);
+    }
+
+    [Fact]
+    public void GenericPowerPointTableHtmlKeepsInheritedAndNestedInlineFormatting() {
+        const string html = """
+            <section class="officeimo-slide" data-officeimo-slide="1">
+              <table><tr><td style="color:#336699">
+                <span><strong>Bold</strong></span> <span><a href="https://example.com/linked">linked</a></span>
+              </td></tr></table>
+            </section>
+            """;
+
+        using PowerPointPresentation imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        PowerPointTextRun[] runs = imported.Slides.Single().Tables.Single().GetCell(0, 0)
+            .Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
+
+        Assert.Contains(runs, run => run.Text.Contains("Bold", StringComparison.Ordinal)
+            && run.Bold && run.Color == "336699");
+        Assert.Contains(runs, run => run.Text.Contains("linked", StringComparison.Ordinal)
+            && run.Color == "336699"
+            && run.Hyperlink == new Uri("https://example.com/linked", UriKind.Absolute));
+    }
+
+    [Fact]
+    public void PowerPointSemanticHtmlRetainsLanguageOnAnOtherwisePlainTableRun() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextRun authored = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60)
+            .GetCell(0, 0).Paragraphs.Single().Runs.Single();
+        authored.Text = "Polski";
+        authored.Language = "pl-PL";
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        Assert.Contains("data-officeimo-powerpoint-language=\"pl-PL\"", html, StringComparison.Ordinal);
+
+        using PowerPointPresentation imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        PowerPointTextRun actual = imported.Slides.Single().Tables.Single().GetCell(0, 0)
+            .Paragraphs.Single().Runs.Single();
+        Assert.Equal("pl-PL", actual.Language);
+    }
+
+    [Fact]
     public void PowerPointSemanticHtmlRoundTripRecreatesDynamicFieldsInAuthoredOrder() {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();

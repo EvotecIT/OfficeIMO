@@ -354,8 +354,22 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
-            foreach (A.Run run in paragraph.Elements<A.Run>()) {
-                RegisterPresentationFontCandidate(ReadRunFontName(run.RunProperties), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+            foreach (DocumentFormat.OpenXml.OpenXmlElement child in paragraph.ChildElements) {
+                A.TextCharacterPropertiesType? directProperties = child switch {
+                    A.Run run => run.RunProperties,
+                    A.Field field => field.RunProperties,
+                    _ => null
+                };
+                if (child is not A.Run && child is not A.Field) continue;
+                IReadOnlyList<A.TextCharacterPropertiesType> sources =
+                    ResolveTableTextPropertySources(cell, paragraph, directProperties);
+                RegisterPresentationFontCandidate(
+                    ReadRunFontName(cell, sources) ?? cell.FontName,
+                    pdfOptions,
+                    registeredFamilies,
+                    registeredFontSlots,
+                    options,
+                    slideNumber);
             }
         }
     }
