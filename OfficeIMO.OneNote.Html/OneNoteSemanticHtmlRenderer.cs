@@ -119,18 +119,14 @@ internal static class OneNoteSemanticHtmlRenderer {
         OneNoteElement[] items = elements.ToArray();
         for (int index = 0; index < items.Length;) {
             if (items[index] is OneNoteParagraph paragraph && paragraph.List != null) {
-                bool ordered = paragraph.List.Ordered;
-                int level = paragraph.List.Level;
                 var group = new List<OneNoteParagraph>();
                 while (index < items.Length
                        && items[index] is OneNoteParagraph candidate
-                       && candidate.List != null
-                       && candidate.List.Ordered == ordered
-                       && candidate.List.Level == level) {
+                       && candidate.List != null) {
                     group.Add(candidate);
                     index++;
                 }
-                AppendList(html, group, options, depth);
+                AppendListHierarchy(html, group, options, depth);
                 continue;
             }
             AppendElement(html, items[index], options, depth);
@@ -152,6 +148,46 @@ internal static class OneNoteSemanticHtmlRenderer {
             html.Append("<li>");
             foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
             AppendElements(html, paragraph.Children, options, depth + 1);
+            html.Append("</li>");
+        }
+        html.Append("</").Append(tag).Append('>');
+    }
+
+    private static void AppendListHierarchy(
+        StringBuilder html,
+        IReadOnlyList<OneNoteParagraph> paragraphs,
+        OneNoteMarkdownOptions options,
+        int depth) {
+        int index = 0;
+        while (index < paragraphs.Count) {
+            AppendListLevel(html, paragraphs, ref index, paragraphs[index].List!.Level, options, depth);
+        }
+    }
+
+    private static void AppendListLevel(
+        StringBuilder html,
+        IReadOnlyList<OneNoteParagraph> paragraphs,
+        ref int index,
+        int level,
+        OneNoteMarkdownOptions options,
+        int depth) {
+        OneNoteListInfo first = paragraphs[index].List!;
+        string tag = first.Ordered ? "ol" : "ul";
+        html.Append('<').Append(tag).Append(" data-level=\"")
+            .Append(level.ToString(CultureInfo.InvariantCulture)).Append("\">");
+        while (index < paragraphs.Count) {
+            OneNoteParagraph paragraph = paragraphs[index];
+            OneNoteListInfo list = paragraph.List!;
+            if (list.Level != level || list.Ordered != first.Ordered) break;
+
+            html.Append("<li>");
+            foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
+            AppendElements(html, paragraph.Children, options, depth + 1);
+            index++;
+            while (index < paragraphs.Count && paragraphs[index].List!.Level > level) {
+                int childLevel = paragraphs[index].List!.Level;
+                AppendListLevel(html, paragraphs, ref index, childLevel, options, depth + 1);
+            }
             html.Append("</li>");
         }
         html.Append("</").Append(tag).Append('>');

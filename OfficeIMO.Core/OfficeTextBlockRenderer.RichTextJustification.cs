@@ -119,6 +119,9 @@ public static partial class OfficeTextBlockRenderer {
         double cursor = left;
         for (int i = 0; i < tokens.Count; i++) {
             RichTextRenderToken token = tokens[i];
+            double renderedFontSize = ResolveRichTextRenderedFontSize(token.Segment);
+            double renderedBaseline = ResolveRichTextRenderedBaseline(token.Segment, baseline);
+            double segmentTop = renderedBaseline - (renderedFontSize * 0.84D);
             if (token.IsWhitespace) {
                 double whitespaceWidth = token.Width;
                 if (hasWordBefore && HasWordAfter(tokens, i + 1)) {
@@ -129,7 +132,7 @@ public static partial class OfficeTextBlockRenderer {
                     canvas,
                     token.Segment,
                     cursor,
-                    baseline - (token.Segment.FontSize * 0.84D),
+                    segmentTop,
                     whitespaceWidth,
                     rotationDegrees,
                     rotationCenterX,
@@ -144,9 +147,6 @@ public static partial class OfficeTextBlockRenderer {
                 continue;
             }
 
-            double renderedFontSize = ResolveRichTextRenderedFontSize(token.Segment);
-            double renderedBaseline = ResolveRichTextRenderedBaseline(token.Segment, baseline);
-            double segmentTop = renderedBaseline - (renderedFontSize * 0.84D);
             DrawRasterRichTextSegmentTokenBackground(
                 canvas,
                 token.Segment,

@@ -33,6 +33,7 @@ The Word, RTF, PowerPoint, OpenDocument, OneNote, and Visio rows describe typed 
 | SVG | Emits font, fill, weight, style, reduced script size, and baseline shift. Underline and strikethrough patterns are emitted independently when they differ, so neither decoration style is collapsed. |
 | Raster (`PNG`, `JPEG`, `TIFF`, `WebP`) | Draws shared decoration patterns and script baselines through the common raster canvas, including rotation and mirroring. These are the dependency-free export formats exposed by Word, Excel, PowerPoint, and Visio. |
 | PDF | Draws shared decoration patterns as PDF graphics operators and includes double/wavy extents in page-text bounds |
+| Word SVG/image export | Materializes native all-caps display text across body, table, text-box, header, footer, and pagination paths. Small caps use a diagnosed uppercase approximation because the shared image renderer does not vary lowercase glyph sizes within a run. |
 | OneNote image/PDF export | Projects native OneNote run styles into shared Drawing, including native strike and script flags |
 | Visio SVG/image export | Projects native Visio underline, strike, script, case, and small-cap semantics. Raster small caps use an uppercase approximation because the dependency-free raster font path has no small-cap glyph substitution. |
 

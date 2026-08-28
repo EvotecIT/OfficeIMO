@@ -122,6 +122,32 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void OneNoteHtmlExportNestsConsecutiveListLevelsUnderTheirParentItem() {
+        var section = new OneNoteSection { Name = "Nested lists" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach ((string text, int level, bool ordered) in new[] {
+            ("Parent", 0, false),
+            ("Child one", 1, true),
+            ("Child two", 1, true),
+            ("Sibling", 0, false)
+        }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = ordered, Level = level }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+
+        Assert.Contains(
+            "<ul data-level=\"0\"><li>Parent<ol data-level=\"1\"><li>Child one</li><li>Child two</li></ol></li><li>Sibling</li></ul>",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OneNoteHtmlExportClosesParagraphBeforeRenderingChildBlocks() {
         var section = new OneNoteSection { Name = "Structure" };
         var page = new OneNotePage { Title = "Page" };

@@ -68,6 +68,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_ImageExportMaterializesCapsAndDiagnosesSmallCapsApproximation() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.AddParagraph("mixed case").SetCapsStyle(WordCapsStyle.Caps);
+            document.AddParagraph("small caps").SetCapsStyle(WordCapsStyle.SmallCaps);
+            WordTable table = document.AddTable(1, 1);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "table caps";
+            table.Rows[0].Cells[0].Paragraphs[0].SetCapsStyle(WordCapsStyle.Caps);
+            WordTextBox textBox = document.AddParagraph().AddTextBox("placeholder", WordImageTextWrapping.InLineWithText);
+            Paragraph textBoxParagraph = textBox.Content!.GetFirstChild<Paragraph>()!;
+            textBoxParagraph.RemoveAllChildren<Run>();
+            textBoxParagraph.Append(CreateWordTextBoxRun("box small caps", "111827", smallCaps: true));
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg);
+
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "MIXED CASE");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "SMALL CAPS");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "TABLE CAPS");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "BOX SMALL CAPS");
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == WordImageExportDiagnosticCodes.LimitedSmallCaps &&
+                diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+            Assert.Contains(svg.Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.LimitedSmallCaps);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("MIXED CASE", svgText, StringComparison.Ordinal);
+            Assert.Contains("SMALL CAPS", svgText, StringComparison.Ordinal);
+            Assert.Contains("TABLE CAPS", svgText, StringComparison.Ordinal);
+            Assert.Contains("BOX SMALL CAPS", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordDocument_ToImageFluentExportsFirstPagePng() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -6351,7 +6383,7 @@ namespace OfficeIMO.Tests {
             bytes[offset + 1] = (byte)(value >> 8);
         }
 
-        private static Run CreateWordTextBoxRun(string text, string hexColor, bool bold = false, bool italic = false, bool underline = false) {
+        private static Run CreateWordTextBoxRun(string text, string hexColor, bool bold = false, bool italic = false, bool underline = false, bool smallCaps = false) {
             var properties = new RunProperties(
                 new RunFonts { Ascii = "Aptos", HighAnsi = "Aptos" },
                 new FontSize { Val = "22" },
@@ -6366,6 +6398,10 @@ namespace OfficeIMO.Tests {
 
             if (underline) {
                 properties.Append(new Underline { Val = UnderlineValues.Single });
+            }
+
+            if (smallCaps) {
+                properties.Append(new SmallCaps());
             }
 
             return new Run(properties, new Text(text) { Space = SpaceProcessingModeValues.Preserve });

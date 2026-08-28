@@ -40,7 +40,7 @@ namespace OfficeIMO.Word {
                         wrapText: false);
                 }
 
-                string text = ResolveImageExportText(paragraph, context);
+                string text = ResolveImageExportText(paragraph, context, diagnostics);
                 context.Drawing.AddText(
                     text,
                     textLayout.TextLeft,

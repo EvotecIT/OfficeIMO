@@ -123,7 +123,7 @@ public static partial class OfficeTextLayoutEngine {
             elements = FitStackedRichTextRuns(elements, width, height, lineFactor, minimumFontSize, measure);
         }
 
-        double maxFontSize = ResolveMaxRichTextFontSize(elements);
+        double maxFontSize = ResolveMaxRichTextEffectiveFontSize(elements);
         double resolvedLineHeight = Math.Max(1D, Math.Ceiling(maxFontSize * lineFactor));
         List<OfficeRichTextLine> lines = CreateStackedRichTextLines(elements, measure, resolvedLineHeight);
         return ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
@@ -231,7 +231,7 @@ public static partial class OfficeTextLayoutEngine {
         double maxHeight,
         double lineHeightFactor,
         Func<string?, double, string?, double> measure) {
-        double fontSize = ResolveMaxRichTextFontSize(elements);
+        double fontSize = ResolveMaxRichTextEffectiveFontSize(elements);
         double lineHeight = Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
         if (elements.Count * lineHeight > maxHeight) {
             return false;
@@ -239,12 +239,21 @@ public static partial class OfficeTextLayoutEngine {
 
         for (int i = 0; i < elements.Count; i++) {
             OfficeRichTextRun run = elements[i];
-            if (Measure(run.Text, run.FontSize, run.FontFamily, measure) > maxWidth) {
+            if (Measure(run.Text, run.EffectiveFontSize, run.FontFamily, measure) > maxWidth) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private static double ResolveMaxRichTextEffectiveFontSize(IReadOnlyList<OfficeRichTextRun> elements) {
+        double fontSize = 1D;
+        for (int i = 0; i < elements.Count; i++) {
+            fontSize = Math.Max(fontSize, elements[i].EffectiveFontSize);
+        }
+
+        return fontSize;
     }
 
     private static List<OfficeRichTextLine> CreateStackedRichTextLines(IReadOnlyList<OfficeRichTextRun> elements, Func<string?, double, string?, double> measure, double lineHeight) {

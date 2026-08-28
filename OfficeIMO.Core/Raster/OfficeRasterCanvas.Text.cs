@@ -86,6 +86,22 @@ public sealed partial class OfficeRasterCanvas {
         double textAdvanceWidth) =>
         DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth);
 
+    internal void DrawPositionedText(
+        string? text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeColor color,
+        double fontSize,
+        OfficeTextAlignment alignment,
+        OfficeFontStyle style,
+        string? fontFamily,
+        double textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle) =>
+        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle);
+
     private void DrawTextCore(
         string? text,
         double x,
@@ -98,7 +114,9 @@ public sealed partial class OfficeRasterCanvas {
         OfficeFontStyle style,
         string? fontFamily,
         OfficeTextOverflowBehavior overflowBehavior,
-        double? textAdvanceWidth) {
+        double? textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) {
             return;
         }
@@ -124,7 +142,9 @@ public sealed partial class OfficeRasterCanvas {
             style,
             fontFamily,
             overflowBehavior,
-            textAdvanceWidth)) {
+            textAdvanceWidth,
+            underlineStyle,
+            strikethroughStyle)) {
             return;
         }
         OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
@@ -165,14 +185,28 @@ public sealed partial class OfficeRasterCanvas {
                 FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
 
-            if ((style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline) {
+            OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
+                ? underlineStyle
+                : (style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
+                    ? OfficeTextDecorationStyle.Single
+                    : OfficeTextDecorationStyle.None;
+            OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
+                ? strikethroughStyle
+                : (style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
+                    ? OfficeTextDecorationStyle.Single
+                    : OfficeTextDecorationStyle.None;
+            if (resolvedUnderlineStyle == OfficeTextDecorationStyle.Single) {
                 double underlineY = top + (font.LineHeight(size) * 0.86D);
                 DrawLine(textX, underlineY, textX + resolvedAdvance, underlineY, color, Math.Max(1D, size / 16D));
+            } else if (resolvedUnderlineStyle != OfficeTextDecorationStyle.None) {
+                DrawTextLineDecorations(textX, resolvedAdvance, top, font.LineHeight(size), color, 0D, 0D, 0D, resolvedUnderlineStyle, OfficeTextDecorationStyle.None, false, false);
             }
 
-            if ((style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough) {
+            if (resolvedStrikethroughStyle == OfficeTextDecorationStyle.Single) {
                 double strikeY = top + (font.LineHeight(size) * 0.52D);
                 DrawLine(textX, strikeY, textX + resolvedAdvance, strikeY, color, Math.Max(1D, size / 16D));
+            } else if (resolvedStrikethroughStyle != OfficeTextDecorationStyle.None) {
+                DrawTextLineDecorations(textX, resolvedAdvance, top, font.LineHeight(size), color, 0D, 0D, 0D, OfficeTextDecorationStyle.None, resolvedStrikethroughStyle, false, false);
             }
             return;
         }

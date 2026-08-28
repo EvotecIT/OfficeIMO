@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -6,16 +7,63 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
-        private static string ResolveImageExportText(WordParagraph paragraph, WordImageFlowContext? context) {
+        private static string ResolveImageExportText(
+            WordParagraph paragraph,
+            WordImageFlowContext? context,
+            List<OfficeImageExportDiagnostic>? diagnostics = null) {
+            string text;
             if (context != null && TryResolvePageFieldText(paragraph, context, out string? fieldText)) {
-                return fieldText ?? string.Empty;
+                text = fieldText ?? string.Empty;
+            } else if (TryResolveDocumentMetadataFieldText(paragraph, out string? documentFieldText)) {
+                text = documentFieldText ?? string.Empty;
+            } else {
+                text = paragraph.Text ?? string.Empty;
             }
 
-            if (TryResolveDocumentMetadataFieldText(paragraph, out string? documentFieldText)) {
-                return documentFieldText ?? string.Empty;
+            WordCapsStyle capsStyle = ResolveImageExportCapsStyle(paragraph);
+            if (capsStyle == WordCapsStyle.None || text.Length == 0) {
+                return text;
             }
 
-            return paragraph.Text ?? string.Empty;
+            CultureInfo culture = CultureInfo.InvariantCulture;
+            if (!string.IsNullOrWhiteSpace(paragraph.Language)) {
+                try {
+                    culture = CultureInfo.GetCultureInfo(paragraph.Language!);
+                } catch (CultureNotFoundException) {
+                    culture = CultureInfo.InvariantCulture;
+                }
+            }
+
+            if (capsStyle == WordCapsStyle.SmallCaps && diagnostics != null &&
+                !diagnostics.Exists(item => string.Equals(item.Code, WordImageExportDiagnosticCodes.LimitedSmallCaps, StringComparison.Ordinal))) {
+                AddDiagnostic(
+                    diagnostics,
+                    WordImageExportDiagnosticCodes.LimitedSmallCaps,
+                    "Rendered Word small-caps text as uppercase glyphs at one font size because the shared image renderer does not vary lowercase glyph sizes within a run.");
+            }
+
+            return culture.TextInfo.ToUpper(text);
+        }
+
+        private static WordCapsStyle ResolveImageExportCapsStyle(WordParagraph paragraph) {
+            RunProperties? direct = paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
+            bool caps = ResolveImageExportOnOff(direct?.Caps, paragraph, properties => properties.Caps);
+            bool smallCaps = ResolveImageExportOnOff(direct?.SmallCaps, paragraph, properties => properties.SmallCaps);
+            return caps ? WordCapsStyle.Caps : smallCaps ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
+        }
+
+        private static bool ResolveImageExportOnOff<T>(
+            T? direct,
+            WordParagraph paragraph,
+            Func<StyleRunProperties, T?> selector) where T : OnOffType {
+            bool? directValue = ReadOnOff(direct);
+            if (directValue.HasValue) return directValue.Value;
+            foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
+                bool? styleValue = ReadOnOff(selector(properties));
+                if (styleValue.HasValue) return styleValue.Value;
+            }
+
+            return false;
         }
 
         private static bool TryResolvePageFieldText(WordParagraph paragraph, WordImageFlowContext context, out string? text) {

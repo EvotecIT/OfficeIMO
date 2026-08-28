@@ -271,23 +271,31 @@ public static partial class OfficeDrawingRasterRenderer {
         bool supportsLegacyFastPath = text.Baseline == OfficeTextBaseline.Normal &&
             text.UnderlineStyle == OfficeTextDecorationStyle.None &&
             text.StrikethroughStyle == OfficeTextDecorationStyle.None;
-        if (supportsLegacyFastPath && !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
-            if (text.TextAdvanceWidth.HasValue) {
-                canvas.DrawPositionedText(
-                    text.Text,
-                    contentX,
-                    contentY,
-                    contentWidth,
-                    contentHeight,
-                    text.Color ?? OfficeColor.Black,
-                    text.Font.Size * scale,
-                    text.Alignment,
-                    text.Font.Style,
-                    text.Font.FamilyName,
-                    text.TextAdvanceWidth.Value * scale);
-                return;
-            }
+        bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
+        if (text.TextAdvanceWidth.HasValue && supportsPositionedPath) {
+            double positionedSourceFontSize = Math.Max(1D, text.Font.Size * scale);
+            double renderedFontSize = text.Baseline == OfficeTextBaseline.Normal ? positionedSourceFontSize : positionedSourceFontSize * 0.65D;
+            double positionedBaselineOffset = text.Baseline == OfficeTextBaseline.Superscript
+                ? -(positionedSourceFontSize * 0.30D)
+                : text.Baseline == OfficeTextBaseline.Subscript ? positionedSourceFontSize * 0.15D : 0D;
+            canvas.DrawPositionedText(
+                text.Text,
+                contentX,
+                contentY + positionedBaselineOffset,
+                contentWidth,
+                contentHeight,
+                text.Color ?? OfficeColor.Black,
+                renderedFontSize,
+                text.Alignment,
+                text.Font.Style,
+                text.Font.FamilyName,
+                text.TextAdvanceWidth.Value * scale,
+                text.UnderlineStyle,
+                text.StrikethroughStyle);
+            return;
+        }
 
+        if (supportsLegacyFastPath && supportsPositionedPath) {
             canvas.DrawText(
                 text.Text,
                 contentX,
