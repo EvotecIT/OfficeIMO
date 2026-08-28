@@ -32,10 +32,54 @@ public sealed class OfficeTextCaseTests {
     }
 
     [Fact]
+    public void ApplySegmentsTransformsManyBoundariesInOneContextPreservingPass() {
+        string[] segments = Enumerable.Range(0, 10000)
+            .Select(index => index == 5000 ? "mixed\uE000case" : "a")
+            .ToArray();
+
+        IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(
+            segments,
+            OfficeTextCase.Capitalize,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal(segments.Length, transformed.Count);
+        Assert.Equal(
+            OfficeTextCaseTransformer.Apply(string.Concat(segments), OfficeTextCase.Capitalize, CultureInfo.InvariantCulture),
+            string.Concat(transformed));
+        Assert.Equal("mixed\uE000case", transformed[5000]);
+    }
+
+    [Theory]
+    [InlineData("123abc")]
+    [InlineData("foo+bar_baz/qux")]
+    [InlineData("don't-stop")]
+    [InlineData("\u01F3uro")]
+    public void TitleCaseMatchesTextInfoWordAndTitleLetterSemantics(string input) {
+        CultureInfo culture = CultureInfo.InvariantCulture;
+        Assert.Equal(
+            culture.TextInfo.ToTitleCase(input.ToLower(culture)),
+            OfficeTextCaseTransformer.Apply(input, OfficeTextCase.TitleCase, culture));
+    }
+
+    [Fact]
     public void ApplyUsesSelectedCulture() {
         CultureInfo culture = CultureInfo.GetCultureInfo("tr-TR");
         Assert.Equal("İSTANBUL", OfficeTextCaseTransformer.Apply("istanbul", OfficeTextCase.Uppercase, culture));
         Assert.Equal("ıstanbul", OfficeTextCaseTransformer.Apply("ISTANBUL", OfficeTextCase.Lowercase, culture));
+    }
+
+    [Fact]
+    public void ApplySegmentsKeepsCultureSpecificTitleCaseAcrossRunBoundaries() {
+        CultureInfo culture = CultureInfo.GetCultureInfo("nl-NL");
+        IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(
+            new[] { "i", "jsselmeer" },
+            OfficeTextCase.TitleCase,
+            culture);
+        string expected = culture.TextInfo.ToTitleCase("ijsselmeer");
+
+        Assert.Equal("I", transformed[0]);
+        Assert.Equal(expected.Substring(1), transformed[1]);
+        Assert.Equal(expected, string.Concat(transformed));
     }
 
     [Fact]

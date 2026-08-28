@@ -30,7 +30,7 @@ The Word, RTF, PowerPoint, OpenDocument, OneNote, and Visio rows describe typed 
 | Surface | Behavior |
 | --- | --- |
 | Shared Drawing rich text | Family, size, color, background, bold, italic, all shared decoration patterns, and script-aware measurement/layout |
-| SVG | Emits font, fill, weight, style, decoration, decoration style, reduced script size, and baseline shift. When underline and strike use different patterns on the same SVG text element, SVG applies one decoration style to both; the underline pattern wins. |
+| SVG | Emits font, fill, weight, style, reduced script size, and baseline shift. Underline and strikethrough patterns are emitted independently when they differ, so neither decoration style is collapsed. |
 | Raster (`PNG`, `JPEG`, `TIFF`, `WebP`) | Draws shared decoration patterns and script baselines through the common raster canvas, including rotation and mirroring. These are the dependency-free export formats exposed by Word, Excel, PowerPoint, and Visio. |
 | PDF | Draws shared decoration patterns as PDF graphics operators and includes double/wavy extents in page-text bounds |
 | OneNote image/PDF export | Projects native OneNote run styles into shared Drawing, including native strike and script flags |

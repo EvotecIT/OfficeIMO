@@ -544,7 +544,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         const string ellipsis = "...";
-        return Measure(ellipsis, ellipsisStyle.FontSize, ellipsisStyle.FontFamily, measure) <= width
+        return Measure(ellipsis, EffectiveFontSize(ellipsisStyle), ellipsisStyle.FontFamily, measure) <= width
             ? new OfficeRichTextLine(new[] { CreateRichTextSegment(ellipsis, ellipsisStyle, measure) }, line.LineHeight, line.OffsetX)
             : new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), line.LineHeight, line.OffsetX);
     }

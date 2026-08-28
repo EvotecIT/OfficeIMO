@@ -24,6 +24,11 @@ public sealed class OfficeRichTextFormattingTests {
 
     [Fact]
     public void PreTypographyRendererMethodsRemainBinaryDiscoverable() {
+        Assert.NotNull(typeof(OfficeRasterCanvas).GetMethod(nameof(OfficeRasterCanvas.DrawTextLine), new[] {
+            typeof(string), typeof(double), typeof(double), typeof(double), typeof(OfficeColor),
+            typeof(bool), typeof(bool), typeof(OfficeTextAlignment), typeof(double), typeof(double), typeof(double),
+            typeof(bool), typeof(bool), typeof(string), typeof(bool), typeof(bool)
+        }));
         AssertMethod(nameof(OfficeTextBlockRenderer.DrawRasterTextBlock),
             typeof(OfficeRasterCanvas), typeof(OfficeTextBlockLayout),
             typeof(double), typeof(double), typeof(double), typeof(double), typeof(OfficeColor),
@@ -95,6 +100,22 @@ public sealed class OfficeRichTextFormattingTests {
         Assert.Equal(33D, line.Width);
         Assert.Equal(13D, line.Segments[1].Width);
         Assert.Equal(OfficeTextBaseline.Subscript, line.Segments[1].Baseline);
+    }
+
+    [Fact]
+    public void ScriptEllipsisUsesTheRenderedFontSizeWhenNoSourceTextFits() {
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            new[] { new OfficeRichTextRun("WWWW", 10D, OfficeColor.Black, baseline: OfficeTextBaseline.Superscript) },
+            maxWidth: 19.5D,
+            maxHeight: 20D,
+            lineHeightFactor: 1D,
+            measure: static (text, size, _) => (text?.Length ?? 0) * size,
+            wrap: false);
+
+        OfficeRichTextSegment segment = Assert.Single(Assert.Single(layout.Lines).Segments);
+        Assert.Equal("...", segment.Text);
+        Assert.Equal(19.5D, segment.Width);
+        Assert.Equal(OfficeTextBaseline.Superscript, segment.Baseline);
     }
 
     [Fact]
@@ -212,12 +233,23 @@ public sealed class OfficeRichTextFormattingTests {
         var canvas = new OfficeRasterCanvas(image);
         canvas.DrawTextLine(
             "Decoration",
-            anchorX: 8D,
-            top: 8D,
-            height: 24D,
-            color: OfficeColor.Black,
-            alignment: OfficeTextAlignment.Left,
-            underlineStyle: style);
+            8D,
+            8D,
+            24D,
+            OfficeColor.Black,
+            false,
+            false,
+            OfficeTextAlignment.Left,
+            0D,
+            0D,
+            0D,
+            false,
+            false,
+            null,
+            false,
+            false,
+            style,
+            OfficeTextDecorationStyle.None);
         return image;
     }
 

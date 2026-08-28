@@ -191,6 +191,65 @@ public sealed partial class OfficeRasterCanvas {
     /// <summary>
     /// Draws a single anchored text line with optional bold, italic, alignment, and rotation.
     /// </summary>
+    /// <remarks>
+    /// This overload retains the original CLR signature for applications compiled against earlier OfficeIMO.Core releases.
+    /// </remarks>
+    /// <param name="text">Text to render.</param>
+    /// <param name="anchorX">Horizontal anchor. Left, center, or right interpretation depends on <paramref name="alignment"/>.</param>
+    /// <param name="top">Top coordinate of the text line box.</param>
+    /// <param name="height">Text line height in canvas pixels.</param>
+    /// <param name="color">Text color.</param>
+    /// <param name="bold">Whether to simulate bold rendering.</param>
+    /// <param name="italic">Whether to simulate italic rendering.</param>
+    /// <param name="alignment">Horizontal alignment relative to <paramref name="anchorX"/>.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="underline">Whether to draw an underline using the measured text width.</param>
+    /// <param name="strikethrough">Whether to draw a strikethrough using the measured text width.</param>
+    /// <param name="fontFamily">Requested font family fallback list.</param>
+    /// <param name="flipHorizontal">Whether to mirror the rendered line horizontally around the rotation center before rotation.</param>
+    /// <param name="flipVertical">Whether to mirror the rendered line vertically around the rotation center before rotation.</param>
+    public void DrawTextLine(
+        string? text,
+        double anchorX,
+        double top,
+        double height,
+        OfficeColor color,
+        bool bold = false,
+        bool italic = false,
+        OfficeTextAlignment alignment = OfficeTextAlignment.Center,
+        double rotationDegrees = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D,
+        bool underline = false,
+        bool strikethrough = false,
+        string? fontFamily = null,
+        bool flipHorizontal = false,
+        bool flipVertical = false) =>
+        DrawTextLine(
+            text,
+            anchorX,
+            top,
+            height,
+            color,
+            bold,
+            italic,
+            alignment,
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            underline,
+            strikethrough,
+            fontFamily,
+            flipHorizontal,
+            flipVertical,
+            OfficeTextDecorationStyle.None,
+            OfficeTextDecorationStyle.None);
+
+    /// <summary>
+    /// Draws a single anchored text line with independent underline and strikethrough patterns.
+    /// </summary>
     /// <param name="text">Text to render.</param>
     /// <param name="anchorX">Horizontal anchor. Left, center, or right interpretation depends on <paramref name="alignment"/>.</param>
     /// <param name="top">Top coordinate of the text line box.</param>
@@ -215,19 +274,19 @@ public sealed partial class OfficeRasterCanvas {
         double top,
         double height,
         OfficeColor color,
-        bool bold = false,
-        bool italic = false,
-        OfficeTextAlignment alignment = OfficeTextAlignment.Center,
-        double rotationDegrees = 0D,
-        double rotationCenterX = 0D,
-        double rotationCenterY = 0D,
-        bool underline = false,
-        bool strikethrough = false,
-        string? fontFamily = null,
-        bool flipHorizontal = false,
-        bool flipVertical = false,
-        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
-        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None) {
+        bool bold,
+        bool italic,
+        OfficeTextAlignment alignment,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool underline,
+        bool strikethrough,
+        string? fontFamily,
+        bool flipHorizontal,
+        bool flipVertical,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
             return;
         }

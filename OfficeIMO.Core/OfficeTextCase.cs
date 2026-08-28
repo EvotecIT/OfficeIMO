@@ -44,25 +44,7 @@ public static class OfficeTextCaseTransformer {
     /// <returns>The transformed text.</returns>
     public static string Apply(string text, OfficeTextCase textCase, CultureInfo? culture = null) {
         if (text == null) throw new ArgumentNullException(nameof(text));
-        CultureInfo selectedCulture = culture ?? CultureInfo.CurrentCulture;
-        switch (textCase) {
-            case OfficeTextCase.None:
-                return text;
-            case OfficeTextCase.Uppercase:
-                return text.ToUpper(selectedCulture);
-            case OfficeTextCase.Lowercase:
-                return text.ToLower(selectedCulture);
-            case OfficeTextCase.TitleCase:
-                return selectedCulture.TextInfo.ToTitleCase(text.ToLower(selectedCulture));
-            case OfficeTextCase.SentenceCase:
-                return ToSentenceCase(text, selectedCulture);
-            case OfficeTextCase.ToggleCase:
-                return Toggle(text, selectedCulture);
-            case OfficeTextCase.Capitalize:
-                return CapitalizeWords(text, selectedCulture);
-            default:
-                throw new ArgumentOutOfRangeException(nameof(textCase), textCase, "Unsupported text casing transformation.");
-        }
+        return TransformSegments(new[] { text }, textCase, culture ?? CultureInfo.CurrentCulture)[0];
     }
 
     /// <summary>
@@ -75,85 +57,135 @@ public static class OfficeTextCaseTransformer {
         CultureInfo? culture = null) {
         if (segments == null) throw new ArgumentNullException(nameof(segments));
         if (segments.Count == 0) return Array.Empty<string>();
+        return TransformSegments(segments, textCase, culture ?? CultureInfo.CurrentCulture);
+    }
+
+    private static string[] TransformSegments(IReadOnlyList<string> segments, OfficeTextCase textCase, CultureInfo culture) {
+        if (!Enum.IsDefined(typeof(OfficeTextCase), textCase)) {
+            throw new ArgumentOutOfRangeException(nameof(textCase), textCase, "Unsupported text casing transformation.");
+        }
 
         var source = new StringBuilder();
-        foreach (string segment in segments) source.Append(segment ?? string.Empty);
-        string transformed = Apply(source.ToString(), textCase, culture);
-        var result = new string[segments.Count];
-        int sourceOffset = 0;
-        int transformedOffset = 0;
+        var boundaries = new int[segments.Count];
+        var result = new StringBuilder[segments.Count];
         for (int index = 0; index < segments.Count; index++) {
-            sourceOffset += (segments[index] ?? string.Empty).Length;
-            int transformedEnd = index == segments.Count - 1
-                ? transformed.Length
-                : Apply(source.ToString(0, sourceOffset), textCase, culture).Length;
-            transformedEnd = Math.Max(transformedOffset, Math.Min(transformed.Length, transformedEnd));
-            result[index] = transformed.Substring(transformedOffset, transformedEnd - transformedOffset);
-            transformedOffset = transformedEnd;
+            string value = segments[index] ?? string.Empty;
+            source.Append(value);
+            boundaries[index] = source.Length;
+            result[index] = new StringBuilder(value.Length);
         }
-        return result;
-    }
 
-    private static string ToSentenceCase(string text, CultureInfo culture) {
-        if (text.Length == 0) return text;
-        string normalized = text.ToLower(culture);
-        var result = new StringBuilder(normalized.Length);
-        bool capitalizeNext = true;
-        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(normalized);
-        while (elements.MoveNext()) {
-            string element = elements.GetTextElement();
-            if (capitalizeNext && IsLetter(element)) {
-                result.Append(element.ToUpper(culture));
-                capitalizeNext = false;
-            } else {
-                result.Append(element);
-            }
-
-            if (element.IndexOf('.') >= 0 || element.IndexOf('!') >= 0 || element.IndexOf('?') >= 0 ||
-                element.IndexOf('\r') >= 0 || element.IndexOf('\n') >= 0) {
-                capitalizeNext = true;
-            }
+        if (textCase == OfficeTextCase.None) {
+            for (int index = 0; index < segments.Count; index++) result[index].Append(segments[index] ?? string.Empty);
+            return ToStrings(result);
         }
-        return result.ToString();
-    }
 
-    private static string Toggle(string text, CultureInfo culture) {
-        if (text.Length == 0) return text;
-        var result = new StringBuilder(text.Length);
-        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(text);
+        bool sentenceStart = true;
+        bool capitalizeWordStart = true;
+        bool titleWordStart = true;
+        bool titleDutchJ = false;
+        bool titlecasesDutchIJ = string.Equals(culture.TwoLetterISOLanguageName, "nl", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(culture.TextInfo.ToTitleCase("ij"), "IJ", StringComparison.Ordinal);
+        int segmentIndex = 0;
+        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(source.ToString());
         while (elements.MoveNext()) {
+            while (segmentIndex < boundaries.Length - 1 && elements.ElementIndex >= boundaries[segmentIndex]) segmentIndex++;
             string element = elements.GetTextElement();
-            string upper = element.ToUpper(culture);
             string lower = element.ToLower(culture);
-            if (string.Equals(element, upper, StringComparison.Ordinal) && !string.Equals(element, lower, StringComparison.Ordinal)) {
-                result.Append(lower);
-            } else if (string.Equals(element, lower, StringComparison.Ordinal) && !string.Equals(element, upper, StringComparison.Ordinal)) {
-                result.Append(upper);
-            } else {
-                result.Append(element);
+            string transformed;
+            switch (textCase) {
+                case OfficeTextCase.Uppercase:
+                    transformed = element.ToUpper(culture);
+                    break;
+                case OfficeTextCase.Lowercase:
+                    transformed = lower;
+                    break;
+                case OfficeTextCase.TitleCase:
+                    transformed = TransformTitleCaseElement(element, lower, culture, titlecasesDutchIJ, ref titleWordStart, ref titleDutchJ);
+                    break;
+                case OfficeTextCase.SentenceCase:
+                    transformed = sentenceStart && IsLetter(element) ? lower.ToUpper(culture) : lower;
+                    if (IsLetter(element)) sentenceStart = false;
+                    if (EndsSentence(element)) sentenceStart = true;
+                    break;
+                case OfficeTextCase.ToggleCase:
+                    string upper = element.ToUpper(culture);
+                    transformed = string.Equals(element, upper, StringComparison.Ordinal) && !string.Equals(element, lower, StringComparison.Ordinal)
+                        ? lower
+                        : string.Equals(element, lower, StringComparison.Ordinal) && !string.Equals(element, upper, StringComparison.Ordinal)
+                            ? upper
+                            : element;
+                    break;
+                case OfficeTextCase.Capitalize:
+                    transformed = capitalizeWordStart && IsLetter(element) ? element.ToUpper(culture) : element;
+                    if (IsLetter(element) || IsCombiningMark(element)) capitalizeWordStart = false;
+                    if (IsWordSeparator(element)) capitalizeWordStart = true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(textCase), textCase, "Unsupported text casing transformation.");
             }
+            result[segmentIndex].Append(transformed);
         }
-        return result.ToString();
+
+        return ToStrings(result);
     }
 
-    private static string CapitalizeWords(string text, CultureInfo culture) {
-        if (text.Length == 0) return text;
-        var result = new StringBuilder(text.Length);
-        bool capitalizeNext = true;
-        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(text);
-        while (elements.MoveNext()) {
-            string element = elements.GetTextElement();
-            if (capitalizeNext && IsLetter(element)) {
-                result.Append(element.ToUpper(culture));
-                capitalizeNext = false;
-            } else {
-                result.Append(element);
-                if (IsLetter(element) || IsCombiningMark(element)) capitalizeNext = false;
+    private static string TransformTitleCaseElement(
+        string element,
+        string lower,
+        CultureInfo culture,
+        bool titlecasesDutchIJ,
+        ref bool wordStart,
+        ref bool capitalizeDutchJ) {
+        if (IsLetter(element)) {
+            if (capitalizeDutchJ && string.Equals(lower, "j", StringComparison.Ordinal)) {
+                capitalizeDutchJ = false;
+                wordStart = false;
+                return element.ToUpper(culture);
             }
 
-            if (IsWordSeparator(element)) capitalizeNext = true;
+            capitalizeDutchJ = false;
+            if (wordStart) {
+                wordStart = false;
+                capitalizeDutchJ = titlecasesDutchIJ && string.Equals(lower, "i", StringComparison.Ordinal);
+                return culture.TextInfo.ToTitleCase(lower);
+            }
+            return lower;
         }
-        return result.ToString();
+
+        capitalizeDutchJ = false;
+        if (IsTitleWordSeparator(element)) wordStart = true;
+        return lower;
+    }
+
+    private static bool EndsSentence(string element) =>
+        element.IndexOf('.') >= 0 || element.IndexOf('!') >= 0 || element.IndexOf('?') >= 0 ||
+        element.IndexOf('\r') >= 0 || element.IndexOf('\n') >= 0;
+
+    private static bool IsTitleWordSeparator(string textElement) {
+        if (textElement == "'" || textElement == "’") return false;
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(textElement, 0);
+        return category == UnicodeCategory.SpaceSeparator ||
+               category == UnicodeCategory.LineSeparator ||
+               category == UnicodeCategory.ParagraphSeparator ||
+               category == UnicodeCategory.Control ||
+               category == UnicodeCategory.ConnectorPunctuation ||
+               category == UnicodeCategory.DashPunctuation ||
+               category == UnicodeCategory.OpenPunctuation ||
+               category == UnicodeCategory.ClosePunctuation ||
+               category == UnicodeCategory.InitialQuotePunctuation ||
+               category == UnicodeCategory.FinalQuotePunctuation ||
+               category == UnicodeCategory.OtherPunctuation ||
+               category == UnicodeCategory.MathSymbol ||
+               category == UnicodeCategory.CurrencySymbol ||
+               category == UnicodeCategory.ModifierSymbol ||
+               category == UnicodeCategory.OtherSymbol;
+    }
+
+    private static string[] ToStrings(StringBuilder[] builders) {
+        var result = new string[builders.Length];
+        for (int index = 0; index < builders.Length; index++) result[index] = builders[index].ToString();
+        return result;
     }
 
     private static bool IsWordSeparator(string textElement) {
