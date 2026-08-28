@@ -78,6 +78,49 @@ public sealed class EmailBodyProjectionResourcePolicyTests {
     }
 
     [Fact]
+    public void Filename_fallback_preserves_case_insensitive_compatibility() {
+        var document = new EmailDocument { Body = { Html = "<img src='LOGO.PNG'>" } };
+        document.Attachments.Add(CreateInlineAttachment(
+            "filename@example.test", 1, "logo.png", null));
+
+        EmailBodyProjectionResult projection = EmailBodyProjection.Create(document);
+
+        Assert.Contains("src=\"cid:filename@example.test\"", projection.Html,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Same(projection.Resources[0], projection.ResolveResource("LOGO.PNG"));
+    }
+
+    [Fact]
+    public async Task Projection_snapshots_resource_identity_metadata_and_content_selection() {
+        var attachment = CreateInlineAttachment(
+            "old@example.test", 1, "old.png", "images/old.png");
+        attachment.ContentType = "image/png";
+        attachment.Content = new byte[] { 1 };
+        var document = new EmailDocument { Body = { Html = "<img src='cid:old@example.test'>" } };
+        document.Attachments.Add(attachment);
+
+        EmailBodyProjectionResult projection = EmailBodyProjection.Create(document);
+        EmailBodyResource resource = Assert.Single(projection.Resources);
+
+        attachment.ContentId = "new@example.test";
+        attachment.ContentLocation = "images/new.png";
+        attachment.FileName = "new.png";
+        attachment.ContentType = "image/jpeg";
+        attachment.Length = 2;
+        attachment.Content = new byte[] { 2, 3 };
+
+        Assert.Equal("old@example.test", resource.ContentId);
+        Assert.Equal("images/old.png", resource.ContentLocation);
+        Assert.Equal("old.png", resource.FileName);
+        Assert.Equal("image/png", resource.ContentType);
+        Assert.Equal(1, resource.Length);
+        Assert.Equal(new byte[] { 1 }, resource.ReadAllBytes());
+        Assert.Equal(new byte[] { 1 }, await resource.ReadAllBytesAsync());
+        Assert.Same(resource, projection.ResolveResource("cid:old@example.test"));
+        Assert.Null(projection.ResolveResource("cid:new@example.test"));
+    }
+
+    [Fact]
     public void Absolute_resource_matching_preserves_path_case() {
         var document = new EmailDocument();
         document.Body.HtmlContentLocation = "https://assets.example/";

@@ -2,7 +2,13 @@ namespace OfficeIMO.Email;
 
 /// <summary>Operation-scoped attachment resource resolved by CID, content location, or filename.</summary>
 public sealed class EmailBodyResource {
-    private readonly EmailAttachment _attachment;
+    private readonly byte[]? _content;
+    private readonly IEmailContentSource? _contentSource;
+    private readonly string _contentType;
+    private readonly long _length;
+    private readonly string? _contentId;
+    private readonly string? _contentLocation;
+    private readonly string? _fileName;
     private readonly long _maximumBytes;
     private readonly EmailBodyResourceBudget _budget;
     private readonly EmailBodyResourceLimitState _limitState;
@@ -11,22 +17,29 @@ public sealed class EmailBodyResource {
         EmailAttachment attachment,
         long maximumBytes,
         EmailBodyResourceBudget budget) {
-        _attachment = attachment ?? throw new ArgumentNullException(nameof(attachment));
+        if (attachment == null) throw new ArgumentNullException(nameof(attachment));
+        _content = attachment.Content;
+        _contentSource = attachment.ContentSource;
+        _contentType = attachment.ContentType ?? "application/octet-stream";
+        _length = attachment.Length;
+        _contentId = NormalizeContentId(attachment.ContentId);
+        _contentLocation = attachment.ContentLocation;
+        _fileName = attachment.FileName;
         _maximumBytes = maximumBytes;
         _budget = budget ?? throw new ArgumentNullException(nameof(budget));
         _limitState = new EmailBodyResourceLimitState(maximumBytes);
     }
 
     /// <summary>Content type declared by the artifact.</summary>
-    public string ContentType => _attachment.ContentType ?? "application/octet-stream";
+    public string ContentType => _contentType;
     /// <summary>Declared decoded length.</summary>
-    public long Length => _attachment.Length;
+    public long Length => _length;
     /// <summary>Normalized Content-ID without angle brackets.</summary>
-    public string? ContentId => NormalizeContentId(_attachment.ContentId);
+    public string? ContentId => _contentId;
     /// <summary>Content-Location retained by the artifact.</summary>
-    public string? ContentLocation => _attachment.ContentLocation;
+    public string? ContentLocation => _contentLocation;
     /// <summary>Safe filename retained by the artifact.</summary>
-    public string? FileName => _attachment.FileName;
+    public string? FileName => _fileName;
 
     /// <summary>Opens a fresh sequential stream governed by the per-resource and projection-wide budgets.</summary>
     public Stream OpenReadStream(CancellationToken cancellationToken = default) {
@@ -34,7 +47,7 @@ public sealed class EmailBodyResource {
         _limitState.ThrowIfUnavailable();
         _budget.ThrowIfExceeded();
         cancellationToken.ThrowIfCancellationRequested();
-        Stream source = _attachment.OpenContentStream();
+        Stream source = OpenContentStream();
         try {
             return new EmailBodyResourceReadStream(
                 source,
@@ -54,7 +67,7 @@ public sealed class EmailBodyResource {
         _limitState.ThrowIfUnavailable();
         _budget.ThrowIfExceeded();
         cancellationToken.ThrowIfCancellationRequested();
-        Stream source = await _attachment.OpenContentStreamAsync(cancellationToken).ConfigureAwait(false);
+        Stream source = await OpenContentStreamAsync(cancellationToken).ConfigureAwait(false);
         try {
             return new EmailBodyResourceReadStream(
                 source,
@@ -114,6 +127,25 @@ public sealed class EmailBodyResource {
         _limitState.ThrowIfUnavailable();
         _budget.ThrowIfExceeded();
         return new MemoryStream();
+    }
+
+    private Stream OpenContentStream() {
+        if (_content != null) return new MemoryStream(_content, writable: false);
+        if (_contentSource == null) return new MemoryStream(Array.Empty<byte>(), writable: false);
+        Stream source = _contentSource.OpenRead();
+        if (source != null && source.CanRead) return source;
+        source?.Dispose();
+        throw new InvalidDataException("The attachment content source did not return a readable stream.");
+    }
+
+    private async Task<Stream> OpenContentStreamAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_content != null) return new MemoryStream(_content, writable: false);
+        if (_contentSource == null) return new MemoryStream(Array.Empty<byte>(), writable: false);
+        Stream source = await _contentSource.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+        if (source != null && source.CanRead) return source;
+        source?.Dispose();
+        throw new InvalidDataException("The attachment content source did not return a readable stream.");
     }
 
     private void EnsureDeclaredLengthAllowed() {

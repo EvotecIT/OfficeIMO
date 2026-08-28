@@ -159,8 +159,15 @@ public static class EmailBodyProjection {
                 resourceAttachments.Length, effective.MaxResourceCount);
         }
 
+        var resourceBudget = new EmailBodyResourceBudget(effective.MaxTotalResourceBytes);
+        EmailBodyResource[] projectedResources = resourceAttachments
+            .Select(attachment => new EmailBodyResource(
+                attachment,
+                effective.MaxResourceBytes,
+                resourceBudget))
+            .ToArray();
+        var resourceIdentity = new EmailBodyResourceIdentityIndex(projectedResources);
         Uri? baseUri = effective.BaseUri ?? ResolveBaseUri(source.Body.HtmlContentLocation);
-        var resourceIdentity = new EmailBodyResourceIdentityIndex(resourceAttachments);
         HtmlConversionDocumentOptions htmlOptions = effective.HtmlOptions?.Clone() ??
             HtmlConversionDocumentOptions.CreateUntrustedProfile();
         htmlOptions.BaseUri ??= baseUri;
@@ -180,24 +187,17 @@ public static class EmailBodyProjection {
         string safeHtml = CreateSafeEmailHtml(sourceDocument);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(safeHtml, htmlOptions);
         long declaredResourceBytes = 0;
-        foreach (EmailAttachment attachment in resourceAttachments) {
-            if (attachment.Length <= 0) continue;
-            if (attachment.Length > effective.MaxTotalResourceBytes - declaredResourceBytes) {
-                long actual = attachment.Length > long.MaxValue - declaredResourceBytes
+        foreach (EmailBodyResource resource in projectedResources) {
+            if (resource.Length <= 0) continue;
+            if (resource.Length > effective.MaxTotalResourceBytes - declaredResourceBytes) {
+                long actual = resource.Length > long.MaxValue - declaredResourceBytes
                     ? long.MaxValue
-                    : declaredResourceBytes + attachment.Length;
+                    : declaredResourceBytes + resource.Length;
                 throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxTotalResourceBytes",
                     actual, effective.MaxTotalResourceBytes);
             }
-            declaredResourceBytes += attachment.Length;
+            declaredResourceBytes += resource.Length;
         }
-        var resourceBudget = new EmailBodyResourceBudget(effective.MaxTotalResourceBytes);
-        EmailBodyResource[] projectedResources = resourceAttachments
-            .Select(attachment => new EmailBodyResource(
-                attachment,
-                effective.MaxResourceBytes,
-                resourceBudget))
-            .ToArray();
         return new EmailBodyProjectionResult(sourceKind, safeHtml, source.Body.Text,
             document, projectedResources, diagnostics.AsReadOnly(), baseUri, resourceIdentity);
     }

@@ -8,10 +8,10 @@ internal sealed class EmailBodyResourceIdentityIndex {
     private const int Ambiguous = -2;
     private readonly Entry[] _entries;
 
-    internal EmailBodyResourceIdentityIndex(IReadOnlyList<EmailAttachment> attachments) {
-        if (attachments == null) throw new ArgumentNullException(nameof(attachments));
-        string?[] contentIds = attachments
-            .Select(attachment => EmailBodyResource.NormalizeContentId(attachment.ContentId))
+    internal EmailBodyResourceIdentityIndex(IReadOnlyList<EmailBodyResource> resources) {
+        if (resources == null) throw new ArgumentNullException(nameof(resources));
+        string?[] contentIds = resources
+            .Select(resource => resource.ContentId)
             .ToArray();
         var contentIdCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var usedAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -22,18 +22,18 @@ internal sealed class EmailBodyResourceIdentityIndex {
             contentIdCounts[contentId!] = count + 1;
         }
 
-        _entries = new Entry[attachments.Count];
-        for (int index = 0; index < attachments.Count; index++) {
+        _entries = new Entry[resources.Count];
+        for (int index = 0; index < resources.Count; index++) {
             string? contentId = contentIds[index];
             string projectionContentId = !string.IsNullOrWhiteSpace(contentId) &&
                                          contentIdCounts[contentId!] == 1
                 ? contentId!
                 : CreateUniqueAlias(index, usedAliases);
-            EmailAttachment attachment = attachments[index];
+            EmailBodyResource resource = resources[index];
             _entries[index] = new Entry(
                 contentId,
-                NormalizeReference(attachment.ContentLocation),
-                NormalizeReference(attachment.FileName),
+                NormalizeReference(resource.ContentLocation),
+                NormalizeReference(resource.FileName),
                 projectionContentId);
         }
     }
@@ -50,7 +50,8 @@ internal sealed class EmailBodyResourceIdentityIndex {
             index = FindUnique(entry => MatchesLocation(value, null, entry.ContentLocation, baseUri));
             if (index == Ambiguous) return null;
             if (index == NotFound) {
-                index = FindUnique(entry => MatchesLocation(value, null, entry.FileName, baseUri));
+                index = FindUnique(entry => MatchesFileName(
+                    value, null, entry.FileName, baseUri));
             }
         }
         return index >= 0 ? "cid:" + _entries[index].ProjectionContentId : null;
@@ -74,7 +75,8 @@ internal sealed class EmailBodyResourceIdentityIndex {
             index = FindUnique(entry => MatchesLocation(value, resolvedUri, entry.ContentLocation, baseUri));
             if (index == Ambiguous) return null;
             if (index == NotFound) {
-                index = FindUnique(entry => MatchesLocation(value, resolvedUri, entry.FileName, baseUri));
+                index = FindUnique(entry => MatchesFileName(
+                    value, resolvedUri, entry.FileName, baseUri));
             }
         }
         return index >= 0 && index < resources.Count ? resources[index] : null;
@@ -100,6 +102,20 @@ internal sealed class EmailBodyResourceIdentityIndex {
         Uri? candidateUri = resolvedUri;
         if (candidateUri == null && !TryResolveUri(candidate, baseUri, out candidateUri)) return false;
         return TryResolveUri(location, baseUri, out Uri? locationUri) && candidateUri!.Equals(locationUri);
+    }
+
+    private static bool MatchesFileName(
+        string candidate,
+        Uri? resolvedUri,
+        string? fileName,
+        Uri? baseUri) {
+        if (fileName == null) return false;
+        if (string.Equals(candidate, fileName, StringComparison.OrdinalIgnoreCase)) return true;
+        Uri? candidateUri = resolvedUri;
+        if (candidateUri == null && !TryResolveUri(candidate, baseUri, out candidateUri)) return false;
+        return TryResolveUri(fileName, baseUri, out Uri? fileNameUri) &&
+            string.Equals(candidateUri!.AbsoluteUri, fileNameUri!.AbsoluteUri,
+                StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryResolveUri(string value, Uri? baseUri, out Uri? uri) {
