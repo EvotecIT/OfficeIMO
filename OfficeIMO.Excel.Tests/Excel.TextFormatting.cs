@@ -106,6 +106,109 @@ public class ExcelTextFormattingTests {
     }
 
     [Fact]
+    public void RichTextCaseTransformsPreserveNativeRunProperties() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        string expectedProperties;
+        try {
+            using (ExcelDocument created = ExcelDocument.Create(path)) {
+                created.AddWorksheet("Text").CellAt(1, 1).SetRichText(
+                    new ExcelRichTextRun("istanbul") { Bold = true, FontName = "Aptos" });
+                created.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                RunProperties properties = package.WorkbookPart!.WorksheetParts.Single().Worksheet
+                    .Descendants<Cell>().Single(item => item.CellReference?.Value == "A1")
+                    .InlineString!.Elements<Run>().Single().RunProperties!;
+                properties.AddChild(new Color { Theme = 4U, Tint = 0.25D }, true);
+                properties.AddChild(new FontScheme { Val = FontSchemeValues.Minor }, true);
+                expectedProperties = properties.OuterXml;
+            }
+
+            using (ExcelDocument loaded = ExcelDocument.Load(path)) {
+                loaded.Sheets[0].CellAt(1, 1)
+                    .TransformTextCase(OfficeTextCase.TitleCase, CultureInfo.GetCultureInfo("tr-TR"));
+                loaded.Save();
+            }
+
+            using SpreadsheetDocument verified = SpreadsheetDocument.Open(path, false);
+            Run run = verified.WorkbookPart!.WorksheetParts.Single().Worksheet
+                .Descendants<Cell>().Single(item => item.CellReference?.Value == "A1")
+                .InlineString!.Elements<Run>().Single();
+            Assert.Equal("İstanbul", run.Text!.Text);
+            Assert.Equal(expectedProperties, run.RunProperties!.OuterXml);
+            Assert.Equal(4U, run.RunProperties.GetFirstChild<Color>()!.Theme!.Value);
+            Assert.Equal(FontSchemeValues.Minor, run.RunProperties.GetFirstChild<FontScheme>()!.Val!.Value);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SharedRichTextCaseTransformsCloneNativePropertiesWithoutChangingSiblingCells() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        string expectedProperties;
+        try {
+            using (ExcelDocument created = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = created.AddWorksheet("Text");
+                sheet.CellAt(1, 1).SetValue("First");
+                sheet.CellAt(2, 1).SetValue("Second");
+                created.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                WorkbookPart workbook = package.WorkbookPart!;
+                SharedStringTablePart sharedPart = workbook.SharedStringTablePart ?? workbook.AddNewPart<SharedStringTablePart>();
+                SharedStringTable shared = sharedPart.SharedStringTable ??= new SharedStringTable();
+                var properties = new RunProperties();
+                properties.AddChild(new RunFont { Val = "+mn-lt" }, true);
+                properties.AddChild(new Color { Theme = 5U, Tint = -0.2D }, true);
+                properties.AddChild(new FontScheme { Val = FontSchemeValues.Minor }, true);
+                var item = new SharedStringItem(new Run(properties, new Text("istanbul")));
+                shared.Append(item);
+                int sharedIndex = shared.Elements<SharedStringItem>().Count() - 1;
+                expectedProperties = properties.OuterXml;
+
+                Worksheet worksheet = workbook.WorksheetParts.Single().Worksheet;
+                foreach (string reference in new[] { "A1", "A2" }) {
+                    Cell cell = worksheet.Descendants<Cell>().Single(candidate => candidate.CellReference?.Value == reference);
+                    cell.InlineString = null;
+                    cell.DataType = CellValues.SharedString;
+                    cell.CellValue = new CellValue(sharedIndex.ToString(CultureInfo.InvariantCulture));
+                }
+                worksheet.Save();
+                shared.Save();
+            }
+
+            using (ExcelDocument loaded = ExcelDocument.Load(path)) {
+                loaded.Sheets[0].CellAt(1, 1)
+                    .TransformTextCase(OfficeTextCase.TitleCase, CultureInfo.GetCultureInfo("tr-TR"));
+                loaded.Save();
+            }
+
+            using SpreadsheetDocument verified = SpreadsheetDocument.Open(path, false);
+            WorkbookPart verifiedWorkbook = verified.WorkbookPart!;
+            Worksheet verifiedWorksheet = verifiedWorkbook.WorksheetParts.Single().Worksheet;
+            Cell transformedCell = verifiedWorksheet.Descendants<Cell>()
+                .Single(candidate => candidate.CellReference?.Value == "A1");
+            Cell siblingCell = verifiedWorksheet.Descendants<Cell>()
+                .Single(candidate => candidate.CellReference?.Value == "A2");
+            Run transformedRun = transformedCell.InlineString!.Elements<Run>().Single();
+            Assert.Equal(CellValues.InlineString, transformedCell.DataType!.Value);
+            Assert.Equal("İstanbul", transformedRun.Text!.Text);
+            Assert.Equal(expectedProperties, transformedRun.RunProperties!.OuterXml);
+            Assert.Equal(CellValues.SharedString, siblingCell.DataType!.Value);
+            int siblingIndex = int.Parse(siblingCell.CellValue!.InnerText, CultureInfo.InvariantCulture);
+            SharedStringItem siblingItem = verifiedWorkbook.SharedStringTablePart!.SharedStringTable!
+                .Elements<SharedStringItem>().ElementAt(siblingIndex);
+            Assert.Equal("istanbul", siblingItem.Elements<Run>().Single().Text!.Text);
+            Assert.Equal(expectedProperties, siblingItem.Elements<Run>().Single().RunProperties!.OuterXml);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ExplicitlyDisabledOpenXmlFontPropertiesRemainDisabledAcrossStyleSnapshots() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {

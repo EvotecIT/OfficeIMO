@@ -37,6 +37,21 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void ManagedHtmlRenderingKeepsParentScriptShiftForBaselineAlignedDescendants() {
+        const string html = "<p><sup><span style=\"vertical-align:baseline\">Raised</span></sup><sub><span style=\"vertical-align:baseline\">Lowered</span></sub></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions());
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        HtmlRenderText raised = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Raised");
+        HtmlRenderText lowered = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Lowered");
+
+        Assert.Equal(OfficeTextBaseline.Superscript, raised.Baseline);
+        Assert.Equal(OfficeTextBaseline.Subscript, lowered.Baseline);
+    }
+
+    [Fact]
     public void ManagedHtmlRenderingPreservesDecorationPatternsAndScriptsAcrossDrawingSvgAndRasterFormats() {
         const string html = """
             <p style="font-family:'Aptos';font-size:20px;color:#336699;font-weight:700;font-style:italic">
@@ -250,6 +265,45 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal("FF336699", runs[0].FontColor);
         Assert.Equal("FFCC0000", runs[1].FontColor);
         Assert.True(runs[1].Italic);
+    }
+
+    [Fact]
+    public void ExcelSemanticHtmlPreservesDirectStyleResetsAndRendersPlainCellScriptsInline() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Text");
+        sheet.CellAt(1, 1)
+            .SetRichText(new ExcelRichTextRun("Direct off") {
+                Bold = false,
+                Italic = false,
+                Underline = false,
+                Strikethrough = false,
+                VerticalTextAlignment = ExcelVerticalTextAlignment.Baseline
+            })
+            .SetBold().SetItalic().SetUnderline().SetStrikethrough().SetSuperscript();
+        sheet.CellAt(2, 1).SetValue("Plain script").SetSubscript();
+
+        string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        Assert.Contains("font-weight:normal", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("font-style:normal", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("text-decoration-line:none", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("vertical-align:baseline", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-officeimo-excel-vertical-align=\"Superscript\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-excel-vertical-align=\"Subscript\"", html, StringComparison.Ordinal);
+        Assert.Contains("<sub>Plain script</sub>", html, StringComparison.Ordinal);
+
+        using ExcelDocument imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult()
+            .RequireValue();
+        ExcelSheet actual = Assert.Single(imported.Sheets);
+        ExcelRichTextRun directOff = Assert.Single(actual.GetRichText(1, 1));
+        Assert.False(directOff.Bold);
+        Assert.False(directOff.Italic);
+        Assert.False(directOff.Underline);
+        Assert.False(directOff.Strikethrough);
+        Assert.Equal(ExcelVerticalTextAlignment.Baseline, directOff.VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Superscript, actual.GetCellStyle(1, 1).VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript, actual.GetCellStyle(2, 1).VerticalTextAlignment);
     }
 
     [Fact]

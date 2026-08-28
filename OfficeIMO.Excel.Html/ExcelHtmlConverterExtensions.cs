@@ -203,7 +203,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     body.Append(" scope=\"col\"");
                 }
 
-                AppendExcelTextStyleAttributes(body, cellStyle);
+                AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0);
 
                 if (hasSnapshot) {
                     ExcelCellValueSnapshot cellSnapshot = snapshot!;
@@ -220,13 +220,21 @@ public static partial class ExcelHtmlConverterExtensions {
                 if (richTextRuns.Count > 0) {
                     foreach (ExcelRichTextRun run in richTextRuns) {
                         body.Append("<span");
-                        AppendExcelTextStyleAttributes(body, run);
+                        AppendExcelTextStyleAttributes(body, run, cellStyle);
                         body.Append('>')
                             .Append(OfficeHtmlText.Escape(run.Text))
                             .Append("</span>");
                     }
                 } else {
+                    bool scriptedCell = cellStyle.VerticalTextAlignment is ExcelVerticalTextAlignment.Superscript
+                        or ExcelVerticalTextAlignment.Subscript;
+                    if (scriptedCell) {
+                        body.Append(cellStyle.VerticalTextAlignment == ExcelVerticalTextAlignment.Superscript ? "<sup>" : "<sub>");
+                    }
                     body.Append(OfficeHtmlText.Escape(cellText));
+                    if (scriptedCell) {
+                        body.Append(cellStyle.VerticalTextAlignment == ExcelVerticalTextAlignment.Superscript ? "</sup>" : "</sub>");
+                    }
                 }
                 body.Append("</").Append(tag).Append('>');
             }
@@ -240,81 +248,6 @@ public static partial class ExcelHtmlConverterExtensions {
         AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount), options, diagnostics);
         body.Append("</section>");
     }
-
-    private static void AppendExcelTextStyleAttributes(StringBuilder body, ExcelCellStyleSnapshot style) {
-        var css = new StringBuilder();
-        AppendCss(css, "font-weight", style.Bold ? "700" : null);
-        AppendCss(css, "font-style", style.Italic ? "italic" : null);
-        AppendCss(css, "font-family", style.IsFontFamilyExplicit && !string.IsNullOrWhiteSpace(style.FontName)
-            ? QuoteCssFontFamily(style.FontName!) : null);
-        AppendCss(css, "font-size", style.FontSize.HasValue
-            ? style.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
-        AppendCss(css, "color", !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
-        AppendExcelDecorations(css, style.Underline ? style.UnderlineStyle ?? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None,
-            style.Strikethrough);
-        AppendCss(css, "vertical-align", style.VerticalTextAlignment switch {
-            ExcelVerticalTextAlignment.Superscript => "super",
-            ExcelVerticalTextAlignment.Subscript => "sub",
-            _ => null
-        });
-        AppendStyleAttribute(body, css);
-        if (style.UnderlineStyle.HasValue && style.UnderlineStyle.Value != ExcelUnderlineStyle.None) {
-            body.Append(" data-officeimo-excel-underline=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(style.UnderlineStyle.Value.ToString()))
-                .Append('"');
-        }
-    }
-
-    private static void AppendExcelTextStyleAttributes(StringBuilder body, ExcelRichTextRun run) {
-        var css = new StringBuilder();
-        AppendCss(css, "font-weight", run.Bold ? "700" : null);
-        AppendCss(css, "font-style", run.Italic ? "italic" : null);
-        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName) ? QuoteCssFontFamily(run.FontName!) : null);
-        AppendCss(css, "font-size", run.FontSize.HasValue
-            ? run.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
-        string color = (run.FontColor ?? string.Empty).Trim().TrimStart('#');
-        if (color.Length == 8) color = color.Substring(2);
-        AppendCss(css, "color", color.Length == 6 ? "#" + color : null);
-        AppendExcelDecorations(css, run.Underline ? run.UnderlineStyle ?? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None,
-            run.Strikethrough);
-        AppendCss(css, "vertical-align", run.VerticalTextAlignment switch {
-            ExcelVerticalTextAlignment.Superscript => "super",
-            ExcelVerticalTextAlignment.Subscript => "sub",
-            _ => null
-        });
-        AppendStyleAttribute(body, css);
-        if (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != ExcelUnderlineStyle.None) {
-            body.Append(" data-officeimo-excel-underline=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(run.UnderlineStyle.Value.ToString()))
-                .Append('"');
-        }
-    }
-
-    private static void AppendExcelDecorations(StringBuilder css, ExcelUnderlineStyle underlineStyle, bool strike) {
-        var lines = new List<string>(2);
-        if (underlineStyle != ExcelUnderlineStyle.None) lines.Add("underline");
-        if (strike) lines.Add("line-through");
-        if (lines.Count == 0) return;
-        AppendCss(css, "text-decoration-line", string.Join(" ", lines));
-        AppendCss(css, "text-decoration-style", underlineStyle is ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting
-            ? "double" : "solid");
-    }
-
-    private static void AppendCss(StringBuilder css, string name, string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return;
-        if (css.Length > 0) css.Append(';');
-        css.Append(name).Append(':').Append(value);
-    }
-
-    private static void AppendStyleAttribute(StringBuilder body, StringBuilder css) {
-        if (css.Length == 0) return;
-        body.Append(" style=\"")
-            .Append(OfficeHtmlText.EscapeAttribute(css.ToString()))
-            .Append('"');
-    }
-
-    private static string QuoteCssFontFamily(string value) =>
-        "'" + value.Replace("'", "\\'") + "'";
 
     private static void AppendSheetTruncationDiagnostics(
         StringBuilder body,

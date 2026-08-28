@@ -128,9 +128,14 @@ public static partial class HtmlExcelConverterExtensions {
         ExcelUnderlineStyle? underline = ResolveImportedUnderline(source, css);
         if (underline.HasValue && underline.Value != ExcelUnderlineStyle.None) target.SetUnderline(underline.Value);
         if (HasDecoration(css, "line-through")) target.SetStrikethrough();
-        if (TryGetCss(css, "vertical-align", out string verticalAlign)) {
+        string nativeVerticalAlign = (source.GetAttribute("data-officeimo-excel-vertical-align") ?? string.Empty).Trim();
+        if (Enum.TryParse(nativeVerticalAlign, ignoreCase: true, out ExcelVerticalTextAlignment nativeAlignment)
+            && Enum.IsDefined(typeof(ExcelVerticalTextAlignment), nativeAlignment)) {
+            target.SetVerticalTextAlignment(nativeAlignment);
+        } else if (TryGetCss(css, "vertical-align", out string verticalAlign)) {
             if (verticalAlign.Equals("super", StringComparison.OrdinalIgnoreCase)) target.SetSuperscript();
             if (verticalAlign.Equals("sub", StringComparison.OrdinalIgnoreCase)) target.SetSubscript();
+            if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) target.SetBaseline();
         }
         if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontName(NormalizeCssFontFamily(fontFamily));
         if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(fontSize);
@@ -159,6 +164,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (!string.IsNullOrEmpty(verticalAlign)) {
             if (verticalAlign.Equals("super", StringComparison.OrdinalIgnoreCase)) run.VerticalTextAlignment = ExcelVerticalTextAlignment.Superscript;
             if (verticalAlign.Equals("sub", StringComparison.OrdinalIgnoreCase)) run.VerticalTextAlignment = ExcelVerticalTextAlignment.Subscript;
+            if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) run.VerticalTextAlignment = ExcelVerticalTextAlignment.Baseline;
         }
         if (!TryGetCss(css, "font-family", out string fontFamily)) TryGetCss(inheritedCss, "font-family", out fontFamily);
         if (!string.IsNullOrEmpty(fontFamily)) run.FontName = NormalizeCssFontFamily(fontFamily);

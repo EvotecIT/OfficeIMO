@@ -528,6 +528,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (tag == "sup" || normalized == "super") return OfficeTextBaseline.Superscript;
         if (tag == "sub" || normalized == "sub") return OfficeTextBaseline.Subscript;
         if (normalized.Length == 0) return inherited;
+        if (normalized == "baseline") return inherited;
         return OfficeTextBaseline.Normal;
     }
 

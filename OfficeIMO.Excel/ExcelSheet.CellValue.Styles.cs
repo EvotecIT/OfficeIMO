@@ -72,34 +72,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Changes stored text casing in a cell while preserving cell or rich-run formatting.
-        /// Formulas and non-text values are left unchanged.
-        /// </summary>
-        /// <returns><see langword="true"/> when text was transformed; otherwise <see langword="false"/>.</returns>
-        public bool TransformCellTextCase(int row, int column, OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
-            IReadOnlyList<ExcelRichTextRun> richText = GetRichText(row, column);
-            if (richText.Count > 0) {
-                IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(
-                    richText.Select(run => run.Text).ToArray(), textCase, culture);
-                for (int index = 0; index < richText.Count; index++) {
-                    richText[index].Text = transformed[index];
-                }
-
-                SetRichText(row, column, richText);
-                return true;
-            }
-
-            if (!TryGetCellValueSnapshot(row, column, out ExcelCellValueSnapshot? snapshot) ||
-                snapshot == null ||
-                snapshot.Kind != ExcelCellValueKind.Text) {
-                return false;
-            }
-
-            CellValue(row, column, OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(snapshot.Text, textCase, culture));
-            return true;
-        }
-
-        /// <summary>
         /// Applies or clears wrap text on a single cell.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to modify.</param>
