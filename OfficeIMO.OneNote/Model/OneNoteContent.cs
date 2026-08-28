@@ -171,8 +171,21 @@ public sealed class OneNoteTextRun {
         OfficeIMO.Drawing.OfficeMathExpression transformed = MathExpression.TransformTextCase(textCase, culture);
         if (!MathExpression.Equals(transformed)) {
             MathExpression = transformed;
-            PreservedMathExpression = null;
-            PreservedNativeMathRuns = null;
+            if (PreservedNativeMathRuns != null && PreservedNativeMathRuns.Count > 0) {
+                IReadOnlyList<string> transformedSegments = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(
+                    PreservedNativeMathRuns.Select(run => run.Text).ToArray(),
+                    textCase,
+                    culture);
+                var transformedNativeRuns = new OneNoteTextRun[PreservedNativeMathRuns.Count];
+                for (int index = 0; index < PreservedNativeMathRuns.Count; index++) {
+                    transformedNativeRuns[index] = OneNoteMathRunPreservation.Clone(PreservedNativeMathRuns[index]);
+                    transformedNativeRuns[index].Text = transformedSegments[index];
+                }
+                PreservedMathExpression = transformed;
+                PreservedNativeMathRuns = transformedNativeRuns;
+            } else {
+                PreservedMathExpression = null;
+            }
         }
         Text = MathExpression.ToPlainText();
         return this;

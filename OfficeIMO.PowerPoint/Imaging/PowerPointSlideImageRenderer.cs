@@ -358,6 +358,7 @@ namespace OfficeIMO.PowerPoint {
 
             AddSmallCapsApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
+            AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
 
             double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? 0D);
             double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? 0D);
@@ -759,7 +760,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool ShouldRenderRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
             richRuns.Count > 1 ||
-            (richRuns.Count == 1 && (richRuns[0].Underline || richRuns[0].Strikethrough || richRuns[0].BackgroundColor.HasValue));
+            (richRuns.Count == 1 && (richRuns[0].Underline || richRuns[0].Strikethrough ||
+                richRuns[0].BackgroundColor.HasValue || richRuns[0].Baseline != OfficeTextBaseline.Normal));
 
         private static OfficeTextParagraphIndent CreateParagraphIndent(PowerPointParagraph? paragraph, PowerPointShapeBoundsMapping mapping) {
             if (paragraph == null) {
@@ -831,7 +833,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme);
             OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, colorScheme);
             return new OfficeRichTextRun(
-                ResolvePowerPointDisplayText(text, run, markerRun),
+                ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? textBox.FontSize ?? 18 : run?.FontSize ?? textBox.FontSize ?? 18),
                 color,
                 run?.Bold == true,
@@ -842,26 +844,52 @@ namespace OfficeIMO.PowerPoint {
                 backgroundColor,
                 MapUnderlineStyle(run?.UnderlineStyle),
                 MapStrikeStyle(run?.StrikeStyle),
-                MapBaseline(run?.BaselinePercent));
+                MapBaseline(ResolvePowerPointBaselinePercent(run, paragraph)));
         }
 
-        private static string ResolvePowerPointDisplayText(string text, PowerPointTextRun? run, bool markerRun = false) {
-            if (markerRun || run?.Capitalization is not (PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
+        private static string ResolvePowerPointDisplayText(string text, PowerPointTextRun? run, PowerPointParagraph? paragraph, bool markerRun = false) {
+            PowerPointCapitalization? capitalization = ResolvePowerPointCapitalization(run, paragraph);
+            if (markerRun || capitalization is not (PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
                 return text;
             }
 
-            return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, ResolvePowerPointRunCulture(run.Language));
+            return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase,
+                ResolvePowerPointRunCulture(ResolvePowerPointLanguage(run, paragraph)));
         }
 
         private static string ResolvePowerPointDisplayText(PowerPointTextBox textBox) {
-            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                .Any(run => run.Capitalization is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
+                    ResolvePowerPointCapitalization(run, paragraph) is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps))) {
                 return textBox.Text;
             }
 
             return string.Join(Environment.NewLine, textBox.Paragraphs.Select(paragraph =>
                 string.Concat(paragraph.InlineNodes.Select(node =>
-                    node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run)))));
+                    node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run, paragraph)))));
+        }
+
+        private static PowerPointCapitalization? ResolvePowerPointCapitalization(PowerPointTextRun? run, PowerPointParagraph? paragraph) {
+            if (run?.Capitalization.HasValue == true) return run.Capitalization;
+            A.TextCapsValues? inherited = paragraph?.Paragraph.ParagraphProperties?
+                .GetFirstChild<A.DefaultRunProperties>()?.Capital?.Value;
+            if (!inherited.HasValue) return null;
+            if (inherited.Value == A.TextCapsValues.None) return PowerPointCapitalization.None;
+            if (inherited.Value == A.TextCapsValues.Small) return PowerPointCapitalization.SmallCaps;
+            if (inherited.Value == A.TextCapsValues.All) return PowerPointCapitalization.AllCaps;
+            return null;
+        }
+
+        private static string? ResolvePowerPointLanguage(PowerPointTextRun? run, PowerPointParagraph? paragraph) =>
+            !string.IsNullOrWhiteSpace(run?.Language)
+                ? run!.Language
+                : paragraph?.Paragraph.ParagraphProperties?
+                    .GetFirstChild<A.DefaultRunProperties>()?.Language?.Value;
+
+        private static double? ResolvePowerPointBaselinePercent(PowerPointTextRun? run, PowerPointParagraph? paragraph) {
+            if (run?.BaselinePercent.HasValue == true) return run.BaselinePercent;
+            int? inherited = paragraph?.Paragraph.ParagraphProperties?
+                .GetFirstChild<A.DefaultRunProperties>()?.Baseline?.Value;
+            return inherited.HasValue ? inherited.Value / 1000D : (double?)null;
         }
 
         private static CultureInfo ResolvePowerPointRunCulture(string? language) {
@@ -879,8 +907,8 @@ namespace OfficeIMO.PowerPoint {
         private static void AddSmallCapsApproximationDiagnosticIfNeeded(
             PowerPointTextBox textBox,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                .Any(run => run.Capitalization == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text))) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
+                    ResolvePowerPointCapitalization(run, paragraph) == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text)))) {
                 return;
             }
 
@@ -891,6 +919,27 @@ namespace OfficeIMO.PowerPoint {
                 DescribeShape(textBox),
                 OfficeConversionLossKind.Approximation));
         }
+
+        private static void AddBaselineApproximationDiagnosticIfNeeded(
+            PowerPointTextBox textBox,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
+                    IsPowerPointBaselineApproximated(ResolvePowerPointBaselinePercent(run, paragraph))))) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated,
+                "Rendered a native PowerPoint baseline percentage using the shared superscript or subscript geometry; the exact authored percentage is not representable.",
+                DescribeShape(textBox),
+                OfficeConversionLossKind.Approximation));
+        }
+
+        private static bool IsPowerPointBaselineApproximated(double? baselinePercent) =>
+            baselinePercent.HasValue && baselinePercent.Value != 0D &&
+            Math.Abs(baselinePercent.Value - 30D) > 0.0001D &&
+            Math.Abs(baselinePercent.Value + 25D) > 0.0001D;
 
         private static void AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(
             PowerPointTextBox textBox,

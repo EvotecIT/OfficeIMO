@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
+using System.Globalization;
 
 namespace OfficeIMO.Word.OpenDocument;
 
@@ -136,6 +137,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
+        CultureInfo textCaseCulture = ResolveOdfTextCulture(source.Metadata.Language);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = CountUnsupportedWritingModes(source);
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
@@ -150,7 +152,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (block.Table != null) {
                 currentList = null;
                 currentOrdered = null;
-                ConvertTable(block.Table, target, effective, ref hyperlinks, ref externalHyperlinks, ref images,
+                ConvertTable(block.Table, target, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images,
                     ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                 tables++;
@@ -180,7 +182,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 }
             }
 
-            CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
+            CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
                 ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                 ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
         }
@@ -197,13 +199,13 @@ public static partial class WordOpenDocumentConversionExtensions {
             target.AddHeadersAndFooters();
             foreach (OdtParagraph paragraph in source.PageLayout.Header.Paragraphs) {
                 WordParagraph converted = target.Header!.Default!.AddParagraph();
-                CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
+                CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
                     ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
             }
             foreach (OdtParagraph paragraph in source.PageLayout.Footer.Paragraphs) {
                 WordParagraph converted = target.Footer!.Default!.AddParagraph();
-                CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
+                CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
                     ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
             }
@@ -292,13 +294,15 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static void CopyParagraph(OdtParagraph source, WordParagraph target,
-        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,
+        WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
+        ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,
         ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
         string[] sourceTexts = source.InlineNodes.Select(node => node.Text).ToArray();
         IReadOnlyList<string> capitalizedTexts = OfficeTextCaseTransformer.ApplySegments(
             sourceTexts,
-            OfficeTextCase.Capitalize);
+            OfficeTextCase.Capitalize,
+            textCaseCulture);
         for (int nodeIndex = 0; nodeIndex < source.InlineNodes.Count; nodeIndex++) {
             OdtInlineNode node = source.InlineNodes[nodeIndex];
             OdfTextTransform? transform = node.Kind switch {
@@ -308,7 +312,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             };
             string displayText = transform switch {
                 OdfTextTransform.Capitalize => capitalizedTexts[nodeIndex],
-                OdfTextTransform.Lowercase => OfficeTextCaseTransformer.Apply(node.Text, OfficeTextCase.Lowercase),
+                OdfTextTransform.Lowercase => OfficeTextCaseTransformer.Apply(node.Text, OfficeTextCase.Lowercase, textCaseCulture),
                 _ => node.Text
             };
             switch (node.Kind) {
@@ -538,7 +542,8 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static void ConvertTable(OdtTable source, WordDocument targetDocument,
-        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int externalHyperlinks, ref int images,
+        WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
+        ref int hyperlinks, ref int externalHyperlinks, ref int images,
         ref int bookmarks, ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
         int rows = Math.Max(1, source.Rows.Count);
@@ -553,7 +558,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 WordTableCell targetCell = target.Rows[row].Cells[column];
                 for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
                     WordParagraph targetParagraph = targetCell.AddParagraph(removeExistingParagraphs: paragraphIndex == 0);
-                    CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, ref hyperlinks,
+                    CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, textCaseCulture, ref hyperlinks,
                         ref externalHyperlinks, ref images, ref bookmarks, ref approximatedRuns,
                         ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                         ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
@@ -577,6 +582,17 @@ public static partial class WordOpenDocumentConversionExtensions {
             CopyParagraph(paragraph, target.AddParagraph(), options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                 ref bookmarks, ref unsupportedFootnotes);
         }
+    }
+
+    private static CultureInfo ResolveOdfTextCulture(string? language) {
+        if (!string.IsNullOrWhiteSpace(language)) {
+            try {
+                return CultureInfo.GetCultureInfo(language!);
+            } catch (CultureNotFoundException) {
+                // Invalid document metadata falls back deterministically.
+            }
+        }
+        return CultureInfo.InvariantCulture;
     }
 
     private static int GetHeadingLevel(WordParagraphSnapshot paragraph) {

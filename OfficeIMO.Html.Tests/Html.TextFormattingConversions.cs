@@ -197,6 +197,26 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void ExcelHtmlImportTreatsEightDigitCssColorsAsRgba() {
+        const string html = "<section class=\"officeimo-sheet\" data-officeimo-sheet=\"Alpha\"><table><tr><td style=\"color:#33669980\"><span style=\"color:#CC330040\">Alpha</span></td></tr></table></section>";
+
+        using ExcelDocument imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult()
+            .RequireValue();
+        ExcelSheet sheet = Assert.Single(imported.Sheets);
+
+        Assert.Equal("336699", sheet.GetCellStyle(1, 1).FontColorHex);
+        Assert.Equal("FFCC3300", Assert.Single(sheet.GetRichText(1, 1)).FontColor);
+
+        using ExcelDocument generic = HtmlConversionDocument
+            .Parse("<table><tr><td style=\"color:#11223380\">Generic</td></tr></table>")
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
+            .RequireValue();
+        Assert.Equal("112233", Assert.Single(generic.Sheets).GetCellStyle(1, 1).FontColorHex);
+    }
+
+    [Fact]
     public void ExcelSemanticHtmlRoundTripAppliesCellTypographyToRichRuns() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelCell cell = source.AddWorksheet("Text").CellAt(1, 1)

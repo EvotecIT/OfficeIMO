@@ -868,7 +868,7 @@ public static partial class PowerPointPdfConverterExtensions {
             fontSize: fontSize,
             font: font,
             linkUri: linkUri,
-            baseline: MapPowerPointBaseline(run.BaselinePercent),
+            baseline: MapPowerPointBaseline(run.BaselinePercent, options, slideNumber),
             fontFamily: fontFamily,
             underlineStyle: linkUri != null && !run.Underline
                 ? OfficeTextDecorationStyle.Single
@@ -935,11 +935,24 @@ public static partial class PowerPointPdfConverterExtensions {
         _ => OfficeTextDecorationStyle.None
     };
 
-    private static PdfCore.PdfTextBaseline MapPowerPointBaseline(double? baselinePercent) => baselinePercent switch {
-        > 0D => PdfCore.PdfTextBaseline.Superscript,
-        < 0D => PdfCore.PdfTextBaseline.Subscript,
-        _ => PdfCore.PdfTextBaseline.Normal
-    };
+    private static PdfCore.PdfTextBaseline MapPowerPointBaseline(
+        double? baselinePercent,
+        PowerPointPdfSaveOptions options,
+        int slideNumber) {
+        if (baselinePercent.HasValue && baselinePercent.Value != 0D &&
+            Math.Abs(baselinePercent.Value - 30D) > 0.0001D &&
+            Math.Abs(baselinePercent.Value + 25D) > 0.0001D &&
+            !options.Warnings.Any(warning => warning.SlideNumber == slideNumber && warning.Code == "baseline-percent-approximation")) {
+            AddWarning(options, slideNumber, "baseline-percent-approximation",
+                "Rendered a native PowerPoint baseline percentage using the PDF superscript or subscript geometry; the exact authored percentage is not representable.");
+        }
+
+        return baselinePercent switch {
+            > 0D => PdfCore.PdfTextBaseline.Superscript,
+            < 0D => PdfCore.PdfTextBaseline.Subscript,
+            _ => PdfCore.PdfTextBaseline.Normal
+        };
+    }
 
     private static string? ResolveTextBoxFontFamily(PptCore.PowerPointTextBox textBox, PowerPointPdfSaveOptions options) {
         if (!string.IsNullOrWhiteSpace(textBox.FontName)) {

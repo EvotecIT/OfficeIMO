@@ -63,7 +63,7 @@ public static partial class PowerPointPdfConverterExtensions {
             strike: strike.HasValue && strike.Value != A.TextStrikeValues.NoStrike,
             fontSize: ReadRunFontSize(sources) ?? cell.FontSize,
             font: MapFont(fontFamily),
-            baseline: baseline > 0 ? PdfCore.PdfTextBaseline.Superscript : baseline < 0 ? PdfCore.PdfTextBaseline.Subscript : PdfCore.PdfTextBaseline.Normal,
+            baseline: MapPowerPointBaseline(baseline.HasValue ? baseline.Value / 1000D : (double?)null, options, slideNumber),
             fontFamily: fontFamily,
             underlineStyle: MapPowerPointUnderline(underline),
             strikeStyle: strike == A.TextStrikeValues.DoubleStrike

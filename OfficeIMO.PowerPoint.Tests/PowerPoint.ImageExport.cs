@@ -80,6 +80,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_ImageExportResolvesParagraphCapsAndReportsNoncanonicalBaselines() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 150);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            PowerPointParagraph textParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 140, 50).Paragraphs[0];
+            textParagraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.All, Language = "tr-TR" });
+            textParagraph.Runs[0].BaselinePercent = 5D;
+
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 180, 20, 140, 50).GetCell(0, 0);
+            cell.Text = "small caps";
+            PowerPointParagraph cellParagraph = cell.Paragraphs[0];
+            cellParagraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.Small, Language = "en-US" });
+            cellParagraph.Runs[0].BaselinePercent = 80D;
+
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.Contains("İZMİR", svgText, StringComparison.Ordinal);
+            Assert.Contains("SMALL CAPS", svgText, StringComparison.Ordinal);
+            Assert.Equal(2, svg.Diagnostics.Count(diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated));
+            Assert.Equal(2, png.Diagnostics.Count(diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated));
+            Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == PowerPointImageExportDiagnosticCodes.SmallCapsApproximated);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
         public void PowerPointSlide_DirectImageExportEnforcesRenderTimeout() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

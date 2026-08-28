@@ -647,7 +647,14 @@ namespace OfficeIMO.Word.Html {
                         var spanClass = CreateOutputElement(htmlDoc, "span");
                         SetOutputAttribute(spanClass, "class", GetSafeStyleClassName(run.CharacterStyleId), "RunFormatting:class");
                         spanClass.AppendChild(ApplyStyleDefinitionTextDecorations(
-                            document, htmlDoc, run.CharacterStyleId, node, "RunStyleFormatting"));
+                            document,
+                            htmlDoc,
+                            run.CharacterStyleId,
+                            node,
+                            "RunStyleFormatting",
+                            suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                            suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                            suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike)));
                         node = spanClass;
                         runStyles.Add(run.CharacterStyleId!);
                     }

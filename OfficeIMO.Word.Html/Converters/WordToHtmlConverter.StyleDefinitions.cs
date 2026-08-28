@@ -136,21 +136,24 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDocument,
             string? styleId,
             INode node,
-            string source) {
+            string source,
+            bool suppressUnderline = false,
+            bool suppressStrike = false,
+            bool suppressDoubleStrike = false) {
             WordStyleTextDecorations decorations = ResolveStyleDefinitionTextDecorations(document, styleId);
-            if (decorations.DoubleStrike) {
+            if (decorations.DoubleStrike && !suppressDoubleStrike) {
                 var strike = CreateOutputElement(htmlDocument, "span");
                 SetOutputAttribute(htmlDocument, strike, "style", "text-decoration-line:line-through;text-decoration-style:double", source + ":double-strike");
                 SetOutputAttribute(htmlDocument, strike, "data-officeimo-word-double-strike", "true", source + ":double-strike-metadata");
                 strike.AppendChild(node);
                 node = strike;
-            } else if (decorations.Strike) {
+            } else if (decorations.Strike && !suppressStrike) {
                 var strike = CreateOutputElement(htmlDocument, "s");
                 strike.AppendChild(node);
                 node = strike;
             }
 
-            if (decorations.Underline.HasValue && decorations.Underline.Value != WordUnderlineStyle.None) {
+            if (!suppressUnderline && decorations.Underline.HasValue && decorations.Underline.Value != WordUnderlineStyle.None) {
                 if (decorations.Underline.Value == WordUnderlineStyle.Single) {
                     var underline = CreateOutputElement(htmlDocument, "u");
                     underline.AppendChild(node);

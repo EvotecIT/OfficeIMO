@@ -66,6 +66,21 @@ public sealed class PowerPointPdfTextFormattingTests {
     }
 
     [Fact]
+    public void NoncanonicalBaselinePercentagesAreReportedForTextBoxesAndTables() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+            new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointSlide slide = presentation.AddSlide();
+        slide.AddTextBoxPoints("Text", 10, 10, 120, 40).Paragraphs[0].Runs[0].BaselinePercent = 5D;
+        PowerPointTableCell cell = slide.AddTablePoints(1, 1, 150, 10, 120, 40).GetCell(0, 0);
+        cell.Text = "Cell";
+        cell.Paragraphs[0].Runs[0].BaselinePercent = 80D;
+
+        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
+
+        Assert.Single(conversion.Warnings, warning => warning.Code == "baseline-percent-approximation");
+    }
+
+    [Fact]
     public void TableRunFormattingResolvesParagraphListAndThemeDefaults() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(
             new MemoryStream(), new PowerPointCreateOptions());

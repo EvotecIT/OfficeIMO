@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
@@ -158,6 +159,29 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         Assert.Equal(new[] { "He", "llo World" }, converted.Runs.Select(run => run.Text).ToArray());
         Assert.True(converted.Runs[0].Bold);
         Assert.True(converted.Runs[1].Italic);
+    }
+
+    [Fact]
+    public void OdtDisplayCaseUsesDocumentLanguageInsteadOfHostCulture() {
+        CultureInfo originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo originalUiCulture = CultureInfo.CurrentUICulture;
+        try {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("tr-TR");
+            OdtDocument odt = OdtDocument.Create();
+            odt.Metadata.Language = "en-US";
+            OdtParagraph lowercase = odt.AddParagraph("I");
+            lowercase.TextTransform = OdfTextTransform.Lowercase;
+            OdtParagraph capitalize = odt.AddParagraph("istanbul");
+            capitalize.TextTransform = OdfTextTransform.Capitalize;
+
+            using WordDocument word = odt.ToWordDocument();
+
+            Assert.Equal(new[] { "i", "Istanbul" }, word.Paragraphs.Select(paragraph => paragraph.Text));
+        } finally {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
     }
 
     [Fact]

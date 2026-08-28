@@ -26,5 +26,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Native double-wavy underline was rendered as a double solid underline by the shared drawing model.</summary>
         public const string WavyDoubleUnderlineApproximated = "powerpoint-wavy-double-underline-approximated";
+
+        /// <summary>An authored DrawingML baseline percentage was reduced to the shared superscript or subscript geometry.</summary>
+        public const string BaselinePercentApproximated = "powerpoint-baseline-percent-approximated";
     }
 }

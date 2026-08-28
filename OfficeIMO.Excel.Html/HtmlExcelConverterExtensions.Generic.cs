@@ -535,7 +535,13 @@ public static partial class HtmlExcelConverterExtensions {
 
     private static string NormalizeHexColor(string? value) {
         string color = (value ?? string.Empty).Trim();
+        if (color.Length == 9 && color[0] == '#') return color.Substring(1, 6).ToUpperInvariant();
         if (color.Length == 7 && color[0] == '#') return color.Substring(1).ToUpperInvariant();
+        if (color.Length == 5 && color[0] == '#') {
+            return string.Concat(char.ToUpperInvariant(color[1]), char.ToUpperInvariant(color[1]),
+                char.ToUpperInvariant(color[2]), char.ToUpperInvariant(color[2]),
+                char.ToUpperInvariant(color[3]), char.ToUpperInvariant(color[3]));
+        }
         if (color.Length == 4 && color[0] == '#') {
             return string.Concat(char.ToUpperInvariant(color[1]), char.ToUpperInvariant(color[1]),
                 char.ToUpperInvariant(color[2]), char.ToUpperInvariant(color[2]),

@@ -101,6 +101,30 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
         Assert.Contains(".InheritedSmallCaps { font-variant:small-caps", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void WordRunExplicitDecorationOffSuppressesInheritedCharacterStyleDecorationsInHtml() {
+        using WordDocument source = WordDocument.Create();
+        var style = new Style { Type = StyleValues.Character, StyleId = "InheritedDecorations" };
+        style.Append(new StyleName { Val = "InheritedDecorations" });
+        style.Append(new StyleRunProperties(
+            new Underline { Val = UnderlineValues.Wave },
+            new Strike(),
+            new DoubleStrike()));
+        source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+        WordParagraph run = source.AddParagraph().AddText("Decorations off").SetCharacterStyleId("InheritedDecorations");
+        run._runProperties!.Underline = new Underline { Val = UnderlineValues.None };
+        run._runProperties.Strike = new Strike { Val = false };
+        run._runProperties.DoubleStrike = new DoubleStrike { Val = false };
+
+        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+
+        Assert.Contains("class=\"InheritedDecorations\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-officeimo-word-underline", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-officeimo-word-double-strike", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<u>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<s>", html, StringComparison.Ordinal);
+    }
+
     private static void AddCapitalizationStyle(WordDocument document, string styleId, OnOffType capitalization) {
         var style = new Style { Type = StyleValues.Character, StyleId = styleId };
         style.Append(new StyleName { Val = styleId });

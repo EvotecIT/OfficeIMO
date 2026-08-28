@@ -174,6 +174,7 @@ namespace OfficeIMO.PowerPoint {
 
             AddSmallCapsApproximationDiagnosticIfNeeded(table, cell, diagnostics);
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(table, cell, diagnostics);
+            AddBaselineApproximationDiagnosticIfNeeded(table, cell, diagnostics);
 
             double marginLeft = mapping.MapHorizontalLength(cell.PaddingLeftPoints ?? 3.6D);
             double marginTop = mapping.MapVerticalLength(cell.PaddingTopPoints ?? 1.8D);
@@ -425,6 +426,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+                var paragraphModel = new PowerPointParagraph(paragraph, cell.SlidePart);
                 List<A.Run> paragraphRuns = paragraph.Elements<A.Run>().ToList();
                 bool paragraphHasVisibleText = paragraphRuns.Any(run => !string.IsNullOrEmpty(run.Text?.Text));
                 if (!paragraphHasVisibleText) {
@@ -432,7 +434,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (richRuns.Count > 0) {
-                    richRuns.Add(CreateRichTextRun(Environment.NewLine, null, cell, colorScheme, mapping));
+                    richRuns.Add(CreateRichTextRun(Environment.NewLine, null, cell, paragraphModel, colorScheme, mapping));
                 }
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
@@ -442,7 +444,7 @@ namespace OfficeIMO.PowerPoint {
                         continue;
                     }
 
-                    richRuns.Add(CreateRichTextRun(runText, new PowerPointTextRun(sourceRun), cell, colorScheme, mapping));
+                    richRuns.Add(CreateRichTextRun(runText, new PowerPointTextRun(sourceRun), cell, paragraphModel, colorScheme, mapping));
                 }
             }
 
@@ -457,7 +459,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = ResolveTableCellTextRunColor(run, cell, colorScheme);
             OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, colorScheme);
             return new OfficeRichTextRun(
-                ResolvePowerPointDisplayText(text, run, markerRun),
+                ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? cell.FontSize ?? 10 : run?.FontSize ?? cell.FontSize ?? 10),
                 color,
                 run?.Bold == true,
@@ -468,35 +470,50 @@ namespace OfficeIMO.PowerPoint {
                 backgroundColor,
                 MapUnderlineStyle(run?.UnderlineStyle),
                 MapStrikeStyle(run?.StrikeStyle),
-                MapBaseline(run?.BaselinePercent));
+                MapBaseline(ResolvePowerPointBaselinePercent(run, paragraph)));
         }
 
         private static string ResolvePowerPointDisplayText(PowerPointTableCell cell) {
             IReadOnlyList<PowerPointParagraph> paragraphs = cell.Paragraphs;
-            if (!paragraphs.SelectMany(paragraph => paragraph.Runs)
-                .Any(run => run.Capitalization is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
+            if (!paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
+                    ResolvePowerPointCapitalization(run, paragraph) is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps))) {
                 return cell.Text;
             }
 
             return string.Join(Environment.NewLine, paragraphs.Select(paragraph =>
                 string.Concat(paragraph.InlineNodes.Select(node =>
-                    node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run)))));
+                    node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run, paragraph)))));
         }
 
         private static void AddSmallCapsApproximationDiagnosticIfNeeded(
             PowerPointTable table,
             PowerPointTableCell cell,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            bool hasSmallCaps = cell.Cell.TextBody?.Elements<A.Paragraph>()
-                .SelectMany(paragraph => paragraph.Elements<A.Run>())
-                .Select(run => new PowerPointTextRun(run))
-                .Any(run => run.Capitalization == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text)) == true;
+            bool hasSmallCaps = cell.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
+                ResolvePowerPointCapitalization(run, paragraph) == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text)));
             if (!hasSmallCaps) return;
 
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 PowerPointImageExportDiagnosticCodes.SmallCapsApproximated,
                 "Rendered native PowerPoint table-cell small caps as uppercase glyphs; reduced small-cap glyph sizing is approximated.",
+                DescribeShape(table),
+                OfficeConversionLossKind.Approximation));
+        }
+
+        private static void AddBaselineApproximationDiagnosticIfNeeded(
+            PowerPointTable table,
+            PowerPointTableCell cell,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!cell.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
+                    IsPowerPointBaselineApproximated(ResolvePowerPointBaselinePercent(run, paragraph))))) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated,
+                "Rendered a native PowerPoint table-cell baseline percentage using the shared superscript or subscript geometry; the exact authored percentage is not representable.",
                 DescribeShape(table),
                 OfficeConversionLossKind.Approximation));
         }

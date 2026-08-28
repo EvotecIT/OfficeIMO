@@ -232,7 +232,7 @@ public static partial class HtmlExcelConverterExtensions {
     private static bool TryNormalizeCssHex(string value, out string color) {
         color = value.Trim().TrimStart('#');
         if (color.Length == 3) color = string.Concat(color[0], color[0], color[1], color[1], color[2], color[2]);
-        if (color.Length == 8) color = color.Substring(2);
+        if (color.Length == 8) color = color.Substring(0, 6);
         return color.Length == 6 && color.All(Uri.IsHexDigit);
     }
 
