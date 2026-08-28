@@ -620,6 +620,11 @@ namespace OfficeIMO.Word.Html {
             }
             if (parsed.Strike.HasValue) {
                 formatting.Strike = parsed.Strike.Value;
+                if (!parsed.Strike.Value) formatting.DoubleStrike = false;
+            }
+            if (parsed.Strike == true && parsed.UnderlineStyle == UnderlineValues.Double) {
+                formatting.Strike = false;
+                formatting.DoubleStrike = true;
             }
             if (Enum.TryParse(exactUnderline, ignoreCase: true, out WordUnderlineStyle retainedUnderline)
                 && Enum.IsDefined(typeof(WordUnderlineStyle), retainedUnderline)

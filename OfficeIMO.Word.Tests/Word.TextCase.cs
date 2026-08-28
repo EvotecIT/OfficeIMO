@@ -3,6 +3,7 @@ using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Tests;
 
@@ -53,5 +54,29 @@ public partial class Word {
         Assert.Equal(OfficeMath.Fraction(
             OfficeMath.Text("mixed case"),
             OfficeMath.Radical(OfficeMath.Text("other text"))), actual.ToExpression());
+    }
+
+    [Fact]
+    public void TransformTextCasePreservesOmmlRunFormattingInPlace() {
+        const string omml = """
+            <m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+                     xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+              <m:r><m:rPr><m:nor/></m:rPr><w:rPr><w:b/><w:color w:val="336699"/></w:rPr><m:t>MiXeD</m:t></m:r>
+            </m:oMath>
+            """;
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph().AddEquation(omml);
+        M.Run run = Assert.Single(paragraph.Equation!.MathElement!.Descendants<M.Run>());
+        string[] formattingBefore = run.ChildElements
+            .Where(element => element.LocalName == "rPr")
+            .Select(element => element.OuterXml)
+            .ToArray();
+
+        paragraph.TransformTextCase(OfficeTextCase.Lowercase);
+
+        Assert.Equal("mixed", paragraph.Text);
+        Assert.Equal(formattingBefore, run.ChildElements
+            .Where(element => element.LocalName == "rPr")
+            .Select(element => element.OuterXml));
     }
 }

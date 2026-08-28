@@ -218,6 +218,26 @@ namespace OfficeIMO.Tests {
             Assert.True(png.Bytes.Length > 32);
         }
 
+        [Fact]
+        public void VisioSuperscriptFitsSvgUsingItsEffectiveRenderedSize() {
+            VisioDocument document = VisioDocument.Create(new MemoryStream());
+            document.AddPage("ScriptFit").Size(2, 1)
+                .AddRectangle(1, 0.5, 1.25, 0.6, "WWWW")
+                .ApplyTextStyle(new VisioTextStyle {
+                    FontFamily = "Aptos",
+                    Size = 24,
+                    Baseline = OfficeTextBaseline.Superscript,
+                    TextWidth = 1.25,
+                    TextHeight = 0.6
+                });
+
+            XDocument svg = XDocument.Parse(document.Pages[0].ToSvg());
+            XElement text = Assert.Single(svg.Descendants(), element => element.Name.LocalName == "text" && element.Value == "WWWW");
+            double renderedSize = double.Parse(text.Attribute("font-size")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+
+            Assert.InRange(renderedSize, 20.7D, 20.9D);
+        }
+
         [Theory]
         [InlineData(OfficeImageExportFormat.Png)]
         [InlineData(OfficeImageExportFormat.Svg)]

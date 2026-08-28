@@ -134,5 +134,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsEnabled(OnOffType? value) => value != null && value.Val?.Value != false;
+
+        private static bool IsExplicitlyDisabled(OnOffType? value) => value != null && value.Val?.Value == false;
     }
 }

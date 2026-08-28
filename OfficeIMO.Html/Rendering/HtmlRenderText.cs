@@ -22,11 +22,36 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         string? semanticRole = null,
         double? layoutY = null,
         int? semanticNodeId = null,
+        bool bidiVisualOrderResolved = false)
+        : this(text, x, y, width, height, font, color, alignment, lineHeight, paintOrder,
+            linkUri, source, semanticRole, layoutY, semanticNodeId, null, bidiVisualOrderResolved, null, null,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal) {
+    }
+
+    internal HtmlRenderText(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeFontInfo font,
+        OfficeColor color,
+        OfficeTextAlignment alignment,
+        double lineHeight,
+        int paintOrder,
+        string? linkUri,
+        string? source,
+        string? semanticRole,
+        double? layoutY,
+        int? semanticNodeId,
+        double? textAdvanceWidth,
         bool bidiVisualOrderResolved = false,
-        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
-        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
-        OfficeTextBaseline baseline = OfficeTextBaseline.Normal)
-        : this(text, x, y, width, height, font, color, alignment, lineHeight, paintOrder, linkUri, source, semanticRole, layoutY, semanticNodeId, null, bidiVisualOrderResolved, null, null, underlineStyle, strikethroughStyle, baseline) {
+        int? semanticFragmentOrder = null,
+        int? logicalTextOrder = null)
+        : this(text, x, y, width, height, font, color, alignment, lineHeight, paintOrder,
+            linkUri, source, semanticRole, layoutY, semanticNodeId, textAdvanceWidth,
+            bidiVisualOrderResolved, semanticFragmentOrder, logicalTextOrder,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal) {
     }
 
     internal HtmlRenderText(

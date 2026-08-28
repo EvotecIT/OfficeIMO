@@ -64,6 +64,8 @@ namespace OfficeIMO.Visio {
             double availableHeight = IsFinitePositive(maxHeight) ? maxHeight : double.PositiveInfinity;
             OfficeTextAlignment alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment(style?.HorizontalAlignment);
             OfficeTextVerticalAlignment verticalAlignment = VisioDrawingTextAlignment.ToOfficeTextVerticalAlignment(style?.VerticalAlignment);
+            OfficeTextBaseline baseline = style?.Baseline ?? OfficeTextBaseline.Normal;
+            double baselineScale = baseline == OfficeTextBaseline.Normal ? 1D : 0.65D;
             OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFittedFromCenter(
                 text,
                 fontSize,
@@ -71,16 +73,17 @@ namespace OfficeIMO.Visio {
                 y,
                 availableWidth,
                 availableHeight,
-                (candidate, candidateFontSize) => MeasureSvgTextWidth(textMeasurer, candidate, candidateFontSize, fontFamily, fontStyle),
+                (candidate, candidateFontSize) => MeasureSvgTextWidth(textMeasurer, candidate, candidateFontSize * baselineScale, fontFamily, fontStyle),
                 alignment,
                 verticalAlignment,
-                lineHeightFactor: 1.2D,
+                lineHeightFactor: 1.2D * baselineScale,
                 minimumFontSize: 5D);
             fontSize = plan.Layout.FontSize;
+            double renderedFontSize = fontSize * baselineScale;
 
             Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
-            double padX = Math.Max(3D, fontSize * 0.22D);
-            double padY = Math.Max(2D, fontSize * 0.16D);
+            double padX = Math.Max(3D, renderedFontSize * 0.22D);
+            double padY = Math.Max(2D, renderedFontSize * 0.16D);
             OfficeTextBlockRenderer.WriteSvgTextBox(
                 writer,
                 plan,
@@ -101,7 +104,7 @@ namespace OfficeIMO.Visio {
                 strikethrough: style?.Strikethrough == true,
                 underlineStyle: style?.UnderlineStyle ?? OfficeTextDecorationStyle.None,
                 strikethroughStyle: style?.StrikethroughStyle ?? OfficeTextDecorationStyle.None,
-                baseline: style?.Baseline ?? OfficeTextBaseline.Normal);
+                baseline: baseline);
         }
 
         private static void WriteArrow(

@@ -595,15 +595,18 @@ namespace OfficeIMO.Word.Html {
                         node = span;
                     }
 
-                    // Caps / SmallCaps
+                    // Caps / SmallCaps. Direct explicit-off values must reset inherited style CSS.
+                    var capitalizationStyles = new List<string>();
                     if (run.CapsStyle == WordCapsStyle.SmallCaps) {
-                        var span = CreateOutputElement(htmlDoc, "span");
-                        SetOutputAttribute(span, "style", "font-variant:small-caps", "RunFormatting:caps");
-                        span.AppendChild(node);
-                        node = span;
+                        capitalizationStyles.Add("font-variant:small-caps");
                     } else if (run.CapsStyle == WordCapsStyle.Caps) {
+                        capitalizationStyles.Add("text-transform:uppercase");
+                    }
+                    if (IsExplicitlyDisabled(run._runProperties?.SmallCaps)) capitalizationStyles.Add("font-variant:normal");
+                    if (IsExplicitlyDisabled(run._runProperties?.Caps)) capitalizationStyles.Add("text-transform:none");
+                    if (capitalizationStyles.Count > 0) {
                         var span = CreateOutputElement(htmlDoc, "span");
-                        SetOutputAttribute(span, "style", "text-transform:uppercase", "RunFormatting:caps");
+                        SetOutputAttribute(span, "style", string.Join(";", capitalizationStyles), "RunFormatting:caps");
                         span.AppendChild(node);
                         node = span;
                     }

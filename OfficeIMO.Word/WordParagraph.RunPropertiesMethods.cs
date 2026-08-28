@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -192,7 +193,10 @@ namespace OfficeIMO.Word {
         public WordParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
             WordEquation? equation = Equation;
             if (equation?.Representation == WordEquationRepresentation.Omml) {
-                equation.SetExpression(equation.ToExpression().TransformTextCase(textCase, culture));
+                M.Text[] textNodes = equation.MathElement?.Descendants<M.Text>().ToArray() ?? Array.Empty<M.Text>();
+                IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(
+                    textNodes.Select(node => node.Text ?? string.Empty).ToArray(), textCase, culture);
+                for (int index = 0; index < textNodes.Length; index++) textNodes[index].Text = transformed[index];
                 return this;
             }
             Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);

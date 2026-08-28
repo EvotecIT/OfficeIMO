@@ -43,16 +43,19 @@ public static partial class HtmlPowerPointConverterExtensions {
             .Where(block => block.Kind == HtmlSemanticBlockKind.Paragraph)
             .ToArray() ?? Array.Empty<HtmlSemanticBlock>();
         int semanticTextIndex = 0;
+        foreach (PowerPointSemanticImportItem item in items.OrderBy(item => item.FallbackOrder)) {
+            if (item.Kind != PowerPointSemanticImportKind.TextBox) continue;
+            item.SemanticBlock = semanticTextIndex < semanticTextBlocks.Length
+                ? semanticTextBlocks[semanticTextIndex]
+                : null;
+            semanticTextIndex++;
+        }
         foreach (PowerPointSemanticImportItem item in items
             .OrderBy(item => item.LayerIndex ?? item.FallbackOrder)
             .ThenBy(item => item.FallbackOrder)) {
             switch (item.Kind) {
                 case PowerPointSemanticImportKind.TextBox:
-                    HtmlSemanticBlock? semanticBlock = semanticTextIndex < semanticTextBlocks.Length
-                        ? semanticTextBlocks[semanticTextIndex]
-                        : null;
-                    semanticTextIndex++;
-                    contentTop = ImportSemanticTextBox(item.Element, semanticBlock, slide, contentTop, result, budget);
+                    contentTop = ImportSemanticTextBox(item.Element, item.SemanticBlock, slide, contentTop, result, budget);
                     break;
                 case PowerPointSemanticImportKind.Table:
                     contentTop = ImportTable(item.Element, slide, contentTop, result, budget);
@@ -547,6 +550,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         internal int? LayerIndex { get; }
 
         internal int FallbackOrder { get; }
+
+        internal HtmlSemanticBlock? SemanticBlock { get; set; }
     }
 
     private enum PowerPointSemanticImportKind {

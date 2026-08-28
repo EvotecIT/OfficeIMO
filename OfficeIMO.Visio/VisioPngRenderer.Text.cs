@@ -28,6 +28,8 @@ namespace OfficeIMO.Visio {
                 (style?.Italic == true ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
             OfficeTextAlignment alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment(style?.HorizontalAlignment);
             OfficeTextVerticalAlignment verticalAlignment = VisioDrawingTextAlignment.ToOfficeTextVerticalAlignment(style?.VerticalAlignment);
+            OfficeTextBaseline baseline = style?.Baseline ?? OfficeTextBaseline.Normal;
+            double baselineScale = baseline == OfficeTextBaseline.Normal ? 1D : 0.65D;
             OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFittedFromCenter(
                 text,
                 pixelHeight,
@@ -35,16 +37,17 @@ namespace OfficeIMO.Visio {
                 centerY,
                 maxWidth,
                 maxHeight,
-                (value, size) => canvas.MeasureText(value, size, fontFamily, fontStyle),
+                (value, size) => canvas.MeasureText(value, size * baselineScale, fontFamily, fontStyle),
                 alignment,
                 verticalAlignment,
-                lineHeightFactor: 1.25D,
+                lineHeightFactor: 1.25D * baselineScale,
                 minimumFontSize: canvas.Supersampling * 5D);
             pixelHeight = plan.Layout.FontSize;
+            double renderedPixelHeight = pixelHeight * baselineScale;
 
             Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
-            double padX = Math.Max(canvas.Supersampling * 3D, pixelHeight * 0.22D);
-            double padY = Math.Max(canvas.Supersampling * 2D, pixelHeight * 0.16D);
+            double padX = Math.Max(canvas.Supersampling * 3D, renderedPixelHeight * 0.22D);
+            double padY = Math.Max(canvas.Supersampling * 2D, renderedPixelHeight * 0.16D);
 
             canvas.DrawTextBox(
                 plan,
@@ -61,7 +64,7 @@ namespace OfficeIMO.Visio {
                 padY,
                 style?.UnderlineStyle ?? OfficeTextDecorationStyle.None,
                 style?.StrikethroughStyle ?? OfficeTextDecorationStyle.None,
-                style?.Baseline ?? OfficeTextBaseline.Normal);
+                baseline);
         }
 
         private static string ResolveRasterDisplayText(string text, VisioTextStyle? style) {
