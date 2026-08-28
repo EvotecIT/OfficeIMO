@@ -45,6 +45,21 @@ public sealed class EmailBodyProjectionTests {
         Assert.Contains("<body>", rendered, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("<!-- <html><body>comment</body></html> --><img src='one.png'>")]
+    [InlineData("<bodyguard><img src='one.png'></bodyguard>")]
+    [InlineData("prefix &lt;html without a tag <img src='one.png'>")]
+    [InlineData("<template><body>template text</body></template><img src='one.png'>")]
+    public void ImageDocument_DoesNotTreatEnvelopeLikeTextAsDocument(string html) {
+        EmailHtmlImageDocument document = EmailHtmlImageDocument.Parse(html);
+
+        document.SetImageSource(0, "cid:one.png");
+        string rendered = document.ToHtml();
+
+        Assert.DoesNotContain("<html", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("src=\"cid:one.png\"", rendered, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Sanitizes_html_blocks_remote_resources_and_resolves_embedded_content_once() {
         var document = new EmailDocument();

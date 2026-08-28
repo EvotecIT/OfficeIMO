@@ -55,7 +55,7 @@ public sealed class EmailHtmlImageDocument {
         options.ResourceUrlPolicy = compatibleResources;
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html, options);
         IHtmlDocument document = conversion.CreateDocumentForConversion();
-        bool preserveEnvelope = ContainsDocumentEnvelope(html);
+        bool preserveEnvelope = conversion.HasExplicitDocumentEnvelope;
         return new EmailHtmlImageDocument(document, preserveEnvelope);
     }
 
@@ -74,9 +74,4 @@ public sealed class EmailHtmlImageDocument {
         return _document.Body?.InnerHtml ?? _document.DocumentElement?.InnerHtml ?? string.Empty;
     }
 
-    private static bool ContainsDocumentEnvelope(string html) =>
-        html.IndexOf("<!doctype", StringComparison.OrdinalIgnoreCase) >= 0 ||
-        html.IndexOf("<html", StringComparison.OrdinalIgnoreCase) >= 0 ||
-        html.IndexOf("<head", StringComparison.OrdinalIgnoreCase) >= 0 ||
-        html.IndexOf("<body", StringComparison.OrdinalIgnoreCase) >= 0;
 }

@@ -29,6 +29,10 @@ public sealed partial class HtmlConversionDocument {
         Uri? baseUri) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
         _sourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
+        HasExplicitDocumentEnvelope = sourceDocument.Doctype != null ||
+            sourceDocument.DocumentElement?.SourceReference?.Position.Index >= 0 ||
+            sourceDocument.Head?.SourceReference?.Position.Index >= 0 ||
+            sourceDocument.Body?.SourceReference?.Position.Index >= 0;
         // Parse owns this already-resolved snapshot; retaining it avoids cloning the full policy
         // and limits graph a second time before any lazy projection has been requested.
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -67,6 +71,12 @@ public sealed partial class HtmlConversionDocument {
 
     /// <summary>Original HTML supplied by the caller.</summary>
     public string SourceHtml { get; }
+
+    /// <summary>
+    /// Gets whether the parsed source contained an actual document envelope tag or doctype.
+    /// Text in comments, escaped markup, and prefix tags such as <c>bodyguard</c> do not count.
+    /// </summary>
+    public bool HasExplicitDocumentEnvelope { get; }
 
     /// <summary>
     /// Creates an independent policy-normalized DOM for the conversion profile's default media context.
