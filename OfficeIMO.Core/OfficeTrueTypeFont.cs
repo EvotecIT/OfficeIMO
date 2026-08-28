@@ -297,14 +297,18 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var scale = ScaleFor(fontSize);
         var width = 0.0;
         ushort? previous = null;
+        int? previousScalar = null;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         for (int index = 0; index < text.Length;) {
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
             var glyph = MapGlyph(scalar);
-            if (previous.HasValue) width += Kerning(previous.Value, glyph) * scale;
+            if (previous.HasValue && previousScalar.HasValue) {
+                width += Kerning(previous.Value, glyph, previousScalar.Value, scalar) * scale;
+            }
             width += AdvanceWidth(glyph, variationWorkBudget, CancellationToken.None) * scale;
             previous = glyph;
+            previousScalar = scalar;
         }
         return width;
     }
@@ -313,6 +317,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var widths = new double[elements.Count];
         double scale = ScaleFor(fontSize);
         ushort? previous = null;
+        int? previousScalar = null;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
@@ -321,9 +326,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 int scalar = ReadScalar(text, ref textIndex);
                 if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
                 ushort glyph = MapGlyph(scalar);
-                if (previous.HasValue) width += Kerning(previous.Value, glyph) * scale;
+                if (previous.HasValue && previousScalar.HasValue) {
+                    width += Kerning(previous.Value, glyph, previousScalar.Value, scalar) * scale;
+                }
                 width += AdvanceWidth(glyph, variationWorkBudget, CancellationToken.None) * scale;
                 previous = glyph;
+                previousScalar = scalar;
             }
             widths[elementIndex] = width;
         }
@@ -365,6 +373,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var cursor = x;
         var baseline = y + _ascender * scale;
         ushort? previous = null;
+        int? previousScalar = null;
         int pointCount = 0;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         for (int index = 0; index < text.Length;) {
@@ -372,7 +381,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
             var glyph = MapGlyph(scalar);
-            if (previous.HasValue) cursor += Kerning(previous.Value, glyph) * scale;
+            if (previous.HasValue && previousScalar.HasValue) {
+                cursor += Kerning(previous.Value, glyph, previousScalar.Value, scalar) * scale;
+            }
             List<List<OfficePoint>> glyphContours = ReadGlyphContours(
                 glyph,
                 new FontTransform(scale, 0, 0, -scale, cursor, baseline),
@@ -380,10 +391,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 variationWorkBudget,
                 maximumPointCount,
                 ref pointCount,
-                cancellationToken);
+                cancellationToken,
+                attachmentPoints: null);
             contours.AddRange(glyphContours);
             cursor += AdvanceWidth(glyph, variationWorkBudget, cancellationToken) * scale;
             previous = glyph;
+            previousScalar = scalar;
         }
 
         return contours;
@@ -634,9 +647,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         return checked(advance + VariationAdvanceWidthDelta(glyph, advance, workBudget, cancellationToken));
     }
 
-    private int Kerning(ushort left, ushort right) {
-        return _kerning.Adjustment(left, right);
-    }
+    private int Kerning(ushort left, ushort right, int leftScalar, int rightScalar) =>
+        _kerning.Adjustment(left, right, leftScalar, rightScalar);
 
     private List<List<OfficePoint>> ReadGlyphContours(
         ushort glyph,
@@ -645,7 +657,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
         int maximumPointCount,
         ref int expandedPointCount,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        List<OfficePoint>? attachmentPoints) {
         cancellationToken.ThrowIfCancellationRequested();
         var contours = new List<List<OfficePoint>>();
         if (glyph == 0 || glyph >= _numGlyphs || depth > 8) return contours;
@@ -665,7 +678,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 variationWorkBudget,
                 maximumPointCount,
                 ref expandedPointCount,
-                cancellationToken);
+                cancellationToken,
+                attachmentPoints);
             return contours;
         }
 
@@ -718,6 +732,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             }
         }
 
+        if (attachmentPoints != null) {
+            for (var index = 0; index < rawPointCount; index++) {
+                attachmentPoints.Add(transform.Apply(variedXs[index], variedYs[index]));
+            }
+        }
+
         var start = 0;
         for (var c = 0; c < contourCount; c++) {
             var end = endPts[c];
@@ -743,7 +763,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
         int maximumPointCount,
         ref int expandedPointCount,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        List<OfficePoint>? attachmentPoints) {
         const ushort argWords = 1;
         const ushort argsAreXy = 2;
         const ushort haveScale = 8;
@@ -761,22 +782,34 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags)) return;
             var componentGlyph = ReadUInt16(_data, p + 2);
             p += 4;
-            double arg1;
-            double arg2;
+            int arg1;
+            int arg2;
             if ((flags & argWords) != 0) {
                 if (p + 4 > _data.Length) return;
-                arg1 = ReadInt16(_data, p);
-                arg2 = ReadInt16(_data, p + 2);
+                if ((flags & argsAreXy) != 0) {
+                    arg1 = ReadInt16(_data, p);
+                    arg2 = ReadInt16(_data, p + 2);
+                } else {
+                    arg1 = ReadUInt16(_data, p);
+                    arg2 = ReadUInt16(_data, p + 2);
+                }
                 p += 4;
             } else {
                 if (p + 2 > _data.Length) return;
-                arg1 = (sbyte)_data[p];
-                arg2 = (sbyte)_data[p + 1];
+                if ((flags & argsAreXy) != 0) {
+                    arg1 = (sbyte)_data[p];
+                    arg2 = (sbyte)_data[p + 1];
+                } else {
+                    arg1 = _data[p];
+                    arg2 = _data[p + 1];
+                }
                 p += 2;
             }
 
             var dx = (flags & argsAreXy) != 0 ? arg1 : 0;
             var dy = (flags & argsAreXy) != 0 ? arg2 : 0;
+            int parentPointIndex = (flags & argsAreXy) == 0 ? arg1 : -1;
+            int componentPointIndex = (flags & argsAreXy) == 0 ? arg2 : -1;
             var a = 1.0;
             var b = 0.0;
             var c = 0.0;
@@ -807,7 +840,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 d,
                 dx,
                 dy,
-                (flags & argsAreXy) != 0));
+                (flags & argsAreXy) != 0,
+                parentPointIndex,
+                componentPointIndex));
         } while ((flags & moreComponents) != 0);
 
         if (_variations != null && components.Count > 0) {
@@ -824,20 +859,59 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 variationWorkBudget ?? _variations.CreateWorkBudget(),
                 cancellationToken);
             for (int index = 0; index < components.Count; index++) {
-                if (components[index].UsesXyOffsets) {
-                    components[index] = components[index].WithOffset(xs[index], ys[index]);
-                }
+                components[index] = components[index].WithOffset(xs[index], ys[index]);
             }
         }
+
+        var compositeContours = new List<List<OfficePoint>>();
+        var compositePoints = new List<OfficePoint>();
         foreach (GlyphComponent component in components) {
-            contours.AddRange(ReadGlyphContours(
+            var componentPoints = new List<OfficePoint>();
+            List<List<OfficePoint>> componentContours = ReadGlyphContours(
                 component.Glyph,
-                transform.Compose(component.A, component.B, component.C, component.D, component.Dx, component.Dy),
+                transform.Compose(component.A, component.B, component.C, component.D, 0, 0),
                 depth + 1,
                 variationWorkBudget,
                 maximumPointCount,
                 ref expandedPointCount,
-                cancellationToken));
+                cancellationToken,
+                componentPoints);
+
+            OfficePoint translation;
+            if (component.UsesXyOffsets) {
+                translation = transform.ApplyVector(component.Dx, component.Dy);
+            } else {
+                if (!OfficeOpenTypeCompositeGlyph.TryResolvePointAttachment(
+                    compositePoints,
+                    component.ParentPointIndex,
+                    componentPoints,
+                    component.ComponentPointIndex,
+                    out translation)) {
+                    return;
+                }
+
+                OfficePoint variationTranslation = transform.ApplyVector(component.Dx, component.Dy);
+                translation = OfficeOpenTypeCompositeGlyph.ApplyComponentVariation(translation, variationTranslation);
+            }
+
+            TranslateContours(componentContours, translation);
+            TranslatePoints(componentPoints, translation);
+            compositeContours.AddRange(componentContours);
+            compositePoints.AddRange(componentPoints);
+        }
+
+        contours.AddRange(compositeContours);
+        attachmentPoints?.AddRange(compositePoints);
+    }
+
+    private static void TranslateContours(List<List<OfficePoint>> contours, OfficePoint translation) {
+        foreach (List<OfficePoint> contour in contours) TranslatePoints(contour, translation);
+    }
+
+    private static void TranslatePoints(List<OfficePoint> points, OfficePoint translation) {
+        for (int index = 0; index < points.Count; index++) {
+            OfficePoint point = points[index];
+            points[index] = new OfficePoint(point.X + translation.X, point.Y + translation.Y);
         }
     }
 
@@ -1241,6 +1315,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
         public OfficePoint Apply(double x, double y) => new(Dx + Xx * x + Xy * y, Dy + Yx * x + Yy * y);
 
+        public OfficePoint ApplyVector(double x, double y) => new(Xx * x + Xy * y, Yx * x + Yy * y);
+
         public FontTransform Compose(double xx, double xy, double yx, double yy, double dx, double dy) {
             return new FontTransform(
                 Xx * xx + Xy * yx,
@@ -1275,7 +1351,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             double d,
             double dx,
             double dy,
-            bool usesXyOffsets) {
+            bool usesXyOffsets,
+            int parentPointIndex,
+            int componentPointIndex) {
             Glyph = glyph;
             A = a;
             B = b;
@@ -1284,6 +1362,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             Dx = dx;
             Dy = dy;
             UsesXyOffsets = usesXyOffsets;
+            ParentPointIndex = parentPointIndex;
+            ComponentPointIndex = componentPointIndex;
         }
 
         internal ushort Glyph { get; }
@@ -1294,7 +1374,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         internal double Dx { get; }
         internal double Dy { get; }
         internal bool UsesXyOffsets { get; }
+        internal int ParentPointIndex { get; }
+        internal int ComponentPointIndex { get; }
         internal GlyphComponent WithOffset(double dx, double dy) =>
-            new(Glyph, A, B, C, D, dx, dy, UsesXyOffsets);
+            new(Glyph, A, B, C, D, dx, dy, UsesXyOffsets, ParentPointIndex, ComponentPointIndex);
     }
 }

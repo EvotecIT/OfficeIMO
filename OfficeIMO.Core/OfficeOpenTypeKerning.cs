@@ -26,9 +26,15 @@ internal sealed class OfficeOpenTypeKerning {
             includeExtendedGpos: true);
     }
 
-    internal int Adjustment(int left, int right) {
+    internal int Adjustment(int left, int right) => Adjustment(left, right, "DFLT");
+
+    internal int Adjustment(int left, int right, int leftScalar, int rightScalar) =>
+        Adjustment(left, right, ResolveScriptTag(leftScalar, rightScalar));
+
+    internal int Adjustment(int left, int right, string scriptTag) {
         if ((uint)left > ushort.MaxValue || (uint)right > ushort.MaxValue) return 0;
-        return TryGposPairAdjustment((ushort)left, (ushort)right, out int gposAdjustment)
+        if (string.IsNullOrEmpty(scriptTag) || scriptTag.Length != 4) scriptTag = "DFLT";
+        return TryGposPairAdjustment((ushort)left, (ushort)right, scriptTag, out int gposAdjustment)
             ? gposAdjustment
             : KernPairAdjustment((ushort)left, (ushort)right);
     }
@@ -44,7 +50,14 @@ internal sealed class OfficeOpenTypeKerning {
             int coverage = ReadUInt16(position + 4);
             int next = checked(position + length);
             if (length < 14 || next <= position || next > _data.Length) break;
-            if ((coverage >> 8) == 0) adjustment = checked(adjustment + KerningFormat0(position, left, right));
+            bool isFormat0 = (coverage >> 8) == 0;
+            bool isHorizontalOrdinary = (coverage & 0x0007) == 0x0001;
+            if (isFormat0 && isHorizontalOrdinary) {
+                int value = KerningFormat0(position, left, right);
+                adjustment = (coverage & 0x0008) != 0
+                    ? value
+                    : checked(adjustment + value);
+            }
             position = next;
         }
         return adjustment;
@@ -68,16 +81,17 @@ internal sealed class OfficeOpenTypeKerning {
         return 0;
     }
 
-    private bool TryGposPairAdjustment(ushort left, ushort right, out int adjustment) {
+    private bool TryGposPairAdjustment(ushort left, ushort right, string scriptTag, out int adjustment) {
         adjustment = 0;
         if (_gpos < 0 || !InBounds(_gpos, 10) || ReadUInt16(_gpos) != 1) return false;
+        int scriptList = checked(_gpos + ReadUInt16(_gpos + 4));
         int featureList = checked(_gpos + ReadUInt16(_gpos + 6));
         int lookupList = checked(_gpos + ReadUInt16(_gpos + 8));
-        if (!InBounds(featureList, 2) || !InBounds(lookupList, 2)) return false;
+        if (!InBounds(scriptList, 2) || !InBounds(featureList, 2) || !InBounds(lookupList, 2)) return false;
 
         bool applied = false;
         var seen = new HashSet<ushort>();
-        foreach (ushort lookupIndex in GposFeatureLookupIndexes(featureList, "kern")) {
+        foreach (ushort lookupIndex in GposFeatureLookupIndexes(scriptList, featureList, "kern", scriptTag)) {
             if (seen.Add(lookupIndex) &&
                 TryGposPairAdjustmentFromLookup(lookupList, lookupIndex, left, right, out int lookupAdjustment)) {
                 adjustment = checked(adjustment + lookupAdjustment);
@@ -87,10 +101,37 @@ internal sealed class OfficeOpenTypeKerning {
         return applied;
     }
 
-    private IEnumerable<ushort> GposFeatureLookupIndexes(int featureList, string featureTag) {
+    private IEnumerable<ushort> GposFeatureLookupIndexes(
+        int scriptList,
+        int featureList,
+        string featureTag,
+        string scriptTag) {
+        int script = FindScript(scriptList, scriptTag);
+        if (script < 0 && !string.Equals(scriptTag, "DFLT", StringComparison.Ordinal)) {
+            script = FindScript(scriptList, "DFLT");
+        }
+        if (script < 0 || !InBounds(script, 4)) yield break;
+
+        int defaultLangSysOffset = ReadUInt16(script);
+        if (defaultLangSysOffset == 0) yield break;
+        int langSys = checked(script + defaultLangSysOffset);
+        if (!InBounds(langSys, 6)) yield break;
+
         int featureCount = ReadUInt16(featureList);
-        for (int index = 0; index < featureCount; index++) {
-            int record = checked(featureList + 2 + (index * 6));
+        var featureIndexes = new List<ushort>();
+        ushort requiredFeature = ReadUInt16(langSys + 2);
+        if (requiredFeature != ushort.MaxValue) featureIndexes.Add(requiredFeature);
+        int langSysFeatureCount = ReadUInt16(langSys + 4);
+        for (int index = 0; index < langSysFeatureCount; index++) {
+            int offset = checked(langSys + 6 + (index * 2));
+            if (!InBounds(offset, 2)) yield break;
+            ushort featureIndex = ReadUInt16(offset);
+            if (!featureIndexes.Contains(featureIndex)) featureIndexes.Add(featureIndex);
+        }
+
+        foreach (ushort featureIndex in featureIndexes) {
+            if (featureIndex >= featureCount) continue;
+            int record = checked(featureList + 2 + (featureIndex * 6));
             if (!InBounds(record, 6)) yield break;
             if (!TagEquals(record, featureTag)) continue;
             int feature = checked(featureList + ReadUInt16(record + 4));
@@ -102,6 +143,58 @@ internal sealed class OfficeOpenTypeKerning {
                 yield return ReadUInt16(offset);
             }
         }
+    }
+
+    private int FindScript(int scriptList, string scriptTag) {
+        int scriptCount = ReadUInt16(scriptList);
+        for (int index = 0; index < scriptCount; index++) {
+            int record = checked(scriptList + 2 + (index * 6));
+            if (!InBounds(record, 6)) return -1;
+            if (!TagEquals(record, scriptTag)) continue;
+            int script = checked(scriptList + ReadUInt16(record + 4));
+            return InBounds(script, 4) ? script : -1;
+        }
+        return -1;
+    }
+
+    private static string ResolveScriptTag(int leftScalar, int rightScalar) {
+        string right = ScriptTagForScalar(rightScalar);
+        if (right != "DFLT") return right;
+        return ScriptTagForScalar(leftScalar);
+    }
+
+    private static string ScriptTagForScalar(int scalar) {
+        if ((scalar >= 0x0041 && scalar <= 0x024F) || (scalar >= 0x1E00 && scalar <= 0x1EFF)) return "latn";
+        if (scalar >= 0x0370 && scalar <= 0x03FF) return "grek";
+        if (scalar >= 0x0400 && scalar <= 0x052F) return "cyrl";
+        if (scalar >= 0x0530 && scalar <= 0x058F) return "armn";
+        if (scalar >= 0x0590 && scalar <= 0x05FF) return "hebr";
+        if ((scalar >= 0x0600 && scalar <= 0x06FF) || (scalar >= 0x0750 && scalar <= 0x077F) ||
+            (scalar >= 0x08A0 && scalar <= 0x08FF)) return "arab";
+        if (scalar >= 0x0700 && scalar <= 0x074F) return "syrc";
+        if (scalar >= 0x0900 && scalar <= 0x097F) return "deva";
+        if (scalar >= 0x0980 && scalar <= 0x09FF) return "beng";
+        if (scalar >= 0x0A00 && scalar <= 0x0A7F) return "guru";
+        if (scalar >= 0x0A80 && scalar <= 0x0AFF) return "gujr";
+        if (scalar >= 0x0B00 && scalar <= 0x0B7F) return "orya";
+        if (scalar >= 0x0B80 && scalar <= 0x0BFF) return "taml";
+        if (scalar >= 0x0C00 && scalar <= 0x0C7F) return "telu";
+        if (scalar >= 0x0C80 && scalar <= 0x0CFF) return "knda";
+        if (scalar >= 0x0D00 && scalar <= 0x0D7F) return "mlym";
+        if (scalar >= 0x0D80 && scalar <= 0x0DFF) return "sinh";
+        if (scalar >= 0x0E00 && scalar <= 0x0E7F) return "thai";
+        if (scalar >= 0x0E80 && scalar <= 0x0EFF) return "lao ";
+        if (scalar >= 0x0F00 && scalar <= 0x0FFF) return "tibt";
+        if (scalar >= 0x1000 && scalar <= 0x109F) return "mymr";
+        if (scalar >= 0x10A0 && scalar <= 0x10FF) return "geor";
+        if (scalar >= 0x1200 && scalar <= 0x137F) return "ethi";
+        if (scalar >= 0x1780 && scalar <= 0x17FF) return "khmr";
+        if (scalar >= 0x1800 && scalar <= 0x18AF) return "mong";
+        if (scalar >= 0x3040 && scalar <= 0x30FF) return "kana";
+        if (scalar >= 0x3100 && scalar <= 0x312F) return "bopo";
+        if ((scalar >= 0x3400 && scalar <= 0x4DBF) || (scalar >= 0x4E00 && scalar <= 0x9FFF)) return "hani";
+        if ((scalar >= 0xAC00 && scalar <= 0xD7AF) || (scalar >= 0x1100 && scalar <= 0x11FF)) return "hang";
+        return "DFLT";
     }
 
     private bool TryGposPairAdjustmentFromLookup(

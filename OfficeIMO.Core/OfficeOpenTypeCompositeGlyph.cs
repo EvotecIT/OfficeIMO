@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared structural validation for TrueType composite glyph records.</summary>
@@ -10,4 +12,27 @@ internal static class OfficeOpenTypeCompositeGlyph {
         int transformFlags = flags & (HasScale | HasXAndYScale | HasTwoByTwo);
         return transformFlags != 0 && (transformFlags & (transformFlags - 1)) != 0;
     }
+
+    internal static bool TryResolvePointAttachment(
+        IReadOnlyList<OfficePoint> parentPoints,
+        int parentPointIndex,
+        IReadOnlyList<OfficePoint> componentPoints,
+        int componentPointIndex,
+        out OfficePoint translation) {
+        if ((uint)parentPointIndex >= (uint)parentPoints.Count ||
+            (uint)componentPointIndex >= (uint)componentPoints.Count) {
+            translation = default;
+            return false;
+        }
+
+        OfficePoint parent = parentPoints[parentPointIndex];
+        OfficePoint component = componentPoints[componentPointIndex];
+        translation = new OfficePoint(parent.X - component.X, parent.Y - component.Y);
+        return true;
+    }
+
+    internal static OfficePoint ApplyComponentVariation(OfficePoint attachmentTranslation, OfficePoint variationTranslation) =>
+        new OfficePoint(
+            attachmentTranslation.X + variationTranslation.X,
+            attachmentTranslation.Y + variationTranslation.Y);
 }

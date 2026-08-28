@@ -840,6 +840,32 @@ namespace OfficeIMO.Tests.Pdf {
                     new[] { new OfficeGradientStop(0D, OfficeColor.Black), new OfficeGradientStop(1D, OfficeColor.White) }));
         }
 
+        [Fact]
+        public void VisualResourceDictionaryBuilder_SamplesNonlinearPrintGradientTransform() {
+            var options = new PdfOptions().ConfigurePdfXGroundwork(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False);
+            PdfPrintColorTransform transform = Assert.IsType<PdfPrintColorTransform>(PdfPrintColorTransform.Create(options));
+
+            string shading = PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                0D,
+                0D,
+                100D,
+                0D,
+                new[] {
+                    new OfficeGradientStop(0D, OfficeColor.Red),
+                    new OfficeGradientStop(1D, OfficeColor.Blue)
+                },
+                transform);
+
+            Assert.Contains("/ColorSpace /DeviceCMYK", shading, StringComparison.Ordinal);
+            Assert.Contains("/FunctionType 3", shading, StringComparison.Ordinal);
+            Assert.Contains("/Bounds [", shading, StringComparison.Ordinal);
+            Assert.True(CountOccurrences(shading, "/FunctionType 2") > 1);
+        }
+
         private static int CountOccurrences(string text, string value) {
             int count = 0;
             int startIndex = 0;

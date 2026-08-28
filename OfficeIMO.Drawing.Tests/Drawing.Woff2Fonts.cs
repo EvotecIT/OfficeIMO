@@ -215,6 +215,34 @@ public sealed class DrawingWoff2FontTests {
         OfficeWoff2Decoder.ValidateCompositeGlyphTransformFlags(checked((ushort)flags));
     }
 
+    [Fact]
+    public void PointAttachedCompositeRetainsItsVariationTranslation() {
+        var parentPoints = new[] { new OfficePoint(20D, 35D) };
+        var componentPoints = new[] { new OfficePoint(8D, 10D) };
+
+        Assert.True(OfficeOpenTypeCompositeGlyph.TryResolvePointAttachment(
+            parentPoints,
+            parentPointIndex: 0,
+            componentPoints,
+            componentPointIndex: 0,
+            out OfficePoint attachmentTranslation));
+        OfficePoint variedTranslation = OfficeOpenTypeCompositeGlyph.ApplyComponentVariation(
+            attachmentTranslation,
+            new OfficePoint(3D, -4D));
+
+        Assert.Equal(new OfficePoint(15D, 21D), variedTranslation);
+    }
+
+    [Fact]
+    public void PointAttachedCompositeRejectsInvalidPointIndexes() {
+        Assert.False(OfficeOpenTypeCompositeGlyph.TryResolvePointAttachment(
+            new[] { new OfficePoint(1D, 2D) },
+            parentPointIndex: 1,
+            new[] { new OfficePoint(3D, 4D) },
+            componentPointIndex: 0,
+            out _));
+    }
+
     private static void WriteBigEndianUInt32(byte[] data, int offset, uint value) {
         data[offset] = (byte)(value >> 24);
         data[offset + 1] = (byte)(value >> 16);
