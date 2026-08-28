@@ -6,17 +6,14 @@ public sealed class EmailBodyResource {
     private readonly long _maximumBytes;
     private readonly EmailBodyResourceBudget _budget;
     private readonly EmailBodyResourceLimitState _limitState;
-    private readonly string _projectionContentId;
 
     internal EmailBodyResource(
         EmailAttachment attachment,
         long maximumBytes,
-        EmailBodyResourceBudget budget,
-        string projectionContentId) {
+        EmailBodyResourceBudget budget) {
         _attachment = attachment ?? throw new ArgumentNullException(nameof(attachment));
         _maximumBytes = maximumBytes;
         _budget = budget ?? throw new ArgumentNullException(nameof(budget));
-        _projectionContentId = projectionContentId ?? throw new ArgumentNullException(nameof(projectionContentId));
         _limitState = new EmailBodyResourceLimitState(maximumBytes);
     }
 
@@ -34,7 +31,7 @@ public sealed class EmailBodyResource {
     /// <summary>Opens a fresh sequential stream governed by the per-resource and projection-wide budgets.</summary>
     public Stream OpenReadStream(CancellationToken cancellationToken = default) {
         EnsureDeclaredLengthAllowed();
-        _limitState.ThrowIfExceeded();
+        _limitState.ThrowIfUnavailable();
         _budget.ThrowIfExceeded();
         cancellationToken.ThrowIfCancellationRequested();
         Stream source = _attachment.OpenContentStream();
@@ -54,7 +51,7 @@ public sealed class EmailBodyResource {
     /// <summary>Asynchronously opens a fresh sequential stream governed by the configured budgets.</summary>
     public async Task<Stream> OpenReadStreamAsync(CancellationToken cancellationToken = default) {
         EnsureDeclaredLengthAllowed();
-        _limitState.ThrowIfExceeded();
+        _limitState.ThrowIfUnavailable();
         _budget.ThrowIfExceeded();
         cancellationToken.ThrowIfCancellationRequested();
         Stream source = await _attachment.OpenContentStreamAsync(cancellationToken).ConfigureAwait(false);
@@ -114,7 +111,7 @@ public sealed class EmailBodyResource {
 
     private MemoryStream CreateOutputBuffer() {
         EnsureDeclaredLengthAllowed();
-        _limitState.ThrowIfExceeded();
+        _limitState.ThrowIfUnavailable();
         _budget.ThrowIfExceeded();
         return new MemoryStream();
     }
@@ -130,9 +127,6 @@ public sealed class EmailBodyResource {
         ? null
         : value!.Trim().Trim('<', '>');
 
-    internal bool MatchesContentId(string value) =>
-        string.Equals(ContentId, value, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(_projectionContentId, value, StringComparison.OrdinalIgnoreCase);
 }
 
 internal sealed class EmailBodyResourceBudget {
@@ -259,6 +253,7 @@ internal sealed class EmailBodyResourceLimitState {
     private readonly SemaphoreSlim _readGate = new SemaphoreSlim(1, 1);
     private readonly long _maximumBytes;
     private long? _exceededActualValue;
+    private bool _sourceFailed;
 
     internal EmailBodyResourceLimitState(long maximumBytes) {
         _maximumBytes = maximumBytes;
@@ -270,13 +265,23 @@ internal sealed class EmailBodyResourceLimitState {
         }
     }
 
-    internal void ThrowIfExceeded() {
+    internal void MarkSourceFailed() {
+        lock (_gate) {
+            _sourceFailed = true;
+        }
+    }
+
+    internal void ThrowIfUnavailable() {
         lock (_gate) {
             if (_exceededActualValue.HasValue) {
                 throw new EmailLimitExceededException(
                     "EmailBodyProjectionOptions.MaxResourceBytes",
                     _exceededActualValue.Value,
                     _maximumBytes);
+            }
+            if (_sourceFailed) {
+                throw new InvalidOperationException(
+                    "The resource cannot be reopened after a failed source read.");
             }
         }
     }
@@ -404,7 +409,7 @@ internal sealed class EmailBodyResourceReadStream : Stream {
             return read;
         } catch {
             _budget.Release(reserved);
-            _sourceFailed = true;
+            MarkSourceFailed();
             throw;
         }
     }
@@ -430,10 +435,11 @@ internal sealed class EmailBodyResourceReadStream : Stream {
             return read;
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             _budget.Release(reserved);
+            MarkSourceFailed();
             throw;
         } catch {
             _budget.Release(reserved);
-            _sourceFailed = true;
+            MarkSourceFailed();
             throw;
         }
     }
@@ -447,7 +453,7 @@ internal sealed class EmailBodyResourceReadStream : Stream {
             read = _source.Read(probe, 0, 1);
         } catch {
             _budget.Release(1);
-            _sourceFailed = true;
+            MarkSourceFailed();
             throw;
         }
         _budget.Commit(1, read);
@@ -467,10 +473,11 @@ internal sealed class EmailBodyResourceReadStream : Stream {
             read = await _source.ReadAsync(probe, 0, 1, cancellationToken).ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             _budget.Release(1);
+            MarkSourceFailed();
             throw;
         } catch {
             _budget.Release(1);
-            _sourceFailed = true;
+            MarkSourceFailed();
             throw;
         }
         _budget.Commit(1, read);
@@ -486,15 +493,18 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         try {
             _budget.ThrowIfExceeded();
             var probe = new byte[1];
-            int read = _source.Read(probe, 0, 1);
+            int read;
+            try {
+                read = _source.Read(probe, 0, 1);
+            } catch {
+                MarkSourceFailed();
+                throw;
+            }
             if (read == 0) {
                 _endOfStream = true;
                 return 0;
             }
             return FailAggregateLimit();
-        } catch {
-            _sourceFailed = true;
-            throw;
         } finally {
             _budget.ExitAggregateProbe();
         }
@@ -505,17 +515,18 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         try {
             _budget.ThrowIfExceeded();
             var probe = new byte[1];
-            int read = await _source.ReadAsync(probe, 0, 1, cancellationToken).ConfigureAwait(false);
+            int read;
+            try {
+                read = await _source.ReadAsync(probe, 0, 1, cancellationToken).ConfigureAwait(false);
+            } catch {
+                MarkSourceFailed();
+                throw;
+            }
             if (read == 0) {
                 _endOfStream = true;
                 return 0;
             }
             return FailAggregateLimit();
-        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-            throw;
-        } catch {
-            _sourceFailed = true;
-            throw;
         } finally {
             _budget.ExitAggregateProbe();
         }
@@ -547,11 +558,16 @@ internal sealed class EmailBodyResourceReadStream : Stream {
 
     private void ThrowIfUnavailable() {
         if (_disposed) throw new ObjectDisposedException(nameof(EmailBodyResourceReadStream));
-        _limitState.ThrowIfExceeded();
+        _limitState.ThrowIfUnavailable();
         _budget.ThrowIfExceeded();
         if (_sourceFailed) {
             throw new InvalidOperationException("The resource stream cannot continue after a failed source read.");
         }
+    }
+
+    private void MarkSourceFailed() {
+        _sourceFailed = true;
+        _limitState.MarkSourceFailed();
     }
 
     private static void ValidateReadArguments(byte[] buffer, int offset, int count) {

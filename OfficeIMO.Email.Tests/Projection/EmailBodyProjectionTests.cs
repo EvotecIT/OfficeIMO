@@ -418,24 +418,27 @@ public sealed class EmailBodyProjectionTests {
     }
 
     [Fact]
-    public async Task Per_read_cancellation_does_not_poison_the_resource_stream() {
+    public async Task Cancellation_while_waiting_for_the_resource_gate_does_not_poison_the_resource() {
         var content = new ControlledContentSource(new byte[] { 7 });
         EmailDocument document = CreateInlineResourceDocument(new byte[] { 0 });
         document.Attachments[0].Content = null;
         document.Attachments[0].ContentSource = content;
         document.Attachments[0].Length = 0;
         EmailBodyResource resource = EmailBodyProjection.Create(document).Resources[0];
-        using Stream source = await resource.OpenReadStreamAsync();
+        using Stream first = await resource.OpenReadStreamAsync();
+        using Stream waiting = await resource.OpenReadStreamAsync();
         using var cancellation = new CancellationTokenSource();
 
-        Task<int> canceledRead = source.ReadAsync(new byte[1], 0, 1, cancellation.Token);
+        Task<int> firstRead = first.ReadAsync(new byte[1], 0, 1, CancellationToken.None);
         await content.ReadStarted;
+        Task<int> canceledRead = waiting.ReadAsync(new byte[1], 0, 1, cancellation.Token);
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => canceledRead);
 
         content.ReleaseRead();
+        Assert.Equal(1, await firstRead);
         var buffer = new byte[1];
-        Assert.Equal(1, await source.ReadAsync(buffer, 0, 1, CancellationToken.None));
+        Assert.Equal(1, await waiting.ReadAsync(buffer, 0, 1, CancellationToken.None));
         Assert.Equal(7, buffer[0]);
     }
 

@@ -83,6 +83,50 @@ public sealed class EmailBodyResourceConcurrencyTests {
     }
 
     [Fact]
+    public async Task Cancellation_from_an_advancing_source_poisons_the_shared_resource() {
+        using var cancellation = new CancellationTokenSource();
+        var content = new AdvancingCancellationContentSource(7, cancellation);
+        EmailBodyProjectionResult projection = CreateProjection(
+            maxResourceBytes: 2,
+            maxTotalResourceBytes: 2,
+            content);
+        EmailBodyResource resource = projection.Resources[0];
+        using Stream source = await resource.OpenReadStreamAsync();
+        var buffer = new byte[1];
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            source.ReadAsync(buffer, 0, 1, cancellation.Token));
+
+        Assert.Equal(7, buffer[0]);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            source.ReadAsync(new byte[1], 0, 1, CancellationToken.None));
+        Assert.Throws<InvalidOperationException>(() => resource.OpenReadStream());
+        Assert.Equal(1, content.OpenCount);
+    }
+
+    [Fact]
+    public async Task Aggregate_probe_source_limit_failure_poisons_the_shared_resource() {
+        var content = new AdvancingLimitFailureContentSource(8);
+        EmailBodyProjectionResult projection = CreateProjection(
+            maxResourceBytes: 2,
+            maxTotalResourceBytes: 1,
+            new ImmediateContentSource(1),
+            content);
+        Assert.Equal(new byte[] { 1 }, projection.Resources[0].ReadAllBytes());
+        EmailBodyResource resource = projection.Resources[1];
+        using Stream source = await resource.OpenReadStreamAsync();
+        var buffer = new byte[1];
+
+        EmailLimitExceededException exception = await Assert.ThrowsAsync<EmailLimitExceededException>(() =>
+            source.ReadAsync(buffer, 0, 1, CancellationToken.None));
+
+        Assert.Equal("source-limit", exception.LimitName);
+        Assert.True(content.Advanced);
+        Assert.Throws<InvalidOperationException>(() => resource.OpenReadStream());
+        Assert.Equal(1, content.OpenCount);
+    }
+
+    [Fact]
     public async Task Concurrent_stream_does_not_read_after_same_resource_is_poisoned() {
         var content = new PoisoningContentSource();
         EmailBodyProjectionResult projection = CreateProjection(
@@ -191,6 +235,51 @@ public sealed class EmailBodyResourceConcurrencyTests {
         }
     }
 
+    private sealed class AdvancingCancellationContentSource : IEmailContentSource {
+        private readonly byte _value;
+        private readonly CancellationTokenSource _cancellation;
+
+        internal AdvancingCancellationContentSource(byte value, CancellationTokenSource cancellation) {
+            _value = value;
+            _cancellation = cancellation;
+        }
+
+        public long? Length => null;
+        internal int OpenCount { get; private set; }
+
+        public Stream OpenRead() {
+            OpenCount++;
+            return new AdvancingCancellationReadStream(_value, _cancellation);
+        }
+
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
+    private sealed class AdvancingLimitFailureContentSource : IEmailContentSource {
+        private readonly byte _value;
+
+        internal AdvancingLimitFailureContentSource(byte value) {
+            _value = value;
+        }
+
+        public long? Length => null;
+        internal int OpenCount { get; private set; }
+        internal bool Advanced { get; private set; }
+
+        public Stream OpenRead() {
+            OpenCount++;
+            return new AdvancingLimitFailureReadStream(_value, () => Advanced = true);
+        }
+
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
     private sealed class GateReadStream : Stream {
         private readonly byte _value;
         private readonly TaskCompletionSource<bool> _readStarted;
@@ -281,6 +370,66 @@ public sealed class EmailBodyResourceConcurrencyTests {
             _onRead();
             buffer[offset] = 9;
             return 1;
+        }
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Read(buffer, offset, count));
+        }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class AdvancingCancellationReadStream : Stream {
+        private readonly byte _value;
+        private readonly CancellationTokenSource _cancellation;
+        private bool _read;
+
+        internal AdvancingCancellationReadStream(byte value, CancellationTokenSource cancellation) {
+            _value = value;
+            _cancellation = cancellation;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => 1;
+        public override long Position { get => _read ? 1 : 0; set => throw new NotSupportedException(); }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken) {
+            if (_read) return Task.FromResult(0);
+            buffer[offset] = _value;
+            _read = true;
+            _cancellation.Cancel();
+            throw new OperationCanceledException(cancellationToken);
+        }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class AdvancingLimitFailureReadStream : Stream {
+        private readonly byte _value;
+        private readonly Action _onAdvance;
+
+        internal AdvancingLimitFailureReadStream(byte value, Action onAdvance) {
+            _value = value;
+            _onAdvance = onAdvance;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => 1;
+        public override long Position { get => 1; set => throw new NotSupportedException(); }
+        public override int Read(byte[] buffer, int offset, int count) {
+            buffer[offset] = _value;
+            _onAdvance();
+            throw new EmailLimitExceededException("source-limit", 2, 1);
         }
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
             CancellationToken cancellationToken) {

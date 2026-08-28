@@ -328,6 +328,12 @@ public static class EmailImageExportExtensions {
                         bytes,
                         attachment.ContentType);
                 }
+                return null;
+            }
+            if (request.Uri.Scheme.Equals(
+                    "cid",
+                    StringComparison.OrdinalIgnoreCase)) {
+                return null;
             }
             if (fallback == null ||
                 !HtmlUrlPolicyEvaluator.IsAllowed(

@@ -313,6 +313,57 @@ public sealed class HtmlEmailImageExportTests {
     }
 
     [Fact]
+    public async Task EmptyRetainedHttpsResourceDoesNotFallThroughToTheAsyncFallback() {
+        var email = new EmailDocument { Subject = "Empty retained image" };
+        email.Body.Html = "<img src=\"https://assets.example/empty.png\" alt=\"empty\">";
+        email.Attachments.Add(new EmailAttachment {
+            FileName = "empty.png",
+            ContentType = "image/png",
+            ContentLocation = "https://assets.example/empty.png",
+            IsInline = true,
+            Content = Array.Empty<byte>(),
+            Length = 0
+        });
+        int fallbackCalls = 0;
+        var options = new EmailImageExportOptions {
+            RemoteResourcePolicy = EmailRemoteResourcePolicy.AllowByConsumerResolver,
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                fallbackCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(PixelPng, "image/png"));
+            }
+        };
+
+        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(0, fallbackCalls);
+    }
+
+    [Fact]
+    public async Task UnknownContentIdDoesNotFallThroughToAnExplicitCidFallback() {
+        var email = new EmailDocument { Subject = "Unknown CID" };
+        email.Body.Html = "<img src=\"cid:missing@example.test\" alt=\"missing\">";
+        int fallbackCalls = 0;
+        HtmlUrlPolicy fallbackPolicy = HtmlUrlPolicy.CreateWebResourceProfile();
+        fallbackPolicy.AllowedUrlSchemes.Add("cid");
+        var options = new EmailImageExportOptions {
+            RemoteResourcePolicy = EmailRemoteResourcePolicy.AllowByConsumerResolver,
+            ResourceUrlPolicy = fallbackPolicy,
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                fallbackCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(PixelPng, "image/png"));
+            }
+        };
+
+        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(0, fallbackCalls);
+    }
+
+    [Fact]
     public async Task FluentEmailBatchSaveStreamsPagesAndReturnsPayloadFreeMetadata() {
         var email = new EmailDocument { Subject = "Paged message" };
         email.Body.Html =
