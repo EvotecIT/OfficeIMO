@@ -12,9 +12,16 @@ using OfficeIMO.Email;
 EmailBodyProjectionResult projection = EmailBodyProjection.Create(message);
 string safeHtml = projection.Html;
 EmailBodyResource? logo = projection.ResolveResource("cid:logo@example.test");
+
+if (logo is not null) {
+    await using FileStream output = File.Create("logo.bin");
+    await logo.CopyToAsync(output);
+}
 ```
 
 Remote resources are blocked by default. Selecting `AllowByConsumerResolver` only retains eligible HTTP(S) references; this package never downloads them. Attachment content remains operation-scoped and is opened only through bounded resource reads.
+
+`EmailBodyProjectionOptions` bounds each projection by resource count, bytes per resource, and total bytes read across all resources. The defaults are 128 resources, 128 MiB per resource, and 256 MiB per projection. `OpenReadStream`, `CopyTo`, and their asynchronous counterparts let consumers process content without first allocating another full byte array. Repeated reads share the projection-wide budget.
 
 `OfficeIMO.Email.Image` uses the prepared HTML and resource index for rendering. `OfficeIMO.Reader.Email` uses the same projection before producing safe text or Markdown, so those adapters do not choose bodies, sanitize markup, or resolve embedded resources independently.
 

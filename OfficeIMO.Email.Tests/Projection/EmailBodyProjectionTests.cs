@@ -84,4 +84,98 @@ public sealed class EmailBodyProjectionTests {
 
         Assert.Equal("EmailBodyProjectionOptions.MaxResourceBytes", exception.LimitName);
     }
+
+    [Fact]
+    public void Rejects_resource_count_before_opening_attachment_content() {
+        EmailDocument document = CreateInlineResourceDocument(
+            new byte[] { 1 },
+            new byte[] { 2 });
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            EmailBodyProjection.Create(document,
+                new EmailBodyProjectionOptions { MaxResourceCount = 1 }));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxResourceCount", exception.LimitName);
+        Assert.Equal(2, exception.ActualValue);
+    }
+
+    [Fact]
+    public void Rejects_declared_aggregate_resource_size() {
+        EmailDocument document = CreateInlineResourceDocument(
+            new byte[] { 1, 2, 3 },
+            new byte[] { 4, 5, 6 });
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            EmailBodyProjection.Create(document,
+                new EmailBodyProjectionOptions { MaxTotalResourceBytes = 5 }));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxTotalResourceBytes", exception.LimitName);
+        Assert.Equal(6, exception.ActualValue);
+    }
+
+    [Fact]
+    public void Open_stream_enforces_actual_size_when_declared_length_is_unknown() {
+        EmailDocument document = CreateInlineResourceDocument(new byte[] { 1, 2, 3, 4 });
+        document.Attachments[0].Length = 0;
+        EmailBodyResource resource = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions { MaxResourceBytes = 3 }).Resources[0];
+
+        using Stream source = resource.OpenReadStream();
+        using var output = new MemoryStream();
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            source.CopyTo(output));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxResourceBytes", exception.LimitName);
+        Assert.Equal(4, exception.ActualValue);
+    }
+
+    [Fact]
+    public async Task Async_copies_share_one_projection_wide_resource_budget() {
+        EmailDocument document = CreateInlineResourceDocument(
+            new byte[] { 1, 2, 3 },
+            new byte[] { 4, 5, 6 });
+        document.Attachments[0].Length = 0;
+        document.Attachments[1].Length = 0;
+        EmailBodyProjectionResult projection = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions { MaxTotalResourceBytes = 5 });
+
+        using (var first = new MemoryStream()) {
+            await projection.Resources[0].CopyToAsync(first);
+            Assert.Equal(new byte[] { 1, 2, 3 }, first.ToArray());
+        }
+        using var second = new MemoryStream();
+        EmailLimitExceededException exception = await Assert.ThrowsAsync<EmailLimitExceededException>(() =>
+            projection.Resources[1].CopyToAsync(second));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxTotalResourceBytes", exception.LimitName);
+        Assert.Equal(6, exception.ActualValue);
+    }
+
+    [Fact]
+    public async Task Open_stream_honors_operation_and_read_cancellation() {
+        EmailDocument document = CreateInlineResourceDocument(new byte[] { 1, 2, 3 });
+        EmailBodyResource resource = EmailBodyProjection.Create(document).Resources[0];
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => resource.OpenReadStream(cancellation.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            resource.OpenReadStreamAsync(cancellation.Token));
+    }
+
+    private static EmailDocument CreateInlineResourceDocument(params byte[][] resources) {
+        var document = new EmailDocument { Body = { Html = "<p>inline resources</p>" } };
+        for (int index = 0; index < resources.Length; index++) {
+            byte[] content = resources[index];
+            document.Attachments.Add(new EmailAttachment {
+                FileName = $"resource-{index}.bin",
+                ContentId = $"resource-{index}",
+                ContentType = "application/octet-stream",
+                IsInline = true,
+                Content = content,
+                Length = content.LongLength
+            });
+        }
+        return document;
+    }
 }

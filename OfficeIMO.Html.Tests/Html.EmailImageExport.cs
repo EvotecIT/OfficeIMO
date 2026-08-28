@@ -173,6 +173,38 @@ public sealed class HtmlEmailImageExportTests {
     }
 
     [Fact]
+    public void EmailImageExportRejectsTooManyInlineResourcesBeforeRendering() {
+        var email = new EmailDocument { Subject = "Too many inline images" };
+        email.Body.Html = "<img src=\"cid:first@example\"><img src=\"cid:second@example\">";
+        email.Attachments.Add(CreateInlineImage("first@example"));
+        email.Attachments.Add(CreateInlineImage("second@example"));
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            email.ExportImage(
+                OfficeImageExportFormat.Png,
+                new EmailImageExportOptions { MaxInlineResourceCount = 1 }));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxResourceCount", exception.LimitName);
+    }
+
+    [Fact]
+    public async Task EmailImageExportRejectsAggregateInlineBytesBeforeRendering() {
+        var email = new EmailDocument { Subject = "Oversized inline image set" };
+        email.Body.Html = "<img src=\"cid:first@example\"><img src=\"cid:second@example\">";
+        email.Attachments.Add(CreateInlineImage("first@example"));
+        email.Attachments.Add(CreateInlineImage("second@example"));
+
+        EmailLimitExceededException exception = await Assert.ThrowsAsync<EmailLimitExceededException>(() =>
+            email.ExportImageAsync(
+                OfficeImageExportFormat.Png,
+                new EmailImageExportOptions {
+                    MaxTotalInlineResourceBytes = PixelPng.LongLength * 2L - 1L
+                }));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxTotalResourceBytes", exception.LimitName);
+    }
+
+    [Fact]
     public void EmailSyncBatchCancellationReachesRetainedResourceRead() {
         using var cancellation = new CancellationTokenSource();
         var email = new EmailDocument { Subject = "Cancelable inline image" };
@@ -295,6 +327,15 @@ public sealed class HtmlEmailImageExportTests {
             return Task.FromResult(OpenRead());
         }
     }
+
+    private static EmailAttachment CreateInlineImage(string contentId) => new EmailAttachment {
+        FileName = contentId + ".png",
+        ContentType = "image/png",
+        ContentId = contentId,
+        IsInline = true,
+        Content = PixelPng,
+        Length = PixelPng.Length
+    };
 
     private sealed class CancelOnReadStream : Stream {
         private readonly MemoryStream _inner;

@@ -36,8 +36,12 @@ public sealed class EmailBodyProjectionOptions {
     public EmailBodySelectionPolicy SelectionPolicy { get; set; } = EmailBodySelectionPolicy.Richest;
     /// <summary>Remote resource policy. Network access is never performed by this package.</summary>
     public EmailRemoteResourcePolicy RemoteResourcePolicy { get; set; } = EmailRemoteResourcePolicy.Block;
-    /// <summary>Maximum bytes one inline resource may materialize.</summary>
+    /// <summary>Maximum bytes read from one inline resource.</summary>
     public long MaxResourceBytes { get; set; } = 128L * 1024 * 1024;
+    /// <summary>Maximum inline resources indexed by one projection.</summary>
+    public int MaxResourceCount { get; set; } = 128;
+    /// <summary>Maximum bytes read across all inline resources in one projection.</summary>
+    public long MaxTotalResourceBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Optional base URI used for content-location resolution.</summary>
     public Uri? BaseUri { get; set; }
     /// <summary>Optional shared HTML policy. An untrusted profile is used when null.</summary>
@@ -51,90 +55,18 @@ public sealed class EmailBodyProjectionOptions {
             throw new ArgumentOutOfRangeException(nameof(RemoteResourcePolicy));
         }
         if (MaxResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceBytes));
+        if (MaxResourceCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceCount));
+        if (MaxTotalResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalResourceBytes));
         return new EmailBodyProjectionOptions {
             SelectionPolicy = SelectionPolicy,
             RemoteResourcePolicy = RemoteResourcePolicy,
             MaxResourceBytes = MaxResourceBytes,
+            MaxResourceCount = MaxResourceCount,
+            MaxTotalResourceBytes = MaxTotalResourceBytes,
             BaseUri = BaseUri,
             HtmlOptions = HtmlOptions?.Clone()
         };
     }
-}
-
-/// <summary>Operation-scoped attachment resource resolved by CID, content location, or filename.</summary>
-public sealed class EmailBodyResource {
-    private readonly EmailAttachment _attachment;
-    private readonly long _maximumBytes;
-
-    internal EmailBodyResource(EmailAttachment attachment, long maximumBytes) {
-        _attachment = attachment;
-        _maximumBytes = maximumBytes;
-    }
-
-    /// <summary>Content type declared by the artifact.</summary>
-    public string ContentType => _attachment.ContentType ?? "application/octet-stream";
-    /// <summary>Declared decoded length.</summary>
-    public long Length => _attachment.Length;
-    /// <summary>Normalized Content-ID without angle brackets.</summary>
-    public string? ContentId => NormalizeContentId(_attachment.ContentId);
-    /// <summary>Content-Location retained by the artifact.</summary>
-    public string? ContentLocation => _attachment.ContentLocation;
-    /// <summary>Safe filename retained by the artifact.</summary>
-    public string? FileName => _attachment.FileName;
-
-    /// <summary>Reads this resource within the configured bound. Each call opens a fresh operation-scoped source.</summary>
-    public byte[] ReadAllBytes(CancellationToken cancellationToken = default) {
-        if (Length > _maximumBytes) {
-            throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxResourceBytes",
-                Length, _maximumBytes);
-        }
-        using Stream source = _attachment.OpenContentStream();
-        using (var output = new MemoryStream()) {
-            var buffer = new byte[64 * 1024];
-            long total = 0;
-            int read;
-            while ((read = source.Read(buffer, 0, buffer.Length)) != 0) {
-                cancellationToken.ThrowIfCancellationRequested();
-                total = checked(total + read);
-                if (total > _maximumBytes) {
-                    throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxResourceBytes",
-                        total, _maximumBytes);
-                }
-                output.Write(buffer, 0, read);
-            }
-            return output.ToArray();
-        }
-    }
-
-    /// <summary>Asynchronously reads this resource within the configured bound.</summary>
-    public async Task<byte[]> ReadAllBytesAsync(CancellationToken cancellationToken = default) {
-        if (Length > _maximumBytes) {
-            throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxResourceBytes",
-                Length, _maximumBytes);
-        }
-        using Stream source = await _attachment.OpenContentStreamAsync(cancellationToken)
-            .ConfigureAwait(false);
-        using (var output = new MemoryStream()) {
-            var buffer = new byte[64 * 1024];
-            long total = 0;
-            while (true) {
-                int read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-                    .ConfigureAwait(false);
-                if (read == 0) break;
-                total = checked(total + read);
-                if (total > _maximumBytes) {
-                    throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxResourceBytes",
-                        total, _maximumBytes);
-                }
-                output.Write(buffer, 0, read);
-            }
-            return output.ToArray();
-        }
-    }
-
-    internal static string? NormalizeContentId(string? value) => string.IsNullOrWhiteSpace(value)
-        ? null
-        : value!.Trim().Trim('<', '>');
 }
 
 /// <summary>One safe, reusable body/resource projection shared by transport consumers.</summary>
@@ -240,11 +172,30 @@ public static class EmailBodyProjection {
         HtmlConversionDocument sourceDocument = HtmlConversionDocument.Parse(selectedHtml, htmlOptions);
         string safeHtml = CreateSafeEmailHtml(sourceDocument);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(safeHtml, htmlOptions);
-        var projectedResources = source.Attachments
+        EmailAttachment[] resourceAttachments = source.Attachments
             .Where(attachment => attachment.IsInline ||
                 !string.IsNullOrWhiteSpace(attachment.ContentId) ||
                 !string.IsNullOrWhiteSpace(attachment.ContentLocation))
-            .Select(attachment => new EmailBodyResource(attachment, effective.MaxResourceBytes))
+            .ToArray();
+        if (resourceAttachments.Length > effective.MaxResourceCount) {
+            throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxResourceCount",
+                resourceAttachments.Length, effective.MaxResourceCount);
+        }
+        long declaredResourceBytes = 0;
+        foreach (EmailAttachment attachment in resourceAttachments) {
+            if (attachment.Length <= 0) continue;
+            declaredResourceBytes = checked(declaredResourceBytes + attachment.Length);
+            if (declaredResourceBytes > effective.MaxTotalResourceBytes) {
+                throw new EmailLimitExceededException("EmailBodyProjectionOptions.MaxTotalResourceBytes",
+                    declaredResourceBytes, effective.MaxTotalResourceBytes);
+            }
+        }
+        var resourceBudget = new EmailBodyResourceBudget(effective.MaxTotalResourceBytes);
+        EmailBodyResource[] projectedResources = resourceAttachments
+            .Select(attachment => new EmailBodyResource(
+                attachment,
+                effective.MaxResourceBytes,
+                resourceBudget))
             .ToArray();
         return new EmailBodyProjectionResult(sourceKind, safeHtml, source.Body.Text,
             document, projectedResources, diagnostics.AsReadOnly(), baseUri);

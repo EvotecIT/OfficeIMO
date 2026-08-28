@@ -129,6 +129,8 @@ public static class EmailImageExportExtensions {
                     : EmailBodySelectionPolicy.RtfFirst,
                 RemoteResourcePolicy = effective.RemoteResourcePolicy,
                 MaxResourceBytes = effective.MaxResourceBytes,
+                MaxResourceCount = effective.MaxInlineResourceCount,
+                MaxTotalResourceBytes = effective.MaxTotalInlineResourceBytes,
                 BaseUri = effective.BaseUri
             });
         var diagnostics = bodyProjection.Diagnostics.Select(MapBodyDiagnostic).ToList();
