@@ -14,6 +14,14 @@ internal static class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateFormat12Cmap(scalars));
     }
 
+    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment) {
+        if (leftScalar == rightScalar) throw new ArgumentException("Kerning test scalars must be distinct.", nameof(rightScalar));
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(leftScalar, 1, rightScalar, 2),
+            glyphCount: 3,
+            kern: CreateKernTable(1, 2, adjustment));
+    }
+
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
         if (bmpScalar < 0 || bmpScalar > 0xFFFF) throw new ArgumentOutOfRangeException(nameof(bmpScalar));
         if (supplementalScalar <= 0xFFFF || supplementalScalar > 0x10FFFF) {
@@ -37,7 +45,8 @@ internal static class ManagedTextShapingTestAssets {
     private static byte[] CreateFontFromCmap(
         byte[] cmap,
         bool includeTrailingMetric = false,
-        int glyphCount = 2) {
+        int glyphCount = 2,
+        byte[]? kern = null) {
         byte[] glyph = CreateVisibleGlyph();
         var glyf = new byte[(glyphCount - 1) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -59,6 +68,7 @@ internal static class ManagedTextShapingTestAssets {
             ("maxp", maxp),
             ("name", new byte[6])
         };
+        if (kern != null) tables.Add(("kern", kern));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];
@@ -221,6 +231,46 @@ internal static class ManagedTextShapingTestAssets {
             WriteUInt32(data, offset + 8, 1);
             offset += 12;
         }
+        return data;
+    }
+
+    private static byte[] CreateFormat12Cmap(
+        int firstScalar,
+        int firstGlyph,
+        int secondScalar,
+        int secondGlyph) {
+        var mappings = new[] {
+            (Scalar: firstScalar, Glyph: firstGlyph),
+            (Scalar: secondScalar, Glyph: secondGlyph)
+        };
+        Array.Sort(mappings, static (left, right) => left.Scalar.CompareTo(right.Scalar));
+        var data = new byte[52];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, 40);
+        WriteUInt32(data, 24, 2);
+        for (int index = 0; index < mappings.Length; index++) {
+            int offset = 28 + (index * 12);
+            WriteUInt32(data, offset, checked((uint)mappings[index].Scalar));
+            WriteUInt32(data, offset + 4, checked((uint)mappings[index].Scalar));
+            WriteUInt32(data, offset + 8, checked((uint)mappings[index].Glyph));
+        }
+        return data;
+    }
+
+    private static byte[] CreateKernTable(ushort leftGlyph, ushort rightGlyph, short adjustment) {
+        var data = new byte[24];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 6, 20);
+        WriteUInt16(data, 8, 1);
+        WriteUInt16(data, 10, 1);
+        WriteUInt16(data, 12, 6);
+        WriteUInt16(data, 18, leftGlyph);
+        WriteUInt16(data, 20, rightGlyph);
+        WriteUInt16(data, 22, unchecked((ushort)adjustment));
         return data;
     }
 

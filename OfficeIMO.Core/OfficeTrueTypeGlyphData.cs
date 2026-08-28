@@ -12,8 +12,6 @@ internal static class OfficeTrueTypeGlyphData {
     private const ushort HasTwoByTwo = 0x0080;
     private const ushort HasInstructions = 0x0100;
     private const ushort UseMyMetrics = 0x0200;
-    private const ushort ScaledComponentOffset = 0x0800;
-    private const ushort UnscaledComponentOffset = 0x1000;
     private const ushort SupportedCompositeFlags = 0x1FFF;
 
     internal static bool IsStructurallyValid(
@@ -115,7 +113,7 @@ internal static class OfficeTrueTypeGlyphData {
             cursor += 4;
             if ((flags & ~SupportedCompositeFlags) != 0 ||
                 OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags) ||
-                (flags & ScaledComponentOffset) != 0 && (flags & UnscaledComponentOffset) != 0 ||
+                OfficeOpenTypeCompositeGlyph.HasConflictingOffsetFlags(flags) ||
                 (flags & MoreComponents) != 0 && (flags & HasInstructions) != 0 ||
                 component >= glyphCount) return false;
 

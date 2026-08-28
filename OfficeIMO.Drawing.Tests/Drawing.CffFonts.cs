@@ -305,6 +305,26 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void Cff1DotSectionIsAcceptedAsADeprecatedNoOp() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        var programBytes = new byte[] {
+            12, 0,     // deprecated dotsection
+            159, 149,  // 20, 10
+            21,        // rmoveto
+            14
+        };
+        var program = new OfficeCffFontData.CffSlice(programBytes, 0, programBytes.Length);
+        var sink = new CountingCffSink();
+
+        new OfficeType2CharStringInterpreter(cff, 0, sink, CancellationToken.None).Render(program);
+
+        Assert.Equal(20D, sink.LastMoveX, 6);
+        Assert.Equal(10D, sink.LastMoveY, 6);
+    }
+
+    [Fact]
     public void CffTextRunSharesOneCharStringOperationBudgetAcrossGlyphs() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));

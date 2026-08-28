@@ -779,7 +779,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             cancellationToken.ThrowIfCancellationRequested();
             if (p + 4 > _data.Length) return;
             flags = ReadUInt16(_data, p);
-            if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags)) return;
+            if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags) ||
+                OfficeOpenTypeCompositeGlyph.HasConflictingOffsetFlags(flags)) return;
             var componentGlyph = ReadUInt16(_data, p + 2);
             p += 4;
             int arg1;
@@ -840,6 +841,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 d,
                 dx,
                 dy,
+                flags,
                 (flags & argsAreXy) != 0,
                 parentPointIndex,
                 componentPointIndex));
@@ -879,7 +881,15 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
             OfficePoint translation;
             if (component.UsesXyOffsets) {
-                translation = transform.ApplyVector(component.Dx, component.Dy);
+                OfficePoint offset = OfficeOpenTypeCompositeGlyph.ResolveXyOffset(
+                    component.Flags,
+                    component.A,
+                    component.B,
+                    component.C,
+                    component.D,
+                    component.Dx,
+                    component.Dy);
+                translation = transform.ApplyVector(offset.X, offset.Y);
             } else {
                 if (!OfficeOpenTypeCompositeGlyph.TryResolvePointAttachment(
                     compositePoints,
@@ -1351,6 +1361,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             double d,
             double dx,
             double dy,
+            ushort flags,
             bool usesXyOffsets,
             int parentPointIndex,
             int componentPointIndex) {
@@ -1361,6 +1372,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             D = d;
             Dx = dx;
             Dy = dy;
+            Flags = flags;
             UsesXyOffsets = usesXyOffsets;
             ParentPointIndex = parentPointIndex;
             ComponentPointIndex = componentPointIndex;
@@ -1373,10 +1385,11 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         internal double D { get; }
         internal double Dx { get; }
         internal double Dy { get; }
+        internal ushort Flags { get; }
         internal bool UsesXyOffsets { get; }
         internal int ParentPointIndex { get; }
         internal int ComponentPointIndex { get; }
         internal GlyphComponent WithOffset(double dx, double dy) =>
-            new(Glyph, A, B, C, D, dx, dy, UsesXyOffsets, ParentPointIndex, ComponentPointIndex);
+            new(Glyph, A, B, C, D, dx, dy, Flags, UsesXyOffsets, ParentPointIndex, ComponentPointIndex);
     }
 }

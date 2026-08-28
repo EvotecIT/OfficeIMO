@@ -305,8 +305,9 @@ internal static partial class OfficeWoff2Decoder {
     }
 
     internal static void ValidateCompositeGlyphTransformFlags(ushort flags) {
-        if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags)) {
-            throw new InvalidDataException("A transformed WOFF 2 composite component declares conflicting transform flags.");
+        if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags) ||
+            OfficeOpenTypeCompositeGlyph.HasConflictingOffsetFlags(flags)) {
+            throw new InvalidDataException("A transformed WOFF 2 composite component declares conflicting transform or offset flags.");
         }
     }
 

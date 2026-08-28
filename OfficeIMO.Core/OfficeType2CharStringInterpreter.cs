@@ -331,6 +331,10 @@ internal sealed class OfficeType2CharStringInterpreter {
 
     private void ExecuteEscaped(int operation) {
         switch (operation) {
+            case 0:
+                if (_font.IsCff2) throw new InvalidDataException("A CFF2 CharString cannot use the deprecated dotsection operator.");
+                _stack.Clear();
+                break;
             case 3: Binary((left, right) => left != 0D && right != 0D ? 1D : 0D); break;
             case 4: Binary((left, right) => left != 0D || right != 0D ? 1D : 0D); break;
             case 5: Push(Pop() == 0D ? 1D : 0D); break;

@@ -216,6 +216,34 @@ public sealed class DrawingWoff2FontTests {
     }
 
     [Fact]
+    public void CompositeGlyphOffsetFlagsControlWhetherTheComponentTransformScalesTranslation() {
+        OfficePoint scaled = OfficeOpenTypeCompositeGlyph.ResolveXyOffset(
+            0x0800,
+            0.5D, 0D,
+            0D, 0.25D,
+            100D, -80D);
+        OfficePoint unscaled = OfficeOpenTypeCompositeGlyph.ResolveXyOffset(
+            0x1000,
+            0.5D, 0D,
+            0D, 0.25D,
+            100D, -80D);
+
+        Assert.Equal(new OfficePoint(50D, -20D), scaled);
+        Assert.Equal(new OfficePoint(100D, -80D), unscaled);
+    }
+
+    [Fact]
+    public void Woff2DecoderRejectsConflictingCompositeOffsetFlags() {
+        const ushort flags = 0x0800 | 0x1000;
+
+        Assert.True(OfficeOpenTypeCompositeGlyph.HasConflictingOffsetFlags(flags));
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeWoff2Decoder.ValidateCompositeGlyphTransformFlags(flags));
+
+        Assert.Contains("offset flags", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void PointAttachedCompositeRetainsItsVariationTranslation() {
         var parentPoints = new[] { new OfficePoint(20D, 35D) };
         var componentPoints = new[] { new OfficePoint(8D, 10D) };

@@ -235,8 +235,16 @@ public sealed class OfficeTextShapingRequest {
 
 /// <summary>A shaped glyph run in visual write order.</summary>
 public sealed class OfficeTextShapingResult {
+    private readonly int[]? _advanceAdjustments;
+
     /// <summary>Creates an immutable result from shaped glyph mappings.</summary>
-    public OfficeTextShapingResult(IEnumerable<OfficeShapedGlyph> glyphs) {
+    public OfficeTextShapingResult(IEnumerable<OfficeShapedGlyph> glyphs)
+        : this(glyphs, advanceAdjustments: null) {
+    }
+
+    internal OfficeTextShapingResult(
+        IEnumerable<OfficeShapedGlyph> glyphs,
+        IReadOnlyList<int>? advanceAdjustments) {
         if (glyphs == null) {
             throw new ArgumentNullException(nameof(glyphs));
         }
@@ -246,10 +254,21 @@ public sealed class OfficeTextShapingResult {
             snapshot.Add(glyph);
         }
         Glyphs = Array.AsReadOnly(snapshot.ToArray());
+        if (advanceAdjustments != null) {
+            if (advanceAdjustments.Count != snapshot.Count) {
+                throw new ArgumentException("Shaped glyph advance adjustments must match the glyph count.", nameof(advanceAdjustments));
+            }
+            _advanceAdjustments = new int[advanceAdjustments.Count];
+            for (int index = 0; index < advanceAdjustments.Count; index++) {
+                _advanceAdjustments[index] = advanceAdjustments[index];
+            }
+        }
     }
 
     /// <summary>Glyph identifiers, source mappings, advances, and offsets.</summary>
     public IReadOnlyList<OfficeShapedGlyph> Glyphs { get; }
+
+    internal int GetAdvanceAdjustment(int glyphIndex) => _advanceAdjustments?[glyphIndex] ?? 0;
 }
 
 /// <summary>Maps one shaped font glyph back to its logical Unicode source.</summary>

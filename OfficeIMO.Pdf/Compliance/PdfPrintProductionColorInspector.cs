@@ -724,13 +724,23 @@ internal static partial class PdfPrintProductionColorInspector {
             switch (family.Name) {
                 case "CalGray":
                     return array.Items.Count == 2 &&
-                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary
+                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary calGray &&
+                        PdfCalibratedColorSpaceSemantics.IsStructurallyValid(
+                            "CalGray", calGray, objects, maximumObjectDepth)
                         ? ColorSpaceUsage.DeviceIndependentWithComponents(1)
                         : ColorSpaceUsage.Unknown;
                 case "CalRGB":
+                    return array.Items.Count == 2 &&
+                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary calRgb &&
+                        PdfCalibratedColorSpaceSemantics.IsStructurallyValid(
+                            "CalRGB", calRgb, objects, maximumObjectDepth)
+                        ? ColorSpaceUsage.DeviceIndependentWithComponents(3)
+                        : ColorSpaceUsage.Unknown;
                 case "Lab":
                     return array.Items.Count == 2 &&
-                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary
+                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary lab &&
+                        PdfCalibratedColorSpaceSemantics.IsStructurallyValid(
+                            "Lab", lab, objects, maximumObjectDepth)
                         ? ColorSpaceUsage.DeviceIndependentWithComponents(3)
                         : ColorSpaceUsage.Unknown;
                 case "ICCBased":

@@ -283,6 +283,25 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.DeviceIndependentColorUsageCount);
     }
 
+    [Theory]
+    [InlineData("[/CalGray <<>>]")]
+    [InlineData("[/CalGray << /WhitePoint [0.95 1 1.09] /Gamma 0 >>]")]
+    [InlineData("[/CalRGB << /WhitePoint [0.95 1 1.09] /Gamma [1 1] >>]")]
+    [InlineData("[/CalRGB << /WhitePoint [0.95 1 1.09] /Matrix [1 0] >>]")]
+    [InlineData("[/Lab << /WhitePoint [0.95 1 1.09] /Range [100 -100 -100 100] >>]")]
+    [InlineData("[/Lab << /WhitePoint [0.95 1 1.09] /BlackPoint [0 -1 0] >>]")]
+    public void ColorInspectorFailsClosedOnMalformedCalibratedColorDictionaries(string colorSpace) {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0 0 0 sc",
+            resources: "/ColorSpace << /CS1 " + colorSpace + " >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+        Assert.Equal(0, evidence.DeviceIndependentColorUsageCount);
+    }
+
     [Fact]
     public void ColorInspectorAppliesDefaultRgbToReachableImagesAndShadings() {
         byte[] pdf = BuildInspectionPdf(

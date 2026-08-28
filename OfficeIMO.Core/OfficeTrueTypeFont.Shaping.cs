@@ -30,6 +30,15 @@ public sealed partial class OfficeTrueTypeFont {
         return mapped != 0;
     }
 
+    internal int GetKerningAdjustment(
+        int leftGlyphId,
+        int rightGlyphId,
+        int leftScalar,
+        int rightScalar) {
+        if ((uint)leftGlyphId > ushort.MaxValue || (uint)rightGlyphId > ushort.MaxValue) return 0;
+        return Kerning((ushort)leftGlyphId, (ushort)rightGlyphId, leftScalar, rightScalar);
+    }
+
     byte[] IOfficeFontProgram.GetFontDataForShaping() => (byte[])FontDataForShaping.Clone();
 
     bool IOfficeFontProgram.HasGlyphs(string text) => HasGlyphs(text);
@@ -129,10 +138,12 @@ public sealed partial class OfficeTrueTypeFont {
 
             glyphs[index] = new PositionedGlyph(
                 (ushort)glyph.GlyphId,
-                glyph.AdvanceWidth ?? AdvanceWidth(
-                    (ushort)glyph.GlyphId,
-                    variationWorkBudget,
-                    cancellationToken),
+                checked(
+                    (glyph.AdvanceWidth ?? AdvanceWidth(
+                        (ushort)glyph.GlyphId,
+                        variationWorkBudget,
+                        cancellationToken)) +
+                    result.GetAdvanceAdjustment(index)),
                 glyph.OffsetX,
                 glyph.OffsetY);
         }
