@@ -234,6 +234,37 @@ public sealed class EmailBodyProjectionTests {
     }
 
     [Fact]
+    public async Task Concurrent_reads_wait_for_reservations_before_deciding_aggregate_exhaustion() {
+        var firstContent = new ControlledContentSource(new byte[] { 1 });
+        var secondContent = new TrackingContentSource(new byte[] { 2 });
+        EmailDocument document = CreateInlineResourceDocument(new byte[] { 0 }, new byte[] { 0 });
+        document.Attachments[0].Content = null;
+        document.Attachments[0].ContentSource = firstContent;
+        document.Attachments[0].Length = 0;
+        document.Attachments[1].Content = null;
+        document.Attachments[1].ContentSource = secondContent;
+        document.Attachments[1].Length = 0;
+        EmailBodyProjectionResult projection = EmailBodyProjection.Create(document,
+            new EmailBodyProjectionOptions { MaxTotalResourceBytes = 2 });
+        using Stream first = await projection.Resources[0].OpenReadStreamAsync();
+        using Stream second = await projection.Resources[1].OpenReadStreamAsync();
+        var firstBuffer = new byte[2];
+        var secondBuffer = new byte[1];
+
+        Task<int> firstRead = first.ReadAsync(firstBuffer, 0, firstBuffer.Length);
+        await firstContent.ReadStarted;
+        Task<int> secondRead = second.ReadAsync(secondBuffer, 0, secondBuffer.Length);
+        Assert.False(secondRead.IsCompleted);
+
+        firstContent.ReleaseRead();
+
+        Assert.Equal(1, await firstRead);
+        Assert.Equal(1, await secondRead);
+        Assert.Equal(1, firstBuffer[0]);
+        Assert.Equal(2, secondBuffer[0]);
+    }
+
+    [Fact]
     public void Resource_indexing_can_be_disabled_for_body_only_consumers() {
         EmailDocument document = CreateInlineResourceDocument(
             new byte[] { 1, 2 },
@@ -350,6 +381,30 @@ public sealed class EmailBodyProjectionTests {
         }
     }
 
+    private sealed class ControlledContentSource : IEmailContentSource {
+        private readonly byte[] _content;
+        private readonly TaskCompletionSource<bool> _readStarted =
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<bool> _releaseRead =
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal ControlledContentSource(byte[] content) {
+            _content = (byte[])content.Clone();
+        }
+
+        public long? Length => null;
+        internal Task ReadStarted => _readStarted.Task;
+        internal void ReleaseRead() => _releaseRead.TrySetResult(true);
+        public Stream OpenRead() => new ControlledReadStream(
+            _content,
+            _readStarted,
+            _releaseRead.Task);
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(OpenRead());
+        }
+    }
+
     private sealed class BlockingReadStream : Stream {
         private readonly TaskCompletionSource<bool> _readStarted;
 
@@ -380,5 +435,62 @@ public sealed class EmailBodyProjectionTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class ControlledReadStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly TaskCompletionSource<bool> _readStarted;
+        private readonly Task _releaseRead;
+
+        internal ControlledReadStream(
+            byte[] content,
+            TaskCompletionSource<bool> readStarted,
+            Task releaseRead) {
+            _inner = new MemoryStream(content, writable: false);
+            _readStarted = readStarted;
+            _releaseRead = releaseRead;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken) {
+            _readStarted.TrySetResult(true);
+            await WaitWithCancellationAsync(_releaseRead, cancellationToken);
+            return _inner.Read(buffer, offset, count);
+        }
+
+        private static async Task WaitWithCancellationAsync(
+            Task operation,
+            CancellationToken cancellationToken) {
+            if (!cancellationToken.CanBeCanceled) {
+                await operation;
+                return;
+            }
+            var canceled = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => canceled.TrySetCanceled())) {
+                await await Task.WhenAny(operation, canceled.Task);
+            }
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

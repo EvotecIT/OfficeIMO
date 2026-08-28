@@ -129,6 +129,7 @@ public sealed class EmailBodyResource {
 
 internal sealed class EmailBodyResourceBudget {
     private readonly object _gate = new object();
+    private readonly SemaphoreSlim _readGate = new SemaphoreSlim(1, 1);
     private readonly long _maximumBytes;
     private long _consumedBytes;
     private long _reservedBytes;
@@ -149,6 +150,14 @@ internal sealed class EmailBodyResourceBudget {
             return reserved;
         }
     }
+
+    internal void EnterRead(CancellationToken cancellationToken) =>
+        _readGate.Wait(cancellationToken);
+
+    internal Task EnterReadAsync(CancellationToken cancellationToken) =>
+        _readGate.WaitAsync(cancellationToken);
+
+    internal void ExitRead() => _readGate.Release();
 
     internal void Commit(int reservedCount, int consumedCount) {
         lock (_gate) {
@@ -254,7 +263,12 @@ internal sealed class EmailBodyResourceReadStream : Stream {
         ThrowIfUnavailable();
         _operationCancellationToken.ThrowIfCancellationRequested();
         if (count == 0 || _endOfStream) return 0;
-        return ReadCore(buffer, offset, count);
+        _budget.EnterRead(_operationCancellationToken);
+        try {
+            return ReadCore(buffer, offset, count);
+        } finally {
+            _budget.ExitRead();
+        }
     }
 
     public override async Task<int> ReadAsync(
@@ -281,11 +295,16 @@ internal sealed class EmailBodyResourceReadStream : Stream {
             effectiveCancellationToken = linkedCancellation.Token;
         }
         try {
-            return await ReadCoreAsync(
-                buffer,
-                offset,
-                count,
-                effectiveCancellationToken).ConfigureAwait(false);
+            await _budget.EnterReadAsync(effectiveCancellationToken).ConfigureAwait(false);
+            try {
+                return await ReadCoreAsync(
+                    buffer,
+                    offset,
+                    count,
+                    effectiveCancellationToken).ConfigureAwait(false);
+            } finally {
+                _budget.ExitRead();
+            }
         } finally {
             linkedCancellation?.Dispose();
         }
