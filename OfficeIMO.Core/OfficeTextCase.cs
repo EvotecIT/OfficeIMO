@@ -35,6 +35,8 @@ public enum OfficeTextCase {
 /// Applies reusable, culture-aware text casing without depending on a document format.
 /// </summary>
 public static class OfficeTextCaseTransformer {
+    private static readonly CultureInfo UnicodeTitlecaseFallbackCulture = CultureInfo.GetCultureInfo("en-US");
+
     /// <summary>
     /// Applies the requested casing transformation.
     /// </summary>
@@ -90,6 +92,12 @@ public static class OfficeTextCaseTransformer {
         while (elements.MoveNext()) {
             string element = elements.GetTextElement();
             string lower = element.ToLower(culture);
+            UnicodeCategory elementCategory = CharUnicodeInfo.GetUnicodeCategory(element, 0);
+            if (elementCategory == UnicodeCategory.TitlecaseLetter && string.Equals(element, lower, StringComparison.Ordinal)) {
+                // .NET Framework's invariant tables leave Unicode titlecase letters unchanged. Use a stable
+                // Unicode-aware fallback so all supported target frameworks produce the same lowercase pair.
+                lower = element.ToLower(UnicodeTitlecaseFallbackCulture);
+            }
             string transformed;
             switch (textCase) {
                 case OfficeTextCase.Uppercase:
@@ -108,11 +116,15 @@ public static class OfficeTextCaseTransformer {
                     break;
                 case OfficeTextCase.ToggleCase:
                     string upper = element.ToUpper(culture);
-                    transformed = string.Equals(element, upper, StringComparison.Ordinal) && !string.Equals(element, lower, StringComparison.Ordinal)
+                    transformed = elementCategory == UnicodeCategory.UppercaseLetter || elementCategory == UnicodeCategory.TitlecaseLetter
                         ? lower
-                        : string.Equals(element, lower, StringComparison.Ordinal) && !string.Equals(element, upper, StringComparison.Ordinal)
+                        : elementCategory == UnicodeCategory.LowercaseLetter
                             ? upper
-                            : element;
+                            : string.Equals(element, upper, StringComparison.Ordinal) && !string.Equals(element, lower, StringComparison.Ordinal)
+                                ? lower
+                                : string.Equals(element, lower, StringComparison.Ordinal) && !string.Equals(element, upper, StringComparison.Ordinal)
+                                    ? upper
+                                    : element;
                     break;
                 case OfficeTextCase.Capitalize:
                     transformed = capitalizeWordStart && IsLetter(element) ? element.ToUpper(culture) : element;

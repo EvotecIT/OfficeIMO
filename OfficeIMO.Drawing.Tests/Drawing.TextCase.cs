@@ -112,6 +112,11 @@ public sealed class OfficeTextCaseTests {
     }
 
     [Fact]
+    public void ToggleCaseMapsUnicodeTitlecaseLettersToLowercase() {
+        Assert.Equal("\u01F3", OfficeTextCaseTransformer.Apply("\u01F2", OfficeTextCase.ToggleCase, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public void RichTextRunCopyPreservesDrawingStyle() {
         OfficeRichTextRun source = new("Styled", 14, OfficeColor.FromRgb(51, 102, 153),
             bold: true, italic: true, fontFamily: "Aptos",

@@ -280,16 +280,19 @@ namespace OfficeIMO.Excel {
                     kind = dataType == null ? ExcelCellValueKind.Number : ExcelCellValueKind.Other;
                 }
 
+                string storedValue = cell.CellValue?.InnerText ?? text;
                 string rawValue = kind == ExcelCellValueKind.Formula
                     ? cell.CellFormula?.Text ?? string.Empty
-                    : cell.CellValue?.InnerText ?? text;
+                    : storedValue;
                 DateTime? dateTimeValue = null;
-                if (kind == ExcelCellValueKind.Number
-                    && double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
+                bool formulaHasNumericCache = kind == ExcelCellValueKind.Formula
+                    && (dataType == null || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
+                if ((kind == ExcelCellValueKind.Number || formulaHasNumericCache)
+                    && double.TryParse(storedValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
                     && GetCellStyle(row, column).IsDateLike) {
                     try {
                         dateTimeValue = ExcelDateSystemConverter.FromSerial(serial, _excelDocument.DateSystem);
-                        kind = ExcelCellValueKind.DateTime;
+                        if (kind == ExcelCellValueKind.Number) kind = ExcelCellValueKind.DateTime;
                     } catch (ArgumentException) {
                         // Retain the numeric kind when the serial cannot be represented by DateTime.
                     }

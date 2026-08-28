@@ -121,6 +121,31 @@ public class ExcelTextFormattingTests {
     }
 
     [Fact]
+    public void FormulaWithCachedDateResultRetainsFormulaIdentityAndResolvedDate() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        var expected = new DateTime(2026, 4, 5);
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("Dates").CellAt(1, 1).SetValue(expected);
+                document.Save();
+            }
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                Cell cell = package.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();
+                cell.CellFormula = new CellFormula("DATE(2026,4,5)");
+                package.WorkbookPart.WorksheetParts.Single().Worksheet.Save();
+            }
+
+            using ExcelDocument loadedDocument = ExcelDocument.Load(path);
+            Assert.True(loadedDocument.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+            Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
+            Assert.Equal("DATE(2026,4,5)", snapshot.RawValue);
+            Assert.Equal(expected, snapshot.DateTimeValue);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void RichTextCaseTransformsDoNotResetContextAtRunBoundaries() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Text");

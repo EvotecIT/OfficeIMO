@@ -127,7 +127,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
     internal sealed class GoogleSlidesApiTextElement {
         [JsonPropertyName("textRun")] public GoogleSlidesApiTextRun? TextRun { get; set; }
+        [JsonPropertyName("paragraphMarker")] public GoogleSlidesApiParagraphMarker? ParagraphMarker { get; set; }
     }
+
+    internal sealed class GoogleSlidesApiParagraphMarker { }
 
     internal sealed class GoogleSlidesApiTextRun {
         [JsonPropertyName("content")] public string? Content { get; set; }

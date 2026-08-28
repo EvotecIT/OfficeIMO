@@ -69,6 +69,31 @@ public sealed class OneNoteTextFormattingTests {
     }
 
     [Theory]
+    [InlineData(true, false, OfficeTextBaseline.Superscript)]
+    [InlineData(false, true, OfficeTextBaseline.Subscript)]
+    public void RendererPreservesScriptBaselineForOrdinaryTextBesideInlineMath(bool superscript, bool subscript, OfficeTextBaseline expected) {
+        var paragraph = new OneNoteParagraph();
+        var scripted = new OneNoteTextRun { Text = "script" };
+        scripted.Style.FontSize = 20D;
+        scripted.Style.Superscript = superscript;
+        scripted.Style.Subscript = subscript;
+        paragraph.Runs.Add(scripted);
+        paragraph.AddMath(OfficeMath.Identifier("x"));
+        var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.2, Y = 0.5, Width = 3 } };
+        outline.Children.Add(paragraph);
+        var page = new OneNotePage { Title = "Mixed math", PageSize = OneNotePageSize.IndexCard };
+        page.Outlines.Add(outline);
+
+        OfficeDrawing drawing = page.ToDrawing(new OneNotePageRenderingOptions { IncludeTitle = false });
+        OfficeDrawingRichText richText = Assert.Single(drawing.Elements.OfType<OfficeDrawingRichText>());
+        OfficeRichTextRun run = Assert.Single(richText.Runs);
+
+        Assert.Equal("script", run.Text);
+        Assert.Equal(expected, run.Baseline);
+        Assert.Equal(13D, run.EffectiveFontSize, 6);
+    }
+
+    [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Svg)]
     [InlineData(OfficeImageExportFormat.Jpeg)]

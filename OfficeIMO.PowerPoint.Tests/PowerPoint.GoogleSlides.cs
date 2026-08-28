@@ -1027,6 +1027,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task NativeImporter_PreservesParagraphBoundariesAndRunStylesInShapesAndTableCells() {
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-paragraphs\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
+                const string slides = "{\"presentationId\":\"deck-paragraphs\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":240,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Shape first\\n\",\"style\":{\"bold\":true}}},{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Shape second\\n\",\"style\":{\"italic\":true}}}]}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Cell first\\n\",\"style\":{\"underline\":true}}},{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Cell second\\n\",\"style\":{\"strikethrough\":true}}}]}}]}]}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-paragraphs", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
+            using (imported.Presentation) {
+                IReadOnlyList<PowerPointParagraph> shapeParagraphs = imported.Presentation.Slides.Single().TextBoxes.Single().Paragraphs;
+                Assert.Equal(new[] { "Shape first", "Shape second" }, shapeParagraphs.Select(paragraph => paragraph.Text));
+                Assert.True(shapeParagraphs[0].Runs.Single().Bold);
+                Assert.True(shapeParagraphs[1].Runs.Single().Italic);
+
+                IReadOnlyList<PowerPointParagraph> cellParagraphs = imported.Presentation.Slides.Single().Tables.Single().GetCell(0, 0).Paragraphs;
+                Assert.Equal(new[] { "Cell first", "Cell second" }, cellParagraphs.Select(paragraph => paragraph.Text));
+                Assert.True(cellParagraphs[0].Runs.Single().Underline);
+                Assert.True(cellParagraphs[1].Runs.Single().Strikethrough);
+            }
+        }
+
+        [Fact]
         public void DiffPlanner_HashesEveryTextRunBoundaryAndSynchronizedStyle() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointParagraph paragraph = presentation.AddSlide()
