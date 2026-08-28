@@ -191,23 +191,10 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static void AppendCommentRun(List<ExcelRichTextRun> runs, string text, RunProperties? properties, WorkbookPart? workbookPart) {
-            runs.Add(new ExcelRichTextRun(text) {
-                Bold = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Bold>()),
-                Italic = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Italic>()),
-                Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(properties?.GetFirstChild<Underline>()),
-                Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Strike>()),
-                UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
-                FontColor = ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<Color>(), workbookPart),
-                FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
-                VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
-                Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
-                Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),
-                Condense = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Condense>()),
-                Extend = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Extend>()),
-                FontFamily = ExcelRichTextRun.GetFontFamily(properties),
-                FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties)
-            });
+            runs.Add(ExcelRichTextRun.FromOpenXml(
+                text,
+                properties,
+                ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<Color>(), workbookPart)));
         }
 
         private static bool IsLineBreak(OpenXmlElement element) =>

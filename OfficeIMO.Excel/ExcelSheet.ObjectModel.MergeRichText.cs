@@ -103,14 +103,14 @@ namespace OfficeIMO.Excel {
                 foreach (var run in runs) {
                     var text = new Text(run.Text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve };
                     var properties = new RunProperties();
-                    if (run.Bold) properties.Append(new Bold());
-                    if (run.Italic) properties.Append(new Italic());
-                    if (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != ExcelUnderlineStyle.None) {
+                    if (run.BoldSpecified) properties.Append(new Bold { Val = run.Bold });
+                    if (run.ItalicSpecified) properties.Append(new Italic { Val = run.Italic });
+                    if (run.UnderlineStyle.HasValue) {
                         properties.Append(new Underline { Val = run.UnderlineStyle.Value.ToOpenXml() });
-                    } else if (run.Underline) {
-                        properties.Append(new Underline());
+                    } else if (run.UnderlineSpecified) {
+                        properties.Append(new Underline { Val = run.Underline ? UnderlineValues.Single : UnderlineValues.None });
                     }
-                    if (run.Strikethrough) properties.Append(new Strike());
+                    if (run.StrikethroughSpecified) properties.Append(new Strike { Val = run.Strikethrough });
                     if (!string.IsNullOrWhiteSpace(run.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(run.FontColor!) });
                     if (!string.IsNullOrWhiteSpace(run.FontName)) properties.Append(new RunFont { Val = run.FontName });
                     if (run.FontSize.HasValue) properties.Append(new FontSize { Val = run.FontSize.Value });
@@ -159,23 +159,7 @@ namespace OfficeIMO.Excel {
             foreach (var run in openXmlRuns) {
                 var properties = run.RunProperties;
                 var text = run.Text?.Text ?? string.Empty;
-                runs.Add(new ExcelRichTextRun(text) {
-                    Bold = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Bold>()),
-                    Italic = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Italic>()),
-                    Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(properties?.GetFirstChild<Underline>()),
-                    Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Strike>()),
-                    UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
-                    FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
-                    FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
-                    VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
-                    Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
-                    Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),
-                    Condense = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Condense>()),
-                    Extend = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Extend>()),
-                    FontFamily = ExcelRichTextRun.GetFontFamily(properties),
-                    FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties)
-                });
+                runs.Add(ExcelRichTextRun.FromOpenXml(text, properties));
             }
 
             return runs;

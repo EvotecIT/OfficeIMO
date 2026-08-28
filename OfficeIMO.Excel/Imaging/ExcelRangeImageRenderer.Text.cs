@@ -514,14 +514,20 @@ namespace OfficeIMO.Excel {
 
                 double fontSize = ResolveRunFontSize(run, cell.Style, scale);
                 OfficeColor color = ResolveArgb(run.FontColorArgb) ?? fallbackColor;
-                bool bold = cell.Style.Bold || run.Bold;
-                bool italic = cell.Style.Italic || run.Italic;
-                bool underline = fallbackUnderline || run.Underline;
-                OfficeTextDecorationStyle underlineStyle = MapExcelUnderlineStyle(run.UnderlineStyle);
-                if (underlineStyle == OfficeTextDecorationStyle.None && fallbackUnderline) {
-                    underlineStyle = MapExcelUnderlineStyle(cell.Style.UnderlineStyle);
-                    if (underlineStyle == OfficeTextDecorationStyle.None) underlineStyle = OfficeTextDecorationStyle.Single;
+                bool bold = run.BoldSpecified ? run.Bold : cell.Style.Bold;
+                bool italic = run.ItalicSpecified ? run.Italic : cell.Style.Italic;
+                bool underline = run.UnderlineSpecified ? run.Underline : fallbackUnderline;
+                OfficeTextDecorationStyle underlineStyle = run.UnderlineSpecified
+                    ? MapExcelUnderlineStyle(run.UnderlineStyle)
+                    : MapExcelUnderlineStyle(cell.Style.UnderlineStyle);
+                if (underlineStyle == OfficeTextDecorationStyle.None && underline) {
+                    underlineStyle = OfficeTextDecorationStyle.Single;
+                } else if (!underline) {
+                    underlineStyle = OfficeTextDecorationStyle.None;
                 }
+                bool strikethrough = run.StrikethroughSpecified
+                    ? run.Strikethrough
+                    : cell.Style.Strikethrough;
                 OfficeTextBaseline baseline = MapExcelBaseline(run.VerticalTextAlignment ?? cell.Style.VerticalTextAlignment);
                 runs.Add(new OfficeRichTextRun(
                     run.Text,
@@ -531,9 +537,9 @@ namespace OfficeIMO.Excel {
                     italic,
                     underline,
                     ResolveRunFontFamily(run, cell.Style),
-                    strikethrough: run.Strikethrough || cell.Style.Strikethrough,
+                    strikethrough: strikethrough,
                     underlineStyle: underlineStyle,
-                    strikethroughStyle: run.Strikethrough || cell.Style.Strikethrough
+                    strikethroughStyle: strikethrough
                         ? OfficeTextDecorationStyle.Single
                         : OfficeTextDecorationStyle.None,
                     baseline: baseline));
@@ -906,8 +912,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 OfficeFontStyle style =
-                    (run.Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
-                    (run.Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+                    ((run.BoldSpecified ? run.Bold : cell.Style.Bold) ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
+                    ((run.ItalicSpecified ? run.Italic : cell.Style.Italic) ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
                 OfficeImageExportDiagnostic? diagnostic = fonts.CreateSubstitutionDiagnostic(
                     run.Text,
                     fontName,

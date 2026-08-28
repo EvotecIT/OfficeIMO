@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using System.Globalization;
 
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
@@ -187,6 +188,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         PowerPointPresentation target = PowerPointPresentation.Create();
         var report = new OdfConversionReport("ODP", "PPTX");
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         int unsupportedMeasurements = 0;
         if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
@@ -229,7 +231,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     unsupportedMeasurements += CopyShapeAppearance(textBox, converted, effective);
                     CopyOdpParagraphsToPowerPoint(sourceParagraphs,
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
-                        pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                        pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                         ref skippedBasicFormatting, ref unsupportedWritingModes,
                         ref approximatedParagraphAlignments, ref unsupportedMeasurements,
@@ -286,7 +288,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             if (cell.IsCovered) continue;
                             CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
                                 paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
-                                pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                                pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
                                 ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                                 ref skippedBasicFormatting, ref unsupportedWritingModes,
                                 ref approximatedParagraphAlignments, ref unsupportedMeasurements,
@@ -338,7 +340,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 if (noteParagraphs.Any(paragraph => paragraph.Text.Length > 0)) {
                     CopyOdpParagraphsToPowerPoint(noteParagraphs,
                         paragraphTexts => targetSlide.Notes.SetParagraphs(paragraphTexts), source.Slides,
-                        pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                        pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                         ref skippedBasicFormatting, ref unsupportedWritingModes,
                         ref approximatedParagraphAlignments, ref unsupportedMeasurements,

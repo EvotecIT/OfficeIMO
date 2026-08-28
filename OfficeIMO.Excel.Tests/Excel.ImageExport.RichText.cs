@@ -72,6 +72,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportHonorsDirectRichTextStyleOffOverCellFormatting() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Overrides");
+                    sheet.SetColumnWidth(1, 44);
+                    sheet.SetRowHeight(1, 28);
+                    ExcelCell cell = sheet.CellAt(1, 1);
+                    cell.SetBold().SetItalic().SetUnderline().SetStrikethrough();
+                    cell.SetRichText(
+                        new ExcelRichTextRun("Direct off") {
+                            Bold = false,
+                            Italic = false,
+                            UnderlineStyle = ExcelUnderlineStyle.None,
+                            Strikethrough = false
+                        },
+                        new ExcelRichTextRun(" inherited"));
+                    document.Save();
+                }
+
+                using ExcelDocument loaded = ExcelDocument.Load(filePath);
+                ExcelRange range = loaded.Sheets[0].Range("A1:A1");
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+                OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg,
+                    new ExcelImageExportOptions { ShowGridlines = false });
+                OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png,
+                    new ExcelImageExportOptions { ShowGridlines = false });
+                string svg = Encoding.UTF8.GetString(svgResult.Bytes);
+
+                ExcelVisualTextRun directOff = snapshot.Cells.Single().RichTextRuns[0];
+                Assert.True(directOff.BoldSpecified);
+                Assert.True(directOff.ItalicSpecified);
+                Assert.True(directOff.UnderlineSpecified);
+                Assert.True(directOff.StrikethroughSpecified);
+                Assert.False(directOff.Bold);
+                Assert.False(directOff.Italic);
+                Assert.False(directOff.Underline);
+                Assert.False(directOff.Strikethrough);
+
+                Match directOffText = Regex.Match(svg, "<text\\b[^>]*>Direct off</text>");
+                Match inheritedText = Regex.Match(svg, "<text\\b[^>]*> inherited</text>");
+                Assert.True(directOffText.Success, svg);
+                Assert.True(inheritedText.Success, svg);
+                Assert.DoesNotContain("font-weight=", directOffText.Value, StringComparison.Ordinal);
+                Assert.DoesNotContain("font-style=", directOffText.Value, StringComparison.Ordinal);
+                Assert.DoesNotContain("text-decoration=", directOffText.Value, StringComparison.Ordinal);
+                Assert.Contains("font-weight=\"700\"", inheritedText.Value, StringComparison.Ordinal);
+                Assert.Contains("font-style=\"italic\"", inheritedText.Value, StringComparison.Ordinal);
+                Assert.Contains("text-decoration=\"underline line-through\"", inheritedText.Value, StringComparison.Ordinal);
+                Assert.True(OfficePngReader.TryDecode(pngResult.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnresolvedRichTextRunFontFamilyFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

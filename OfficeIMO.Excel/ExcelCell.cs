@@ -718,6 +718,12 @@ namespace OfficeIMO.Excel {
     /// Describes a run of rich text inside a cell.
     /// </summary>
     public sealed class ExcelRichTextRun {
+        private bool _bold;
+        private bool _italic;
+        private bool _underline;
+        private bool _strikethrough;
+        private ExcelUnderlineStyle? _underlineStyle;
+
         /// <summary>
         /// Creates a rich text run with the supplied text.
         /// </summary>
@@ -728,15 +734,45 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets the run text.</summary>
         public string Text { get; set; }
         /// <summary>Gets or sets whether the run is bold.</summary>
-        public bool Bold { get; set; }
+        public bool Bold {
+            get => _bold;
+            set {
+                _bold = value;
+                BoldSpecified = true;
+            }
+        }
         /// <summary>Gets or sets whether the run is italic.</summary>
-        public bool Italic { get; set; }
+        public bool Italic {
+            get => _italic;
+            set {
+                _italic = value;
+                ItalicSpecified = true;
+            }
+        }
         /// <summary>Gets or sets whether the run is underlined.</summary>
-        public bool Underline { get; set; }
+        public bool Underline {
+            get => _underline;
+            set {
+                _underline = value;
+                UnderlineSpecified = true;
+            }
+        }
         /// <summary>Gets or sets whether the run is struck through.</summary>
-        public bool Strikethrough { get; set; }
+        public bool Strikethrough {
+            get => _strikethrough;
+            set {
+                _strikethrough = value;
+                StrikethroughSpecified = true;
+            }
+        }
         /// <summary>Gets or sets the run underline style.</summary>
-        public ExcelUnderlineStyle? UnderlineStyle { get; set; }
+        public ExcelUnderlineStyle? UnderlineStyle {
+            get => _underlineStyle;
+            set {
+                _underlineStyle = value;
+                if (value.HasValue) UnderlineSpecified = true;
+            }
+        }
         /// <summary>Gets or sets the run font color as a hex value.</summary>
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>
@@ -758,6 +794,11 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets the run font character set byte.</summary>
         public byte? FontCharacterSet { get; set; }
 
+        internal bool BoldSpecified { get; private set; }
+        internal bool ItalicSpecified { get; private set; }
+        internal bool UnderlineSpecified { get; private set; }
+        internal bool StrikethroughSpecified { get; private set; }
+
         /// <summary>
         /// Creates a plain rich text run.
         /// </summary>
@@ -769,6 +810,59 @@ namespace OfficeIMO.Excel {
         public ExcelRichTextRun TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
             Text = OfficeTextCaseTransformer.Apply(Text, textCase, culture);
             return this;
+        }
+
+        /// <summary>Projects native run properties without losing explicit disabled values.</summary>
+        internal static ExcelRichTextRun FromOpenXml(string text, RunProperties? properties, string? resolvedFontColor = null) {
+            var result = new ExcelRichTextRun(text) {
+                FontColor = resolvedFontColor ?? properties?.GetFirstChild<Color>()?.Rgb?.Value,
+                FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
+                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                VerticalTextAlignment = GetVerticalTextAlignment(properties),
+                Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
+                Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),
+                Condense = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Condense>()),
+                Extend = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Extend>()),
+                FontFamily = GetFontFamily(properties),
+                FontCharacterSet = GetFontCharacterSet(properties)
+            };
+
+            DocumentFormat.OpenXml.Spreadsheet.Bold? bold = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Bold>();
+            if (bold != null) result.Bold = ExcelOpenXmlFontProperty.IsEnabled(bold);
+            DocumentFormat.OpenXml.Spreadsheet.Italic? italic = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Italic>();
+            if (italic != null) result.Italic = ExcelOpenXmlFontProperty.IsEnabled(italic);
+            DocumentFormat.OpenXml.Spreadsheet.Underline? underline = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Underline>();
+            if (underline != null) {
+                result.Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(underline);
+                result.UnderlineStyle = GetUnderlineStyle(properties);
+            }
+            Strike? strike = properties?.GetFirstChild<Strike>();
+            if (strike != null) result.Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(strike);
+            return result;
+        }
+
+        /// <summary>Copies a run while retaining which direct Boolean properties were present.</summary>
+        internal ExcelRichTextRun Clone(string? text = null) {
+            var result = new ExcelRichTextRun(text ?? Text) {
+                FontColor = FontColor,
+                FontName = FontName,
+                FontSize = FontSize,
+                VerticalTextAlignment = VerticalTextAlignment,
+                Outline = Outline,
+                Shadow = Shadow,
+                Condense = Condense,
+                Extend = Extend,
+                FontFamily = FontFamily,
+                FontCharacterSet = FontCharacterSet
+            };
+            if (BoldSpecified) result.Bold = Bold;
+            if (ItalicSpecified) result.Italic = Italic;
+            if (UnderlineSpecified) {
+                result.Underline = Underline;
+                result.UnderlineStyle = UnderlineStyle;
+            }
+            if (StrikethroughSpecified) result.Strikethrough = Strikethrough;
+            return result;
         }
 
         internal static void AppendFontMetadata(RunProperties properties, ExcelRichTextRun run) {

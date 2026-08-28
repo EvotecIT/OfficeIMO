@@ -329,7 +329,11 @@ namespace OfficeIMO.Excel {
                     string.IsNullOrWhiteSpace(run.FontName) ? null : run.FontName,
                     run.FontSize,
                     run.UnderlineStyle,
-                    run.VerticalTextAlignment));
+                    run.VerticalTextAlignment,
+                    run.BoldSpecified,
+                    run.ItalicSpecified,
+                    run.UnderlineSpecified,
+                    run.StrikethroughSpecified));
             }
 
             return visualRuns.Count == 0 ? Array.Empty<ExcelVisualTextRun>() : visualRuns.AsReadOnly();

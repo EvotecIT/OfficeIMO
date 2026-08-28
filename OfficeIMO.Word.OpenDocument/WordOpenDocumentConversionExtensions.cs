@@ -137,7 +137,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
-        CultureInfo textCaseCulture = ResolveOdfTextCulture(source.Metadata.Language);
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = CountUnsupportedWritingModes(source);
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
@@ -582,17 +582,6 @@ public static partial class WordOpenDocumentConversionExtensions {
             CopyParagraph(paragraph, target.AddParagraph(), options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                 ref bookmarks, ref unsupportedFootnotes);
         }
-    }
-
-    private static CultureInfo ResolveOdfTextCulture(string? language) {
-        if (!string.IsNullOrWhiteSpace(language)) {
-            try {
-                return CultureInfo.GetCultureInfo(language!);
-            } catch (CultureNotFoundException) {
-                // Invalid document metadata falls back deterministically.
-            }
-        }
-        return CultureInfo.InvariantCulture;
     }
 
     private static int GetHeadingLevel(WordParagraphSnapshot paragraph) {

@@ -204,6 +204,32 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     }
 
     [Fact]
+    public void OdpDisplayCaseUsesDocumentLanguageInsteadOfHostCulture() {
+        CultureInfo originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo originalUiCulture = CultureInfo.CurrentUICulture;
+        try {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+            OdpPresentation odp = OdpPresentation.Create();
+            odp.Metadata.Language = "tr-TR";
+            OdpTextBox textBox = odp.AddSlide("Text")
+                .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text");
+            OdpParagraph capitalize = textBox.AddParagraph("istanbul");
+            capitalize.TextTransform = OdfTextTransform.Capitalize;
+            OdpParagraph lowercase = textBox.AddParagraph("I");
+            lowercase.TextTransform = OdfTextTransform.Lowercase;
+
+            using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+
+            Assert.Equal(new[] { "İstanbul", "ı" },
+                powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
+        } finally {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
+
+    [Fact]
     public void OdfCapitalizePreservesExistingWordCasingAcrossWordExcelAndPowerPointImports() {
         OdtDocument odt = OdtDocument.Create();
         OdtSpan odtSpan = odt.AddParagraph().AddSpan("iPhone eBOOK");
