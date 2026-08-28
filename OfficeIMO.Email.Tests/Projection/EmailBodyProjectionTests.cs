@@ -5,6 +5,47 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailBodyProjectionTests {
     [Fact]
+    public void ImageDocument_DiscoversAndRewritesOnlyActualSrcAttributes() {
+        const string html = "<p data-src='not-an-image'>before</p><img data-src='lazy.png' SRC='one.png'><p>one.png</p>";
+
+        EmailHtmlImageDocument document = EmailHtmlImageDocument.Parse(html);
+
+        EmailHtmlImageReference image = Assert.Single(document.Images);
+        Assert.Equal("one.png", image.Source);
+        document.SetImageSource(image.Index, "cid:one.png");
+        string rendered = document.ToHtml();
+        Assert.Contains("data-src=\"lazy.png\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("src=\"cid:one.png\"", rendered, StringComparison.Ordinal);
+        Assert.Contains(">one.png</p>", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ImageDocument_RewritesDuplicateSourcesIndependently() {
+        EmailHtmlImageDocument document = EmailHtmlImageDocument.Parse(
+            "<img src='same.png'><img src='same.png'>");
+
+        Assert.Equal(2, document.Images.Count);
+        document.SetImageSource(0, "cid:first.png");
+        document.SetImageSource(1, "cid:second.png");
+
+        string rendered = document.ToHtml();
+        Assert.Contains("src=\"cid:first.png\"", rendered, StringComparison.Ordinal);
+        Assert.Contains("src=\"cid:second.png\"", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ImageDocument_PreservesDocumentEnvelopeWhenPresent() {
+        EmailHtmlImageDocument document = EmailHtmlImageDocument.Parse(
+            "<html><head><title>Mail</title></head><body><img src='one.png'></body></html>");
+
+        string rendered = document.ToHtml();
+
+        Assert.StartsWith("<html", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<head>", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<body>", rendered, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Sanitizes_html_blocks_remote_resources_and_resolves_embedded_content_once() {
         var document = new EmailDocument();
         document.Body.Html = "<html><body onload='alert(1)'><script>alert(2)</script>" +
