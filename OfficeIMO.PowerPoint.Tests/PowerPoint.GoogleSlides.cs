@@ -144,6 +144,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_ResolvesParagraphDefaultCapsAndBaselineForTextBoxesAndTables() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            cell.Text = "table";
+            string baselineFingerprint = string.Join("|", GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes
+                .Where(pair => pair.Key.Contains("/element/", StringComparison.Ordinal))
+                .OrderBy(pair => pair.Key)
+                .Select(pair => pair.Value));
+
+            textBox.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.Small, Baseline = 25000 });
+            cell.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.Small, Baseline = -25000 });
+
+            GoogleSlidesSlide compiled = Assert.Single(presentation.BuildGoogleSlidesBatch().Slides);
+            GoogleSlidesTextStyleRun textRun = Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTextBox>()).TextRuns);
+            GoogleSlidesTextStyleRun tableRun = Assert.Single(Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTable>()).StyledCells).Single().TextRuns);
+
+            Assert.True(textRun.SmallCaps);
+            Assert.Equal("SUPERSCRIPT", textRun.BaselineOffset);
+            Assert.True(tableRun.SmallCaps);
+            Assert.Equal("SUBSCRIPT", tableRun.BaselineOffset);
+            string styledFingerprint = string.Join("|", GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes
+                .Where(pair => pair.Key.Contains("/element/", StringComparison.Ordinal))
+                .OrderBy(pair => pair.Key)
+                .Select(pair => pair.Value));
+            Assert.NotEqual(baselineFingerprint, styledFingerprint);
+        }
+
+        [Fact]
         public void BatchCompiler_MaterializesAllCapsUsingTheRunLanguage() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointTextRun run = presentation.AddSlide()

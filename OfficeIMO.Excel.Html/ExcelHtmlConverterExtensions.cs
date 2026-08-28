@@ -203,7 +203,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     body.Append(" scope=\"col\"");
                 }
 
-                AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0);
+                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0);
 
                 if (hasSnapshot) {
                     ExcelCellValueSnapshot cellSnapshot = snapshot!;
@@ -220,10 +220,11 @@ public static partial class ExcelHtmlConverterExtensions {
                 if (richTextRuns.Count > 0) {
                     foreach (ExcelRichTextRun run in richTextRuns) {
                         body.Append("<span");
-                        AppendExcelTextStyleAttributes(body, run, cellStyle);
-                        body.Append('>')
-                            .Append(OfficeHtmlText.Escape(run.Text))
-                            .Append("</span>");
+                        bool splitRunDecorations = AppendExcelTextStyleAttributes(body, run, cellStyle);
+                        body.Append('>');
+                        if (splitRunDecorations) AppendIndependentExcelStrike(body, run.Text);
+                        else body.Append(OfficeHtmlText.Escape(run.Text));
+                        body.Append("</span>");
                     }
                 } else {
                     bool scriptedCell = cellStyle.VerticalTextAlignment is ExcelVerticalTextAlignment.Superscript
@@ -231,7 +232,8 @@ public static partial class ExcelHtmlConverterExtensions {
                     if (scriptedCell) {
                         body.Append(cellStyle.VerticalTextAlignment == ExcelVerticalTextAlignment.Superscript ? "<sup>" : "<sub>");
                     }
-                    body.Append(OfficeHtmlText.Escape(cellText));
+                    if (splitCellDecorations) AppendIndependentExcelStrike(body, cellText);
+                    else body.Append(OfficeHtmlText.Escape(cellText));
                     if (scriptedCell) {
                         body.Append(cellStyle.VerticalTextAlignment == ExcelVerticalTextAlignment.Superscript ? "</sup>" : "</sub>");
                     }

@@ -3,7 +3,7 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Excel.Html;
 
 public static partial class ExcelHtmlConverterExtensions {
-    private static void AppendExcelTextStyleAttributes(
+    private static bool AppendExcelTextStyleAttributes(
         StringBuilder body,
         ExcelCellStyleSnapshot style,
         bool includeDecorations) {
@@ -15,9 +15,12 @@ public static partial class ExcelHtmlConverterExtensions {
         AppendCss(css, "font-size", style.FontSize.HasValue
             ? style.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
+        ExcelUnderlineStyle underlineStyle = style.Underline
+            ? style.UnderlineStyle ?? ExcelUnderlineStyle.Single
+            : ExcelUnderlineStyle.None;
+        bool splitDecorations = includeDecorations && RequiresIndependentExcelDecorations(underlineStyle, style.Strikethrough);
         if (includeDecorations) {
-            AppendExcelDecorations(css, style.Underline ? style.UnderlineStyle ?? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None,
-                style.Strikethrough);
+            AppendExcelDecorations(css, underlineStyle, style.Strikethrough, splitDecorations: splitDecorations);
         }
         AppendStyleAttribute(body, css);
         if (style.UnderlineStyle.HasValue && style.UnderlineStyle.Value != ExcelUnderlineStyle.None) {
@@ -30,9 +33,13 @@ public static partial class ExcelHtmlConverterExtensions {
                 .Append(OfficeHtmlText.EscapeAttribute(style.VerticalTextAlignment.Value.ToString()))
                 .Append('"');
         }
+        if (splitDecorations) {
+            body.Append(" data-officeimo-excel-strikethrough=\"true\" data-officeimo-excel-decoration-split=\"true\"");
+        }
+        return splitDecorations;
     }
 
-    private static void AppendExcelTextStyleAttributes(
+    private static bool AppendExcelTextStyleAttributes(
         StringBuilder body,
         ExcelRichTextRun run,
         ExcelCellStyleSnapshot cellStyle) {
@@ -49,7 +56,8 @@ public static partial class ExcelHtmlConverterExtensions {
             ? run.UnderlineStyle ?? (run.Underline ? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None)
             : cellStyle.Underline ? cellStyle.UnderlineStyle ?? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None;
         bool strikethrough = run.StrikethroughSpecified ? run.Strikethrough : cellStyle.Strikethrough;
-        AppendExcelDecorations(css, underlineStyle, strikethrough, emitNone: true);
+        bool splitDecorations = RequiresIndependentExcelDecorations(underlineStyle, strikethrough);
+        AppendExcelDecorations(css, underlineStyle, strikethrough, emitNone: true, splitDecorations: splitDecorations);
         ExcelVerticalTextAlignment? verticalTextAlignment = run.VerticalTextAlignment ?? cellStyle.VerticalTextAlignment;
         AppendCss(css, "vertical-align", verticalTextAlignment switch {
             ExcelVerticalTextAlignment.Superscript => "super",
@@ -63,16 +71,19 @@ public static partial class ExcelHtmlConverterExtensions {
                 .Append(OfficeHtmlText.EscapeAttribute(underlineStyle.ToString()))
                 .Append('"');
         }
+        if (splitDecorations) body.Append(" data-officeimo-excel-strikethrough=\"true\"");
+        return splitDecorations;
     }
 
     private static void AppendExcelDecorations(
         StringBuilder css,
         ExcelUnderlineStyle underlineStyle,
         bool strike,
-        bool emitNone = false) {
+        bool emitNone = false,
+        bool splitDecorations = false) {
         var lines = new List<string>(2);
         if (underlineStyle != ExcelUnderlineStyle.None) lines.Add("underline");
-        if (strike) lines.Add("line-through");
+        if (strike && !splitDecorations) lines.Add("line-through");
         if (lines.Count == 0) {
             if (emitNone) AppendCss(css, "text-decoration-line", "none");
             return;
@@ -80,6 +91,15 @@ public static partial class ExcelHtmlConverterExtensions {
         AppendCss(css, "text-decoration-line", string.Join(" ", lines));
         AppendCss(css, "text-decoration-style", underlineStyle is ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting
             ? "double" : "solid");
+    }
+
+    private static bool RequiresIndependentExcelDecorations(ExcelUnderlineStyle underlineStyle, bool strike) =>
+        strike && underlineStyle is ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting;
+
+    private static void AppendIndependentExcelStrike(StringBuilder body, string text) {
+        body.Append("<span style=\"text-decoration-line:line-through;text-decoration-style:solid\">")
+            .Append(OfficeHtmlText.Escape(text))
+            .Append("</span>");
     }
 
     private static void AppendCss(StringBuilder css, string name, string? value) {

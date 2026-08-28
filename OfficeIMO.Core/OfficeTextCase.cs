@@ -98,6 +98,7 @@ public static class OfficeTextCaseTransformer {
                 // Unicode-aware fallback so all supported target frameworks produce the same lowercase pair.
                 lower = element.ToLower(UnicodeTitlecaseFallbackCulture);
             }
+            bool isCasedLetter = IsCasedLetter(element, lower, culture);
             string transformed;
             switch (textCase) {
                 case OfficeTextCase.Uppercase:
@@ -107,11 +108,11 @@ public static class OfficeTextCaseTransformer {
                     transformed = lower;
                     break;
                 case OfficeTextCase.TitleCase:
-                    transformed = TransformTitleCaseElement(element, lower, culture, titlecasesDutchIJ, ref titleWordStart, ref titleDutchJ);
+                    transformed = TransformTitleCaseElement(element, lower, culture, titlecasesDutchIJ, isCasedLetter, ref titleWordStart, ref titleDutchJ);
                     break;
                 case OfficeTextCase.SentenceCase:
-                    transformed = sentenceStart && IsLetter(element) ? lower.ToUpper(culture) : lower;
-                    if (IsLetter(element)) sentenceStart = false;
+                    transformed = sentenceStart && isCasedLetter ? lower.ToUpper(culture) : lower;
+                    if (isCasedLetter) sentenceStart = false;
                     if (EndsSentence(element)) sentenceStart = true;
                     break;
                 case OfficeTextCase.ToggleCase:
@@ -127,8 +128,8 @@ public static class OfficeTextCaseTransformer {
                                     : element;
                     break;
                 case OfficeTextCase.Capitalize:
-                    transformed = capitalizeWordStart && IsLetter(element) ? element.ToUpper(culture) : element;
-                    if (IsLetter(element) || IsCombiningMark(element)) capitalizeWordStart = false;
+                    transformed = capitalizeWordStart && isCasedLetter ? element.ToUpper(culture) : element;
+                    if (isCasedLetter || IsCombiningMark(element)) capitalizeWordStart = false;
                     if (IsWordSeparator(element)) capitalizeWordStart = true;
                     break;
                 default:
@@ -224,9 +225,10 @@ public static class OfficeTextCaseTransformer {
         string lower,
         CultureInfo culture,
         bool titlecasesDutchIJ,
+        bool isCasedLetter,
         ref bool wordStart,
         ref bool capitalizeDutchJ) {
-        if (IsLetter(element)) {
+        if (isCasedLetter) {
             if (capitalizeDutchJ && string.Equals(lower, "j", StringComparison.Ordinal)) {
                 capitalizeDutchJ = false;
                 wordStart = false;
@@ -245,6 +247,14 @@ public static class OfficeTextCaseTransformer {
         capitalizeDutchJ = false;
         if (IsTitleWordSeparator(element)) wordStart = true;
         return lower;
+    }
+
+    private static bool IsCasedLetter(string element, string lower, CultureInfo culture) {
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(element, 0);
+        if (category is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter) {
+            return true;
+        }
+        return !string.Equals(element.ToUpper(culture), lower, StringComparison.Ordinal);
     }
 
     private static bool EndsSentence(string element) =>

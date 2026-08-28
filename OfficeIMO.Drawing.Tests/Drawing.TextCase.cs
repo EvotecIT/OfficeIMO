@@ -117,6 +117,14 @@ public sealed class OfficeTextCaseTests {
     }
 
     [Fact]
+    public void SentenceAndCapitalizeSkipUncasedLettersBeforeTheFirstCasedLetter() {
+        Assert.Equal("中Hello. 中World",
+            OfficeTextCaseTransformer.Apply("中hELLO. 中wORLD", OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture));
+        Assert.Equal("中Hello 中World",
+            OfficeTextCaseTransformer.Apply("中hello 中world", OfficeTextCase.Capitalize, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public void RichTextRunCopyPreservesDrawingStyle() {
         OfficeRichTextRun source = new("Styled", 14, OfficeColor.FromRgb(51, 102, 153),
             bold: true, italic: true, fontFamily: "Aptos",

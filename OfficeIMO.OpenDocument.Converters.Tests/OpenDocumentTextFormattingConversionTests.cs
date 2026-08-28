@@ -29,6 +29,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         OdtSpan odtRun = Assert.Single(Assert.Single(persisted.Paragraphs).Spans);
         Assert.Equal(OdfTextDecorationStyle.Wave, odtRun.UnderlineStyle);
         Assert.Equal(OdfTextDecorationType.Double, odtRun.UnderlineType);
+        Assert.Equal(OdfTextDecorationStyle.Solid, odtRun.LineThroughStyle);
         Assert.Equal(OdfTextDecorationType.Double, odtRun.LineThroughType);
         Assert.Equal(OdfTextPosition.Superscript, odtRun.TextPosition);
         Assert.True(odtRun.SmallCaps);

@@ -108,7 +108,7 @@ public static partial class HtmlExcelConverterExtensions {
     private static void ApplyImportedCellTextFormatting(IElement source, ExcelCell target) {
         IReadOnlyDictionary<string, string> cellCss = ParseInlineStyle(source.GetAttribute("style"));
         ApplyImportedCellStyle(source, target, cellCss);
-        if (source.Children.Length > 0) {
+        if (source.Children.Length > 0 && !source.HasAttribute("data-officeimo-excel-decoration-split")) {
             var runs = new List<ExcelRichTextRun>();
             CollectImportedRichTextRuns(source, cellCss, ResolveNativeUnderline(source), HasInvalidNativeUnderline(source), runs);
             if (runs.Count > 0) {
@@ -162,7 +162,10 @@ public static partial class HtmlExcelConverterExtensions {
         if (IsCssItalic(css)) target.SetItalic();
         ExcelUnderlineStyle? underline = ResolveImportedUnderline(source, css);
         if (underline.HasValue && underline.Value != ExcelUnderlineStyle.None) target.SetUnderline(underline.Value);
-        if (HasDecoration(css, "line-through")) target.SetStrikethrough();
+        if (HasDecoration(css, "line-through") ||
+            string.Equals(source.GetAttribute("data-officeimo-excel-strikethrough"), "true", StringComparison.OrdinalIgnoreCase)) {
+            target.SetStrikethrough();
+        }
         string nativeVerticalAlign = (source.GetAttribute("data-officeimo-excel-vertical-align") ?? string.Empty).Trim();
         if (Enum.TryParse(nativeVerticalAlign, ignoreCase: true, out ExcelVerticalTextAlignment nativeAlignment)
             && Enum.IsDefined(typeof(ExcelVerticalTextAlignment), nativeAlignment)) {

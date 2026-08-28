@@ -423,7 +423,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void ApplyWordDecoration(WordRunSnapshot source, OdtSpan target) {
         (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
-        target.LineThroughStyle = source.Strike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
+        target.LineThroughStyle = source.Strike || source.DoubleStrike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
         target.LineThroughType = source.DoubleStrike ? OdfTextDecorationType.Double : source.Strike ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
         target.TextPosition = MapWordTextPosition(source.VerticalTextAlignment);
         target.TextTransform = string.Equals(source.CapsStyle, nameof(WordCapsStyle.Caps), StringComparison.OrdinalIgnoreCase)
@@ -434,7 +434,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static void ApplyWordDecoration(WordRunSnapshot source, OdtHyperlink target) {
         (target.UnderlineStyle, target.UnderlineType) = MapWordUnderline(source.UnderlineStyle);
-        target.LineThroughStyle = source.Strike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
+        target.LineThroughStyle = source.Strike || source.DoubleStrike ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
         target.LineThroughType = source.DoubleStrike ? OdfTextDecorationType.Double : source.Strike ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
         target.TextPosition = MapWordTextPosition(source.VerticalTextAlignment);
         target.TextTransform = string.Equals(source.CapsStyle, nameof(WordCapsStyle.Caps), StringComparison.OrdinalIgnoreCase)

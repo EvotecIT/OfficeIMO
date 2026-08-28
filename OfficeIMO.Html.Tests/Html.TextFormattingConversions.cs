@@ -172,6 +172,8 @@ public class HtmlTextFormattingConversionTests {
         string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
         Assert.Contains("data-officeimo-excel-underline=\"DoubleAccounting\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-excel-underline=\"SingleAccounting\"", html, StringComparison.Ordinal);
+        Assert.Contains("text-decoration-line:underline;text-decoration-style:double", html, StringComparison.Ordinal);
+        Assert.Contains("text-decoration-line:line-through;text-decoration-style:solid", html, StringComparison.Ordinal);
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())

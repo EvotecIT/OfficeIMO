@@ -25,6 +25,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private Shape Shape => (Shape)Element;
+        internal SlidePart? SlidePart => _slidePart;
+        internal TextBody? TextBody => Shape.TextBody;
+        internal OpenXmlCompositeElement? MasterTextStyle {
+            get {
+                TextStyles? styles = _slidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles;
+                PlaceholderValues? placeholder = Shape.NonVisualShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?
+                    .GetFirstChild<PlaceholderShape>()?
+                    .Type?.Value;
+                if (placeholder == PlaceholderValues.Title || placeholder == PlaceholderValues.CenteredTitle) return styles?.TitleStyle;
+                if (placeholder == PlaceholderValues.Body || placeholder == PlaceholderValues.Object || placeholder == PlaceholderValues.SubTitle) return styles?.BodyStyle;
+                return styles?.OtherStyle;
+            }
+        }
 
         /// <summary>
         /// Gets the preset geometry used by this text-bearing shape.
