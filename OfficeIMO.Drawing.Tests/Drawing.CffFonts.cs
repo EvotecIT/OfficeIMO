@@ -39,6 +39,14 @@ public sealed class DrawingCffFontTests {
             0, 1, 1, 1, 2, 14
         };
         byte[] nameKeyedCff1 = validCff1;
+        byte[] laterInvalidCff1 = {
+            1, 0, 4, 1,
+            0, 1, 1, 1, 2, (byte)'A',
+            0, 1, 1, 1, 3, 160, 17,
+            0, 0,
+            0, 0,
+            0, 2, 1, 1, 2, 3, 14, 0
+        };
         byte[] unterminatedCff1 = (byte[])validCff1.Clone();
         unterminatedCff1[unterminatedCff1.Length - 1] = 21;
         byte[] cidKeyedCff1 = {
@@ -69,6 +77,7 @@ public sealed class DrawingCffFontTests {
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(overlappingCff2, isCff2: true));
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(multiFontCff1, isCff2: false));
         Assert.True(OfficeCffFontData.IsStructurallyValidProgram(nameKeyedCff1, isCff2: false, requireCidKeyed: false));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(laterInvalidCff1, isCff2: false));
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(unterminatedCff1, isCff2: false));
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(nameKeyedCff1, isCff2: false, requireCidKeyed: true));
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(cidKeyedCff1, isCff2: false, requireCidKeyed: true));

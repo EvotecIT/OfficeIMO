@@ -492,6 +492,52 @@ internal static partial class PdfSyntax {
         return false;
     }
 
+    internal static bool ContainsAnyReachableParsedPdfName(
+        PdfObject root,
+        Dictionary<int, PdfIndirectObject> objects,
+        params string[] names) {
+        var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
+        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var visitedContainers = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>();
+        pending.Push(root);
+        while (pending.Count > 0) {
+            PdfObject value = pending.Pop();
+
+            if (value is PdfReference reference) {
+                if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
+                    !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                    indirect == null) {
+                    continue;
+                }
+                pending.Push(indirect.Value);
+                continue;
+            }
+            if (value is PdfName name) {
+                if (nameSet.Contains(name.Name)) return true;
+                continue;
+            }
+            if (value is PdfStream stream) {
+                if (visitedContainers.Add(stream)) pending.Push(stream.Dictionary);
+                continue;
+            }
+            if (value is PdfArray array) {
+                if (!visitedContainers.Add(array)) continue;
+                for (int index = array.Items.Count - 1; index >= 0; index--) {
+                    pending.Push(array.Items[index]);
+                }
+                continue;
+            }
+            if (value is not PdfDictionary dictionary || !visitedContainers.Add(dictionary)) continue;
+            foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+                if (nameSet.Contains(item.Key)) return true;
+                pending.Push(item.Value);
+            }
+        }
+
+        return false;
+    }
+
     private static bool ShouldSuppressParsedPdfNameException(Exception exception, PdfReadOptions? options) {
         if (exception is OutOfMemoryException || exception is StackOverflowException) {
             return false;

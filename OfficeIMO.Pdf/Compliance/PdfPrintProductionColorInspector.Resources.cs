@@ -321,6 +321,7 @@ internal static partial class PdfPrintProductionColorInspector {
                         new PdfName(colorSpaceName),
                         objects,
                         limits.MaxObjectNestingDepth,
+                        limits.MaxDecodedStreamBytes,
                         context.Aliases),
                     maxNestingDepth: limits.MaxContentNestingDepth,
                     maxOperands: limits.MaxContentOperands,
@@ -329,6 +330,7 @@ internal static partial class PdfPrintProductionColorInspector {
                         colorSpace,
                         objects,
                         limits.MaxObjectNestingDepth,
+                        limits.MaxDecodedStreamBytes,
                         context.Aliases));
                 if (isPageContent) activePageFontObject = activeFontObject;
             } catch (Exception exception) when (
@@ -440,7 +442,11 @@ internal static partial class PdfPrintProductionColorInspector {
                     limits.MaxObjectNestingDepth,
                     out _) is not PdfDictionary directResources) return false;
             resources = directResources;
-            aliases = CreateColorSpaceAliases(directResources, objects, limits.MaxObjectNestingDepth);
+            aliases = CreateColorSpaceAliases(
+                directResources,
+                objects,
+                limits.MaxObjectNestingDepth,
+                limits.MaxDecodedStreamBytes);
         }
 
         int count = streams.Count;
@@ -507,6 +513,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 context.Aliases,
                 objects,
                 limits.MaxObjectNestingDepth,
+                limits.MaxDecodedStreamBytes,
                 out bool isTransparencyGroup,
                 out _) ||
             !isTransparencyGroup) return false;
@@ -628,7 +635,11 @@ internal static partial class PdfPrintProductionColorInspector {
                     limits.MaxObjectNestingDepth,
                     out _) is not PdfDictionary fontResources) return false;
             resources = fontResources;
-            aliases = CreateColorSpaceAliases(fontResources, objects, limits.MaxObjectNestingDepth);
+            aliases = CreateColorSpaceAliases(
+                fontResources,
+                objects,
+                limits.MaxObjectNestingDepth,
+                limits.MaxDecodedStreamBytes);
         }
         var shownGlyphNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (byte[] text in shownText) {

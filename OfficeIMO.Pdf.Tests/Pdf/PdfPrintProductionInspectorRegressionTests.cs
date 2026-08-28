@@ -208,26 +208,17 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
-    public void ColorInspectorAppliesDefaultDeviceColorSpaceSubstitutions() {
+    public void ColorInspectorAppliesValidDefaultRgbIccProfile() {
         byte[] pdf = BuildInspectionPdf(
-            "0 0 0 1 k 1 0 0 rg 0.5 g " +
-            "/DeviceRGB cs 1 0 0 sc /DeviceCMYK CS 0 0 0 1 SC",
-            resources:
-                "/ColorSpace << " +
-                "/DefaultCMYK [/ICCBased 5 0 R] " +
-                "/DefaultRGB [/ICCBased 6 0 R] " +
-                "/DefaultGray [/ICCBased 7 0 R] >>",
-            extraObjects:
-                "5 0 obj\n<< /N 4 /Length 0 >>\nstream\n\nendstream\nendobj\n" +
-                "6 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj\n" +
-                "7 0 obj\n<< /N 1 /Length 0 >>\nstream\n\nendstream\nendobj\n");
+            "1 0 0 rg /DeviceRGB cs 1 0 0 sc",
+            resources: "/ColorSpace << /DefaultRGB [/ICCBased 6 0 R] >>",
+            extraObjects: BuildIccProfileObject(6, 3, PdfIccProfiles.SrgbIec6196621));
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
         Assert.True(evidence.IsComplete);
         Assert.Equal(0, evidence.DeviceRgbOperatorCount);
-        Assert.Equal(0, evidence.DeviceCmykOperatorCount);
-        Assert.Equal(7, evidence.DeviceIndependentColorUsageCount);
+        Assert.Equal(3, evidence.DeviceIndependentColorUsageCount);
     }
 
     [Fact]
@@ -245,6 +236,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     [Theory]
     [InlineData("/DefaultRGB [/ICCBased 99 0 R]", "")]
     [InlineData("/DefaultRGB [/ICCBased 6 0 R]", "6 0 obj\n<< /N 4 /Length 0 >>\nstream\n\nendstream\nendobj\n")]
+    [InlineData("/DefaultRGB [/ICCBased 6 0 R]", "6 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj\n")]
     public void ColorInspectorRejectsUnresolvedOrWrongComponentDefaultRgbProfiles(
         string defaultColorSpace,
         string extraObjects) {
@@ -302,7 +294,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             extraObjects:
                 "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
                 "/BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n" +
-                "6 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj\n");
+                BuildIccProfileObject(6, 3, PdfIccProfiles.SrgbIec6196621));
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
@@ -1120,6 +1112,13 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n" + extraObjects + "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static string BuildIccProfileObject(int objectNumber, int components, byte[] profile) {
+        string hex = BitConverter.ToString(profile).Replace("-", string.Empty) + ">";
+        return objectNumber + " 0 obj\n<< /N " + components +
+            " /Filter /ASCIIHexDecode /Length " + hex.Length + " >>\nstream\n" +
+            hex + "\nendstream\nendobj\n";
     }
 
     private static byte[] BuildType1InspectionPdf(byte[] type1Program) {

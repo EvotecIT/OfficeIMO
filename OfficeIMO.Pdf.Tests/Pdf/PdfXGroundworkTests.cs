@@ -75,6 +75,22 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PdfXReadbackIgnoresMarkerLikeNamesInsideLiteralText() {
+        byte[] pdf = BuildInspectionPdf("BT (Explain /OCG and /JavaScript here.) Tj ET");
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/OCG", raw, StringComparison.Ordinal);
+        Assert.Contains("/JavaScript", raw, StringComparison.Ordinal);
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+        Assert.Equal(
+            PdfComplianceRequirementStatus.Satisfied,
+            report.FindRequirement("readback-pdfx-no-optional-content")!.Status);
+        Assert.Equal(
+            PdfComplianceRequirementStatus.Satisfied,
+            report.FindRequirement("readback-pdfx-no-active-content")!.Status);
+    }
+
+    [Fact]
     public void PdfXFlattenedAnnotationAppearancesAreConvertedToPrintColorSpace() {
         var options = new PdfOptions()
             .ConfigurePdfXGroundwork(

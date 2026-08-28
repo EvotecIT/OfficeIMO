@@ -63,7 +63,7 @@ internal sealed class OfficeCffFontData {
                 CffIndex localSubroutines = topDictionary.TryGetPair(18, out int privateSize, out int privateOffset)
                     ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: true)
                     : CffIndex.Empty(data);
-                ValidateFirstCharString(
+                ValidateCharStrings(
                     isCff2: true,
                     cff2CharStrings,
                     cff2GlobalSubroutines,
@@ -102,7 +102,7 @@ internal sealed class OfficeCffFontData {
                     tableEnd,
                     charset,
                     charStrings.Count);
-                ValidateFirstCharString(
+                ValidateCharStrings(
                     isCff2: false,
                     charStrings,
                     globalSubroutines,
@@ -126,7 +126,7 @@ internal sealed class OfficeCffFontData {
                     : CffIndex.Empty(data);
             }
             int[] fontDictionaryByGlyph = ReadFdSelect(data, fdSelectOffset, tableEnd, charStrings.Count, fdArray.Count);
-            ValidateFirstCharString(
+            ValidateCharStrings(
                 isCff2: false,
                 charStrings,
                 globalSubroutines,
@@ -143,7 +143,7 @@ internal sealed class OfficeCffFontData {
         }
     }
 
-    private static void ValidateFirstCharString(
+    private static void ValidateCharStrings(
         bool isCff2,
         CffIndex charStrings,
         CffIndex globalSubroutines,
@@ -159,11 +159,15 @@ internal sealed class OfficeCffFontData {
             fontDictionaryByGlyph,
             standardEncodingGlyphs,
             variationStore: null);
-        new OfficeType2CharStringInterpreter(
-            font,
-            glyphId: 0,
-            StructuralValidationSink.Instance,
-            System.Threading.CancellationToken.None).Render(charStrings[0]);
+        var operationBudget = new OfficeCffOperationBudget();
+        for (int glyphId = 0; glyphId < charStrings.Count; glyphId++) {
+            new OfficeType2CharStringInterpreter(
+                font,
+                glyphId,
+                StructuralValidationSink.Instance,
+                System.Threading.CancellationToken.None,
+                operationBudget).Render(charStrings[glyphId]);
+        }
     }
 
     private sealed class StructuralValidationSink : IOfficeCffPathSink {

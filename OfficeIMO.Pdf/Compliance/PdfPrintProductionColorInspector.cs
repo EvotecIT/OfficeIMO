@@ -10,6 +10,7 @@ internal static partial class PdfPrintProductionColorInspector {
         cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         int maximumObjectDepth = document.ReadOptions.Limits.MaxObjectNestingDepth;
+        int maximumDecodedStreamBytes = document.ReadOptions.Limits.MaxDecodedStreamBytes;
         var contentStreams = new List<ContentStreamContext>();
         var imageDictionaries = new HashSet<PdfDictionary>();
         var imageContexts = new List<ImageContext>();
@@ -37,7 +38,8 @@ internal static partial class PdfPrintProductionColorInspector {
                 dictionary,
                 objects,
                 inheritResources: true,
-                maximumObjectDepth);
+                maximumObjectDepth,
+                maximumDecodedStreamBytes);
             PdfDictionary? pageResources = ResolveResourcesDictionary(
                 dictionary,
                 objects,
@@ -69,6 +71,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     pageAliases,
                     objects,
                     maximumObjectDepth,
+                    maximumDecodedStreamBytes,
                     out bool isPageTransparencyGroup,
                     out ColorSpaceUsage? pageGroupUsage)) {
                 uninspectable++;
@@ -89,6 +92,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     context.Aliases,
                     objects,
                     maximumObjectDepth,
+                    maximumDecodedStreamBytes,
                     out bool isTransparencyGroup,
                     out ColorSpaceUsage? groupUsage)) {
                 uninspectable++;
@@ -150,6 +154,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     colorSpace,
                     objects,
                     maximumObjectDepth,
+                    maximumDecodedStreamBytes,
                     context.Aliases);
                 hasUnknownContext |= !usage.IsKnown;
                 usesRgb |= usage.UsesDeviceRgb;
@@ -158,7 +163,7 @@ internal static partial class PdfPrintProductionColorInspector {
             }
 
             if (!hasContext) {
-                ColorSpaceUsage usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth);
+                ColorSpaceUsage usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, maximumDecodedStreamBytes);
                 hasUnknownContext = !usage.IsKnown;
                 usesRgb = usage.UsesDeviceRgb;
                 usesCmyk = usage.UsesDeviceCmyk;
@@ -189,6 +194,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     colorSpace,
                     objects,
                     maximumObjectDepth,
+                    maximumDecodedStreamBytes,
                     context.Aliases);
                 hasUnknownContext |= !usage.IsKnown;
                 usesRgb |= usage.UsesDeviceRgb;
@@ -196,7 +202,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 usesDeviceIndependentColor |= usage.UsesDeviceIndependent;
             }
             if (!hasContext) {
-                ColorSpaceUsage usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth);
+                ColorSpaceUsage usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, maximumDecodedStreamBytes);
                 hasUnknownContext = !usage.IsKnown;
                 usesRgb = usage.UsesDeviceRgb;
                 usesCmyk = usage.UsesDeviceCmyk;
@@ -461,6 +467,7 @@ internal static partial class PdfPrintProductionColorInspector {
                                     inlineColorSpace,
                                     objects,
                                     maximumObjectDepth,
+                                    maximumDecodedStreamBytes,
                                     aliases,
                                     normalizeInlineImageAbbreviations: true);
                                 if (!usage.IsKnown) contextWasUninspectable = true;
@@ -478,6 +485,7 @@ internal static partial class PdfPrintProductionColorInspector {
                         new PdfName(colorSpaceName),
                         objects,
                         maximumObjectDepth,
+                        maximumDecodedStreamBytes,
                         aliases),
                     maxNestingDepth: document.ReadOptions.Limits.MaxContentNestingDepth,
                     maxOperands: document.ReadOptions.Limits.MaxContentOperands,
@@ -486,6 +494,7 @@ internal static partial class PdfPrintProductionColorInspector {
                         colorSpace,
                         objects,
                         maximumObjectDepth,
+                        maximumDecodedStreamBytes,
                         aliases));
                 bool resourceInspectionIncomplete = false;
                 for (int index = contextIndex; index < nextContextIndex; index++) {
@@ -559,7 +568,8 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfDictionary owner,
         Dictionary<int, PdfIndirectObject> objects,
         bool inheritResources,
-        int maximumObjectDepth) {
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
         PdfDictionary? resources = ResolveResourcesDictionary(
             owner,
             objects,
@@ -567,7 +577,7 @@ internal static partial class PdfPrintProductionColorInspector {
             maximumObjectDepth);
         return resources == null
             ? new ColorSpaceAliases()
-            : CreateColorSpaceAliases(resources, objects, maximumObjectDepth);
+            : CreateColorSpaceAliases(resources, objects, maximumObjectDepth, maximumDecodedStreamBytes);
     }
 
     private static PdfDictionary? ResolveResourcesDictionary(
@@ -609,18 +619,20 @@ internal static partial class PdfPrintProductionColorInspector {
     private static ColorSpaceAliases CreateColorSpaceAliases(
         PdfDictionary resources,
         Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth) {
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
         var aliases = new ColorSpaceAliases();
         CollectResourceColorSpaces(
             resources,
             objects,
             aliases,
-            maximumObjectDepth);
+            maximumObjectDepth,
+            maximumDecodedStreamBytes);
         if (resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) &&
             ResolveObject(objects, colorSpacesObject, 0, maximumObjectDepth) is PdfDictionary colorSpaces) {
-            aliases.DefaultRgb = ResolveDefaultColorSpaceUsage(colorSpaces, "DefaultRGB", objects, maximumObjectDepth);
-            aliases.DefaultCmyk = ResolveDefaultColorSpaceUsage(colorSpaces, "DefaultCMYK", objects, maximumObjectDepth);
-            aliases.DefaultGray = ResolveDefaultColorSpaceUsage(colorSpaces, "DefaultGray", objects, maximumObjectDepth);
+            aliases.DefaultRgb = ResolveDefaultColorSpaceUsage(colorSpaces, "DefaultRGB", objects, maximumObjectDepth, maximumDecodedStreamBytes);
+            aliases.DefaultCmyk = ResolveDefaultColorSpaceUsage(colorSpaces, "DefaultCMYK", objects, maximumObjectDepth, maximumDecodedStreamBytes);
+            aliases.DefaultGray = ResolveDefaultColorSpaceUsage(colorSpaces, "DefaultGray", objects, maximumObjectDepth, maximumDecodedStreamBytes);
         }
         return aliases;
     }
@@ -629,11 +641,12 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfDictionary colorSpaces,
         string key,
         Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth) {
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
         if (!colorSpaces.Items.TryGetValue(key, out PdfObject? value)) return null;
         int expectedComponents = string.Equals(key, "DefaultRGB", StringComparison.Ordinal) ? 3 :
             string.Equals(key, "DefaultCMYK", StringComparison.Ordinal) ? 4 : 1;
-        ColorSpaceUsage usage = ClassifyColorSpace(value, objects, maximumObjectDepth);
+        ColorSpaceUsage usage = ClassifyColorSpace(value, objects, maximumObjectDepth, maximumDecodedStreamBytes);
         return usage.IsKnown &&
                usage.UsesDeviceIndependent &&
                !usage.UsesPattern &&
@@ -646,12 +659,14 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfObject? value,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
+        int maximumDecodedStreamBytes,
         ColorSpaceAliases? aliases = null,
         bool normalizeInlineImageAbbreviations = false) {
         ColorSpaceUsage usage = ClassifyColorSpaceCore(
             value,
             objects,
             maximumObjectDepth,
+            maximumDecodedStreamBytes,
             aliases,
             normalizeInlineImageAbbreviations,
             new HashSet<PdfArray>(),
@@ -668,6 +683,7 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfObject? value,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
+        int maximumDecodedStreamBytes,
         ColorSpaceAliases? aliases,
         bool normalizeInlineImageAbbreviations,
         HashSet<PdfArray> activeArrays,
@@ -709,7 +725,14 @@ internal static partial class PdfPrintProductionColorInspector {
                     if (array.Items.Count != 2 ||
                         ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is not PdfStream profile ||
                         !TryResolveNumber(profile.Dictionary, "N", objects, maximumObjectDepth, out double components) ||
-                        (components != 1D && components != 3D && components != 4D)) {
+                        (components != 1D && components != 3D && components != 4D) ||
+                        !PdfIccProfileCache.TryRead(
+                            profile,
+                            objects,
+                            maximumDecodedStreamBytes,
+                            out OfficeIMO.Drawing.OfficeIccColorProfile? parsedProfile) ||
+                        parsedProfile == null ||
+                        parsedProfile.ComponentCount != (int)components) {
                         return ColorSpaceUsage.Unknown;
                     }
                     return ColorSpaceUsage.DeviceIndependentWithComponents((int)components);
@@ -721,7 +744,7 @@ internal static partial class PdfPrintProductionColorInspector {
                         return ColorSpaceUsage.Unknown;
                     }
                     return ClassifyColorSpaceCore(
-                        array.Items[1], objects, maximumObjectDepth, aliases, normalizeInlineImageAbbreviations,
+                        array.Items[1], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
                         activeArrays, resolvedDepth + 1).WithComponentCount(1);
                 case "Separation":
                     if (array.Items.Count != 4 ||
@@ -730,7 +753,7 @@ internal static partial class PdfPrintProductionColorInspector {
                         return ColorSpaceUsage.Unknown;
                     }
                     return ClassifyColorSpaceCore(
-                        array.Items[2], objects, maximumObjectDepth, aliases, normalizeInlineImageAbbreviations,
+                        array.Items[2], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
                         activeArrays, resolvedDepth + 1).WithComponentCount(1);
                 case "DeviceN":
                     if ((array.Items.Count != 4 && array.Items.Count != 5) ||
@@ -743,13 +766,13 @@ internal static partial class PdfPrintProductionColorInspector {
                         return ColorSpaceUsage.Unknown;
                     }
                     return ClassifyColorSpaceCore(
-                        array.Items[2], objects, maximumObjectDepth, aliases, normalizeInlineImageAbbreviations,
+                        array.Items[2], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
                         activeArrays, resolvedDepth + 1).WithComponentCount(colorants.Items.Count);
                 case "Pattern":
                     if (array.Items.Count == 1) return ColorSpaceUsage.Pattern;
                     if (array.Items.Count != 2) return ColorSpaceUsage.Unknown;
                     ColorSpaceUsage baseUsage = ClassifyColorSpaceCore(
-                        array.Items[1], objects, maximumObjectDepth, aliases, normalizeInlineImageAbbreviations,
+                        array.Items[1], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
                         activeArrays, resolvedDepth + 1);
                     return baseUsage.IsKnown ? baseUsage.WithPattern() : ColorSpaceUsage.Unknown;
                 default:
@@ -861,7 +884,8 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects,
         ColorSpaceAliases aliases,
-        int maximumObjectDepth) {
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
             ResolveObject(objects, colorSpacesObject, 0, maximumObjectDepth) is not PdfDictionary colorSpaces) return;
 
@@ -869,7 +893,7 @@ internal static partial class PdfPrintProductionColorInspector {
         do {
             changed = false;
             foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-                ColorSpaceUsage usage = ClassifyColorSpace(entry.Value, objects, maximumObjectDepth, aliases);
+                ColorSpaceUsage usage = ClassifyColorSpace(entry.Value, objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases);
                 if (!usage.IsKnown) continue;
                 changed |= AddAliasUsage(entry.Key, usage, aliases);
             }
@@ -942,6 +966,7 @@ internal static partial class PdfPrintProductionColorInspector {
         ColorSpaceAliases aliases,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
+        int maximumDecodedStreamBytes,
         out bool isTransparencyGroup,
         out ColorSpaceUsage? usage) {
         isTransparencyGroup = false;
@@ -954,7 +979,7 @@ internal static partial class PdfPrintProductionColorInspector {
         if (!string.Equals(subtypeName, "Transparency", StringComparison.Ordinal)) return false;
         isTransparencyGroup = true;
         if (!group.Items.TryGetValue("CS", out PdfObject? colorSpace)) return true;
-        usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, aliases);
+        usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases);
         return usage.IsKnown;
     }
 
@@ -995,11 +1020,13 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfObject colorSpace,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
+        int maximumDecodedStreamBytes,
         ColorSpaceAliases aliases) {
         ColorSpaceUsage usage = ClassifyColorSpace(
             colorSpace,
             objects,
             maximumObjectDepth,
+            maximumDecodedStreamBytes,
             aliases,
             normalizeInlineImageAbbreviations: true);
         return usage.IsKnown && !usage.UsesPattern ? usage.ComponentCount : 0;
@@ -1009,11 +1036,12 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfObject colorSpace,
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth) {
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
         ColorSpaceAliases aliases = resources == null
             ? new ColorSpaceAliases()
-            : CreateColorSpaceAliases(resources, objects, maximumObjectDepth);
-        return ResolveInlineImageComponentCount(colorSpace, objects, maximumObjectDepth, aliases);
+            : CreateColorSpaceAliases(resources, objects, maximumObjectDepth, maximumDecodedStreamBytes);
+        return ResolveInlineImageComponentCount(colorSpace, objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases);
     }
 
     private static bool TryClassifyBlendModeName(string name, out bool isNonNormal) {

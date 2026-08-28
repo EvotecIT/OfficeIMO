@@ -179,7 +179,8 @@ internal static partial class PdfPrintProductionStructureInspector {
                     new PdfName(colorSpaceName),
                     context.Resources,
                     _objects,
-                    _limits.MaxObjectNestingDepth),
+                    _limits.MaxObjectNestingDepth,
+                    _limits.MaxDecodedStreamBytes),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 dispatchInvalidOperations: true,
@@ -187,7 +188,8 @@ internal static partial class PdfPrintProductionStructureInspector {
                     colorSpace,
                     context.Resources,
                     _objects,
-                    _limits.MaxObjectNestingDepth));
+                    _limits.MaxObjectNestingDepth,
+                    _limits.MaxDecodedStreamBytes));
             if (insideTextObject) contextWasUninspectable = true;
             if (context.PageFontState != null) context.PageFontState.SelectedFontObject = activeFontObject;
             if (contextWasUninspectable) _uninspectableContextCount++;

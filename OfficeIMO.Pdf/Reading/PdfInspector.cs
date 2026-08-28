@@ -378,6 +378,9 @@ internal static class PdfInspector {
         bool Has(params string[] names) =>
             PdfSyntax.ContainsAnyPdfName(text, names) ||
             PdfSyntax.ContainsAnyParsedPdfName(objects, names);
+        bool HasReachable(params string[] names) =>
+            catalog != null &&
+            PdfSyntax.ContainsAnyReachableParsedPdfName(catalog, objects, names);
 
         return new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
@@ -397,8 +400,8 @@ internal static class PdfInspector {
             catalog?.Items.ContainsKey("URI") == true,
             Has("OutputIntents", "OutputIntent"),
             Has("EmbeddedFiles", "Filespec", "EmbeddedFile", "AF"),
-            Has("OCProperties", "OCGs", "OCG", "OCMD"),
-            Has(PdfActiveContentPolicy.MarkerNames),
+            HasReachable("OCProperties", "OCGs", "OCG", "OCMD"),
+            HasReachable(PdfActiveContentPolicy.MarkerNames),
             security);
     }
 
