@@ -66,11 +66,15 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
         int maximumDecodedStreamBytes) {
+        int verticesPerRow = 0;
         if (context.Stream == null ||
             !TryResolveIntegerFromSet(context.Dictionary, "BitsPerCoordinate", objects, maximumObjectDepth, 1, 2, 4, 8, 12, 16, 24, 32) ||
+            !TryResolveInteger(context.Dictionary, "BitsPerCoordinate", objects, maximumObjectDepth, 1, 32, out int bitsPerCoordinate) ||
             !TryResolveIntegerFromSet(context.Dictionary, "BitsPerComponent", objects, maximumObjectDepth, 1, 2, 4, 8, 12, 16) ||
+            !TryResolveInteger(context.Dictionary, "BitsPerComponent", objects, maximumObjectDepth, 1, 16, out int bitsPerComponent) ||
             shadingType != 5 &&
-            !TryResolveIntegerFromSet(context.Dictionary, "BitsPerFlag", objects, maximumObjectDepth, 2, 4, 8) ||
+            (!TryResolveIntegerFromSet(context.Dictionary, "BitsPerFlag", objects, maximumObjectDepth, 2, 4, 8) ||
+             !TryResolveInteger(context.Dictionary, "BitsPerFlag", objects, maximumObjectDepth, 2, 8, out _)) ||
             !HasExactFiniteNumberArray(
                 context.Dictionary,
                 "Decode",
@@ -79,7 +83,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 maximumObjectDepth,
                 out _) ||
             shadingType == 5 &&
-            !TryResolveInteger(context.Dictionary, "VerticesPerRow", objects, maximumObjectDepth, 2, int.MaxValue, out _) ||
+            !TryResolveInteger(context.Dictionary, "VerticesPerRow", objects, maximumObjectDepth, 2, int.MaxValue, out verticesPerRow) ||
             !StreamDecoder.TryDecode(
                 context.Stream.Dictionary,
                 context.Stream.Data,
@@ -90,6 +94,88 @@ internal static partial class PdfPrintProductionColorInspector {
             return false;
         }
 
+        int bitsPerFlag = 0;
+        if (shadingType != 5 &&
+            !TryResolveInteger(context.Dictionary, "BitsPerFlag", objects, maximumObjectDepth, 2, 8, out bitsPerFlag)) {
+            return false;
+        }
+        int colorValueCount = hasFunction ? 1 : componentCount;
+        return IsStructurallyValidMeshPayload(
+            decoded,
+            shadingType,
+            bitsPerCoordinate,
+            bitsPerComponent,
+            bitsPerFlag,
+            colorValueCount,
+            shadingType == 5 ? verticesPerRow : 0);
+    }
+
+    private static bool IsStructurallyValidMeshPayload(
+        byte[] decoded,
+        int shadingType,
+        int bitsPerCoordinate,
+        int bitsPerComponent,
+        int bitsPerFlag,
+        int colorValueCount,
+        int verticesPerRow) {
+        long totalBits = checked((long)decoded.Length * 8L);
+        long vertexBits = checked(2L * bitsPerCoordinate + (long)colorValueCount * bitsPerComponent);
+        if (shadingType == 4) {
+            long recordBits = checked(bitsPerFlag + vertexBits);
+            long recordCount = totalBits / recordBits;
+            long paddingBits = totalBits - recordCount * recordBits;
+            if (recordCount < 3 || paddingBits > 7 || !HasOnlyZeroPadding(decoded, totalBits - paddingBits, totalBits)) return false;
+            long offset = 0;
+            for (long index = 0; index < recordCount; index++, offset += recordBits) {
+                if (!TryReadMeshBits(decoded, offset, bitsPerFlag, out int flag) || flag > 2) return false;
+                if (index == 0 && flag != 0) return false;
+            }
+            return true;
+        }
+        if (shadingType == 5) {
+            long recordCount = totalBits / vertexBits;
+            long paddingBits = totalBits - recordCount * vertexBits;
+            return recordCount >= checked((long)verticesPerRow * 2L) &&
+                recordCount % verticesPerRow == 0 && paddingBits <= 7 &&
+                HasOnlyZeroPadding(decoded, totalBits - paddingBits, totalBits);
+        }
+
+        long bitOffset = 0;
+        int records = 0;
+        while (totalBits - bitOffset > 7) {
+            if (!TryReadMeshBits(decoded, bitOffset, bitsPerFlag, out int flag) || flag > 3 ||
+                records == 0 && flag != 0) return false;
+            int coordinateValueCount = shadingType == 6
+                ? flag == 0 ? 24 : 16
+                : flag == 0 ? 32 : 24;
+            int colorVertexCount = flag == 0 ? 4 : 2;
+            long recordBits = checked(
+                bitsPerFlag +
+                (long)coordinateValueCount * bitsPerCoordinate +
+                (long)colorVertexCount * colorValueCount * bitsPerComponent);
+            if (recordBits > totalBits - bitOffset) return false;
+            bitOffset += recordBits;
+            records++;
+        }
+        return records > 0 && HasOnlyZeroPadding(decoded, bitOffset, totalBits);
+    }
+
+    private static bool TryReadMeshBits(byte[] data, long bitOffset, int bitCount, out int value) {
+        value = 0;
+        if (bitOffset < 0 || bitCount < 1 || bitCount > 8 || bitOffset > (long)data.Length * 8L - bitCount) return false;
+        for (int index = 0; index < bitCount; index++) {
+            long current = bitOffset + index;
+            int bit = (data[current / 8] >> (7 - (int)(current & 7))) & 1;
+            value = (value << 1) | bit;
+        }
+        return true;
+    }
+
+    private static bool HasOnlyZeroPadding(byte[] data, long startBit, long endBit) {
+        if (startBit < 0 || endBit < startBit || endBit > (long)data.Length * 8L || endBit - startBit > 7) return false;
+        for (long bitOffset = startBit; bitOffset < endBit; bitOffset++) {
+            if (((data[bitOffset / 8] >> (7 - (int)(bitOffset & 7))) & 1) != 0) return false;
+        }
         return true;
     }
 

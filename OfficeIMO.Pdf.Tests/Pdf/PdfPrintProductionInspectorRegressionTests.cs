@@ -793,6 +793,77 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void StructureInspectorRejectsTokenOnlyType1PrivatePrograms() {
+        byte[] privateProgram = Encoding.ASCII.GetBytes(
+            "seed/Private 1 dict dup begin\n/CharStrings 1 dict dup begin\n/.notdef 1 RD x ND\nend\nend\n");
+        byte[] pdf = BuildType1InspectionPdf(BuildType1Pfa(privateProgram));
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void ColorInspectorRejectsTruncatedMeshShadingRecords() {
+        byte[] pdf = BuildInspectionPdf(
+            "/S1 sh",
+            resources: "/Shading << /S1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /ShadingType 5 /ColorSpace /DeviceCMYK /BitsPerCoordinate 8 " +
+                "/BitsPerComponent 8 /VerticesPerRow 2 /Decode [0 1 0 1 0 1 0 1 0 1 0 1] /Length 1 >>\n" +
+                "stream\nx\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("/TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>")]
+    [InlineData("/PaintType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>")]
+    [InlineData("/PaintType 1 /TilingType 1 /XStep 5 /YStep 5 /Resources << >>")]
+    [InlineData("/PaintType 1 /TilingType 1 /BBox [0 0 5 5] /YStep 5 /Resources << >>")]
+    [InlineData("/PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /Resources << >>")]
+    [InlineData("/PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5")]
+    public void ColorInspectorRejectsIncompleteTilingPatternDictionaries(string entries) {
+        const string patternContent = "0 0 0 k";
+        byte[] pdf = BuildInspectionPdf(
+            "/Pattern cs /P1 scn",
+            resources: "/Pattern << /P1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /Pattern /PatternType 1 " + entries + " /Length " +
+                patternContent.Length + " >>\nstream\n" + patternContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("/Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8")]
+    [InlineData("/Width 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8")]
+    [InlineData("/Width 1 /Height 1 /ColorSpace /DeviceCMYK")]
+    [InlineData("/Width 1 /Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8")]
+    [InlineData("/Width 1 /Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /Filter /Unsupported")]
+    public void ColorInspectorRejectsMalformedOrTruncatedImageXObjects(string entries) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image " + entries +
+                " /Length 1 >>\nstream\nx\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void MetadataInspectorResolvesIndirectInfoValues() {
         byte[] pdf = BuildIndirectInfoPdf();
 
@@ -1271,6 +1342,13 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         return "%!PS-AdobeFont-1.0: Fixture 1.0\ncurrentfile eexec\n" + hex + "\ncleartomark\n";
     }
 
+    private static byte[] BuildType1Pfa(byte[] privateProgram) {
+        byte[] encrypted = EncryptType1Eexec(privateProgram);
+        string hex = BitConverter.ToString(encrypted).Replace("-", string.Empty);
+        return Encoding.ASCII.GetBytes(
+            "%!PS-AdobeFont-1.0: Fixture 1.0\ncurrentfile eexec\n" + hex + "\ncleartomark\n");
+    }
+
     private static byte[] BuildValidType1Pfb() {
         byte[] header = Encoding.ASCII.GetBytes("%!PS-AdobeFont-1.0: Fixture 1.0\ncurrentfile eexec\n");
         byte[] encrypted = EncryptType1PrivateProgram();
@@ -1285,12 +1363,40 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     private static byte[] EncryptType1PrivateProgram() {
-        byte[] privateProgram = Encoding.ASCII.GetBytes(
-            "seed/Private 1 dict dup begin\n/CharStrings 1 dict dup begin\n/.notdef 1 RD x ND\nend\nend\n");
+        byte[] charString = EncryptType1CharString(new byte[] {
+            0, 0, 0, 0,
+            139,
+            248, 136,
+            13,
+            14
+        });
+        using var privateProgramStream = new MemoryStream();
+        WriteAscii(
+            privateProgramStream,
+            "seed/Private 1 dict dup begin\n/lenIV 4 def\n/CharStrings 1 dict dup begin\n/.notdef " +
+            charString.Length + " RD ");
+        privateProgramStream.Write(charString, 0, charString.Length);
+        WriteAscii(privateProgramStream, " ND\nend\nend\n");
+        byte[] privateProgram = privateProgramStream.ToArray();
+        return EncryptType1Eexec(privateProgram);
+    }
+
+    private static byte[] EncryptType1Eexec(byte[] privateProgram) {
         var encrypted = new byte[privateProgram.Length];
         ushort state = 55665;
         for (int index = 0; index < privateProgram.Length; index++) {
             byte cipher = (byte)(privateProgram[index] ^ (state >> 8));
+            encrypted[index] = cipher;
+            state = unchecked((ushort)((cipher + state) * 52845 + 22719));
+        }
+        return encrypted;
+    }
+
+    private static byte[] EncryptType1CharString(byte[] plainText) {
+        var encrypted = new byte[plainText.Length];
+        ushort state = 4330;
+        for (int index = 0; index < plainText.Length; index++) {
+            byte cipher = (byte)(plainText[index] ^ (state >> 8));
             encrypted[index] = cipher;
             state = unchecked((ushort)((cipher + state) * 52845 + 22719));
         }

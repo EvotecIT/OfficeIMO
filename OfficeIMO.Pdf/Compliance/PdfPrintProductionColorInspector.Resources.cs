@@ -75,12 +75,12 @@ internal static partial class PdfPrintProductionColorInspector {
     }
 
     private static void AddImageContext(
-        PdfDictionary image,
+        PdfStream image,
         ColorSpaceAliases aliases,
         List<ImageContext> images) {
         for (int index = 0; index < images.Count; index++) {
             ImageContext existing = images[index];
-            if (ReferenceEquals(existing.Dictionary, image) && existing.Aliases.SetEquals(aliases)) return;
+            if (ReferenceEquals(existing.Stream, image) && existing.Aliases.SetEquals(aliases)) return;
         }
 
         images.Add(new ImageContext(image, aliases));
@@ -186,7 +186,7 @@ internal static partial class PdfPrintProductionColorInspector {
                                     objects,
                                     limits.MaxObjectNestingDepth);
                                 if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
-                                    AddImageContext(xObjectStream.Dictionary, context.Aliases, images);
+                                    AddImageContext(xObjectStream, context.Aliases, images);
                                 } else if (!string.Equals(subtype, "Form", StringComparison.Ordinal) ||
                                     !AddNestedStream(
                                         xObjectStream,
@@ -571,6 +571,11 @@ internal static partial class PdfPrintProductionColorInspector {
                 patternDepth + 1,
                 limits.MaxObjectNestingDepth) is not PdfNumber patternType) return false;
         if (patternType.Value == 1D && resolved is PdfStream tilingPattern) {
+            if (!IsStructurallyValidTilingPattern(
+                    tilingPattern.Dictionary,
+                    patternDepth,
+                    objects,
+                    limits.MaxObjectNestingDepth)) return false;
             return AddNestedStream(
                 tilingPattern,
                 patternDepth,
@@ -594,6 +599,33 @@ internal static partial class PdfPrintProductionColorInspector {
                 limits.MaxObjectNestingDepth);
         }
         return false;
+    }
+
+    private static bool IsStructurallyValidTilingPattern(
+        PdfDictionary pattern,
+        int patternDepth,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!TryResolveInteger(pattern, "PaintType", objects, maximumObjectDepth, 1, 2, out _) ||
+            !TryResolveInteger(pattern, "TilingType", objects, maximumObjectDepth, 1, 3, out _) ||
+            !HasExactFiniteNumberArray(pattern, "BBox", 4, objects, maximumObjectDepth, out double[] bounds) ||
+            bounds[2] <= bounds[0] || bounds[3] <= bounds[1] ||
+            !TryResolveNumber(pattern, "XStep", objects, maximumObjectDepth, out double xStep) ||
+            !TryResolveNumber(pattern, "YStep", objects, maximumObjectDepth, out double yStep) ||
+            double.IsNaN(xStep) || double.IsInfinity(xStep) ||
+            double.IsNaN(yStep) || double.IsInfinity(yStep) || xStep == 0D || yStep == 0D ||
+            !pattern.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ||
+            ResolveObject(
+                objects,
+                resourcesObject,
+                patternDepth + 1,
+                maximumObjectDepth,
+                out _) is not PdfDictionary ||
+            !HasOptionalExactFiniteNumberArray(pattern, "Matrix", 6, objects, maximumObjectDepth)) {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool TryAddShownType3CharProcs(

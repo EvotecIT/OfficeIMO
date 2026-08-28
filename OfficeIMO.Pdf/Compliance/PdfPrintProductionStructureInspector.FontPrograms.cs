@@ -269,7 +269,8 @@ internal static partial class PdfPrintProductionStructureInspector {
         }
         int privateBody = FindType1DictionaryBody(decrypted, "/Private", 4);
         int charStringsBody = FindType1DictionaryBody(decrypted, "/CharStrings", 4);
-        return privateBody >= 0 && charStringsBody >= 0 && ContainsAscii(decrypted, "/.notdef", charStringsBody);
+        return privateBody >= 0 && charStringsBody >= 0 &&
+            IsValidType1PrivateProgram(decrypted, privateBody, charStringsBody);
     }
 
     private static bool LooksLikeHexEexec(byte[] data, int startOffset, int endOffset) {

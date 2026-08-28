@@ -126,7 +126,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 continue;
             }
 
-            AddImageContext(softMaskStream.Dictionary, context.Aliases, imageContexts);
+            AddImageContext(softMaskStream, context.Aliases, imageContexts);
         }
 
         foreach (ImageContext context in imageContexts) imageDictionaries.Add(context.Dictionary);
@@ -156,7 +156,13 @@ internal static partial class PdfPrintProductionColorInspector {
                     maximumObjectDepth,
                     maximumDecodedStreamBytes,
                     context.Aliases);
-                hasUnknownContext |= !usage.IsKnown;
+                hasUnknownContext |= !usage.IsKnown ||
+                    !IsStructurallyInspectableImage(
+                        context,
+                        usage.ComponentCount,
+                        objects,
+                        maximumObjectDepth,
+                        maximumDecodedStreamBytes);
                 usesRgb |= usage.UsesDeviceRgb;
                 usesCmyk |= usage.UsesDeviceCmyk;
                 usesDeviceIndependentColor |= usage.UsesDeviceIndependent;
@@ -1307,7 +1313,9 @@ internal static partial class PdfPrintProductionColorInspector {
 
     private sealed record ReachableResourceCollection(int TransparencyGroupCount);
 
-    private sealed record ImageContext(PdfDictionary Dictionary, ColorSpaceAliases Aliases);
+    private sealed record ImageContext(PdfStream Stream, ColorSpaceAliases Aliases) {
+        internal PdfDictionary Dictionary => Stream.Dictionary;
+    }
 
     private sealed record ShadingContext(PdfDictionary Dictionary, PdfStream? Stream, ColorSpaceAliases Aliases);
 }
