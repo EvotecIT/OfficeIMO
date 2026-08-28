@@ -1025,27 +1025,16 @@ namespace OfficeIMO.Word.Pdf {
             bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? false;
             bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? false;
             OfficeTextDecorationStyle? directUnderlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
-            bool underline = directUnderlineStyle.HasValue
-                ? directUnderlineStyle.Value != OfficeTextDecorationStyle.None
-                : characterStyleDefaults.Underline ?? styleDefaults.Underline ?? tableRunStyleDefaults.Underline ?? false;
-            bool? directStrike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>());
-            bool? directDoubleStrike = ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>());
-            bool strike = (directStrike.HasValue || directDoubleStrike.HasValue)
-                ? directDoubleStrike == true || directStrike == true
-                :
-                characterStyleDefaults.Strike ??
-                styleDefaults.Strike ??
-                tableRunStyleDefaults.Strike ??
-                false;
             OfficeTextDecorationStyle underlineStyle = directUnderlineStyle ??
-                (underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None);
-            OfficeTextDecorationStyle strikeStyle = directDoubleStrike == true
-                ? OfficeTextDecorationStyle.Double
-                : directStrike == true
-                    ? OfficeTextDecorationStyle.Single
-                    : strike
-                        ? OfficeTextDecorationStyle.Single
-                        : OfficeTextDecorationStyle.None;
+                characterStyleDefaults.UnderlineStyle ??
+                styleDefaults.UnderlineStyle ??
+                tableRunStyleDefaults.UnderlineStyle ??
+                OfficeTextDecorationStyle.None;
+            OfficeTextDecorationStyle strikeStyle = MapNativeStrikeStyle(runProperties) ??
+                characterStyleDefaults.StrikeStyle ??
+                styleDefaults.StrikeStyle ??
+                tableRunStyleDefaults.StrikeStyle ??
+                OfficeTextDecorationStyle.None;
             bool allCaps =
                 ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ??
                 ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ??
@@ -1089,6 +1078,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return OfficeTextDecorationStyle.Single;
+        }
+
+        private static OfficeTextDecorationStyle? MapNativeStrikeStyle(DocumentFormat.OpenXml.OpenXmlElement? runProperties) {
+            bool? strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>());
+            bool? doubleStrike = ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>());
+            if (!strike.HasValue && !doubleStrike.HasValue) return null;
+            if (doubleStrike == true) return OfficeTextDecorationStyle.Double;
+            if (strike == true) return OfficeTextDecorationStyle.Single;
+            return OfficeTextDecorationStyle.None;
         }
 
         private static PdfCore.PdfTextBaseline MapNativeTextBaseline(W.VerticalPositionValues? baseline) =>

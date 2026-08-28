@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using OfficeIMO.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
@@ -10,8 +11,8 @@ namespace OfficeIMO.Word.Pdf {
             string? FontFamily,
             bool? Bold,
             bool? Italic,
-            bool? Underline,
-            bool? Strike,
+            OfficeTextDecorationStyle? UnderlineStyle,
+            OfficeTextDecorationStyle? StrikeStyle,
             bool? Hidden,
             bool? AllCaps,
             W.VerticalPositionValues? Baseline,
@@ -53,8 +54,8 @@ namespace OfficeIMO.Word.Pdf {
             string? FontFamily,
             bool? Bold,
             bool? Italic,
-            bool? Underline,
-            bool? Strike,
+            OfficeTextDecorationStyle? UnderlineStyle,
+            OfficeTextDecorationStyle? StrikeStyle,
             bool? Hidden,
             bool? AllCaps,
             W.VerticalPositionValues? Baseline,
@@ -80,8 +81,8 @@ namespace OfficeIMO.Word.Pdf {
             string? fontFamily = null;
             bool? bold = null;
             bool? italic = null;
-            bool? underline = null;
-            bool? strike = null;
+            OfficeTextDecorationStyle? underlineStyle = null;
+            OfficeTextDecorationStyle? strikeStyle = null;
             bool? hidden = null;
             bool? allCaps = null;
             W.VerticalPositionValues? baseline = null;
@@ -110,8 +111,8 @@ namespace OfficeIMO.Word.Pdf {
                 fontFamily = ResolveNativeRunFontsFamily(paragraph._document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
                 bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
                 italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
-                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
-                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
+                strikeStyle = MapNativeStrikeStyle(runProperties) ?? strikeStyle;
                 hidden = ReadNativeOnOff(runProperties?.GetFirstChild<W.Vanish>()) ?? hidden;
                 allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
                 baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
@@ -171,8 +172,8 @@ namespace OfficeIMO.Word.Pdf {
                 fontFamily,
                 bold,
                 italic,
-                underline,
-                strike,
+                underlineStyle,
+                strikeStyle,
                 hidden,
                 allCaps,
                 baseline,
@@ -243,8 +244,8 @@ namespace OfficeIMO.Word.Pdf {
             string? fontFamily = null;
             bool? bold = null;
             bool? italic = null;
-            bool? underline = null;
-            bool? strike = null;
+            OfficeTextDecorationStyle? underlineStyle = null;
+            OfficeTextDecorationStyle? strikeStyle = null;
             bool? hidden = null;
             bool? allCaps = null;
             W.VerticalPositionValues? baseline = null;
@@ -257,8 +258,8 @@ namespace OfficeIMO.Word.Pdf {
                 fontFamily = ResolveNativeRunFontsFamily(document, styleRunProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
                 bold = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Bold>()) ?? bold;
                 italic = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Italic>()) ?? italic;
-                underline = ReadNativeUnderline(styleRunProperties?.GetFirstChild<W.Underline>()) ?? underline;
-                strike = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                underlineStyle = MapNativeUnderlineStyle(styleRunProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
+                strikeStyle = MapNativeStrikeStyle(styleRunProperties) ?? strikeStyle;
                 hidden = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Vanish>()) ?? hidden;
                 allCaps = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
                 baseline = styleRunProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
@@ -271,8 +272,8 @@ namespace OfficeIMO.Word.Pdf {
                 fontFamily,
                 bold,
                 italic,
-                underline,
-                strike,
+                underlineStyle,
+                strikeStyle,
                 hidden,
                 allCaps,
                 baseline,
@@ -451,14 +452,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return value.Val?.Value != false;
-        }
-
-        private static bool? ReadNativeUnderline(W.Underline? value) {
-            if (value == null) {
-                return null;
-            }
-
-            return value.Val?.Value != W.UnderlineValues.None;
         }
 
         private static bool? ReadNativeDirectParagraphOnOff<T>(WordParagraph paragraph) where T : W.OnOffType =>

@@ -83,6 +83,21 @@ public sealed class OfficeTextCaseTests {
     }
 
     [Fact]
+    public void ApplySegmentsKeepsCrossBoundaryGraphemeCodePointsInTheirSourceRuns() {
+        IReadOnlyList<string> combining = OfficeTextCaseTransformer.ApplySegments(
+            new[] { "e", "\u0301" },
+            OfficeTextCase.Uppercase,
+            CultureInfo.InvariantCulture);
+        IReadOnlyList<string> emoji = OfficeTextCaseTransformer.ApplySegments(
+            new[] { "\U0001F469", "\u200D", "\U0001F4BB" },
+            OfficeTextCase.ToggleCase,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal(new[] { "E", "\u0301" }, combining);
+        Assert.Equal(new[] { "\U0001F469", "\u200D", "\U0001F4BB" }, emoji);
+    }
+
+    [Fact]
     public void ApplyTransformsSupplementaryUnicodeLettersAsWholeTextElements() {
         const string deseretCapitalLongI = "\U00010400";
         const string deseretSmallLongI = "\U00010428";

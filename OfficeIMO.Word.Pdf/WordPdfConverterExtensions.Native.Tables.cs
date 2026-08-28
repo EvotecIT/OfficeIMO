@@ -663,8 +663,8 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
-                !conditionalStyle.Underline.HasValue &&
-                !conditionalStyle.Strike.HasValue &&
+                !conditionalStyle.UnderlineStyle.HasValue &&
+                !conditionalStyle.StrikeStyle.HasValue &&
                 !conditionalStyle.AllCaps.HasValue &&
                 !conditionalStyle.Baseline.HasValue &&
                 !conditionalStyle.Highlight.HasValue &&
@@ -698,8 +698,8 @@ namespace OfficeIMO.Word.Pdf {
                     FontSize = conditionalStyle.FontSize ?? runStyle.FontSize,
                     Bold = conditionalStyle.Bold ?? runStyle.Bold,
                     Italic = conditionalStyle.Italic ?? runStyle.Italic,
-                    Underline = conditionalStyle.Underline ?? runStyle.Underline,
-                    Strike = conditionalStyle.Strike ?? runStyle.Strike,
+                    UnderlineStyle = conditionalStyle.UnderlineStyle ?? runStyle.UnderlineStyle,
+                    StrikeStyle = conditionalStyle.StrikeStyle ?? runStyle.StrikeStyle,
                     AllCaps = conditionalStyle.AllCaps ?? runStyle.AllCaps,
                     Baseline = conditionalStyle.Baseline ?? runStyle.Baseline,
                     Color = conditionalStyle.TextColor ?? runStyle.Color,

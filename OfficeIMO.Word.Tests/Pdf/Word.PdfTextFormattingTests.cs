@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -43,5 +44,58 @@ public sealed class WordPdfTextFormattingTests {
         Assert.Equal(PdfStandardFont.Helvetica, run.Font);
         Assert.Null(run.FontFamily);
         Assert.Equal(14D, run.FontSize);
+    }
+
+    [Fact]
+    public void NativeCharacterAndTableStylesKeepTypedDecorationVariants() {
+        using WordDocument document = WordDocument.Create();
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(
+            new Style(
+                new StyleName { Val = "Decorated character" },
+                new StyleRunProperties(
+                    new Underline { Val = UnderlineValues.Dash },
+                    new DoubleStrike())) {
+                Type = StyleValues.Character,
+                StyleId = "DecoratedCharacter"
+            },
+            new Style(
+                new StyleName { Val = "Decorated table" },
+                new StyleRunProperties(
+                    new Underline { Val = UnderlineValues.Wave },
+                    new DoubleStrike())) {
+                Type = StyleValues.Table,
+                StyleId = "DecoratedTable"
+            });
+
+        WordParagraph characterRun = document.AddParagraph().AddText("Character style");
+        characterRun.SetCharacterStyleId("DecoratedCharacter");
+        MethodInfo createRuns = typeof(WordPdfConverterExtensions).GetMethod(
+            "CreateNativeCellParagraphRuns",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            binder: null,
+            new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) },
+            modifiers: null)!;
+        PdfTextRun characterPdfRun = Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(
+            createRuns.Invoke(null, new object?[] { characterRun, null })));
+
+        WordTable table = document.AddTable(1, 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "DecoratedTable" };
+        Type converterType = typeof(WordPdfConverterExtensions);
+        Type documentDefaultsType = converterType.GetNestedType("NativeDocumentDefaults", BindingFlags.NonPublic)!;
+        object wordDefault = documentDefaultsType.GetProperty("WordDefault", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+        MethodInfo getTableDefaults = converterType.GetMethod(
+            "GetNativeTableStyleDefaults",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            binder: null,
+            new[] { typeof(WordTable), documentDefaultsType, typeof(bool) },
+            modifiers: null)!;
+        object tableDefaults = getTableDefaults.Invoke(null, new[] { table, wordDefault, false })!;
+        object tableRunStyle = tableDefaults.GetType().GetProperty("RunStyle")!.GetValue(tableDefaults)!;
+
+        Assert.Equal(OfficeTextDecorationStyle.Dashed, characterPdfRun.UnderlineStyle);
+        Assert.Equal(OfficeTextDecorationStyle.Double, characterPdfRun.StrikeStyle);
+        Assert.Equal(OfficeTextDecorationStyle.Wavy, tableRunStyle.GetType().GetProperty("UnderlineStyle")!.GetValue(tableRunStyle));
+        Assert.Equal(OfficeTextDecorationStyle.Double, tableRunStyle.GetType().GetProperty("StrikeStyle")!.GetValue(tableRunStyle));
     }
 }

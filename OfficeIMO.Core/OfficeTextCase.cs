@@ -86,10 +86,8 @@ public static class OfficeTextCaseTransformer {
         bool titleDutchJ = false;
         bool titlecasesDutchIJ = string.Equals(culture.TwoLetterISOLanguageName, "nl", StringComparison.OrdinalIgnoreCase) &&
             string.Equals(culture.TextInfo.ToTitleCase("ij"), "IJ", StringComparison.Ordinal);
-        int segmentIndex = 0;
         TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(source.ToString());
         while (elements.MoveNext()) {
-            while (segmentIndex < boundaries.Length - 1 && elements.ElementIndex >= boundaries[segmentIndex]) segmentIndex++;
             string element = elements.GetTextElement();
             string lower = element.ToLower(culture);
             string transformed;
@@ -124,10 +122,89 @@ public static class OfficeTextCaseTransformer {
                 default:
                     throw new ArgumentOutOfRangeException(nameof(textCase), textCase, "Unsupported text casing transformation.");
             }
-            result[segmentIndex].Append(transformed);
+            AppendTransformedElement(result, boundaries, elements.ElementIndex, element, transformed);
         }
 
         return ToStrings(result);
+    }
+
+    private static void AppendTransformedElement(
+        StringBuilder[] result,
+        int[] boundaries,
+        int sourceStart,
+        string source,
+        string transformed) {
+        if (source.Length == transformed.Length) {
+            AppendLengthPreservingSlice(result, boundaries, sourceStart, transformed, 0, transformed.Length);
+            return;
+        }
+
+        int commonPrefix = 0;
+        int commonLimit = Math.Min(source.Length, transformed.Length);
+        while (commonPrefix < commonLimit && source[commonPrefix] == transformed[commonPrefix]) commonPrefix++;
+
+        int commonSuffix = 0;
+        while (commonSuffix < source.Length - commonPrefix &&
+               commonSuffix < transformed.Length - commonPrefix &&
+               source[source.Length - commonSuffix - 1] == transformed[transformed.Length - commonSuffix - 1]) {
+            commonSuffix++;
+        }
+
+        if (commonPrefix > 0) {
+            AppendLengthPreservingSlice(result, boundaries, sourceStart, transformed, 0, commonPrefix);
+        }
+
+        int transformedMiddleLength = transformed.Length - commonPrefix - commonSuffix;
+        if (transformedMiddleLength > 0) {
+            int changedSourceOffset = sourceStart + commonPrefix;
+            int target = FindSegmentIndex(boundaries, changedSourceOffset);
+            result[target].Append(transformed, commonPrefix, transformedMiddleLength);
+        }
+
+        if (commonSuffix > 0) {
+            AppendLengthPreservingSlice(
+                result,
+                boundaries,
+                sourceStart + source.Length - commonSuffix,
+                transformed,
+                transformed.Length - commonSuffix,
+                commonSuffix);
+        }
+    }
+
+    private static void AppendLengthPreservingSlice(
+        StringBuilder[] result,
+        int[] boundaries,
+        int sourceStart,
+        string transformed,
+        int transformedStart,
+        int length) {
+        int sourceOffset = sourceStart;
+        int transformedOffset = transformedStart;
+        int remaining = length;
+        while (remaining > 0) {
+            int target = FindSegmentIndex(boundaries, sourceOffset);
+            int available = Math.Min(remaining, boundaries[target] - sourceOffset);
+            if (available <= 0) {
+                target = Math.Min(target + 1, boundaries.Length - 1);
+                available = Math.Min(remaining, boundaries[target] - sourceOffset);
+            }
+            result[target].Append(transformed, transformedOffset, available);
+            sourceOffset += available;
+            transformedOffset += available;
+            remaining -= available;
+        }
+    }
+
+    private static int FindSegmentIndex(int[] boundaries, int sourceOffset) {
+        int low = 0;
+        int high = boundaries.Length;
+        while (low < high) {
+            int middle = low + ((high - low) / 2);
+            if (sourceOffset < boundaries[middle]) high = middle;
+            else low = middle + 1;
+        }
+        return Math.Min(low, boundaries.Length - 1);
     }
 
     private static string TransformTitleCaseElement(

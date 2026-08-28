@@ -894,6 +894,30 @@ public sealed class AdfContractTests {
             mark => mark.Type == "subsup" && mark.GetStringAttribute("type") == script));
     }
 
+    [Theory]
+    [InlineData("sup", "before ^ready^ after")]
+    [InlineData("sub", "before ~ready~ after")]
+    public void SubsupProjectionMovesBoundaryWhitespaceOutsideMarkdownDelimiters(string script, string expectedMarkdown) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = {
+                AdfNode.TextNode("before"),
+                AdfNode.TextNode(" ready ", new[] { new AdfMark("subsup").SetAttribute("type", script) }),
+                AdfNode.TextNode("after")
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.Contains(expectedMarkdown, markdown.Value, StringComparison.Ordinal);
+        Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED");
+        IReadOnlyList<AdfNode> restored = Assert.Single(roundTrip.Value.Content).Content;
+        Assert.Equal("before ready after", string.Concat(restored.Select(node => node.Text)));
+        Assert.Contains(restored, node => node.Text == "ready" && node.Marks.Any(mark =>
+            mark.Type == "subsup" && mark.GetStringAttribute("type") == script));
+    }
+
     [Fact]
     public void UnderlineProjection_RoundTripsThroughMarkdownAndHtml() {
         var document = new AdfDocument();

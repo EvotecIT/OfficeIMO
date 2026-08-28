@@ -221,13 +221,14 @@ internal static class AdfToMarkdownConverter {
         bool hasDelimiterMark = node.Marks.Any(mark =>
             string.Equals(mark.Type, "strong", StringComparison.Ordinal) ||
             string.Equals(mark.Type, "em", StringComparison.Ordinal) ||
-            string.Equals(mark.Type, "strike", StringComparison.Ordinal));
+            string.Equals(mark.Type, "strike", StringComparison.Ordinal) ||
+            string.Equals(mark.Type, "subsup", StringComparison.Ordinal));
         int leadingWhitespace = 0;
         while (leadingWhitespace < rawText.Length && char.IsWhiteSpace(rawText[leadingWhitespace])) leadingWhitespace++;
         int trailingWhitespace = rawText.Length;
         while (trailingWhitespace > leadingWhitespace && char.IsWhiteSpace(rawText[trailingWhitespace - 1])) trailingWhitespace--;
         if (hasDelimiterMark && (leadingWhitespace > 0 || trailingWhitespace < rawText.Length)) {
-            diagnostics.Add(Warning("ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED", path, "Markdown delimiters cannot preserve boundary whitespace inside an ADF strong, emphasis, or strike mark; the whitespace was moved outside the marked span."));
+            diagnostics.Add(Warning("ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED", path, "Markdown delimiters cannot preserve boundary whitespace inside an ADF strong, emphasis, strike, superscript, or subscript mark; the whitespace was moved outside the marked span."));
             builder.Append(MarkdownEscaper.EscapeLiteralText(rawText.Substring(0, leadingWhitespace)));
             if (trailingWhitespace > leadingWhitespace) {
                 builder.Append(RenderMarkedText(rawText.Substring(leadingWhitespace, trailingWhitespace - leadingWhitespace), node.Marks, path, diagnostics));
