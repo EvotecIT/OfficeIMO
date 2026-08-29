@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Bounded, source-preserving DocBook 4.5 and 5.2 common-structure parser, editor, writer, validator, and converter.</Description>
+    <AssemblyName>OfficeIMO.DocBook</AssemblyName>
+    <AssemblyTitle>OfficeIMO.DocBook</AssemblyTitle>
+    <VersionPrefix>3.2.5</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.DocBook</PackageId>
+    <PackageTags>docbook;xml;article;book;parser;writer;validation;lossless;document-conversion</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.DocBook.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.DocBook" />
+  </ItemGroup>
+</Project>

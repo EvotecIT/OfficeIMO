@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 192,
-    "productionComponentCount": 101,
-    "testProjectCount": 34,
+    "projectCount": 198,
+    "productionComponentCount": 105,
+    "testProjectCount": 36,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 25,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41468
+    "conceptualWordCount": 41578
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 27
+      "componentCount": 29
     },
     {
       "name": "Formats and interoperability",
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 5
+      "componentCount": 7
     }
   ],
   "components": [
@@ -131,7 +131,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 458,
+      "sourceFileCount": 459,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -149,6 +149,19 @@
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV"
+    },
+    {
+      "name": "OfficeIMO.DocBook",
+      "packageId": "OfficeIMO.DocBook",
+      "category": "Specialized components",
+      "description": "Bounded, source-preserving DocBook 4.5 and 5.2 common-structure parser, editor, writer, validator, and converter.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.DocBook/OfficeIMO.DocBook.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DocBook"
     },
     {
       "name": "OfficeIMO.Drawing.CodeGlyphX",
@@ -196,7 +209,7 @@
       "description": "Dependency-isolated safe HTML, RTF, text, and inline-resource projection for OfficeIMO email artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
-      "sourceFileCount": 1,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
       "apiUrl": null,
@@ -723,13 +736,26 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odt.Pdf"
     },
     {
+      "name": "OfficeIMO.Opml",
+      "packageId": "OfficeIMO.Opml",
+      "category": "Specialized components",
+      "description": "Lossless OPML 1.0 and 2.0 parser, editor, writer, validator, and conversion model for .NET.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Opml/OfficeIMO.Opml.csproj",
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Opml"
+    },
+    {
       "name": "OfficeIMO.Pdf",
       "packageId": "OfficeIMO.Pdf",
       "category": "Publishing and conversion",
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1019,
+      "sourceFileCount": 1027,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -846,7 +872,7 @@
       "description": "Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
-      "sourceFileCount": 111,
+      "sourceFileCount": 113,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
@@ -864,6 +890,19 @@
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv"
+    },
+    {
+      "name": "OfficeIMO.Reader.DocBook",
+      "packageId": "OfficeIMO.Reader.DocBook",
+      "category": "Extraction and ingestion",
+      "description": "Modular OfficeIMO.Reader adapter for bounded DocBook ingestion.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DocBook"
     },
     {
       "name": "OfficeIMO.Reader.Email",
@@ -1033,6 +1072,19 @@
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OpenDocument"
+    },
+    {
+      "name": "OfficeIMO.Reader.Opml",
+      "packageId": "OfficeIMO.Reader.Opml",
+      "category": "Extraction and ingestion",
+      "description": "Modular OfficeIMO.Reader adapter for bounded OPML ingestion.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Opml/OfficeIMO.Reader.Opml.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Opml"
     },
     {
       "name": "OfficeIMO.Reader.Pdf",
@@ -1223,7 +1275,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 30,
+      "sourceFileCount": 32,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

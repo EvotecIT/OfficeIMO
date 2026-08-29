@@ -44,6 +44,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Csv\OfficeIMO.Reader.Csv.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.DocBook\OfficeIMO.Reader.DocBook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Email\OfficeIMO.Reader.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
@@ -54,6 +55,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Notebook\OfficeIMO.Reader.Notebook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.OpenDocument\OfficeIMO.Reader.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.OneNote\OfficeIMO.Reader.OneNote.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Opml\OfficeIMO.Reader.Opml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.PowerPoint\OfficeIMO.Reader.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />

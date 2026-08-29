@@ -65,8 +65,8 @@ if ($securityRootedLibraries.Count -ne 1 -or $securityRootedLibraries[0] -ne 'Of
 if ($c2paRootedLibraries.Count -ne 1 -or $c2paRootedLibraries[0] -ne 'OfficeIMO.Provenance.C2pa') {
     throw "The optional C2PA NativeAOT host must root exactly OfficeIMO.Provenance.C2pa; found $($c2paRootedLibraries -join ', ')."
 }
-if ($fullyRootedLibraries.Count -ne 97) {
-    throw "Expected 97 fully rooted production libraries across the ordinary and optional-adapter hosts, found $($fullyRootedLibraries.Count)."
+if ($fullyRootedLibraries.Count -ne 101) {
+    throw "Expected 101 fully rooted production libraries across the ordinary and optional-adapter hosts, found $($fullyRootedLibraries.Count)."
 }
 if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
     throw "The bounded NativeAOT library set changed: $($boundedLibraries -join ', ')."

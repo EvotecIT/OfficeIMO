@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Lossless OPML 1.0 and 2.0 parser, editor, writer, validator, and conversion model for .NET.</Description>
+    <AssemblyName>OfficeIMO.Opml</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Opml</AssemblyTitle>
+    <VersionPrefix>3.2.5</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Opml</PackageId>
+    <PackageTags>opml;outline;subscription-list;rss;parser;writer;lossless;document-conversion</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Opml.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
+  </ItemGroup>
+</Project>
