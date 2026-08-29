@@ -707,6 +707,28 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void HtmlToOneNoteResolvesInheritedRelativeAndKeywordFontSizes() {
+        const string html = "<p style='font-size:20px'>Root <span style='font-size:150%'>Percent</span> "
+            + "<span style='font-size:1.5em'>Em</span> <span style='font-size:2rem'>Rem</span> "
+            + "<span style='font-size:small'>Small</span></p>";
+
+        OneNoteParagraph paragraph = Assert.Single(Assert.Single(Assert.Single(
+            HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue().Pages).Outlines)
+            .Children.OfType<OneNoteParagraph>());
+
+        void AssertFontSize(string text, double expected) {
+            double? actual = Assert.Single(paragraph.Runs, run => run.Text == text).Style.FontSize;
+            Assert.True(actual.HasValue);
+            Assert.Equal(expected, actual.Value, 6);
+        }
+        AssertFontSize("Root ", 15D);
+        AssertFontSize("Percent", 22.5D);
+        AssertFontSize("Em", 22.5D);
+        AssertFontSize("Rem", 24D);
+        AssertFontSize("Small", 13.35D);
+    }
+
+    [Fact]
     public void HtmlBlockBackgroundDoesNotBecomeOneNoteRunHighlightButInlineBackgroundDoes() {
         const string html = "<p style=\"background-color:#112233\">Plain <span style=\"background-color:#FFF2CC\">Marked</span></p>";
 

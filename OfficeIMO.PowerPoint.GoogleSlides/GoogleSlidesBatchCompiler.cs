@@ -153,10 +153,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static string BuildTextContent(
             IReadOnlyList<PowerPointParagraph> paragraphs,
             A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle) => string.Join(
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) => string.Join(
                 "\n",
                 paragraphs.Select(paragraph => string.Concat(paragraph.InlineNodes.Select(node =>
-                    GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle)))));
+                    GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle, tableTextStyles)))));
 
         private static void PopulateTextRuns(GoogleSlidesTextBox target, PowerPointTextBox source) {
             PopulateTextRuns(target.TextRuns, source.Paragraphs, source.TextBody?.ListStyle, source.MasterTextStyle);
@@ -174,7 +175,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             IReadOnlyList<A.TableCellTextStyle> tableTextStyles =
                 PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(table, row, column);
             PopulateTextRuns(textRuns, cell.Paragraphs, textBody?.ListStyle, masterTextStyle, tableTextStyles);
-            return new GoogleSlidesTableCell(BuildTextContent(cell.Paragraphs, textBody?.ListStyle, masterTextStyle), textRuns);
+            return new GoogleSlidesTableCell(BuildTextContent(cell.Paragraphs, textBody?.ListStyle, masterTextStyle, tableTextStyles), textRuns);
         }
 
         private static void PopulateTextRuns(
@@ -212,7 +213,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 : null,
                             FontFamily = effective.FontName,
                             ForegroundColorHex = NormalizeColorHex(effective.Color),
-                            Hyperlink = run.Hyperlink?.AbsoluteUri,
+                            Hyperlink = ToGoogleHyperlink(run.Hyperlink),
                         });
                     }
                     offset = endIndex;
@@ -225,11 +226,27 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             PowerPointParagraphInline node,
             PowerPointParagraph paragraph,
             A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle) {
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
             if (node.Kind == PowerPointParagraphInlineKind.LineBreak) return "\n";
             if (node.Run == null) return node.Text;
-            return GetGoogleText(node.Run, ResolveEffectiveRunStyle(node.Run, paragraph, listStyle, masterTextStyle));
+            return GetGoogleText(node.Run, ResolveEffectiveRunStyle(node.Run, paragraph, listStyle, masterTextStyle, tableTextStyles));
         }
+
+        internal static string? ToGoogleHyperlink(Uri? hyperlink) {
+            if (hyperlink == null) return null;
+            if (hyperlink.IsAbsoluteUri) return hyperlink.AbsoluteUri;
+            string value = hyperlink.OriginalString;
+            if (!value.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)
+                || !int.TryParse(value.Substring(7), NumberStyles.None, CultureInfo.InvariantCulture, out int slideNumber)
+                || slideNumber < 1) {
+                return null;
+            }
+            return "#slide-" + slideNumber.ToString(CultureInfo.InvariantCulture);
+        }
+
+        internal static string GetSlideObjectId(int slideNumber) =>
+            ObjectId("slide", slideNumber - 1, 0);
 
         internal static string GetGoogleText(PowerPointTextRun run) {
             string text = run.Text ?? string.Empty;

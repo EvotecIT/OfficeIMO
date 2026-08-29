@@ -84,7 +84,7 @@ namespace OfficeIMO.PowerPoint {
         public bool Underline {
             get => UnderlineStyle is { } style && style != PowerPointUnderlineStyle.None;
             set {
-                UnderlineStyle = value ? PowerPointUnderlineStyle.Single : null;
+                UnderlineStyle = value ? PowerPointUnderlineStyle.Single : PowerPointUnderlineStyle.None;
             }
         }
 
@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint {
         public bool Strikethrough {
             get => StrikeStyle is { } style && style != PowerPointStrikeStyle.None;
             set {
-                StrikeStyle = value ? PowerPointStrikeStyle.Single : null;
+                StrikeStyle = value ? PowerPointStrikeStyle.Single : PowerPointStrikeStyle.None;
             }
         }
 

@@ -394,6 +394,7 @@ public static partial class HtmlComputedStyleEngine {
         double rootFontSize = containerContexts.Count == 0 ? 16D : containerContexts[0].RootFontSize;
         ResolveContainerUnitDimensions(containerContexts, out double containerUnitWidth, out double containerUnitHeight);
         double elementFontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize, containerUnitWidth, containerUnitHeight);
+        style.ResolvedFontSizePoints = elementFontSize * 72D / 96D;
         if (containerContexts.Count == 0) rootFontSize = elementFontSize;
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);

@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -144,6 +145,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompilerAndCheckpointProjectInternalLinksWithoutDereferencingRelativeUris() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide source = presentation.AddSlide();
+            PowerPointSlide target = presentation.AddSlide();
+            PowerPointTextRun shapeRun = source.AddTextBox("Shape link").Paragraphs.Single().Runs.Single();
+            PowerPointTextRun tableRun = source.AddTablePoints(1, 1, 20, 100, 220, 60)
+                .GetCell(0, 0).Runs.Single();
+            tableRun.Text = "Table link";
+            shapeRun.SetHyperlink(target);
+            tableRun.SetHyperlink(target);
+
+            GoogleSlidesSlide compiled = presentation.BuildGoogleSlidesBatch().Slides[0];
+            Assert.Equal("#slide-2", Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTextBox>()).TextRuns).Hyperlink);
+            Assert.Equal("#slide-2", Assert.Single(Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTable>()).StyledCells).Single().TextRuns).Hyperlink);
+            Assert.NotEmpty(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes);
+
+            JsonObject style = GoogleSlidesExporter.BuildTextStyle(
+                bold: false, italic: false, underline: false, strikethrough: false,
+                smallCaps: false, baselineOffset: null, fontSize: null, fontFamily: null,
+                foregroundColorHex: null, hyperlink: "#slide-2", scale: 1D);
+            Assert.Equal("officeimo_slide_0002_0001", style["link"]!["pageObjectId"]!.GetValue<string>());
+        }
+
+        [Fact]
+        public void BooleanDecorationSettersWriteExplicitOffValuesOverInheritedDefaults() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Plain").Paragraphs.Single();
+            PowerPointTextRun run = paragraph.Runs.Single();
+            paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties {
+                    Underline = A.TextUnderlineValues.Single,
+                    Strike = A.TextStrikeValues.SingleStrike
+                });
+
+            run.Underline = false;
+            run.Strikethrough = false;
+
+            Assert.Equal(PowerPointUnderlineStyle.None, run.UnderlineStyle);
+            Assert.Equal(PowerPointStrikeStyle.None, run.StrikeStyle);
+            Assert.Equal(A.TextUnderlineValues.None, run.Run.RunProperties!.Underline!.Value);
+            Assert.Equal(A.TextStrikeValues.NoStrike, run.Run.RunProperties.Strike!.Value);
+            GoogleSlidesTextStyleRun projected = Assert.Single(Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides).Elements.OfType<GoogleSlidesTextBox>()).TextRuns);
+            Assert.False(projected.Underline);
+            Assert.False(projected.Strikethrough);
+        }
+
+        [Fact]
         public void BatchCompiler_ResolvesParagraphDefaultCapsAndBaselineForTextBoxesAndTables() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
@@ -276,6 +325,10 @@ namespace OfficeIMO.Tests {
             Assert.True(body.Italic);
             Assert.Equal("Consolas", body.FontFamily);
             Assert.Equal("112233", body.ForegroundColorHex);
+            Assert.Equal("Corner", compiled.StyledCells[0][0].Text);
+            Assert.Equal("Header", compiled.StyledCells[0][1].Text);
+            Assert.Equal("Band", compiled.StyledCells[1][0].Text);
+            Assert.Equal("Body", compiled.StyledCells[2][0].Text);
         }
 
         [Fact]

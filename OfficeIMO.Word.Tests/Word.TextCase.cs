@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 using M = DocumentFormat.OpenXml.Math;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
@@ -78,5 +79,56 @@ public partial class Word {
         Assert.Equal(formattingBefore, run.ChildElements
             .Where(element => element.LocalName == "rPr")
             .Select(element => element.OuterXml));
+    }
+
+    [Fact]
+    public void TransformTextCasePreservesFormattingAcrossStructuredMultiRunContainers() {
+        using WordDocument document = WordDocument.Create();
+
+        W.Run Bold(string text) => new W.Run(new W.RunProperties(new W.Bold()), new W.Text(text));
+        W.Run Italic(string text) => new W.Run(new W.RunProperties(new W.Italic()), new W.Text(text));
+        void AssertRuns(IEnumerable<W.Run> runs, string first, string second) {
+            W.Run[] actual = runs.ToArray();
+            Assert.Equal(first, actual[0].InnerText);
+            Assert.Equal(second, actual[1].InnerText);
+            Assert.NotNull(actual[0].RunProperties?.Bold);
+            Assert.NotNull(actual[1].RunProperties?.Italic);
+        }
+
+        WordParagraph hyperlinkOwner = document.AddParagraph();
+        var hyperlink = new W.Hyperlink(Bold("MIXED "), Italic("LINK"));
+        hyperlinkOwner._paragraph.Append(hyperlink);
+        new WordParagraph(document, hyperlinkOwner._paragraph, hyperlink)
+            .TransformTextCase(OfficeTextCase.Lowercase);
+        AssertRuns(hyperlink.Elements<W.Run>(), "mixed ", "link");
+
+        WordParagraph fieldOwner = document.AddParagraph();
+        var field = new W.SimpleField(Bold("FIELD "), Italic("VALUE")) { Instruction = " AUTHOR " };
+        fieldOwner._paragraph.Append(field);
+        new WordParagraph(document, fieldOwner._paragraph, field)
+            .TransformTextCase(OfficeTextCase.Lowercase);
+        AssertRuns(field.Elements<W.Run>(), "field ", "value");
+
+        WordParagraph controlOwner = document.AddParagraph();
+        var control = new W.SdtRun(new W.SdtProperties(), new W.SdtContentRun(Bold("CONTROL "), Italic("VALUE")));
+        controlOwner._paragraph.Append(control);
+        new WordParagraph(document, controlOwner._paragraph, control)
+            .TransformTextCase(OfficeTextCase.Lowercase);
+        AssertRuns(control.Descendants<W.Run>(), "control ", "value");
+
+        WordParagraph complexOwner = document.AddParagraph();
+        var complexRuns = new List<W.Run> {
+            new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
+            new W.Run(new W.FieldCode(" AUTHOR ")),
+            new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }),
+            Bold("COMPLEX "),
+            Italic("VALUE"),
+            new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End })
+        };
+        complexOwner._paragraph.Append(complexRuns);
+        new WordParagraph(document, complexOwner._paragraph, complexRuns)
+            .TransformTextCase(OfficeTextCase.Lowercase);
+        AssertRuns(complexRuns.Skip(3).Take(2), "complex ", "value");
+        Assert.Equal(" AUTHOR ", complexRuns[1].InnerText);
     }
 }

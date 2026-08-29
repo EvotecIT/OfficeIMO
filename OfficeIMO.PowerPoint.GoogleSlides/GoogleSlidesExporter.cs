@@ -329,7 +329,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static JsonObject BuildTextStyle(
+        internal static JsonObject BuildTextStyle(
             bool bold,
             bool italic,
             bool underline,
@@ -351,7 +351,15 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (fontSize.HasValue) style["fontSize"] = Obj(("magnitude", Math.Max(1, fontSize.Value * scale)), ("unit", "PT"));
             if (!string.IsNullOrWhiteSpace(fontFamily)) style["fontFamily"] = fontFamily;
             if (!string.IsNullOrWhiteSpace(foregroundColorHex)) style["foregroundColor"] = Obj(("opaqueColor", Obj(("rgbColor", Rgb(foregroundColorHex!)))));
-            if (!string.IsNullOrWhiteSpace(hyperlink)) style["link"] = Obj(("url", hyperlink));
+            if (!string.IsNullOrWhiteSpace(hyperlink)) {
+                if (hyperlink!.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(hyperlink.Substring(7), NumberStyles.None, CultureInfo.InvariantCulture, out int slideNumber)
+                    && slideNumber > 0) {
+                    style["link"] = Obj(("pageObjectId", GoogleSlidesBatchCompiler.GetSlideObjectId(slideNumber)));
+                } else {
+                    style["link"] = Obj(("url", hyperlink));
+                }
+            }
             return style;
         }
 

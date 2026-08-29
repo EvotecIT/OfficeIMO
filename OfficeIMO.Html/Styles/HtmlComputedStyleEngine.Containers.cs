@@ -282,11 +282,26 @@ public static partial class HtmlComputedStyleEngine {
         double inheritedFontSize = 16D,
         double rootFontSize = 16D,
         double containerUnitWidth = double.NaN,
-        double containerUnitHeight = double.NaN) =>
-        HtmlRenderCssValues.TryLength(style.GetValue("font-size"), inheritedFontSize, inheritedFontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double fontSize)
+        double containerUnitHeight = double.NaN) {
+        string value = style.GetValue("font-size").Trim().ToLowerInvariant();
+        double keywordSize = value switch {
+            "xx-small" => inheritedFontSize * 0.6D,
+            "x-small" => inheritedFontSize * 0.75D,
+            "small" => inheritedFontSize * 0.89D,
+            "medium" => 16D,
+            "large" => inheritedFontSize * 1.2D,
+            "x-large" => inheritedFontSize * 1.5D,
+            "xx-large" => inheritedFontSize * 2D,
+            "smaller" => inheritedFontSize * 0.8D,
+            "larger" => inheritedFontSize * 1.2D,
+            _ => 0D
+        };
+        if (keywordSize > 0D) return keywordSize;
+        return HtmlRenderCssValues.TryLength(value, inheritedFontSize, inheritedFontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double fontSize)
             && fontSize > 0D
             ? fontSize
             : inheritedFontSize;
+    }
 
     private static bool EvaluateContainerCondition(string condition, ContainerQueryContext context, MediaEnvironment environment) {
         string normalized = condition.Trim();

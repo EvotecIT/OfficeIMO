@@ -155,13 +155,14 @@ public static class HtmlOneNoteConverterExtensions {
         HtmlSemanticBlock source,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
-        return CreateParagraph(source.Text, source.Runs, source.Kind == HtmlSemanticBlockKind.Heading ? source.Level : 0, result, budget);
+        return CreateParagraph(source.Text, source.Runs, source.Kind == HtmlSemanticBlockKind.Heading ? source.Level : 0, source.Style, result, budget);
     }
 
     private static OneNoteParagraph? CreateParagraph(
         string plainText,
         IReadOnlyList<HtmlSemanticRun> runs,
         int headingLevel,
+        HtmlComputedStyle? containerStyle,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
         if (plainText.Length == 0) return null;
@@ -199,7 +200,10 @@ public static class HtmlOneNoteConverterExtensions {
             run.Style.Superscript = sourceRun.Superscript ? true : null;
             run.Style.Subscript = sourceRun.Subscript ? true : null;
             run.Style.FontFamily = NormalizeFontFamily(sourceRun.Style?.GetValue("font-family"));
-            if (TryParseCssPoints(sourceRun.Style?.GetValue("font-size"), out double fontSize)) {
+            double? resolvedFontSize = sourceRun.Style?.ResolvedFontSizePoints ?? containerStyle?.ResolvedFontSizePoints;
+            if (resolvedFontSize.HasValue && resolvedFontSize.Value > 0D) {
+                run.Style.FontSize = resolvedFontSize.Value;
+            } else if (TryParseCssPoints(sourceRun.Style?.GetValue("font-size"), out double fontSize)) {
                 run.Style.FontSize = fontSize;
             }
             if (TryParseArgb(sourceRun.Style?.GetValue("color"), out uint foreground)) {
@@ -280,7 +284,7 @@ public static class HtmlOneNoteConverterExtensions {
                 if (TryParseArgb(cellElement.Style?.GetValue("background-color"), out uint shading)) {
                     cell.ShadingColorArgb = shading;
                 }
-                OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, result, budget);
+                OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, cellElement.Style, result, budget);
                 if (paragraph != null) cell.Content.Add(paragraph);
                 if (options.ImportImages) {
                     foreach (HtmlSemanticResource resource in cellElement.Resources.Where(item => item.Kind == HtmlResourceKind.Image)) {
