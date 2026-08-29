@@ -33,12 +33,12 @@ namespace OfficeIMO.Excel {
             CultureInfo? culture) {
             Cell? cell = TryGetExistingCell(row, column);
             OpenXmlCompositeElement? source = ResolveRichTextOwner(cell);
-            Run[] sourceRuns = source?.Elements<Run>().ToArray() ?? Array.Empty<Run>();
-            if (cell == null || source == null || sourceRuns.Length == 0) {
+            Text[] sourceTextNodes = source == null ? Array.Empty<Text>() : EnumerateRichTextNodes(source).ToArray();
+            if (cell == null || source == null || sourceTextNodes.Length == 0 || !source.Elements<Run>().Any()) {
                 return false;
             }
 
-            string[] original = sourceRuns.Select(run => run.Text?.Text ?? string.Empty).ToArray();
+            string[] original = sourceTextNodes.Select(text => text.Text ?? string.Empty).ToArray();
             IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(original, textCase, culture);
             if (original.SequenceEqual(transformed, StringComparer.Ordinal)) {
                 return true;
@@ -54,18 +54,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            Run[] targetRuns = inline.Elements<Run>().ToArray();
-            if (targetRuns.Length != transformed.Count) {
-                throw new InvalidOperationException("The Excel rich-text run collection changed while its text case was being transformed.");
+            Text[] targetTextNodes = EnumerateRichTextNodes(inline).ToArray();
+            if (targetTextNodes.Length != transformed.Count) {
+                throw new InvalidOperationException("The Excel rich-text text-node collection changed while its text case was being transformed.");
             }
 
-            for (int index = 0; index < targetRuns.Length; index++) {
-                Text? text = targetRuns[index].Text;
-                if (text != null) {
-                    text.Text = transformed[index];
-                } else if (transformed[index].Length > 0) {
-                    targetRuns[index].Append(new Text(transformed[index]) { Space = SpaceProcessingModeValues.Preserve });
-                }
+            for (int index = 0; index < targetTextNodes.Length; index++) {
+                targetTextNodes[index].Text = transformed[index];
             }
 
             cell.CellFormula = null;
@@ -75,6 +70,16 @@ namespace OfficeIMO.Excel {
             _excelDocument.MarkFormulaInputMutation();
             ClearHeaderCache();
             return true;
+        }
+
+        private static IEnumerable<Text> EnumerateRichTextNodes(OpenXmlCompositeElement owner) {
+            foreach (OpenXmlElement child in owner.ChildElements) {
+                if (child is Text text) {
+                    yield return text;
+                } else if (child is Run run && run.Text != null) {
+                    yield return run.Text;
+                }
+            }
         }
 
         private OpenXmlCompositeElement? ResolveRichTextOwner(Cell? cell) {

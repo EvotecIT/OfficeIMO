@@ -226,6 +226,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_PreservesTableFieldsAndLineBreaksInAuthoredOrder() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTableCell cell = presentation.AddSlide()
+                .AddTablePoints(1, 1, 20, 30, 300, 100)
+                .GetCell(0, 0);
+            PowerPointParagraph paragraph = cell.Paragraphs[0];
+            paragraph.Text = "Before ";
+            paragraph.AddField("2", "slidenum", fieldId: null, configure: run => {
+                run.Bold = true;
+                run.Color = "336699";
+            });
+            paragraph.AddLineBreak();
+            paragraph.AddRun("After").Italic = true;
+
+            PowerPointParagraphInline field = Assert.Single(paragraph.InlineNodes,
+                node => node.Kind == PowerPointParagraphInlineKind.Field);
+            string fieldFingerprint = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+            field.Run!.Text = "3";
+            Assert.NotEqual(fieldFingerprint, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
+            field.Run.Text = "2";
+
+            GoogleSlidesTableCell compiled = Assert.Single(Assert.Single(
+                Assert.Single(
+                    Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                        .Elements.OfType<GoogleSlidesTable>())
+                    .StyledCells));
+
+            Assert.Equal("Before 2\nAfter", compiled.Text);
+            Assert.Collection(compiled.TextRuns,
+                run => Assert.Equal("Before ".Length, run.EndIndex),
+                run => {
+                    Assert.Equal("Before ".Length, run.StartIndex);
+                    Assert.Equal("Before 2".Length, run.EndIndex);
+                    Assert.True(run.Bold);
+                    Assert.Equal("336699", run.ForegroundColorHex);
+                },
+                run => {
+                    Assert.Equal("Before 2\n".Length, run.StartIndex);
+                    Assert.Equal("Before 2\nAfter".Length, run.EndIndex);
+                    Assert.True(run.Italic);
+                });
+        }
+
+        [Fact]
         public void BatchCompiler_MaterializesAllCapsUsingTheRunLanguage() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointTextRun run = presentation.AddSlide()
@@ -1159,7 +1203,7 @@ namespace OfficeIMO.Tests {
             textRun.Text = "MIXED";
             textRun.Capitalization = null;
             textRun.BaselinePercent = 30D;
-            textRun.FontSize = 12;
+            textRun.FontSize = 13;
             Assert.Equal(projected, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
 
             using PowerPointPresentation tablePresentation = PowerPointPresentation.Create();

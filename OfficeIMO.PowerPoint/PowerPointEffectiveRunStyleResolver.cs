@@ -1,6 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -63,8 +67,7 @@ namespace OfficeIMO.PowerPoint {
                 .FirstOrDefault(value => value.HasValue);
             string? fontName = sources.Select(source => source.GetFirstChild<A.LatinFont>()?.Typeface?.Value)
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-            string? color = sources.Select(source => source.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            string? color = ResolveColor(run, sources);
             string? language = sources.Select(source => source.Language?.Value)
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
@@ -80,6 +83,77 @@ namespace OfficeIMO.PowerPoint {
                 color,
                 language);
         }
+
+        private static string? ResolveColor(
+            PowerPointTextRun run,
+            IReadOnlyList<A.TextCharacterPropertiesType> sources) {
+            A.ColorScheme? colorScheme = ResolveColorScheme(run.OwnerPart);
+            OpenXmlCompositeElement? colorMap = ResolveColorMap(run.OwnerPart);
+            foreach (A.TextCharacterPropertiesType source in sources) {
+                A.SolidFill? fill = source.GetFirstChild<A.SolidFill>();
+                if (fill == null) continue;
+                OpenXmlElement effectiveFill = ApplyColorMap(fill, colorMap);
+                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(effectiveFill, colorScheme);
+                if (color.HasValue) return color.Value.ToRgbHex();
+            }
+
+            return null;
+        }
+
+        private static OpenXmlElement ApplyColorMap(A.SolidFill fill, OpenXmlCompositeElement? colorMap) {
+            A.SchemeColor? scheme = fill.GetFirstChild<A.SchemeColor>();
+            string? schemeName = scheme?.GetAttribute("val", string.Empty).Value;
+            string? mapped = MapSchemeColor(schemeName, colorMap);
+            if (string.IsNullOrWhiteSpace(mapped)
+                || string.Equals(mapped, schemeName, StringComparison.OrdinalIgnoreCase)) return fill;
+            var clone = (A.SolidFill)fill.CloneNode(true);
+            clone.GetFirstChild<A.SchemeColor>()!
+                .SetAttribute(new OpenXmlAttribute("val", string.Empty, mapped!));
+            return clone;
+        }
+
+        private static string? MapSchemeColor(string? scheme, OpenXmlCompositeElement? colorMap) {
+            if (string.IsNullOrWhiteSpace(scheme) || colorMap == null) return scheme;
+            string normalized = scheme!.Trim().ToLowerInvariant();
+            string? attribute = normalized switch {
+                "background1" or "bg1" => "bg1",
+                "text1" or "tx1" => "tx1",
+                "background2" or "bg2" => "bg2",
+                "text2" or "tx2" => "tx2",
+                "accent1" => "accent1",
+                "accent2" => "accent2",
+                "accent3" => "accent3",
+                "accent4" => "accent4",
+                "accent5" => "accent5",
+                "accent6" => "accent6",
+                "hyperlink" or "hlink" => "hlink",
+                "followedhyperlink" or "folhlink" => "folHlink",
+                _ => null
+            };
+            if (attribute == null) return scheme;
+            string? mapped = colorMap.GetAttribute(attribute, string.Empty).Value;
+            return string.IsNullOrWhiteSpace(mapped) ? scheme : mapped;
+        }
+
+        private static A.ColorScheme? ResolveColorScheme(OpenXmlPartContainer? ownerPart) => ownerPart switch {
+            SlidePart slidePart => slidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
+                ?? slidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.ColorScheme
+                ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme,
+            SlideLayoutPart layoutPart => layoutPart.ThemeOverridePart?.ThemeOverride?.ColorScheme
+                ?? layoutPart.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme,
+            SlideMasterPart masterPart => masterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme,
+            _ => null
+        };
+
+        private static OpenXmlCompositeElement? ResolveColorMap(OpenXmlPartContainer? ownerPart) => ownerPart switch {
+            SlidePart slidePart => slidePart.Slide?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
+                ?? slidePart.SlideLayoutPart?.SlideLayout?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
+                ?? (OpenXmlCompositeElement?)slidePart.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.ColorMap,
+            SlideLayoutPart layoutPart => layoutPart.SlideLayout?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
+                ?? (OpenXmlCompositeElement?)layoutPart.SlideMasterPart?.SlideMaster?.ColorMap,
+            SlideMasterPart masterPart => masterPart.SlideMaster?.ColorMap,
+            _ => null
+        };
 
         private static IReadOnlyList<A.TextCharacterPropertiesType> ResolveSources(
             PowerPointTextRun run,

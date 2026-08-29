@@ -26,9 +26,10 @@ namespace OfficeIMO.Word {
             }
 
             CultureInfo culture = CultureInfo.InvariantCulture;
-            if (!string.IsNullOrWhiteSpace(paragraph.Language)) {
+            string? language = ResolveImageExportLanguage(paragraph);
+            if (!string.IsNullOrWhiteSpace(language)) {
                 try {
-                    culture = CultureInfo.GetCultureInfo(paragraph.Language!);
+                    culture = CultureInfo.GetCultureInfo(language!);
                 } catch (CultureNotFoundException) {
                     culture = CultureInfo.InvariantCulture;
                 }
@@ -45,26 +46,45 @@ namespace OfficeIMO.Word {
             return culture.TextInfo.ToUpper(text);
         }
 
+        private static string? ResolveImageExportLanguage(WordParagraph paragraph) {
+            RunProperties? direct = paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
+            string? language = direct?.Languages?.Val?.Value;
+            if (!string.IsNullOrWhiteSpace(language)) return language;
+            foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
+                language = properties.Languages?.Val?.Value;
+                if (!string.IsNullOrWhiteSpace(language)) return language;
+            }
+
+            return ResolveDocumentDefaultRunProperties(paragraph)?.Languages?.Val?.Value;
+        }
+
         private static WordCapsStyle ResolveImageExportCapsStyle(WordParagraph paragraph) {
             RunProperties? direct = paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
-            bool caps = ResolveImageExportOnOff(direct?.Caps, paragraph, properties => properties.Caps);
-            bool smallCaps = ResolveImageExportOnOff(direct?.SmallCaps, paragraph, properties => properties.SmallCaps);
+            bool caps = ResolveImageExportOnOff(direct?.Caps, paragraph);
+            bool smallCaps = ResolveImageExportOnOff(direct?.SmallCaps, paragraph);
             return caps ? WordCapsStyle.Caps : smallCaps ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
         }
 
         private static bool ResolveImageExportOnOff<T>(
             T? direct,
-            WordParagraph paragraph,
-            Func<StyleRunProperties, T?> selector) where T : OnOffType {
+            WordParagraph paragraph) where T : OnOffType {
             bool? directValue = ReadOnOff(direct);
             if (directValue.HasValue) return directValue.Value;
             foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
-                bool? styleValue = ReadOnOff(selector(properties));
+                bool? styleValue = ReadOnOff(properties.GetFirstChild<T>());
                 if (styleValue.HasValue) return styleValue.Value;
             }
 
+            RunPropertiesBaseStyle? defaults = ResolveDocumentDefaultRunProperties(paragraph);
+            bool? defaultValue = defaults == null ? null : ReadOnOff(defaults.GetFirstChild<T>());
+            if (defaultValue.HasValue) return defaultValue.Value;
+
             return false;
         }
+
+        private static RunPropertiesBaseStyle? ResolveDocumentDefaultRunProperties(WordParagraph paragraph) =>
+            paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?
+                .DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
 
         private static bool TryResolvePageFieldText(WordParagraph paragraph, WordImageFlowContext context, out string? text) {
             text = null;

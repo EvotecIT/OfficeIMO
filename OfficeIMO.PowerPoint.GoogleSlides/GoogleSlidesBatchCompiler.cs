@@ -154,8 +154,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             A.ListStyle? listStyle,
             OpenXmlCompositeElement? masterTextStyle) => string.Join(
                 "\n",
-                paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run =>
-                    GetGoogleText(run, ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle))))));
+                paragraphs.Select(paragraph => string.Concat(paragraph.InlineNodes.Select(node =>
+                    GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle)))));
 
         private static void PopulateTextRuns(GoogleSlidesTextBox target, PowerPointTextBox source) {
             PopulateTextRuns(target.TextRuns, source.Paragraphs, source.TextBody?.ListStyle, source.MasterTextStyle);
@@ -178,7 +178,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             int offset = 0;
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-                foreach (PowerPointTextRun run in paragraph.Runs) {
+                foreach (PowerPointParagraphInline node in paragraph.InlineNodes) {
+                    if (node.Kind == PowerPointParagraphInlineKind.LineBreak) {
+                        offset++;
+                        continue;
+                    }
+                    PowerPointTextRun? run = node.Run;
+                    if (run == null) continue;
                     EffectiveGoogleRunStyle effective = ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle);
                     string text = GetGoogleText(run, effective);
                     int endIndex = offset + text.Length;
@@ -192,9 +198,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             Strikethrough = effective.Strikethrough ?? false,
                             SmallCaps = effective.Capitalization == PowerPointCapitalization.SmallCaps,
                             BaselineOffset = ToGoogleBaselineOffset(effective.BaselinePercent),
-                            FontSize = run.FontSize,
-                            FontFamily = run.FontName,
-                            ForegroundColorHex = NormalizeColorHex(run.Color),
+                            FontSize = effective.FontSizePoints.HasValue
+                                ? (int?)Math.Round(effective.FontSizePoints.Value, MidpointRounding.AwayFromZero)
+                                : null,
+                            FontFamily = effective.FontName,
+                            ForegroundColorHex = NormalizeColorHex(effective.Color),
                             Hyperlink = run.Hyperlink?.AbsoluteUri,
                         });
                     }
@@ -202,6 +210,16 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 }
                 if (paragraphIndex + 1 < paragraphs.Count) offset++;
             }
+        }
+
+        internal static string GetGoogleInlineText(
+            PowerPointParagraphInline node,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle) {
+            if (node.Kind == PowerPointParagraphInlineKind.LineBreak) return "\n";
+            if (node.Run == null) return node.Text;
+            return GetGoogleText(node.Run, ResolveEffectiveRunStyle(node.Run, paragraph, listStyle, masterTextStyle));
         }
 
         internal static string GetGoogleText(PowerPointTextRun run) {
@@ -237,7 +255,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return text.ToUpper(ResolveRunCulture(effective.Language));
         }
 
-        private static EffectiveGoogleRunStyle ResolveEffectiveRunStyle(
+        internal static EffectiveGoogleRunStyle ResolveEffectiveRunStyle(
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
             A.ListStyle? listStyle,
@@ -248,6 +266,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 effective.Capitalization,
                 effective.BaselinePercent,
                 effective.Language,
+                effective.FontSizePoints,
+                effective.FontName,
+                effective.Color,
                 effective.Bold,
                 effective.Italic,
                 effective.UnderlineStyle.HasValue
@@ -258,11 +279,14 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     : (bool?)null);
         }
 
-        private readonly struct EffectiveGoogleRunStyle {
+        internal readonly struct EffectiveGoogleRunStyle {
             internal EffectiveGoogleRunStyle(
                 PowerPointCapitalization? capitalization,
                 double? baselinePercent,
                 string? language,
+                double? fontSizePoints,
+                string? fontName,
+                string? color,
                 bool? bold,
                 bool? italic,
                 bool? underline,
@@ -270,6 +294,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 Capitalization = capitalization;
                 BaselinePercent = baselinePercent;
                 Language = language;
+                FontSizePoints = fontSizePoints;
+                FontName = fontName;
+                Color = color;
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -279,6 +306,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             internal PowerPointCapitalization? Capitalization { get; }
             internal double? BaselinePercent { get; }
             internal string? Language { get; }
+            internal double? FontSizePoints { get; }
+            internal string? FontName { get; }
+            internal string? Color { get; }
             internal bool? Bold { get; }
             internal bool? Italic { get; }
             internal bool? Underline { get; }
@@ -367,7 +397,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             _ => ".png",
         };
 
-        private static string? NormalizeColorHex(string? value) {
+        internal static string? NormalizeColorHex(string? value) {
             if (string.IsNullOrWhiteSpace(value)) return null;
             string candidate = value!.Trim().TrimStart('#');
             if (candidate.Length >= 6) candidate = candidate.Substring(candidate.Length - 6);

@@ -30,6 +30,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal A.Run Run { get; }
         internal A.RunProperties? RunProperties => _field?.RunProperties ?? Run.RunProperties;
+        internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
         /// <summary>
         /// Text content of the run.

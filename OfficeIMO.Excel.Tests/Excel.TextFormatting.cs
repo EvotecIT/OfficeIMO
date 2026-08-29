@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -161,6 +162,63 @@ public class ExcelTextFormattingTests {
         Assert.True(actual[0].Bold);
         Assert.True(actual[1].Italic);
         Assert.True(actual[2].Underline);
+    }
+
+    [Fact]
+    public void RichTextCaseTransformsIncludePlainAndFormattedTextNodesInDocumentOrder() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument created = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = created.AddWorksheet("Text");
+                sheet.CellAt(1, 1).SetValue("placeholder");
+                sheet.CellAt(2, 1).SetValue("placeholder");
+                created.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                WorkbookPart workbook = package.WorkbookPart!;
+                WorksheetPart worksheet = workbook.WorksheetParts.Single();
+                Cell[] cells = worksheet.Worksheet.Descendants<Cell>().OrderBy(cell => cell.CellReference!.Value).ToArray();
+                cells[0].CellValue = null;
+                cells[0].DataType = CellValues.InlineString;
+                cells[0].InlineString = CreateMixedRichText<InlineString>();
+
+                SharedStringTablePart sharedPart = workbook.SharedStringTablePart ?? workbook.AddNewPart<SharedStringTablePart>();
+                SharedStringTable shared = sharedPart.SharedStringTable ??= new SharedStringTable();
+                shared.Append(CreateMixedRichText<SharedStringItem>());
+                cells[1].InlineString = null;
+                cells[1].DataType = CellValues.SharedString;
+                cells[1].CellValue = new CellValue((shared.Elements<SharedStringItem>().Count() - 1)
+                    .ToString(CultureInfo.InvariantCulture));
+                shared.Save();
+                worksheet.Worksheet.Save();
+            }
+
+            using (ExcelDocument loaded = ExcelDocument.Load(path)) {
+                loaded.Sheets[0].CellAt(1, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+                loaded.Sheets[0].CellAt(2, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+                loaded.Save();
+            }
+
+            using SpreadsheetDocument verified = SpreadsheetDocument.Open(path, false);
+            foreach (Cell cell in verified.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()) {
+                InlineString inline = cell.InlineString!;
+                Assert.Equal("Hello world", inline.InnerText);
+                Assert.Equal("Hello ", inline.GetFirstChild<Text>()!.Text);
+                Run run = Assert.Single(inline.Elements<Run>());
+                Assert.Equal("world", run.Text!.Text);
+                Assert.NotNull(run.RunProperties!.GetFirstChild<Bold>());
+            }
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    private static T CreateMixedRichText<T>() where T : OpenXmlCompositeElement, new() {
+        var value = new T();
+        value.Append(new Text("hELLO ") { Space = SpaceProcessingModeValues.Preserve });
+        value.Append(new Run(new RunProperties(new Bold()), new Text("wORLD")));
+        return value;
     }
 
     [Fact]

@@ -84,6 +84,36 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     }
 
     [Fact]
+    public void PowerPointSemanticHtmlResolvesMappedThemeColors() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointSlide slide = source.AddSlide();
+        PowerPointParagraph paragraph = slide.AddTextBox("Theme text").Paragraphs[0];
+        PowerPointTextRun run = paragraph.Runs[0];
+        run.Run.RunProperties = new A.RunProperties();
+        run.RunProperties.Append(new A.SolidFill(new A.SchemeColor {
+            Val = A.SchemeColorValues.Text1
+        }));
+        PowerPointTextRun systemRun = paragraph.AddRun(" System text");
+        systemRun.Run.RunProperties = new A.RunProperties();
+        systemRun.RunProperties.Append(new A.SolidFill(new A.SystemColor {
+            Val = A.SystemColorValues.WindowText,
+            LastColor = "884422"
+        }));
+
+        var master = slide.SlidePart.SlideLayoutPart!.SlideMasterPart!;
+        master.SlideMaster!.ColorMap!.Text1 = A.ColorSchemeIndexValues.Accent2;
+        A.Accent2Color accent = master.ThemePart!.Theme!.ThemeElements!.ColorScheme!
+            .GetFirstChild<A.Accent2Color>()!;
+        accent.RemoveAllChildren();
+        accent.Append(new A.RgbColorModelHex { Val = "336699" });
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("color:#336699", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("color:#884422", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void PowerPointSemanticHtmlRoundTripPreservesParagraphBreaksAndRunFormatting() {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("First");

@@ -100,6 +100,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_ImageExportResolvesInheritedCapsLanguageFromStylesAndDefaults() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Turkish Caps Character" },
+                    new StyleRunProperties(new Caps(), new Languages { Val = "tr-TR" })) {
+                    Type = StyleValues.Character,
+                    StyleId = "TurkishCapsCharacter",
+                    CustomStyle = true
+                },
+                new Style(
+                    new StyleName { Val = "Turkish Caps Paragraph" },
+                    new StyleRunProperties(new Caps(), new Languages { Val = "tr-TR" })) {
+                    Type = StyleValues.Paragraph,
+                    StyleId = "TurkishCapsParagraph",
+                    CustomStyle = true
+                });
+
+            document.AddParagraph("i").SetCharacterStyleId("TurkishCapsCharacter");
+            document.AddParagraph("i").SetStyleId("TurkishCapsParagraph");
+
+            RunPropertiesBaseStyle defaults = styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!;
+            defaults.Caps = new Caps();
+            defaults.Languages = new Languages { Val = "tr-TR" };
+            document.AddParagraph("i");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            Assert.Equal(3, snapshot.Drawing.Elements.OfType<OfficeDrawingText>()
+                .Count(text => text.Text == "İ"));
+        }
+
+        [Fact]
         public void WordDocument_ToImageFluentExportsFirstPagePng() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);

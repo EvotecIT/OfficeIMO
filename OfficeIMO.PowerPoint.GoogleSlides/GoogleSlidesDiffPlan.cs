@@ -102,8 +102,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             IReadOnlyList<PowerPointParagraph> paragraphs,
             A.ListStyle? listStyle,
             OpenXmlCompositeElement? masterTextStyle) => string.Join(
-                "\n", paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run =>
-                    GoogleSlidesBatchCompiler.GetGoogleText(run, paragraph, listStyle, masterTextStyle)))));
+                "\n", paragraphs.Select(paragraph => string.Concat(paragraph.InlineNodes.Select(node =>
+                    GoogleSlidesBatchCompiler.GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle)))));
         private static void AppendParagraphFingerprint(
             StringBuilder result,
             IReadOnlyList<PowerPointParagraph> paragraphs,
@@ -111,18 +111,29 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             OpenXmlCompositeElement? masterTextStyle) {
             AppendFingerprintValue(result, paragraphs.Count);
             foreach (PowerPointParagraph paragraph in paragraphs) {
-                AppendFingerprintValue(result, paragraph.Runs.Count);
-                foreach (PowerPointTextRun run in paragraph.Runs) {
-                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.GetGoogleText(run, paragraph, listStyle, masterTextStyle));
-                    AppendFingerprintValue(result, run.Bold);
-                    AppendFingerprintValue(result, run.Italic);
-                    AppendFingerprintValue(result, run.UnderlineStyle);
-                    AppendFingerprintValue(result, run.StrikeStyle);
-                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.IsGoogleSmallCaps(run, paragraph, listStyle, masterTextStyle));
-                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.GetGoogleBaselineOffset(run, paragraph, listStyle, masterTextStyle));
-                    AppendFingerprintValue(result, run.FontSize);
-                    AppendFingerprintValue(result, run.FontName);
-                    AppendFingerprintValue(result, run.Color);
+                AppendFingerprintValue(result, paragraph.InlineNodes.Count);
+                foreach (PowerPointParagraphInline node in paragraph.InlineNodes) {
+                    AppendFingerprintValue(result, node.Kind);
+                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle));
+                    AppendFingerprintValue(result, node.FieldId);
+                    AppendFingerprintValue(result, node.FieldType);
+                    if (node.Run == null) continue;
+                    PowerPointTextRun run = node.Run;
+                    GoogleSlidesBatchCompiler.EffectiveGoogleRunStyle effective =
+                        GoogleSlidesBatchCompiler.ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle);
+                    AppendFingerprintValue(result, effective.Bold);
+                    AppendFingerprintValue(result, effective.Italic);
+                    AppendFingerprintValue(result, effective.Underline);
+                    AppendFingerprintValue(result, effective.Strikethrough);
+                    AppendFingerprintValue(result,
+                        effective.Capitalization == PowerPointCapitalization.SmallCaps);
+                    AppendFingerprintValue(result,
+                        GoogleSlidesBatchCompiler.ToGoogleBaselineOffset(effective.BaselinePercent));
+                    AppendFingerprintValue(result, effective.FontSizePoints.HasValue
+                        ? (int?)Math.Round(effective.FontSizePoints.Value, MidpointRounding.AwayFromZero)
+                        : null);
+                    AppendFingerprintValue(result, effective.FontName);
+                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.NormalizeColorHex(effective.Color));
                     AppendFingerprintValue(result, run.Hyperlink?.AbsoluteUri);
                 }
             }
