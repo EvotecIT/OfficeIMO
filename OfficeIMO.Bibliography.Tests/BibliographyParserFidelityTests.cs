@@ -262,4 +262,122 @@ public sealed class BibliographyParserFidelityTests {
 
         Assert.Contains("month = {notamonth}", written.Content, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void NBIB_type_edit_replaces_stale_publication_type_tags() {
+        BibliographyDocument document = BibliographyDocument.Parse("PMID- 1\nPT  - Book\nTI  - Type\n", BibliographyFormat.Nbib).Document;
+        document.Items[0].Type = BibliographyItemType.ArticleJournal;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
+
+        Assert.DoesNotContain("PT  - Book", written.Content, StringComparison.Ordinal);
+        Assert.Contains("PT  - Journal Article", written.Content, StringComparison.Ordinal);
+        Assert.Equal(BibliographyItemType.ArticleJournal, reopened.Type);
+    }
+
+    [Fact]
+    public void Quoted_BibTeX_values_track_braces_around_inner_quotes() {
+        const string source = "@book{x,title=\"An {\"inner\"} title\",publisher={Example Press}}";
+
+        BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.BibTex).Document.Items);
+
+        Assert.Equal("An {\"inner\"} title", item.Title);
+        Assert.Equal("Example Press", item.Publisher);
+    }
+
+    [Fact]
+    public void Invalid_classic_BibTeX_month_returns_conversion_diagnostics() {
+        var document = new BibliographyDocument(BibliographyFormat.BibTex);
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Month" };
+        item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Year = 2026, Month = 14 });
+        document.Items.Add(item);
+
+        BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains("month = {14}", permissive.Content, StringComparison.Ordinal);
+        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV218");
+    }
+
+    [Theory]
+    [InlineData(BibliographyFormat.Ris)]
+    [InlineData(BibliographyFormat.Nbib)]
+    [InlineData(BibliographyFormat.EndNoteXml)]
+    public void Mixed_literal_and_personal_names_block_strict_output(BibliographyFormat format) {
+        var document = new BibliographyDocument(format);
+        var item = new BibliographyItem { Key = "1", Type = format == BibliographyFormat.Nbib ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book, Title = "Names" };
+        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Literal = "Research Group", Given = "Ignored", Family = "Person" }));
+        if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
+        document.Items.Add(item);
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV231" && diagnostic.Field == "contributors");
+    }
+
+    [Fact]
+    public void Ambiguous_NBIB_identifier_scheme_blocks_strict_output() {
+        var document = new BibliographyDocument(BibliographyFormat.Nbib);
+        var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.ArticleJournal, Title = "Identifier" };
+        item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
+        item.Identifiers.Add(new BibliographyIdentifier("archive [local", "123"));
+        document.Items.Add(item);
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV232" && diagnostic.Field == "identifiers.archive [local");
+    }
+
+    [Fact]
+    public void Parsed_EndNote_preserve_mode_honors_the_declared_byte_encoding() {
+        const string source = "<?xml version=\"1.0\" encoding=\"utf-16\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type></record></records></xml>";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
+
+        BibliographyWriteResult written = document.Write();
+
+        Assert.Equal(new byte[] { 0xFF, 0xFE }, written.Bytes.Take(2));
+        Assert.Equal(source, Encoding.Unicode.GetString(written.Bytes, 2, written.Bytes.Length - 2));
+        Assert.Equal("1", Assert.Single(BibliographyDocument.Load(new MemoryStream(written.Bytes), BibliographyFormat.EndNoteXml).Document.Items).Key);
+    }
+
+    [Fact]
+    public void Generic_document_is_exact_in_CSL_JSON() {
+        var document = new BibliographyDocument(BibliographyFormat.CslJson);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Document, Title = "Document" });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
+
+        Assert.Equal(BibliographyItemType.Document, reopened.Type);
+    }
+
+    [Fact]
+    public void CSL_JSON_citation_keys_are_compared_case_sensitively() {
+        var document = new BibliographyDocument(BibliographyFormat.CslJson);
+        document.Items.Add(new BibliographyItem { Key = "item", Type = BibliographyItemType.Book, Title = "Lower" });
+        document.Items.Add(new BibliographyItem { Key = "ITEM", Type = BibliographyItemType.Book, Title = "Upper" });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+
+        Assert.Equal(new[] { "item", "ITEM" }, BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items.Select(static item => item.Key));
+    }
+
+    [Fact]
+    public void EndNote_year_and_publication_text_merge_without_duplicating_the_year() {
+        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><dates><year>2024</year><pub-dates><date>May 2024</date></pub-dates></dates></record></records></xml>";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
+        BibliographyDate parsed = Assert.Single(document.Items[0].Dates);
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items[0].Dates);
+
+        Assert.Equal(2024, parsed.Year);
+        Assert.Equal(5, parsed.Month);
+        Assert.Equal(2024, reopened.Year);
+        Assert.Equal(5, reopened.Month);
+    }
 }

@@ -41,6 +41,7 @@ internal static class TaggedCodec {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
             WriteTag(builder, "PMID", item.GetIdentifier("PMID") ?? CodecMappings.OutputKey(item, itemIndex), options.LineEnding);
+            WriteNbibPublicationTypes(builder, item, options.LineEnding, report);
             WriteTag(builder, "TI", item.Title, options.LineEnding); WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Nbib, "container-title", "JT"), item.ContainerTitle, options.LineEnding);
             foreach (BibliographyContributor author in item.Contributors.Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "FAU", CodecMappings.FormatName(author.Name), options.LineEnding);
             foreach (BibliographyContributor author in item.Contributors.Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "AU", CompactName(author.Name), options.LineEnding);
@@ -367,7 +368,52 @@ internal static class TaggedCodec {
         if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, CodecMappings.InferSerialScheme(identifier.Value), StringComparison.OrdinalIgnoreCase);
         return !string.IsNullOrWhiteSpace(identifier.Scheme) && identifier.Scheme.IndexOf(':') < 0 && identifier.Scheme.IndexOf('\r') < 0 && identifier.Scheme.IndexOf('\n') < 0;
     }
-    private static void WriteNbibIdentifier(StringBuilder builder, BibliographyItem item, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) return; if (string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "IS", identifier.Value, lineEnding); else WriteTag(builder, NbibIdentifierTag(item, identifier), identifier.Value + " [" + identifier.Scheme.ToLowerInvariant() + "]", lineEnding); }
+    private static void WriteNbibPublicationTypes(StringBuilder builder, BibliographyItem item, string lineEnding, BibliographyConversionReport report) {
+        bool wroteTypedValue = false;
+        foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase))) {
+            BibliographyItemType parsed = CodecMappings.ParseType(field.Value);
+            if (parsed == BibliographyItemType.Unknown) {
+                WriteTag(builder, "PT", field.Value, lineEnding);
+                report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, "Preserved an unrecognized NBIB publication type.", BibliographyConversionAction.PreservedExtension, item, "PT");
+            } else if (parsed == item.Type) {
+                WriteTag(builder, "PT", field.Value, lineEnding);
+                wroteTypedValue = true;
+            }
+        }
+        if (!wroteTypedValue && TryGetNbibPublicationType(item.Type, out string? publicationType)) WriteTag(builder, "PT", publicationType, lineEnding);
+    }
+    private static void WriteNbibIdentifier(StringBuilder builder, BibliographyItem item, BibliographyIdentifier identifier, string lineEnding) {
+        if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "IS", identifier.Value, lineEnding);
+        else if (CanRoundTripNbibIdentifier(identifier)) WriteTag(builder, NbibIdentifierTag(item, identifier), identifier.Value + " [" + identifier.Scheme.ToLowerInvariant() + "]", lineEnding);
+    }
+    internal static bool CanRoundTripNbibIdentifier(BibliographyIdentifier identifier) =>
+        string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) ||
+        identifier.Scheme.IndexOf(" [", StringComparison.Ordinal) < 0;
+    internal static bool CanRoundTripNbibType(BibliographyItemType type) => TryGetNbibPublicationType(type, out _);
+    private static bool TryGetNbibPublicationType(BibliographyItemType type, out string? value) {
+        switch (type) {
+            case BibliographyItemType.ArticleJournal: value = "Journal Article"; return true;
+            case BibliographyItemType.ArticleMagazine: value = "Magazine Article"; return true;
+            case BibliographyItemType.ArticleNewspaper: value = "Newspaper Article"; return true;
+            case BibliographyItemType.Book: value = "Book"; return true;
+            case BibliographyItemType.Chapter: value = "Book Chapter"; return true;
+            case BibliographyItemType.PaperConference: value = "Conference Paper"; return true;
+            case BibliographyItemType.Proceedings: value = "Proceedings"; return true;
+            case BibliographyItemType.Report: value = "Report"; return true;
+            case BibliographyItemType.Thesis: value = "Thesis"; return true;
+            case BibliographyItemType.WebPage: value = "Web Page"; return true;
+            case BibliographyItemType.Dataset: value = "Dataset"; return true;
+            case BibliographyItemType.Software: value = "Computer Program"; return true;
+            case BibliographyItemType.Patent: value = "Patent"; return true;
+            case BibliographyItemType.LegalCase: value = "legal_case"; return true;
+            case BibliographyItemType.Manuscript: value = "Manuscript"; return true;
+            case BibliographyItemType.PersonalCommunication: value = "personal_communication"; return true;
+            case BibliographyItemType.Document: value = "Document"; return true;
+            default: value = null; return false;
+        }
+    }
     private static string NbibIdentifierTag(BibliographyItem item, BibliographyIdentifier identifier) => item.TaggedIdentifierTags.TryGetValue(identifier, out string? sourceTag) && (string.Equals(sourceTag, "LID", StringComparison.OrdinalIgnoreCase) || string.Equals(sourceTag, "AID", StringComparison.OrdinalIgnoreCase)) ? sourceTag.ToUpperInvariant() : "AID";
     private static BibliographyName ParseCompactNbibName(string value) {
         string trimmed = value.Trim();
@@ -388,6 +434,7 @@ internal static class TaggedCodec {
 
     private static void WriteNativeFields(StringBuilder builder, BibliographyItem item, BibliographyFormat format, string lineEnding, BibliographyConversionReport report) {
         foreach (BibliographyNativeField field in item.NativeFields) {
+            if (format == BibliographyFormat.Nbib && field.Format == format && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)) continue;
             bool unsafeBoundary = format == BibliographyFormat.Ris && (string.Equals(field.Name, "TY", StringComparison.OrdinalIgnoreCase) || string.Equals(field.Name, "ER", StringComparison.OrdinalIgnoreCase)) || format == BibliographyFormat.Nbib && string.Equals(field.Name, "PMID", StringComparison.OrdinalIgnoreCase);
             if (field.Format == format && IsTag(field.Name) && !unsafeBoundary) { WriteTag(builder, field.Name.ToUpperInvariant(), field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
             else if (field.Format != format) report.Add("BIBCONV113", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in {format}.", BibliographyConversionAction.Omitted, item, field.Name);

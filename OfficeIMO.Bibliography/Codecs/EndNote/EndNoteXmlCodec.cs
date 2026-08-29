@@ -182,8 +182,17 @@ internal static class EndNoteXmlCodec {
     private static void ParseDates(BibliographyItem item, XElement? dates) {
         if (dates == null) return;
         string year = Value(dates, "year"); string pubDate = dates.Descendants().FirstOrDefault(element => HasName(element, dates.Name.Namespace, "date"))?.Value ?? string.Empty;
-        string issued = string.IsNullOrWhiteSpace(year) ? pubDate : string.IsNullOrWhiteSpace(pubDate) ? year : pubDate.StartsWith(year, StringComparison.Ordinal) ? pubDate : year + " " + pubDate;
-        if (!string.IsNullOrWhiteSpace(issued)) item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Issued, issued));
+        if (string.IsNullOrWhiteSpace(year) && string.IsNullOrWhiteSpace(pubDate)) return;
+        BibliographyDate parsedYear = CodecMappings.ParseDate(BibliographyDateRole.Issued, year);
+        BibliographyDate parsedPublication = CodecMappings.ParseDate(BibliographyDateRole.Issued, pubDate);
+        if (string.IsNullOrWhiteSpace(year)) item.Dates.Add(parsedPublication);
+        else if (string.IsNullOrWhiteSpace(pubDate)) item.Dates.Add(parsedYear);
+        else if (parsedYear.Year.HasValue && parsedPublication.Year == parsedYear.Year) item.Dates.Add(parsedPublication);
+        else {
+            BibliographyDate combined = CodecMappings.ParseDate(BibliographyDateRole.Issued, pubDate + " " + year);
+            if (parsedYear.Year.HasValue && combined.Year == parsedYear.Year) item.Dates.Add(combined);
+            else { parsedYear.Literal = pubDate; item.Dates.Add(parsedYear); }
+        }
     }
 
     private static void WriteContributors(XmlWriter writer, BibliographyItem item, string xmlNamespace) {

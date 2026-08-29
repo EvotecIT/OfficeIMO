@@ -96,7 +96,8 @@ internal static class BibCodec {
 
     private static string? FormatClassicMonth(BibliographyItem item, int? month) {
         if (!month.HasValue) return null;
-        return item.BibMonthWasNumeric ? month.Value.ToString(CultureInfo.InvariantCulture) : CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month.Value);
+        if (item.BibMonthWasNumeric || month.Value < 1 || month.Value > 12) return month.Value.ToString(CultureInfo.InvariantCulture);
+        return CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month.Value);
     }
 
     private static string GetBibFieldName(BibliographyItem item, string property, string fallback, BibliographyFormat format) =>
@@ -288,10 +289,18 @@ internal static class BibCodec {
             int start = _position++;
             var builder = new StringBuilder();
             int depth = 1;
+            int quotedBraceDepth = 0;
             while (_position < _source.Length) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 char current = _source[_position++];
                 if (current == '\\' && _position < _source.Length) { AppendValue(builder, current, _position - 1); AppendValue(builder, _source[_position++], _position - 1); continue; }
+                if (open == '"') {
+                    if (current == '{') { quotedBraceDepth++; _limits.CheckDepth(_items, quotedBraceDepth + 1, _position - 1); AppendValue(builder, current, _position - 1); continue; }
+                    if (current == '}' && quotedBraceDepth > 0) { quotedBraceDepth--; AppendValue(builder, current, _position - 1); continue; }
+                    if (current == close && quotedBraceDepth == 0) return builder.ToString();
+                    AppendValue(builder, current, _position - 1);
+                    continue;
+                }
                 if (open != '"' && current == open) { depth++; _limits.CheckDepth(_items, depth, _position - 1); if (depth > 1) AppendValue(builder, current, _position - 1); continue; }
                 if (current == close) { depth--; if (depth == 0) return builder.ToString(); AppendValue(builder, current, _position - 1); continue; }
                 AppendValue(builder, current, _position - 1);

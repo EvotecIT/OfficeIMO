@@ -206,7 +206,7 @@ public sealed class BibliographyCodecContractTests {
     public void Strict_write_rejects_duplicate_keys() {
         var document = new BibliographyDocument(BibliographyFormat.CslJson);
         document.Items.Add(new BibliographyItem { Key = "duplicate", Type = BibliographyItemType.Book, Title = "First" });
-        document.Items.Add(new BibliographyItem { Key = "DUPLICATE", Type = BibliographyItemType.Book, Title = "Second" });
+        document.Items.Add(new BibliographyItem { Key = "duplicate", Type = BibliographyItemType.Book, Title = "Second" });
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
 

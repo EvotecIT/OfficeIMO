@@ -10,9 +10,10 @@ internal static class BibliographyWriter {
         var report = new BibliographyConversionReport();
 
         if (options.Mode == BibliographyWriterMode.Preserve && format == document.SourceFormat && !document.IsModified && document.OriginalText != null) {
-            if (document.OriginalBytes == null) InspectEncoding(document.OriginalText, options.Encoding, report);
+            Encoding preservedEncoding = document.OriginalBytes == null ? ResolvePreservedEncoding(document.OriginalText, format, options.Encoding) : options.Encoding;
+            if (document.OriginalBytes == null) InspectEncoding(document.OriginalText, preservedEncoding, report);
             if (options.RequireNoLoss) report.RequireNoLoss();
-            byte[] bytes = document.OriginalBytes != null ? (byte[])document.OriginalBytes.Clone() : Encode(document.OriginalText, options.Encoding);
+            byte[] bytes = document.OriginalBytes != null ? (byte[])document.OriginalBytes.Clone() : Encode(document.OriginalText, preservedEncoding);
             return new BibliographyWriteResult(document.OriginalText, bytes, format, true, report);
         }
 
@@ -61,6 +62,27 @@ internal static class BibliographyWriter {
             report.Add("BIBCONV220", BibliographyDiagnosticSeverity.Warning, $"The selected {encoding.WebName} encoding cannot represent all output characters without replacement.", BibliographyConversionAction.Approximated, field: "encoding");
         }
     }
+
+    private static Encoding ResolvePreservedEncoding(string source, BibliographyFormat format, Encoding fallback) {
+        if (format != BibliographyFormat.EndNoteXml) return fallback;
+        int declarationStart = source.IndexOf("<?xml", StringComparison.OrdinalIgnoreCase);
+        if (declarationStart < 0 || source.Substring(0, declarationStart).Any(character => !char.IsWhiteSpace(character) && character != '\uFEFF')) return fallback;
+        int declarationEnd = source.IndexOf("?>", declarationStart, StringComparison.Ordinal);
+        if (declarationEnd < 0) return fallback;
+        string declaration = source.Substring(declarationStart, declarationEnd - declarationStart);
+        int encodingStart = declaration.IndexOf("encoding", StringComparison.OrdinalIgnoreCase);
+        if (encodingStart < 0) return fallback;
+        int equals = declaration.IndexOf('=', encodingStart + 8);
+        if (equals < 0) return fallback;
+        int quote = equals + 1;
+        while (quote < declaration.Length && char.IsWhiteSpace(declaration[quote])) quote++;
+        if (quote >= declaration.Length || declaration[quote] != '\'' && declaration[quote] != '"') return fallback;
+        char delimiter = declaration[quote++];
+        int valueEnd = declaration.IndexOf(delimiter, quote);
+        if (valueEnd <= quote) return fallback;
+        try { return Encoding.GetEncoding(declaration.Substring(quote, valueEnd - quote), EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback); }
+        catch (ArgumentException) { return fallback; }
+    }
 }
 
 internal static class BibliographyConversionInspector {
@@ -80,7 +102,8 @@ internal static class BibliographyConversionInspector {
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
         foreach (BibliographyItem item in document.Items.Where(static item => string.IsNullOrWhiteSpace(item.Key)))
             Loss(report, item, "key", "BIBCONV215", $"A missing citation key is replaced with a deterministic generated identifier in {format}.", BibliographyConversionAction.Approximated);
-        foreach (IGrouping<string, BibliographyItem> duplicate in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(static item => item.Key, StringComparer.OrdinalIgnoreCase).Where(static group => group.Count() > 1)) {
+        StringComparer keyComparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+        foreach (IGrouping<string, BibliographyItem> duplicate in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(static item => item.Key, keyComparer).Where(static group => group.Count() > 1)) {
             foreach (BibliographyItem item in duplicate) Loss(report, item, "key", "BIBCONV216", $"Duplicate citation key '{duplicate.Key}' is not unique in {format} output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
@@ -103,7 +126,7 @@ internal static class BibliographyConversionInspector {
         bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
-                exact = sameFormatNativeType || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.Document;
+                exact = sameFormatNativeType || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Proceedings;
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);
@@ -113,7 +136,7 @@ internal static class BibliographyConversionInspector {
                 exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Article && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript && item.Type != BibliographyItemType.Document;
                 break;
             case BibliographyFormat.Nbib:
-                exact = item.Type == BibliographyItemType.ArticleJournal || sourceFormat == BibliographyFormat.Nbib && item.NativeFields.Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
+                exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && item.NativeFields.Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
                 break;
             case BibliographyFormat.EndNoteXml:
                 exact = item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.WebPage || item.Type == BibliographyItemType.Patent;
@@ -145,6 +168,8 @@ internal static class BibliographyConversionInspector {
         } else if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) {
             foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.DroppingParticle) || !string.IsNullOrWhiteSpace(contributor.Name.NonDroppingParticle)))
                 Loss(report, item, "contributors", "BIBCONV229", $"Structured contributor particles are flattened in {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
+            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.Literal) && (!string.IsNullOrWhiteSpace(contributor.Name.Given) || !string.IsNullOrWhiteSpace(contributor.Name.Family) || !string.IsNullOrWhiteSpace(contributor.Name.Suffix))))
+                Loss(report, item, "contributors", "BIBCONV231", $"A literal contributor also has personal-name components that are omitted in {format} output.", BibliographyConversionAction.Omitted);
         }
         if (ReordersContributors(item, format))
             Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
@@ -230,6 +255,10 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.Ris) {
             foreach (BibliographyIdentifier identifier in item.Identifiers.Where(static identifier => !TaggedCodec.CanRoundTripRisIdentifier(identifier)))
                 Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV228", $"Identifier scheme '{identifier.Scheme}' cannot be represented unambiguously in RIS AN output.", BibliographyConversionAction.Approximated);
+        }
+        if (format == BibliographyFormat.Nbib) {
+            foreach (BibliographyIdentifier identifier in item.Identifiers.Where(static identifier => !TaggedCodec.CanRoundTripNbibIdentifier(identifier)))
+                Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV232", $"Identifier scheme '{identifier.Scheme}' cannot be represented unambiguously in NBIB output.", BibliographyConversionAction.Omitted);
         }
         if (format != BibliographyFormat.EndNoteXml) return;
         foreach (BibliographyIdentifier identifier in item.Identifiers) {
