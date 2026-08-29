@@ -11,7 +11,7 @@ public static partial class ExcelHtmlConverterExtensions {
         AppendCss(css, "font-weight", style.Bold ? "700" : null);
         AppendCss(css, "font-style", style.Italic ? "italic" : null);
         AppendCss(css, "font-family", style.IsFontFamilyExplicit && !string.IsNullOrWhiteSpace(style.FontName)
-            ? QuoteCssFontFamily(style.FontName!) : null);
+            ? OfficeHtmlText.QuoteCssString(style.FontName!) : null);
         AppendCss(css, "font-size", style.FontSize.HasValue
             ? style.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
@@ -46,7 +46,7 @@ public static partial class ExcelHtmlConverterExtensions {
         var css = new StringBuilder();
         AppendCss(css, "font-weight", run.BoldSpecified ? (run.Bold ? "700" : "normal") : null);
         AppendCss(css, "font-style", run.ItalicSpecified ? (run.Italic ? "italic" : "normal") : null);
-        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName) ? QuoteCssFontFamily(run.FontName!) : null);
+        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName) ? OfficeHtmlText.QuoteCssString(run.FontName!) : null);
         AppendCss(css, "font-size", run.FontSize.HasValue
             ? run.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         string color = (run.FontColor ?? string.Empty).Trim().TrimStart('#');
@@ -115,6 +115,4 @@ public static partial class ExcelHtmlConverterExtensions {
             .Append('"');
     }
 
-    private static string QuoteCssFontFamily(string value) =>
-        "'" + value.Replace("'", "\\'") + "'";
 }

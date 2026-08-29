@@ -143,12 +143,18 @@ internal static class OneNoteSemanticHtmlRenderer {
         OneNoteListInfo list = paragraphs[0].List!;
         string tag = list.Ordered ? "ol" : "ul";
         html.Append('<').Append(tag).Append(" data-level=\"")
-            .Append(list.Level.ToString(CultureInfo.InvariantCulture)).Append("\">");
+            .Append(list.Level.ToString(CultureInfo.InvariantCulture)).Append('"');
+        if (list.Ordered && (list.Restart || list.DisplayIndex.HasValue)) {
+            html.Append(" start=\"").Append(Math.Max(1, list.DisplayIndex ?? 1).ToString(CultureInfo.InvariantCulture)).Append('"');
+        }
+        html.Append('>');
+        int? previousOrdinal = null;
         foreach (OneNoteParagraph paragraph in paragraphs) {
-            html.Append("<li>");
+            int? ordinal = AppendListItemStart(html, paragraph.List!, previousOrdinal);
             foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
             AppendElements(html, paragraph.Children, options, depth + 1);
             html.Append("</li>");
+            previousOrdinal = ordinal;
         }
         html.Append("</").Append(tag).Append('>');
     }
@@ -178,13 +184,18 @@ internal static class OneNoteSemanticHtmlRenderer {
         OneNoteListInfo first = paragraphs[index].List!;
         string tag = first.Ordered ? "ol" : "ul";
         html.Append('<').Append(tag).Append(" data-level=\"")
-            .Append(level.ToString(CultureInfo.InvariantCulture)).Append("\">");
+            .Append(level.ToString(CultureInfo.InvariantCulture)).Append('"');
+        if (first.Ordered && (first.Restart || first.DisplayIndex.HasValue)) {
+            html.Append(" start=\"").Append(Math.Max(1, first.DisplayIndex ?? 1).ToString(CultureInfo.InvariantCulture)).Append('"');
+        }
+        html.Append('>');
+        int? previousOrdinal = null;
         while (index < paragraphs.Count) {
             OneNoteParagraph paragraph = paragraphs[index];
             OneNoteListInfo list = paragraph.List!;
             if (list.Level != level || list.Ordered != first.Ordered) break;
 
-            html.Append("<li>");
+            int? ordinal = AppendListItemStart(html, list, previousOrdinal);
             foreach (OneNoteTextRun run in paragraph.Runs) AppendRun(html, run);
             AppendElements(html, paragraph.Children, options, depth + 1);
             index++;
@@ -193,8 +204,24 @@ internal static class OneNoteSemanticHtmlRenderer {
                 AppendListLevel(html, paragraphs, ref index, childLevel, options, depth + 1);
             }
             html.Append("</li>");
+            previousOrdinal = ordinal;
         }
         html.Append("</").Append(tag).Append('>');
+    }
+
+    private static int? AppendListItemStart(StringBuilder html, OneNoteListInfo list, int? previousOrdinal) {
+        if (!list.Ordered) {
+            html.Append("<li>");
+            return null;
+        }
+        int ordinal = list.Restart || list.DisplayIndex.HasValue
+            ? Math.Max(1, list.DisplayIndex ?? 1)
+            : previousOrdinal.HasValue && previousOrdinal.Value < int.MaxValue ? previousOrdinal.Value + 1 : 1;
+        bool explicitValue = previousOrdinal.HasValue && (list.Restart || list.DisplayIndex.HasValue || ordinal != previousOrdinal.Value + 1);
+        html.Append("<li");
+        if (explicitValue) html.Append(" value=\"").Append(ordinal.ToString(CultureInfo.InvariantCulture)).Append('"');
+        html.Append('>');
+        return ordinal;
     }
 
     private static void AppendRun(StringBuilder html, OneNoteTextRun run) {

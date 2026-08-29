@@ -68,6 +68,25 @@ public sealed class OneNoteTextFormattingTests {
         Assert.Equal(expected, Assert.Single(richText.Runs).Baseline);
     }
 
+    [Fact]
+    public void RendererPreservesFullyTransparentRunColors() {
+        var run = new OneNoteTextRun { Text = "Invisible" };
+        run.Style.ColorArgb = 0x00336699U;
+        run.Style.HighlightColorArgb = 0x00FFF2CCU;
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(run);
+        var outline = new OneNoteOutline { Layout = new OneNoteLayout { X = 0.2, Y = 0.5, Width = 2 } };
+        outline.Children.Add(paragraph);
+        var page = new OneNotePage { Title = "Alpha", PageSize = OneNotePageSize.IndexCard };
+        page.Outlines.Add(outline);
+
+        OfficeDrawingRichText richText = Assert.Single(page.ToDrawing(
+            new OneNotePageRenderingOptions { IncludeTitle = false }).Elements.OfType<OfficeDrawingRichText>());
+        OfficeRichTextRun actual = Assert.Single(richText.Runs);
+        Assert.Equal((byte)0, actual.Color.A);
+        Assert.Equal((byte)0, actual.BackgroundColor!.Value.A);
+    }
+
     [Theory]
     [InlineData(true, false, OfficeTextBaseline.Superscript)]
     [InlineData(false, true, OfficeTextBaseline.Subscript)]

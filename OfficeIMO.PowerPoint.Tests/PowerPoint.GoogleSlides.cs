@@ -250,6 +250,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_SplitsMixedScriptRunAcrossFontSlots() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextRun run = presentation.AddSlide().AddTextBox("Latin 日本語 العربية").Paragraphs[0].Runs[0];
+            run.Run.RunProperties = new A.RunProperties();
+            run.RunProperties.Append(new A.LatinFont { Typeface = "Latin Face" });
+            run.RunProperties.Append(new A.EastAsianFont { Typeface = "East Asian Face" });
+            run.RunProperties.Append(new A.ComplexScriptFont { Typeface = "Complex Face" });
+
+            GoogleSlidesTextBox textBox = Assert.Single(Assert.Single(
+                presentation.BuildGoogleSlidesBatch().Slides).Elements.OfType<GoogleSlidesTextBox>());
+
+            Assert.Equal("Latin 日本語 العربية", textBox.Text);
+            Assert.Collection(textBox.TextRuns,
+                item => Assert.Equal("Latin Face", item.FontFamily),
+                item => Assert.Equal("East Asian Face", item.FontFamily),
+                item => Assert.Equal("Complex Face", item.FontFamily));
+        }
+
+        [Fact]
         public void BatchCompiler_ResolvesInheritedEmphasisAndDecorationsForTextBoxesAndTables() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();

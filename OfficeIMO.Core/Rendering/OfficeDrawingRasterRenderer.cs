@@ -268,15 +268,14 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        bool supportsLegacyFastPath = text.BaselineLevel == 0 &&
+        bool supportsLegacyFastPath = Math.Abs(text.BaselineScale - 1D) < 0.000001D && Math.Abs(text.BaselineOffset) < 0.000001D &&
             text.UnderlineStyle == OfficeTextDecorationStyle.None &&
             text.StrikethroughStyle == OfficeTextDecorationStyle.None;
         bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
         if (text.TextAdvanceWidth.HasValue && supportsPositionedPath) {
             double positionedSourceFontSize = Math.Max(1D, text.Font.Size * scale);
-            OfficeTextScriptGeometry positionedScript = OfficeTextScriptGeometry.Resolve(positionedSourceFontSize, text.BaselineLevel);
-            double renderedFontSize = positionedScript.RenderedFontSize;
-            double positionedBaselineOffset = positionedScript.BaselineOffset;
+            double renderedFontSize = positionedSourceFontSize * text.BaselineScale;
+            double positionedBaselineOffset = text.BaselineOffset * scale;
             canvas.DrawPositionedText(
                 text.Text,
                 contentX,
@@ -310,9 +309,8 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         double sourceFontSize = Math.Max(1D, text.Font.Size * scale);
-        OfficeTextScriptGeometry script = OfficeTextScriptGeometry.Resolve(sourceFontSize, text.BaselineLevel);
-        double fontSize = script.RenderedFontSize;
-        double baselineOffset = script.BaselineOffset;
+        double fontSize = sourceFontSize * text.BaselineScale;
+        double baselineOffset = text.BaselineOffset * scale;
         OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)

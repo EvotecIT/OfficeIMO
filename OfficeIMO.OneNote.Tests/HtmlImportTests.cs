@@ -171,6 +171,30 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void OneNoteSemanticHtmlPreservesOrderedListOrdinals() {
+        var section = new OneNoteSection { Name = "Ordinals" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach ((string text, bool restart, int? displayIndex) in new[] {
+                     ("Four", true, (int?)4), ("Five", false, (int?)null), ("Nine", true, (int?)9) }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = true, Level = 0, Restart = restart, DisplayIndex = displayIndex }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+        Assert.Contains("<ol data-level=\"0\" start=\"4\"><li>Four</li><li>Five</li><li value=\"9\">Nine</li></ol>", html, StringComparison.Ordinal);
+
+        OneNoteParagraph[] imported = Assert.Single(Assert.Single(HtmlConversionDocument.Parse(
+                    html, HtmlConversionDocumentOptions.CreateTrustedProfile()).ToOneNoteSectionResult().RequireValue().Pages).Outlines)
+            .Children.OfType<OneNoteParagraph>().Where(item => item.List != null).ToArray();
+        Assert.Equal(new int?[] { 4, null, 9 }, imported.Select(item => item.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false, true }, imported.Select(item => item.List?.Restart));
+    }
+
+    [Fact]
     public void OneNoteSemanticHtmlRoundTripPreservesArgbAlpha() {
         var section = new OneNoteSection { Name = "Alpha" };
         var page = new OneNotePage { Title = "Page" };

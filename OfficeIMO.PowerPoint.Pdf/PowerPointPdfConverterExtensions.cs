@@ -801,14 +801,10 @@ public static partial class PowerPointPdfConverterExtensions {
                 case PptCore.PowerPointParagraphInlineKind.Run:
                 case PptCore.PowerPointParagraphInlineKind.Field:
                     if (node.Run != null && !string.IsNullOrEmpty(node.Text)) {
-                        runs.Add(CreateTextRun(
-                            node.Run,
-                            paragraph,
-                            textBox.TextBody?.ListStyle,
-                            textBox.MasterTextStyle,
-                            textBox,
-                            slideNumber,
-                            options));
+                        foreach (PptCore.PowerPointEffectiveTextSegment segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
+                                     node.Run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
+                            runs.Add(CreateTextRun(node.Run, segment.Text, segment.Style, textBox, slideNumber, options));
+                        }
                         hasInlineContent = true;
                     }
                     break;
@@ -845,15 +841,12 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static PdfCore.PdfTextRun CreateTextRun(
         PptCore.PowerPointTextRun run,
-        PptCore.PowerPointParagraph paragraph,
-        A.ListStyle? listStyle,
-        OpenXmlCompositeElement? masterTextStyle,
+        string segmentText,
+        PptCore.PowerPointEffectiveRunStyle effective,
         PptCore.PowerPointTextBox textBox,
         int slideNumber,
         PowerPointPdfSaveOptions options) {
-        PptCore.PowerPointEffectiveRunStyle effective = PptCore.PowerPointEffectiveRunStyleResolver.Resolve(
-            run, paragraph, listStyle, masterTextStyle);
-        string text = ApplyPowerPointDisplayCase(run.Text ?? string.Empty, effective.Capitalization, effective.Language, options, slideNumber);
+        string text = ApplyPowerPointDisplayCase(segmentText, effective.Capitalization, effective.Language, options, slideNumber);
         PdfCore.PdfColor? color = ParsePdfColor(effective.Color ?? textBox.Color);
         string? fontFamily = effective.FontName ?? ResolveTextBoxFontFamily(textBox, options);
         PdfCore.PdfStandardFont? font = MapFont(fontFamily);

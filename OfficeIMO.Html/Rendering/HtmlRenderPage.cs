@@ -132,7 +132,9 @@ public sealed class HtmlRenderPage {
                     underlineStyle: text.UnderlineStyle,
                     strikethroughStyle: text.StrikethroughStyle,
                     baseline: text.Baseline,
-                    baselineLevel: text.BaselineLevel);
+                    baselineLevel: text.BaselineLevel,
+                    baselineScale: text.BaselineScale,
+                    baselineOffset: text.BaselineOffset);
             } else if (text.UnderlineStyle != OfficeTextDecorationStyle.None ||
                        text.StrikethroughStyle != OfficeTextDecorationStyle.None ||
                        text.Baseline != OfficeTextBaseline.Normal) {
@@ -160,7 +162,9 @@ public sealed class HtmlRenderPage {
                     text.UnderlineStyle,
                     text.StrikethroughStyle,
                     text.Baseline,
-                    text.BaselineLevel);
+                    text.BaselineLevel,
+                    text.BaselineScale,
+                    text.BaselineOffset);
             } else {
                 drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }

@@ -155,6 +155,25 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     }
 
     [Fact]
+    public void PowerPointSemanticHtmlSplitsMixedScriptRunsAcrossFontSlots() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Latin 日本語 العربية").Paragraphs[0].Runs[0];
+        run.Run.RunProperties = new A.RunProperties();
+        run.RunProperties.Append(new A.LatinFont { Typeface = "Latin Face" });
+        run.RunProperties.Append(new A.EastAsianFont { Typeface = "East Asian Face" });
+        run.RunProperties.Append(new A.ComplexScriptFont { Typeface = "Complex Face" });
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("font-family:&#39;Latin Face&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("font-family:&#39;East Asian Face&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("font-family:&#39;Complex Face&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("Latin ", html, StringComparison.Ordinal);
+        Assert.Contains("日本語 ", html, StringComparison.Ordinal);
+        Assert.Contains("العربية", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PowerPointSemanticHtmlRoundTripPreservesParagraphBreaksAndRunFormatting() {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("First");

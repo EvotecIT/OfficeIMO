@@ -39,9 +39,10 @@ public static partial class PowerPointHtmlConverterExtensions {
             if (paragraphIndex > 0) body.Append("<br data-officeimo-powerpoint-paragraph-break=\"true\">");
             foreach (PptCore.PowerPointParagraphInline node in paragraph.InlineNodes) {
                 if (node.Kind == PptCore.PowerPointParagraphInlineKind.Run && node.Run != null) {
-                    AppendSemanticTextRun(body, node.Run,
-                        PptCore.PowerPointEffectiveRunStyleResolver.Resolve(
-                            node.Run, paragraph, listStyle, masterTextStyle, tableTextStyles));
+                    foreach (PptCore.PowerPointEffectiveTextSegment segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
+                                 node.Run, paragraph, listStyle, masterTextStyle, tableTextStyles)) {
+                        AppendSemanticTextRun(body, node.Run, segment.Style, segment.Text);
+                    }
                 } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.LineBreak) {
                     body.Append("<br data-officeimo-powerpoint-inline-break=\"true\">");
                 } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.Field) {
@@ -102,11 +103,12 @@ public static partial class PowerPointHtmlConverterExtensions {
     private static void AppendSemanticTextRun(
         StringBuilder body,
         PptCore.PowerPointTextRun run,
-        PptCore.PowerPointEffectiveRunStyle effective) {
+        PptCore.PowerPointEffectiveRunStyle effective,
+        string? text = null) {
         body.Append("<span data-officeimo-powerpoint-run=\"true\"");
         AppendSemanticTextStyleAttributes(body, run, effective);
         body.Append('>');
-        AppendSemanticTextRunContent(body, run, effective);
+        AppendSemanticTextRunContent(body, run, effective, text);
         body.Append("</span>");
     }
 
@@ -118,7 +120,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         AppendCss(css, "font-weight", effective.Bold == true ? "700" : null);
         AppendCss(css, "font-style", effective.Italic == true ? "italic" : null);
         AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(effective.FontName)
-            ? "'" + effective.FontName!.Replace("'", "\\'") + "'" : null);
+            ? OfficeHtmlText.QuoteCssString(effective.FontName) : null);
         AppendCss(css, "font-size", effective.FontSizePoints.HasValue
             ? effective.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", !string.IsNullOrWhiteSpace(effective.Color) ? "#" + effective.Color!.TrimStart('#') : null);
@@ -175,7 +177,8 @@ public static partial class PowerPointHtmlConverterExtensions {
     private static void AppendSemanticTextRunContent(
         StringBuilder body,
         PptCore.PowerPointTextRun run,
-        PptCore.PowerPointEffectiveRunStyle effective) {
+        PptCore.PowerPointEffectiveRunStyle effective,
+        string? text = null) {
         string hyperlink = HtmlUrlPolicyEvaluator.ResolveUrl(
             run.Hyperlink?.ToString(),
             null,
@@ -187,7 +190,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
         AppendPowerPointDecorationStart(body, "underline", GetPowerPointUnderlineCssStyle(effective.UnderlineStyle));
         AppendPowerPointDecorationStart(body, "line-through", GetPowerPointStrikeCssStyle(effective.StrikeStyle));
-        body.Append(OfficeHtmlText.Escape(run.Text));
+        body.Append(OfficeHtmlText.Escape(text ?? run.Text));
         AppendPowerPointDecorationEnd(body, effective.StrikeStyle.HasValue && effective.StrikeStyle.Value != PptCore.PowerPointStrikeStyle.None);
         AppendPowerPointDecorationEnd(body, effective.UnderlineStyle.HasValue && effective.UnderlineStyle.Value != PptCore.PowerPointUnderlineStyle.None);
         if (hyperlink.Length > 0) body.Append("</a>");

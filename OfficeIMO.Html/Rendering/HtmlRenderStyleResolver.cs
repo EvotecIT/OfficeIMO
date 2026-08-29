@@ -108,6 +108,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             pseudoElement ? string.Empty : tag,
             computed.GetValue("vertical-align"),
             parent?.BaselineLevel ?? 0);
+        (double baselineScale, double baselineOffset) = ResolveTextBaselineGeometry(
+            pseudoElement ? string.Empty : tag,
+            computed.GetValue("vertical-align"),
+            parent?.BaselineScale ?? 1D,
+            parent?.BaselineOffset ?? 0D,
+            parent?.Font.Size ?? fontSize,
+            parent?.LineHeight ?? fontSize * 1.2D);
+        if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
@@ -119,12 +127,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             StrikethroughStyle = (fontStyle & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
                 ? decorationStyle
                 : OfficeTextDecorationStyle.None,
-            Baseline = baselineLevel switch {
-                > 0 => OfficeTextBaseline.Superscript,
-                < 0 => OfficeTextBaseline.Subscript,
+            Baseline = baselineOffset switch {
+                < 0D => OfficeTextBaseline.Superscript,
+                > 0D => OfficeTextBaseline.Subscript,
                 _ => OfficeTextBaseline.Normal
             },
             BaselineLevel = baselineLevel,
+            BaselineScale = baselineScale,
+            BaselineOffset = baselineOffset,
             Color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
@@ -547,6 +557,28 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (normalized.Length == 0) return inherited;
         if (normalized == "baseline") return inherited;
         return 0;
+    }
+
+    private (double Scale, double Offset) ResolveTextBaselineGeometry(
+        string tag,
+        string value,
+        double inheritedScale,
+        double inheritedOffset,
+        double parentFontSize,
+        double parentLineHeight) {
+        string normalized = value.Trim().ToLowerInvariant();
+        double effectiveParentSize = Math.Max(0.01D, parentFontSize * inheritedScale);
+        if (tag == "sup" || normalized == "super") {
+            return (inheritedScale * 0.65D, inheritedOffset - effectiveParentSize * 0.30D);
+        }
+        if (tag == "sub" || normalized == "sub") {
+            return (inheritedScale * 0.65D, inheritedOffset + effectiveParentSize * 0.15D);
+        }
+        if (normalized.Length == 0 || normalized == "baseline") return (inheritedScale, inheritedOffset);
+        if (TryResolveLength(normalized, parentLineHeight, effectiveParentSize, _options.DefaultFontSize, out double shift)) {
+            return (inheritedScale, inheritedOffset - shift);
+        }
+        return (inheritedScale, inheritedOffset);
     }
 
     private static bool TryFontWeight(string value, out int weight) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight);

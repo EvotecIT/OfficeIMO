@@ -194,11 +194,12 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     }
                     PowerPointTextRun? run = node.Run;
                     if (run == null) continue;
-                    EffectiveGoogleRunStyle effective = ResolveEffectiveRunStyle(
-                        run, paragraph, listStyle, masterTextStyle, tableTextStyles);
-                    string text = GetGoogleText(run, effective);
-                    int endIndex = offset + text.Length;
-                    if (endIndex > offset) {
+                    foreach (PowerPointEffectiveTextSegment segment in PowerPointEffectiveRunStyleResolver.ResolveSegments(
+                                 run, paragraph, listStyle, masterTextStyle, tableTextStyles)) {
+                        EffectiveGoogleRunStyle effective = ToGoogleRunStyle(segment.Style);
+                        string text = GetGoogleText(segment.Text, effective);
+                        int endIndex = offset + text.Length;
+                        if (endIndex <= offset) continue;
                         target.Add(new GoogleSlidesTextStyleRun {
                             StartIndex = offset,
                             EndIndex = endIndex,
@@ -215,8 +216,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             ForegroundColorHex = NormalizeColorHex(effective.Color),
                             Hyperlink = ToGoogleHyperlink(run.Hyperlink),
                         });
+                        offset = endIndex;
                     }
-                    offset = endIndex;
                 }
                 if (paragraphIndex + 1 < paragraphs.Count) offset++;
             }
@@ -275,8 +276,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             OpenXmlCompositeElement? masterTextStyle) =>
             ToGoogleBaselineOffset(ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle).BaselinePercent);
 
-        private static string GetGoogleText(PowerPointTextRun run, EffectiveGoogleRunStyle effective) {
-            string text = run.Text ?? string.Empty;
+        private static string GetGoogleText(PowerPointTextRun run, EffectiveGoogleRunStyle effective) =>
+            GetGoogleText(run.Text ?? string.Empty, effective);
+
+        private static string GetGoogleText(string text, EffectiveGoogleRunStyle effective) {
             if (effective.Capitalization != PowerPointCapitalization.AllCaps) return text;
             return text.ToUpper(ResolveRunCulture(effective.Language));
         }
@@ -289,6 +292,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
             PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.Resolve(
                 run, paragraph, listStyle, masterTextStyle, tableTextStyles);
+            return ToGoogleRunStyle(effective);
+        }
+
+        private static EffectiveGoogleRunStyle ToGoogleRunStyle(PowerPointEffectiveRunStyle effective) {
             return new EffectiveGoogleRunStyle(
                 effective.Capitalization,
                 effective.BaselinePercent,

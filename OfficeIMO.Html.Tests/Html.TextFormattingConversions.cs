@@ -66,10 +66,14 @@ public class HtmlTextFormattingConversionTests {
         HtmlRenderText second = Assert.Single(text, item => item.Text == "Second");
         HtmlRenderText raised = Assert.Single(text, item => item.Text == "Raised");
         HtmlRenderText lowered = Assert.Single(text, item => item.Text == "Lowered");
-        Assert.Equal(OfficeTextBaseline.Normal, first.Baseline);
-        Assert.Equal(0, first.BaselineLevel);
-        Assert.Equal(OfficeTextBaseline.Normal, second.Baseline);
-        Assert.Equal(0, second.BaselineLevel);
+        Assert.Equal(OfficeTextBaseline.Superscript, first.Baseline);
+        Assert.Equal(1, first.BaselineLevel);
+        Assert.Equal(OfficeTextBaseline.Superscript, second.Baseline);
+        Assert.Equal(1, second.BaselineLevel);
+        Assert.Equal(0.65D * 0.65D, first.BaselineScale, 6);
+        Assert.Equal(0.65D * 0.65D, second.BaselineScale, 6);
+        Assert.True(first.BaselineOffset < 0D);
+        Assert.True(second.BaselineOffset < 0D);
         Assert.Equal(OfficeTextBaseline.Superscript, raised.Baseline);
         Assert.Equal(2, raised.BaselineLevel);
         Assert.Equal(OfficeTextBaseline.Subscript, lowered.Baseline);
@@ -88,6 +92,24 @@ public class HtmlTextFormattingConversionTests {
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("Raised", svg, StringComparison.Ordinal);
         Assert.Contains("Lowered", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ManagedHtmlRenderingPreservesNumericVerticalAlignOffsets() {
+        const string html = "<p><span style=\"vertical-align:5px\">Pixels</span><span style=\"vertical-align:50%\">Percent</span></p>";
+
+        HtmlRenderText[] text = Assert.Single(HtmlRenderTestDriver.Render(
+                HtmlConversionDocument.Parse(html), new HtmlRenderOptions()).Pages)
+            .Visuals.OfType<HtmlRenderText>().Where(item => item.Text.Length > 0).ToArray();
+        HtmlRenderText pixels = Assert.Single(text, item => item.Text == "Pixels");
+        HtmlRenderText percent = Assert.Single(text, item => item.Text == "Percent");
+
+        Assert.Equal(1D, pixels.BaselineScale, 6);
+        Assert.Equal(-5D, pixels.BaselineOffset, 6);
+        Assert.True(percent.BaselineOffset < pixels.BaselineOffset);
+        OfficeDrawing drawing = Assert.Single(HtmlRenderTestDriver.Render(
+                HtmlConversionDocument.Parse(html), new HtmlRenderOptions()).Pages).CreateDrawing();
+        Assert.Equal(-5D, Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Pixels").BaselineOffset, 6);
     }
 
     [Fact]
@@ -704,6 +726,25 @@ public class HtmlTextFormattingConversionTests {
         Assert.Null(run.UnderlineStyle);
         Assert.Null(run.StrikeStyle);
         Assert.Null(run.Capitalization);
+    }
+
+    [Fact]
+    public void SharedCssStringEscapingProtectsExcelAndPowerPointFontFamilies() {
+        const string hostile = "Bad\\';color:red;/*\nNext";
+        string quoted = OfficeHtmlText.QuoteCssString(hostile);
+        Assert.StartsWith("'Bad\\\\\\'", quoted, StringComparison.Ordinal);
+        Assert.Contains("\\A ", quoted, StringComparison.Ordinal);
+        Assert.EndsWith("'", quoted, StringComparison.Ordinal);
+
+        using ExcelDocument excel = ExcelDocument.Create();
+        excel.AddWorksheet("Text").CellAt(1, 1).SetValue("Excel").SetFontName(hostile);
+        string excelHtml = excel.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), excelHtml, StringComparison.Ordinal);
+
+        using PowerPointPresentation powerPoint = PowerPointPresentation.Create();
+        powerPoint.AddSlide().AddTextBox("PowerPoint").Paragraphs[0].Runs[0].FontName = hostile;
+        string powerPointHtml = powerPoint.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), powerPointHtml, StringComparison.Ordinal);
     }
 
     [Fact]

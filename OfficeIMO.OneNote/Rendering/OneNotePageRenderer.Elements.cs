@@ -726,7 +726,6 @@ public static partial class OneNotePageRenderer {
             if (!argb.HasValue) return OfficeColor.Black;
             uint value = argb.Value;
             byte alpha = (byte)(value >> 24);
-            if (alpha == 0) alpha = 255;
             return OfficeColor.FromRgba((byte)(value >> 16), (byte)(value >> 8), (byte)value, alpha);
         }
 

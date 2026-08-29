@@ -526,12 +526,8 @@ public static partial class OfficeDrawingSvgExporter {
         }
 
         double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
-        int priorBaselineLevel = text.BaselineLevel == 0
-            ? 0
-            : text.BaselineLevel - Math.Sign(text.BaselineLevel);
-        OfficeTextScriptGeometry priorScript = OfficeTextScriptGeometry.Resolve(sourceFontSize, priorBaselineLevel);
-        double fontSize = priorScript.RenderedFontSize;
-        double y = contentY + sourceFontSize + priorScript.BaselineOffset;
+        double fontSize = sourceFontSize * text.BaselineScale;
+        double y = contentY + sourceFontSize + text.BaselineOffset;
         double lineHeight = text.LineHeight ?? sourceFontSize * 1.2D;
         if (text.TextAdvanceWidth.HasValue) {
             sb.AppendSvgPositionedTextElement(
@@ -553,7 +549,7 @@ public static partial class OfficeDrawingSvgExporter {
                 text.TextAdvanceWidth.Value,
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
-                text.Baseline);
+                OfficeTextBaseline.Normal);
         } else {
             sb.AppendSvgTextElement(
                 text.Text,
@@ -573,7 +569,7 @@ public static partial class OfficeDrawingSvgExporter {
                 (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
                 text.UnderlineStyle,
                 text.StrikethroughStyle,
-                text.Baseline);
+                OfficeTextBaseline.Normal);
         }
 
         if (useFrameTransform) {
@@ -583,9 +579,8 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, bool useFrameTransform = false) {
         double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
-        OfficeTextScriptGeometry script = OfficeTextScriptGeometry.Resolve(sourceFontSize, text.BaselineLevel);
-        double fontSize = script.RenderedFontSize;
-        double baselineOffset = script.BaselineOffset;
+        double fontSize = sourceFontSize * text.BaselineScale;
+        double baselineOffset = text.BaselineOffset;
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, text.LineHeight.Value / fontSize)
             : 1.2D;

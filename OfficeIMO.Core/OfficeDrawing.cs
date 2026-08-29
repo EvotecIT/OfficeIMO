@@ -179,6 +179,19 @@ public sealed partial class OfficeDrawing {
         int baselineLevel) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, OfficeTextOverflowBehavior.Ellipsis, null, underlineStyle, strikethroughStyle, baseline, baselineLevel, allowOverflow: false);
 
+    internal OfficeDrawing AddStyledText(
+        string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color,
+        OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment,
+        double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit,
+        bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding,
+        OfficeTextParagraphIndent? paragraphIndent, OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel,
+        double baselineScale, double baselineOffset) =>
+        AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees,
+            rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding,
+            paragraphIndent, OfficeTextOverflowBehavior.Ellipsis, null, underlineStyle, strikethroughStyle, baseline,
+            baselineLevel, baselineScale, baselineOffset, allowOverflow: false);
+
     /// <summary>
     /// Adds an already-positioned single text run. The frame width may be clipped independently
     /// from the resolved glyph advance retained for backend-consistent positioning.
@@ -248,6 +261,16 @@ public sealed partial class OfficeDrawing {
         int baselineLevel) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, OfficeTextVerticalAlignment.Top, 0D, null, null, false, false, false, false, false, null, null, OfficeTextOverflowBehavior.Clip, textAdvanceWidth ?? width, underlineStyle, strikethroughStyle, baseline, baselineLevel, allowOverflow: false);
 
+    internal OfficeDrawing AddPositionedText(
+        string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color,
+        OfficeTextAlignment alignment, double? lineHeight, double? textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle,
+        OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset) =>
+        AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, OfficeTextVerticalAlignment.Top, 0D,
+            null, null, false, false, false, false, false, null, null, OfficeTextOverflowBehavior.Clip,
+            textAdvanceWidth ?? width, underlineStyle, strikethroughStyle, baseline, baselineLevel, baselineScale,
+            baselineOffset, allowOverflow: false);
+
     private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, bool allowOverflow) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline);
         if (!allowOverflow && (item.X < 0D || item.Y < 0D || item.X + item.Width > Width || item.Y + item.Height > Height)) {
@@ -264,6 +287,18 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
 
+        _elements.Add(item);
+        return this;
+    }
+
+    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, bool allowOverflow) {
+        var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment,
+            rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical,
+            padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline,
+            baselineLevel, baselineScale, baselineOffset);
+        if (!allowOverflow && (item.X < 0D || item.Y < 0D || item.X + item.Width > Width || item.Y + item.Height > Height)) {
+            throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
+        }
         _elements.Add(item);
         return this;
     }
@@ -693,7 +728,9 @@ public sealed partial class OfficeDrawing {
             text.UnderlineStyle,
             text.StrikethroughStyle,
             text.Baseline,
-            text.BaselineLevel);
+            text.BaselineLevel,
+            text.BaselineScale,
+            text.BaselineOffset);
         if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }

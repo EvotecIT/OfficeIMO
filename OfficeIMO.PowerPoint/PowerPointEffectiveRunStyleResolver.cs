@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -44,6 +45,16 @@ namespace OfficeIMO.PowerPoint {
         internal string? Language { get; }
     }
 
+    internal readonly struct PowerPointEffectiveTextSegment {
+        internal PowerPointEffectiveTextSegment(string text, PowerPointEffectiveRunStyle style) {
+            Text = text;
+            Style = style;
+        }
+
+        internal string Text { get; }
+        internal PowerPointEffectiveRunStyle Style { get; }
+    }
+
     internal static class PowerPointEffectiveRunStyleResolver {
         internal static PowerPointEffectiveRunStyle Resolve(
             PowerPointTextRun run,
@@ -51,6 +62,49 @@ namespace OfficeIMO.PowerPoint {
             A.ListStyle? listStyle,
             OpenXmlCompositeElement? masterTextStyle,
             IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            return Resolve(run, paragraph, listStyle, masterTextStyle, tableTextStyles, null);
+        }
+
+        internal static IReadOnlyList<PowerPointEffectiveTextSegment> ResolveSegments(
+            PowerPointTextRun run,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            string text = run.Text ?? string.Empty;
+            if (text.Length == 0) return Array.Empty<PowerPointEffectiveTextSegment>();
+            var raw = new List<(string Text, PowerPointFontScript? Script)>();
+            TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
+            while (enumerator.MoveNext()) {
+                string element = enumerator.GetTextElement();
+                PowerPointFontScript? script = ResolveStrongFontScript(element);
+                if (raw.Count > 0 && script.HasValue && raw[raw.Count - 1].Script == script) {
+                    (string previous, PowerPointFontScript? previousScript) = raw[raw.Count - 1];
+                    raw[raw.Count - 1] = (previous + element, previousScript);
+                } else if (raw.Count > 0 && !script.HasValue) {
+                    (string previous, PowerPointFontScript? previousScript) = raw[raw.Count - 1];
+                    raw[raw.Count - 1] = (previous + element, previousScript);
+                } else {
+                    raw.Add((element, script));
+                }
+            }
+            if (raw.Count > 1 && !raw[0].Script.HasValue) {
+                raw[1] = (raw[0].Text + raw[1].Text, raw[1].Script);
+                raw.RemoveAt(0);
+            }
+            PowerPointFontScript fallback = ResolveFontScript(text, run.Language);
+            return raw.Select(segment => new PowerPointEffectiveTextSegment(
+                segment.Text,
+                Resolve(run, paragraph, listStyle, masterTextStyle, tableTextStyles, segment.Script ?? fallback))).ToArray();
+        }
+
+        private static PowerPointEffectiveRunStyle Resolve(
+            PowerPointTextRun run,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles,
+            PowerPointFontScript? fontScriptOverride) {
             IReadOnlyList<A.TextCharacterPropertiesType> directSources = ResolveDirectSources(run, paragraph, listStyle);
             IReadOnlyList<A.TextCharacterPropertiesType> masterSources = FindDefaultRunProperties(
                 masterTextStyle,
@@ -74,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
                 ?? ResolveValue(masterSources, static source => source.FontSize?.Value);
             string? language = ResolveString(directSources, static source => source.Language?.Value)
                 ?? ResolveString(masterSources, static source => source.Language?.Value);
-            PowerPointFontScript fontScript = ResolveFontScript(run.Text, language);
+            PowerPointFontScript fontScript = fontScriptOverride ?? ResolveFontScript(run.Text, language);
             string? fontName = ResolveFontName(run, directSources, fontScript)
                 ?? ResolveTableFontName(run, tableSources, fontScript)
                 ?? ResolveFontName(run, masterSources, fontScript);
@@ -93,6 +147,26 @@ namespace OfficeIMO.PowerPoint {
                 fontName,
                 color,
                 language);
+        }
+
+        private static PowerPointFontScript? ResolveStrongFontScript(string text) {
+            for (int index = 0; index < text.Length; index++) {
+                int scalar = text[index];
+                if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+                    scalar = char.ConvertToUtf32(text[index], text[++index]);
+                }
+                if (IsEastAsianScalar(scalar)) return PowerPointFontScript.EastAsian;
+            }
+            if (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsShapingRequiredScript(text)) {
+                return PowerPointFontScript.ComplexScript;
+            }
+            foreach (char character in text) {
+                UnicodeCategory category = char.GetUnicodeCategory(character);
+                if (category is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter
+                    or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter or UnicodeCategory.DecimalDigitNumber
+                    or UnicodeCategory.LetterNumber or UnicodeCategory.OtherNumber) return PowerPointFontScript.Latin;
+            }
+            return null;
         }
 
         private static T? ResolveValue<T>(
