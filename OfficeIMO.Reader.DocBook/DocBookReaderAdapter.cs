@@ -89,8 +89,28 @@ internal static partial class DocBookReaderAdapter {
             return warnings;
         }
 
-        IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node) {
+        IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node, ListMarker? listMarker = null, int listDepth = 0) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (node.Kind == "itemized-list" || node.Kind == "ordered-list") {
+                bool ordered = node.Kind == "ordered-list";
+                long ordinal = 1;
+                if (ordered && node.Attributes.TryGetValue("startingnumber", out string? startingNumber) &&
+                    long.TryParse(startingNumber, System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture, out long parsedOrdinal) && parsedOrdinal > 0) {
+                    ordinal = parsedOrdinal;
+                }
+                foreach (OfficeDocumentModelNode child in node.Children) {
+                    if (child.Kind == "list-item") {
+                        string indentation = new string(' ', Math.Min(listDepth, 128) * 2);
+                        var childMarker = new ListMarker(indentation + (ordered ? ordinal + ". " : "- "));
+                        foreach (ReaderChunk chunk in BuildNode(child, childMarker, listDepth + 1)) yield return chunk;
+                        if (ordinal < long.MaxValue) ordinal++;
+                    } else {
+                        foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth)) yield return chunk;
+                    }
+                }
+                yield break;
+            }
             int currentSource = sourceIndex++;
             if (!string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
                 IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
@@ -105,12 +125,17 @@ internal static partial class DocBookReaderAdapter {
                             ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " + parts[part]
                             : parts[part];
                     }
+                    if (part == 0 && listMarker != null && !listMarker.Applied) {
+                        markdown = listMarker.Prefix + markdown;
+                        listMarker.Applied = true;
+                    }
                     yield return new ReaderChunk {
                         Id = parts.Count == 1 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (part + 1),
                         Kind = ReaderInputKind.DocBook, Text = parts[part], Markdown = markdown,
                         ContinuesPreviousChunk = part > 0,
                         Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
-                            HeadingPath = node.Location.HeadingPath, SourceBlockKind = node.Kind, BlockAnchor = "docbook-node-" + currentSource },
+                            HeadingPath = node.Location.HeadingPath, SourceBlockKind = listMarker == null ? node.Kind : "list-item",
+                            BlockAnchor = "docbook-node-" + currentSource },
                         Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" }, Warnings = TakeWarnings()
                     };
                 }
@@ -125,10 +150,16 @@ internal static partial class DocBookReaderAdapter {
             if (!ownsInlineText) {
                 foreach (OfficeDocumentModelNode child in node.Children) {
                     if ((node.Kind == "section" || node.Kind == "table" || node.Kind == "figure") && child.Kind == "title") continue;
-                    foreach (ReaderChunk chunk in BuildNode(child)) yield return chunk;
+                    foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth)) yield return chunk;
                 }
             }
         }
+    }
+
+    private sealed class ListMarker {
+        internal ListMarker(string prefix) => Prefix = prefix;
+        internal string Prefix { get; }
+        internal bool Applied { get; set; }
     }
 
     private sealed class DocBookProjection {

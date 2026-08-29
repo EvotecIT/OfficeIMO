@@ -23,7 +23,7 @@ public sealed class OpmlReadOptions {
     public int MaxDepth { get; set; } = 128;
     /// <summary>Maximum total number of XML elements, including extension elements.</summary>
     public int MaxElements { get; set; } = 250_000;
-    /// <summary>Maximum number of outline elements.</summary>
+    /// <summary>Maximum number of outline elements, enforced while parsing before XML materialization.</summary>
     public int MaxOutlines { get; set; } = 100_000;
     /// <summary>Maximum total number of XML attributes.</summary>
     public int MaxAttributes { get; set; } = 500_000;

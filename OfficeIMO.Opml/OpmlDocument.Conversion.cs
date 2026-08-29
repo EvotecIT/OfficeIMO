@@ -152,12 +152,42 @@ public sealed partial class OpmlDocument {
             foreach (OfficeDocumentModelNode child in node.Children) Add(child, outline);
         }
 
+        void AddFlatLink(OfficeDocumentModelLink link) {
+            string text = link.Text ?? link.Uri ?? link.DestinationName ?? link.Id;
+            bool represented = false;
+            if (!string.IsNullOrWhiteSpace(link.Uri)) {
+                OpmlOutline outline = document.AddOutline(text);
+                if (string.Equals(link.Kind, "subscription", StringComparison.OrdinalIgnoreCase)) {
+                    outline.Type = "rss";
+                    outline.XmlUrl = link.Uri;
+                } else if (string.Equals(link.Kind, "html", StringComparison.OrdinalIgnoreCase)) {
+                    outline.HtmlUrl = link.Uri;
+                } else {
+                    outline.Type = "link";
+                    outline.Url = link.Uri;
+                }
+                represented = true;
+            }
+            bool hasUnsupportedTarget = !string.IsNullOrWhiteSpace(link.DestinationName) || link.DestinationPageNumber.HasValue ||
+                !string.IsNullOrWhiteSpace(link.DestinationMode) || !string.IsNullOrWhiteSpace(link.NamedAction) ||
+                !string.IsNullOrWhiteSpace(link.RemoteFile) || !string.IsNullOrWhiteSpace(link.RemoteDestinationName) ||
+                link.RemoteDestinationPageNumber.HasValue;
+            if (!represented || hasUnsupportedTarget) {
+                diagnostics.Add(new OpmlDiagnostic("OPML106", OpmlDiagnosticSeverity.Warning,
+                    represented
+                        ? $"Shared link '{link.Id}' was emitted, but one or more additional target fields could not be represented in OPML."
+                        : $"Shared link '{link.Id}' had no OPML-representable URI.",
+                    link.Location?.HeadingPath));
+            }
+        }
+
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);
         } else {
             diagnostics.Add(new OpmlDiagnostic("OPML101", OpmlDiagnosticSeverity.Warning,
-                "The shared model had no recursive Structure; flat Blocks were emitted as top-level outlines."));
+                "The shared model had no recursive Structure; flat Blocks and Links were emitted as top-level outlines."));
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddOutline(block.Text);
+            foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
         }
         return new OpmlConversionResult<OpmlDocument>(document, diagnostics);
     }

@@ -76,6 +76,25 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterPreservesItemizedOrderedAndNestedListMarkers() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><itemizedlist><listitem><para>Alpha</para><itemizedlist><listitem><para>Nested</para></listitem></itemizedlist></listitem><listitem><para>Beta</para></listitem></itemizedlist><orderedlist startingnumber=\"3\"><listitem><para>Third</para></listitem><listitem><para>Fourth</para></listitem></orderedlist></article>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
+
+        Assert.Contains(chunks, chunk => chunk.Markdown == "- Alpha" && chunk.Location.SourceBlockKind == "list-item");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "  - Nested" && chunk.Location.SourceBlockKind == "list-item");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "- Beta" && chunk.Location.SourceBlockKind == "list-item");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "3. Third" && chunk.Location.SourceBlockKind == "list-item");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "4. Fourth" && chunk.Location.SourceBlockKind == "list-item");
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        string markdown = DocBookReaderAdapter.ReadDocument(stream).Markdown.Replace("\r\n", "\n");
+        Assert.Contains("- Alpha", markdown, StringComparison.Ordinal);
+        Assert.Contains("  - Nested", markdown, StringComparison.Ordinal);
+        Assert.Contains("3. Third", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OpmlAndDocBookAdaptersKeepSurrogatePairsIntactWhenSplitting() {
         OpmlDocument opml = OpmlDocument.Create();
         opml.AddOutline("A😀B");

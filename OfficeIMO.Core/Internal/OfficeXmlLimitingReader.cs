@@ -11,8 +11,13 @@ namespace OfficeIMO.Core.Internal {
         private readonly int _maxDepth;
         private readonly int _maxElements;
         private readonly int _maxAttributes;
+        private readonly string? _scopedElementLocalName;
+        private readonly string? _scopedElementNamespaceUri;
+        private readonly int _maxScopedElements;
+        private readonly string? _scopedLimitName;
         private readonly CancellationToken _cancellationToken;
         private int _elements;
+        private int _scopedElements;
         private long _attributes;
 
         internal OfficeXmlLimitingReader(
@@ -21,13 +26,21 @@ namespace OfficeIMO.Core.Internal {
             int maxDepth,
             int maxElements,
             int maxAttributes,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            string? scopedElementLocalName = null,
+            string? scopedElementNamespaceUri = null,
+            int maxScopedElements = int.MaxValue,
+            string? scopedLimitName = null) {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             _formatName = formatName ?? throw new ArgumentNullException(nameof(formatName));
             _maxDepth = maxDepth;
             _maxElements = maxElements;
             _maxAttributes = maxAttributes;
             _cancellationToken = cancellationToken;
+            _scopedElementLocalName = scopedElementLocalName;
+            _scopedElementNamespaceUri = scopedElementNamespaceUri;
+            _maxScopedElements = maxScopedElements;
+            _scopedLimitName = scopedLimitName;
         }
 
         public override int AttributeCount => _inner.AttributeCount;
@@ -73,6 +86,12 @@ namespace OfficeIMO.Core.Internal {
             if (++_elements > _maxElements) throw Limit("MaxElements");
             _attributes += _inner.AttributeCount;
             if (_attributes > _maxAttributes) throw Limit("MaxAttributes");
+            if (_scopedElementLocalName != null &&
+                string.Equals(_inner.LocalName, _scopedElementLocalName, StringComparison.Ordinal) &&
+                string.Equals(_inner.NamespaceURI, _scopedElementNamespaceUri ?? string.Empty, StringComparison.Ordinal) &&
+                ++_scopedElements > _maxScopedElements) {
+                throw Limit(_scopedLimitName ?? "MaxScopedElements");
+            }
             return true;
         }
 

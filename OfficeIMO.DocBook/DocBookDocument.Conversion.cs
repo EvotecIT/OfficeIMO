@@ -187,7 +187,7 @@ public sealed partial class DocBookDocument {
             var activeRowSpans = new Dictionary<XElement, Dictionary<int, int>>();
             var groupLayouts = new Dictionary<XElement, CalsProjectionLayout>();
             int columnCount = 0;
-            bool flattenedCalsLayout = false;
+            bool flattenedCalsLayout = tableElement.Elements(Namespace + "tgroup").Skip(1).Any();
             bool flattenedFooterRows = footerRowsEncountered;
             bool projectionTruncated = rowDiscoveryTruncated;
 
@@ -348,7 +348,7 @@ public sealed partial class DocBookDocument {
             string tableHeadingPath = BuildTableHeadingPath(tableElement, title);
             if (flattenedCalsLayout) {
                 diagnostics.Add(new DocBookDiagnostic("DB112", DocBookDiagnosticSeverity.Warning,
-                    "CALS spans or multi-row headers were flattened in the shared table projection; the recursive structure retains the native markup.", tableHeadingPath));
+                    "CALS groups, spans, or multi-row headers were flattened in the shared table projection; the recursive structure retains the native markup.", tableHeadingPath));
             }
             if (flattenedFooterRows) {
                 diagnostics.Add(new DocBookDiagnostic("DB119", DocBookDiagnosticSeverity.Warning,
@@ -571,6 +571,36 @@ public sealed partial class DocBookDocument {
             document.Root.AddImage(reference!, source.Title ?? source.AltText);
         }
 
+        void AddFlatLink(OfficeDocumentModelLink source) {
+            string text = source.Text ?? source.Uri ?? source.DestinationName ?? source.Id;
+            DocBookNode paragraph = document.Root.Add(DocBookNodeKind.Paragraph);
+            bool represented = false;
+            if (!string.IsNullOrWhiteSpace(source.Uri)) {
+                DocBookNode link = selectedProfile == DocBookProfile.DocBook45
+                    ? paragraph.AddRaw("ulink", text)
+                    : paragraph.Add(DocBookNodeKind.Link, text);
+                link.SetAttribute(selectedProfile == DocBookProfile.DocBook45
+                    ? XName.Get("url") : XName.Get("href", "http://www.w3.org/1999/xlink"), source.Uri);
+                represented = true;
+            } else if (!string.IsNullOrWhiteSpace(source.DestinationName)) {
+                DocBookNode link = paragraph.Add(DocBookNodeKind.Link, text);
+                link.SetAttribute("linkend", source.DestinationName);
+                represented = true;
+            }
+            bool hasUnsupportedTarget = source.DestinationPageNumber.HasValue || !string.IsNullOrWhiteSpace(source.DestinationMode) ||
+                !string.IsNullOrWhiteSpace(source.NamedAction) || !string.IsNullOrWhiteSpace(source.RemoteFile) ||
+                !string.IsNullOrWhiteSpace(source.RemoteDestinationName) || source.RemoteDestinationPageNumber.HasValue ||
+                (!string.IsNullOrWhiteSpace(source.Uri) && !string.IsNullOrWhiteSpace(source.DestinationName));
+            if (!represented || hasUnsupportedTarget) {
+                if (!represented) paragraph.Remove();
+                diagnostics.Add(new DocBookDiagnostic("DB120", DocBookDiagnosticSeverity.Warning,
+                    represented
+                        ? $"Shared link '{source.Id}' was emitted, but one or more additional target fields could not be represented in DocBook."
+                        : $"Shared link '{source.Id}' had no DocBook-representable URI or named destination.",
+                    source.Location?.HeadingPath));
+            }
+        }
+
         if (model.Structure.Count > 0) {
             bool hasTitle = model.Structure.Any(ContainsDocumentTitle);
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
@@ -582,6 +612,7 @@ public sealed partial class DocBookDocument {
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
             foreach (OfficeDocumentModelTable table in model.Tables) AddFlatTable(table);
             foreach (OfficeDocumentModelAsset asset in model.Assets) AddFlatAsset(asset);
+            foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
         }
         bool hasAuthor = model.Structure.Any(ContainsDocumentAuthor);
         if (!hasAuthor && !string.IsNullOrWhiteSpace(model.Source.Author)) {

@@ -212,6 +212,19 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedTableProjectionReportsMultipleGroupFlattening() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\"><tbody><row><entry>A</entry></row></tbody></tgroup><tgroup cols=\"2\"><tbody><row><entry>B</entry><entry>C</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.Equal(new[] { "A", "" }, table.Rows[0]);
+        Assert.Equal(new[] { "B", "C" }, table.Rows[1]);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB112");
+    }
+
+    [Fact]
     public void SharedTableProjectionPlacesImplicitEntriesAfterExplicitColumns() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"3\"><colspec colname=\"c1\"/><colspec colname=\"c2\"/><colspec colname=\"c3\"/><tbody><row><entry colname=\"c2\">B</entry><entry>C</entry></row></tbody></tgroup></informaltable></article>";
 
@@ -526,6 +539,20 @@ public sealed class DocBookDocumentTests {
                     SourceObjectId = "assets/figure.png",
                     Title = "Chart"
                 }
+            },
+            Links = new[] {
+                new OfficeDocumentModelLink {
+                    Id = "site",
+                    Kind = "link",
+                    Text = "Site",
+                    Uri = "https://example.test/"
+                },
+                new OfficeDocumentModelLink {
+                    Id = "target",
+                    Kind = "cross-reference",
+                    Text = "Target",
+                    DestinationName = "target-id"
+                }
             }
         };
 
@@ -533,12 +560,37 @@ public sealed class DocBookDocumentTests {
         XElement info = Assert.Single(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "info");
         XElement table = Assert.Single(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "table");
         XElement image = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
+        XElement[] links = converted.Value.Xml.Descendants().Where(element => element.Name.LocalName == "link").ToArray();
 
         Assert.Equal("Jane Doe", info.Descendants().Single(element => element.Name.LocalName == "author").Value);
         Assert.Equal(new[] { "Name", "Value", "A", "1" },
             table.Descendants().Where(element => element.Name.LocalName == "entry").Select(element => element.Value));
         Assert.Equal("assets/figure.png", image.Attribute("fileref")!.Value);
+        Assert.Contains(links, link => (string?)link.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink")) == "https://example.test/");
+        Assert.Contains(links, link => (string?)link.Attribute("linkend") == "target-id");
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB103");
+        OfficeDocumentModel projected = converted.Value.ToOfficeDocumentModel().Value;
+        Assert.Contains(projected.Links, link => link.Uri == "https://example.test/" && link.Text == "Site");
+        Assert.Contains(projected.Links, link => link.DestinationName == "target-id" && link.Text == "Target");
+    }
+
+    [Fact]
+    public void SharedConversionUsesDocBookFourUlinkForFlatExternalLinks() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Metadata = new[] {
+                new OfficeDocumentModelMetadataEntry { Category = "docbook", Name = "profile", Value = "4.5" }
+            },
+            Links = new[] {
+                new OfficeDocumentModelLink { Id = "site", Kind = "link", Text = "Site", Uri = "https://example.test/" }
+            }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+        XElement link = Assert.Single(converted.Xml.Descendants(), element => element.Name.LocalName == "ulink");
+
+        Assert.Equal("https://example.test/", (string?)link.Attribute("url"));
+        Assert.Equal("Site", link.Value);
     }
 
     [Fact]

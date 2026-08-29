@@ -237,7 +237,8 @@ public sealed partial class OpmlDocument {
     };
 
     private static XmlReader CreateLimitingReader(XmlReader reader, OpmlReadOptions options, CancellationToken cancellationToken) =>
-        new OfficeXmlLimitingReader(reader, "OPML", options.MaxDepth, options.MaxElements, options.MaxAttributes, cancellationToken);
+        new OfficeXmlLimitingReader(reader, "OPML", options.MaxDepth, options.MaxElements, options.MaxAttributes,
+            cancellationToken, "outline", string.Empty, options.MaxOutlines, "MaxOutlines");
 
     private static void ValidateShapeAndLimits(XDocument xml, OpmlReadOptions options, CancellationToken cancellationToken) {
         XElement? root = xml.Root;

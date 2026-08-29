@@ -67,6 +67,19 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void MaxOutlinesStopsParsingBeforeTheRemainingXmlIsMaterialized() {
+        const string source = "<opml version=\"2.0\"><head/><body><outline text=\"a\"/><outline text=\"b\"/><";
+        var options = new OpmlReadOptions { MaxOutlines = 1 };
+
+        InvalidDataException textException = Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(source, options));
+        Assert.Contains("MaxOutlines", textException.Message, StringComparison.Ordinal);
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        InvalidDataException streamException = Assert.Throws<InvalidDataException>(() => OpmlDocument.Load(stream, options));
+        Assert.Contains("MaxOutlines", streamException.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task StreamLoadPreservesPositionAndAsyncWriteRewinds() {
         byte[] bytes = Encoding.UTF8.GetBytes("<opml version=\"2.0\"><head/><body><outline text=\"A\"/></body></opml>");
         using var input = new MemoryStream(bytes); input.Position = 5;
@@ -250,5 +263,25 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(model.Links, link => link.Kind == "url" && link.Uri == outline.Url);
         Assert.Contains(model.Links, link => link.Kind == "subscription" && link.Uri == outline.XmlUrl);
         Assert.Contains(model.Links, link => link.Kind == "html" && link.Uri == outline.HtmlUrl);
+    }
+
+    [Fact]
+    public void SharedConversionEmitsFlatLinksAsTypedOutlinesAndDiagnosesUnsupportedTargets() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Links = new[] {
+                new OfficeDocumentModelLink { Id = "direct", Kind = "url", Text = "Direct", Uri = "https://example.test/direct" },
+                new OfficeDocumentModelLink { Id = "feed", Kind = "subscription", Text = "Feed", Uri = "https://example.test/feed.xml" },
+                new OfficeDocumentModelLink { Id = "site", Kind = "html", Text = "Site", Uri = "https://example.test/" },
+                new OfficeDocumentModelLink { Id = "internal", Kind = "cross-reference", Text = "Target", DestinationName = "target" }
+            }
+        };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Value.Outlines, outline => outline.Url == "https://example.test/direct");
+        Assert.Contains(converted.Value.Outlines, outline => outline.XmlUrl == "https://example.test/feed.xml" && outline.Type == "rss");
+        Assert.Contains(converted.Value.Outlines, outline => outline.HtmlUrl == "https://example.test/");
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML106" && diagnostic.Message.Contains("internal", StringComparison.Ordinal));
     }
 }
