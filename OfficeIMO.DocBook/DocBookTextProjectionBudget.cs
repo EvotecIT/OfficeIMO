@@ -52,6 +52,11 @@ internal sealed class DocBookTextProjectionBudget {
         return value;
     }
 
+    internal string GetElementValueExcluding(XElement element, XName excludedSubtree, string? path) =>
+        MaterializeExact(() => element.DescendantNodes().OfType<XText>().Where(text =>
+            text.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, element)).All(ancestor =>
+                ancestor.Name != _docBookNamespace + "indexterm" && ancestor.Name != excludedSubtree)), path);
+
     internal string GetTextValue(XText text, string? path) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (text.Value.Length > _remaining) {

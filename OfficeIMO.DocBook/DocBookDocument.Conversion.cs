@@ -369,7 +369,7 @@ public sealed partial class DocBookDocument {
                         end = start;
                         while (cells.Count <= end) cells.Add(null);
                     }
-                    cells[start] = textBudget.GetPrimaryText(entry, DocBookNodeKind.Entry, Namespace, string.Empty);
+                    cells[start] = textBudget.GetElementValueExcluding(entry, Namespace + "entrytbl", string.Empty);
                     for (int column = start + 1; column <= end; column++) cells[column] = string.Empty;
                     nextEntryColumn = Math.Max(nextEntryColumn, end + 1);
 
@@ -558,6 +558,7 @@ public sealed partial class DocBookDocument {
         options.Validate();
         IReadOnlyList<OfficeDocumentModelNode> structureNodes = OfficeDocumentModelStructureTraversal.ValidateAndFlatten(
             model.Structure, options.MaxStructureDepth, options.MaxStructureNodes);
+        IReadOnlyDictionary<OfficeDocumentModelNode, OfficeDocumentModelNode> structureParents = BuildStructureParentMap(structureNodes);
         var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceKind = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "kind")?.Value;
         string? sourceProfile = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "profile")?.Value;
@@ -684,9 +685,12 @@ public sealed partial class DocBookDocument {
         }
 
         bool AddFlatAsset(OfficeDocumentModelAsset source) {
-            string? reference = model.Format == OfficeDocumentFormat.DocBook && !string.IsNullOrWhiteSpace(source.SourceObjectId)
-                ? source.SourceObjectId
-                : source.FileName;
+            string? reference = source.FileName;
+            if (model.Format == OfficeDocumentFormat.DocBook && !string.IsNullOrWhiteSpace(source.SourceObjectId)) {
+                bool fileNameWasEdited = !string.IsNullOrWhiteSpace(source.FileName) &&
+                    !string.Equals(source.FileName, GetReferenceFileNameFromReference(source.SourceObjectId!), StringComparison.Ordinal);
+                reference = fileNameWasEdited ? source.FileName : source.SourceObjectId;
+            }
             if (!string.Equals(source.Kind, "image", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(reference)) {
                 diagnostics.Add(new DocBookDiagnostic("DB118", DocBookDiagnosticSeverity.Warning,
                     $"Shared asset '{source.Id}' could not be represented as a DocBook image reference.", source.Location?.HeadingPath));
@@ -740,7 +744,7 @@ public sealed partial class DocBookDocument {
                 AddFlatTable(table);
                 AddSupplementaryDiagnostic("table", table.Title ?? table.Kind ?? "unnamed", table.Location?.HeadingPath);
             }
-            foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodes))) {
+            foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodes, structureParents))) {
                 if (AddFlatAsset(asset)) AddSupplementaryDiagnostic("asset", asset.Id, asset.Location?.HeadingPath);
             }
             foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodes))) {

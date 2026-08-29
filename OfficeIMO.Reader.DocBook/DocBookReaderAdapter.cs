@@ -151,7 +151,10 @@ internal static partial class DocBookReaderAdapter {
                 emittedInlineProjection = true;
                 if (ownsInlineText) yield break;
             }
-            if (!emittedInlineProjection && !string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
+            bool compoundExtension = node.Kind.StartsWith("extension:", StringComparison.Ordinal) &&
+                node.Children.Any(child => child.Kind != "text");
+            if (!emittedInlineProjection && !compoundExtension && !string.IsNullOrWhiteSpace(node.Text) &&
+                node.Kind != "metadata" && node.Kind != "author") {
                 IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
                 string codeFence = preformatted ? CreateCodeFence(node.Text) : string.Empty;
                 for (int part = 0; part < parts.Count; part++) {
@@ -196,7 +199,7 @@ internal static partial class DocBookReaderAdapter {
         node.Kind == "paragraph" || node.Kind == "code" || node.Kind == "screen" ||
         node.Kind == "title" || node.Kind == "subtitle" || node.Kind == "author" ||
         node.Kind == "link" || node.Kind == "cross-reference" || node.Kind == "table-cell" || node.Kind == "caption" ||
-        (node.Kind.StartsWith("extension:", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(node.Text)) ||
+        (node.Kind.StartsWith("extension:", StringComparison.Ordinal) && node.Children.Count == 0 && !string.IsNullOrWhiteSpace(node.Text)) ||
         (!string.IsNullOrWhiteSpace(node.Text) && node.Children.Count > 0 &&
          node.Children.All(child => child.Kind == "text") &&
          string.Equals(string.Concat(node.Children.Select(child => child.Text)), node.Text, StringComparison.Ordinal));

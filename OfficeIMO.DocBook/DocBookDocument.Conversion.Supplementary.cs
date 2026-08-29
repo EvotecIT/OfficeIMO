@@ -15,15 +15,70 @@ public sealed partial class DocBookDocument {
             string.Equals(node.Kind, block.Kind, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(node.Text, block.Text, StringComparison.Ordinal) && node.Level == block.Level);
 
-    private static bool IsDerivedAsset(OfficeDocumentModelAsset asset, IEnumerable<OfficeDocumentModelNode> nodes) {
+    private static bool IsDerivedAsset(
+        OfficeDocumentModelAsset asset,
+        IEnumerable<OfficeDocumentModelNode> nodes,
+        IReadOnlyDictionary<OfficeDocumentModelNode, OfficeDocumentModelNode> parents) {
         const string prefix = "docbook-image-";
-        if (string.IsNullOrEmpty(asset.Id) || !asset.Id.StartsWith(prefix, StringComparison.Ordinal)) return false;
+        if (string.IsNullOrEmpty(asset.Id) || !asset.Id.StartsWith(prefix, StringComparison.Ordinal) ||
+            !string.Equals(asset.Kind, "image", StringComparison.OrdinalIgnoreCase)) return false;
         string nodeId = "docbook-" + asset.Id.Substring(prefix.Length);
         string? reference = string.IsNullOrWhiteSpace(asset.SourceObjectId) ? asset.FileName : asset.SourceObjectId;
-        return reference != null && nodes.Any(node =>
+        OfficeDocumentModelNode? image = nodes.FirstOrDefault(node =>
             string.Equals(node.Id, nodeId, StringComparison.Ordinal) &&
             string.Equals(node.Kind, "image", StringComparison.OrdinalIgnoreCase) &&
             node.Attributes.TryGetValue("fileref", out string? value) && string.Equals(value, reference, StringComparison.Ordinal));
+        if (image == null || !string.Equals(asset.FileName, GetReferenceFileNameFromReference(reference!), StringComparison.Ordinal)) return false;
+        OfficeDocumentModelNode? media = image;
+        while (parents.TryGetValue(media, out OfficeDocumentModelNode? parent)) {
+            media = parent;
+            if (string.Equals(media.Kind, "media", StringComparison.OrdinalIgnoreCase)) break;
+        }
+        if (media == null || !string.Equals(media.Kind, "media", StringComparison.OrdinalIgnoreCase)) return false;
+        string? caption = media.Children.FirstOrDefault(node => string.Equals(node.Kind, "caption", StringComparison.OrdinalIgnoreCase))?.Text;
+        OfficeDocumentModelNode? textObject = media.Children.FirstOrDefault(node => IsExtensionKind(node.Kind, "textobject"));
+        string? alternateText = textObject == null ? null : FindExtensionDescendant(textObject, "phrase")?.Text;
+        if (string.IsNullOrWhiteSpace(alternateText)) alternateText = caption;
+        return string.Equals(asset.Title, caption, StringComparison.Ordinal) &&
+            string.Equals(asset.AltText, alternateText, StringComparison.Ordinal);
+    }
+
+    private static IReadOnlyDictionary<OfficeDocumentModelNode, OfficeDocumentModelNode> BuildStructureParentMap(
+        IEnumerable<OfficeDocumentModelNode> nodes) {
+        var parents = new Dictionary<OfficeDocumentModelNode, OfficeDocumentModelNode>();
+        foreach (OfficeDocumentModelNode parent in nodes) {
+            foreach (OfficeDocumentModelNode child in parent.Children) {
+                if (!parents.ContainsKey(child)) parents.Add(child, parent);
+            }
+        }
+        return parents;
+    }
+
+    private static string? GetReferenceFileNameFromReference(string reference) {
+        int delimiter = reference.IndexOfAny(new[] { '?', '#' });
+        string clean = delimiter < 0 ? reference : reference.Substring(0, delimiter);
+        int separator = Math.Max(clean.LastIndexOf('/'), clean.LastIndexOf('\\'));
+        string fileName = separator < 0 ? clean : clean.Substring(separator + 1);
+        return string.IsNullOrWhiteSpace(fileName) ? null : fileName;
+    }
+
+    private static bool IsExtensionKind(string kind, string localName) {
+        const string prefix = "extension:";
+        if (!kind.StartsWith(prefix, StringComparison.Ordinal)) return false;
+        try {
+            return string.Equals(System.Xml.Linq.XName.Get(kind.Substring(prefix.Length)).LocalName, localName, StringComparison.Ordinal);
+        } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
+            return false;
+        }
+    }
+
+    private static OfficeDocumentModelNode? FindExtensionDescendant(OfficeDocumentModelNode node, string localName) {
+        foreach (OfficeDocumentModelNode child in node.Children) {
+            if (IsExtensionKind(child.Kind, localName)) return child;
+            OfficeDocumentModelNode? descendant = FindExtensionDescendant(child, localName);
+            if (descendant != null) return descendant;
+        }
+        return null;
     }
 
     private static bool IsDerivedLink(OfficeDocumentModelLink link, IEnumerable<OfficeDocumentModelNode> nodes) {

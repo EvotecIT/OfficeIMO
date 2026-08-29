@@ -299,6 +299,7 @@ public sealed partial class OpmlDocument {
             !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
                 string.Equals(node.Id, block.Id, StringComparison.Ordinal) &&
                 string.Equals(node.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(block.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(node.Text, block.Text, StringComparison.Ordinal) && node.Level == block.Level);
 
         static bool IsDerivedLink(OfficeDocumentModelLink link, IEnumerable<OfficeDocumentModelNode> nodes) {

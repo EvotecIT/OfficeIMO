@@ -260,7 +260,7 @@ public sealed class DocBookDocumentTests {
         OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
 
         Assert.Equal(1, table.TotalRowCount);
-        Assert.Equal("OuterNested", Assert.Single(Assert.Single(table.Rows)));
+        Assert.Equal("Outer", Assert.Single(Assert.Single(table.Rows)));
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB121");
     }
 
@@ -1152,4 +1152,25 @@ public sealed class DocBookDocumentTests {
             diagnostic.Message.IndexOf("table", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.Contains(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "entry" && element.Value == "Edited");
     }
+
+    [Fact]
+    public void SharedReverseConversionPreservesEditedFlatAssetProjection() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject><textobject><phrase>Original alt</phrase></textobject><caption>Original caption</caption></mediaobject></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelAsset asset = Assert.Single(model.Assets);
+        asset.FileName = "edited.png";
+        asset.Title = "Edited caption";
+        asset.AltText = "Edited alt";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" &&
+            diagnostic.Message.IndexOf("asset", StringComparison.OrdinalIgnoreCase) >= 0);
+        XElement image = Assert.Single(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "imagedata" && (string?)element.Attribute("fileref") == "edited.png");
+        XElement media = image.Ancestors().Single(element => element.Name.LocalName == "mediaobject");
+        Assert.Equal("Edited caption", media.Elements().Single(element => element.Name.LocalName == "caption").Value);
+        Assert.Equal("Edited alt", media.Elements().Single(element => element.Name.LocalName == "textobject").Value);
+    }
+
 }

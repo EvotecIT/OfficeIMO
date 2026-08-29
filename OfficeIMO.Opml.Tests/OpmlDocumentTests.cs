@@ -469,4 +469,45 @@ public sealed class OpmlDocumentTests {
         Assert.True(converted.HasLoss);
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == OpmlDiagnosticSeverity.Error);
     }
+
+    [Fact]
+    public void SharedReverseConversionPreservesEditedFlatBlockKind() {
+        OfficeDocumentModel model = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Original\"/></body></opml>")
+            .ToOfficeDocumentModel().Value;
+        OfficeDocumentModelBlock block = Assert.Single(model.Blocks);
+        block.Kind = "paragraph";
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
+        Assert.Equal(2, converted.Value.Outlines.Count);
+    }
+
+    [Fact]
+    public void SharedReverseTraversalDoesNotScheduleChildrenBeyondTheNodeBudget() {
+        var children = new WideNodeList();
+        var root = new OfficeDocumentModelNode { Kind = "outline", Text = "Root", Children = children };
+        var model = new OfficeDocumentModel { Format = OfficeDocumentFormat.Opml, Structure = new[] { root } };
+
+        Assert.Throws<InvalidDataException>(() => OpmlDocument.FromOfficeDocumentModel(
+            model, null, new OpmlConversionOptions { MaxStructureNodes = 2 }));
+        Assert.Equal(1, children.IndexerCalls);
+    }
+
+    private sealed class WideNodeList : IReadOnlyList<OfficeDocumentModelNode> {
+        public int Count => int.MaxValue;
+        public int IndexerCalls { get; private set; }
+
+        public OfficeDocumentModelNode this[int index] {
+            get {
+                IndexerCalls++;
+                if (index != 0) throw new InvalidOperationException("Traversal accessed a child beyond the configured node budget.");
+                return new OfficeDocumentModelNode { Kind = "outline", Text = "First child" };
+            }
+        }
+
+        public IEnumerator<OfficeDocumentModelNode> GetEnumerator() => throw new NotSupportedException();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 }

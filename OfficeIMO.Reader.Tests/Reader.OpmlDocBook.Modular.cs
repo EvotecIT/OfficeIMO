@@ -149,6 +149,17 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterTraversesCompoundExtensionContentInOrder() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><x:box>before<x:item>inside</x:item>after</x:box></article>";
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
+
+        Assert.Equal(new[] { "before", "inside", "after" }, result.Chunks.Select(chunk => chunk.Text));
+        Assert.DoesNotContain(result.Chunks, chunk => chunk.Text == "beforeinsideafter");
+    }
+
+    [Fact]
     public void DocBookAdapterUsesAFenceThatCannotBeClosedByListingContent() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><programlisting>before\n```\n# still code\nafter</programlisting></article>";
 

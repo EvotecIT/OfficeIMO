@@ -20,48 +20,47 @@ internal static class OfficeDocumentModelStructureTraversal {
         var flattened = new List<OfficeDocumentModelNode>(Math.Min(maxNodes, 4_096));
         var ancestry = new HashSet<OfficeDocumentModelNode>(ReferenceComparer.Instance);
         var stack = new Stack<TraversalFrame>();
-        for (int index = roots.Count - 1; index >= 0; index--) {
-            stack.Push(new TraversalFrame(roots[index], 1, isExit: false));
-        }
+        stack.Push(new TraversalFrame(roots, 0, 1, owner: null));
 
         while (stack.Count > 0) {
             TraversalFrame frame = stack.Pop();
-            OfficeDocumentModelNode? node = frame.Node;
-            if (node == null) throw new InvalidDataException("The shared document structure contains a null node.");
-            if (frame.IsExit) {
-                ancestry.Remove(node);
+            if (frame.Index >= frame.Nodes.Count) {
+                if (frame.Owner != null) ancestry.Remove(frame.Owner);
                 continue;
             }
             if (frame.Depth > maxDepth) {
                 throw new InvalidDataException($"The shared document structure exceeds MaxStructureDepth ({maxDepth}).");
             }
-            if (!ancestry.Add(node)) {
-                throw new InvalidDataException("The shared document structure contains a reference cycle.");
-            }
             if (flattened.Count >= maxNodes) {
                 throw new InvalidDataException($"The shared document structure exceeds MaxStructureNodes ({maxNodes}).");
             }
+            OfficeDocumentModelNode? node = frame.Nodes[frame.Index];
+            stack.Push(new TraversalFrame(frame.Nodes, frame.Index + 1, frame.Depth, frame.Owner));
+            if (node == null) throw new InvalidDataException("The shared document structure contains a null node.");
+            if (!ancestry.Add(node)) {
+                throw new InvalidDataException("The shared document structure contains a reference cycle.");
+            }
             flattened.Add(node);
-            stack.Push(new TraversalFrame(node, frame.Depth, isExit: true));
             IReadOnlyList<OfficeDocumentModelNode>? children = node.Children;
             if (children == null) throw new InvalidDataException("A shared document structure node has a null Children collection.");
-            for (int index = children.Count - 1; index >= 0; index--) {
-                stack.Push(new TraversalFrame(children[index], frame.Depth + 1, isExit: false));
-            }
+            if (children.Count == 0) ancestry.Remove(node);
+            else stack.Push(new TraversalFrame(children, 0, frame.Depth + 1, node));
         }
         return flattened;
     }
 
     private readonly struct TraversalFrame {
-        internal TraversalFrame(OfficeDocumentModelNode? node, int depth, bool isExit) {
-            Node = node;
+        internal TraversalFrame(IReadOnlyList<OfficeDocumentModelNode> nodes, int index, int depth, OfficeDocumentModelNode? owner) {
+            Nodes = nodes;
+            Index = index;
             Depth = depth;
-            IsExit = isExit;
+            Owner = owner;
         }
 
-        internal OfficeDocumentModelNode? Node { get; }
+        internal IReadOnlyList<OfficeDocumentModelNode> Nodes { get; }
+        internal int Index { get; }
         internal int Depth { get; }
-        internal bool IsExit { get; }
+        internal OfficeDocumentModelNode? Owner { get; }
     }
 
     private sealed class ReferenceComparer : IEqualityComparer<OfficeDocumentModelNode> {
