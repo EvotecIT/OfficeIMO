@@ -248,7 +248,13 @@ internal static class IWorkNumbersReader {
             MarkTableStorageUnsupported(model, recognized, diagnostics, ref supportsEditableReconstruction);
             return new IWorkNumbersTable(name, rows, columns, cells);
         }
-        foreach (IWorkWireMessage tileEntry in IWorkObjectIndex.TryGetMessages(tileStorage, 1)) {
+        IReadOnlyList<IWorkWireMessage> tileEntries = IWorkObjectIndex.TryGetMessages(
+            tileStorage, 1, out bool malformedTileEntries);
+        if (malformedTileEntries) {
+            MarkTableStorageUnsupported(model, recognized, diagnostics, ref supportsEditableReconstruction);
+            return new IWorkNumbersTable(name, rows, columns, cells);
+        }
+        foreach (IWorkWireMessage tileEntry in tileEntries) {
             ulong rawTileId = tileEntry.GetUnsigned(1) ?? 0;
             if (rawTileId > int.MaxValue) {
                 supportsEditableReconstruction = false;
@@ -270,7 +276,17 @@ internal static class IWorkNumbersReader {
                 continue;
             }
             bool tileFullyReconstructed = true;
-            foreach (IWorkWireMessage rowInfo in IWorkObjectIndex.TryGetMessages(index.Message(tile), 5)) {
+            IReadOnlyList<IWorkWireMessage> rowsInTile = IWorkObjectIndex.TryGetMessages(
+                index.Message(tile), 5, out bool malformedRows);
+            if (malformedRows) {
+                supportsEditableReconstruction = false;
+                tileFullyReconstructed = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_NUMBERS_TILE_ROWS_UNSUPPORTED",
+                    "A Numbers table tile contains malformed row metadata; editable reconstruction is incomplete.",
+                    tile.EntryPath, tile.Identifier));
+            }
+            foreach (IWorkWireMessage rowInfo in rowsInTile) {
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
                 bool hasPreBncStorage = (rowInfo.GetBytes(3)?.Length ?? 0) > 0
@@ -321,6 +337,8 @@ internal static class IWorkNumbersReader {
 
         int errorCount = cells.Count(cell => cell.Kind == IWorkCellKind.Error);
         if (errorCount > 0) {
+            supportsEditableReconstruction = false;
+            recognized.Remove(model.Identifier);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_DECODE",
                 $"{errorCount} cells in table '{name}' could not be decoded completely.", model.EntryPath, model.Identifier));
         }

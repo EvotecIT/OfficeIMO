@@ -137,20 +137,34 @@ internal static class IWorkKeynoteReader {
             }
             recognized.Add(node.Identifier);
             recognized.Add(slide.Identifier);
-            slides.Add(ReadSlide(index, slide, position, skipped, recognized));
+            slides.Add(ReadSlide(index, slide, position, skipped, recognized, diagnostics,
+                ref supportsEditableReconstruction));
         }
         return new IWorkKeynoteProjection(source, slides, recognized, diagnostics, supportsEditableReconstruction);
     }
 
     private static IWorkKeynoteSlide ReadSlide(IWorkObjectIndex index, IWorkArchiveRecord slide,
-        int position, bool skipped, HashSet<ulong> recognized) {
+        int position, bool skipped, HashSet<ulong> recognized, List<IWorkDiagnostic> diagnostics,
+        ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(slide);
         IWorkArchiveRecord? titlePlaceholder = index.Dereference(message, 5);
         var candidates = new List<IWorkArchiveRecord>();
+        bool hasUnresolvedDrawable = false;
         foreach (int field in new[] { 5, 6, 7, 42 }) {
-            foreach (IWorkArchiveRecord candidate in index.DereferenceAll(message, field)) {
+            IReadOnlyList<IWorkArchiveRecord> fieldCandidates = index.DereferenceAll(
+                message, field, out int unresolvedDrawableCount);
+            hasUnresolvedDrawable |= unresolvedDrawableCount > 0;
+            foreach (IWorkArchiveRecord candidate in fieldCandidates) {
                 if (!candidates.Any(existing => existing.Identifier == candidate.Identifier)) candidates.Add(candidate);
             }
+        }
+        if (hasUnresolvedDrawable) {
+            supportsEditableReconstruction = false;
+            recognized.Remove(slide.Identifier);
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                "A Keynote slide contains an unresolved drawable reference; editable reconstruction is incomplete.",
+                slide.EntryPath, slide.Identifier));
         }
 
         string title = string.Empty;

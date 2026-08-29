@@ -114,10 +114,7 @@ public sealed partial class IWorkSourceDocument {
 
     private static IWorkDocumentKind DetectKind(IReadOnlyList<IWorkPackageEntry> entries,
         IReadOnlyList<IWorkArchiveRecord> records, IWorkDocumentKind? hint) {
-        bool hasSlides = entries.Any(entry =>
-            entry.Path.StartsWith("Index/Slide", StringComparison.OrdinalIgnoreCase)
-            || entry.Path.StartsWith("Index/MasterSlide", StringComparison.OrdinalIgnoreCase)
-            || entry.Path.StartsWith("Index/TemplateSlide", StringComparison.OrdinalIgnoreCase));
+        bool hasSlides = entries.Any(entry => IsKeynoteSlideArchive(entry.Path));
         if (hasSlides) return IWorkDocumentKind.Keynote;
         if (records.Any(record => record.IsPrimary && record.MessageType == 10000)) return IWorkDocumentKind.Pages;
         if (records.Any(record => record.IsPrimary && record.MessageType == 2)
@@ -128,6 +125,21 @@ public sealed partial class IWorkSourceDocument {
         if (records.Any(record => record.IsPrimary && record.MessageType == 1)) return IWorkDocumentKind.Numbers;
         throw new InvalidDataException("The iWork application kind could not be identified from the package structure.");
     }
+
+    private static bool IsKeynoteSlideArchive(string path) {
+        const string indexPrefix = "Index/";
+        if (!path.StartsWith(indexPrefix, StringComparison.OrdinalIgnoreCase)
+            || path.IndexOf('/', indexPrefix.Length) >= 0) return false;
+        string name = path.Substring(indexPrefix.Length);
+        return IsArchiveName(name, "Slide")
+            || IsArchiveName(name, "MasterSlide")
+            || IsArchiveName(name, "TemplateSlide");
+    }
+
+    private static bool IsArchiveName(string name, string stem) =>
+        name.Equals(stem + ".iwa", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith(stem + "-", StringComparison.OrdinalIgnoreCase)
+        && name.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase);
 
     private static IWorkDocumentKind? KindFromExtension(string extension) => extension.ToLowerInvariant() switch {
         ".pages" => IWorkDocumentKind.Pages,
@@ -210,8 +222,6 @@ public sealed partial class IWorkSourceDocument {
             byte[] signature = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
             return bytes.Length >= signature.Length && signature.Where((value, index) => bytes[index] != value).Any() == false;
         }
-        return mediaType == "application/pdf" && bytes.Length >= 5
-            && bytes[0] == (byte)'%' && bytes[1] == (byte)'P' && bytes[2] == (byte)'D'
-            && bytes[3] == (byte)'F' && bytes[4] == (byte)'-';
+        return mediaType == "application/pdf" && IWorkPdfInfo.IsComplete(bytes);
     }
 }

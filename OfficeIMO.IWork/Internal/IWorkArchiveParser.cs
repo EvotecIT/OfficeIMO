@@ -35,7 +35,12 @@ internal sealed class IWorkObjectIndex {
         out int unresolvedReferenceCount) {
         var result = new List<IWorkArchiveRecord>();
         unresolvedReferenceCount = 0;
-        foreach (IWorkWireMessage reference in TryGetMessages(message, field)) {
+        IReadOnlyList<IWorkWireMessage> references = TryGetMessages(message, field, out bool malformed);
+        if (malformed) {
+            unresolvedReferenceCount = 1;
+            return result;
+        }
+        foreach (IWorkWireMessage reference in references) {
             ulong? identifier = reference.GetUnsigned(1);
             if (identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)) {
                 result.Add(record);
@@ -55,9 +60,16 @@ internal sealed class IWorkObjectIndex {
     }
 
     internal static IReadOnlyList<IWorkWireMessage> TryGetMessages(IWorkWireMessage message, int field) {
+        return TryGetMessages(message, field, out _);
+    }
+
+    internal static IReadOnlyList<IWorkWireMessage> TryGetMessages(IWorkWireMessage message, int field,
+        out bool malformed) {
         try {
+            malformed = false;
             return message.GetRepeatedMessages(field);
         } catch (InvalidDataException) {
+            malformed = true;
             return Array.Empty<IWorkWireMessage>();
         }
     }

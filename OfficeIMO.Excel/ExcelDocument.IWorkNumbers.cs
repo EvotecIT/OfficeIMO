@@ -34,9 +34,14 @@ public partial class ExcelDocument {
         }
 
         IWorkNumbersProjection projection = source.ReadNumbers();
-        bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent;
+        string? destinationLimitation = mode == IWorkImportMode.VisualOnly
+            ? null
+            : FindExcelProjectionLimitation(projection);
+        bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
+            && destinationLimitation == null;
         if (!editable && mode == IWorkImportMode.EditableOnly) {
-            throw new InvalidDataException("The Numbers source has no supported editable content.");
+            throw new InvalidDataException(destinationLimitation
+                ?? "The Numbers source has no supported editable content.");
         }
 
         preview ??= editable ? null : source.PreferredRasterPreview;
@@ -56,9 +61,6 @@ public partial class ExcelDocument {
                     if (sourceSheet.TextBoxes.Count > 0 && sourceSheet.Tables.Count > 0) targetRow++;
                     for (int tableIndex = 0; tableIndex < sourceSheet.Tables.Count; tableIndex++) {
                         IWorkNumbersTable table = sourceSheet.Tables[tableIndex];
-                        if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
-                            throw new InvalidDataException($"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.");
-                        }
                         if (targetRow > 1_048_576 - Math.Max(table.RowCount - 1, 0)) {
                             string splitName = sourceSheet.Name + " - "
                                 + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
@@ -69,6 +71,7 @@ public partial class ExcelDocument {
                         foreach (IWorkNumbersCell cell in table.Cells) {
                             object? value = cell.Kind switch {
                                 IWorkCellKind.Formula or IWorkCellKind.Error => cell.DisplayText,
+                                IWorkCellKind.Duration when cell.Value is double seconds => TimeSpan.FromSeconds(seconds),
                                 _ => cell.Value
                             };
                             sheet.CellAt(tableStartRow + cell.Row - 1, cell.Column).SetValue(value);
@@ -78,9 +81,9 @@ public partial class ExcelDocument {
                 }
             } else {
                 ExcelSheet sheet = document.AddWorksheet("Preview");
-                int width = Math.Min(preview!.PixelWidth.GetValueOrDefault(800), 1600);
-                int height = Math.Min(preview.PixelHeight.GetValueOrDefault(1040), 1600);
-                sheet.AddImage(1, 1, preview.GetBytes(), preview.MediaType, width, height,
+                IWorkPreviewAsset visualPreview = preview!;
+                (int width, int height) = PreviewSize(visualPreview);
+                sheet.AddImage(1, 1, visualPreview.GetBytes(), visualPreview.MediaType, width, height,
                     name: "Numbers visual fallback", altText: "Visual fallback from the source Numbers package");
             }
 
@@ -92,5 +95,39 @@ public partial class ExcelDocument {
             document.Dispose();
             throw;
         }
+    }
+
+    private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection) {
+        foreach (IWorkNumbersSheet sheet in projection.Sheets) {
+            if (sheet.TextBoxes.Any(text => text.Length > 32_767)) {
+                return $"Numbers sheet '{sheet.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
+            }
+            foreach (IWorkNumbersTable table in sheet.Tables) {
+                if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
+                    return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
+                }
+                foreach (IWorkNumbersCell cell in table.Cells) {
+                    string? text = cell.Kind is IWorkCellKind.Formula or IWorkCellKind.Error
+                        ? cell.DisplayText
+                        : cell.Value as string;
+                    if (text?.Length > 32_767) {
+                        return $"Numbers table '{table.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
+                    }
+                    if (cell.Kind == IWorkCellKind.Duration && cell.Value is double seconds
+                        && (seconds < TimeSpan.MinValue.TotalSeconds || seconds > TimeSpan.MaxValue.TotalSeconds)) {
+                        return $"Numbers table '{table.Name}' contains a duration outside the XLSX-supported range.";
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static (int Width, int Height) PreviewSize(IWorkPreviewAsset preview) {
+        double width = preview.PixelWidth.GetValueOrDefault(800);
+        double height = preview.PixelHeight.GetValueOrDefault(1040);
+        double scale = Math.Min(1d, Math.Min(1600d / width, 1600d / height));
+        return (Math.Max(1, (int)Math.Round(width * scale, MidpointRounding.AwayFromZero)),
+            Math.Max(1, (int)Math.Round(height * scale, MidpointRounding.AwayFromZero)));
     }
 }

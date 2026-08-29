@@ -1,6 +1,7 @@
 using OfficeIMO.Excel;
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.IWork.Tests;
 
@@ -202,6 +203,102 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Malformed_numbers_references_disable_editable_reconstruction() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Table", 1, 1, 42d)
+        }, includePreview: true, includeMalformedDrawableReference: true);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_NUMBERS_DRAWABLE_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Missing_pages_body_disables_editable_reconstruction_even_when_a_text_box_exists() {
+        using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: "Floating text", includePreview: true);
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Equal("Floating text", Assert.Single(result.Projection.TextBoxes));
+        Assert.Contains(result.Projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_BODY_MISSING");
+    }
+
+    [Fact]
+    public void Resource_names_that_begin_with_slide_do_not_override_pages_detection() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
+            archivePath: "Index/SlideshowResource.iwa");
+
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+
+        Assert.Equal(IWorkDocumentKind.Pages, source.Kind);
+        Assert.Equal("Body", Assert.Single(source.ReadPages().Paragraphs));
+    }
+
+    [Fact]
+    public void Numbers_durations_are_written_as_excel_day_fractions() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Duration", 1, 1, 3600d, duration: true)
+        });
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.Equal(1d / 24d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+    }
+
+    [Fact]
+    public void Numbers_text_beyond_the_xlsx_cell_limit_uses_visual_fallback_without_losing_source_text() {
+        string longText = new('x', 32_768);
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Long text", 1, 1, 0d, textValue: longText)
+        }, includePreview: true);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
+        Assert.Equal(longText, Assert.Single(Assert.Single(result.Projection.Sheets).Tables).GetCell(1, 1)!.Value);
+
+        using MemoryStream editableOnlyPackage = CreateNumbersPackage(new[] {
+            new TableSpec("Long text", 1, 1, 0d, textValue: longText)
+        }, includePreview: true);
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            ExcelDocument.LoadNumbersWithReport(editableOnlyPackage,
+                new IWorkReadOptions { ImportMode = IWorkImportMode.EditableOnly }));
+        Assert.Contains("32,767", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Numbers_visual_fallback_preserves_preview_aspect_ratio() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Table", 1, 1, 42d)
+        }, includePreview: true, previewBytes: CreateSizedPreviewPng(2400, 1200));
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package,
+            new IWorkReadOptions { ImportMode = IWorkImportMode.VisualOnly });
+        ExcelImage image = Assert.Single(result.Document.Sheets[0].Images);
+
+        Assert.Equal(1600, image.WidthPixels);
+        Assert.Equal(800, image.HeightPixels);
+    }
+
+    [Fact]
+    public void Structurally_complete_pdf_previews_are_preserved_as_full_document_assets() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
+            pdfPreviewBytes: CreateValidPdf());
+
+        IWorkPreviewAsset preview = Assert.Single(
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).Previews);
+
+        Assert.Equal("application/pdf", preview.MediaType);
+        Assert.Equal(IWorkVisualCoverage.FullDocument, preview.Coverage);
+    }
+
+    [Fact]
     public void Ignores_resource_names_and_malformed_files_that_only_look_like_previews() {
         using FileStream input = File.OpenRead(Fixture("nim-iwork/simple.pages"));
         using var source = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
@@ -210,7 +307,8 @@ public sealed class IWorkBoundaryTests {
             foreach (ZipArchiveEntry entry in source.Entries.Where(candidate =>
                          !string.Equals(candidate.FullName, "preview.jpg", StringComparison.OrdinalIgnoreCase)
                          && !string.Equals(candidate.FullName, "preview-web.jpg", StringComparison.OrdinalIgnoreCase)
-                         && !string.Equals(candidate.FullName, "preview.png", StringComparison.OrdinalIgnoreCase))) {
+                         && !string.Equals(candidate.FullName, "preview.png", StringComparison.OrdinalIgnoreCase)
+                         && !string.Equals(candidate.FullName, "preview.pdf", StringComparison.OrdinalIgnoreCase))) {
                 ZipArchiveEntry copy = target.CreateEntry(entry.FullName);
                 using Stream sourceStream = entry.Open();
                 using Stream targetStream = copy.Open();
@@ -220,6 +318,7 @@ public sealed class IWorkBoundaryTests {
             WriteEntry(target, "Data/unrelated-preview.jpg", validPreview);
             WriteEntry(target, "preview.jpg", new byte[] { 0xff, 0xd8, 0xff });
             WriteEntry(target, "preview.png", CreateIncompletePngHeader(1200, 900));
+            WriteEntry(target, "preview.pdf", System.Text.Encoding.ASCII.GetBytes("%PDF-"));
             WriteEntry(target, "preview-web.jpg", validPreview);
         }
         package.Position = 0;
@@ -229,6 +328,7 @@ public sealed class IWorkBoundaryTests {
         Assert.DoesNotContain(document.Previews, preview => preview.Path.StartsWith("Data/", StringComparison.Ordinal));
         Assert.DoesNotContain(document.Previews, preview => preview.Path == "preview.jpg");
         Assert.DoesNotContain(document.Previews, preview => preview.Path == "preview.png");
+        Assert.DoesNotContain(document.Previews, preview => preview.Path == "preview.pdf");
         Assert.Equal("preview-web.jpg", document.PreferredRasterPreview!.Path);
     }
 
@@ -248,7 +348,7 @@ public sealed class IWorkBoundaryTests {
     }
 
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
-        bool includePreview = false) {
+        bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
@@ -258,9 +358,10 @@ public sealed class IWorkBoundaryTests {
 
         for (int index = 0; index < tables.Count; index++) {
             TableSpec table = tables[index];
-            ulong tableInfoId = checked((ulong)(10 + index * 3));
+            ulong tableInfoId = checked((ulong)(10 + index * 4));
             ulong modelId = tableInfoId + 1;
             ulong tileId = tableInfoId + 2;
+            ulong stringListId = tableInfoId + 3;
             sheetFields.Add(ReferenceField(2, tableInfoId));
             records.Add(ArchiveRecord(tableInfoId, 6000,
                 table.MissingModel ? Message() : Message(ReferenceField(2, modelId))));
@@ -268,19 +369,25 @@ public sealed class IWorkBoundaryTests {
 
             byte[] rowInfo = table.LegacyStorage
                 ? Message(VarintField(1, 0), BytesField(3, new byte[] { 1 }), BytesField(4, new byte[] { 1 }))
-                : CreateBncRow(table.Value, table.WideOffsets, table.HasFormula);
+                : CreateBncRow(table);
             byte[] tilePayload = Message(BytesField(5, rowInfo));
             if (!table.MissingTile) records.Add(ArchiveRecord(tileId, 6002, tilePayload));
 
             byte[] tileEntry = Message(VarintField(1, 0), ReferenceField(2, tileId));
             byte[] tileStorage = Message(BytesField(1, tileEntry));
-            byte[] store = Message(BytesField(3, tileStorage));
+            byte[] store = table.TextValue == null
+                ? Message(BytesField(3, tileStorage))
+                : Message(BytesField(3, tileStorage), ReferenceField(4, stringListId));
             byte[] model = Message(
                 BytesField(4, store),
                 VarintField(6, checked((ulong)table.Rows)),
                 VarintField(7, checked((ulong)table.Columns)),
                 StringField(8, table.Name));
             records.Add(ArchiveRecord(modelId, 6001, model));
+            if (table.TextValue != null) {
+                byte[] stringEntry = Message(VarintField(1, 1), StringField(3, table.TextValue));
+                records.Add(ArchiveRecord(stringListId, 6200, Message(BytesField(3, stringEntry))));
+            }
         }
 
         if (textBox != null) {
@@ -290,33 +397,59 @@ public sealed class IWorkBoundaryTests {
             records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, storageId))));
             records.Add(ArchiveRecord(storageId, 2001, Message(StringField(3, textBox))));
         }
+        if (includeMalformedDrawableReference) {
+            sheetFields.Add(BytesField(2, new byte[] { 0x08, 0x80 }));
+        }
 
         records.Insert(1, ArchiveRecord(sheetId, 2, Message(sheetFields.ToArray())));
         byte[] iwaStream = Message(records.ToArray());
         return includePreview
             ? CreatePackage(
                 ("Index/Document.iwa", FrameIwa(iwaStream)),
-                ("preview.png", Convert.FromBase64String(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")))
+                ("preview.png", previewBytes ?? ValidPreviewPng()))
             : CreatePackage(("Index/Document.iwa", FrameIwa(iwaStream)));
     }
 
-    private static byte[] CreateBncRow(double value, bool wideOffsets, bool hasFormula) {
-        int cellOffset = wideOffsets ? 4 : 0;
-        var buffer = new byte[cellOffset + (hasFormula ? 24 : 20)];
+    private static byte[] CreateBncRow(TableSpec table) {
+        int cellOffset = table.WideOffsets ? 4 : 0;
+        var buffer = new byte[cellOffset + (table.HasFormula ? 24 : 20)];
         buffer[cellOffset] = 5;
-        buffer[cellOffset + 1] = 2;
-        WriteUInt32(buffer, cellOffset + 8, (1u << 1) | (hasFormula ? 1u << 9 : 0));
-        Buffer.BlockCopy(BitConverter.GetBytes(value), 0, buffer, cellOffset + 12, 8);
-        ushort encodedOffset = checked((ushort)(wideOffsets ? cellOffset / 4 : cellOffset));
+        buffer[cellOffset + 1] = table.TextValue != null ? (byte)3 : table.Duration ? (byte)7 : (byte)2;
+        uint valueFlag = table.TextValue != null ? 1u << 3 : 1u << 1;
+        WriteUInt32(buffer, cellOffset + 8, valueFlag | (table.HasFormula ? 1u << 9 : 0));
+        if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
+        else Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 12, 8);
+        ushort encodedOffset = checked((ushort)(table.WideOffsets ? cellOffset / 4 : cellOffset));
         byte[] offsets = { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
         var fields = new List<byte[]> {
             VarintField(1, 0),
             BytesField(6, buffer),
             BytesField(7, offsets)
         };
-        if (wideOffsets) fields.Add(VarintField(8, 1));
+        if (table.WideOffsets) fields.Add(VarintField(8, 1));
         return Message(fields.ToArray());
+    }
+
+    private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
+        string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null) {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong shapeId = 3;
+        const ulong shapeStorageId = 4;
+        var records = new List<byte[]> {
+            ArchiveRecord(documentId, 10000,
+                includeBody ? Message(ReferenceField(4, bodyId)) : Message())
+        };
+        if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(StringField(3, "Body"))));
+        if (textBox != null) {
+            records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, shapeStorageId))));
+            records.Add(ArchiveRecord(shapeStorageId, 2001, Message(StringField(3, textBox))));
+        }
+        byte[] iwaStream = Message(records.ToArray());
+        var entries = new List<(string Path, byte[] Bytes)> { (archivePath, FrameIwa(iwaStream)) };
+        if (includePreview) entries.Add(("preview.png", ValidPreviewPng()));
+        if (pdfPreviewBytes != null) entries.Add(("preview.pdf", pdfPreviewBytes));
+        return CreatePackage(entries.ToArray());
     }
 
     private static byte[] ArchiveRecord(ulong identifier, uint type, byte[] payload) {
@@ -435,6 +568,35 @@ public sealed class IWorkBoundaryTests {
     private static byte[] ValidPreviewPng() => Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
+    private static byte[] CreateSizedPreviewPng(int width, int height) {
+        byte[] bytes = ValidPreviewPng();
+        WriteBigEndian32(bytes, 16, width);
+        WriteBigEndian32(bytes, 20, height);
+        WriteBigEndian32(bytes, 29, unchecked((int)CalculatePngCrc(bytes, 12, 17)));
+        return bytes;
+    }
+
+    private static uint CalculatePngCrc(byte[] bytes, int offset, int length) {
+        uint crc = uint.MaxValue;
+        for (int index = offset; index < offset + length; index++) {
+            crc ^= bytes[index];
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1) != 0 ? 0xedb88320U ^ crc >> 1 : crc >> 1;
+            }
+        }
+        return crc ^ uint.MaxValue;
+    }
+
+    private static byte[] CreateValidPdf() {
+        const string prefix = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n";
+        int xrefOffset = System.Text.Encoding.ASCII.GetByteCount(prefix);
+        string suffix = "xref\n0 2\n0000000000 65535 f \n0000000009 00000 n \n"
+            + "trailer\n<< /Size 2 /Root 1 0 R >>\nstartxref\n"
+            + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + "\n%%EOF\n";
+        return System.Text.Encoding.ASCII.GetBytes(prefix + suffix);
+    }
+
     private static string Fixture(string relativePath) =>
         Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             relativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -442,7 +604,8 @@ public sealed class IWorkBoundaryTests {
     private sealed class TableSpec {
         internal TableSpec(string name, int rows, int columns, double value,
             bool wideOffsets = false, bool legacyStorage = false, bool hasFormula = false,
-            bool missingModel = false, bool missingTile = false) {
+            bool missingModel = false, bool missingTile = false, string? textValue = null,
+            bool duration = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -452,6 +615,8 @@ public sealed class IWorkBoundaryTests {
             HasFormula = hasFormula;
             MissingModel = missingModel;
             MissingTile = missingTile;
+            TextValue = textValue;
+            Duration = duration;
         }
 
         internal string Name { get; }
@@ -463,5 +628,7 @@ public sealed class IWorkBoundaryTests {
         internal bool HasFormula { get; }
         internal bool MissingModel { get; }
         internal bool MissingTile { get; }
+        internal string? TextValue { get; }
+        internal bool Duration { get; }
     }
 }
