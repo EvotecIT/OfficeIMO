@@ -85,13 +85,19 @@ public sealed class BibliographyNativeField {
     private readonly string _originalValue;
 
     /// <summary>Initializes a native field.</summary>
-    public BibliographyNativeField(BibliographyFormat format, string name, string value, string? rawValue = null) {
+    public BibliographyNativeField(BibliographyFormat format, string name, string value, string? rawValue = null)
+        : this(format, name, value, rawValue, false) { }
+
+    private BibliographyNativeField(BibliographyFormat format, string name, string value, string? rawValue, bool allowEmptyName) {
         Format = format;
-        Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("Field name cannot be empty.", nameof(name)) : name;
+        Name = !allowEmptyName && string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("Field name cannot be empty.", nameof(name)) : name ?? throw new ArgumentNullException(nameof(name));
         Value = value ?? throw new ArgumentNullException(nameof(value));
         _originalValue = value;
         RawValue = rawValue;
     }
+
+    internal static BibliographyNativeField FromParsedSource(BibliographyFormat format, string name, string value, string? rawValue = null) =>
+        new BibliographyNativeField(format, name, value, rawValue, true);
 
     /// <summary>Source format that owns the field name and syntax.</summary>
     public BibliographyFormat Format { get; }

@@ -9,8 +9,9 @@ internal static class CslJsonCodec {
         "DOI", "ISBN", "ISSN", "PMID", "PMCID", "keyword", "note"
     };
 
-    internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, CancellationToken cancellationToken) {
+    internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, out bool singleObjectRoot, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
+        singleObjectRoot = false;
         var limits = new BibliographyLimitGuard(options);
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
@@ -18,6 +19,7 @@ internal static class CslJsonCodec {
             if (json.RootElement.ValueKind == JsonValueKind.Array) {
                 foreach (JsonElement element in json.RootElement.EnumerateArray()) ParseItem(element, items, limits, diagnosticGuard, cancellationToken);
             } else if (json.RootElement.ValueKind == JsonValueKind.Object) {
+                singleObjectRoot = true;
                 ParseItem(json.RootElement, items, limits, diagnosticGuard, cancellationToken);
             } else {
                 diagnosticGuard.Add(new BibliographyDiagnostic("BIBCSL001", BibliographyDiagnosticSeverity.Error, "CSL JSON root must be an object or an array."));
@@ -32,7 +34,8 @@ internal static class CslJsonCodec {
     internal static string Write(BibliographyDocument document, BibliographyWriteOptions options, BibliographyConversionReport report, CancellationToken cancellationToken) {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true })) {
-            writer.WriteStartArray();
+            bool preserveSingleObjectRoot = document.Items.Count == 1 && document.CslJsonSingleObjectRoot;
+            if (!preserveSingleObjectRoot) writer.WriteStartArray();
             for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
@@ -68,9 +71,10 @@ internal static class CslJsonCodec {
                 }
                 writer.WriteEndObject();
             }
-            writer.WriteEndArray();
+            if (!preserveSingleObjectRoot) writer.WriteEndArray();
         }
         string text = Encoding.UTF8.GetString(stream.ToArray());
+        if (document.CslJsonSingleObjectRoot && document.Items.Count != 1) report.Add("BIBCONV130", BibliographyDiagnosticSeverity.Warning, "The single-item CSL JSON object root cannot represent the current item count.", BibliographyConversionAction.Approximated, field: "root-shape");
         foreach (BibliographyNativeEntry entry in document.NativeEntries) report.Add("BIBCONV121", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in CSL JSON.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         return options.LineEnding == "\n" ? text + options.LineEnding : NormalizeLineEndings(text, options.LineEnding) + options.LineEnding;
     }
@@ -87,7 +91,7 @@ internal static class CslJsonCodec {
             cancellationToken.ThrowIfCancellationRequested();
             if (!seenProperties.Add(property.Name)) {
                 string duplicateRaw = GetBoundedRawValue(property.Value, items, limits);
-                item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, duplicateRaw), duplicateRaw));
+                item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, duplicateRaw), duplicateRaw));
                 continue;
             }
             switch (property.Name.ToLowerInvariant()) {
@@ -126,7 +130,7 @@ internal static class CslJsonCodec {
                 case "note": item.Notes.Add(Scalar(property.Value)); break;
                 default:
                     string raw = GetBoundedRawValue(property.Value, items, limits);
-                    item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
+                    item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
                     break;
             }
         }
@@ -172,11 +176,11 @@ internal static class CslJsonCodec {
                 var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (JsonProperty property in element.EnumerateObject()) {
                     string scalar = Scalar(property.Value);
-                    if (!seenProperties.Add(property.Name)) { string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); continue; }
+                    if (!seenProperties.Add(property.Name)) { string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); continue; }
                     switch (property.Name.ToLowerInvariant()) {
                         case "given": name.Given = scalar; break; case "family": name.Family = scalar; break; case "literal": name.Literal = scalar; break;
                         case "suffix": name.Suffix = scalar; break; case "dropping-particle": name.DroppingParticle = scalar; break; case "non-dropping-particle": name.NonDroppingParticle = scalar; break;
-                        default: string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); break;
+                        default: string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); break;
                     }
                 }
                 item.Contributors.Add(new BibliographyContributor(role, name));
@@ -191,12 +195,12 @@ internal static class CslJsonCodec {
             foreach (JsonProperty property in value.EnumerateObject()) {
                 if (!seenProperties.Add(property.Name)) {
                     string raw = GetBoundedRawValue(property.Value, items, limits);
-                    date.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
+                    date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
                     continue;
                 }
                 if (string.Equals(property.Name, "literal", StringComparison.OrdinalIgnoreCase)) date.Literal = Scalar(property.Value);
                 else if (string.Equals(property.Name, "date-parts", StringComparison.OrdinalIgnoreCase)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
-                else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
+                else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
             }
         } else date.Literal = Scalar(value);
         item.Dates.Add(date);

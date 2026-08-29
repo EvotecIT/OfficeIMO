@@ -10,6 +10,8 @@ internal static class BibliographyReader {
 
         var diagnostics = new List<BibliographyDiagnostic>();
         var nativeEntries = new List<BibliographyNativeEntry>();
+        bool cslJsonSingleObjectRoot = false;
+        bool endNoteRecordsRoot = false;
         IList<BibliographyItem> items;
         try {
             switch (format) {
@@ -18,7 +20,7 @@ internal static class BibliographyReader {
                     items = BibCodec.Parse(source, format, options, diagnostics, nativeEntries, cancellationToken);
                     break;
                 case BibliographyFormat.CslJson:
-                    items = CslJsonCodec.Parse(source, options, diagnostics, cancellationToken);
+                    items = CslJsonCodec.Parse(source, options, diagnostics, out cslJsonSingleObjectRoot, cancellationToken);
                     break;
                 case BibliographyFormat.Ris:
                     items = TaggedCodec.ParseRis(source, options, diagnostics, cancellationToken);
@@ -27,7 +29,7 @@ internal static class BibliographyReader {
                     items = TaggedCodec.ParseNbib(source, options, diagnostics, cancellationToken);
                     break;
                 case BibliographyFormat.EndNoteXml:
-                    items = EndNoteXmlCodec.Parse(source, options, diagnostics, nativeEntries, cancellationToken);
+                    items = EndNoteXmlCodec.Parse(source, options, diagnostics, nativeEntries, out endNoteRecordsRoot, cancellationToken);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(format), format, "Unknown bibliography format.");
@@ -40,7 +42,7 @@ internal static class BibliographyReader {
             items = exception.PartialItems;
         }
 
-        var document = new BibliographyDocument(format, items, nativeEntries, source, originalBytes, diagnostics.AsReadOnly());
+        var document = new BibliographyDocument(format, items, nativeEntries, source, originalBytes, diagnostics.AsReadOnly(), cslJsonSingleObjectRoot, endNoteRecordsRoot);
         return new BibliographyReadResult(document, document.Diagnostics);
     }
 }

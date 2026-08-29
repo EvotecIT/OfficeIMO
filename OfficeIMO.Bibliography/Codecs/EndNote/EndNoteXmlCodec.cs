@@ -4,12 +4,16 @@ using System.Xml.Linq;
 namespace OfficeIMO.Bibliography;
 
 internal static class EndNoteXmlCodec {
+    private const string AttributesEntryKind = "attributes";
+    private const string RecordsElementEntryKind = "records-element";
+    private const string RecordAttributesFieldName = "@record-attributes";
     private static readonly HashSet<string> KnownRecordElements = new HashSet<string>(new[] {
         "rec-number", "ref-type", "contributors", "titles", "periodical", "pages", "volume", "number", "edition", "publisher", "pub-location", "abstract", "language", "dates", "isbn", "electronic-resource-num", "accession-num", "urls", "keywords", "notes"
     }, StringComparer.OrdinalIgnoreCase);
 
-    internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyNativeEntry> nativeEntries, CancellationToken cancellationToken) {
+    internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyNativeEntry> nativeEntries, out bool recordsRoot, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
+        recordsRoot = false;
         var limits = new BibliographyLimitGuard(options);
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
@@ -19,14 +23,27 @@ internal static class EndNoteXmlCodec {
             using XmlReader reader = XmlReader.Create(textReader, settings);
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             XElement? root = document.Root;
-            if (root != null && !string.Equals(root.Name.LocalName, "records", StringComparison.OrdinalIgnoreCase)) foreach (XElement element in root.Elements().Where(element => element.Name.LocalName != "records")) {
+            bool rootIsRecords = root != null && string.Equals(root.Name.LocalName, "records", StringComparison.OrdinalIgnoreCase);
+            recordsRoot = rootIsRecords;
+            if (root != null) {
+                CaptureAttributes(root, nativeEntries, items, limits);
+            }
+            if (root != null && !rootIsRecords) foreach (XElement element in root.Elements().Where(element => element.Name.LocalName != "records")) {
                 ValidateAggregateValueLengths(element, items, limits, true);
                 limits.AddValue(items, null, GetOffset(element));
                 nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, "element", element.ToString(SaveOptions.DisableFormatting), element.Name.LocalName));
             }
-            IEnumerable<XElement> records = root == null ? Enumerable.Empty<XElement>()
-                : string.Equals(root.Name.LocalName, "records", StringComparison.OrdinalIgnoreCase) ? root.Elements().Where(child => child.Name.LocalName == "record")
-                : root.Elements().Where(element => element.Name.LocalName == "records").SelectMany(element => element.Elements().Where(child => child.Name.LocalName == "record"));
+            IEnumerable<XElement> recordContainers = root == null ? Enumerable.Empty<XElement>() : rootIsRecords ? new[] { root } : root.Elements().Where(element => element.Name.LocalName == "records");
+            XElement[] containers = recordContainers.ToArray();
+            foreach (XElement container in containers) {
+                if (!ReferenceEquals(container, root)) CaptureAttributes(container, nativeEntries, items, limits);
+                foreach (XElement element in container.Elements().Where(child => child.Name.LocalName != "record")) {
+                    ValidateAggregateValueLengths(element, items, limits, true);
+                    limits.AddValue(items, null, GetOffset(element));
+                    nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, RecordsElementEntryKind, element.ToString(SaveOptions.DisableFormatting), element.Name.LocalName));
+                }
+            }
+            IEnumerable<XElement> records = containers.SelectMany(element => element.Elements().Where(child => child.Name.LocalName == "record"));
             foreach (XElement record in records) {
                 cancellationToken.ThrowIfCancellationRequested();
                 limits.AddItem(items, GetOffset(record));
@@ -54,29 +71,46 @@ internal static class EndNoteXmlCodec {
         var builder = new StringBuilder();
         using (var textWriter = new EncodingStringWriter(builder, options.Encoding))
         using (XmlWriter writer = XmlWriter.Create(textWriter, settings)) {
-            writer.WriteStartDocument(); writer.WriteStartElement("xml");
-            foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
-                if (TryWriteElement(writer, entry.Value)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
-                else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"Document-level EndNote XML element '{entry.Name}' is malformed and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
+            bool recordsRoot = document.EndNoteRecordsRoot;
+            string rootElementName = recordsRoot ? "records" : "xml";
+            string outputNamespace = GetDocumentElementNamespace(document, rootElementName);
+            writer.WriteStartDocument();
+            if (!recordsRoot) {
+                writer.WriteStartElement(null, "xml", outputNamespace);
+                WriteDocumentAttributes(writer, document, "xml", report);
+                foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
+                    if (TryWriteElement(writer, entry.Value)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
+                    else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"Document-level EndNote XML element '{entry.Name}' is malformed and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
+                }
             }
-            writer.WriteStartElement("records");
+            string recordsNamespace = GetDocumentElementNamespace(document, "records", outputNamespace);
+            writer.WriteStartElement(null, "records", recordsNamespace);
+            WriteDocumentAttributes(writer, document, "records", report);
+            foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == RecordsElementEntryKind)) {
+                if (TryWriteElement(writer, entry.Value)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML records-container element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
+                else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"EndNote XML records-container element '{entry.Name}' is malformed and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
+            }
             for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
-                writer.WriteStartElement("record");
-                writer.WriteElementString("rec-number", CodecMappings.OutputKey(item, itemIndex));
-                writer.WriteStartElement("ref-type"); writer.WriteAttributeString("name", ToEndNoteType(item.Type)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
-                WriteContributors(writer, item); WriteTitles(writer, item); WriteElement(writer, "pages", item.Pages); WriteElement(writer, "volume", item.Volume); WriteElement(writer, "number", item.Issue);
-                WriteElement(writer, "edition", item.Edition); WriteElement(writer, "publisher", item.Publisher); WriteElement(writer, "pub-location", item.PublisherPlace);
-                WriteElement(writer, "abstract", item.Abstract); WriteElement(writer, "language", item.Language); WriteDates(writer, item);
-                foreach (BibliographyIdentifier identifier in item.Identifiers) WriteIdentifier(writer, identifier);
-                WriteUrls(writer, item, report);
-                if (item.Keywords.Count > 0) { writer.WriteStartElement("keywords"); foreach (string keyword in item.Keywords) WriteElement(writer, "keyword", keyword); writer.WriteEndElement(); }
-                if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", item.Notes));
+                string recordNamespace = GetRecordNamespace(item, recordsNamespace);
+                writer.WriteStartElement(null, "record", recordNamespace);
+                WriteRecordAttributes(writer, item, report);
+                WriteElement(writer, "rec-number", CodecMappings.OutputKey(item, itemIndex), recordNamespace);
+                writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", ToEndNoteType(item.Type)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
+                WriteContributors(writer, item, recordNamespace); WriteTitles(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
+                WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
+                WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, recordNamespace);
+                foreach (BibliographyIdentifier identifier in item.Identifiers) WriteIdentifier(writer, identifier, recordNamespace);
+                WriteUrls(writer, item, report, recordNamespace);
+                if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in item.Keywords) WriteElement(writer, "keyword", keyword, recordNamespace); writer.WriteEndElement(); }
+                if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", item.Notes), recordNamespace);
                 foreach (BibliographyNativeField field in item.NativeFields) {
-                    if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)) {
+                    if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal)) {
                         continue;
-                    } else if (field.Format == BibliographyFormat.EndNoteXml && !KnownRecordElements.Contains(field.Name) && TryWriteNativeField(writer, field)) {
+                    } else if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    } else if (field.Format == BibliographyFormat.EndNoteXml && !KnownRecordElements.Contains(field.Name) && TryWriteNativeField(writer, field, recordNamespace)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
                     } else if (field.Format != BibliographyFormat.EndNoteXml) {
                         report.Add("BIBCONV115", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in EndNote XML.", BibliographyConversionAction.Omitted, item, field.Name);
@@ -86,9 +120,11 @@ internal static class EndNoteXmlCodec {
                 }
                 writer.WriteEndElement();
             }
-            writer.WriteEndElement(); writer.WriteEndElement(); writer.WriteEndDocument();
+            writer.WriteEndElement();
+            if (!recordsRoot) writer.WriteEndElement();
+            writer.WriteEndDocument();
         }
-        foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => entry.Format != BibliographyFormat.EndNoteXml || entry.Kind != "element")) report.Add("BIBCONV116", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in EndNote XML.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
+        foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => !IsConsumedEndNoteEntry(entry))) report.Add("BIBCONV116", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in EndNote XML.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         return builder.ToString();
     }
 
@@ -97,6 +133,11 @@ internal static class EndNoteXmlCodec {
         foreach (XElement leaf in record.Descendants().Where(static element => !element.HasElements)) limits.AddValue(partial, leaf.Value, GetOffset(leaf));
         string type = Child(record, "ref-type")?.Attribute("name")?.Value ?? Value(record, "ref-type");
         var item = new BibliographyItem { Key = Value(record, "rec-number"), NativeType = type, Type = CodecMappings.ParseType(type) };
+        if (HasElementMetadata(record)) {
+            string recordMetadata = SerializeAttributes(record);
+            limits.AddValue(partial, recordMetadata, GetOffset(record));
+            item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, RecordAttributesFieldName, recordMetadata));
+        }
         XElement? titles = Child(record, "titles");
         item.Title = Value(titles, "title"); item.ContainerTitle = FirstNonEmpty(Value(titles, "secondary-title"), Value(Child(record, "periodical"), "full-title")); item.CollectionTitle = Value(titles, "tertiary-title");
         item.Pages = Value(record, "pages"); item.Volume = Value(record, "volume"); item.Issue = Value(record, "number"); item.Edition = Value(record, "edition");
@@ -138,56 +179,117 @@ internal static class EndNoteXmlCodec {
         if (!string.IsNullOrWhiteSpace(issued)) item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Issued, issued));
     }
 
-    private static void WriteContributors(XmlWriter writer, BibliographyItem item) {
+    private static void WriteContributors(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
         if (item.Contributors.Count == 0) return;
-        writer.WriteStartElement("contributors");
+        writer.WriteStartElement(null, "contributors", xmlNamespace);
         foreach (IGrouping<BibliographyContributorRole, BibliographyContributor> group in item.Contributors.GroupBy(static contributor => contributor.Role)) {
-            writer.WriteStartElement(ElementFromRole(group.Key)); foreach (BibliographyContributor contributor in group) WriteElement(writer, "author", CodecMappings.FormatName(contributor.Name)); writer.WriteEndElement();
+            writer.WriteStartElement(null, ElementFromRole(group.Key), xmlNamespace); foreach (BibliographyContributor contributor in group) WriteElement(writer, "author", CodecMappings.FormatName(contributor.Name), xmlNamespace); writer.WriteEndElement();
         }
         writer.WriteEndElement();
     }
 
-    private static void WriteTitles(XmlWriter writer, BibliographyItem item) {
+    private static void WriteTitles(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
         if (string.IsNullOrWhiteSpace(item.Title) && string.IsNullOrWhiteSpace(item.ContainerTitle) && string.IsNullOrWhiteSpace(item.CollectionTitle)) return;
-        writer.WriteStartElement("titles"); WriteElement(writer, "title", item.Title); WriteElement(writer, "secondary-title", item.ContainerTitle); WriteElement(writer, "tertiary-title", item.CollectionTitle); writer.WriteEndElement();
+        writer.WriteStartElement(null, "titles", xmlNamespace); WriteElement(writer, "title", item.Title, xmlNamespace); WriteElement(writer, "secondary-title", item.ContainerTitle, xmlNamespace); WriteElement(writer, "tertiary-title", item.CollectionTitle, xmlNamespace); writer.WriteEndElement();
     }
 
-    private static void WriteDates(XmlWriter writer, BibliographyItem item) {
+    private static void WriteDates(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
         BibliographyDate? date = item.GetDate(BibliographyDateRole.Issued); if (date == null) return;
-        writer.WriteStartElement("dates"); if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture));
-        string formatted = CodecMappings.FormatDate(date); if (!string.IsNullOrWhiteSpace(formatted)) { writer.WriteStartElement("pub-dates"); WriteElement(writer, "date", formatted); writer.WriteEndElement(); } writer.WriteEndElement();
+        writer.WriteStartElement(null, "dates", xmlNamespace); if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace);
+        string formatted = CodecMappings.FormatDate(date); if (!string.IsNullOrWhiteSpace(formatted)) { writer.WriteStartElement(null, "pub-dates", xmlNamespace); WriteElement(writer, "date", formatted, xmlNamespace); writer.WriteEndElement(); } writer.WriteEndElement();
     }
 
-    private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report) {
+    private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace) {
         BibliographyNativeField[] additionalUrls = item.NativeFields.Where(field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)).ToArray();
         if (string.IsNullOrWhiteSpace(item.Url) && additionalUrls.Length == 0) return;
-        writer.WriteStartElement("urls"); writer.WriteStartElement("related-urls");
-        WriteElement(writer, "url", item.Url);
+        writer.WriteStartElement(null, "urls", xmlNamespace); writer.WriteStartElement(null, "related-urls", xmlNamespace);
+        WriteElement(writer, "url", item.Url, xmlNamespace);
         foreach (BibliographyNativeField field in additionalUrls) {
-            if (TryWriteNativeField(writer, field)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
+            if (TryWriteNativeField(writer, field, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "An additional EndNote XML related URL is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "url");
         }
         writer.WriteEndElement(); writer.WriteEndElement();
     }
 
-    private static void WriteIdentifier(XmlWriter writer, BibliographyIdentifier identifier) {
+    private static void WriteIdentifier(XmlWriter writer, BibliographyIdentifier identifier, string xmlNamespace) {
         if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) {
-            writer.WriteStartElement("isbn");
+            writer.WriteStartElement(null, "isbn", xmlNamespace);
             if (!string.Equals(CodecMappings.InferSerialScheme(identifier.Value), identifier.Scheme, StringComparison.OrdinalIgnoreCase)) writer.WriteAttributeString("type", identifier.Scheme.ToUpperInvariant());
             writer.WriteString(identifier.Value); writer.WriteEndElement();
         }
-        else if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "electronic-resource-num", identifier.Value);
-        else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "accession-num", identifier.Value);
+        else if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "electronic-resource-num", identifier.Value, xmlNamespace);
+        else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "accession-num", identifier.Value, xmlNamespace);
     }
 
     private static bool TryWriteElement(XmlWriter writer, string xml) { try { XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace); element.WriteTo(writer); return true; } catch (XmlException) { return false; } }
-    private static bool TryWriteNativeField(XmlWriter writer, BibliographyNativeField field) {
+    private static void CaptureAttributes(XElement element, IList<BibliographyNativeEntry> nativeEntries, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        if (!HasElementMetadata(element)) return;
+        string serialized = SerializeAttributes(element);
+        foreach (XAttribute attribute in element.Attributes()) limits.AddValue(items, attribute.Value, GetOffset(element));
+        limits.AddValue(items, serialized, GetOffset(element));
+        nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, AttributesEntryKind, serialized, element.Name.LocalName));
+    }
+    private static string SerializeAttributes(XElement element) =>
+        new XElement(element.Name, element.Attributes().Select(static attribute => new XAttribute(attribute))).ToString(SaveOptions.DisableFormatting);
+    private static bool HasElementMetadata(XElement element) => element.HasAttributes || element.Name.Namespace != XNamespace.None;
+    private static string GetDocumentElementNamespace(BibliographyDocument document, string elementName, string fallback = "") {
+        BibliographyNativeEntry? entry = document.NativeEntries.FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
+        return entry == null ? fallback : GetCarrierNamespace(entry.Value, fallback);
+    }
+    private static string GetRecordNamespace(BibliographyItem item, string fallback) {
+        BibliographyNativeField? field = item.NativeFields.FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
+        return field == null ? fallback : GetCarrierNamespace(field.Value, fallback);
+    }
+    private static string GetCarrierNamespace(string serializedCarrier, string fallback) {
+        try { return XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace).Name.NamespaceName; } catch (XmlException) { return fallback; }
+    }
+    private static void WriteDocumentAttributes(XmlWriter writer, BibliographyDocument document, string elementName, BibliographyConversionReport report) {
+        foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => IsAttributesEntry(entry, elementName))) {
+            if (TryWriteAttributes(writer, entry.Value)) report.Add("BIBCONV018", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML attributes on '{elementName}'.", BibliographyConversionAction.PreservedExtension, field: elementName);
+            else report.Add("BIBCONV131", BibliographyDiagnosticSeverity.Warning, $"EndNote XML attributes on '{elementName}' are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, field: elementName);
+        }
+    }
+    private static void WriteRecordAttributes(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report) {
+        foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal))) {
+            if (TryWriteAttributes(writer, field.Value)) report.Add("BIBCONV019", BibliographyDiagnosticSeverity.Information, "Preserved EndNote XML record attributes.", BibliographyConversionAction.PreservedExtension, item, field.Name);
+            else report.Add("BIBCONV132", BibliographyDiagnosticSeverity.Warning, "EndNote XML record attributes are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, item, field.Name);
+        }
+    }
+    private static bool TryWriteAttributes(XmlWriter writer, string serializedCarrier) {
+        try {
+            XElement carrier = XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace);
+            XAttribute[] attributes = carrier.Attributes().ToArray();
+            var names = new HashSet<XName>();
+            var namespacePrefixes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (XAttribute attribute in attributes) {
+                if (attribute.IsNamespaceDeclaration) {
+                    string declaredPrefix = attribute.Name.LocalName == "xmlns" ? string.Empty : attribute.Name.LocalName;
+                    if (!namespacePrefixes.Add(declaredPrefix)) return false;
+                } else if (!names.Add(attribute.Name)) return false;
+            }
+            foreach (XAttribute attribute in attributes.Where(static attribute => attribute.IsNamespaceDeclaration)) {
+                if (attribute.Name.LocalName != "xmlns") writer.WriteAttributeString("xmlns", attribute.Name.LocalName, "http://www.w3.org/2000/xmlns/", attribute.Value);
+            }
+            foreach (XAttribute attribute in attributes.Where(static attribute => !attribute.IsNamespaceDeclaration)) {
+                string? prefix = attribute.Name.Namespace == XNamespace.None ? null : carrier.GetPrefixOfNamespace(attribute.Name.Namespace);
+                writer.WriteAttributeString(prefix, attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value);
+            }
+            return true;
+        } catch (Exception exception) when (exception is XmlException || exception is InvalidOperationException || exception is ArgumentException) {
+            return false;
+        }
+    }
+    private static bool IsAttributesEntry(BibliographyNativeEntry entry, string elementName) =>
+        entry.Format == BibliographyFormat.EndNoteXml && string.Equals(entry.Kind, AttributesEntryKind, StringComparison.Ordinal) && string.Equals(entry.Name, elementName, StringComparison.OrdinalIgnoreCase);
+    private static bool IsConsumedEndNoteEntry(BibliographyNativeEntry entry) =>
+        entry.Format == BibliographyFormat.EndNoteXml && (entry.Kind == "element" || entry.Kind == RecordsElementEntryKind || IsAttributesEntry(entry, "xml") || IsAttributesEntry(entry, "records"));
+    private static bool TryWriteNativeField(XmlWriter writer, BibliographyNativeField field, string xmlNamespace) {
         string? raw = field.UnmodifiedRawValue;
         if (raw != null) return TryWriteElement(writer, raw);
         if (HasInvalidXmlCharacters(field.Value)) return false;
         try {
             XmlConvert.VerifyNCName(field.Name);
-            writer.WriteElementString(field.Name, SanitizeXml(field.Value));
+            writer.WriteElementString(null, field.Name, xmlNamespace, SanitizeXml(field.Value));
             return true;
         } catch (XmlException) {
             return false;
@@ -220,7 +322,7 @@ internal static class EndNoteXmlCodec {
             default: return true;
         }
     }
-    private static void WriteElement(XmlWriter writer, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteElementString(name, SanitizeXml(value!)); }
+    private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value!)); }
     private static string SanitizeXml(string value) {
         var builder = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {

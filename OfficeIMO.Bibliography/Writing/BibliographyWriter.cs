@@ -84,7 +84,7 @@ internal static class BibliographyConversionInspector {
             foreach (BibliographyItem item in duplicate) Loss(report, item, "key", "BIBCONV216", $"Duplicate citation key '{duplicate.Key}' is not unique in {format} output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
-            foreach (BibliographyItem item in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key) && item.Key.Any(character => char.IsWhiteSpace(character) || character == ',' || character == '}')))
+            foreach (BibliographyItem item in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key) && item.Key.Any(character => !BibCodec.IsSafeKeyCharacter(character))))
                 Loss(report, item, "key", "BIBCONV217", "The citation key contains characters that must be normalized for BibTeX output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.Nbib) {

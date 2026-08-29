@@ -143,7 +143,8 @@ internal static class BibCodec {
         }
         return false;
     }
-    private static string SafeKey(string key) => string.IsNullOrWhiteSpace(key) ? "item" : new string(key.Select(character => char.IsWhiteSpace(character) || character == ',' || character == '}' ? '_' : character).ToArray());
+    private static string SafeKey(string key) => string.IsNullOrWhiteSpace(key) ? "item" : new string(key.Select(character => IsSafeKeyCharacter(character) ? character : '_').ToArray());
+    internal static bool IsSafeKeyCharacter(char character) => !char.IsWhiteSpace(character) && !char.IsControl(character) && "\\\"#%'(),={}".IndexOf(character) < 0;
     private static bool IsSafeFieldName(string name) => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':');
     private static bool IsSafeTypeName(string? name) => !string.IsNullOrWhiteSpace(name) && name!.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':' || character == '.');
     private static bool IsBibFamily(BibliographyFormat format) => format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex;

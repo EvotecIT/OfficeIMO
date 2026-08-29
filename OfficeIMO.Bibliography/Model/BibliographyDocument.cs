@@ -13,7 +13,7 @@ public sealed partial class BibliographyDocument {
         _baselineFingerprint = BibliographyFingerprint.Create(this);
     }
 
-    internal BibliographyDocument(BibliographyFormat format, IList<BibliographyItem> items, IList<BibliographyNativeEntry> nativeEntries, string originalText, byte[]? originalBytes, IReadOnlyList<BibliographyDiagnostic> diagnostics) {
+    internal BibliographyDocument(BibliographyFormat format, IList<BibliographyItem> items, IList<BibliographyNativeEntry> nativeEntries, string originalText, byte[]? originalBytes, IReadOnlyList<BibliographyDiagnostic> diagnostics, bool cslJsonSingleObjectRoot = false, bool endNoteRecordsRoot = false) {
         ValidateFormat(format);
         SourceFormat = format;
         Items = items ?? throw new ArgumentNullException(nameof(items));
@@ -21,6 +21,8 @@ public sealed partial class BibliographyDocument {
         _originalText = originalText ?? throw new ArgumentNullException(nameof(originalText));
         _originalBytes = originalBytes;
         Diagnostics = diagnostics ?? Array.Empty<BibliographyDiagnostic>();
+        CslJsonSingleObjectRoot = cslJsonSingleObjectRoot;
+        EndNoteRecordsRoot = endNoteRecordsRoot;
         _baselineFingerprint = BibliographyFingerprint.Create(this);
     }
 
@@ -45,6 +47,8 @@ public sealed partial class BibliographyDocument {
 
     internal string? OriginalText => _originalText;
     internal byte[]? OriginalBytes => _originalBytes;
+    internal bool CslJsonSingleObjectRoot { get; }
+    internal bool EndNoteRecordsRoot { get; }
 
     /// <summary>Parses bibliography text using an explicit format.</summary>
     public static BibliographyReadResult Parse(string source, BibliographyFormat format, BibliographyReadOptions? options = null, CancellationToken cancellationToken = default) =>
