@@ -9,7 +9,7 @@ internal static class OfficeXmlTextEncoding {
     internal static string Decode(byte[] bytes, string? declaredEncoding) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
-        Encoding encoding = new UTF8Encoding(false, true);
+        Encoding encoding = DetectBomlessXmlEncoding(bytes) ?? new UTF8Encoding(false, true);
         if (!string.IsNullOrWhiteSpace(declaredEncoding)) {
             try {
                 encoding = Encoding.GetEncoding(
@@ -31,5 +31,22 @@ internal static class OfficeXmlTextEncoding {
             bufferSize: 1024,
             leaveOpen: false);
         return reader.ReadToEnd();
+    }
+
+    private static Encoding? DetectBomlessXmlEncoding(byte[] bytes) {
+        if (bytes.Length < 4) return null;
+        if (bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0x00 && bytes[3] == 0x3C) {
+            return new UTF32Encoding(true, false, true);
+        }
+        if (bytes[0] == 0x3C && bytes[1] == 0x00 && bytes[2] == 0x00 && bytes[3] == 0x00) {
+            return new UTF32Encoding(false, false, true);
+        }
+        if (bytes[0] == 0x00 && bytes[1] == 0x3C && bytes[2] == 0x00) {
+            return new UnicodeEncoding(true, false, true);
+        }
+        if (bytes[0] == 0x3C && bytes[1] == 0x00 && bytes[3] == 0x00) {
+            return new UnicodeEncoding(false, false, true);
+        }
+        return null;
     }
 }

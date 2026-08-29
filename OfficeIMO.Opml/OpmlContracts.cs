@@ -59,9 +59,9 @@ public sealed class OpmlValidationOptions {
 
 /// <summary>Controls bounded OPML shared-model conversion diagnostics.</summary>
 public sealed class OpmlConversionOptions {
-    /// <summary>Maximum shared-model structure depth accepted by reverse conversion. Defaults to 128 and cannot exceed 256.</summary>
+    /// <summary>Maximum shared-model structure depth produced or accepted by conversion. Defaults to 128 and cannot exceed 256.</summary>
     public int MaxStructureDepth { get; set; } = 128;
-    /// <summary>Maximum shared-model structure nodes accepted by reverse conversion. Defaults to 100,000.</summary>
+    /// <summary>Maximum shared-model structure nodes produced or accepted by conversion. Defaults to 100,000.</summary>
     public int MaxStructureNodes { get; set; } = 100_000;
     /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
     public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;

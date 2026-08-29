@@ -2,6 +2,7 @@ using OfficeIMO;
 using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml.Linq;
@@ -33,6 +34,12 @@ public sealed partial class OpmlDocument {
 
         OfficeDocumentModelNode Convert(OpmlOutline outline, int level, string parentPath) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (level > options.MaxStructureDepth) {
+                throw new InvalidDataException($"The OPML shared-model projection exceeds MaxStructureDepth ({options.MaxStructureDepth}).");
+            }
+            if (blockIndex >= options.MaxStructureNodes) {
+                throw new InvalidDataException($"The OPML shared-model projection exceeds MaxStructureNodes ({options.MaxStructureNodes}).");
+            }
             string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " / ");
             var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (XAttribute attribute in outline.Element.Attributes()) {

@@ -110,9 +110,9 @@ public sealed partial class DocBookDocument {
         return ParseBytes(bytes, options, cancellationToken);
     }
 
-    /// <summary>Adds a top-level section.</summary>
+    /// <summary>Adds a top-level section, creating a chapter container first for a book.</summary>
     public DocBookNode AddSection(string title) => Root.AddSection(title);
-    /// <summary>Adds a top-level paragraph.</summary>
+    /// <summary>Adds a top-level paragraph, creating a chapter container first for a book.</summary>
     public DocBookNode AddParagraph(string text) => Root.AddParagraph(text);
 
     /// <summary>
@@ -180,7 +180,9 @@ public sealed partial class DocBookDocument {
                     !(parent?.Name == Namespace + "varlistentry" &&
                       parent?.Parent is XElement variableList &&
                       DocBookNames.GetKind(variableList.Name, Namespace) == DocBookNodeKind.VariableList) ||
-                kind == DocBookNodeKind.Info && element != root && !ReferenceEquals(parent, root) && parentKind != DocBookNodeKind.Section;
+                kind == DocBookNodeKind.Info && element != root && !ReferenceEquals(parent, root) && parentKind != DocBookNodeKind.Section ||
+                Kind == DocBookDocumentKind.Book && ReferenceEquals(parent, root) && element.Name.Namespace == Namespace &&
+                    !IsAllowedBookRootChild(localName);
             if (invalidParent) {
                 diagnostics.Add(new DocBookDiagnostic("DB015", DocBookDiagnosticSeverity.Error,
                     $"{localName} is not under a supported common-structure parent.", path));
@@ -254,6 +256,45 @@ public sealed partial class DocBookDocument {
         if (info != null) return info;
         string name = Profile == DocBookProfile.DocBook52 ? "info" : Kind == DocBookDocumentKind.Article ? "articleinfo" : "bookinfo";
         info = new XElement(Namespace + name); RootElement.AddFirst(info); return info;
+    }
+
+    internal XElement ResolveTypedContentParent(XElement requestedParent, string localName) {
+        if (Kind != DocBookDocumentKind.Book || !ReferenceEquals(requestedParent, RootElement) || IsAllowedBookRootChild(localName)) {
+            return requestedParent;
+        }
+        XElement? chapter = RootElement.Elements(Namespace + "chapter").FirstOrDefault();
+        if (chapter != null) return chapter;
+        chapter = new XElement(Namespace + "chapter");
+        RootElement.Add(chapter);
+        MarkModified();
+        return chapter;
+    }
+
+    private static bool IsAllowedBookRootChild(string localName) {
+        switch (localName) {
+            case "info":
+            case "bookinfo":
+            case "title":
+            case "subtitle":
+            case "titleabbrev":
+            case "dedication":
+            case "toc":
+            case "lot":
+            case "glossary":
+            case "bibliography":
+            case "preface":
+            case "chapter":
+            case "reference":
+            case "part":
+            case "article":
+            case "appendix":
+            case "index":
+            case "setindex":
+            case "colophon":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private byte[] GetBytes(DocBookWriteOptions? options) {

@@ -87,6 +87,26 @@ public sealed class DocBookDocumentTests {
         Assert.DoesNotContain(variableList.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB015");
     }
 
+    [Theory]
+    [InlineData("<book xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Body</para></book>")]
+    [InlineData("<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><book><section><title>Body</title></section></book>")]
+    public void BoundedValidationRejectsTypedBlocksDirectlyUnderBook(string source) {
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.False(validation.IsValid);
+        Assert.Contains(validation.Diagnostics, diagnostic =>
+            diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void BoundedBookValidationDoesNotTreatForeignExtensionsAsTypedRootContent() {
+        DocBookValidationResult validation = DocBookDocument.Parse(
+            "<book xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><x:component/></book>").Validate();
+
+        Assert.DoesNotContain(validation.Diagnostics, diagnostic => diagnostic.Code == "DB015");
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB010");
+    }
+
     [Fact]
     public void RepeatedDiagnosticsAreCappedPerCodeAndSummarized() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:a/><x:b/><x:c/><x:d/><x:e/></article>";
@@ -123,7 +143,10 @@ public sealed class DocBookDocumentTests {
         document.AddSection("S").AddParagraph("P");
         var model = document.ToOfficeDocumentModel().Value;
         Assert.Equal(OfficeDocumentFormat.DocBook, model.Format);
-        Assert.Contains(model.Structure, n => n.Kind == "section");
+        OfficeDocumentModelNode chapter = Assert.Single(model.Structure, node => node.Kind == "extension:chapter");
+        Assert.Contains(chapter.Children, node => node.Kind == "section");
+        Assert.DoesNotContain(document.Xml.Root!.Elements(), element =>
+            element.Name.LocalName == "section" || element.Name.LocalName == "para");
         DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
         Assert.False(converted.HasLoss);
         Assert.Equal(DocBookDocumentKind.Book, converted.Value.Kind);
@@ -427,6 +450,16 @@ public sealed class DocBookDocumentTests {
         string serialized = Encoding.UTF8.GetString(output.ToArray());
         Assert.Contains("encoding=\"utf-8\"", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(DocBookProfile.DocBook52, DocBookDocument.Load(new MemoryStream(output.ToArray())).Profile);
+    }
+
+    [Fact]
+    public void LoadedBomlessUtf32SourceIsReturnedAsTextWithoutUtf8Fallback() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Caf\u00e9</para></article>";
+        byte[] bytes = new UTF32Encoding(true, false, true).GetBytes(source);
+
+        DocBookDocument document = DocBookDocument.Load(new MemoryStream(bytes));
+
+        Assert.Equal(source, document.ToDocBook());
     }
 
     [Fact]
@@ -1078,6 +1111,43 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedForwardConversionBoundsNativeEdits() {
+        DocBookDocument deep = DocBookDocument.CreateArticle();
+        XElement parent = deep.Xml.Root!;
+        for (int depth = 0; depth < 8; depth++) {
+            var child = new XElement(deep.Xml.Root!.Name.Namespace + "section");
+            parent.Add(child);
+            parent = child;
+        }
+        Assert.Throws<InvalidDataException>(() => deep.ToOfficeDocumentModel(options:
+            new DocBookConversionOptions { MaxStructureDepth = 4 }));
+
+        DocBookDocument wide = DocBookDocument.CreateArticle();
+        wide.Xml.Root!.Add(
+            new XElement(wide.Xml.Root.Name.Namespace + "para", "One"),
+            new XElement(wide.Xml.Root.Name.Namespace + "para", "Two"));
+        Assert.Throws<InvalidDataException>(() => wide.ToOfficeDocumentModel(options:
+            new DocBookConversionOptions { MaxStructureNodes = 2 }));
+    }
+
+    [Theory]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Old<emphasis> value</emphasis></para></article>", "paragraph", "para")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Old<emphasis> value</emphasis></title></section></article>", "title", "title")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><programlisting>Old<emphasis> value</emphasis></programlisting></article>", "code", "programlisting")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><link xlink:href=\"https://example.test\">Old<emphasis> value</emphasis></link></para></article>", "link", "link")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><author><personname><firstname>Old</firstname><surname>Name</surname></personname></author></info></article>", "author", "author")]
+    public void SharedReverseConversionReportsAndPreservesEditedPrimaryText(string source, string kind, string localName) {
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        FindStructureNode(model.Structure, kind).Text = "Edited";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125");
+        XElement element = Assert.Single(converted.Value.Xml.Descendants(), candidate => candidate.Name.LocalName == localName);
+        Assert.Equal("Edited", element.Value);
+    }
+
+    [Fact]
     public void SharedConversionDoesNotReportFlatFallbackWithoutFlatContent() {
         var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.DocBook };
         var titleOnly = new OfficeDocumentModel {
@@ -1171,6 +1241,20 @@ public sealed class DocBookDocumentTests {
         XElement media = image.Ancestors().Single(element => element.Name.LocalName == "mediaobject");
         Assert.Equal("Edited caption", media.Elements().Single(element => element.Name.LocalName == "caption").Value);
         Assert.Equal("Edited alt", media.Elements().Single(element => element.Name.LocalName == "textobject").Value);
+    }
+
+    private static OfficeDocumentModelNode FindStructureNode(IEnumerable<OfficeDocumentModelNode> nodes, string kind) {
+        OfficeDocumentModelNode? result = FindStructureNodeOrDefault(nodes, kind);
+        return result ?? throw new InvalidOperationException($"Shared structure node '{kind}' was not found.");
+    }
+
+    private static OfficeDocumentModelNode? FindStructureNodeOrDefault(IEnumerable<OfficeDocumentModelNode> nodes, string kind) {
+        foreach (OfficeDocumentModelNode node in nodes) {
+            if (string.Equals(node.Kind, kind, StringComparison.OrdinalIgnoreCase)) return node;
+            OfficeDocumentModelNode? descendant = FindStructureNodeOrDefault(node.Children, kind);
+            if (descendant != null) return descendant;
+        }
+        return null;
     }
 
 }

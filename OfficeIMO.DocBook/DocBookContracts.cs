@@ -180,9 +180,9 @@ public sealed class DocBookValidationOptions {
 
 /// <summary>Controls bounded projections from native DocBook into shared semantic channels.</summary>
 public sealed class DocBookConversionOptions {
-    /// <summary>Maximum shared-model structure depth accepted by reverse conversion. Defaults to 256.</summary>
+    /// <summary>Maximum shared-model structure depth produced or accepted by conversion. Defaults to 256.</summary>
     public int MaxStructureDepth { get; set; } = 256;
-    /// <summary>Maximum shared-model structure nodes accepted by reverse conversion. Defaults to 250,000.</summary>
+    /// <summary>Maximum shared-model structure nodes produced or accepted by conversion. Defaults to 250,000.</summary>
     public int MaxStructureNodes { get; set; } = 250_000;
     /// <summary>Maximum aggregate text characters materialized across the shared-model projection. Defaults to 32,000,000.</summary>
     public long MaxTotalTextCharacters { get; set; } = 32_000_000L;

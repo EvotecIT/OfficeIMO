@@ -122,7 +122,7 @@ public sealed class DocBookNode {
         XName name = _document.Namespace + localName;
         var element = new XElement(name);
         if (text != null) element.Value = text;
-        Element.Add(element); _document.MarkModified();
+        _document.ResolveTypedContentParent(Element, localName).Add(element); _document.MarkModified();
         return new DocBookNode(_document, element);
     }
 

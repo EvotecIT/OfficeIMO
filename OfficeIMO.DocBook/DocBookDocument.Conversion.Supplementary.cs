@@ -12,8 +12,63 @@ public sealed partial class DocBookDocument {
     private static bool IsDerivedBlock(OfficeDocumentModelBlock block, IEnumerable<OfficeDocumentModelNode> nodes) =>
         !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
             string.Equals(node.Id, block.Id, StringComparison.Ordinal) &&
-            string.Equals(node.Kind, block.Kind, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(node.Text, block.Text, StringComparison.Ordinal) && node.Level == block.Level);
+            string.Equals(node.Kind, block.Kind, StringComparison.OrdinalIgnoreCase) && node.Level == block.Level &&
+            (string.Equals(node.Text, block.Text, StringComparison.Ordinal) ||
+             ShouldReplaceChildrenWithPrimaryText(node) &&
+             string.Equals(GetRepresentedPrimaryChildText(node), block.Text, StringComparison.Ordinal)));
+
+    private static bool ShouldReplaceChildrenWithPrimaryText(OfficeDocumentModelNode source) {
+        if (source.Children.Count == 0 || string.Equals(source.Kind, "text", StringComparison.OrdinalIgnoreCase)) return false;
+        bool acceptsDirectText = TryMapKind(source.Kind, out DocBookNodeKind kind) && NodeAcceptsDirectText(kind);
+        return acceptsDirectText &&
+            !string.Equals(source.Text, GetRepresentedPrimaryChildText(source), StringComparison.Ordinal);
+    }
+
+    private static string GetRepresentedPrimaryChildText(OfficeDocumentModelNode source) =>
+        TryMapKind(source.Kind, out DocBookNodeKind nodeKind) && nodeKind == DocBookNodeKind.Author
+            ? GetRepresentedAuthorText(source)
+            : string.Concat(source.Children.Where(child =>
+                !string.Equals(child.Kind, "index-term", StringComparison.OrdinalIgnoreCase)).Select(GetRepresentedSubtreeText));
+
+    private static string GetRepresentedSubtreeText(OfficeDocumentModelNode node) {
+        if (string.Equals(node.Kind, "index-term", StringComparison.OrdinalIgnoreCase)) return string.Empty;
+        return node.Children.Count == 0 ? node.Text : string.Concat(node.Children.Select(GetRepresentedSubtreeText));
+    }
+
+    private static string GetRepresentedAuthorText(OfficeDocumentModelNode author) {
+        var nameParts = new HashSet<string>(StringComparer.Ordinal) { "honorific", "firstname", "othername", "surname", "lineage" };
+        OfficeDocumentModelNode? personName = author.Children.FirstOrDefault(child =>
+            IsDocBookExtensionKind(child.Kind, "personname"));
+        if (personName != null) return string.Join(" ", GetDocBookAuthorTextParts(personName));
+        string[] parts = author.Children.Where(child => nameParts.Any(name => IsDocBookExtensionKind(child.Kind, name)))
+            .SelectMany(GetDocBookAuthorTextParts).ToArray();
+        if (parts.Length > 0) return string.Join(" ", parts);
+        return string.Concat(author.Children.Where(child =>
+            string.Equals(child.Kind, "text", StringComparison.OrdinalIgnoreCase)).Select(child => child.Text));
+    }
+
+    private static IEnumerable<string> GetDocBookAuthorTextParts(OfficeDocumentModelNode node) {
+        foreach (OfficeDocumentModelNode child in node.Children) {
+            if (string.Equals(child.Kind, "text", StringComparison.OrdinalIgnoreCase)) {
+                string value = child.Text.Trim();
+                if (value.Length > 0) yield return value;
+            } else if (child.Kind.StartsWith("extension:", StringComparison.Ordinal) && IsDocBookExtensionKind(child.Kind)) {
+                foreach (string value in GetDocBookAuthorTextParts(child)) yield return value;
+            }
+        }
+    }
+
+    private static bool IsDocBookExtensionKind(string kind, string? localName = null) {
+        const string extensionPrefix = "extension:";
+        if (!kind.StartsWith(extensionPrefix, StringComparison.Ordinal)) return false;
+        try {
+            System.Xml.Linq.XName name = System.Xml.Linq.XName.Get(kind.Substring(extensionPrefix.Length));
+            return (name.NamespaceName.Length == 0 || name.NamespaceName == DocBookSchemaProfiles.DocBook52.NamespaceUri) &&
+                (localName == null || string.Equals(name.LocalName, localName, StringComparison.Ordinal));
+        } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
+            return false;
+        }
+    }
 
     private static bool IsDerivedAsset(
         OfficeDocumentModelAsset asset,
@@ -92,7 +147,9 @@ public sealed partial class DocBookDocument {
             string.Equals(node.Id, nodeId, StringComparison.Ordinal) &&
             (string.Equals(node.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(node.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase)) &&
-            (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal)) &&
+            (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal) ||
+             ShouldReplaceChildrenWithPrimaryText(node) &&
+             string.Equals(GetRepresentedPrimaryChildText(node), link.Text, StringComparison.Ordinal)) &&
             LinkTargetMatches(node, link));
     }
 

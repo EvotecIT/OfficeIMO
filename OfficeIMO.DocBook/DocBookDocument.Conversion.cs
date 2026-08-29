@@ -3,6 +3,7 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml.Linq;
@@ -82,6 +83,7 @@ public sealed partial class DocBookDocument {
 
         OfficeDocumentModelNode Convert(XElement element, int level, string parentPath) {
             cancellationToken.ThrowIfCancellationRequested();
+            EnsureStructureBudget(level);
             DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
             string normalizedKind = kind == DocBookNodeKind.Unknown
                 ? "extension:" + element.Name
@@ -186,6 +188,7 @@ public sealed partial class DocBookDocument {
                 if (node is XElement child) {
                     children.Add(Convert(child, childLevel, path));
                 } else if (node is XText textNode && textNode.Value.Length > 0 && (mixedContent || !string.IsNullOrWhiteSpace(textNode.Value))) {
+                    EnsureStructureBudget(childLevel);
                     children.Add(new OfficeDocumentModelNode {
                         Id = "docbook-" + index++,
                         Kind = "text",
@@ -196,6 +199,15 @@ public sealed partial class DocBookDocument {
                 }
             }
             return children;
+        }
+
+        void EnsureStructureBudget(int level) {
+            if (level > options.MaxStructureDepth) {
+                throw new InvalidDataException($"The DocBook shared-model projection exceeds MaxStructureDepth ({options.MaxStructureDepth}).");
+            }
+            if (index >= options.MaxStructureNodes) {
+                throw new InvalidDataException($"The DocBook shared-model projection exceeds MaxStructureNodes ({options.MaxStructureNodes}).");
+            }
         }
 
         foreach (XElement tableElement in RootElement.Descendants()) {
@@ -593,6 +605,7 @@ public sealed partial class DocBookDocument {
 
         void Add(OfficeDocumentModelNode source, DocBookNode parent) {
             DocBookNode target;
+            bool replaceChildrenWithPrimaryText = PrimaryTextShouldTakePrecedence(source);
             if (string.Equals(source.Kind, "text", StringComparison.OrdinalIgnoreCase)) {
                 parent.AddText(source.Text);
                 return;
@@ -604,7 +617,8 @@ public sealed partial class DocBookDocument {
                     if (requalifySourceVocabulary && extensionName.Namespace == sourceDocBookNamespace) {
                         extensionName = targetDocBookNamespace + extensionName.LocalName;
                     }
-                    target = parent.AddExtension(extensionName, source.Children.Count == 0 ? source.Text : null);
+                    target = parent.AddExtension(extensionName,
+                        source.Children.Count == 0 || replaceChildrenWithPrimaryText ? source.Text : null);
                 } catch (Exception) {
                     target = parent.Add(DocBookNodeKind.Paragraph, source.Text);
                     diagnostics.Add(new DocBookDiagnostic("DB104", DocBookDiagnosticSeverity.Warning,
@@ -613,7 +627,8 @@ public sealed partial class DocBookDocument {
             } else if (string.Equals(source.Kind, "informal-table", StringComparison.OrdinalIgnoreCase)) {
                 target = parent.AddRaw("informaltable");
             } else if (TryMapKind(source.Kind, out DocBookNodeKind nodeKind)) {
-                string? directText = NodeAcceptsDirectText(nodeKind) && source.Children.Count == 0 ? source.Text : null;
+                string? directText = NodeAcceptsDirectText(nodeKind) &&
+                    (source.Children.Count == 0 || replaceChildrenWithPrimaryText) ? source.Text : null;
                 bool externalLink = nodeKind == DocBookNodeKind.Link &&
                     (source.Attributes.ContainsKey("url") || source.Attributes.ContainsKey("{http://www.w3.org/1999/xlink}href"));
                 target = nodeKind == DocBookNodeKind.Link && selectedProfile == DocBookProfile.DocBook45 && externalLink
@@ -638,6 +653,11 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB101", DocBookDiagnosticSeverity.Warning,
                     $"Shared node kind '{source.Kind}' was represented as a role-qualified paragraph.", source.Location.HeadingPath));
             }
+            if (replaceChildrenWithPrimaryText) {
+                diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                    $"Primary text on shared node '{source.Kind}' differed from its recursive child projection; the primary text took precedence and the stale child projection was omitted.",
+                    source.Location?.HeadingPath));
+            }
             foreach (KeyValuePair<string, string> attribute in source.Attributes) {
                 try {
                     XName attributeName = XName.Get(attribute.Key);
@@ -655,10 +675,30 @@ public sealed partial class DocBookDocument {
                     target.SetAttribute(attributeName, attribute.Value);
                 } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
                     diagnostics.Add(new DocBookDiagnostic("DB102", DocBookDiagnosticSeverity.Warning,
-                        $"Attribute name '{attribute.Key}' could not be represented.", source.Location.HeadingPath));
+                        $"Attribute name '{attribute.Key}' could not be represented.", source.Location?.HeadingPath));
                 }
             }
-            foreach (OfficeDocumentModelNode child in source.Children) Add(child, target);
+            if (!replaceChildrenWithPrimaryText) {
+                foreach (OfficeDocumentModelNode child in source.Children) Add(child, target);
+            }
+        }
+
+        bool PrimaryTextShouldTakePrecedence(OfficeDocumentModelNode source) {
+            if (!ShouldReplaceChildrenWithPrimaryText(source)) return false;
+            OfficeDocumentModelBlock? flatBlock = model.Blocks.FirstOrDefault(block =>
+                string.Equals(block.Id, source.Id, StringComparison.Ordinal) &&
+                string.Equals(block.Kind, source.Kind, StringComparison.OrdinalIgnoreCase) && block.Level == source.Level);
+            if (flatBlock != null && string.Equals(flatBlock.Text, source.Text, StringComparison.Ordinal)) return false;
+            const string nodePrefix = "docbook-";
+            if (source.Id.StartsWith(nodePrefix, StringComparison.Ordinal) &&
+                (string.Equals(source.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(source.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase))) {
+                string linkId = "docbook-link-" + source.Id.Substring(nodePrefix.Length);
+                OfficeDocumentModelLink? flatLink = model.Links.FirstOrDefault(link =>
+                    string.Equals(link.Id, linkId, StringComparison.Ordinal));
+                if (flatLink != null && string.Equals(flatLink.Text, source.Text, StringComparison.Ordinal)) return false;
+            }
+            return true;
         }
 
         void AddFlatTable(OfficeDocumentModelTable source) {
@@ -773,9 +813,15 @@ public sealed partial class DocBookDocument {
         foreach (OfficeDocumentModelVisual visual in model.Visuals) {
             AddUnsupportedChannelDiagnostic("visual", visual.SourceName ?? visual.Kind, visual.Location?.HeadingPath);
         }
-        var representedAuthors = new HashSet<string>(structureNodes
-            .Where(node => string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(node.Text))
-            .Select(node => node.Text), StringComparer.Ordinal);
+        var representedAuthors = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OfficeDocumentModelNode authorNode in structureNodes.Where(node =>
+                     string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase))) {
+            if (!string.IsNullOrWhiteSpace(authorNode.Text)) representedAuthors.Add(authorNode.Text);
+            if (ShouldReplaceChildrenWithPrimaryText(authorNode)) {
+                string originalProjection = GetRepresentedPrimaryChildText(authorNode);
+                if (!string.IsNullOrWhiteSpace(originalProjection)) representedAuthors.Add(originalProjection);
+            }
+        }
         if (!string.IsNullOrWhiteSpace(model.Source.Author) && representedAuthors.Add(model.Source.Author!)) {
             AddAuthor(model.Source.Author!);
         }
@@ -906,8 +952,7 @@ public sealed partial class DocBookDocument {
     private static bool SourceChildrenRepresentText(OfficeDocumentModelNode source, DocBookNodeKind kind) {
         string representedKind = NodeUsesTitleText(kind) ? "title" : NodeUsesParagraphText(kind) ? "paragraph" : string.Empty;
         return source.Children.Any(child =>
-            (child.Kind == "text" || representedKind.Length > 0 && string.Equals(child.Kind, representedKind, StringComparison.OrdinalIgnoreCase)) &&
-            string.Equals(child.Text, source.Text, StringComparison.Ordinal));
+            child.Kind == "text" || representedKind.Length > 0 && string.Equals(child.Kind, representedKind, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string SanitizeRole(string value) => new string((value ?? "unknown").Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '-').ToArray());

@@ -112,6 +112,22 @@ public sealed class OpmlDocumentTests {
         Assert.Equal(OpmlVersion.Opml20, OpmlDocument.Load(new MemoryStream(output.ToArray())).Version);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void LoadedBomlessUnicodeSourceIsReturnedAsTextWithoutUtf8Fallback(bool utf32, bool bigEndian) {
+        const string source = "<opml version=\"2.0\"><head><title>Caf\u00e9</title></head><body/></opml>";
+        Encoding encoding = utf32
+            ? new UTF32Encoding(bigEndian, false, true)
+            : new UnicodeEncoding(bigEndian, false, true);
+
+        OpmlDocument document = OpmlDocument.Load(new MemoryStream(encoding.GetBytes(source)));
+
+        Assert.Equal(source, document.ToOpml());
+    }
+
     [Fact]
     public async System.Threading.Tasks.Task PathSaveAndAsyncLoadReopenTheCommittedArtifact() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-opml-" + Guid.NewGuid().ToString("N") + ".opml");
@@ -429,6 +445,21 @@ public sealed class OpmlDocumentTests {
             deepModel, null, new OpmlConversionOptions { MaxStructureDepth = 2 }));
         Assert.Throws<InvalidDataException>(() => OpmlDocument.FromOfficeDocumentModel(
             deepModel, null, new OpmlConversionOptions { MaxStructureNodes = 2 }));
+    }
+
+    [Fact]
+    public void SharedForwardConversionBoundsNativeEdits() {
+        OpmlDocument deep = OpmlDocument.Create();
+        OpmlOutline outline = deep.AddOutline("Root");
+        for (int depth = 0; depth < 8; depth++) outline = outline.AddChild("Child");
+        Assert.Throws<InvalidDataException>(() => deep.ToOfficeDocumentModel(
+            null, new OpmlConversionOptions { MaxStructureDepth = 4 }));
+
+        OpmlDocument wide = OpmlDocument.Create();
+        wide.AddOutline("One");
+        wide.AddOutline("Two");
+        Assert.Throws<InvalidDataException>(() => wide.ToOfficeDocumentModel(
+            null, new OpmlConversionOptions { MaxStructureNodes = 1 }));
     }
 
     [Fact]
