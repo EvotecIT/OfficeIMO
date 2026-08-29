@@ -15,7 +15,7 @@ public sealed partial class DocBookDocument {
         DocBookConversionOptions? options = null) {
         options ??= new DocBookConversionOptions();
         options.Validate();
-        var diagnostics = new List<DocBookDiagnostic>();
+        var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         var blocks = new List<OfficeDocumentModelBlock>();
         var tables = new List<OfficeDocumentModelTable>();
         var assets = new List<OfficeDocumentModelAsset>();
@@ -162,6 +162,7 @@ public sealed partial class DocBookDocument {
                 ? int.MaxValue : options.MaxTableRows * 2;
             var rowElements = new List<XElement>(Math.Min(discoveryCapacity, 4_096));
             bool rowDiscoveryTruncated = false;
+            bool footerRowsEncountered = false;
             int totalBodyRows = 0;
             int headerRowsRetained = 0;
             int bodyRowsRetained = 0;
@@ -171,6 +172,8 @@ public sealed partial class DocBookDocument {
                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Table), tableElement)) continue;
                 bool isHeader = element.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
                     DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableHead);
+                if (element.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
+                        ancestor.Name == Namespace + "tfoot")) footerRowsEncountered = true;
                 if (!isHeader) totalBodyRows++;
                 if (isHeader ? headerRowsRetained >= options.MaxTableRows : bodyRowsRetained >= options.MaxTableRows) {
                     rowDiscoveryTruncated = true;
@@ -185,6 +188,7 @@ public sealed partial class DocBookDocument {
             var groupLayouts = new Dictionary<XElement, CalsProjectionLayout>();
             int columnCount = 0;
             bool flattenedCalsLayout = false;
+            bool flattenedFooterRows = footerRowsEncountered;
             bool projectionTruncated = rowDiscoveryTruncated;
 
             foreach (XElement rowElement in rowElements) {
@@ -346,6 +350,10 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB112", DocBookDiagnosticSeverity.Warning,
                     "CALS spans or multi-row headers were flattened in the shared table projection; the recursive structure retains the native markup.", tableHeadingPath));
             }
+            if (flattenedFooterRows) {
+                diagnostics.Add(new DocBookDiagnostic("DB119", DocBookDiagnosticSeverity.Warning,
+                    "CALS footer rows were flattened into shared body rows; the recursive structure retains the native tfoot markup.", tableHeadingPath));
+            }
             if (projectionTruncated) {
                 diagnostics.Add(new DocBookDiagnostic("DB113", DocBookDiagnosticSeverity.Warning,
                     "CALS geometry exceeded the configured shared table projection limits; the recursive structure retains the native markup.", tableHeadingPath));
@@ -399,7 +407,7 @@ public sealed partial class DocBookDocument {
             Assets = assets,
             Links = links
         };
-        return new DocBookConversionResult<OfficeDocumentModel>(model, diagnostics);
+        return new DocBookConversionResult<OfficeDocumentModel>(model, diagnostics.ToArray());
 
         string BuildTableHeadingPath(XElement tableElement, string? tableTitle) {
             string path = string.Empty;
@@ -429,9 +437,12 @@ public sealed partial class DocBookDocument {
     public static DocBookConversionResult<DocBookDocument> FromOfficeDocumentModel(
         OfficeDocumentModel model,
         DocBookDocumentKind? kind = null,
-        DocBookProfile? profile = null) {
+        DocBookProfile? profile = null,
+        DocBookConversionOptions? options = null) {
         if (model == null) throw new ArgumentNullException(nameof(model));
-        var diagnostics = new List<DocBookDiagnostic>();
+        options ??= new DocBookConversionOptions();
+        options.Validate();
+        var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceKind = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "kind")?.Value;
         string? sourceProfile = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "profile")?.Value;
         bool sourceKindIsSupported = sourceKind == null || sourceKind == "article" || sourceKind == "book";
@@ -576,7 +587,7 @@ public sealed partial class DocBookDocument {
         if (!hasAuthor && !string.IsNullOrWhiteSpace(model.Source.Author)) {
             new DocBookNode(document, document.EnsureInfo()).Add(DocBookNodeKind.Author, model.Source.Author);
         }
-        return new DocBookConversionResult<DocBookDocument>(document, diagnostics);
+        return new DocBookConversionResult<DocBookDocument>(document, diagnostics.ToArray());
 
         static bool ContainsDocumentTitle(OfficeDocumentModelNode node) =>
             string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) ||

@@ -177,6 +177,10 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal(ReaderInputKind.DocBook, reader.Detect(prefixedDocBook, "renamed.bin", new ReaderDetectionOptions {
             Mode = ReaderDetectionMode.PreferContent
         }).Kind);
+        byte[] referencedNamespace = Encoding.UTF8.GetBytes("<article xmlns=\"http://docbook.org/ns/docboo&#x6B;\" version=\"5.2\"/>");
+        Assert.Equal(ReaderInputKind.DocBook, reader.Detect(referencedNamespace, "renamed.bin", new ReaderDetectionOptions {
+            Mode = ReaderDetectionMode.PreferContent
+        }).Kind);
 
         byte[] ordinaryXml = Encoding.UTF8.GetBytes("<root><value>&lt;opml version=\"2.0\"&gt;</value></root>");
         Assert.NotEqual(ReaderInputKind.Opml, reader.Detect(ordinaryXml, "renamed.bin", new ReaderDetectionOptions {
@@ -317,7 +321,7 @@ public sealed class ReaderOpmlDocBookModularTests {
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
 
         Assert.StartsWith("# Guide", result.Markdown, StringComparison.Ordinal);
-        Assert.Contains("\n\n# Details", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("\n\n# Details", result.Markdown.Replace("\r\n", "\n"), StringComparison.Ordinal);
         Assert.DoesNotContain("## Guide", result.Markdown, StringComparison.Ordinal);
         Assert.Equal("Details / Values", table.Location!.HeadingPath);
         Assert.Equal("assets/figure.png", asset.SourceObjectId);
@@ -382,6 +386,19 @@ public sealed class ReaderOpmlDocBookModularTests {
             Encoding.UTF8.GetBytes("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\"/></article>"), "empty.docbook");
         Assert.Empty(docBook.Chunks);
         Assert.Contains(docBook.Diagnostics, diagnostic => diagnostic.Code == "DB014");
+    }
+
+    [Fact]
+    public void ChunkOnlyReadersEmitDiagnosticChunksWhenNoContentExists() {
+        ReaderChunk opml = Assert.Single(OpmlReaderAdapter.Read(OpmlDocument.Parse(
+            "<opml version=\"9.0\"><head/><body/></opml>")));
+        Assert.Equal("diagnostic", opml.Location.SourceBlockKind);
+        Assert.Contains(opml.Warnings!, warning => warning.StartsWith("OPML001:", StringComparison.Ordinal));
+
+        ReaderChunk docBook = Assert.Single(DocBookReaderAdapter.Read(DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.1\"/>")));
+        Assert.Equal("diagnostic", docBook.Location.SourceBlockKind);
+        Assert.Contains(docBook.Warnings!, warning => warning.StartsWith("DB003:", StringComparison.Ordinal));
     }
 
     [Fact]

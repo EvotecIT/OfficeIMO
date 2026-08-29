@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace OfficeIMO.Reader;
 
@@ -648,39 +649,21 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static bool TryResolveXmlRootNamespace(string qualifiedName, string rootTag, out string namespaceUri) {
-        int separator = qualifiedName.IndexOf(':');
-        string attributeName = separator < 0 ? "xmlns" : "xmlns:" + qualifiedName.Substring(0, separator);
-        if (TryGetXmlAttribute(rootTag, attributeName, out namespaceUri)) return true;
         namespaceUri = string.Empty;
-        return separator < 0;
-    }
-
-    private static bool TryGetXmlAttribute(string rootTag, string requestedName, out string value) {
-        value = string.Empty;
-        int position = 1;
-        while (position < rootTag.Length && !char.IsWhiteSpace(rootTag[position]) && rootTag[position] != '>' && rootTag[position] != '/') position++;
-        while (position < rootTag.Length) {
-            while (position < rootTag.Length && char.IsWhiteSpace(rootTag[position])) position++;
-            if (position >= rootTag.Length || rootTag[position] == '>' || rootTag[position] == '/') return false;
-            int nameStart = position;
-            while (position < rootTag.Length && !char.IsWhiteSpace(rootTag[position]) && rootTag[position] != '=' && rootTag[position] != '>' && rootTag[position] != '/') position++;
-            string name = rootTag.Substring(nameStart, position - nameStart);
-            while (position < rootTag.Length && char.IsWhiteSpace(rootTag[position])) position++;
-            if (position >= rootTag.Length || rootTag[position] != '=') return false;
-            position++;
-            while (position < rootTag.Length && char.IsWhiteSpace(rootTag[position])) position++;
-            if (position >= rootTag.Length || (rootTag[position] != '\'' && rootTag[position] != '"')) return false;
-            char quote = rootTag[position++];
-            int valueStart = position;
-            while (position < rootTag.Length && rootTag[position] != quote) position++;
-            if (position >= rootTag.Length) return false;
-            if (string.Equals(name, requestedName, StringComparison.Ordinal)) {
-                value = rootTag.Substring(valueStart, position - valueStart);
-                return true;
-            }
-            position++;
+        try {
+            using var source = new StringReader(rootTag);
+            using XmlReader reader = XmlReader.Create(source, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                ConformanceLevel = ConformanceLevel.Fragment
+            });
+            if (!reader.Read() || reader.NodeType != XmlNodeType.Element ||
+                !string.Equals(reader.Name, qualifiedName, StringComparison.Ordinal)) return false;
+            namespaceUri = reader.NamespaceURI;
+            return true;
+        } catch (XmlException) {
+            return false;
         }
-        return false;
     }
 
     private static bool HasDocBook45DocumentType(string documentType, string rootName) {

@@ -45,6 +45,7 @@ internal static partial class DocBookReaderAdapter {
         CreateProjection(document, sourceName, reader, options, includeChunkWarnings: true, cancellationToken).Chunks;
 
     private static IEnumerable<ReaderChunk> BuildChunks(OfficeDocumentModel model, string sourceName, ReaderOptions reader, IReadOnlyList<string>? warnings, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ReaderTable[] tables = model.Tables.Select(table => MapTable(table, reader.MaxTableRows, sourceName)).ToArray();
         bool tablesAttached = false;
         bool warningsAttached = false;
@@ -67,6 +68,17 @@ internal static partial class DocBookReaderAdapter {
                 Tables = tables,
                 Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex, SourceBlockKind = "table" },
                 Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook", TableCount = tables.Length },
+                Warnings = TakeWarnings()
+            };
+        }
+        if (!warningsAttached && warnings != null && warnings.Count > 0) {
+            yield return new ReaderChunk {
+                Id = "docbook-diagnostics",
+                Kind = ReaderInputKind.DocBook,
+                Text = string.Empty,
+                Markdown = string.Empty,
+                Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex, SourceBlockKind = "diagnostic" },
+                Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" },
                 Warnings = TakeWarnings()
             };
         }

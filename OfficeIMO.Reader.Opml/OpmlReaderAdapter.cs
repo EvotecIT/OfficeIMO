@@ -47,10 +47,22 @@ internal static partial class OpmlReaderAdapter {
         CreateProjection(document, sourceName, reader, options, includeChunkWarnings: true, cancellationToken).Chunks;
 
     private static IEnumerable<ReaderChunk> BuildChunks(OpmlDocument document, string sourceName, ReaderOptions reader, IReadOnlyList<string>? warnings, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         int sourceIndex = 0, emittedIndex = 0;
         bool warningsAttached = false;
         foreach (OpmlOutline root in document.Outlines) {
             foreach (ReaderChunk chunk in BuildOutline(root, 1, string.Empty)) yield return chunk;
+        }
+        if (!warningsAttached && warnings != null && warnings.Count > 0) {
+            yield return new ReaderChunk {
+                Id = "opml-diagnostics",
+                Kind = ReaderInputKind.Opml,
+                Text = string.Empty,
+                Markdown = string.Empty,
+                Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex, SourceBlockKind = "diagnostic" },
+                Diagnostics = new ReaderChunkDiagnostics { SourceKind = "opml" },
+                Warnings = TakeWarnings()
+            };
         }
 
         IReadOnlyList<string>? TakeWarnings() {

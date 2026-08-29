@@ -167,16 +167,29 @@ public sealed class DocBookWriteOptions {
     public bool PreserveUnchangedSource { get; set; } = true;
 }
 
+/// <summary>Controls bounded common-structure validation diagnostics.</summary>
+public sealed class DocBookValidationOptions {
+    /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
+    public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
+
+    internal void Validate() {
+        if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
+    }
+}
+
 /// <summary>Controls bounded projections from native DocBook into shared semantic channels.</summary>
 public sealed class DocBookConversionOptions {
     /// <summary>Maximum columns materialized for one shared flat-table projection. Defaults to 1,024.</summary>
     public int MaxTableColumns { get; set; } = 1_024;
     /// <summary>Maximum header rows and body rows inspected for one shared flat-table projection. Defaults to 100,000 of each.</summary>
     public int MaxTableRows { get; set; } = 100_000;
+    /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
+    public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
 
     internal void Validate() {
         if (MaxTableColumns < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableColumns));
         if (MaxTableRows < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableRows));
+        if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
     }
 }
 

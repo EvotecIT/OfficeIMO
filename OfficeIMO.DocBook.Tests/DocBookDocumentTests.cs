@@ -70,6 +70,36 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void RepeatedDiagnosticsAreCappedPerCodeAndSummarized() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:a/><x:b/><x:c/><x:d/><x:e/></article>";
+        DocBookDocument document = DocBookDocument.Parse(source);
+
+        DocBookValidationResult validation = document.Validate(new DocBookValidationOptions {
+            MaxDetailedDiagnosticsPerCode = 2
+        });
+        DocBookConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(options: new DocBookConversionOptions {
+            MaxDetailedDiagnosticsPerCode = 2
+        });
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = Enumerable.Range(1, 5)
+                .Select(index => new OfficeDocumentModelNode { Kind = "unsupported-" + index, Text = "Value" }).ToArray()
+        };
+        DocBookConversionResult<DocBookDocument> reverse = DocBookDocument.FromOfficeDocumentModel(
+            model, options: new DocBookConversionOptions { MaxDetailedDiagnosticsPerCode = 2 });
+
+        Assert.Equal(3, validation.Diagnostics.Count(diagnostic => diagnostic.Code == "DB010"));
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB010" &&
+            diagnostic.Message.StartsWith("3 additional", StringComparison.Ordinal));
+        Assert.Equal(3, conversion.Diagnostics.Count(diagnostic => diagnostic.Code == "DB100"));
+        Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "DB100" &&
+            diagnostic.Message.StartsWith("3 additional", StringComparison.Ordinal));
+        Assert.Equal(3, reverse.Diagnostics.Count(diagnostic => diagnostic.Code == "DB101"));
+        Assert.Contains(reverse.Diagnostics, diagnostic => diagnostic.Code == "DB101" &&
+            diagnostic.Message.StartsWith("3 additional", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void SharedModelRoundTripRetainsTypedHierarchy() {
         DocBookDocument document = DocBookDocument.CreateBook(DocBookProfile.DocBook45); document.Title = "T";
         document.AddSection("S").AddParagraph("P");
@@ -167,6 +197,18 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(new[] { "Tall", "R1B", "R1C" }, table.Rows[1]);
         Assert.Equal(new[] { "", "R2B", "R2C" }, table.Rows[2]);
         Assert.Equal(3, table.TotalRowCount);
+    }
+
+    [Fact]
+    public void SharedTableProjectionReportsFooterFlattening() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\"><tbody><row><entry>Body</entry></row></tbody><tfoot><row><entry>Total</entry></row></tfoot></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.Equal(new[] { "Body", "Total" }, table.Rows.Select(row => row.Single()).ToArray());
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB119");
     }
 
     [Fact]

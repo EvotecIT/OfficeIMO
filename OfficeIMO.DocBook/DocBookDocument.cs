@@ -119,13 +119,15 @@ public sealed partial class DocBookDocument {
     /// Validates the bounded OfficeIMO common-structure profile. The returned result explicitly does not represent
     /// a complete external DTD, RELAX NG, Schematron, XInclude, assembly, or vocabulary-extension validation run.
     /// </summary>
-    public DocBookValidationResult Validate() {
-        var diagnostics = new List<DocBookDiagnostic>();
+    public DocBookValidationResult Validate(DocBookValidationOptions? options = null) {
+        options ??= new DocBookValidationOptions();
+        options.Validate();
+        var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         XElement? root = _xml.Root;
         if (root == null) {
             diagnostics.Add(new DocBookDiagnostic("DB001", DocBookDiagnosticSeverity.Error,
                 "The document requires an article or book root element.", "/"));
-            return new DocBookValidationResult(SchemaProfile, diagnostics);
+            return new DocBookValidationResult(SchemaProfile, diagnostics.ToArray());
         }
         string rootName = root.Name.LocalName;
         if (rootName != "article" && rootName != "book") {
@@ -198,7 +200,7 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB013", DocBookDiagnosticSeverity.Error, "imagedata requires fileref.", path));
             }
         }
-        return new DocBookValidationResult(SchemaProfile, diagnostics);
+        return new DocBookValidationResult(SchemaProfile, diagnostics.ToArray());
     }
 
     /// <summary>Returns DocBook XML, preserving the exact unchanged source by default.</summary>
