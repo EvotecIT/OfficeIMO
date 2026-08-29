@@ -406,16 +406,22 @@ namespace OfficeIMO.PowerPoint {
             line == null ? null : ResolveTableCellBorderSide(line, colorScheme);
 
         private static OfficeFontInfo CreateFont(PowerPointTableCell cell, PowerPointShapeBoundsMapping mapping) {
+            PowerPointTextRun? firstRun = cell.Paragraphs
+                .SelectMany(paragraph => paragraph.InlineNodes)
+                .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
             OfficeFontStyle style = OfficeFontStyle.Regular;
-            if (cell.Bold) {
+            if (firstRun?.Bold == true || cell.Bold) {
                 style |= OfficeFontStyle.Bold;
             }
 
-            if (cell.Italic) {
+            if (firstRun?.Italic == true || cell.Italic) {
                 style |= OfficeFontStyle.Italic;
             }
 
-            return new OfficeFontInfo(cell.FontName ?? "Calibri", mapping.MapFontSize(cell.FontSize ?? 10), style);
+            return new OfficeFontInfo(
+                firstRun?.FontName ?? cell.FontName ?? "Calibri",
+                mapping.MapFontSize(firstRun?.FontSize ?? cell.FontSize ?? 10),
+                style);
         }
 
         private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTableCell cell, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
@@ -425,10 +431,9 @@ namespace OfficeIMO.PowerPoint {
                 return richRuns;
             }
 
-            foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
-                var paragraphModel = new PowerPointParagraph(paragraph, cell.SlidePart);
-                List<A.Run> paragraphRuns = paragraph.Elements<A.Run>().ToList();
-                bool paragraphHasVisibleText = paragraphRuns.Any(run => !string.IsNullOrEmpty(run.Text?.Text));
+            foreach (PowerPointParagraph paragraphModel in cell.Paragraphs) {
+                IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraphModel.InlineNodes;
+                bool paragraphHasVisibleText = inlineNodes.Any(node => !string.IsNullOrEmpty(node.Text));
                 if (!paragraphHasVisibleText) {
                     continue;
                 }
@@ -437,14 +442,14 @@ namespace OfficeIMO.PowerPoint {
                     richRuns.Add(CreateRichTextRun(Environment.NewLine, null, cell, paragraphModel, colorScheme, mapping));
                 }
 
-                for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
-                    A.Run sourceRun = paragraphRuns[runIndex];
-                    string runText = sourceRun.Text?.Text ?? string.Empty;
+                for (int inlineIndex = 0; inlineIndex < inlineNodes.Count; inlineIndex++) {
+                    PowerPointParagraphInline inline = inlineNodes[inlineIndex];
+                    string runText = inline.Text;
                     if (string.IsNullOrEmpty(runText)) {
                         continue;
                     }
 
-                    richRuns.Add(CreateRichTextRun(runText, new PowerPointTextRun(sourceRun), cell, paragraphModel, colorScheme, mapping));
+                    richRuns.Add(CreateRichTextRun(runText, inline.Run, cell, paragraphModel, colorScheme, mapping));
                 }
             }
 
@@ -475,8 +480,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static string ResolvePowerPointDisplayText(PowerPointTableCell cell) {
             IReadOnlyList<PowerPointParagraph> paragraphs = cell.Paragraphs;
-            if (!paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
-                    ResolvePowerPointCapitalization(run, paragraph) is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps))) {
+            if (!paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    ResolvePowerPointCapitalization(node.Run, paragraph) is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps))) {
                 return cell.Text;
             }
 
@@ -489,8 +494,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTable table,
             PowerPointTableCell cell,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            bool hasSmallCaps = cell.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
-                ResolvePowerPointCapitalization(run, paragraph) == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text)));
+            bool hasSmallCaps = cell.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                ResolvePowerPointCapitalization(node.Run, paragraph) == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(node.Text)));
             if (!hasSmallCaps) return;
 
             diagnostics.Add(new OfficeImageExportDiagnostic(
@@ -505,8 +510,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTable table,
             PowerPointTableCell cell,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!cell.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
-                    IsPowerPointBaselineApproximated(ResolvePowerPointBaselinePercent(run, paragraph))))) {
+            if (!cell.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    IsPowerPointBaselineApproximated(ResolvePowerPointBaselinePercent(node.Run, paragraph))))) {
                 return;
             }
 
@@ -522,10 +527,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTable table,
             PowerPointTableCell cell,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            bool hasWavyDoubleUnderline = cell.Cell.TextBody?.Elements<A.Paragraph>()
-                .SelectMany(paragraph => paragraph.Elements<A.Run>())
-                .Select(run => new PowerPointTextRun(run))
-                .Any(run => run.UnderlineStyle == PowerPointUnderlineStyle.WavyDouble && !string.IsNullOrEmpty(run.Text)) == true;
+            bool hasWavyDoubleUnderline = cell.Paragraphs
+                .SelectMany(paragraph => paragraph.InlineNodes)
+                .Any(node => node.Run?.UnderlineStyle == PowerPointUnderlineStyle.WavyDouble && !string.IsNullOrEmpty(node.Text));
             if (!hasWavyDoubleUnderline) return;
 
             diagnostics.Add(new OfficeImageExportDiagnostic(
@@ -546,10 +550,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveTableCellTextColor(PowerPointTableCell cell, A.ColorScheme? colorScheme) {
-            A.Run? run = cell.Cell.TextBody?
-                .Elements<A.Paragraph>()
-                .SelectMany(paragraph => paragraph.Elements<A.Run>())
-                .FirstOrDefault();
+            PowerPointTextRun? run = cell.Paragraphs
+                .SelectMany(paragraph => paragraph.InlineNodes)
+                .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
             OfficeColor? cellColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             return cellColor.HasValue
                 ? cellColor.Value

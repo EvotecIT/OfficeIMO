@@ -2,10 +2,34 @@ using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class ExcelImageExportRichTextTests {
+        [Fact]
+        public void ExcelSemanticHeaderRichTextInheritsCellBoldWithoutLosingInlineItalic() {
+            const string html = "<table><thead><tr><th><em>Header</em></th></tr></thead></table>";
+            using ExcelDocument document = HtmlConversionDocument.Parse(html)
+                .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+            ExcelSheet sheet = Assert.Single(document.Sheets);
+            ExcelRichTextRun run = Assert.Single(sheet.CellAt(1, 1).GetRichText());
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelVisualTextRun visualRun = Assert.Single(range.CreateVisualSnapshot().Cells.Single().RichTextRuns);
+            string svg = Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg,
+                new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
+
+            Assert.True(sheet.GetCellStyle(1, 1).Bold);
+            Assert.False(run.BoldSpecified);
+            Assert.True(run.ItalicSpecified);
+            Assert.True(run.Italic);
+            Assert.False(visualRun.BoldSpecified);
+            Assert.True(visualRun.Italic);
+            Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void ExcelRange_ImageExportPreservesAdvancedPlainCellTypographyInSvgAndPng() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");

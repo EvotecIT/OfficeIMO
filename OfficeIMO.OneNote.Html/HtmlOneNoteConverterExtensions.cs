@@ -199,7 +199,7 @@ public static class HtmlOneNoteConverterExtensions {
             run.Style.Strikethrough = sourceRun.Strikethrough ? true : null;
             run.Style.Superscript = sourceRun.Superscript ? true : null;
             run.Style.Subscript = sourceRun.Subscript ? true : null;
-            run.Style.FontFamily = NormalizeFontFamily(sourceRun.Style?.GetValue("font-family"));
+            run.Style.FontFamily = HtmlRenderCssValues.FirstFontFamily(sourceRun.Style?.GetValue("font-family"));
             double? resolvedFontSize = sourceRun.Style?.ResolvedFontSizePoints ?? containerStyle?.ResolvedFontSizePoints;
             if (resolvedFontSize.HasValue && resolvedFontSize.Value > 0D) {
                 run.Style.FontSize = resolvedFontSize.Value;
@@ -219,11 +219,6 @@ public static class HtmlOneNoteConverterExtensions {
         if (headingLevel > 0) paragraph.Style.StyleId = "Heading" + Math.Min(6, headingLevel);
         result.Elements++;
         return paragraph;
-    }
-
-    private static string? NormalizeFontFamily(string? value) {
-        string family = (value ?? string.Empty).Split(',').FirstOrDefault()?.Trim().Trim('\'', '"') ?? string.Empty;
-        return family.Length == 0 ? null : family;
     }
 
     private static bool TryParseCssPoints(string? value, out double points) {

@@ -746,16 +746,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeFontInfo CreateFont(PowerPointTextBox textBox, PowerPointShapeBoundsMapping mapping) {
+            PowerPointTextRun? firstRun = textBox.Paragraphs
+                .SelectMany(paragraph => paragraph.InlineNodes)
+                .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
             OfficeFontStyle style = OfficeFontStyle.Regular;
-            if (textBox.Bold) {
+            if (firstRun?.Bold == true || textBox.Bold) {
                 style |= OfficeFontStyle.Bold;
             }
 
-            if (textBox.Italic) {
+            if (firstRun?.Italic == true || textBox.Italic) {
                 style |= OfficeFontStyle.Italic;
             }
 
-            return new OfficeFontInfo(textBox.FontName ?? "Calibri", mapping.MapFontSize(textBox.FontSize ?? 18), style);
+            return new OfficeFontInfo(
+                firstRun?.FontName ?? textBox.FontName ?? "Calibri",
+                mapping.MapFontSize(firstRun?.FontSize ?? textBox.FontSize ?? 18),
+                style);
         }
 
         private static bool ShouldRenderRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
@@ -781,10 +787,10 @@ namespace OfficeIMO.PowerPoint {
             var numberingState = new Dictionary<int, int>();
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-                IReadOnlyList<PowerPointTextRun> paragraphRuns = paragraph.Runs;
-                PowerPointTextRun? firstRun = paragraphRuns.Count > 0 ? paragraphRuns[0] : null;
+                IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
+                PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
                 string? marker = CreateParagraphMarker(paragraph, numberingState);
-                bool paragraphHasVisibleText = !string.IsNullOrEmpty(marker) || paragraphRuns.Any(run => !string.IsNullOrEmpty(run.Text));
+                bool paragraphHasVisibleText = !string.IsNullOrEmpty(marker) || inlineNodes.Any(node => !string.IsNullOrEmpty(node.Text));
                 if (!paragraphHasVisibleText) {
                     continue;
                 }
@@ -797,14 +803,14 @@ namespace OfficeIMO.PowerPoint {
                     richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true));
                 }
 
-                for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
-                    PowerPointTextRun run = paragraphRuns[runIndex];
-                    string runText = run.Text;
+                for (int inlineIndex = 0; inlineIndex < inlineNodes.Count; inlineIndex++) {
+                    PowerPointParagraphInline inline = inlineNodes[inlineIndex];
+                    string runText = inline.Text;
                     if (string.IsNullOrEmpty(runText)) {
                         continue;
                     }
 
-                    richRuns.Add(CreateRichTextRun(runText, run, textBox, paragraph, colorScheme, mapping));
+                    richRuns.Add(CreateRichTextRun(runText, inline.Run, textBox, paragraph, colorScheme, mapping));
                 }
             }
 
@@ -858,8 +864,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string ResolvePowerPointDisplayText(PowerPointTextBox textBox) {
-            if (!textBox.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
-                    ResolvePowerPointCapitalization(run, paragraph) is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps))) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    ResolvePowerPointCapitalization(node.Run, paragraph) is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps))) {
                 return textBox.Text;
             }
 
@@ -907,8 +913,8 @@ namespace OfficeIMO.PowerPoint {
         private static void AddSmallCapsApproximationDiagnosticIfNeeded(
             PowerPointTextBox textBox,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!textBox.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
-                    ResolvePowerPointCapitalization(run, paragraph) == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(run.Text)))) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    ResolvePowerPointCapitalization(node.Run, paragraph) == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(node.Text)))) {
                 return;
             }
 
@@ -923,8 +929,8 @@ namespace OfficeIMO.PowerPoint {
         private static void AddBaselineApproximationDiagnosticIfNeeded(
             PowerPointTextBox textBox,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!textBox.Paragraphs.Any(paragraph => paragraph.Runs.Any(run =>
-                    IsPowerPointBaselineApproximated(ResolvePowerPointBaselinePercent(run, paragraph))))) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    IsPowerPointBaselineApproximated(ResolvePowerPointBaselinePercent(node.Run, paragraph))))) {
                 return;
             }
 
@@ -944,8 +950,8 @@ namespace OfficeIMO.PowerPoint {
         private static void AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(
             PowerPointTextBox textBox,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                .Any(run => run.UnderlineStyle == PowerPointUnderlineStyle.WavyDouble && !string.IsNullOrEmpty(run.Text))) {
+            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.InlineNodes)
+                .Any(node => node.Run?.UnderlineStyle == PowerPointUnderlineStyle.WavyDouble && !string.IsNullOrEmpty(node.Text))) {
                 return;
             }
 
@@ -991,9 +997,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveTextBoxColor(PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            A.Run? run = textBox.Paragraphs
-                .SelectMany(paragraph => paragraph.Paragraph.Elements<A.Run>())
-                .FirstOrDefault();
+            PowerPointTextRun? run = textBox.Paragraphs
+                .SelectMany(paragraph => paragraph.InlineNodes)
+                .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
             OfficeColor? textBoxColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             return textBoxColor.HasValue
                 ? textBoxColor.Value

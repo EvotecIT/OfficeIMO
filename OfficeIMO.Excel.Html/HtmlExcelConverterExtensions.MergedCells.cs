@@ -246,7 +246,7 @@ public static partial class HtmlExcelConverterExtensions {
             if (verticalAlign.Equals("sub", StringComparison.OrdinalIgnoreCase)) target.SetSubscript();
             if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) target.SetBaseline();
         }
-        if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontName(NormalizeCssFontFamily(fontFamily));
+        if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontName(HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty);
         if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(fontSize);
         if (TryGetCss(css, "color", out string color) && TryNormalizeCssHex(color, out string fontColor)) target.SetFontColor(fontColor);
     }
@@ -272,7 +272,7 @@ public static partial class HtmlExcelConverterExtensions {
             if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) run.VerticalTextAlignment = ExcelVerticalTextAlignment.Baseline;
         }
         TryGetCss(css, "font-family", out string fontFamily);
-        if (!string.IsNullOrEmpty(fontFamily)) run.FontName = NormalizeCssFontFamily(fontFamily);
+        if (!string.IsNullOrEmpty(fontFamily)) run.FontName = HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty;
         TryGetCssPoints(css, "font-size", out double fontSize);
         if (fontSize > 0D) run.FontSize = fontSize;
         TryGetCss(css, "color", out string color);
@@ -352,9 +352,6 @@ public static partial class HtmlExcelConverterExtensions {
         return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed > 0D && (points = parsed * multiplier) > 0D;
     }
-
-    private static string NormalizeCssFontFamily(string value) =>
-        value.Split(',').FirstOrDefault()?.Trim().Trim('\'', '"') ?? string.Empty;
 
     private static bool TryNormalizeCssHex(string value, out string color) {
         color = value.Trim().TrimStart('#');

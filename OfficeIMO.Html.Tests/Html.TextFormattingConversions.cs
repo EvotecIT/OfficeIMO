@@ -747,6 +747,25 @@ public class HtmlTextFormattingConversionTests {
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), powerPointHtml, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("\"ACME, Sans\", Arial", "ACME, Sans")]
+    [InlineData("'O\\'Brien Sans', serif", "O'Brien Sans")]
+    [InlineData("ACME\\, Sans, Arial", "ACME, Sans")]
+    public void SharedCssFontFamilyParsingPreservesQuotedAndEscapedFamilyNames(string css, string expected) {
+        Assert.Equal(expected, HtmlRenderCssValues.FirstFontFamily(css));
+    }
+
+    [Fact]
+    public void HtmlToOneNotePreservesQuotedFontFamilyNamesContainingCommas() {
+        const string html = "<p><span style='font-family:\"ACME, Sans\", Arial'>Styled</span></p>";
+
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteTextRun run = Assert.Single(Assert.Single(Assert.Single(section.Pages).Outlines).Children
+            .OfType<OneNoteParagraph>().Single().Runs);
+
+        Assert.Equal("ACME, Sans", run.Style.FontFamily);
+    }
+
     [Fact]
     public void HtmlToOneNoteRetainsRepresentableRunTypography() {
         const string html = """

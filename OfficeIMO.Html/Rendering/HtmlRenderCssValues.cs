@@ -256,6 +256,31 @@ internal static class HtmlRenderCssValues {
         return normalized.Length == 0 ? fallback : normalized;
     }
 
+    internal static IReadOnlyList<string> FontFamilyNames(string? value) {
+        IReadOnlyList<string> parts = SplitTopLevelCommas(value);
+        if (parts.Count == 0) return Array.Empty<string>();
+
+        var families = new List<string>(parts.Count);
+        for (int index = 0; index < parts.Count; index++) {
+            string family = parts[index].Trim();
+            if (family.Length >= 2 &&
+                (family[0] == '\'' && family[family.Length - 1] == '\'' ||
+                 family[0] == '"' && family[family.Length - 1] == '"')) {
+                family = family.Substring(1, family.Length - 2);
+            }
+
+            family = HtmlCssEscapeDecoder.Decode(family).Trim();
+            if (family.Length > 0) families.Add(family);
+        }
+
+        return families.AsReadOnly();
+    }
+
+    internal static string? FirstFontFamily(string? value) {
+        IReadOnlyList<string> families = FontFamilyNames(value);
+        return families.Count == 0 ? null : families[0];
+    }
+
     internal static IReadOnlyList<string> SplitWhitespace(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {
             return Array.Empty<string>();

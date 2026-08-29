@@ -499,20 +499,29 @@ public static partial class HtmlExcelConverterExtensions {
 
     private static ExcelRichTextRun ToExcelRun(HtmlSemanticRun source) {
         var run = new ExcelRichTextRun(source.Text) {
-            Bold = source.Bold,
-            Italic = source.Italic,
-            Underline = source.Underline,
-            UnderlineStyle = ResolveExcelUnderlineStyle(source),
-            Strikethrough = source.Strikethrough,
             VerticalTextAlignment = source.Baseline switch {
                 OfficeTextBaseline.Superscript => ExcelVerticalTextAlignment.Superscript,
                 OfficeTextBaseline.Subscript => ExcelVerticalTextAlignment.Subscript,
                 _ => (ExcelVerticalTextAlignment?)null
             }
         };
+        if (source.Bold || source.Style?.IsSpecifiedValue("font-weight") == true) run.Bold = source.Bold;
+        if (source.Italic || source.Style?.IsSpecifiedValue("font-style") == true) run.Italic = source.Italic;
+
+        bool decorationSpecified = source.Style?.IsSpecifiedValue("text-decoration") == true
+            || source.Style?.IsSpecifiedValue("text-decoration-line") == true;
+        if (source.Underline || decorationSpecified || source.DataAttributes.ContainsKey("data-officeimo-excel-underline")) {
+            ExcelUnderlineStyle? underlineStyle = ResolveExcelUnderlineStyle(source);
+            if (underlineStyle.HasValue) run.UnderlineStyle = underlineStyle;
+            else run.Underline = source.Underline;
+        }
+        if (source.Strikethrough || decorationSpecified || source.DataAttributes.ContainsKey("data-officeimo-excel-strikethrough")) {
+            run.Strikethrough = source.Strikethrough;
+        }
+
         string color = NormalizeHexColor(source.Style?.GetValue("color"));
         if (color.Length > 0) run.FontColor = color;
-        string fontName = NormalizeFontName(source.Style?.GetValue("font-family"));
+        string fontName = HtmlRenderCssValues.FirstFontFamily(source.Style?.GetValue("font-family")) ?? string.Empty;
         if (fontName.Length > 0) run.FontName = fontName;
         if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = pixels * 0.75D;
         return run;
@@ -549,9 +558,6 @@ public static partial class HtmlExcelConverterExtensions {
         }
         return string.Empty;
     }
-
-    private static string NormalizeFontName(string? value) =>
-        (value ?? string.Empty).Split(',').FirstOrDefault()?.Trim().Trim('\'', '"') ?? string.Empty;
 
     private static bool TryParseCssPixels(string? value, out double pixels) {
         pixels = 0D;

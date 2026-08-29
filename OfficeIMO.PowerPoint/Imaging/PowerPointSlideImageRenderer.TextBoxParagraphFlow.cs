@@ -88,7 +88,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static List<PowerPointParagraph> GetVisibleTextBoxParagraphs(PowerPointTextBox textBox) =>
             textBox.Paragraphs
-                .Where(paragraph => paragraph.Runs.Any(run => !string.IsNullOrEmpty(run.Text)) || !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered)
+                .Where(paragraph => paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text)) || !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered)
                 .ToList();
 
         private static bool ShouldRenderTextBoxParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
@@ -142,17 +142,17 @@ namespace OfficeIMO.PowerPoint {
             string? marker,
             A.ColorScheme? colorScheme,
             PowerPointShapeBoundsMapping mapping) {
-            IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
-            PowerPointTextRun? firstRun = runs.Count > 0 ? runs[0] : null;
+            IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
+            PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             var richRuns = new List<OfficeRichTextRun>();
             if (!string.IsNullOrEmpty(marker)) {
                 richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true));
             }
 
-            for (int i = 0; i < runs.Count; i++) {
-                PowerPointTextRun run = runs[i];
-                if (!string.IsNullOrEmpty(run.Text)) {
-                    richRuns.Add(CreateRichTextRun(run.Text, run, textBox, paragraph, colorScheme, mapping));
+            for (int i = 0; i < inlineNodes.Count; i++) {
+                PowerPointParagraphInline inline = inlineNodes[i];
+                if (!string.IsNullOrEmpty(inline.Text)) {
+                    richRuns.Add(CreateRichTextRun(inline.Text, inline.Run, textBox, paragraph, colorScheme, mapping));
                 }
             }
 
@@ -166,7 +166,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeFontInfo ResolveParagraphFont(PowerPointTextBox textBox, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
-            PowerPointTextRun? firstRun = paragraph.Runs.FirstOrDefault(run => !string.IsNullOrEmpty(run.Text)) ?? paragraph.Runs.FirstOrDefault();
+            PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
+                ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             OfficeFontStyle style = OfficeFontStyle.Regular;
             if (firstRun?.Bold == true || textBox.Bold) {
                 style |= OfficeFontStyle.Bold;
@@ -188,7 +189,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveParagraphTextColor(PowerPointTextBox textBox, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {
-            PowerPointTextRun? firstRun = paragraph.Runs.FirstOrDefault(run => !string.IsNullOrEmpty(run.Text)) ?? paragraph.Runs.FirstOrDefault();
+            PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
+                ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             return ResolveTextRunColor(firstRun, textBox, colorScheme);
         }
 
