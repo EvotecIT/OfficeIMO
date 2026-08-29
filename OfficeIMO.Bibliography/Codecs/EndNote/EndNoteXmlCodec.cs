@@ -300,6 +300,7 @@ internal static class EndNoteXmlCodec {
         string? raw = field.UnmodifiedRawValue;
         if (raw != null) return TryWriteElement(writer, raw);
         if (HasInvalidXmlCharacters(field.Value)) return false;
+        if (field.RawValue != null) return TryWriteEditedNativeElement(writer, field);
         try {
             XmlConvert.VerifyNCName(field.Name);
             writer.WriteElementString(null, field.Name, xmlNamespace, SanitizeXml(field.Value));
@@ -308,10 +309,20 @@ internal static class EndNoteXmlCodec {
             return false;
         }
     }
+    private static bool TryWriteEditedNativeElement(XmlWriter writer, BibliographyNativeField field) {
+        try {
+            XElement original = XElement.Parse(field.RawValue!, LoadOptions.PreserveWhitespace);
+            var edited = new XElement(original.Name, original.Attributes(), SanitizeXml(field.Value));
+            edited.WriteTo(writer);
+            return true;
+        } catch (Exception exception) when (exception is XmlException || exception is InvalidOperationException || exception is ArgumentException) {
+            return false;
+        }
+    }
     private static bool ConflictsWithTypedRecordElement(BibliographyNativeField field, string xmlNamespace) {
         if (string.Equals(field.Name, "periodical", StringComparison.OrdinalIgnoreCase)) return false;
         if (!KnownRecordElements.Contains(field.Name)) return false;
-        string? raw = field.UnmodifiedRawValue;
+        string? raw = field.UnmodifiedRawValue ?? field.RawValue;
         if (raw == null) return true;
         try {
             XElement element = XElement.Parse(raw, LoadOptions.PreserveWhitespace);
@@ -322,7 +333,7 @@ internal static class EndNoteXmlCodec {
     }
     private static bool IsAdditionalUrlField(BibliographyNativeField field, string xmlNamespace) {
         if (!string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)) return false;
-        string? raw = field.UnmodifiedRawValue;
+        string? raw = field.UnmodifiedRawValue ?? field.RawValue;
         if (raw == null) return true;
         try {
             XElement element = XElement.Parse(raw, LoadOptions.PreserveWhitespace);

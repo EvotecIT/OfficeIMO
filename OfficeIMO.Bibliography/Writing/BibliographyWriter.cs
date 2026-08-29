@@ -129,7 +129,8 @@ internal static class BibliographyConversionInspector {
         foreach (BibliographyContributorRole role in item.Contributors.Select(static value => value.Role).Distinct()) {
             bool exact;
             switch (format) {
-                case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.Translator; break;
+                case BibliographyFormat.BibTex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor; break;
+                case BibliographyFormat.BibLatex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.Translator; break;
                 case BibliographyFormat.CslJson: exact = role != BibliographyContributorRole.Other; break;
                 case BibliographyFormat.Ris: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor; break;
                 case BibliographyFormat.Nbib: exact = role == BibliographyContributorRole.Author; break;

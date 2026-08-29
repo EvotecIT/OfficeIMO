@@ -211,7 +211,7 @@ internal static class BibliographyFormatDetector {
     }
 
     private static bool LooksLikeCsl(string source, int position) =>
-        StartsWith(source, position, "[", StringComparison.Ordinal) || StartsWith(source, position, "{", StringComparison.Ordinal) && source.IndexOf("\"type\"", position, StringComparison.OrdinalIgnoreCase) >= 0;
+        StartsWith(source, position, "[", StringComparison.Ordinal) || StartsWith(source, position, "{", StringComparison.Ordinal) && source.IndexOf("\"type\"", position, StringComparison.Ordinal) >= 0;
 
     private static bool StartsWith(string source, int position, string value, StringComparison comparison) =>
         position >= 0 && position <= source.Length - value.Length && string.Compare(source, position, value, 0, value.Length, comparison) == 0;

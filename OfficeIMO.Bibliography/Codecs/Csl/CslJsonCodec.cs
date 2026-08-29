@@ -81,7 +81,7 @@ internal static class CslJsonCodec {
         var item = new BibliographyItem();
         items.Add(item);
         CountValues(element, items, limits);
-        var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenProperties = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonProperty property in element.EnumerateObject()) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!seenProperties.Add(property.Name)) {
@@ -89,7 +89,7 @@ internal static class CslJsonCodec {
                 item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, duplicateRaw), duplicateRaw));
                 continue;
             }
-            switch (property.Name.ToLowerInvariant()) {
+            switch (property.Name) {
                 case "id": BindScalar(item, property, assigned => item.Key = assigned, items, limits); break;
                 case "type": if (TryReadScalar(item, property, items, limits, out string type)) { item.NativeType = type; item.Type = CodecMappings.ParseCslType(type); } break;
                 case "title": BindScalar(item, property, assigned => item.Title = assigned, items, limits); break;
@@ -103,7 +103,7 @@ internal static class CslJsonCodec {
                 case "page": BindScalar(item, property, assigned => item.Pages = assigned, items, limits); break;
                 case "abstract": BindScalar(item, property, assigned => item.Abstract = assigned, items, limits); break;
                 case "language": BindScalar(item, property, assigned => item.Language = assigned, items, limits); break;
-                case "url": BindScalar(item, property, assigned => item.Url = assigned, items, limits); break;
+                case "URL": BindScalar(item, property, assigned => item.Url = assigned, items, limits); break;
                 case "author": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Author, items, limits); break;
                 case "editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Editor, items, limits); break;
                 case "translator": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Translator, items, limits); break;
@@ -116,11 +116,11 @@ internal static class CslJsonCodec {
                 case "submitted": ParseDate(item, property, BibliographyDateRole.Submitted, diagnostics, items, limits); break;
                 case "original-date": ParseDate(item, property, BibliographyDateRole.Original, diagnostics, items, limits); break;
                 case "event-date": ParseDate(item, property, BibliographyDateRole.Event, diagnostics, items, limits); break;
-                case "doi": BindIdentifier(item, property, "DOI", items, limits); break;
-                case "isbn": BindIdentifier(item, property, "ISBN", items, limits); break;
-                case "issn": BindIdentifier(item, property, "ISSN", items, limits); break;
-                case "pmid": BindIdentifier(item, property, "PMID", items, limits); break;
-                case "pmcid": BindIdentifier(item, property, "PMCID", items, limits); break;
+                case "DOI": BindIdentifier(item, property, "DOI", items, limits); break;
+                case "ISBN": BindIdentifier(item, property, "ISBN", items, limits); break;
+                case "ISSN": BindIdentifier(item, property, "ISSN", items, limits); break;
+                case "PMID": BindIdentifier(item, property, "PMID", items, limits); break;
+                case "PMCID": BindIdentifier(item, property, "PMCID", items, limits); break;
                 case "keyword": if (TryReadScalar(item, property, items, limits, out string keyword) && !string.IsNullOrWhiteSpace(keyword)) item.Keywords.Add(keyword); break;
                 case "note": if (TryReadScalar(item, property, items, limits, out string note)) item.Notes.Add(note); break;
                 default:
@@ -194,11 +194,11 @@ internal static class CslJsonCodec {
             if (element.ValueKind == JsonValueKind.String) item.Contributors.Add(new BibliographyContributor(role, new BibliographyName { Literal = element.GetString() }));
             else if (element.ValueKind == JsonValueKind.Object) {
                 var name = new BibliographyName();
-                var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var seenProperties = new HashSet<string>(StringComparer.Ordinal);
                 foreach (JsonProperty property in element.EnumerateObject()) {
                     string scalar = Scalar(property.Value);
                     if (!seenProperties.Add(property.Name)) { string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); continue; }
-                    switch (property.Name.ToLowerInvariant()) {
+                    switch (property.Name) {
                         case "given": name.Given = scalar; break; case "family": name.Family = scalar; break; case "literal": name.Literal = scalar; break;
                         case "suffix": name.Suffix = scalar; break; case "dropping-particle": name.DroppingParticle = scalar; break; case "non-dropping-particle": name.NonDroppingParticle = scalar; break;
                         default: string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); break;
@@ -211,7 +211,7 @@ internal static class CslJsonCodec {
     }
 
     private static bool IsKnownNameProperty(string name) {
-        switch (name.ToLowerInvariant()) {
+        switch (name) {
             case "given": case "family": case "literal": case "suffix": case "dropping-particle": case "non-dropping-particle": return true;
             default: return false;
         }
@@ -225,17 +225,17 @@ internal static class CslJsonCodec {
             return;
         }
         var date = new BibliographyDate { Role = role };
-        var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenProperties = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonProperty property in value.EnumerateObject()) {
             if (!seenProperties.Add(property.Name)) {
                 string duplicateRaw = GetBoundedRawValue(property.Value, items, limits);
                 date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, duplicateRaw), duplicateRaw));
                 continue;
             }
-            if (string.Equals(property.Name, "literal", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(property.Name, "literal", StringComparison.Ordinal)) {
                 if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array) { string literalRaw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, literalRaw, literalRaw)); }
                 else date.Literal = Scalar(property.Value);
-            } else if (string.Equals(property.Name, "date-parts", StringComparison.OrdinalIgnoreCase)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
+            } else if (string.Equals(property.Name, "date-parts", StringComparison.Ordinal)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
             else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
         }
         item.Dates.Add(date);
@@ -259,7 +259,7 @@ internal static class CslJsonCodec {
 
     private static void WriteString(Utf8JsonWriter writer, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteString(name, value); }
     private static HashSet<string> GetEmittedProperties(BibliographyItem item) {
-        var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var emitted = new HashSet<string>(StringComparer.Ordinal);
         if (ShouldWriteTypedId(item)) emitted.Add("id");
         if (ShouldWriteTypedType(item)) emitted.Add("type");
         AddIfValue("title", item.Title); AddIfValue("container-title", item.ContainerTitle); AddIfValue("collection-title", item.CollectionTitle);
@@ -284,7 +284,7 @@ internal static class CslJsonCodec {
 
     private static bool ShouldWriteTypedId(BibliographyItem item) => !string.IsNullOrWhiteSpace(item.Key) || !HasNativeProperty(item, "id");
     private static bool ShouldWriteTypedType(BibliographyItem item) => item.Type != BibliographyItemType.Unknown || !string.IsNullOrWhiteSpace(item.NativeType) || !HasNativeProperty(item, "type");
-    private static bool HasNativeProperty(BibliographyItem item, string property) => item.NativeFields.Any(field => field.Format == BibliographyFormat.CslJson && string.Equals(field.Name, property, StringComparison.OrdinalIgnoreCase));
+    private static bool HasNativeProperty(BibliographyItem item, string property) => item.NativeFields.Any(field => field.Format == BibliographyFormat.CslJson && string.Equals(field.Name, property, StringComparison.Ordinal));
     private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, BibliographyContributorRole role, string property, BibliographyConversionReport report) {
         BibliographyContributor[] contributors = item.Contributors.Where(contributor => contributor.Role == role).ToArray();
         if (contributors.Length == 0) return;
@@ -292,7 +292,7 @@ internal static class CslJsonCodec {
         foreach (BibliographyContributor contributor in contributors) {
             writer.WriteStartObject(); WriteString(writer, "literal", contributor.Name.Literal); WriteString(writer, "given", contributor.Name.Given); WriteString(writer, "family", contributor.Name.Family);
             WriteString(writer, "suffix", contributor.Name.Suffix); WriteString(writer, "dropping-particle", contributor.Name.DroppingParticle); WriteString(writer, "non-dropping-particle", contributor.Name.NonDroppingParticle);
-            var known = new HashSet<string>(new[] { "literal", "given", "family", "suffix", "dropping-particle", "non-dropping-particle" }, StringComparer.OrdinalIgnoreCase);
+            var known = new HashSet<string>(new[] { "literal", "given", "family", "suffix", "dropping-particle", "non-dropping-particle" }, StringComparer.Ordinal);
             foreach (BibliographyNativeField field in contributor.Name.NativeFields) {
                 if (field.Format == BibliographyFormat.CslJson && !known.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field); known.Add(field.Name); report.Add(exact ? "BIBCONV016" : "BIBCONV127", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON name property '{field.Name}'." : $"Native CSL JSON name property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
                 else report.Add("BIBCONV124", BibliographyDiagnosticSeverity.Warning, $"Native name property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
@@ -305,7 +305,7 @@ internal static class CslJsonCodec {
     private static void WriteDate(Utf8JsonWriter writer, BibliographyItem item, BibliographyDateRole role, string property, BibliographyConversionReport report) {
         BibliographyDate? date = item.GetDate(role); if (date == null) return;
         writer.WritePropertyName(property); writer.WriteStartObject();
-        var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var emitted = new HashSet<string>(StringComparer.Ordinal);
         if (date.Year.HasValue) {
             writer.WritePropertyName("date-parts"); writer.WriteStartArray();
             WriteDatePart(writer, date.Year.Value, date.Month, date.Day);

@@ -7,9 +7,11 @@ public sealed class BibliographyItem {
     internal IDictionary<string, string> TaggedFieldNames { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     internal IDictionary<BibliographyContributor, string> TaggedContributorTags { get; } = new Dictionary<BibliographyContributor, string>();
     internal IDictionary<BibliographyDate, string> TaggedDateTags { get; } = new Dictionary<BibliographyDate, string>();
+    internal IDictionary<BibliographyIdentifier, string> TaggedIdentifierTags { get; } = new Dictionary<BibliographyIdentifier, string>();
     internal ISet<string> TaggedScalarBindings { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     internal string? RisPageStart { get; set; }
     internal string? RisPageEnd { get; set; }
+    internal bool BibMonthWasNumeric { get; set; }
 
     /// <summary>Stable citation key or source identifier.</summary>
     public string Key { get; set; } = string.Empty;

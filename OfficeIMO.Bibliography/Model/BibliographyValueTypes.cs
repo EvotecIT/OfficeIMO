@@ -68,16 +68,27 @@ public sealed class BibliographyDate {
 
 /// <summary>A typed identifier such as DOI, PMID, ISBN, or ISSN.</summary>
 public sealed class BibliographyIdentifier {
+    private string _scheme;
+    private string _value;
+
     /// <summary>Initializes an identifier.</summary>
     public BibliographyIdentifier(string scheme, string value) {
-        Scheme = string.IsNullOrWhiteSpace(scheme) ? throw new ArgumentException("Identifier scheme cannot be empty.", nameof(scheme)) : scheme.Trim();
-        Value = string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Identifier value cannot be empty.", nameof(value)) : value.Trim();
+        _scheme = ValidateScheme(scheme, nameof(scheme));
+        _value = ValidateValue(value, nameof(value));
     }
 
     /// <summary>Identifier scheme.</summary>
-    public string Scheme { get; set; }
+    public string Scheme { get => _scheme; set => _scheme = ValidateScheme(value, nameof(value)); }
     /// <summary>Identifier value.</summary>
-    public string Value { get; set; }
+    public string Value { get => _value; set => _value = ValidateValue(value, nameof(value)); }
+
+    private static string ValidateScheme(string? value, string parameterName) {
+        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Identifier scheme cannot be empty.", parameterName);
+        if (value!.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0) throw new ArgumentException("Identifier scheme cannot contain line breaks.", parameterName);
+        return value.Trim();
+    }
+
+    private static string ValidateValue(string? value, string parameterName) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Identifier value cannot be empty.", parameterName) : value!.Trim();
 }
 
 /// <summary>An ordered native field retained outside the typed model.</summary>

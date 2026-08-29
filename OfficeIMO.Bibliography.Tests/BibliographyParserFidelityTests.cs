@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Bibliography.Tests;
 
@@ -157,5 +158,108 @@ public sealed class BibliographyParserFidelityTests {
         Assert.Equal(expected, Assert.Single(document.Items).Type);
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
         Assert.Equal(expected, Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items).Type);
+    }
+
+    [Theory]
+    [InlineData("Ludwig van Beethoven", "Ludwig", "van", "Beethoven")]
+    [InlineData("Charles de la Vallée Poussin", "Charles", "de la", "Vallée Poussin")]
+    public void No_comma_Bib_names_apply_first_von_last_rules(string sourceName, string expectedGiven, string expectedParticle, string expectedFamily) {
+        string source = "@book{x,title={Names},author={" + sourceName + "}}";
+
+        BibliographyName name = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.BibTex).Document.Items[0].Contributors).Name;
+
+        Assert.Equal(expectedGiven, name.Given);
+        Assert.Equal(expectedParticle, name.NonDroppingParticle);
+        Assert.Equal(expectedFamily, name.Family);
+    }
+
+    [Fact]
+    public void NBIB_location_identifier_tag_survives_strict_edit_and_reopen() {
+        const string source = "PMID- 1\nLID - 10.1000/example [doi]\nTI  - Original\n";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
+        document.Items[0].Title = "Edited";
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+
+        Assert.Contains("LID - 10.1000/example [doi]", written.Content, StringComparison.Ordinal);
+        Assert.Equal("10.1000/example", Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items[0].Identifiers, identifier => identifier.Scheme == "doi").Value);
+    }
+
+    [Fact]
+    public void Identifier_properties_preserve_constructor_invariants() {
+        var identifier = new BibliographyIdentifier("DOI", "10.1/example");
+
+        Assert.Throws<ArgumentException>(() => identifier.Scheme = " ");
+        Assert.Throws<ArgumentException>(() => identifier.Scheme = "bad\nscheme");
+        Assert.Throws<ArgumentException>(() => identifier.Value = string.Empty);
+        Assert.Equal("DOI", identifier.Scheme);
+        Assert.Equal("10.1/example", identifier.Value);
+    }
+
+    [Fact]
+    public void Classic_BibTeX_translator_blocks_strict_output() {
+        var document = new BibliographyDocument(BibliographyFormat.BibTex);
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Translation" };
+        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Translator, new BibliographyName { Given = "Taylor", Family = "Smith" }));
+        document.Items.Add(item);
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV201" && diagnostic.Field == "contributors.Translator");
+    }
+
+    [Theory]
+    [InlineData("custom")]
+    [InlineData("title")]
+    [InlineData("url")]
+    public void Edited_EndNote_extension_retains_its_foreign_namespace(string fieldName) {
+        string source = "<xml xmlns:ext=\"urn:extension\"><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><ext:" + fieldName + " mode=\"safe\">old</ext:" + fieldName + "></record></records></xml>";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
+        BibliographyNativeField field = Assert.Single(document.Items[0].NativeFields, native => native.Name == fieldName);
+        field.Value = "new";
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        XDocument reopened = XDocument.Parse(written.Content);
+        XElement extension = Assert.Single(reopened.Descendants(XName.Get(fieldName, "urn:extension")));
+
+        Assert.Equal("new", extension.Value);
+        Assert.Equal("safe", extension.Attribute("mode")?.Value);
+    }
+
+    [Fact]
+    public void CSL_typed_property_matching_is_case_sensitive_at_every_level() {
+        const string source = "[{\"id\":\"x\",\"type\":\"book\",\"title\":\"typed\",\"Title\":\"extension\",\"URL\":\"https://typed.example\",\"Url\":\"extension-url\",\"author\":[{\"family\":\"Smith\",\"Family\":\"extension-family\"}],\"issued\":{\"literal\":\"2026\",\"Literal\":\"extension-date\"}}]";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        using JsonDocument json = JsonDocument.Parse(written.Content);
+        JsonElement item = json.RootElement[0];
+
+        Assert.Equal("typed", item.GetProperty("title").GetString());
+        Assert.Equal("extension", item.GetProperty("Title").GetString());
+        Assert.Equal("https://typed.example", item.GetProperty("URL").GetString());
+        Assert.Equal("extension-url", item.GetProperty("Url").GetString());
+        Assert.Equal("extension-family", item.GetProperty("author")[0].GetProperty("Family").GetString());
+        Assert.Equal("extension-date", item.GetProperty("issued").GetProperty("Literal").GetString());
+    }
+
+    [Fact]
+    public void Classic_BibTeX_named_month_is_emitted_as_a_month_name() {
+        BibliographyDocument document = BibliographyDocument.Parse("@book{x,title={Month},year=2024,month=jan}", BibliographyFormat.BibTex).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+
+        Assert.Contains("month = {January}", written.Content, StringComparison.Ordinal);
+        Assert.Equal(1, Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibTex).Document.Items[0].Dates).Month);
+    }
+
+    [Fact]
+    public void Unknown_classic_BibTeX_month_is_retained_as_a_native_field() {
+        BibliographyDocument document = BibliographyDocument.Parse("@book{x,title={Month},year=2024,month=notamonth}", BibliographyFormat.BibTex).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+
+        Assert.Contains("month = {notamonth}", written.Content, StringComparison.Ordinal);
     }
 }

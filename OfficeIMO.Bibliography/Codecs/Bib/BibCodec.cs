@@ -51,7 +51,7 @@ internal static class BibCodec {
                 if (format == BibliographyFormat.BibLatex) Add(fields, "date", CodecMappings.FormatDate(issued));
                 else {
                     Add(fields, "year", issued.Year?.ToString(CultureInfo.InvariantCulture) ?? issued.Literal);
-                    Add(fields, "month", issued.Month?.ToString(CultureInfo.InvariantCulture));
+                    Add(fields, "month", FormatClassicMonth(item, issued.Month));
                 }
             }
             BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed);
@@ -92,6 +92,11 @@ internal static class BibCodec {
 
     private static void Add(ICollection<KeyValuePair<string, string>> fields, string name, string? value) {
         if (!string.IsNullOrWhiteSpace(value)) fields.Add(new KeyValuePair<string, string>(name, value!));
+    }
+
+    private static string? FormatClassicMonth(BibliographyItem item, int? month) {
+        if (!month.HasValue) return null;
+        return item.BibMonthWasNumeric ? month.Value.ToString(CultureInfo.InvariantCulture) : CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month.Value);
     }
 
     private static string GetBibFieldName(BibliographyItem item, string property, string fallback, BibliographyFormat format) =>
@@ -370,7 +375,7 @@ internal static class BibCodec {
             string trimmed = value.Trim();
             if (trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[trimmed.Length - 1] == '}') return new BibliographyName { Literal = trimmed.Substring(1, trimmed.Length - 2) };
             string[] parts = SplitTopLevel(trimmed, ',').Take(3).ToArray();
-            if (parts.Length == 1) return CodecMappings.ParseCommaName(trimmed);
+            if (parts.Length == 1) return ParseBibFirstVonLast(trimmed);
             SplitBibFamily(parts[0], out string? particle, out string? family);
             SplitBibGiven(parts.Length == 3 ? parts[2] : parts[1], out string? given, out string? droppingParticle);
             return new BibliographyName { Family = family, NonDroppingParticle = particle, Suffix = parts.Length == 3 ? NullIfEmpty(parts[1]) : null, Given = given, DroppingParticle = droppingParticle };
@@ -382,6 +387,21 @@ internal static class BibCodec {
             while (particleCount < words.Length - 1 && StartsWithLowercaseLetter(words[particleCount])) particleCount++;
             particle = NullIfEmpty(string.Join(" ", words.Take(particleCount)));
             family = NullIfEmpty(string.Join(" ", words.Skip(particleCount)));
+        }
+
+        private static BibliographyName ParseBibFirstVonLast(string value) {
+            string[] words = value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) return new BibliographyName();
+            if (words.Length == 1) return new BibliographyName { Family = words[0] };
+            int particleStart = Array.FindIndex(words, StartsWithLowercaseLetter);
+            if (particleStart < 0) return new BibliographyName { Given = string.Join(" ", words.Take(words.Length - 1)), Family = words[words.Length - 1] };
+            int familyStart = particleStart + 1;
+            while (familyStart < words.Length - 1 && StartsWithLowercaseLetter(words[familyStart])) familyStart++;
+            return new BibliographyName {
+                Given = NullIfEmpty(string.Join(" ", words.Take(particleStart))),
+                NonDroppingParticle = NullIfEmpty(string.Join(" ", words.Skip(particleStart).Take(familyStart - particleStart))),
+                Family = NullIfEmpty(string.Join(" ", words.Skip(familyStart)))
+            };
         }
 
         private static void SplitBibGiven(string value, out string? given, out string? droppingParticle) {
@@ -441,12 +461,14 @@ internal static class BibCodec {
         }
 
         private void SetMonth(BibliographyItem item, string value) {
+            if (item.BibFieldNames.ContainsKey("issued-month")) { PreserveAdditionalField(item, "month", value); return; }
+            int? month = CodecMappings.ParseMonth(value);
+            if (!month.HasValue) { PreserveAdditionalField(item, "month", value); return; }
             BibliographyDate date = item.GetDate(BibliographyDateRole.Issued) ?? new BibliographyDate { Role = BibliographyDateRole.Issued };
             if (!item.Dates.Contains(date)) item.Dates.Add(date);
-            if (item.BibFieldNames.ContainsKey("issued-month")) { PreserveAdditionalField(item, "month", value); return; }
             item.BibFieldNames["issued-month"] = "month";
-            int? month = CodecMappings.ParseMonth(value);
-            if (month.HasValue) date.Month = month; else date.Literal = string.IsNullOrEmpty(date.Literal) ? value : date.Literal + " " + value;
+            item.BibMonthWasNumeric = int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
+            date.Month = month;
         }
 
         private string ReadIdentifier() {
