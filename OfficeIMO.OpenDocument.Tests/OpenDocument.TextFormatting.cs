@@ -8,6 +8,27 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public class OpenDocumentTextFormattingTests {
     [Fact]
+    public void DecorationBooleanStateHonorsExplicitNoneLineCounts() {
+        OdtDocument document = OdtDocument.Create();
+        OdtSpan span = document.AddParagraph().AddSpan("Disabled decorations");
+        span.UnderlineStyle = OdfTextDecorationStyle.Solid;
+        span.UnderlineType = OdfTextDecorationType.None;
+        span.LineThroughStyle = OdfTextDecorationStyle.Solid;
+        span.LineThroughType = OdfTextDecorationType.None;
+
+        Assert.False(span.Underline);
+        Assert.False(span.StrikeThrough);
+
+        span.Underline = true;
+        span.StrikeThrough = true;
+
+        Assert.True(span.Underline);
+        Assert.Equal(OdfTextDecorationType.Single, span.UnderlineType);
+        Assert.True(span.StrikeThrough);
+        Assert.Equal(OdfTextDecorationType.Single, span.LineThroughType);
+    }
+
+    [Fact]
     public void OdtSpanNativeDecorationScriptAndCaseStylesRoundTrip() {
         OdtDocument document = OdtDocument.Create();
         OdtSpan span = document.AddParagraph().AddSpan("Styled");

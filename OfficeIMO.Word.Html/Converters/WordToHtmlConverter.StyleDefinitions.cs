@@ -72,18 +72,18 @@ namespace OfficeIMO.Word.Html {
                         // use site. CSS exposes one text-decoration-style value, so a single rule
                         // cannot faithfully combine patterns such as wavy underline + double strike.
                         if (includeInlineVerticalAlignment) {
-                            if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Superscript) {
-                                props["vertical-align"] = "super";
-                            } else if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Subscript) {
-                                props["vertical-align"] = "sub";
-                            } else if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Baseline) {
+                            // Superscript and subscript are emitted as structural wrappers so their
+                            // semantics survive without CSS. Only an explicit baseline needs a class
+                            // declaration to reset a script inherited from a base style.
+                            if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Baseline) {
                                 props["vertical-align"] = "baseline";
                             }
                         }
-                        if (IsEnabled(rPr.SmallCaps)) {
-                            props["font-variant"] = "small-caps";
-                        } else if (IsEnabled(rPr.Caps)) {
-                            props["text-transform"] = "uppercase";
+                        if (rPr.SmallCaps != null) {
+                            props["font-variant"] = IsEnabled(rPr.SmallCaps) ? "small-caps" : "normal";
+                        }
+                        if (rPr.Caps != null) {
+                            props["text-transform"] = IsEnabled(rPr.Caps) ? "uppercase" : "none";
                         }
                         var colorVal = rPr.Color?.Val?.Value;
                         if (!string.IsNullOrEmpty(colorVal) &&

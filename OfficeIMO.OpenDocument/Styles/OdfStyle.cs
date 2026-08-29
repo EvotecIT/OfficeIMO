@@ -47,8 +47,13 @@ public sealed class OdfStyle {
     }
     /// <summary>True when text underline is explicitly enabled by this style.</summary>
     public bool? Underline {
-        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-underline-style");
-        set => WriteDecorationToggle(OdfNamespaces.Style + "text-underline-style", value);
+        get => ReadDecorationToggle(TextProperties,
+            OdfNamespaces.Style + "text-underline-style",
+            OdfNamespaces.Style + "text-underline-type");
+        set => WriteDecorationToggle(
+            OdfNamespaces.Style + "text-underline-style",
+            OdfNamespaces.Style + "text-underline-type",
+            value);
     }
     /// <summary>Explicit native ODF underline line style.</summary>
     public OdfTextDecorationStyle? UnderlineStyle {
@@ -67,8 +72,13 @@ public sealed class OdfStyle {
         TextProperties, OdfNamespaces.Style + "text-underline-style");
     /// <summary>True when text strike-through is explicitly enabled by this style.</summary>
     public bool? StrikeThrough {
-        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-line-through-style");
-        set => WriteDecorationToggle(OdfNamespaces.Style + "text-line-through-style", value);
+        get => ReadDecorationToggle(TextProperties,
+            OdfNamespaces.Style + "text-line-through-style",
+            OdfNamespaces.Style + "text-line-through-type");
+        set => WriteDecorationToggle(
+            OdfNamespaces.Style + "text-line-through-style",
+            OdfNamespaces.Style + "text-line-through-type",
+            value);
     }
     /// <summary>Explicit native ODF line-through style.</summary>
     public OdfTextDecorationStyle? LineThroughStyle {
@@ -247,10 +257,13 @@ public sealed class OdfStyle {
         SetAttribute(element, attribute, value.HasValue ? (value.Value ? trueValue : falseValue) : null);
     }
 
-    private static bool? ReadDecorationToggle(XElement? element, XName attribute) {
-        string? value = (string?)element?.Attribute(attribute);
-        if (value == null) return null;
-        return string.Equals(value, "none", StringComparison.OrdinalIgnoreCase) ? false : true;
+    private static bool? ReadDecorationToggle(XElement? element, XName styleAttribute, XName typeAttribute) {
+        string? style = (string?)element?.Attribute(styleAttribute);
+        string? type = (string?)element?.Attribute(typeAttribute);
+        if (style == null && type == null) return null;
+        if (string.Equals(style, "none", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(type, "none", StringComparison.OrdinalIgnoreCase)) return false;
+        return true;
     }
 
     private static bool? ReadNonSolidDecoration(XElement? element, XName attribute) {
@@ -344,9 +357,14 @@ public sealed class OdfStyle {
         _ => throw new ArgumentOutOfRangeException(nameof(value))
     };
 
-    private void WriteDecorationToggle(XName attribute, bool? value) {
-        SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), attribute,
-            value.HasValue ? (value.Value ? "solid" : "none") : null);
+    private void WriteDecorationToggle(XName styleAttribute, XName typeAttribute, bool? value) {
+        XElement properties = GetProperties(OdfNamespaces.Style + "text-properties");
+        SetAttribute(properties, styleAttribute, value.HasValue ? (value.Value ? "solid" : "none") : null);
+        if (value == false) {
+            SetAttribute(properties, typeAttribute, "none");
+        } else if (value == true && string.Equals((string?)properties.Attribute(typeAttribute), "none", StringComparison.OrdinalIgnoreCase)) {
+            SetAttribute(properties, typeAttribute, "single");
+        }
     }
 
     private static OdfLength? ReadLength(XElement? element, XName attribute) {

@@ -132,6 +132,14 @@ public sealed class OfficeTextCaseTests {
             OfficeTextCaseTransformer.Apply(input, OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture));
     }
 
+    [Theory]
+    [InlineData("cOST 1.5 eUROS. nEXT ITEM", "Cost 1.5 euros. Next item")]
+    [InlineData("vERSION 2.10.3 iS CURRENT. dONE", "Version 2.10.3 is current. Done")]
+    public void SentenceCaseDoesNotTreatPeriodsBetweenDigitsAsSentenceBoundaries(string input, string expected) {
+        Assert.Equal(expected,
+            OfficeTextCaseTransformer.Apply(input, OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture));
+    }
+
     [Fact]
     public void ContextSensitiveLowercaseUsesTheCombinedSourceAcrossTextElementsAndSegments() {
         CultureInfo greek = CultureInfo.GetCultureInfo("el-GR");

@@ -143,7 +143,7 @@ public static class OfficeTextCaseTransformer {
                 case OfficeTextCase.SentenceCase:
                     transformed = sentenceStart && isCasedLetter ? lower.ToUpper(culture) : lower;
                     if (isCasedLetter) sentenceStart = false;
-                    if (EndsSentence(element)) sentenceStart = true;
+                    if (EndsSentence(sourceText, elements.ElementIndex, element)) sentenceStart = true;
                     break;
                 case OfficeTextCase.ToggleCase:
                     string upper = element.ToUpper(culture);
@@ -342,13 +342,23 @@ public static class OfficeTextCaseTransformer {
         return !string.Equals(element.ToUpper(culture), lower, StringComparison.Ordinal);
     }
 
-    private static bool EndsSentence(string element) {
+    private static bool EndsSentence(string source, int elementStart, string element) {
         for (int index = 0; index < element.Length; index++) {
             int codePoint = char.ConvertToUtf32(element, index);
+            if (codePoint == '.' && IsPeriodBetweenDigits(source, elementStart + index)) {
+                continue;
+            }
             if (codePoint == '\r' || codePoint == '\n' || IsSentenceTerminal(codePoint)) return true;
             if (codePoint > char.MaxValue) index++;
         }
         return false;
+    }
+
+    private static bool IsPeriodBetweenDigits(string source, int periodIndex) {
+        return periodIndex > 0 &&
+            periodIndex + 1 < source.Length &&
+            char.IsDigit(source, periodIndex - 1) &&
+            char.IsDigit(source, periodIndex + 1);
     }
 
     private static bool IsSentenceTerminal(int codePoint) {
