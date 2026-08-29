@@ -157,7 +157,7 @@
       "description": "Bounded, source-preserving DocBook 4.5 and 5.2 common-structure parser, editor, writer, validator, and converter.",
       "kind": "package",
       "projectPath": "OfficeIMO.DocBook/OfficeIMO.DocBook.csproj",
-      "sourceFileCount": 6,
+      "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

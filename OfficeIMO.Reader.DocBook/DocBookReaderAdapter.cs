@@ -29,8 +29,9 @@ internal static partial class DocBookReaderAdapter {
         Build(document ?? throw new ArgumentNullException(nameof(document)), sourceName, readerOptions ?? new ReaderOptions(), ReaderDocBookOptionsCloner.Clone(options), cancellationToken);
 
     private static DocBookProjection CreateProjection(DocBookDocument document, string sourceName, ReaderOptions reader, ReaderDocBookOptions options, bool includeChunkWarnings, CancellationToken cancellationToken) {
-        DocBookConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName,
-            new DocBookConversionOptions { MaxTableRows = Math.Max(1, reader.MaxTableRows) });
+        DocBookConversionOptions conversionOptions = options.ConversionOptions;
+        conversionOptions.MaxTableRows = Math.Min(conversionOptions.MaxTableRows, Math.Max(1, reader.MaxTableRows));
+        DocBookConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName, conversionOptions);
         DocBookDiagnostic[] diagnostics = document.Validate().Diagnostics.Concat(conversion.Diagnostics).ToArray();
         IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
             ? diagnostics.Where(d => d.Severity != DocBookDiagnosticSeverity.Info)
@@ -89,8 +90,10 @@ internal static partial class DocBookReaderAdapter {
             return warnings;
         }
 
-        IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node, ListMarker? listMarker = null, int listDepth = 0) {
+        IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node, ListMarker? listMarker = null, int listDepth = 0,
+            string? admonitionContext = null) {
             cancellationToken.ThrowIfCancellationRequested();
+            string? nestedAdmonitionContext = IsAdmonition(node.Kind) ? node.Kind : admonitionContext;
             if (node.Kind == "itemized-list" || node.Kind == "ordered-list") {
                 bool ordered = node.Kind == "ordered-list";
                 long ordinal = 1;
@@ -103,10 +106,10 @@ internal static partial class DocBookReaderAdapter {
                     if (child.Kind == "list-item") {
                         string indentation = new string(' ', Math.Min(listDepth, 128) * 2);
                         var childMarker = new ListMarker(indentation + (ordered ? ordinal + ". " : "- "));
-                        foreach (ReaderChunk chunk in BuildNode(child, childMarker, listDepth + 1)) yield return chunk;
+                        foreach (ReaderChunk chunk in BuildNode(child, childMarker, listDepth + 1, nestedAdmonitionContext)) yield return chunk;
                         if (ordinal < long.MaxValue) ordinal++;
                     } else {
-                        foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth)) yield return chunk;
+                        foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth, nestedAdmonitionContext)) yield return chunk;
                     }
                 }
                 yield break;
@@ -114,12 +117,13 @@ internal static partial class DocBookReaderAdapter {
             int currentSource = sourceIndex++;
             if (!string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
                 IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
+                string codeFence = node.Kind == "code" ? CreateCodeFence(node.Text) : string.Empty;
                 for (int part = 0; part < parts.Count; part++) {
                     string markdown;
                     if (node.Kind == "code") {
-                        markdown = parts.Count == 1 ? "```\n" + parts[part] + "\n```"
-                            : (part == 0 ? "```\n" : string.Empty) + parts[part] +
-                              (part == parts.Count - 1 ? "\n```" : string.Empty);
+                        markdown = parts.Count == 1 ? codeFence + "\n" + parts[part] + "\n" + codeFence
+                            : (part == 0 ? codeFence + "\n" : string.Empty) + parts[part] +
+                              (part == parts.Count - 1 ? "\n" + codeFence : string.Empty);
                     } else {
                         markdown = part == 0 && (node.Kind == "section" || node.Kind == "title")
                             ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " + parts[part]
@@ -134,7 +138,8 @@ internal static partial class DocBookReaderAdapter {
                         Kind = ReaderInputKind.DocBook, Text = parts[part], Markdown = markdown,
                         ContinuesPreviousChunk = part > 0,
                         Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
-                            HeadingPath = node.Location.HeadingPath, SourceBlockKind = listMarker == null ? node.Kind : "list-item",
+                            HeadingPath = node.Location.HeadingPath,
+                            SourceBlockKind = admonitionContext ?? (listMarker == null ? node.Kind : "list-item"),
                             BlockAnchor = "docbook-node-" + currentSource },
                         Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" }, Warnings = TakeWarnings()
                     };
@@ -150,9 +155,34 @@ internal static partial class DocBookReaderAdapter {
             if (!ownsInlineText) {
                 foreach (OfficeDocumentModelNode child in node.Children) {
                     if ((node.Kind == "section" || node.Kind == "table" || node.Kind == "figure") && child.Kind == "title") continue;
-                    foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth)) yield return chunk;
+                    foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth, nestedAdmonitionContext)) yield return chunk;
                 }
             }
+        }
+    }
+
+    private static bool IsAdmonition(string kind) =>
+        kind == "note" || kind == "tip" || kind == "important" || kind == "caution" || kind == "warning";
+
+    private static string CreateCodeFence(string text) {
+        int backticks = LongestRun(text, '`');
+        int tildes = LongestRun(text, '~');
+        char marker = backticks <= tildes ? '`' : '~';
+        int longest = marker == '`' ? backticks : tildes;
+        return new string(marker, Math.Max(3, longest + 1));
+
+        static int LongestRun(string value, char markerCharacter) {
+            int longestRun = 0;
+            int currentRun = 0;
+            foreach (char character in value) {
+                if (character == markerCharacter) {
+                    currentRun++;
+                    if (currentRun > longestRun) longestRun = currentRun;
+                } else {
+                    currentRun = 0;
+                }
+            }
+            return longestRun;
         }
     }
 

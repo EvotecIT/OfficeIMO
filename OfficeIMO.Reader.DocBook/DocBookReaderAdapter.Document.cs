@@ -108,7 +108,7 @@ internal static partial class DocBookReaderAdapter {
         if (code != null && code.StartsWith("DB", StringComparison.Ordinal) &&
             int.TryParse(code.Substring(2), out int number)) {
             if (number >= 1 && number <= 9) return OfficeDocumentDiagnosticCategory.Parsing;
-            if (number == 113) return OfficeDocumentDiagnosticCategory.Limit;
+            if (number == 113 || number == 123) return OfficeDocumentDiagnosticCategory.Limit;
             if (number >= 100) return OfficeDocumentDiagnosticCategory.Adapter;
         }
         return OfficeDocumentDiagnosticCategory.Content;

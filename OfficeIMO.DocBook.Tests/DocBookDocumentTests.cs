@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace OfficeIMO.DocBook.Tests;
 
 public sealed class DocBookDocumentTests {
@@ -505,6 +507,45 @@ public sealed class DocBookDocumentTests {
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB113");
         Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
             .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableCells = 0 }));
+    }
+
+    [Fact]
+    public void SharedProjectionBoundsAggregateNestedTextMaterialization() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><link xmlns:xl=\"http://www.w3.org/1999/xlink\" xl:href=\"https://example.test\"><emphasis>1234567890</emphasis></link></para></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTotalTextCharacters = 12 });
+        OfficeDocumentModelNode root = Assert.Single(converted.Value.Structure);
+
+        Assert.True(Flatten(root).Sum(node => (long)node.Text.Length) <= 12);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB123");
+        Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTotalTextCharacters = 0 }));
+
+        static IEnumerable<OfficeDocumentModelNode> Flatten(OfficeDocumentModelNode node) {
+            yield return node;
+            foreach (OfficeDocumentModelNode child in node.Children) {
+                foreach (OfficeDocumentModelNode descendant in Flatten(child)) yield return descendant;
+            }
+        }
+    }
+
+    [Fact]
+    public void SharedProjectionUsesStructuredPersonNameWithoutAffiliationText() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname><affiliation><orgname>Acme</orgname></affiliation></author></info></article>";
+
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        Assert.Equal("Jane Doe", model.Source.Author);
+        Assert.Contains(model.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
+        Assert.Contains(Flatten(model.Structure), node => node.Text == "Acme");
+
+        static IEnumerable<OfficeDocumentModelNode> Flatten(IEnumerable<OfficeDocumentModelNode> nodes) {
+            foreach (OfficeDocumentModelNode node in nodes) {
+                yield return node;
+                foreach (OfficeDocumentModelNode descendant in Flatten(node.Children)) yield return descendant;
+            }
+        }
     }
 
     [Theory]

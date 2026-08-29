@@ -16,6 +16,7 @@ public sealed partial class DocBookDocument {
         options ??= new DocBookConversionOptions();
         options.Validate();
         var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
+        var textBudget = new DocBookTextProjectionBudget(options.MaxTotalTextCharacters, diagnostics);
         var blocks = new List<OfficeDocumentModelBlock>();
         var tables = new List<OfficeDocumentModelTable>();
         var assets = new List<OfficeDocumentModelAsset>();
@@ -58,7 +59,7 @@ public sealed partial class DocBookDocument {
                 : kind == DocBookNodeKind.Table && element.Name.LocalName == "informaltable"
                     ? "informal-table"
                     : ToModelKind(kind);
-            string text = GetPrimaryText(element, kind);
+            string text = textBudget.GetPrimaryText(element, kind, Namespace, parentPath);
             string path = kind == DocBookNodeKind.Section
                 ? OfficeDocumentHeadingPath.Append(parentPath, text, " / ") : parentPath;
             var attributes = element.Attributes().ToDictionary(a => a.Name.ToString(), a => a.Value, StringComparer.Ordinal);
@@ -94,12 +95,14 @@ public sealed partial class DocBookDocument {
                 if (!string.IsNullOrWhiteSpace(fileReference)) {
                     XElement? mediaObject = element.Ancestors().FirstOrDefault(ancestor =>
                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.MediaObject);
-                    string? caption = mediaObject?.Elements().FirstOrDefault(child =>
-                        DocBookNames.GetKind(child.Name, Namespace) == DocBookNodeKind.Caption)?.Value;
-                    string? alternateText = mediaObject?.Elements(Namespace + "textobject")
+                    XElement? captionElement = mediaObject?.Elements().FirstOrDefault(child =>
+                        DocBookNames.GetKind(child.Name, Namespace) == DocBookNodeKind.Caption);
+                    string? caption = captionElement == null ? null : textBudget.GetElementValue(captionElement, path);
+                    XElement? alternateTextElement = mediaObject?.Elements(Namespace + "textobject")
                         .SelectMany(textObject => textObject.Descendants(Namespace + "phrase").Where(phrase =>
                             ReferenceEquals(phrase.Ancestors(Namespace + "textobject").FirstOrDefault(), textObject)))
-                        .FirstOrDefault()?.Value;
+                        .FirstOrDefault();
+                    string? alternateText = alternateTextElement == null ? null : textBudget.GetElementValue(alternateTextElement, path);
                     string? fileName = GetReferenceFileName(fileReference!);
                     string? extension = GetReferenceExtension(fileName);
                     string mediaType = OfficeImageInfo.GetMimeTypeFromExtension(extension);
@@ -152,7 +155,7 @@ public sealed partial class DocBookDocument {
                     children.Add(new OfficeDocumentModelNode {
                         Id = "docbook-" + index++,
                         Kind = "text",
-                        Text = textNode.Value,
+                        Text = textBudget.GetTextValue(textNode, path),
                         Level = childLevel,
                         Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = path }
                     });
@@ -325,7 +328,7 @@ public sealed partial class DocBookDocument {
                         end = start;
                         while (cells.Count <= end) cells.Add(null);
                     }
-                    cells[start] = entry.Value;
+                    cells[start] = textBudget.GetPrimaryText(entry, DocBookNodeKind.Entry, Namespace, string.Empty);
                     for (int column = start + 1; column <= end; column++) cells[column] = string.Empty;
                     nextEntryColumn = Math.Max(nextEntryColumn, end + 1);
 
@@ -362,7 +365,8 @@ public sealed partial class DocBookDocument {
                     ? sourceRow
                     : sourceRow.Concat(Enumerable.Repeat(string.Empty, columnCount - sourceRow.Count)).ToArray());
             }
-            string? title = tableElement.Element(Namespace + "title")?.Value;
+            XElement? tableTitleElement = tableElement.Element(Namespace + "title");
+            string? title = tableTitleElement == null ? null : textBudget.GetElementValue(tableTitleElement, string.Empty);
             string tableHeadingPath = BuildTableHeadingPath(tableElement, title);
             if (flattenedCalsLayout) {
                 diagnostics.Add(new DocBookDiagnostic("DB112", DocBookDiagnosticSeverity.Warning,
@@ -397,7 +401,7 @@ public sealed partial class DocBookDocument {
 
         XElement? firstAuthor = FindInfo()?.Descendants().FirstOrDefault(element =>
             DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Author);
-        string? author = firstAuthor == null ? null : GetAuthorText(firstAuthor);
+        string? author = firstAuthor == null ? null : textBudget.GetAuthorName(firstAuthor, string.Empty);
         var metadata = new List<OfficeDocumentModelMetadataEntry> {
             new OfficeDocumentModelMetadataEntry {
                 Id = "docbook-profile", Category = "docbook", Name = "profile",
@@ -413,7 +417,7 @@ public sealed partial class DocBookDocument {
                      DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Author)) {
             metadata.Add(new OfficeDocumentModelMetadataEntry {
                 Id = "docbook-author-" + authorIndex++, Category = "docbook", Name = "author",
-                Value = GetAuthorText(authorElement), ValueType = "string"
+                Value = textBudget.GetAuthorName(authorElement, string.Empty), ValueType = "string"
             });
         }
 
@@ -424,7 +428,7 @@ public sealed partial class DocBookDocument {
         if (assets.Count > 0) capabilities.Add("docbook.media-references");
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.DocBook,
-            Source = new OfficeDocumentModelSource { Path = sourcePath, Title = Title, Author = author },
+            Source = new OfficeDocumentModelSource { Path = sourcePath, Title = GetProjectedDocumentTitle(), Author = author },
             CapabilitiesUsed = capabilities,
             Metadata = metadata,
             Structure = structure,
@@ -439,9 +443,16 @@ public sealed partial class DocBookDocument {
             string path = string.Empty;
             foreach (XElement section in tableElement.Ancestors().Reverse().Where(ancestor =>
                          DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Section)) {
-                path = OfficeDocumentHeadingPath.Append(path, GetPrimaryText(section, DocBookNodeKind.Section), " / ");
+                path = OfficeDocumentHeadingPath.Append(path,
+                    textBudget.GetPrimaryText(section, DocBookNodeKind.Section, Namespace, path), " / ");
             }
             return OfficeDocumentHeadingPath.Append(path, tableTitle, " / ");
+        }
+
+        string? GetProjectedDocumentTitle() {
+            XElement? info = FindInfo();
+            XElement? titleElement = info?.Element(Namespace + "title") ?? RootElement.Element(Namespace + "title");
+            return titleElement == null ? null : textBudget.GetElementValue(titleElement, string.Empty);
         }
 
         static string? GetReferenceFileName(string fileReference) {
@@ -685,17 +696,6 @@ public sealed partial class DocBookDocument {
             string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsAuthorNode);
     }
 
-    private static string GetPrimaryText(XElement element, DocBookNodeKind kind) {
-        if (kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Table || kind == DocBookNodeKind.Figure || kind == DocBookNodeKind.Info) {
-            return element.Element(element.Name.Namespace + "title")?.Value ?? string.Empty;
-        }
-        if (kind == DocBookNodeKind.Author) return GetAuthorText(element);
-        if (kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle || kind == DocBookNodeKind.Link ||
-            kind == DocBookNodeKind.Entry || kind == DocBookNodeKind.Caption) return element.Value;
-        return element.HasElements && kind != DocBookNodeKind.Paragraph && kind != DocBookNodeKind.ProgramListing && kind != DocBookNodeKind.Screen
-            ? string.Empty : element.Value;
-    }
-
     private static string ToModelKind(DocBookNodeKind kind) {
         switch (kind) {
             case DocBookNodeKind.Info: return "metadata";
@@ -793,15 +793,6 @@ public sealed partial class DocBookDocument {
     }
 
     private static string SanitizeRole(string value) => new string((value ?? "unknown").Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '-').ToArray());
-
-    private static string GetAuthorText(XElement authorElement) {
-        if (!authorElement.HasElements) return authorElement.Value;
-        string[] parts = authorElement.DescendantNodes().OfType<XText>()
-            .Select(text => text.Value.Trim())
-            .Where(value => value.Length > 0)
-            .ToArray();
-        return parts.Length == 0 ? authorElement.Value : string.Join(" ", parts);
-    }
 
     private sealed class CalsProjectionLayout {
         internal static readonly CalsProjectionLayout Empty = new CalsProjectionLayout(

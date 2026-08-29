@@ -179,6 +179,8 @@ public sealed class DocBookValidationOptions {
 
 /// <summary>Controls bounded projections from native DocBook into shared semantic channels.</summary>
 public sealed class DocBookConversionOptions {
+    /// <summary>Maximum aggregate text characters materialized across the shared-model projection. Defaults to 32,000,000.</summary>
+    public long MaxTotalTextCharacters { get; set; } = 32_000_000L;
     /// <summary>Maximum columns materialized for one shared flat-table projection. Defaults to 1,024.</summary>
     public int MaxTableColumns { get; set; } = 1_024;
     /// <summary>Maximum header rows and body rows inspected for one shared flat-table projection. Defaults to 100,000 of each.</summary>
@@ -189,6 +191,7 @@ public sealed class DocBookConversionOptions {
     public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
 
     internal void Validate() {
+        if (MaxTotalTextCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaxTotalTextCharacters));
         if (MaxTableColumns < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableColumns));
         if (MaxTableRows < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableRows));
         if (MaxTableCells < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableCells));

@@ -76,6 +76,41 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterPropagatesAdmonitionContextToNestedContent() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><warning><para>Danger</para></warning><note><itemizedlist><listitem><para>Remember</para></listitem></itemizedlist></note></article>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
+
+        Assert.Contains(chunks, chunk => chunk.Text == "Danger" && chunk.Location.SourceBlockKind == "warning");
+        Assert.Contains(chunks, chunk => chunk.Text == "Remember" && chunk.Location.SourceBlockKind == "note" && chunk.Markdown == "- Remember");
+    }
+
+    [Fact]
+    public void DocBookAdapterUsesAFenceThatCannotBeClosedByListingContent() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><programlisting>before\n```\n# still code\nafter</programlisting></article>";
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
+        string markdown = result.Markdown.Replace("\r\n", "\n");
+
+        Assert.StartsWith("~~~\nbefore\n```\n# still code\nafter\n~~~", markdown, StringComparison.Ordinal);
+        Assert.Equal("code", Assert.Single(result.Chunks).Location.SourceBlockKind);
+    }
+
+    [Fact]
+    public void DocBookAdapterAppliesAndClassifiesTheAggregateTextBudget() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><link xmlns:xl=\"http://www.w3.org/1999/xlink\" xl:href=\"https://example.test\"><emphasis>1234567890</emphasis></link></para></article>";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+
+        OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream, docBookOptions: new ReaderDocBookOptions {
+            ConversionOptions = new DocBookConversionOptions { MaxTotalTextCharacters = 12 }
+        });
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB123" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Limit);
+    }
+
+    [Fact]
     public void DocBookAdapterPreservesItemizedOrderedAndNestedListMarkers() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><itemizedlist><listitem><para>Alpha</para><itemizedlist><listitem><para>Nested</para></listitem></itemizedlist></listitem><listitem><para>Beta</para></listitem></itemizedlist><orderedlist startingnumber=\"3\"><listitem><para>Third</para></listitem><listitem><para>Fourth</para></listitem></orderedlist></article>";
 
