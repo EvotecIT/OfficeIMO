@@ -146,6 +146,40 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void ValidationReportsRootShapeProblemsAfterAdvancedEdits() {
+        OpmlDocument renamed = OpmlDocument.Create();
+        renamed.Xml.Root!.Name = "renamed";
+        Assert.Contains(renamed.Validate().Diagnostics, diagnostic => diagnostic.Code == "OPML003");
+
+        OpmlDocument missingBody = OpmlDocument.Create();
+        missingBody.Xml.Root!.Element("body")!.Remove();
+        OpmlValidationResult missingBodyResult = missingBody.Validate();
+        Assert.False(missingBodyResult.IsValid);
+        Assert.Contains(missingBodyResult.Diagnostics, diagnostic => diagnostic.Code == "OPML004");
+
+        OpmlDocument reordered = OpmlDocument.Create();
+        XElement head = reordered.Xml.Root!.Element("head")!;
+        head.Remove();
+        reordered.Xml.Root!.Add(head);
+        Assert.Contains(reordered.Validate().Diagnostics, diagnostic => diagnostic.Code == "OPML005");
+    }
+
+    [Fact]
+    public void SharedConversionBoundsCumulativeOutlineHeadingPaths() {
+        OpmlDocument document = OpmlDocument.Create();
+        OpmlOutline parent = document.AddOutline(new string('a', 2_000));
+        parent.AddChild(new string('b', 2_000)).AddChild(new string('c', 2_000));
+
+        OfficeDocumentModel model = document.ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode[] nodes = model.Structure
+            .SelectMany(root => new[] { root, root.Children[0], root.Children[0].Children[0] })
+            .ToArray();
+
+        Assert.All(nodes, node => Assert.True(node.Location.HeadingPath!.Length <= 1_024));
+        Assert.All(model.Blocks, block => Assert.True(block.Location.HeadingPath!.Length <= 1_024));
+    }
+
+    [Fact]
     public void AdvancedXmlMutationCannotBeHiddenByUnchangedSourceFastPath() {
         const string source = "<opml version=\"2.0\"><head/><body><outline text=\"Before\"/></body></opml>";
         OpmlDocument document = OpmlDocument.Parse(source);

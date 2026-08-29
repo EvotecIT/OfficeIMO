@@ -175,6 +175,21 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedTableProjectionReservesSeparateHeaderAndBodyCapacity() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup><thead><row><entry morerows=\"3\">H1</entry></row><row><entry>H2</entry></row><row><entry>H3</entry></row><row><entry>H4</entry></row></thead><tbody><row><entry>Body 1</entry></row><row><entry>Body 2</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableRows = 1 });
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal(new[] { "H1" }, table.Columns);
+        Assert.Equal(new[] { "Body 1" }, Assert.Single(table.Rows));
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.True(table.Truncated);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB113");
+    }
+
+    [Fact]
     public void SharedConversionKeepsNamespacedLookalikeExtensionsAndDocBook4Ulink() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:section x:flag=\"yes\">Extension</x:section></article>";
         DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
@@ -392,6 +407,55 @@ public sealed class DocBookDocumentTests {
         Assert.Equal("Guide", converted.Title);
         Assert.Equal("Jane Doe", converted.Xml.Descendants().Single(element => element.Name.LocalName == "author").Value);
         Assert.Single(converted.Xml.Root!.Elements(), element => element.Name.LocalName == "info");
+    }
+
+    [Fact]
+    public void SharedConversionDoesNotTreatSectionTitleAsDocumentTitle() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Source = new OfficeDocumentModelSource { Title = "Guide" },
+            Structure = new[] {
+                new OfficeDocumentModelNode {
+                    Kind = "section",
+                    Children = new[] { new OfficeDocumentModelNode { Kind = "title", Text = "Chapter" } }
+                }
+            }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+
+        Assert.Equal("Guide", converted.Title);
+        Assert.Equal("Chapter", converted.Xml.Descendants().Single(element =>
+            element.Name.LocalName == "section").Elements().Single(element => element.Name.LocalName == "title").Value);
+    }
+
+    [Fact]
+    public void SharedModelKeepsSectionAuthorsOutOfDocumentAttribution() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Chapter</title><info><author>Jane Doe</author></info></section></article>";
+
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        Assert.Null(model.Source.Author);
+        Assert.Contains(model.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
+        OfficeDocumentModelNode section = model.Structure.Single(node => node.Kind == "section");
+        Assert.Contains(section.Children.Single(node => node.Kind == "metadata").Children,
+            node => node.Kind == "author" && node.Text == "Jane Doe");
+    }
+
+    [Fact]
+    public void SharedConversionBoundsCumulativeSectionHeadingPaths() {
+        DocBookDocument document = DocBookDocument.CreateArticle();
+        DocBookNode first = document.AddSection(new string('a', 2_000));
+        DocBookNode second = first.AddSection(new string('b', 2_000));
+        second.AddSection(new string('c', 2_000));
+
+        OfficeDocumentModel model = document.ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode[] sections = model.Structure
+            .SelectMany(root => new[] { root, root.Children.Single(node => node.Kind == "section"),
+                root.Children.Single(node => node.Kind == "section").Children.Single(node => node.Kind == "section") })
+            .ToArray();
+
+        Assert.All(sections, section => Assert.True(section.Location.HeadingPath!.Length <= 1_024));
     }
 
     [Fact]

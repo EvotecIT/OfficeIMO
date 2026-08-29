@@ -1,4 +1,5 @@
 using OfficeIMO;
+using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,7 +57,7 @@ public sealed partial class DocBookDocument {
                     : ToModelKind(kind);
             string text = GetPrimaryText(element, kind);
             string path = kind == DocBookNodeKind.Section
-                ? (string.IsNullOrEmpty(parentPath) ? text : parentPath + " / " + text) : parentPath;
+                ? OfficeDocumentHeadingPath.Append(parentPath, text, " / ") : parentPath;
             var attributes = element.Attributes().ToDictionary(a => a.Name.ToString(), a => a.Value, StringComparer.Ordinal);
             int nodeIndex = index++;
             if (kind == DocBookNodeKind.Unknown) {
@@ -129,11 +130,13 @@ public sealed partial class DocBookDocument {
 
         foreach (XElement tableElement in RootElement.Descendants().Where(element =>
                      DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Table)) {
-            int discoveryCapacity = options.MaxTableRows > (int.MaxValue - 1) / 2
-                ? int.MaxValue : options.MaxTableRows * 2 + 1;
+            int discoveryCapacity = options.MaxTableRows > int.MaxValue / 2
+                ? int.MaxValue : options.MaxTableRows * 2;
             var rowElements = new List<XElement>(Math.Min(discoveryCapacity, 4_096));
             bool rowDiscoveryTruncated = false;
             int totalBodyRows = 0;
+            int headerRowsRetained = 0;
+            int bodyRowsRetained = 0;
             foreach (XElement element in tableElement.Descendants()) {
                 if (DocBookNames.GetKind(element.Name, Namespace) != DocBookNodeKind.Row ||
                     !ReferenceEquals(element.Ancestors().FirstOrDefault(ancestor =>
@@ -141,11 +144,13 @@ public sealed partial class DocBookDocument {
                 bool isHeader = element.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
                     DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableHead);
                 if (!isHeader) totalBodyRows++;
-                if (rowElements.Count >= discoveryCapacity) {
+                if (isHeader ? headerRowsRetained >= options.MaxTableRows : bodyRowsRetained >= options.MaxTableRows) {
                     rowDiscoveryTruncated = true;
                     continue;
                 }
                 rowElements.Add(element);
+                if (isHeader) headerRowsRetained++;
+                else bodyRowsRetained++;
             }
             var projectedRows = new List<KeyValuePair<bool, IReadOnlyList<string>>>();
             var activeRowSpans = new Dictionary<XElement, Dictionary<int, int>>();
@@ -153,26 +158,17 @@ public sealed partial class DocBookDocument {
             int columnCount = 0;
             bool flattenedCalsLayout = false;
             bool projectionTruncated = rowDiscoveryTruncated;
-            int bodyRowsProjected = 0;
-            int headerRowsProjected = 0;
 
             foreach (XElement rowElement in rowElements) {
                 bool isHeader = rowElement.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
                     DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableHead);
-                if (isHeader) {
-                    if (++headerRowsProjected > options.MaxTableRows) {
-                        projectionTruncated = true;
-                        continue;
-                    }
-                } else {
-                    if (++bodyRowsProjected > options.MaxTableRows) {
-                        projectionTruncated = true;
-                        continue;
-                    }
-                }
                 XElement? tableGroup = rowElement.Ancestors().FirstOrDefault(ancestor =>
                     DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableGroup);
-                XElement spanOwner = tableGroup ?? tableElement;
+                XElement? rowGroup = rowElement.Ancestors().FirstOrDefault(ancestor =>
+                    DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableHead ||
+                    DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableBody ||
+                    ancestor.Name == Namespace + "tfoot");
+                XElement spanOwner = rowGroup ?? tableGroup ?? tableElement;
                 CalsProjectionLayout layout;
                 if (tableGroup == null) {
                     layout = CalsProjectionLayout.Empty;
@@ -334,7 +330,7 @@ public sealed partial class DocBookDocument {
             });
         }
 
-        XElement? firstAuthor = RootElement.Descendants().FirstOrDefault(element =>
+        XElement? firstAuthor = FindInfo()?.Descendants().FirstOrDefault(element =>
             DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Author);
         string? author = firstAuthor == null ? null : GetAuthorText(firstAuthor);
         var metadata = new List<OfficeDocumentModelMetadataEntry> {
@@ -449,7 +445,7 @@ public sealed partial class DocBookDocument {
         }
 
         if (model.Structure.Count > 0) {
-            bool hasTitle = model.Structure.Any(ContainsTitle);
+            bool hasTitle = model.Structure.Any(ContainsDocumentTitle);
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
             if (!hasTitle) document.Title = model.Source.Title;
         } else {
@@ -460,8 +456,10 @@ public sealed partial class DocBookDocument {
         }
         return new DocBookConversionResult<DocBookDocument>(document, diagnostics);
 
-        static bool ContainsTitle(OfficeDocumentModelNode node) =>
-            string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsTitle);
+        static bool ContainsDocumentTitle(OfficeDocumentModelNode node) =>
+            string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase) &&
+            node.Children.Any(child => string.Equals(child.Kind, "title", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string GetPrimaryText(XElement element, DocBookNodeKind kind) {

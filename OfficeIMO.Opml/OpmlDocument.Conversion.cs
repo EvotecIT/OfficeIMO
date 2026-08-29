@@ -1,4 +1,5 @@
 using OfficeIMO;
+using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +16,7 @@ public sealed partial class OpmlDocument {
         int blockIndex = 0;
 
         OfficeDocumentModelNode Convert(OpmlOutline outline, int level, string parentPath) {
-            string headingPath = string.IsNullOrEmpty(parentPath) ? outline.Text : parentPath + " / " + outline.Text;
+            string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " / ");
             var attributes = outline.Attributes.ToDictionary(
                 pair => pair.Key.ToString(), pair => pair.Value, StringComparer.Ordinal);
             int nodeIndex = blockIndex++;

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using OfficeIMO.Opml;
 using OfficeIMO.Reader;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Reader.Opml;
 
@@ -62,7 +63,7 @@ internal static partial class OpmlReaderAdapter {
 
         IEnumerable<ReaderChunk> BuildOutline(OpmlOutline outline, int level, string parentPath) {
             cancellationToken.ThrowIfCancellationRequested();
-            string headingPath = string.IsNullOrEmpty(parentPath) ? outline.Text : parentPath + " > " + outline.Text;
+            string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " > ");
             int currentSource = sourceIndex++;
             IReadOnlyList<string> parts = Split(outline.Text, reader.MaxChars);
             if (parts.Count == 0) parts = new[] { string.Empty };

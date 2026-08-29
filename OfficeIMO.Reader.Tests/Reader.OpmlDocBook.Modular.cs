@@ -80,6 +80,16 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void OpmlAdapterBoundsCumulativeHeadingPaths() {
+        OpmlDocument document = OpmlDocument.Create();
+        document.AddOutline(new string('a', 2_000)).AddChild(new string('b', 2_000));
+
+        ReaderChunk[] chunks = OpmlReaderAdapter.Read(document).ToArray();
+
+        Assert.All(chunks, chunk => Assert.True(chunk.Location.HeadingPath!.Length <= 1_024));
+    }
+
+    [Fact]
     public void DocBookAdapterAttachesDocumentWarningsToOnlyOneChunk() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">Link</ulink><para>One</para><para>Two</para></article>";
 
@@ -87,6 +97,16 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.True(chunks.Length > 1);
         Assert.Single(chunks, chunk => chunk.Warnings?.Count > 0);
+    }
+
+    [Fact]
+    public void DocBookAdapterRetainsBoundedSectionHeadingPaths() {
+        DocBookDocument document = DocBookDocument.CreateArticle();
+        document.AddSection(new string('a', 2_000)).AddSection(new string('b', 2_000));
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(document).ToArray();
+
+        Assert.All(chunks, chunk => Assert.True((chunk.Location.HeadingPath?.Length ?? 0) <= 1_024));
     }
 
     [Fact]
@@ -238,6 +258,17 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Single(result.Tables);
         Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "DB112");
         Assert.All(result.Chunks, chunk => Assert.Null(chunk.Warnings));
+    }
+
+    [Fact]
+    public void DocBookRichResultDoesNotPromoteSectionAuthorToDocumentSource() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Chapter</title><info><author>Jane Doe</author></info></section></article>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "guide.docbook");
+
+        Assert.Null(result.Source.Author);
+        Assert.Contains(result.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
     }
 
     [Fact]

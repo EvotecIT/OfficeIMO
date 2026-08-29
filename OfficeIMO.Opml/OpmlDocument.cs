@@ -110,16 +110,40 @@ public sealed partial class OpmlDocument {
     /// <summary>Validates the supported OPML profile without discarding extension content.</summary>
     public OpmlValidationResult Validate() {
         var diagnostics = new List<OpmlDiagnostic>();
-        if (DeclaredVersion != "1.0" && DeclaredVersion != "1.1" && DeclaredVersion != "2.0") {
+        XElement? root = _xml.Root;
+        string declaredVersion = (string?)root?.Attribute("version") ?? string.Empty;
+        OpmlVersion profile = declaredVersion == "2.0" ? OpmlVersion.Opml20 : OpmlVersion.Opml10;
+        if (root == null || root.Name != "opml") {
+            diagnostics.Add(new OpmlDiagnostic("OPML003", OpmlDiagnosticSeverity.Error,
+                "The document root must be opml in no namespace.", "/"));
+        }
+
+        XElement[] headElements = root?.Elements("head").ToArray() ?? Array.Empty<XElement>();
+        XElement[] bodyElements = root?.Elements("body").ToArray() ?? Array.Empty<XElement>();
+        if (headElements.Length != 1 || bodyElements.Length != 1) {
+            diagnostics.Add(new OpmlDiagnostic("OPML004", OpmlDiagnosticSeverity.Error,
+                "An OPML document requires exactly one head and one body element.", "/opml"));
+        } else {
+            XElement[] rootChildren = root!.Elements().ToArray();
+            if (Array.IndexOf(rootChildren, headElements[0]) > Array.IndexOf(rootChildren, bodyElements[0])) {
+                diagnostics.Add(new OpmlDiagnostic("OPML005", OpmlDiagnosticSeverity.Error,
+                    "The OPML head element must precede the body element.", "/opml"));
+            }
+        }
+
+        if (declaredVersion != "1.0" && declaredVersion != "1.1" && declaredVersion != "2.0") {
             diagnostics.Add(new OpmlDiagnostic("OPML001", OpmlDiagnosticSeverity.Error,
-                $"Unsupported OPML version '{DeclaredVersion}'.", "/opml/@version"));
-        } else if (DeclaredVersion == "1.1") {
+                $"Unsupported OPML version '{declaredVersion}'.", "/opml/@version"));
+        } else if (declaredVersion == "1.1") {
             diagnostics.Add(new OpmlDiagnostic("OPML002", OpmlDiagnosticSeverity.Info,
                 "OPML 1.1 is interpreted using the OPML 1.0 profile.", "/opml/@version"));
         }
 
         int index = 0;
-        foreach (OpmlOutline outline in Descendants()) {
+        IEnumerable<OpmlOutline> outlines = bodyElements.Length == 1
+            ? bodyElements[0].Descendants("outline").Select(element => new OpmlOutline(this, element))
+            : Enumerable.Empty<OpmlOutline>();
+        foreach (OpmlOutline outline in outlines) {
             string path = $"/opml/body//outline[{++index}]";
             if (outline.Element.Attribute("text") == null) {
                 diagnostics.Add(new OpmlDiagnostic("OPML010", OpmlDiagnosticSeverity.Error,
@@ -135,7 +159,7 @@ public sealed partial class OpmlDocument {
                     "A link/include outline requires url.", path));
             }
         }
-        return new OpmlValidationResult(Version, diagnostics);
+        return new OpmlValidationResult(profile, diagnostics);
     }
 
     /// <summary>Returns OPML text, preserving the exact input while unchanged by default.</summary>
