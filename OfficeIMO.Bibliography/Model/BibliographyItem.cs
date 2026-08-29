@@ -8,6 +8,8 @@ public sealed class BibliographyItem {
     internal IDictionary<BibliographyContributor, string> TaggedContributorTags { get; } = new Dictionary<BibliographyContributor, string>();
     internal IDictionary<BibliographyDate, string> TaggedDateTags { get; } = new Dictionary<BibliographyDate, string>();
     internal ISet<string> TaggedScalarBindings { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    internal string? RisPageStart { get; set; }
+    internal string? RisPageEnd { get; set; }
 
     /// <summary>Stable citation key or source identifier.</summary>
     public string Key { get; set; } = string.Empty;

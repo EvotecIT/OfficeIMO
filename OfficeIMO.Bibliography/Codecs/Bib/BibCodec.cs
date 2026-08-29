@@ -340,7 +340,7 @@ internal static class BibCodec {
                 case "year": SetYear(item, value); break;
                 case "month": SetMonth(item, value); break;
                 case "urldate": item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Accessed, value)); break;
-                case "doi": case "isbn": case "issn": case "pmid": case "pmcid": item.Identifiers.Add(new BibliographyIdentifier(field, value)); break;
+                case "doi": case "isbn": case "issn": case "pmid": case "pmcid": AddIdentifier(item, field, value); break;
                 case "keywords": foreach (string keyword in SplitBibList(value)) item.Keywords.Add(UnwrapBibListItem(keyword)); break;
                 case "note": item.Notes.Add(value); break;
                 default: item.NativeFields.Add(new BibliographyNativeField(_format, name, value)); break;
@@ -352,6 +352,11 @@ internal static class BibCodec {
         }
 
         private void PreserveAdditionalField(BibliographyItem item, string fieldName, string value) => item.NativeFields.Add(new BibliographyNativeField(_format, fieldName, value));
+
+        private void AddIdentifier(BibliographyItem item, string fieldName, string value) {
+            if (string.IsNullOrWhiteSpace(value)) PreserveAdditionalField(item, fieldName, value);
+            else item.Identifiers.Add(new BibliographyIdentifier(fieldName, value));
+        }
 
         private void SetScalar(BibliographyItem item, string fieldName, string value, Func<string?> read, Action<string> write) {
             if (read() == null) write(value);

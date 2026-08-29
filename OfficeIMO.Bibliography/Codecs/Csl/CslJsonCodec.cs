@@ -35,8 +35,8 @@ internal static class CslJsonCodec {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.WriteStartObject();
-                writer.WriteString("id", CodecMappings.OutputKey(item, itemIndex));
-                writer.WriteString("type", item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType : CodecMappings.ToCslType(item.Type));
+                if (ShouldWriteTypedId(item)) writer.WriteString("id", CodecMappings.OutputKey(item, itemIndex));
+                if (ShouldWriteTypedType(item)) writer.WriteString("type", item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType : CodecMappings.ToCslType(item.Type));
                 WriteString(writer, "title", item.Title); WriteString(writer, "container-title", item.ContainerTitle); WriteString(writer, "collection-title", item.CollectionTitle);
                 WriteString(writer, "publisher", item.Publisher); WriteString(writer, "publisher-place", item.PublisherPlace); WriteString(writer, "edition", item.Edition);
                 WriteString(writer, "volume", item.Volume); WriteString(writer, "issue", item.Issue); WriteString(writer, "page", item.Pages); WriteString(writer, "abstract", item.Abstract);
@@ -90,20 +90,20 @@ internal static class CslJsonCodec {
                 continue;
             }
             switch (property.Name.ToLowerInvariant()) {
-                case "id": item.Key = Scalar(property.Value); break;
-                case "type": item.NativeType = Scalar(property.Value); item.Type = CodecMappings.ParseCslType(item.NativeType); break;
-                case "title": item.Title = Scalar(property.Value); break;
-                case "container-title": item.ContainerTitle = Scalar(property.Value); break;
-                case "collection-title": item.CollectionTitle = Scalar(property.Value); break;
-                case "publisher": item.Publisher = Scalar(property.Value); break;
-                case "publisher-place": item.PublisherPlace = Scalar(property.Value); break;
-                case "edition": item.Edition = Scalar(property.Value); break;
-                case "volume": item.Volume = Scalar(property.Value); break;
-                case "issue": item.Issue = Scalar(property.Value); break;
-                case "page": item.Pages = Scalar(property.Value); break;
-                case "abstract": item.Abstract = Scalar(property.Value); break;
-                case "language": item.Language = Scalar(property.Value); break;
-                case "url": item.Url = Scalar(property.Value); break;
+                case "id": BindScalar(item, property, assigned => item.Key = assigned, items, limits); break;
+                case "type": if (TryReadScalar(item, property, items, limits, out string type)) { item.NativeType = type; item.Type = CodecMappings.ParseCslType(type); } break;
+                case "title": BindScalar(item, property, assigned => item.Title = assigned, items, limits); break;
+                case "container-title": BindScalar(item, property, assigned => item.ContainerTitle = assigned, items, limits); break;
+                case "collection-title": BindScalar(item, property, assigned => item.CollectionTitle = assigned, items, limits); break;
+                case "publisher": BindScalar(item, property, assigned => item.Publisher = assigned, items, limits); break;
+                case "publisher-place": BindScalar(item, property, assigned => item.PublisherPlace = assigned, items, limits); break;
+                case "edition": BindScalar(item, property, assigned => item.Edition = assigned, items, limits); break;
+                case "volume": BindScalar(item, property, assigned => item.Volume = assigned, items, limits); break;
+                case "issue": BindScalar(item, property, assigned => item.Issue = assigned, items, limits); break;
+                case "page": BindScalar(item, property, assigned => item.Pages = assigned, items, limits); break;
+                case "abstract": BindScalar(item, property, assigned => item.Abstract = assigned, items, limits); break;
+                case "language": BindScalar(item, property, assigned => item.Language = assigned, items, limits); break;
+                case "url": BindScalar(item, property, assigned => item.Url = assigned, items, limits); break;
                 case "author": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Author, items, limits); break;
                 case "editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Editor, items, limits); break;
                 case "translator": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Translator, items, limits); break;
@@ -111,18 +111,18 @@ internal static class CslJsonCodec {
                 case "interviewer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Interviewer, items, limits); break;
                 case "composer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Composer, items, limits); break;
                 case "collection-editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.CollectionEditor, items, limits); break;
-                case "issued": ParseDate(item, property.Value, BibliographyDateRole.Issued, diagnostics, items, limits); break;
-                case "accessed": ParseDate(item, property.Value, BibliographyDateRole.Accessed, diagnostics, items, limits); break;
-                case "submitted": ParseDate(item, property.Value, BibliographyDateRole.Submitted, diagnostics, items, limits); break;
-                case "original-date": ParseDate(item, property.Value, BibliographyDateRole.Original, diagnostics, items, limits); break;
-                case "event-date": ParseDate(item, property.Value, BibliographyDateRole.Event, diagnostics, items, limits); break;
-                case "doi": CodecMappings.AddIdentifier(item, "DOI", Scalar(property.Value)); break;
-                case "isbn": CodecMappings.AddIdentifier(item, "ISBN", Scalar(property.Value)); break;
-                case "issn": CodecMappings.AddIdentifier(item, "ISSN", Scalar(property.Value)); break;
-                case "pmid": CodecMappings.AddIdentifier(item, "PMID", Scalar(property.Value)); break;
-                case "pmcid": CodecMappings.AddIdentifier(item, "PMCID", Scalar(property.Value)); break;
-                case "keyword": string keyword = Scalar(property.Value); if (!string.IsNullOrWhiteSpace(keyword)) item.Keywords.Add(keyword); break;
-                case "note": item.Notes.Add(Scalar(property.Value)); break;
+                case "issued": ParseDate(item, property, BibliographyDateRole.Issued, diagnostics, items, limits); break;
+                case "accessed": ParseDate(item, property, BibliographyDateRole.Accessed, diagnostics, items, limits); break;
+                case "submitted": ParseDate(item, property, BibliographyDateRole.Submitted, diagnostics, items, limits); break;
+                case "original-date": ParseDate(item, property, BibliographyDateRole.Original, diagnostics, items, limits); break;
+                case "event-date": ParseDate(item, property, BibliographyDateRole.Event, diagnostics, items, limits); break;
+                case "doi": BindIdentifier(item, property, "DOI", items, limits); break;
+                case "isbn": BindIdentifier(item, property, "ISBN", items, limits); break;
+                case "issn": BindIdentifier(item, property, "ISSN", items, limits); break;
+                case "pmid": BindIdentifier(item, property, "PMID", items, limits); break;
+                case "pmcid": BindIdentifier(item, property, "PMCID", items, limits); break;
+                case "keyword": if (TryReadScalar(item, property, items, limits, out string keyword) && !string.IsNullOrWhiteSpace(keyword)) item.Keywords.Add(keyword); break;
+                case "note": if (TryReadScalar(item, property, items, limits, out string note)) item.Notes.Add(note); break;
                 default:
                     string raw = GetBoundedRawValue(property.Value, items, limits);
                     item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
@@ -161,6 +161,22 @@ internal static class CslJsonCodec {
     }
 
     private static string ScalarOrRaw(JsonElement value, string raw) => value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array ? raw : Scalar(value);
+
+    private static void BindScalar(BibliographyItem item, JsonProperty property, Action<string> assign, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        if (TryReadScalar(item, property, items, limits, out string scalar)) assign(scalar);
+    }
+
+    private static void BindIdentifier(BibliographyItem item, JsonProperty property, string scheme, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        if (TryReadScalar(item, property, items, limits, out string scalar)) CodecMappings.AddIdentifier(item, scheme, scalar);
+    }
+
+    private static bool TryReadScalar(BibliographyItem item, JsonProperty property, IList<BibliographyItem> items, BibliographyLimitGuard limits, out string scalar) {
+        if (property.Value.ValueKind != JsonValueKind.Object && property.Value.ValueKind != JsonValueKind.Array) { scalar = Scalar(property.Value); return true; }
+        string raw = GetBoundedRawValue(property.Value, items, limits);
+        item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, raw, raw));
+        scalar = string.Empty;
+        return false;
+    }
 
     private static void PreserveWrongShapedNames(BibliographyItem item, JsonProperty property, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         if (ParseNames(item, property.Value, role, items, limits)) return;
@@ -201,21 +217,27 @@ internal static class CslJsonCodec {
         }
     }
 
-    private static void ParseDate(BibliographyItem item, JsonElement value, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+    private static void ParseDate(BibliographyItem item, JsonProperty sourceProperty, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        JsonElement value = sourceProperty.Value;
+        if (value.ValueKind != JsonValueKind.Object) {
+            string raw = GetBoundedRawValue(value, items, limits);
+            item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, sourceProperty.Name, ScalarOrRaw(value, raw), raw));
+            return;
+        }
         var date = new BibliographyDate { Role = role };
-        if (value.ValueKind == JsonValueKind.Object) {
-            var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (JsonProperty property in value.EnumerateObject()) {
-                if (!seenProperties.Add(property.Name)) {
-                    string raw = GetBoundedRawValue(property.Value, items, limits);
-                    date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
-                    continue;
-                }
-                if (string.Equals(property.Name, "literal", StringComparison.OrdinalIgnoreCase)) date.Literal = Scalar(property.Value);
-                else if (string.Equals(property.Name, "date-parts", StringComparison.OrdinalIgnoreCase)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
-                else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
+        var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (JsonProperty property in value.EnumerateObject()) {
+            if (!seenProperties.Add(property.Name)) {
+                string duplicateRaw = GetBoundedRawValue(property.Value, items, limits);
+                date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, duplicateRaw), duplicateRaw));
+                continue;
             }
-        } else date.Literal = Scalar(value);
+            if (string.Equals(property.Name, "literal", StringComparison.OrdinalIgnoreCase)) {
+                if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array) { string literalRaw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, literalRaw, literalRaw)); }
+                else date.Literal = Scalar(property.Value);
+            } else if (string.Equals(property.Name, "date-parts", StringComparison.OrdinalIgnoreCase)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
+            else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
+        }
         item.Dates.Add(date);
     }
 
@@ -237,7 +259,9 @@ internal static class CslJsonCodec {
 
     private static void WriteString(Utf8JsonWriter writer, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteString(name, value); }
     private static HashSet<string> GetEmittedProperties(BibliographyItem item) {
-        var emitted = new HashSet<string>(new[] { "id", "type" }, StringComparer.OrdinalIgnoreCase);
+        var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (ShouldWriteTypedId(item)) emitted.Add("id");
+        if (ShouldWriteTypedType(item)) emitted.Add("type");
         AddIfValue("title", item.Title); AddIfValue("container-title", item.ContainerTitle); AddIfValue("collection-title", item.CollectionTitle);
         AddIfValue("publisher", item.Publisher); AddIfValue("publisher-place", item.PublisherPlace); AddIfValue("edition", item.Edition);
         AddIfValue("volume", item.Volume); AddIfValue("issue", item.Issue); AddIfValue("page", item.Pages); AddIfValue("abstract", item.Abstract);
@@ -257,6 +281,10 @@ internal static class CslJsonCodec {
         void AddIfContributors(BibliographyContributorRole role, string name) { if (item.Contributors.Any(contributor => contributor.Role == role)) emitted.Add(name); }
         void AddIfDate(BibliographyDateRole role, string name) { if (item.GetDate(role) != null) emitted.Add(name); }
     }
+
+    private static bool ShouldWriteTypedId(BibliographyItem item) => !string.IsNullOrWhiteSpace(item.Key) || !HasNativeProperty(item, "id");
+    private static bool ShouldWriteTypedType(BibliographyItem item) => item.Type != BibliographyItemType.Unknown || !string.IsNullOrWhiteSpace(item.NativeType) || !HasNativeProperty(item, "type");
+    private static bool HasNativeProperty(BibliographyItem item, string property) => item.NativeFields.Any(field => field.Format == BibliographyFormat.CslJson && string.Equals(field.Name, property, StringComparison.OrdinalIgnoreCase));
     private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, BibliographyContributorRole role, string property, BibliographyConversionReport report) {
         BibliographyContributor[] contributors = item.Contributors.Where(contributor => contributor.Role == role).ToArray();
         if (contributors.Length == 0) return;

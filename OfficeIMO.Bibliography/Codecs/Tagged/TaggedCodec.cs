@@ -142,7 +142,7 @@ internal static class TaggedCodec {
             case "LA": SetScalar(item, BibliographyFormat.Ris, "language", field, value, assigned => item.Language = assigned); break;
             case "UR": case "L1": SetScalar(item, BibliographyFormat.Ris, "url", field, value, assigned => item.Url = assigned); break;
             case "DO": CodecMappings.AddIdentifier(item, "DOI", value); break; case "SN": CodecMappings.AddIdentifier(item, CodecMappings.InferSerialScheme(value), value); break;
-            case "AN": if (string.IsNullOrWhiteSpace(item.Key)) item.Key = value; ParseRisAccession(item, value); break;
+            case "AN": if (string.IsNullOrWhiteSpace(item.Key)) { item.Key = value; item.TaggedScalarBindings.Add("Ris:key-from-accession"); } ParseRisAccession(item, value); break;
             case "KW": item.Keywords.Add(value); break; case "N1": item.Notes.Add(value); break;
             default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, field, value)); break;
         }
@@ -151,11 +151,12 @@ internal static class TaggedCodec {
     private static void BindNbib(BibliographyItem item, string field, string value) {
         switch (field) {
             case "PMID": item.Key = value; CodecMappings.AddIdentifier(item, "PMID", value); break;
+            case "PT": BindNbibPublicationType(item, value); item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value)); break;
             case "TI": SetScalar(item, BibliographyFormat.Nbib, "title", field, value, assigned => item.Title = assigned); break;
             case "JT": case "TA": SetScalar(item, BibliographyFormat.Nbib, "container-title", field, value, assigned => item.ContainerTitle = assigned); break;
-            case "FAU": item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, CodecMappings.ParseCommaName(value))); break;
-            case "AU": item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value)); break;
-            case "CN": item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Literal = value })); break;
+            case "FAU": AddNbibContributor(item, field, CodecMappings.ParseCommaName(value)); break;
+            case "AU": AddNbibContributor(item, field, ParseCompactNbibName(value)); break;
+            case "CN": AddNbibContributor(item, field, new BibliographyName { Literal = value }); break;
             case "DP": AddTaggedDate(item, BibliographyDateRole.Issued, field, value); break;
             case "VI": SetScalar(item, BibliographyFormat.Nbib, "volume", field, value, assigned => item.Volume = assigned); break;
             case "IP": SetScalar(item, BibliographyFormat.Nbib, "issue", field, value, assigned => item.Issue = assigned); break;
@@ -173,8 +174,20 @@ internal static class TaggedCodec {
 
     private static void ParseNbibIdentifier(BibliographyItem item, string value, string field) {
         int marker = value.LastIndexOf(" [", StringComparison.Ordinal);
-        if (marker > 0 && value.EndsWith("]", StringComparison.Ordinal)) { string scheme = value.Substring(marker + 2, value.Length - marker - 3); CodecMappings.AddIdentifier(item, scheme, value.Substring(0, marker)); }
+        if (marker > 0 && value.EndsWith("]", StringComparison.Ordinal)) {
+            string scheme = value.Substring(marker + 2, value.Length - marker - 3).Trim();
+            string identifierValue = value.Substring(0, marker).Trim();
+            if (!string.IsNullOrWhiteSpace(scheme) && !string.IsNullOrWhiteSpace(identifierValue)) CodecMappings.AddIdentifier(item, scheme, identifierValue);
+            else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value));
+        }
         else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value));
+    }
+
+    private static void BindNbibPublicationType(BibliographyItem item, string value) {
+        BibliographyItemType parsed = CodecMappings.ParseType(value);
+        if (parsed == BibliographyItemType.Unknown || !item.TaggedScalarBindings.Add("Nbib:type")) return;
+        item.Type = parsed;
+        item.NativeType = value;
     }
 
     private static void ParseRisAccession(BibliographyItem item, string value) {
@@ -203,15 +216,18 @@ internal static class TaggedCodec {
 
     private static void SetPageEnd(BibliographyItem item, string value) {
         const string binding = "Ris:pages-end";
-        if (item.TaggedScalarBindings.Add(binding)) item.Pages = string.IsNullOrWhiteSpace(item.Pages) ? value : item.Pages + "-" + value;
+        if (item.TaggedScalarBindings.Add(binding)) { item.RisPageEnd = value; UpdateRisPages(item); }
         else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, "EP", value));
     }
 
     private static void SetPageStart(BibliographyItem item, string value) {
         const string binding = "Ris:pages-start";
-        if (item.TaggedScalarBindings.Add(binding)) item.Pages = item.TaggedScalarBindings.Contains("Ris:pages-end") && !string.IsNullOrWhiteSpace(item.Pages) ? value + "-" + item.Pages : value;
+        if (item.TaggedScalarBindings.Add(binding)) { item.RisPageStart = value; UpdateRisPages(item); }
         else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, "SP", value));
     }
+
+    private static void UpdateRisPages(BibliographyItem item) =>
+        item.Pages = string.IsNullOrWhiteSpace(item.RisPageStart) ? item.RisPageEnd : string.IsNullOrWhiteSpace(item.RisPageEnd) ? item.RisPageStart : item.RisPageStart + "-" + item.RisPageEnd;
 
     private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyDiagnosticGuard diagnostics, int line, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         string field = tag.ToUpperInvariant();
@@ -219,8 +235,22 @@ internal static class TaggedCodec {
             switch (field) {
                 case "TI": case "T1": item.Title = AppendChecked(item.Title, value, items, limits, line); return;
                 case "T2": case "JF": case "JO": case "JA": item.ContainerTitle = AppendChecked(item.ContainerTitle, value, items, limits, line); return;
+                case "ID": item.Key = AppendChecked(item.Key, value, items, limits, line); return;
+                case "PB": item.Publisher = AppendChecked(item.Publisher, value, items, limits, line); return;
+                case "CY": item.PublisherPlace = AppendChecked(item.PublisherPlace, value, items, limits, line); return;
+                case "ET": item.Edition = AppendChecked(item.Edition, value, items, limits, line); return;
+                case "VL": item.Volume = AppendChecked(item.Volume, value, items, limits, line); return;
+                case "IS": item.Issue = AppendChecked(item.Issue, value, items, limits, line); return;
+                case "SP": item.RisPageStart = AppendChecked(item.RisPageStart, value, items, limits, line); UpdateRisPages(item); return;
+                case "EP": item.RisPageEnd = AppendChecked(item.RisPageEnd, value, items, limits, line); UpdateRisPages(item); return;
                 case "AB": case "N2": item.Abstract = AppendChecked(item.Abstract, value, items, limits, line); return;
+                case "LA": item.Language = AppendChecked(item.Language, value, items, limits, line); return;
                 case "UR": case "L1": item.Url = AppendChecked(item.Url, value, items, limits, line); return;
+                case "PY": case "Y1": case "DA": AppendDate(item, BibliographyDateRole.Issued, field, value, items, limits, line); return;
+                case "Y2": AppendDate(item, BibliographyDateRole.Accessed, field, value, items, limits, line); return;
+                case "DO": AppendIdentifier(item, static identifier => string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase), value, items, limits, line); return;
+                case "SN": AppendIdentifier(item, static identifier => string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase), value, items, limits, line); return;
+                case "AN": if (item.TaggedScalarBindings.Contains("Ris:key-from-accession")) item.Key = AppendChecked(item.Key, value, items, limits, line); AppendIdentifier(item, static identifier => !string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase), value, items, limits, line); return;
                 case "N1": AppendLast(item.Notes, value, items, limits, line); return;
                 case "KW": AppendLast(item.Keywords, value, items, limits, line); return;
                 case "AU": case "A1": AppendContributor(item, BibliographyContributorRole.Author, value, items, limits, line); return;
@@ -230,11 +260,18 @@ internal static class TaggedCodec {
             switch (field) {
                 case "TI": item.Title = AppendChecked(item.Title, value, items, limits, line); return;
                 case "JT": case "TA": item.ContainerTitle = AppendChecked(item.ContainerTitle, value, items, limits, line); return;
+                case "PMID": item.Key = AppendChecked(item.Key, value, items, limits, line); AppendIdentifier(item, static identifier => string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase), value, items, limits, line); return;
+                case "DP": AppendDate(item, BibliographyDateRole.Issued, field, value, items, limits, line); return;
+                case "VI": item.Volume = AppendChecked(item.Volume, value, items, limits, line); return;
+                case "IP": item.Issue = AppendChecked(item.Issue, value, items, limits, line); return;
+                case "PG": item.Pages = AppendChecked(item.Pages, value, items, limits, line); return;
                 case "AB": item.Abstract = AppendChecked(item.Abstract, value, items, limits, line); return;
+                case "LA": item.Language = AppendChecked(item.Language, value, items, limits, line); return;
+                case "IS": AppendIdentifier(item, static identifier => string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase), value, items, limits, line); return;
+                case "LID": case "AID": AppendIdentifier(item, static identifier => !string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase), value, items, limits, line); return;
                 case "GN": AppendLast(item.Notes, value, items, limits, line); return;
                 case "OT": AppendLast(item.Keywords, value, items, limits, line); return;
-                case "FAU": AppendContributor(item, BibliographyContributorRole.Author, value, items, limits, line); return;
-                case "CN": AppendContributor(item, BibliographyContributorRole.Author, value, items, limits, line); return;
+                case "FAU": case "AU": case "CN": AppendNbibContributor(item, field, value, items, limits, line); return;
             }
         }
         if (item.NativeFields.LastOrDefault(nativeField => nativeField.Format == format && string.Equals(nativeField.Name, tag, StringComparison.OrdinalIgnoreCase)) is BibliographyNativeField native) {
@@ -258,21 +295,65 @@ internal static class TaggedCodec {
         contributor.Name.DroppingParticle = parsed.DroppingParticle; contributor.Name.NonDroppingParticle = parsed.NonDroppingParticle;
     }
 
+    private static void AddNbibContributor(BibliographyItem item, string tag, BibliographyName name) {
+        var contributor = new BibliographyContributor(BibliographyContributorRole.Author, name);
+        item.Contributors.Add(contributor);
+        item.TaggedContributorTags[contributor] = tag;
+    }
+
+    private static void AppendNbibContributor(BibliographyItem item, string tag, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
+        BibliographyContributor? contributor = item.Contributors.LastOrDefault(candidate => item.TaggedContributorTags.TryGetValue(candidate, out string? sourceTag) && string.Equals(sourceTag, tag, StringComparison.OrdinalIgnoreCase));
+        if (contributor == null) return;
+        string original = string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase) ? CompactName(contributor.Name) : string.Equals(tag, "CN", StringComparison.OrdinalIgnoreCase) ? contributor.Name.Literal ?? string.Empty : CodecMappings.FormatName(contributor.Name);
+        BibliographyName parsed = string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase) ? ParseCompactNbibName(AppendChecked(original, continuation, items, limits, offset)) : string.Equals(tag, "CN", StringComparison.OrdinalIgnoreCase) ? new BibliographyName { Literal = AppendChecked(original, continuation, items, limits, offset) } : CodecMappings.ParseCommaName(AppendChecked(original, continuation, items, limits, offset));
+        contributor.Name.Given = parsed.Given; contributor.Name.Family = parsed.Family; contributor.Name.Literal = parsed.Literal; contributor.Name.Suffix = parsed.Suffix;
+        contributor.Name.DroppingParticle = parsed.DroppingParticle; contributor.Name.NonDroppingParticle = parsed.NonDroppingParticle;
+    }
+
+    private static void AppendDate(BibliographyItem item, BibliographyDateRole role, string tag, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
+        BibliographyDate? date = item.Dates.LastOrDefault(candidate => candidate.Role == role && item.TaggedDateTags.TryGetValue(candidate, out string? sourceTag) && string.Equals(sourceTag, tag, StringComparison.OrdinalIgnoreCase));
+        if (date == null) return;
+        string combined = AppendChecked(CodecMappings.FormatDate(date), continuation, items, limits, offset);
+        BibliographyDate parsed = CodecMappings.ParseDate(role, combined);
+        date.Year = parsed.Year; date.Month = parsed.Month; date.Day = parsed.Day; date.EndYear = parsed.EndYear; date.EndMonth = parsed.EndMonth; date.EndDay = parsed.EndDay; date.Literal = parsed.Literal;
+    }
+
+    private static void AppendIdentifier(BibliographyItem item, Func<BibliographyIdentifier, bool> predicate, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
+        BibliographyIdentifier? identifier = item.Identifiers.LastOrDefault(predicate);
+        if (identifier != null) identifier.Value = AppendChecked(identifier.Value, continuation, items, limits, offset);
+    }
+
     private static void NormalizeNbibAuthors(IEnumerable<BibliographyItem> items) {
         foreach (BibliographyItem item in items) {
-            BibliographyNativeField[] compactAuthors = item.NativeFields.Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "AU", StringComparison.OrdinalIgnoreCase)).ToArray();
-            int fullAuthorCount = item.Contributors.Count(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal));
-            int firstAdditional = fullAuthorCount == 0 ? 0 : Math.Min(fullAuthorCount, compactAuthors.Length);
-            for (int index = firstAdditional; index < compactAuthors.Length; index++) item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, ParseCompactNbibName(compactAuthors[index].Value)));
-            foreach (BibliographyNativeField field in compactAuthors) item.NativeFields.Remove(field);
+            BibliographyContributor[] compactAuthors = item.Contributors.Where(contributor => item.TaggedContributorTags.TryGetValue(contributor, out string? tag) && string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase)).ToArray();
+            BibliographyContributor[] fullAuthors = item.Contributors.Where(contributor => item.TaggedContributorTags.TryGetValue(contributor, out string? tag) && string.Equals(tag, "FAU", StringComparison.OrdinalIgnoreCase)).ToArray();
+            var matched = new HashSet<BibliographyContributor>();
+            foreach (BibliographyContributor compact in compactAuthors) {
+                BibliographyContributor? full = fullAuthors.FirstOrDefault(author => !matched.Contains(author) && CompactNamesMatch(author.Name, CompactName(compact.Name)));
+                if (full == null) continue;
+                int compactIndex = item.Contributors.IndexOf(compact);
+                int fullIndex = item.Contributors.IndexOf(full);
+                if (compactIndex < fullIndex) {
+                    item.Contributors[compactIndex] = full;
+                    item.Contributors.RemoveAt(fullIndex);
+                } else item.Contributors.RemoveAt(compactIndex);
+                item.TaggedContributorTags.Remove(compact);
+                matched.Add(full);
+            }
         }
     }
+
+    private static bool CompactNamesMatch(BibliographyName fullName, string compactValue) =>
+        string.Equals(NormalizeCompactName(CompactName(fullName)), NormalizeCompactName(compactValue), StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeCompactName(string value) => new string(value.Where(char.IsLetterOrDigit).ToArray());
     private static void WriteTag(StringBuilder builder, string tag, string? value, string lineEnding) { if (value == null) return; string prefix = tag.PadRight(4) + "- "; string[] lines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'); builder.Append(prefix).Append(lines[0]).Append(lineEnding); for (int index = 1; index < lines.Length; index++) builder.Append("      ").Append(lines[index]).Append(lineEnding); }
     private static void WritePages(StringBuilder builder, string? pages, string lineEnding) { if (string.IsNullOrWhiteSpace(pages)) return; string[] parts = pages!.Split(new[] { '-' }, 2); WriteTag(builder, "SP", parts[0], lineEnding); if (parts.Length > 1) WriteTag(builder, "EP", parts[1], lineEnding); }
     private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) { BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, DateTag(item, issued, issuedTag, "Y1", "DA"), CodecMappings.FormatDate(issued), lineEnding); BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed); if (accessed != null) WriteTag(builder, DateTag(item, accessed, accessedTag, "Y2"), CodecMappings.FormatDate(accessed), lineEnding); }
     private static void WriteRisIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "DO", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "SN", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "AN", identifier.Value.IndexOf(':') >= 0 ? "accession:" + identifier.Value : identifier.Value, lineEnding); else WriteTag(builder, "AN", identifier.Scheme + ":" + identifier.Value, lineEnding); }
     internal static bool CanRoundTripRisIdentifier(BibliographyIdentifier identifier) {
-        if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, CodecMappings.InferSerialScheme(identifier.Value), StringComparison.OrdinalIgnoreCase);
         return !string.IsNullOrWhiteSpace(identifier.Scheme) && identifier.Scheme.IndexOf(':') < 0 && identifier.Scheme.IndexOf('\r') < 0 && identifier.Scheme.IndexOf('\n') < 0;
     }
     private static void WriteNbibIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) return; if (string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "IS", identifier.Value, lineEnding); else WriteTag(builder, "AID", identifier.Value + " [" + identifier.Scheme.ToLowerInvariant() + "]", lineEnding); }

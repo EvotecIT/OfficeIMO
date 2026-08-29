@@ -7,7 +7,7 @@ internal static class CodecMappings {
             case "article-magazine": case "mgzn": case "magazine article": return BibliographyItemType.ArticleMagazine;
             case "article-newspaper": case "news": case "newspaper article": return BibliographyItemType.ArticleNewspaper;
             case "book": return BibliographyItemType.Book;
-            case "inbook": case "incollection": case "chapter": case "chap": case "book section": return BibliographyItemType.Chapter;
+            case "inbook": case "incollection": case "chapter": case "chap": case "book section": case "book chapter": return BibliographyItemType.Chapter;
             case "inproceedings": case "conference": case "paper-conference": case "conf": case "conference paper": return BibliographyItemType.PaperConference;
             case "proceedings": return BibliographyItemType.Proceedings;
             case "report": case "techreport": case "rprt": return BibliographyItemType.Report;
@@ -90,7 +90,7 @@ internal static class CodecMappings {
         string[] parts = value.Split(new[] { ',' }, 3);
         if (parts.Length == 1) {
             string[] words = value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length <= 1) return new BibliographyName { Literal = value.Trim() };
+            if (words.Length <= 1) return new BibliographyName { Family = value.Trim() };
             return new BibliographyName { Given = string.Join(" ", words.Take(words.Length - 1)), Family = words[words.Length - 1] };
         }
         return new BibliographyName { Family = parts[0].Trim(), Given = parts[1].Trim(), Suffix = parts.Length > 2 ? parts[2].Trim() : null };

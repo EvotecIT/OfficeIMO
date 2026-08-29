@@ -155,6 +155,10 @@ internal static class BibliographyFormatDetector {
             throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
         }
         if (LooksLikeCsl(source, start)) return BibliographyFormat.CslJson;
+        if (start < source.Length && source[start] == '<') {
+            int xml = SkipLeadingXmlTrivia(source, start);
+            if (StartsWith(source, xml, "<xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, xml, "<records", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.EndNoteXml;
+        }
         if (StartsWith(source, start, "<?xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "<xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "<records", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.EndNoteXml;
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (StartsWith(source, start, "TY  -", StringComparison.Ordinal)) return BibliographyFormat.Ris;
@@ -177,6 +181,26 @@ internal static class BibliographyFormatDetector {
             }
             if (!bibComments && position + 1 < source.Length && source[position] == '/' && source[position + 1] == '*') {
                 int end = source.IndexOf("*/", position + 2, StringComparison.Ordinal);
+                if (end < 0) return position;
+                position = end + 2;
+                continue;
+            }
+            break;
+        }
+        return position;
+    }
+
+    private static int SkipLeadingXmlTrivia(string source, int position) {
+        while (position < source.Length) {
+            position = SkipWhitespace(source, position);
+            if (StartsWith(source, position, "<!--", StringComparison.Ordinal)) {
+                int end = source.IndexOf("-->", position + 4, StringComparison.Ordinal);
+                if (end < 0) return position;
+                position = end + 3;
+                continue;
+            }
+            if (StartsWith(source, position, "<?", StringComparison.Ordinal)) {
+                int end = source.IndexOf("?>", position + 2, StringComparison.Ordinal);
                 if (end < 0) return position;
                 position = end + 2;
                 continue;

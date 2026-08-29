@@ -113,7 +113,7 @@ internal static class BibliographyConversionInspector {
                 exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Article && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript && item.Type != BibliographyItemType.Document;
                 break;
             case BibliographyFormat.Nbib:
-                exact = item.Type == BibliographyItemType.ArticleJournal;
+                exact = item.Type == BibliographyItemType.ArticleJournal || sourceFormat == BibliographyFormat.Nbib && item.NativeFields.Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
                 break;
             case BibliographyFormat.EndNoteXml:
                 exact = item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.WebPage || item.Type == BibliographyItemType.Patent;
