@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Drawing;
@@ -88,10 +89,13 @@ public static class OfficeTextCaseTransformer {
         bool titleDutchJ = false;
         bool titlecasesDutchIJ = string.Equals(culture.TwoLetterISOLanguageName, "nl", StringComparison.OrdinalIgnoreCase) &&
             string.Equals(culture.TextInfo.ToTitleCase("ij"), "IJ", StringComparison.Ordinal);
-        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(source.ToString());
+        string sourceText = source.ToString();
+        string[] contextualLower = GetContextualLowerElements(sourceText, culture);
+        int elementIndex = 0;
+        TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(sourceText);
         while (elements.MoveNext()) {
             string element = elements.GetTextElement();
-            string lower = element.ToLower(culture);
+            string lower = contextualLower[elementIndex++];
             UnicodeCategory elementCategory = CharUnicodeInfo.GetUnicodeCategory(element, 0);
             if (elementCategory == UnicodeCategory.TitlecaseLetter && string.Equals(element, lower, StringComparison.Ordinal)) {
                 // .NET Framework's invariant tables leave Unicode titlecase letters unchanged. Use a stable
@@ -139,6 +143,61 @@ public static class OfficeTextCaseTransformer {
         }
 
         return ToStrings(result);
+    }
+
+    private static string[] GetContextualLowerElements(string source, CultureInfo culture) {
+        var sourceElements = new List<string>();
+        TextElementEnumerator sourceEnumerator = StringInfo.GetTextElementEnumerator(source);
+        while (sourceEnumerator.MoveNext()) sourceElements.Add(sourceEnumerator.GetTextElement());
+
+        var lowerElements = new List<string>();
+        TextElementEnumerator lowerEnumerator = StringInfo.GetTextElementEnumerator(source.ToLower(culture));
+        while (lowerEnumerator.MoveNext()) lowerElements.Add(lowerEnumerator.GetTextElement());
+        if (lowerElements.Count != sourceElements.Count) {
+            lowerElements.Clear();
+            lowerElements.AddRange(sourceElements.Select(element => element.ToLower(culture)));
+        }
+        for (int index = 0; index < sourceElements.Count; index++) {
+            if (string.Equals(sourceElements[index], "Σ", StringComparison.Ordinal) &&
+                HasCasedLetterBefore(sourceElements, index, culture) &&
+                !HasCasedLetterAfter(sourceElements, index, culture)) {
+                lowerElements[index] = "ς";
+            }
+            if (CharUnicodeInfo.GetUnicodeCategory(sourceElements[index], 0) == UnicodeCategory.TitlecaseLetter &&
+                string.Equals(sourceElements[index], lowerElements[index], StringComparison.Ordinal)) {
+                lowerElements[index] = sourceElements[index].ToLower(UnicodeTitlecaseFallbackCulture);
+            }
+        }
+        return lowerElements.ToArray();
+    }
+
+    private static bool HasCasedLetterBefore(IReadOnlyList<string> elements, int index, CultureInfo culture) {
+        for (int candidate = index - 1; candidate >= 0; candidate--) {
+            string element = elements[candidate];
+            if (IsCaseIgnorable(element)) continue;
+            return IsCasedLetter(element, element.ToLower(culture), culture);
+        }
+        return false;
+    }
+
+    private static bool HasCasedLetterAfter(IReadOnlyList<string> elements, int index, CultureInfo culture) {
+        for (int candidate = index + 1; candidate < elements.Count; candidate++) {
+            string element = elements[candidate];
+            if (IsCaseIgnorable(element)) continue;
+            return IsCasedLetter(element, element.ToLower(culture), culture);
+        }
+        return false;
+    }
+
+    private static bool IsCaseIgnorable(string textElement) {
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(textElement, 0);
+        return category == UnicodeCategory.NonSpacingMark ||
+               category == UnicodeCategory.EnclosingMark ||
+               category == UnicodeCategory.Format ||
+               category == UnicodeCategory.ModifierLetter ||
+               category == UnicodeCategory.ModifierSymbol ||
+               textElement == "'" ||
+               textElement == "’";
     }
 
     private static void AppendTransformedElement(

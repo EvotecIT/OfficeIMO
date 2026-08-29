@@ -1,5 +1,6 @@
 using OfficeIMO.Html;
 using OfficeIMO.OneNote.Html;
+using OfficeIMO.OneNote.Markdown;
 
 namespace OfficeIMO.OneNote.Tests;
 
@@ -145,6 +146,28 @@ public sealed class HtmlImportTests {
             "<ul data-level=\"0\"><li>Parent<ol data-level=\"1\"><li>Child one</li><li>Child two</li></ol></li><li>Sibling</li></ul>",
             html,
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteHtmlExportAppliesContentDepthLimitToNestedLists() {
+        var section = new OneNoteSection { Name = "Bounded lists" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach ((string text, int level) in new[] { ("Parent", 0), ("Child", 1), ("Deep", 2), ("Sibling", 0) }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = false, Level = level }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult(
+            new OneNoteMarkdownOptions { MaxContentDepth = 1 }).Value;
+
+        Assert.Contains("Parent", html, StringComparison.Ordinal);
+        Assert.Contains("Sibling", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Child", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Deep", html, StringComparison.Ordinal);
     }
 
     [Fact]

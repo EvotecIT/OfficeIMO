@@ -524,7 +524,11 @@ public static class OfficeConversionCapabilityCatalog {
             return (OfficeConversionTextFormattingKind.DataOnly,
                 "CSV and TSV carry values, delimiters, and records only; font family, size, color, emphasis, decoration, scripts, casing metadata, and layout are intentionally not representable.");
         }
-        if (source is "ADF" or "Confluence" or "OfficeIMO Markup" || target is "ADF" or "Confluence") {
+        if (source == "OfficeIMO Markup") {
+            return (OfficeConversionTextFormattingKind.EditableEquivalent,
+                "Authors editable native typography, including family, size, color, emphasis, decoration, script, and casing, in the generated Office document; diagnostics identify profile-specific approximations and omissions.");
+        }
+        if (source is "ADF" or "Confluence" || target is "ADF" or "Confluence") {
             return (OfficeConversionTextFormattingKind.SyntaxSubset,
                 "Preserves the text styling represented by the source and destination profiles; unsupported native decoration variants, arbitrary CSS presentation, and format-specific layout are reported or simplified.");
         }

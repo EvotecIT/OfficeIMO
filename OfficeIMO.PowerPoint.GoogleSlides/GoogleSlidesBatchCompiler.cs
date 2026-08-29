@@ -186,10 +186,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         target.Add(new GoogleSlidesTextStyleRun {
                             StartIndex = offset,
                             EndIndex = endIndex,
-                            Bold = run.Bold,
-                            Italic = run.Italic,
-                            Underline = run.Underline,
-                            Strikethrough = run.Strikethrough,
+                            Bold = effective.Bold ?? false,
+                            Italic = effective.Italic ?? false,
+                            Underline = effective.Underline ?? false,
+                            Strikethrough = effective.Strikethrough ?? false,
                             SmallCaps = effective.Capitalization == PowerPointCapitalization.SmallCaps,
                             BaselineOffset = ToGoogleBaselineOffset(effective.BaselinePercent),
                             FontSize = run.FontSize,
@@ -246,6 +246,18 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             A.TextCapsValues? capitalization = sources.Select(source => source.Capital?.Value).FirstOrDefault(value => value.HasValue);
             int? baseline = sources.Select(source => source.Baseline?.Value).FirstOrDefault(value => value.HasValue);
             string? language = sources.Select(source => source.Language?.Value).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            bool? bold = sources
+                .Select(source => source.Bold == null ? (bool?)null : source.Bold.Value)
+                .FirstOrDefault(value => value.HasValue);
+            bool? italic = sources
+                .Select(source => source.Italic == null ? (bool?)null : source.Italic.Value)
+                .FirstOrDefault(value => value.HasValue);
+            A.TextUnderlineValues? underline = sources
+                .Select(source => source.Underline?.Value)
+                .FirstOrDefault(value => value.HasValue);
+            A.TextStrikeValues? strike = sources
+                .Select(source => source.Strike?.Value)
+                .FirstOrDefault(value => value.HasValue);
             PowerPointCapitalization? effectiveCapitalization = null;
             if (capitalization == A.TextCapsValues.All) effectiveCapitalization = PowerPointCapitalization.AllCaps;
             else if (capitalization == A.TextCapsValues.Small) effectiveCapitalization = PowerPointCapitalization.SmallCaps;
@@ -253,7 +265,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return new EffectiveGoogleRunStyle(
                 effectiveCapitalization,
                 baseline.HasValue ? baseline.Value / 1000D : (double?)null,
-                language);
+                language,
+                bold,
+                italic,
+                underline.HasValue ? underline.Value != A.TextUnderlineValues.None : (bool?)null,
+                strike.HasValue ? strike.Value != A.TextStrikeValues.NoStrike : (bool?)null);
         }
 
         private static IReadOnlyList<A.TextCharacterPropertiesType> ResolveTextPropertySources(
@@ -301,15 +317,30 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         };
 
         private readonly struct EffectiveGoogleRunStyle {
-            internal EffectiveGoogleRunStyle(PowerPointCapitalization? capitalization, double? baselinePercent, string? language) {
+            internal EffectiveGoogleRunStyle(
+                PowerPointCapitalization? capitalization,
+                double? baselinePercent,
+                string? language,
+                bool? bold,
+                bool? italic,
+                bool? underline,
+                bool? strikethrough) {
                 Capitalization = capitalization;
                 BaselinePercent = baselinePercent;
                 Language = language;
+                Bold = bold;
+                Italic = italic;
+                Underline = underline;
+                Strikethrough = strikethrough;
             }
 
             internal PowerPointCapitalization? Capitalization { get; }
             internal double? BaselinePercent { get; }
             internal string? Language { get; }
+            internal bool? Bold { get; }
+            internal bool? Italic { get; }
+            internal bool? Underline { get; }
+            internal bool? Strikethrough { get; }
         }
 
         private static CultureInfo ResolveRunCulture(string? language) {

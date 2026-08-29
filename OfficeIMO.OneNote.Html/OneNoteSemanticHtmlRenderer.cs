@@ -171,6 +171,10 @@ internal static class OneNoteSemanticHtmlRenderer {
         int level,
         OneNoteMarkdownOptions options,
         int depth) {
+        if (depth >= options.MaxContentDepth) {
+            while (index < paragraphs.Count && paragraphs[index].List!.Level >= level) index++;
+            return;
+        }
         OneNoteListInfo first = paragraphs[index].List!;
         string tag = first.Ordered ? "ol" : "ul";
         html.Append('<').Append(tag).Append(" data-level=\"")

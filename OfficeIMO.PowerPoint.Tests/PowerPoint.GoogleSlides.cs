@@ -176,6 +176,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_ResolvesInheritedEmphasisAndDecorationsForTextBoxesAndTables() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            cell.Text = "table";
+            textBox.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties {
+                    Bold = true,
+                    Italic = true,
+                    Underline = A.TextUnderlineValues.Single,
+                    Strike = A.TextStrikeValues.SingleStrike
+                });
+            PowerPointTextRun explicitOff = textBox.Paragraphs[0].AddRun(" off");
+            explicitOff.Run.RunProperties = new A.RunProperties {
+                Bold = false,
+                Italic = false,
+                Underline = A.TextUnderlineValues.None,
+                Strike = A.TextStrikeValues.NoStrike
+            };
+            cell.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties {
+                    Bold = true,
+                    Italic = true,
+                    Underline = A.TextUnderlineValues.Single,
+                    Strike = A.TextStrikeValues.SingleStrike
+                });
+
+            GoogleSlidesSlide compiled = Assert.Single(presentation.BuildGoogleSlidesBatch().Slides);
+            IReadOnlyList<GoogleSlidesTextStyleRun> textRuns = Assert.Single(compiled.Elements.OfType<GoogleSlidesTextBox>()).TextRuns;
+            Assert.Equal(2, textRuns.Count);
+            GoogleSlidesTextStyleRun textRun = textRuns[0];
+            GoogleSlidesTextStyleRun offRun = textRuns[1];
+            GoogleSlidesTextStyleRun tableRun = Assert.Single(Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTable>()).StyledCells).Single().TextRuns);
+
+            Assert.True(textRun.Bold);
+            Assert.True(textRun.Italic);
+            Assert.True(textRun.Underline);
+            Assert.True(textRun.Strikethrough);
+            Assert.False(offRun.Bold);
+            Assert.False(offRun.Italic);
+            Assert.False(offRun.Underline);
+            Assert.False(offRun.Strikethrough);
+            Assert.True(tableRun.Bold);
+            Assert.True(tableRun.Italic);
+            Assert.True(tableRun.Underline);
+            Assert.True(tableRun.Strikethrough);
+        }
+
+        [Fact]
         public void BatchCompiler_MaterializesAllCapsUsingTheRunLanguage() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointTextRun run = presentation.AddSlide()

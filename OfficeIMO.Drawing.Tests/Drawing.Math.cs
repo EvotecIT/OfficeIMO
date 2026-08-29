@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Globalization;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -194,6 +195,24 @@ public class DrawingMathTests {
         string mathMl = OfficeMathMarkup.ToMathMl(expression);
         Assert.Contains("<mi>α</mi>", mathMl, StringComparison.Ordinal);
         Assert.Contains("<mi>β</mi>", mathMl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextCaseTransformationKeepsSentenceAndWordContextAcrossMathTokens() {
+        OfficeMathExpression sentence = OfficeMath.Row(
+            OfficeMath.Text("hello "),
+            OfficeMath.Identifier("world"));
+        OfficeMathExpression word = OfficeMath.Row(
+            OfficeMath.Text("hel"),
+            OfficeMath.Identifier("lo"));
+
+        OfficeMathExpression transformedSentence = sentence.TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+        OfficeMathExpression transformedWord = word.TransformTextCase(OfficeTextCase.Capitalize, CultureInfo.InvariantCulture);
+
+        Assert.Equal("Hello world", transformedSentence.ToPlainText());
+        Assert.Equal("Hello", transformedWord.ToPlainText());
+        Assert.Equal("Hello ", transformedSentence.Children[0].Text);
+        Assert.Equal("world", transformedSentence.Children[1].Text);
     }
 
     [Fact]

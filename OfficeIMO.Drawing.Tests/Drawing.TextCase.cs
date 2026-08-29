@@ -125,6 +125,19 @@ public sealed class OfficeTextCaseTests {
     }
 
     [Fact]
+    public void ContextSensitiveLowercaseUsesTheCombinedSourceAcrossTextElementsAndSegments() {
+        CultureInfo greek = CultureInfo.GetCultureInfo("el-GR");
+
+        IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(
+            new[] { "Ο", "Σ" },
+            OfficeTextCase.Lowercase,
+            greek);
+
+        Assert.Equal("ος", string.Concat(transformed));
+        Assert.Equal(new[] { "ο", "ς" }, transformed);
+    }
+
+    [Fact]
     public void RichTextRunCopyPreservesDrawingStyle() {
         OfficeRichTextRun source = new("Styled", 14, OfficeColor.FromRgb(51, 102, 153),
             bold: true, italic: true, fontFamily: "Aptos",

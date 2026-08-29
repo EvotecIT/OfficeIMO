@@ -745,14 +745,19 @@ public class HtmlTextFormattingConversionTests {
     public void AdjacentDocumentConvertersDeclareTheirActualFormattingBoundary() {
         string[] syntaxSubsetRoutes = {
             "adf-markdown", "markdown-adf", "adf-html", "html-adf",
-            "markdown-confluence", "html-confluence", "confluence-markdown", "confluence-html",
-            "officemarkup-docx", "officemarkup-xlsx", "officemarkup-pptx"
+            "markdown-confluence", "html-confluence", "confluence-markdown", "confluence-html"
         };
 
         Assert.All(syntaxSubsetRoutes, id => {
             OfficeConversionCapability route = Assert.IsType<OfficeConversionCapability>(
                 OfficeConversionCapabilityCatalog.Find(id));
             Assert.Equal(OfficeConversionTextFormattingKind.SyntaxSubset, route.TextFormatting);
+        });
+
+        Assert.All(new[] { "officemarkup-docx", "officemarkup-xlsx", "officemarkup-pptx" }, id => {
+            OfficeConversionCapability route = Assert.IsType<OfficeConversionCapability>(
+                OfficeConversionCapabilityCatalog.Find(id));
+            Assert.Equal(OfficeConversionTextFormattingKind.EditableEquivalent, route.TextFormatting);
         });
 
         Assert.Equal(OfficeConversionInputKind.ObjectModel,

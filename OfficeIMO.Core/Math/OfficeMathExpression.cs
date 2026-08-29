@@ -190,23 +190,55 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
     /// <param name="culture">Culture used for casing. The current culture is used when omitted.</param>
     public OfficeMathExpression TransformTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         if (textCase == OfficeTextCase.None) return this;
-        string? transformedText = Kind is OfficeMathKind.Text or OfficeMathKind.Identifier or OfficeMathKind.Function
-            ? OfficeTextCaseTransformer.Apply(Text ?? string.Empty, textCase, culture)
-            : Text;
-        OfficeMathExpression[] transformedChildren = _children
-            .Select(child => child.TransformTextCase(textCase, culture))
-            .ToArray();
+        return TransformTextCaseCore(this, textCase, culture);
+    }
+
+    private static OfficeMathExpression TransformTextCaseCore(
+        OfficeMathExpression expression,
+        OfficeTextCase textCase,
+        System.Globalization.CultureInfo? culture) {
+        string? transformedText = expression.Kind is OfficeMathKind.Text or OfficeMathKind.Identifier or OfficeMathKind.Function
+            ? OfficeTextCaseTransformer.Apply(expression.Text ?? string.Empty, textCase, culture)
+            : expression.Text;
+        var transformedChildren = new OfficeMathExpression[expression._children.Count];
+        IReadOnlyList<string>? rowTokens = null;
+        int rowTokenIndex = 0;
+        if (expression.Kind == OfficeMathKind.Row) {
+            string[] sourceTokens = expression._children
+                .Where(child => child.Text != null)
+                .Select(child => child.Text!)
+                .ToArray();
+            if (sourceTokens.Length > 0) rowTokens = OfficeTextCaseTransformer.ApplySegments(sourceTokens, textCase, culture);
+        }
+        for (int index = 0; index < expression._children.Count; index++) {
+            OfficeMathExpression child = TransformTextCaseCore(expression._children[index], textCase, culture);
+            if (rowTokens != null && expression._children[index].Text != null) {
+                child = child.WithText(rowTokens[rowTokenIndex++]);
+            }
+            transformedChildren[index] = child;
+        }
         return new OfficeMathExpression(
-            Kind,
+            expression.Kind,
             transformedText,
             transformedChildren,
-            Character,
-            SecondaryCharacter,
-            RowCount,
-            ColumnCount,
-            SeparatorCharacter,
-            _naryUpperOnly);
+            expression.Character,
+            expression.SecondaryCharacter,
+            expression.RowCount,
+            expression.ColumnCount,
+            expression.SeparatorCharacter,
+            expression._naryUpperOnly);
     }
+
+    private OfficeMathExpression WithText(string text) => new OfficeMathExpression(
+        Kind,
+        text,
+        _children,
+        Character,
+        SecondaryCharacter,
+        RowCount,
+        ColumnCount,
+        SeparatorCharacter,
+        _naryUpperOnly);
 
     /// <inheritdoc />
     public bool Equals(OfficeMathExpression? other) {
