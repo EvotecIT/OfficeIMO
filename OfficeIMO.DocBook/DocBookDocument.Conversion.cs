@@ -27,7 +27,7 @@ public sealed partial class DocBookDocument {
             diagnostics.Add(new DocBookDiagnostic("DB105", DocBookDiagnosticSeverity.Warning,
                 "Comments and processing instructions remain native but are not represented by the shared document model."));
         }
-        if (RootElement.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration && attribute.Name.LocalName != "version")) {
+        if (RootElement.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration && attribute.Name != XName.Get("version"))) {
             diagnostics.Add(new DocBookDiagnostic("DB106", DocBookDiagnosticSeverity.Warning,
                 "Root extension attributes remain native but are not represented by the shared document model.", "/" + RootElement.Name.LocalName));
         }
@@ -599,7 +599,9 @@ public sealed partial class DocBookDocument {
         }
 
         bool AddFlatAsset(OfficeDocumentModelAsset source) {
-            string? reference = string.IsNullOrWhiteSpace(source.SourceObjectId) ? source.FileName : source.SourceObjectId;
+            string? reference = model.Format == OfficeDocumentFormat.DocBook && !string.IsNullOrWhiteSpace(source.SourceObjectId)
+                ? source.SourceObjectId
+                : source.FileName;
             if (!string.Equals(source.Kind, "image", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(reference)) {
                 diagnostics.Add(new DocBookDiagnostic("DB118", DocBookDiagnosticSeverity.Warning,
                     $"Shared asset '{source.Id}' could not be represented as a DocBook image reference.", source.Location?.HeadingPath));

@@ -198,6 +198,17 @@ public sealed partial class OpmlDocument {
             return represented;
         }
 
+        foreach (OfficeDocumentModelTable table in model.Tables) {
+            diagnostics.Add(new OpmlDiagnostic("OPML108", OpmlDiagnosticSeverity.Warning,
+                $"Shared table '{table.Title ?? table.Kind ?? "unnamed"}' cannot be represented in OPML and was omitted.",
+                table.Location?.HeadingPath));
+        }
+        foreach (OfficeDocumentModelAsset asset in model.Assets) {
+            diagnostics.Add(new OpmlDiagnostic("OPML108", OpmlDiagnosticSeverity.Warning,
+                $"Shared asset '{asset.Id}' cannot be represented in OPML and was omitted.",
+                asset.Location?.HeadingPath));
+        }
+
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);
             OfficeDocumentModelNode[] structureNodes = EnumerateNodes(model.Structure).ToArray();

@@ -185,6 +185,16 @@ public sealed class DocBookDocumentTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB110");
     }
 
+    [Fact]
+    public void SharedConversionReportsNamespacedRootVersionAsAnExtensionAttribute() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\" x:version=\"producer\"><para>P</para></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB106");
+    }
+
     [Theory]
     [InlineData("<article><para>P</para></article>")]
     [InlineData("<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para>P</para></article>")]
@@ -548,6 +558,16 @@ public sealed class DocBookDocumentTests {
         }
     }
 
+    [Fact]
+    public void SharedProjectionIgnoresExtensionElementsThatImitateAuthorNameFields() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><x:personname>Internal</x:personname><personname><x:firstname>Hidden</x:firstname><firstname>Jane</firstname><surname>Doe</surname></personname><x:surname>Secret</x:surname></author></info></article>";
+
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        Assert.Equal("Jane Doe", model.Source.Author);
+        Assert.Contains(model.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
+    }
+
     [Theory]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">X</ulink></article>", "DB014")]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><sectioninfo/></section></article>", "DB014")]
@@ -693,6 +713,26 @@ public sealed class DocBookDocumentTests {
         OfficeDocumentModel projected = converted.Value.ToOfficeDocumentModel().Value;
         Assert.Contains(projected.Links, link => link.Uri == "https://example.test/" && link.Text == "Site");
         Assert.Contains(projected.Links, link => link.DestinationName == "target-id" && link.Text == "Target");
+    }
+
+    [Fact]
+    public void SharedConversionPrefersPortableFileNamesForGenericImageAssets() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Pdf,
+            Assets = new[] {
+                new OfficeDocumentModelAsset {
+                    Id = "figure",
+                    Kind = "image",
+                    FileName = "figure.png",
+                    SourceObjectId = "pdf-object-12"
+                }
+            }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+
+        XElement image = Assert.Single(converted.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
+        Assert.Equal("figure.png", image.Attribute("fileref")!.Value);
     }
 
     [Fact]

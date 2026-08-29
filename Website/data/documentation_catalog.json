@@ -898,7 +898,7 @@
       "description": "Modular OfficeIMO.Reader adapter for bounded DocBook ingestion.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj",
-      "sourceFileCount": 4,
+      "sourceFileCount": 5,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,

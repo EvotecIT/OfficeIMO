@@ -336,4 +336,28 @@ public sealed class OpmlDocumentTests {
         Assert.Equal("https://example.test/", converted.Value.Outlines[2].Url);
         Assert.Equal(2, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML107"));
     }
+
+    [Fact]
+    public void SharedConversionDiagnosesUnsupportedTablesAndAssetsWithOrWithoutStructure() {
+        var table = new OfficeDocumentModelTable { Title = "Values" };
+        var asset = new OfficeDocumentModelAsset { Id = "figure", Kind = "image", FileName = "figure.png" };
+        var structured = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "outline", Text = "Root" } },
+            Tables = new[] { table },
+            Assets = new[] { asset }
+        };
+        var flat = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Tables = new[] { table },
+            Assets = new[] { asset }
+        };
+
+        OpmlConversionResult<OpmlDocument> structuredResult = OpmlDocument.FromOfficeDocumentModel(structured);
+        OpmlConversionResult<OpmlDocument> flatResult = OpmlDocument.FromOfficeDocumentModel(flat);
+
+        Assert.True(structuredResult.HasLoss);
+        Assert.Equal(2, structuredResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
+        Assert.Equal(2, flatResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
+    }
 }

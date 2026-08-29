@@ -86,6 +86,34 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterKeepsContinuationParagraphsInsideListItems() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><itemizedlist><listitem><para>First</para><para>Second</para></listitem></itemizedlist><orderedlist startingnumber=\"12\"><listitem><para>Third</para><para>Fourth</para></listitem></orderedlist></article>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
+
+        Assert.Contains(chunks, chunk => chunk.Markdown == "- First");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "  Second");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "12. Third");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "    Fourth");
+    }
+
+    [Fact]
+    public void DocBookAdapterRendersInlineLinkAndCrossReferenceTargets() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para>See <link xl:href=\"https://example.test/a_(b)\">site</link> and <xref linkend=\"target\"/>.</para></article>";
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
+
+        Assert.Equal("See [site](https://example.test/a_\\(b\\)) and [target](#target).", result.Markdown);
+        Assert.Contains(result.Chunks, chunk => chunk.Markdown == "[site](https://example.test/a_\\(b\\))");
+        Assert.Contains(result.Chunks, chunk => chunk.Markdown == "[target](#target)");
+
+        ReaderChunk legacyLink = Assert.Single(DocBookReaderAdapter.Read(DocBookDocument.Parse(
+            "<article><ulink url=\"https://example.test/legacy\">legacy</ulink></article>")));
+        Assert.Equal("[legacy](https://example.test/legacy)", legacyLink.Markdown);
+    }
+
+    [Fact]
     public void DocBookAdapterUsesAFenceThatCannotBeClosedByListingContent() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><programlisting>before\n```\n# still code\nafter</programlisting></article>";
 

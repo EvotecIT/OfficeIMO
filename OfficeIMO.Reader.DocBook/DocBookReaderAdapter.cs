@@ -115,6 +115,33 @@ internal static partial class DocBookReaderAdapter {
                 yield break;
             }
             int currentSource = sourceIndex++;
+            if (TryBuildInlineFragments(node, out IReadOnlyList<InlineFragment> inlineFragments)) {
+                int inlinePart = 0;
+                foreach (InlineFragment fragment in inlineFragments) {
+                    IReadOnlyList<string> fragmentParts = fragment.Text.Length == 0
+                        ? new[] { string.Empty }
+                        : DocumentReaderEngine.SplitAdapterProjection(fragment.Text, reader.MaxChars);
+                    foreach (string fragmentPart in fragmentParts) {
+                        string markdown = fragment.ToMarkdown(fragmentPart);
+                        if (inlinePart == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
+                        yield return new ReaderChunk {
+                            Id = inlinePart == 0 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (inlinePart + 1),
+                            Kind = ReaderInputKind.DocBook,
+                            Text = fragmentPart,
+                            Markdown = markdown,
+                            ContinuesPreviousChunk = inlinePart > 0,
+                            Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
+                                HeadingPath = node.Location.HeadingPath,
+                                SourceBlockKind = admonitionContext ?? (listMarker == null ? node.Kind : "list-item"),
+                                BlockAnchor = "docbook-node-" + currentSource },
+                            Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" },
+                            Warnings = TakeWarnings()
+                        };
+                        inlinePart++;
+                    }
+                }
+                yield break;
+            }
             if (!string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
                 IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
                 string codeFence = node.Kind == "code" ? CreateCodeFence(node.Text) : string.Empty;
@@ -129,10 +156,7 @@ internal static partial class DocBookReaderAdapter {
                             ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " + parts[part]
                             : parts[part];
                     }
-                    if (part == 0 && listMarker != null && !listMarker.Applied) {
-                        markdown = listMarker.Prefix + markdown;
-                        listMarker.Applied = true;
-                    }
+                    if (part == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
                     yield return new ReaderChunk {
                         Id = parts.Count == 1 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (part + 1),
                         Kind = ReaderInputKind.DocBook, Text = parts[part], Markdown = markdown,
@@ -187,9 +211,19 @@ internal static partial class DocBookReaderAdapter {
     }
 
     private sealed class ListMarker {
-        internal ListMarker(string prefix) => Prefix = prefix;
+        internal ListMarker(string prefix) {
+            Prefix = prefix;
+            ContinuationPrefix = new string(' ', prefix.Length);
+        }
         internal string Prefix { get; }
+        internal string ContinuationPrefix { get; }
         internal bool Applied { get; set; }
+
+        internal string TakePrefix() {
+            if (Applied) return ContinuationPrefix;
+            Applied = true;
+            return Prefix;
+        }
     }
 
     private sealed class DocBookProjection {

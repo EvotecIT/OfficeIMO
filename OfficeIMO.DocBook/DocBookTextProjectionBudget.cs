@@ -84,11 +84,19 @@ internal sealed class DocBookTextProjectionBudget {
     }
 
     private static IEnumerable<XText> SelectAuthorNameNodes(XElement author) {
-        XElement? personName = author.Elements().FirstOrDefault(element => element.Name.LocalName == "personname");
-        if (personName != null) return personName.DescendantNodes().OfType<XText>();
+        XNamespace docBookNamespace = author.Name.Namespace;
+        XElement? personName = author.Elements().FirstOrDefault(element =>
+            element.Name.Namespace == docBookNamespace && element.Name.LocalName == "personname");
+        if (personName != null) return personName.DescendantNodes().OfType<XText>().Where(text =>
+            text.Ancestors().TakeWhile(element => !ReferenceEquals(element, personName))
+                .All(element => element.Name.Namespace == docBookNamespace));
 
-        XElement[] components = author.Elements().Where(element => AuthorNameParts.Contains(element.Name.LocalName)).ToArray();
-        if (components.Length > 0) return components.SelectMany(element => element.DescendantNodes().OfType<XText>());
+        XElement[] components = author.Elements().Where(element =>
+            element.Name.Namespace == docBookNamespace && AuthorNameParts.Contains(element.Name.LocalName)).ToArray();
+        if (components.Length > 0) return components.SelectMany(component =>
+            component.DescendantNodes().OfType<XText>().Where(text =>
+                text.Ancestors().TakeWhile(element => !ReferenceEquals(element, component))
+                    .All(element => element.Name.Namespace == docBookNamespace)));
 
         return author.Nodes().OfType<XText>();
     }
