@@ -134,6 +134,10 @@ public static partial class HtmlExcelConverterExtensions {
             }
 
             if (child is not IElement element) continue;
+            if (string.Equals(element.LocalName, "br", StringComparison.OrdinalIgnoreCase)) {
+                runs.Add(CreateImportedRichTextRun("\n", inheritedCss, inheritedNativeUnderline, suppressCssUnderline));
+                continue;
+            }
             IReadOnlyDictionary<string, string> effectiveCss = MergeInlineStyles(
                 inheritedCss,
                 ParseInlineStyle(element.GetAttribute("style")));

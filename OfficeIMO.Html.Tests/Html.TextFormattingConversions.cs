@@ -68,6 +68,21 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void ManagedHtmlRenderingUsesInheritedLanguageForCapsAndTextTransforms() {
+        const string html = "<p lang=\"tr\"><span style=\"font-variant-caps:small-caps\">i</span><span style=\"text-transform:uppercase\">i</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions());
+        HtmlRenderText[] text = Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>()
+            .Where(item => item.Text.Length > 0)
+            .ToArray();
+
+        Assert.Equal(2, text.Length);
+        Assert.All(text, item => Assert.Equal("İ", item.Text));
+    }
+
+    [Fact]
     public void ManagedHtmlRenderingPreservesDecorationPatternsAndScriptsAcrossDrawingSvgAndRasterFormats() {
         const string html = """
             <p style="font-family:'Aptos';font-size:20px;color:#336699;font-weight:700;font-style:italic">
@@ -274,6 +289,25 @@ public class HtmlTextFormattingConversionTests {
         Assert.Contains(runs, run => run.Text == "bold " && run.Bold && !run.Italic);
         Assert.Contains(runs, run => run.Text == "nested" && run.Bold && run.Italic);
         Assert.Contains(runs, run => run.Text == " tail" && !run.Bold && !run.Italic);
+    }
+
+    [Fact]
+    public void ExcelHtmlImportPreservesBreaksBetweenRichTextRuns() {
+        const string html = "<table><tr><td><span style=\"font-weight:700\">one</span><br><span style=\"font-style:italic\">two</span></td></tr></table>";
+
+        using ExcelDocument imported = HtmlConversionDocument
+            .Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
+            .RequireValue();
+        ExcelSheet sheet = Assert.Single(imported.Sheets);
+        ExcelRichTextRun[] runs = sheet.GetRichText(1, 1).ToArray();
+
+        Assert.Equal("one\ntwo", string.Concat(runs.Select(run => run.Text)));
+        Assert.Contains(runs, run => run.Text == "one" && run.Bold);
+        Assert.Contains(runs, run => run.Text == "\n");
+        Assert.Contains(runs, run => run.Text == "two" && run.Italic);
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.Equal("one\ntwo", snapshot!.Text);
     }
 
     [Fact]

@@ -1197,15 +1197,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) {
         string transform = style.TextTransform;
+        CultureInfo culture = ResolveTextTransformCulture(style.Language);
         string transformed;
-        if (transform == "uppercase") return text.ToUpperInvariant();
+        if (transform == "uppercase") return text.ToUpper(culture);
         if (transform == "lowercase") {
-            transformed = text.ToLowerInvariant();
+            transformed = text.ToLower(culture);
         } else if (transform == "capitalize") {
             var builder = new StringBuilder(text.Length);
             bool capitalize = true;
             foreach (char character in text) {
-                builder.Append(capitalize ? char.ToUpperInvariant(character) : character);
+                builder.Append(capitalize ? char.ToUpper(character, culture) : character);
                 capitalize = char.IsWhiteSpace(character);
             }
 
@@ -1214,7 +1215,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             transformed = text;
         }
 
-        return style.ApproximateSmallCaps ? transformed.ToUpperInvariant() : transformed;
+        return style.ApproximateSmallCaps ? transformed.ToUpper(culture) : transformed;
+    }
+
+    private static CultureInfo ResolveTextTransformCulture(string language) {
+        if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
+        try {
+            return CultureInfo.GetCultureInfo(language);
+        } catch (CultureNotFoundException) {
+            return CultureInfo.InvariantCulture;
+        }
     }
 
     private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);

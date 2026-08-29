@@ -147,6 +147,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string FontVariant = "normal";
     internal string TextTransform = "none";
     internal bool ApproximateSmallCaps;
+    internal string Language = string.Empty;
     internal string Direction = "ltr";
     internal string OverflowWrap = "normal";
     internal string WordBreak = "normal";

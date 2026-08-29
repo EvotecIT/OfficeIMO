@@ -91,6 +91,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
         string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
+        string language = ResolveLanguage(element, parent?.Language);
 
         string fontVariant = string.IsNullOrWhiteSpace(computed.GetValue("font-variant"))
             ? parent?.FontVariant ?? "normal"
@@ -133,6 +134,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             FontVariant = fontVariantCaps,
             TextTransform = textTransform,
             ApproximateSmallCaps = approximateSmallCaps,
+            Language = language,
             Direction = direction,
             OverflowWrap = ResolveOverflowWrap(computed.GetValue("overflow-wrap"), parent?.OverflowWrap),
             WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
@@ -460,6 +462,12 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static string ResolveDirection(string value, string? inherited) {
         string normalized = string.IsNullOrWhiteSpace(value) ? inherited ?? "ltr" : value.Trim().ToLowerInvariant();
         return normalized == "rtl" ? "rtl" : "ltr";
+    }
+
+    private static string ResolveLanguage(IElement element, string? inherited) {
+        string? language = element.GetAttribute("lang");
+        if (string.IsNullOrWhiteSpace(language)) language = element.GetAttribute("xml:lang");
+        return string.IsNullOrWhiteSpace(language) ? inherited ?? string.Empty : language!.Trim();
     }
 
     internal static bool IsBlockElement(IElement element, HtmlRenderBoxStyle style) {
