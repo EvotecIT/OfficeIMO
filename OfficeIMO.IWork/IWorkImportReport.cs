@@ -1,0 +1,69 @@
+namespace OfficeIMO.IWork;
+
+/// <summary>Loss-aware summary of one iWork-to-OfficeIMO projection.</summary>
+public sealed class IWorkImportReport {
+    internal IWorkImportReport(IWorkDocumentKind sourceKind, IWorkProjectionKind projectionKind,
+        IReadOnlyList<string> buildVersions, IReadOnlyList<IWorkArchiveRecord> unsupportedRecords,
+        IReadOnlyList<IWorkDiagnostic> diagnostics, IWorkPreviewAsset? visualPreview,
+        int totalRecordCount, int unsupportedRecordCount, int reconstructedItemCount) {
+        SourceKind = sourceKind;
+        ProjectionKind = projectionKind;
+        BuildVersions = buildVersions;
+        UnsupportedRecords = unsupportedRecords;
+        Diagnostics = diagnostics;
+        VisualPreview = visualPreview;
+        TotalRecordCount = totalRecordCount;
+        UnsupportedRecordCount = unsupportedRecordCount;
+        ReconstructedItemCount = reconstructedItemCount;
+    }
+
+    /// <summary>Gets the source iWork application.</summary>
+    public IWorkDocumentKind SourceKind { get; }
+    /// <summary>Gets whether the result contains editable reconstruction or a visual preview fallback.</summary>
+    public IWorkProjectionKind ProjectionKind { get; }
+    /// <summary>Gets producer build-history strings stored by the package.</summary>
+    public IReadOnlyList<string> BuildVersions { get; }
+    /// <summary>Gets preserved IWA payload records not consumed by the typed projection, including auxiliary payloads.</summary>
+    public IReadOnlyList<IWorkArchiveRecord> UnsupportedRecords { get; }
+    /// <summary>Gets parser and projection diagnostics.</summary>
+    public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
+    /// <summary>Gets the preview used by visual fallback, when applicable.</summary>
+    public IWorkPreviewAsset? VisualPreview { get; }
+    /// <summary>Gets the total number of IWA payload records in the source.</summary>
+    public int TotalRecordCount { get; }
+    /// <summary>Gets the number of unprojected IWA payloads even when payload details were excluded by the read options.</summary>
+    public int UnsupportedRecordCount { get; }
+    /// <summary>Gets the number of semantic paragraphs, cells, slides, or other items reconstructed by the adapter.</summary>
+    public int ReconstructedItemCount { get; }
+    /// <summary>Gets whether the projection is known to omit or flatten source content.</summary>
+    public bool HasConversionLoss => ProjectionKind == IWorkProjectionKind.VisualFallback || UnsupportedRecordCount > 0;
+    /// <summary>Gets whether the parser or semantic projection reported an error diagnostic.</summary>
+    public bool HasErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error);
+    /// <summary>Gets whether the visual fallback is known to cover the complete source rather than a first-page or composite preview.</summary>
+    public bool HasCompleteVisualCoverage => VisualPreview?.Coverage == IWorkVisualCoverage.FullDocument;
+
+    /// <summary>Throws when the result is a visual fallback rather than editable reconstruction.</summary>
+    public IWorkImportReport EnsureEditableReconstruction() {
+        if (ProjectionKind != IWorkProjectionKind.EditableReconstruction) {
+            throw new InvalidOperationException("The iWork source was projected as a visual fallback, not editable content.");
+        }
+        return this;
+    }
+
+    /// <summary>Throws when the projection reported errors.</summary>
+    public IWorkImportReport EnsureNoErrors() {
+        if (HasErrors) {
+            throw new InvalidOperationException("The iWork import reported errors: "
+                + string.Join("; ", Diagnostics.Where(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error).Take(8)));
+        }
+        return this;
+    }
+
+    /// <summary>Throws when the projection used a visual fallback or left preserved records unprojected.</summary>
+    public IWorkImportReport EnsureNoConversionLoss() {
+        if (HasConversionLoss) {
+            throw new InvalidOperationException("The iWork import contains visual fallback content or preserved records that are not represented in the editable destination.");
+        }
+        return this;
+    }
+}
