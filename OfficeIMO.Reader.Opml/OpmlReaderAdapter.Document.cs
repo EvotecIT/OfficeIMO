@@ -35,7 +35,7 @@ internal static partial class OpmlReaderAdapter {
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
             projection.Chunks,
             ReaderInputKind.Opml,
-            new OfficeDocumentSource { Path = sourceName, Title = model.Source.Title },
+            new OfficeDocumentSource { Path = sourceName, Title = model.Source.Title, Author = model.Source.Author },
             new[] { "officeimo.reader.opml.rich-v5", "officeimo.opml.lossless" });
         result.Metadata = model.Metadata.Select(MapMetadata).ToArray();
         result.Links = model.Links.Select(link => MapLink(link, sourceName)).ToArray();
@@ -73,13 +73,22 @@ internal static partial class OpmlReaderAdapter {
         Severity = diagnostic.Severity == OpmlDiagnosticSeverity.Error ? OfficeDocumentDiagnosticSeverity.Error
             : diagnostic.Severity == OpmlDiagnosticSeverity.Warning ? OfficeDocumentDiagnosticSeverity.Warning
             : OfficeDocumentDiagnosticSeverity.Information,
-        Category = diagnostic.Code == "OPML001" || diagnostic.Code == "OPML002" ? OfficeDocumentDiagnosticCategory.Parsing : OfficeDocumentDiagnosticCategory.Content,
+        Category = MapDiagnosticCategory(diagnostic.Code),
         Code = diagnostic.Code,
         Message = diagnostic.Message,
         Source = OfficeDocumentReaderBuilderOpmlExtensions.HandlerId,
         IsRecoverable = diagnostic.Severity != OpmlDiagnosticSeverity.Error,
         Location = new ReaderLocation { Path = sourceName, HeadingPath = diagnostic.Path }
     };
+
+    private static OfficeDocumentDiagnosticCategory MapDiagnosticCategory(string code) {
+        if (code.StartsWith("OPML", StringComparison.Ordinal) &&
+            int.TryParse(code.Substring(4), out int number)) {
+            if (number >= 1 && number <= 9) return OfficeDocumentDiagnosticCategory.Parsing;
+            if (number >= 100) return OfficeDocumentDiagnosticCategory.Adapter;
+        }
+        return OfficeDocumentDiagnosticCategory.Content;
+    }
 
     private static ReaderLocation MapLocation(OfficeDocumentModelLocation location, string? sourceName) => new ReaderLocation {
         Path = location.Path ?? sourceName,

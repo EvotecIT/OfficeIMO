@@ -215,6 +215,7 @@ public sealed partial class DocBookDocument {
                 int initialWidth = Math.Max(layout.DeclaredColumns, layout.NextColumn);
                 initialWidth = Math.Min(initialWidth, options.MaxTableColumns);
                 var cells = Enumerable.Repeat<string?>(null, initialWidth).ToList();
+                int nextEntryColumn = 0;
                 foreach (KeyValuePair<int, int> activeSpan in activeSpans.ToArray()) {
                     if (activeSpan.Key >= options.MaxTableColumns) {
                         activeSpans.Remove(activeSpan.Key);
@@ -251,7 +252,7 @@ public sealed partial class DocBookDocument {
                         else flattenedCalsLayout = true;
                     }
                     if (start < 0) {
-                        start = 0;
+                        start = nextEntryColumn;
                         while (start < cells.Count && cells[start] != null) start++;
                     }
                     if (end < start) end = start;
@@ -276,6 +277,7 @@ public sealed partial class DocBookDocument {
                     }
                     cells[start] = entry.Value;
                     for (int column = start + 1; column <= end; column++) cells[column] = string.Empty;
+                    nextEntryColumn = Math.Max(nextEntryColumn, end + 1);
 
                     int moreRows = 0;
                     if (int.TryParse((string?)entry.Attribute("morerows"), out int parsedMoreRows) && parsedMoreRows > 0) moreRows = parsedMoreRows;
@@ -467,6 +469,29 @@ public sealed partial class DocBookDocument {
             foreach (OfficeDocumentModelNode child in source.Children) Add(child, target);
         }
 
+        void AddFlatTable(OfficeDocumentModelTable source) {
+            bool formal = !string.IsNullOrWhiteSpace(source.Title);
+            DocBookNode table = formal ? document.Root.Add(DocBookNodeKind.Table) : document.Root.AddRaw("informaltable");
+            if (formal) table.Add(DocBookNodeKind.Title, source.Title);
+            DocBookNode group = table.Add(DocBookNodeKind.TableGroup);
+            int rowWidth = source.Rows.Count == 0 ? 0 : source.Rows.Max(row => row.Count);
+            int columnCount = Math.Max(1, Math.Max(source.Columns.Count, rowWidth));
+            group.SetAttribute("cols", columnCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            if (source.Columns.Count > 0) {
+                DocBookNode headerRow = group.Add(DocBookNodeKind.TableHead).Add(DocBookNodeKind.Row);
+                foreach (string column in source.Columns) headerRow.Add(DocBookNodeKind.Entry, column);
+            }
+            DocBookNode body = group.Add(DocBookNodeKind.TableBody);
+            foreach (IReadOnlyList<string> sourceRow in source.Rows) {
+                DocBookNode row = body.Add(DocBookNodeKind.Row);
+                foreach (string cell in sourceRow) row.Add(DocBookNodeKind.Entry, cell);
+            }
+            if (source.Truncated || source.TotalRowCount > source.Rows.Count) {
+                diagnostics.Add(new DocBookDiagnostic("DB117", DocBookDiagnosticSeverity.Warning,
+                    "The shared flat table was already truncated; only its available rows were emitted.", source.Title));
+            }
+        }
+
         if (model.Structure.Count > 0) {
             bool hasTitle = model.Structure.Any(ContainsDocumentTitle);
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
@@ -474,8 +499,13 @@ public sealed partial class DocBookDocument {
         } else {
             document.Title = model.Source.Title;
             diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
-                "The shared model had no recursive Structure; flat Blocks were emitted as paragraphs."));
+                "The shared model had no recursive Structure; flat Blocks and Tables were emitted as common DocBook structures."));
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
+            foreach (OfficeDocumentModelTable table in model.Tables) AddFlatTable(table);
+        }
+        bool hasAuthor = model.Structure.Any(ContainsDocumentAuthor);
+        if (!hasAuthor && !string.IsNullOrWhiteSpace(model.Source.Author)) {
+            new DocBookNode(document, document.EnsureInfo()).Add(DocBookNodeKind.Author, model.Source.Author);
         }
         return new DocBookConversionResult<DocBookDocument>(document, diagnostics);
 
@@ -483,6 +513,11 @@ public sealed partial class DocBookDocument {
             string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase) &&
             node.Children.Any(child => string.Equals(child.Kind, "title", StringComparison.OrdinalIgnoreCase));
+
+        static bool ContainsDocumentAuthor(OfficeDocumentModelNode node) =>
+            string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase) &&
+            node.Children.Any(child => string.Equals(child.Kind, "author", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string GetPrimaryText(XElement element, DocBookNodeKind kind) {

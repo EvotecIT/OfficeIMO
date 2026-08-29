@@ -72,11 +72,21 @@ internal static partial class DocBookReaderAdapter {
         Severity = diagnostic.Severity == DocBookDiagnosticSeverity.Error ? OfficeDocumentDiagnosticSeverity.Error
             : diagnostic.Severity == DocBookDiagnosticSeverity.Warning ? OfficeDocumentDiagnosticSeverity.Warning
             : OfficeDocumentDiagnosticSeverity.Information,
-        Category = diagnostic.Code.StartsWith("DB01", StringComparison.Ordinal) ? OfficeDocumentDiagnosticCategory.Parsing : OfficeDocumentDiagnosticCategory.Content,
+        Category = MapDiagnosticCategory(diagnostic.Code),
         Code = diagnostic.Code,
         Message = diagnostic.Message,
         Source = OfficeDocumentReaderBuilderDocBookExtensions.HandlerId,
         IsRecoverable = diagnostic.Severity != DocBookDiagnosticSeverity.Error,
         Location = new ReaderLocation { Path = sourceName, HeadingPath = diagnostic.Path }
     };
+
+    private static OfficeDocumentDiagnosticCategory MapDiagnosticCategory(string code) {
+        if (code != null && code.StartsWith("DB", StringComparison.Ordinal) &&
+            int.TryParse(code.Substring(2), out int number)) {
+            if (number >= 1 && number <= 9) return OfficeDocumentDiagnosticCategory.Parsing;
+            if (number == 113) return OfficeDocumentDiagnosticCategory.Limit;
+            if (number >= 100) return OfficeDocumentDiagnosticCategory.Adapter;
+        }
+        return OfficeDocumentDiagnosticCategory.Content;
+    }
 }

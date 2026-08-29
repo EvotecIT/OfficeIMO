@@ -158,6 +158,15 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedTableProjectionPlacesImplicitEntriesAfterExplicitColumns() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"3\"><colspec colname=\"c1\"/><colspec colname=\"c2\"/><colspec colname=\"c3\"/><tbody><row><entry colname=\"c2\">B</entry><entry>C</entry></row></tbody></tgroup></informaltable></article>";
+
+        OfficeDocumentModelTable table = Assert.Single(DocBookDocument.Parse(source).ToOfficeDocumentModel().Value.Tables);
+
+        Assert.Equal(new[] { "", "B", "C" }, Assert.Single(table.Rows));
+    }
+
+    [Fact]
     public void SharedTableProjectionReportsExactTotalBeyondProjectionCapacity() {
         string rows = string.Concat(Enumerable.Range(1, 10)
             .Select(index => $"<row><entry>Row {index}</entry></row>"));
@@ -407,6 +416,45 @@ public sealed class DocBookDocumentTests {
         Assert.Equal("Guide", converted.Title);
         Assert.Equal("Jane Doe", converted.Xml.Descendants().Single(element => element.Name.LocalName == "author").Value);
         Assert.Single(converted.Xml.Root!.Elements(), element => element.Name.LocalName == "info");
+    }
+
+    [Fact]
+    public void SharedConversionEmitsFlatTablesAndSourceAuthorWithoutRecursiveStructure() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Source = new OfficeDocumentModelSource { Author = "Jane Doe" },
+            Tables = new[] {
+                new OfficeDocumentModelTable {
+                    Title = "Values",
+                    Columns = new[] { "Name", "Value" },
+                    Rows = new[] { new[] { "A", "1" } },
+                    TotalRowCount = 1
+                }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+        XElement info = Assert.Single(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "info");
+        XElement table = Assert.Single(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "table");
+
+        Assert.Equal("Jane Doe", info.Descendants().Single(element => element.Name.LocalName == "author").Value);
+        Assert.Equal(new[] { "Name", "Value", "A", "1" },
+            table.Descendants().Where(element => element.Name.LocalName == "entry").Select(element => element.Value));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB103");
+    }
+
+    [Fact]
+    public void SharedConversionUsesSourceAuthorWhenStructureHasNoDocumentAuthor() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Source = new OfficeDocumentModelSource { Author = "Jane Doe" },
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "paragraph", Text = "Body" } }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+
+        Assert.Equal("Jane Doe", converted.Xml.Root!.Elements().Single(element => element.Name.LocalName == "info")
+            .Descendants().Single(element => element.Name.LocalName == "author").Value);
     }
 
     [Fact]

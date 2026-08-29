@@ -113,10 +113,13 @@ public sealed class OpmlDocumentTests {
     public void SharedModelRoundTripRetainsNestingAndAttributes() {
         OpmlDocument source = OpmlDocument.Create(OpmlVersion.Opml10);
         source.Head.Title = "Title";
+        source.Head.OwnerName = "Jane Doe";
         source.Xml.Root!.Element("head")!.Element("title")!.SetAttributeValue(XName.Get("flag", "urn:test"), "metadata");
+        source.Xml.Root!.Element("head")!.Element("ownerName")!.SetAttributeValue(XName.Get("flag", "urn:test"), "owner");
         OpmlOutline root = source.AddOutline("Root"); root.SetAttribute(XName.Get("flag", "urn:test"), "yes"); root.AddChild("Child");
         var model = source.ToOfficeDocumentModel().Value;
         Assert.Equal(OfficeDocumentFormat.Opml, model.Format);
+        Assert.Equal("Jane Doe", model.Source.Author);
         Assert.Equal("Child", model.Structure.Single().Children.Single().Text);
         Assert.Equal(2, model.Structure.SelectMany(node => new[] { node }.Concat(node.Children)).Select(node => node.Id).Distinct().Count());
 
@@ -125,6 +128,21 @@ public sealed class OpmlDocumentTests {
         Assert.Equal(OpmlVersion.Opml10, converted.Value.Version);
         Assert.Equal("yes", converted.Value.Outlines.Single().GetAttribute(XName.Get("flag", "urn:test")));
         Assert.Equal("metadata", converted.Value.Xml.Root!.Element("head")!.Element("title")!.Attribute(XName.Get("flag", "urn:test"))!.Value);
+        Assert.Equal("Jane Doe", converted.Value.Head.OwnerName);
+        Assert.Equal("owner", converted.Value.Xml.Root!.Element("head")!.Element("ownerName")!.Attribute(XName.Get("flag", "urn:test"))!.Value);
+        Assert.Single(converted.Value.Xml.Root!.Element("head")!.Elements("ownerName"));
+    }
+
+    [Fact]
+    public void SharedConversionMapsSourceAuthorToOwnerName() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Source = new OfficeDocumentModelSource { Author = "Alex Smith" }
+        };
+
+        OpmlDocument converted = OpmlDocument.FromOfficeDocumentModel(model).Value;
+
+        Assert.Equal("Alex Smith", converted.Head.OwnerName);
     }
 
     [Fact]

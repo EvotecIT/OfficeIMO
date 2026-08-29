@@ -58,7 +58,7 @@ public sealed partial class OpmlDocument {
 
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.Opml,
-            Source = new OfficeDocumentModelSource { Path = sourcePath, Title = Head.Title },
+            Source = new OfficeDocumentModelSource { Path = sourcePath, Title = Head.Title, Author = Head.OwnerName },
             CapabilitiesUsed = new[] { "opml.outlines", "opml.attributes", "opml.nesting" },
             Metadata = BuildMetadata(diagnostics),
             Structure = Outlines.Select(outline => Convert(outline, 1, string.Empty)).ToArray(),
@@ -90,24 +90,36 @@ public sealed partial class OpmlDocument {
         }
         OfficeDocumentModelMetadataEntry? titleMetadata = model.Metadata.FirstOrDefault(entry =>
             entry.Category == "opml.head" && entry.Name == "title");
+        OfficeDocumentModelMetadataEntry? ownerMetadata = model.Metadata.FirstOrDefault(entry =>
+            entry.Category == "opml.head" && entry.Name == "ownerName");
         document.Head.Title = model.Source.Title ?? (titleMetadata == null ? null : titleMetadata.Value ?? string.Empty);
-        if (titleMetadata != null) {
-            XElement? titleElement = document.HeadElement.Element("title");
-            if (titleElement != null) {
-                foreach (KeyValuePair<string, string> attribute in titleMetadata.Attributes) {
+        document.Head.OwnerName = model.Source.Author ?? (ownerMetadata == null ? null : ownerMetadata.Value ?? string.Empty);
+        ApplyPrimaryMetadataAttributes("title", titleMetadata);
+        ApplyPrimaryMetadataAttributes("ownerName", ownerMetadata);
+
+        void ApplyPrimaryMetadataAttributes(string elementName, OfficeDocumentModelMetadataEntry? metadata) {
+            if (metadata == null) return;
+            XElement? element = document.HeadElement.Element(elementName);
+            if (element != null) {
+                foreach (KeyValuePair<string, string> attribute in metadata.Attributes) {
                     try {
-                        titleElement.SetAttributeValue(XName.Get(attribute.Key), attribute.Value);
+                        element.SetAttributeValue(XName.Get(attribute.Key), attribute.Value);
                     } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
                         diagnostics.Add(new OpmlDiagnostic("OPML102", OpmlDiagnosticSeverity.Warning,
-                            $"Title attribute '{attribute.Key}' could not be represented in OPML."));
+                            $"Head metadata attribute '{attribute.Key}' could not be represented in OPML."));
                     }
                 }
             }
         }
         bool primaryTitleConsumed = false;
+        bool primaryOwnerConsumed = false;
         foreach (OfficeDocumentModelMetadataEntry metadata in model.Metadata.Where(entry => entry.Category == "opml.head")) {
             if (metadata.Name == "title" && !primaryTitleConsumed) {
                 primaryTitleConsumed = true;
+                continue;
+            }
+            if (metadata.Name == "ownerName" && !primaryOwnerConsumed) {
+                primaryOwnerConsumed = true;
                 continue;
             }
             if (metadata.Value == null) continue;

@@ -68,7 +68,9 @@ internal static partial class OpmlReaderAdapter {
             for (int part = 0; part < parts.Count; part++) {
                 yield return new ReaderChunk {
                     Id = parts.Count == 1 ? "opml-" + currentSource : "opml-" + currentSource + "-part-" + (part + 1),
-                    Kind = ReaderInputKind.Opml, Text = parts[part], Markdown = new string('#', Math.Min(level, 6)) + " " + parts[part],
+                    Kind = ReaderInputKind.Opml, Text = parts[part],
+                    Markdown = part == 0 ? new string('#', Math.Min(level, 6)) + " " + parts[part] : parts[part],
+                    ContinuesPreviousChunk = part > 0,
                     Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                         HeadingPath = headingPath, SourceBlockKind = "outline", BlockAnchor = "opml-outline-" + currentSource },
                     Diagnostics = new ReaderChunkDiagnostics { SourceKind = "opml" }, Warnings = TakeWarnings()

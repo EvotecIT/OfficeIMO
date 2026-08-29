@@ -52,9 +52,11 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal(2, table.TotalRowCount);
         Assert.True(table.Truncated);
         Assert.Contains(result.Chunks, chunk => chunk.Tables?.Count == 1);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB112");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB112" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Adapter);
         Assert.All(result.Chunks, chunk => Assert.Null(chunk.Warnings));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB113");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB113" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Limit);
     }
 
     [Fact]
@@ -80,12 +82,31 @@ public sealed class ReaderOpmlDocBookModularTests {
         ReaderChunk[] opmlChunks = OpmlReaderAdapter.Read(opml, readerOptions: new ReaderOptions { MaxChars = 2 }).ToArray();
         Assert.Equal(new[] { "A", "😀", "B" }, opmlChunks.Select(chunk => chunk.Text));
         Assert.Equal("A😀B", string.Concat(opmlChunks.Select(chunk => chunk.Text)));
+        Assert.False(opmlChunks[0].ContinuesPreviousChunk);
+        Assert.All(opmlChunks.Skip(1), chunk => Assert.True(chunk.ContinuesPreviousChunk));
+        Assert.Equal(new[] { "# A", "😀", "B" }, opmlChunks.Select(chunk => chunk.Markdown));
+
+        using var opmlStream = new MemoryStream(Encoding.UTF8.GetBytes(opml.ToOpml()));
+        OfficeDocumentReadResult opmlResult = OpmlReaderAdapter.ReadDocument(opmlStream, readerOptions: new ReaderOptions { MaxChars = 2 });
+        Assert.Equal("# A😀B", opmlResult.Markdown);
 
         DocBookDocument docBook = DocBookDocument.CreateArticle();
         docBook.AddParagraph("A😀B");
         ReaderChunk[] docBookChunks = DocBookReaderAdapter.Read(docBook, readerOptions: new ReaderOptions { MaxChars = 2 }).ToArray();
         Assert.Equal(new[] { "A", "😀", "B" }, docBookChunks.Select(chunk => chunk.Text));
         Assert.Equal("A😀B", string.Concat(docBookChunks.Select(chunk => chunk.Text)));
+        Assert.False(docBookChunks[0].ContinuesPreviousChunk);
+        Assert.All(docBookChunks.Skip(1), chunk => Assert.True(chunk.ContinuesPreviousChunk));
+
+        using var docBookStream = new MemoryStream(Encoding.UTF8.GetBytes(docBook.ToDocBook()));
+        OfficeDocumentReadResult docBookResult = DocBookReaderAdapter.ReadDocument(docBookStream, readerOptions: new ReaderOptions { MaxChars = 2 });
+        Assert.Equal("A😀B", docBookResult.Markdown);
+
+        DocBookDocument codeBook = DocBookDocument.CreateArticle();
+        codeBook.Root.Add(DocBookNodeKind.ProgramListing, "A😀B");
+        using var codeStream = new MemoryStream(Encoding.UTF8.GetBytes(codeBook.ToDocBook()));
+        OfficeDocumentReadResult codeResult = DocBookReaderAdapter.ReadDocument(codeStream, readerOptions: new ReaderOptions { MaxChars = 2 });
+        Assert.Equal("```\nA😀B\n```", codeResult.Markdown);
     }
 
     [Fact]
@@ -250,16 +271,23 @@ public sealed class ReaderOpmlDocBookModularTests {
 
     [Fact]
     public void OpmlRichResultPublishesMetadataLinksAndDocumentDiagnosticsOnce() {
-        const string source = "<opml version=\"9.0\"><head><title>Feeds</title></head><body><outline text=\"Feed\" type=\"rss\" xmlUrl=\"https://example.test/feed.xml\" htmlUrl=\"https://example.test/\"/></body></opml>";
+        const string source = "<opml version=\"9.0\"><head><title>Feeds</title><ownerName>Jane Doe</ownerName></head><body><outline text=\"Feed\" type=\"rss\" xmlUrl=\"https://example.test/feed.xml\" htmlUrl=\"https://example.test/\"><extension/></outline><outline text=\"Missing\" type=\"link\"/></body></opml>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpmlHandler().Build();
 
         OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "feeds.opml");
 
         Assert.Equal("Feeds", result.Source.Title);
+        Assert.Equal("Jane Doe", result.Source.Author);
         Assert.Contains(result.Metadata, entry => entry.Name == "version" && entry.Value == "9.0");
         Assert.Contains(result.Links, link => link.Kind == "subscription" && link.Uri == "https://example.test/feed.xml");
         Assert.Contains(result.Links, link => link.Kind == "html" && link.Uri == "https://example.test/");
         Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "OPML001");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML001" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Parsing);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML012" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Content);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML200" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Adapter);
         Assert.All(result.Chunks, chunk => Assert.Null(chunk.Warnings));
     }
 
@@ -288,6 +316,19 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.Null(result.Source.Author);
         Assert.Contains(result.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
+    }
+
+    [Fact]
+    public void DocBookRichResultClassifiesParsingAndContentDiagnostics() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.1\"><section/></article>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "invalid.docbook");
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB003" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Parsing);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB011" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Content);
     }
 
     [Fact]

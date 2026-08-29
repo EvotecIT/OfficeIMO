@@ -83,12 +83,20 @@ internal static partial class DocBookReaderAdapter {
             if (!string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
                 IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
                 for (int part = 0; part < parts.Count; part++) {
-                    string markdown = node.Kind == "section" || node.Kind == "title"
-                        ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " + parts[part]
-                        : node.Kind == "code" ? "```\n" + parts[part] + "\n```" : parts[part];
+                    string markdown;
+                    if (node.Kind == "code") {
+                        markdown = parts.Count == 1 ? "```\n" + parts[part] + "\n```"
+                            : (part == 0 ? "```\n" : string.Empty) + parts[part] +
+                              (part == parts.Count - 1 ? "\n```" : string.Empty);
+                    } else {
+                        markdown = part == 0 && (node.Kind == "section" || node.Kind == "title")
+                            ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " + parts[part]
+                            : parts[part];
+                    }
                     yield return new ReaderChunk {
                         Id = parts.Count == 1 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (part + 1),
                         Kind = ReaderInputKind.DocBook, Text = parts[part], Markdown = markdown,
+                        ContinuesPreviousChunk = part > 0,
                         Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                             HeadingPath = node.Location.HeadingPath, SourceBlockKind = node.Kind, BlockAnchor = "docbook-node-" + currentSource },
                         Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" }, Warnings = TakeWarnings()
