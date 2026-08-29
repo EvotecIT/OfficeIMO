@@ -76,6 +76,8 @@ namespace OfficeIMO.Word.Html {
                                 props["vertical-align"] = "super";
                             } else if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Subscript) {
                                 props["vertical-align"] = "sub";
+                            } else if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Baseline) {
+                                props["vertical-align"] = "baseline";
                             }
                         }
                         if (IsEnabled(rPr.SmallCaps)) {

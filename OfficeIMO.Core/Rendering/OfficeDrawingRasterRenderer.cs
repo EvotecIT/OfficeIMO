@@ -268,16 +268,15 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        bool supportsLegacyFastPath = text.Baseline == OfficeTextBaseline.Normal &&
+        bool supportsLegacyFastPath = text.BaselineLevel == 0 &&
             text.UnderlineStyle == OfficeTextDecorationStyle.None &&
             text.StrikethroughStyle == OfficeTextDecorationStyle.None;
         bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
         if (text.TextAdvanceWidth.HasValue && supportsPositionedPath) {
             double positionedSourceFontSize = Math.Max(1D, text.Font.Size * scale);
-            double renderedFontSize = text.Baseline == OfficeTextBaseline.Normal ? positionedSourceFontSize : positionedSourceFontSize * 0.65D;
-            double positionedBaselineOffset = text.Baseline == OfficeTextBaseline.Superscript
-                ? -(positionedSourceFontSize * 0.30D)
-                : text.Baseline == OfficeTextBaseline.Subscript ? positionedSourceFontSize * 0.15D : 0D;
+            OfficeTextScriptGeometry positionedScript = OfficeTextScriptGeometry.Resolve(positionedSourceFontSize, text.BaselineLevel);
+            double renderedFontSize = positionedScript.RenderedFontSize;
+            double positionedBaselineOffset = positionedScript.BaselineOffset;
             canvas.DrawPositionedText(
                 text.Text,
                 contentX,
@@ -311,10 +310,9 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         double sourceFontSize = Math.Max(1D, text.Font.Size * scale);
-        double fontSize = text.Baseline == OfficeTextBaseline.Normal ? sourceFontSize : sourceFontSize * 0.65D;
-        double baselineOffset = text.Baseline == OfficeTextBaseline.Superscript
-            ? -(sourceFontSize * 0.30D)
-            : text.Baseline == OfficeTextBaseline.Subscript ? sourceFontSize * 0.15D : 0D;
+        OfficeTextScriptGeometry script = OfficeTextScriptGeometry.Resolve(sourceFontSize, text.BaselineLevel);
+        double fontSize = script.RenderedFontSize;
+        double baselineOffset = script.BaselineOffset;
         OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)

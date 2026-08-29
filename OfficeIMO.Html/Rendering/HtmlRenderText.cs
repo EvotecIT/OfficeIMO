@@ -76,7 +76,8 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         int? logicalTextOrder = null,
         OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
-        OfficeTextBaseline baseline = OfficeTextBaseline.Normal)
+        OfficeTextBaseline baseline = OfficeTextBaseline.Normal,
+        int baselineLevel = 0)
         : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
         if (textAdvanceWidth.HasValue && (double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
@@ -99,6 +100,10 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
             ? strikethroughStyle
             : font.IsStrikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
         Baseline = baseline;
+        BaselineLevel = baselineLevel != 0
+            ? baselineLevel
+            : baseline == OfficeTextBaseline.Superscript ? 1
+            : baseline == OfficeTextBaseline.Subscript ? -1 : 0;
     }
 
     /// <summary>Text content represented by this visual segment.</summary>
@@ -138,11 +143,14 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Resolved CSS script baseline.</summary>
     public OfficeTextBaseline Baseline { get; }
 
+    /// <summary>Resolved cumulative CSS script nesting level.</summary>
+    public int BaselineLevel { get; }
+
     internal bool BidiVisualOrderResolved { get; }
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel);
 }

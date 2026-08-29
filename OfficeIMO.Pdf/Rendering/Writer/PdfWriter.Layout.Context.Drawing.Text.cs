@@ -13,9 +13,17 @@ internal static partial class PdfWriter {
             if (string.IsNullOrEmpty(text.Text)) return;
 
             string value = text.StackedText ? StackTextElements(text.Text) : text.Text;
+            int priorBaselineLevel = text.BaselineLevel == 0
+                ? 0
+                : text.BaselineLevel - Math.Sign(text.BaselineLevel);
+            OfficeTextScriptGeometry priorScript = OfficeTextScriptGeometry.Resolve(
+                Math.Max(0.001D, text.Font.Size),
+                priorBaselineLevel,
+                superscriptOffsetFactor: 0.35D,
+                subscriptOffsetFactor: 0.18D);
             var run = new OfficeRichTextRun(
                 value,
-                text.Font.Size,
+                priorScript.RenderedFontSize,
                 text.Color ?? OfficeColor.Black,
                 text.Font.IsBold,
                 text.Font.IsItalic,
@@ -43,7 +51,7 @@ internal static partial class PdfWriter {
                 text.FlipVertical,
                 text.Padding,
                 text.ParagraphIndent);
-            DrawDrawingRichTextAt(richText, originX, originTopY);
+            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset);
         }
 
         private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY) {

@@ -53,7 +53,7 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void ManagedHtmlRenderingComposesOpposingNestedScriptShifts() {
-        const string html = "<p><sup><sub>First</sub></sup><sub><sup>Second</sup></sub><sup><sup>Raised</sup></sup></p>";
+        const string html = "<p><sup><sub>First</sub></sup><sub><sup>Second</sup></sub><sup><sup>Raised</sup></sup><sub><sub>Lowered</sub></sub></p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             HtmlConversionDocument.Parse(html),
@@ -62,9 +62,32 @@ public class HtmlTextFormattingConversionTests {
             .Where(item => item.Text.Length > 0)
             .ToArray();
 
-        Assert.Equal(OfficeTextBaseline.Normal, Assert.Single(text, item => item.Text == "First").Baseline);
-        Assert.Equal(OfficeTextBaseline.Normal, Assert.Single(text, item => item.Text == "Second").Baseline);
-        Assert.Equal(OfficeTextBaseline.Superscript, Assert.Single(text, item => item.Text == "Raised").Baseline);
+        HtmlRenderText first = Assert.Single(text, item => item.Text == "First");
+        HtmlRenderText second = Assert.Single(text, item => item.Text == "Second");
+        HtmlRenderText raised = Assert.Single(text, item => item.Text == "Raised");
+        HtmlRenderText lowered = Assert.Single(text, item => item.Text == "Lowered");
+        Assert.Equal(OfficeTextBaseline.Normal, first.Baseline);
+        Assert.Equal(0, first.BaselineLevel);
+        Assert.Equal(OfficeTextBaseline.Normal, second.Baseline);
+        Assert.Equal(0, second.BaselineLevel);
+        Assert.Equal(OfficeTextBaseline.Superscript, raised.Baseline);
+        Assert.Equal(2, raised.BaselineLevel);
+        Assert.Equal(OfficeTextBaseline.Subscript, lowered.Baseline);
+        Assert.Equal(-2, lowered.BaselineLevel);
+
+        OfficeDrawing drawing = Assert.Single(rendered.Pages).CreateDrawing();
+        Assert.Equal(2, Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Raised").BaselineLevel);
+        Assert.Equal(-2, Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "Lowered").BaselineLevel);
+
+        OfficeTextScriptGeometry single = OfficeTextScriptGeometry.Resolve(20D, 1);
+        OfficeTextScriptGeometry nested = OfficeTextScriptGeometry.Resolve(20D, 2);
+        Assert.Equal(13D, single.RenderedFontSize, 6);
+        Assert.Equal(8.45D, nested.RenderedFontSize, 6);
+        Assert.True(nested.BaselineOffset < single.BaselineOffset);
+
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.Contains("Raised", svg, StringComparison.Ordinal);
+        Assert.Contains("Lowered", svg, StringComparison.Ordinal);
     }
 
     [Fact]

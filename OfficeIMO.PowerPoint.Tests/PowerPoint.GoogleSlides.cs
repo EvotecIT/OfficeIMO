@@ -225,6 +225,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_ResolvesEastAsianAndComplexScriptThemeFonts() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SetThemeFontsForAllMasters(new PowerPointThemeFontSet(
+                majorLatin: "Major Latin",
+                minorLatin: "Minor Latin",
+                majorEastAsian: "Major East Asian",
+                minorEastAsian: "Minor East Asian",
+                majorComplexScript: "Major Complex Script",
+                minorComplexScript: "Minor Complex Script"));
+            PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("日本語").Paragraphs[0];
+            PowerPointTextRun eastAsian = paragraph.Runs[0];
+            eastAsian.Run.RunProperties = new A.RunProperties { Language = "ja-JP" };
+            eastAsian.RunProperties.Append(new A.EastAsianFont { Typeface = "+mj-ea" });
+            PowerPointTextRun complexScript = paragraph.AddRun(" العربية");
+            complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
+            complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
+
+            IReadOnlyList<GoogleSlidesTextStyleRun> textRuns = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides).Elements.OfType<GoogleSlidesTextBox>()).TextRuns;
+
+            Assert.Equal("Major East Asian", textRuns[0].FontFamily);
+            Assert.Equal("Minor Complex Script", textRuns[1].FontFamily);
+        }
+
+        [Fact]
         public void BatchCompiler_ResolvesInheritedEmphasisAndDecorationsForTextBoxesAndTables() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();

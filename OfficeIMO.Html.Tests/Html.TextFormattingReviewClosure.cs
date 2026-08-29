@@ -129,6 +129,32 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     }
 
     [Fact]
+    public void PowerPointSemanticHtmlResolvesEastAsianAndComplexScriptThemeFonts() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        source.SetThemeFontsForAllMasters(new PowerPointThemeFontSet(
+            majorLatin: "Major Latin",
+            minorLatin: "Minor Latin",
+            majorEastAsian: "Major East Asian",
+            minorEastAsian: "Minor East Asian",
+            majorComplexScript: "Major Complex Script",
+            minorComplexScript: "Minor Complex Script"));
+        PowerPointParagraph paragraph = source.AddSlide().AddTextBox("日本語").Paragraphs[0];
+        PowerPointTextRun eastAsian = paragraph.Runs[0];
+        eastAsian.Run.RunProperties = new A.RunProperties { Language = "ja-JP" };
+        eastAsian.RunProperties.Append(new A.EastAsianFont { Typeface = "+mj-ea" });
+        PowerPointTextRun complexScript = paragraph.AddRun(" العربية");
+        complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
+        complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("font-family:&#39;Major East Asian&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("font-family:&#39;Minor Complex Script&#39;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("+mj-ea", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("+mn-cs", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PowerPointSemanticHtmlRoundTripPreservesParagraphBreaksAndRunFormatting() {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("First");
@@ -259,6 +285,31 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.Equal(WordUnderlineStyle.Wave, actual.Underline);
         Assert.True(actual.DoubleStrike);
+    }
+
+    [Fact]
+    public void WordDerivedCharacterStyleBaselineClearsInheritedScript() {
+        using WordDocument source = WordDocument.Create();
+        var inherited = new Style { Type = StyleValues.Character, StyleId = "InheritedScript" };
+        inherited.Append(new StyleName { Val = "Inherited Script" });
+        inherited.Append(new StyleRunProperties(
+            new VerticalTextAlignment { Val = VerticalPositionValues.Superscript }));
+        var reset = new Style { Type = StyleValues.Character, StyleId = "ResetScript" };
+        reset.Append(new StyleName { Val = "Reset Script" });
+        reset.Append(new BasedOn { Val = "InheritedScript" });
+        reset.Append(new StyleRunProperties(
+            new VerticalTextAlignment { Val = VerticalPositionValues.Baseline }));
+        Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(inherited);
+        styles.Append(reset);
+        source.AddParagraph().AddText("Baseline").SetCharacterStyleId("ResetScript");
+
+        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+
+        string styleRule = Assert.Single(html.Split('\n'), line => line.Contains(".ResetScript {", StringComparison.Ordinal));
+        Assert.Contains("vertical-align:baseline", styleRule, StringComparison.Ordinal);
+        Assert.DoesNotContain("vertical-align:super", styleRule, StringComparison.Ordinal);
+        Assert.Contains("class=\"ResetScript\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

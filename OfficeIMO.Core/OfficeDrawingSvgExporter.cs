@@ -525,9 +525,14 @@ public static partial class OfficeDrawingSvgExporter {
             x += contentWidth;
         }
 
-        double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
-        double y = contentY + fontSize;
-        double lineHeight = text.LineHeight ?? fontSize * 1.2D;
+        double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        int priorBaselineLevel = text.BaselineLevel == 0
+            ? 0
+            : text.BaselineLevel - Math.Sign(text.BaselineLevel);
+        OfficeTextScriptGeometry priorScript = OfficeTextScriptGeometry.Resolve(sourceFontSize, priorBaselineLevel);
+        double fontSize = priorScript.RenderedFontSize;
+        double y = contentY + sourceFontSize + priorScript.BaselineOffset;
+        double lineHeight = text.LineHeight ?? sourceFontSize * 1.2D;
         if (text.TextAdvanceWidth.HasValue) {
             sb.AppendSvgPositionedTextElement(
                 text.Text,
@@ -578,10 +583,9 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, bool useFrameTransform = false) {
         double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
-        double fontSize = text.Baseline == OfficeTextBaseline.Normal ? sourceFontSize : sourceFontSize * 0.65D;
-        double baselineOffset = text.Baseline == OfficeTextBaseline.Superscript
-            ? -(sourceFontSize * 0.30D)
-            : text.Baseline == OfficeTextBaseline.Subscript ? sourceFontSize * 0.15D : 0D;
+        OfficeTextScriptGeometry script = OfficeTextScriptGeometry.Resolve(sourceFontSize, text.BaselineLevel);
+        double fontSize = script.RenderedFontSize;
+        double baselineOffset = script.BaselineOffset;
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, text.LineHeight.Value / fontSize)
             : 1.2D;

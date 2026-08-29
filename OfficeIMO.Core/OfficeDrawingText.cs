@@ -79,7 +79,11 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         : this(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, OfficeTextOverflowBehavior.Ellipsis, null, underlineStyle, strikethroughStyle, baseline) {
     }
 
-    internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline) {
+    internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline)
+        : this(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, DefaultBaselineLevel(baseline)) {
+    }
+
+    internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel) {
         if (text == null) {
             throw new ArgumentNullException(nameof(text));
         }
@@ -106,6 +110,12 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         }
         if (!Enum.IsDefined(typeof(OfficeTextBaseline), baseline)) {
             throw new ArgumentOutOfRangeException(nameof(baseline));
+        }
+        if (baselineLevel < -32 || baselineLevel > 32
+            || baseline == OfficeTextBaseline.Normal && baselineLevel != 0
+            || baseline == OfficeTextBaseline.Superscript && baselineLevel <= 0
+            || baseline == OfficeTextBaseline.Subscript && baselineLevel >= 0) {
+            throw new ArgumentOutOfRangeException(nameof(baselineLevel), "The cumulative baseline level must agree with the baseline direction and be between -32 and 32.");
         }
 
         Text = text;
@@ -137,6 +147,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
             ? strikethroughStyle
             : Font.IsStrikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
         Baseline = baseline;
+        BaselineLevel = baselineLevel;
         ValidateFinite(RotationCenterX, nameof(rotationCenterX));
         ValidateFinite(RotationCenterY, nameof(rotationCenterY));
         if (Padding.Horizontal >= Width || Padding.Vertical >= Height) {
@@ -222,6 +233,9 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>Resolved text baseline placement.</summary>
     public OfficeTextBaseline Baseline { get; }
 
+    /// <summary>Resolved cumulative superscript or subscript nesting level.</summary>
+    public int BaselineLevel { get; }
+
     /// <summary>Whether the text frame has non-zero padding.</summary>
     public bool HasPadding => !Padding.IsEmpty;
 
@@ -235,9 +249,15 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     public OfficeImageFrameTransform CreateFrameTransform() => new OfficeImageFrameTransform(RotationDegrees, RotationCenterX, RotationCenterY, FlipHorizontal, FlipVertical);
 
     /// <summary>Creates a detached copy of this positioned text box.</summary>
-    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline);
+    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel);
 
     internal override OfficeDrawingElement CloneElement() => Clone();
+
+    private static int DefaultBaselineLevel(OfficeTextBaseline baseline) => baseline switch {
+        OfficeTextBaseline.Superscript => 1,
+        OfficeTextBaseline.Subscript => -1,
+        _ => 0
+    };
 
     private static void ValidateFiniteNonNegative(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D) {

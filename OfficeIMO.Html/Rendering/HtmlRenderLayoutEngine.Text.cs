@@ -1440,7 +1440,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static OfficeFontInfo GetEffectiveTextFont(HtmlRenderBoxStyle style) =>
-        style.Baseline == OfficeTextBaseline.Normal
+        style.BaselineLevel == 0
             ? style.Font
-            : style.Font.WithSize(style.Font.Size * 0.65D);
+            : style.Font.WithSize(style.Font.Size * Math.Pow(0.65D, Math.Abs(style.BaselineLevel)));
 }

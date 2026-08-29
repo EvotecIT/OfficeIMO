@@ -72,14 +72,15 @@ namespace OfficeIMO.PowerPoint {
                 ?? ResolveValue(masterSources, static source => source.Baseline?.Value);
             int? fontSize = ResolveValue(directSources, static source => source.FontSize?.Value)
                 ?? ResolveValue(masterSources, static source => source.FontSize?.Value);
-            string? fontName = ResolveFontName(run, directSources)
-                ?? ResolveTableFontName(run, tableSources)
-                ?? ResolveFontName(run, masterSources);
+            string? language = ResolveString(directSources, static source => source.Language?.Value)
+                ?? ResolveString(masterSources, static source => source.Language?.Value);
+            PowerPointFontScript fontScript = ResolveFontScript(run.Text, language);
+            string? fontName = ResolveFontName(run, directSources, fontScript)
+                ?? ResolveTableFontName(run, tableSources, fontScript)
+                ?? ResolveFontName(run, masterSources, fontScript);
             string? color = ResolveColor(run, directSources)
                 ?? ResolveTableColor(run, tableSources)
                 ?? ResolveColor(run, masterSources);
-            string? language = ResolveString(directSources, static source => source.Language?.Value)
-                ?? ResolveString(masterSources, static source => source.Language?.Value);
 
             return new PowerPointEffectiveRunStyle(
                 bold,
@@ -121,8 +122,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static string? ResolveFontName(
             PowerPointTextRun run,
-            IReadOnlyList<A.TextCharacterPropertiesType> sources) {
-            string? typeface = sources.Select(source => source.GetFirstChild<A.LatinFont>()?.Typeface?.Value)
+            IReadOnlyList<A.TextCharacterPropertiesType> sources,
+            PowerPointFontScript script) {
+            string? typeface = sources.Select(source => ResolveTypeface(source, script))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
             if (string.IsNullOrWhiteSpace(typeface)) return null;
             string token = typeface!.Trim().ToLowerInvariant();
@@ -148,30 +150,83 @@ namespace OfficeIMO.PowerPoint {
 
         private static string? ResolveTableFontName(
             PowerPointTextRun run,
-            IEnumerable<A.TableCellTextStyle> sources) {
+            IEnumerable<A.TableCellTextStyle> sources,
+            PowerPointFontScript script) {
             foreach (A.TableCellTextStyle source in sources) {
-                string? typeface = source.GetFirstChild<A.Fonts>()?
-                    .GetFirstChild<A.LatinFont>()?.Typeface?.Value;
+                string? typeface = ResolveTypeface(source.GetFirstChild<A.Fonts>(), script);
                 if (!string.IsNullOrWhiteSpace(typeface)) return typeface;
                 A.FontReference? reference = source.GetFirstChild<A.FontReference>();
                 if (reference?.Index?.Value == A.FontCollectionIndexValues.Major) {
-                    return ResolveThemeFontName(run.OwnerPart, major: true);
+                    return ResolveThemeFontName(run.OwnerPart, major: true, script);
                 }
                 if (reference?.Index?.Value == A.FontCollectionIndexValues.Minor) {
-                    return ResolveThemeFontName(run.OwnerPart, major: false);
+                    return ResolveThemeFontName(run.OwnerPart, major: false, script);
                 }
             }
             return null;
         }
 
-        private static string? ResolveThemeFontName(OpenXmlPartContainer? ownerPart, bool major) {
+        private static string? ResolveThemeFontName(
+            OpenXmlPartContainer? ownerPart,
+            bool major,
+            PowerPointFontScript script) {
             foreach (A.FontScheme scheme in EnumerateFontSchemes(ownerPart)) {
-                string? typeface = major
-                    ? scheme.MajorFont?.LatinFont?.Typeface?.Value
-                    : scheme.MinorFont?.LatinFont?.Typeface?.Value;
+                A.FontCollectionType? collection = major ? scheme.MajorFont : scheme.MinorFont;
+                string? typeface = ResolveTypeface(collection, script);
                 if (!string.IsNullOrWhiteSpace(typeface)) return typeface;
             }
             return PowerPointTextDefaults.LegacyFallbackFontFamily;
+        }
+
+        private static string? ResolveTypeface(OpenXmlCompositeElement? source, PowerPointFontScript script) {
+            if (source == null) return null;
+            string? preferred = script switch {
+                PowerPointFontScript.EastAsian => source.GetFirstChild<A.EastAsianFont>()?.Typeface?.Value,
+                PowerPointFontScript.ComplexScript => source.GetFirstChild<A.ComplexScriptFont>()?.Typeface?.Value,
+                _ => source.GetFirstChild<A.LatinFont>()?.Typeface?.Value
+            };
+            return !string.IsNullOrWhiteSpace(preferred)
+                ? preferred
+                : source.GetFirstChild<A.LatinFont>()?.Typeface?.Value
+                  ?? source.GetFirstChild<A.EastAsianFont>()?.Typeface?.Value
+                  ?? source.GetFirstChild<A.ComplexScriptFont>()?.Typeface?.Value;
+        }
+
+        private static PowerPointFontScript ResolveFontScript(string? text, string? language) {
+            if (!string.IsNullOrEmpty(text)) {
+                for (int index = 0; index < text!.Length; index++) {
+                    int scalar = text[index];
+                    if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+                        scalar = char.ConvertToUtf32(text[index], text[++index]);
+                    }
+                    if (IsEastAsianScalar(scalar)) return PowerPointFontScript.EastAsian;
+                }
+                if (OfficeTextElements.ContainsRightToLeft(text)
+                    || OfficeTextElements.ContainsShapingRequiredScript(text)) {
+                    return PowerPointFontScript.ComplexScript;
+                }
+            }
+
+            string primaryLanguage = (language ?? string.Empty).Split('-')[0].Trim().ToLowerInvariant();
+            if (primaryLanguage is "zh" or "ja" or "ko") return PowerPointFontScript.EastAsian;
+            if (primaryLanguage is "ar" or "he" or "fa" or "ur" or "ps" or "dv" or "syr" or "yi"
+                or "hi" or "bn" or "pa" or "gu" or "or" or "ta" or "te" or "kn" or "ml" or "si"
+                or "th" or "lo" or "my" or "km") return PowerPointFontScript.ComplexScript;
+            return PowerPointFontScript.Latin;
+        }
+
+        private static bool IsEastAsianScalar(int scalar) =>
+            scalar is >= 0x2E80 and <= 0xA4CF
+            || scalar is >= 0xAC00 and <= 0xD7AF
+            || scalar is >= 0xF900 and <= 0xFAFF
+            || scalar is >= 0xFE30 and <= 0xFE4F
+            || scalar is >= 0xFF00 and <= 0xFFEF
+            || scalar is >= 0x20000 and <= 0x323AF;
+
+        private enum PowerPointFontScript {
+            Latin,
+            EastAsian,
+            ComplexScript
         }
 
         private static IEnumerable<A.FontScheme> EnumerateFontSchemes(OpenXmlPartContainer? ownerPart) {
