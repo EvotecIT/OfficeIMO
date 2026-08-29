@@ -116,7 +116,11 @@ internal static partial class DocBookReaderAdapter {
             }
             int currentSource = sourceIndex++;
             bool preformatted = IsPreformatted(node.Kind);
-            if (!preformatted && TryBuildInlineFragments(node, out IReadOnlyList<InlineFragment> inlineFragments)) {
+            bool ownsInlineText = OwnsInlineText(node);
+            OfficeDocumentModelNode? inlineProjectionNode = ownsInlineText ? node : GetStructuralTitle(node);
+            bool emittedInlineProjection = false;
+            if (!preformatted && inlineProjectionNode != null &&
+                TryBuildInlineFragments(inlineProjectionNode, out IReadOnlyList<InlineFragment> inlineFragments)) {
                 int inlinePart = 0;
                 foreach (InlineFragment fragment in inlineFragments) {
                     IReadOnlyList<string> fragmentParts = fragment.Text.Length == 0
@@ -124,6 +128,9 @@ internal static partial class DocBookReaderAdapter {
                         : DocumentReaderEngine.SplitAdapterProjection(fragment.Text, reader.MaxChars);
                     foreach (string fragmentPart in fragmentParts) {
                         string markdown = fragment.ToMarkdown(fragmentPart);
+                        if (inlinePart == 0 && (node.Kind == "section" || node.Kind == "title")) {
+                            markdown = new string('#', Math.Min(node.Level ?? 1, 6)) + " " + markdown;
+                        }
                         if (inlinePart == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
                         yield return new ReaderChunk {
                             Id = inlinePart == 0 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (inlinePart + 1),
@@ -141,9 +148,10 @@ internal static partial class DocBookReaderAdapter {
                         inlinePart++;
                     }
                 }
-                yield break;
+                emittedInlineProjection = true;
+                if (ownsInlineText) yield break;
             }
-            if (!string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
+            if (!emittedInlineProjection && !string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
                 IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
                 string codeFence = preformatted ? CreateCodeFence(node.Text) : string.Empty;
                 for (int part = 0; part < parts.Count; part++) {
@@ -170,13 +178,6 @@ internal static partial class DocBookReaderAdapter {
                     };
                 }
             }
-            bool ownsInlineText = node.Kind == "paragraph" || node.Kind == "code" || node.Kind == "screen" ||
-                node.Kind == "title" || node.Kind == "subtitle" || node.Kind == "author" ||
-                node.Kind == "link" || node.Kind == "table-cell" || node.Kind == "caption" ||
-                (node.Kind.StartsWith("extension:", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(node.Text)) ||
-                (!string.IsNullOrWhiteSpace(node.Text) && node.Children.Count > 0 &&
-                 node.Children.All(child => child.Kind == "text") &&
-                 string.Equals(string.Concat(node.Children.Select(child => child.Text)), node.Text, StringComparison.Ordinal));
             if (!ownsInlineText) {
                 foreach (OfficeDocumentModelNode child in node.Children) {
                     if ((node.Kind == "section" || node.Kind == "table" || node.Kind == "figure") && child.Kind == "title") continue;
@@ -190,6 +191,20 @@ internal static partial class DocBookReaderAdapter {
         kind == "note" || kind == "tip" || kind == "important" || kind == "caution" || kind == "warning";
 
     private static bool IsPreformatted(string kind) => kind == "code" || kind == "screen";
+
+    private static bool OwnsInlineText(OfficeDocumentModelNode node) =>
+        node.Kind == "paragraph" || node.Kind == "code" || node.Kind == "screen" ||
+        node.Kind == "title" || node.Kind == "subtitle" || node.Kind == "author" ||
+        node.Kind == "link" || node.Kind == "cross-reference" || node.Kind == "table-cell" || node.Kind == "caption" ||
+        (node.Kind.StartsWith("extension:", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(node.Text)) ||
+        (!string.IsNullOrWhiteSpace(node.Text) && node.Children.Count > 0 &&
+         node.Children.All(child => child.Kind == "text") &&
+         string.Equals(string.Concat(node.Children.Select(child => child.Text)), node.Text, StringComparison.Ordinal));
+
+    private static OfficeDocumentModelNode? GetStructuralTitle(OfficeDocumentModelNode node) =>
+        node.Kind == "section" || node.Kind == "table" || node.Kind == "figure"
+            ? node.Children.FirstOrDefault(child => child.Kind == "title")
+            : null;
 
     private static string CreateCodeFence(string text) {
         int backticks = LongestRun(text, '`');

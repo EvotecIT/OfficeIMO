@@ -554,6 +554,8 @@ public sealed partial class DocBookDocument {
         if (model == null) throw new ArgumentNullException(nameof(model));
         options ??= new DocBookConversionOptions();
         options.Validate();
+        IReadOnlyList<OfficeDocumentModelNode> structureNodes = OfficeDocumentModelStructureTraversal.ValidateAndFlatten(
+            model.Structure, options.MaxStructureDepth, options.MaxStructureNodes);
         var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceKind = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "kind")?.Value;
         string? sourceProfile = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "profile")?.Value;
@@ -721,7 +723,6 @@ public sealed partial class DocBookDocument {
             bool hasTitle = model.Structure.Any(ContainsDocumentTitle);
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
             if (!hasTitle) document.Title = model.Source.Title;
-            OfficeDocumentModelNode[] structureNodes = EnumerateModelNodes(model.Structure).ToArray();
             var consumedTableNodes = new HashSet<OfficeDocumentModelNode>();
             foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
                 document.AddParagraph(block.Text);

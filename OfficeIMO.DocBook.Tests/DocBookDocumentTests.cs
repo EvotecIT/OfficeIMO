@@ -1054,4 +1054,24 @@ public sealed class DocBookDocumentTests {
         Assert.DoesNotContain(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB014");
         Assert.DoesNotContain(document.ToOfficeDocumentModel().Diagnostics, diagnostic => diagnostic.Code == "DB115");
     }
+
+    [Fact]
+    public void SharedReverseConversionRejectsCyclesAndConfiguredStructureLimits() {
+        var cyclic = new OfficeDocumentModelNode { Kind = "section", Text = "Cycle" };
+        cyclic.Children = new[] { cyclic };
+        var cyclicModel = new OfficeDocumentModel { Format = OfficeDocumentFormat.DocBook, Structure = new[] { cyclic } };
+        Assert.Throws<InvalidDataException>(() => DocBookDocument.FromOfficeDocumentModel(cyclicModel));
+
+        var root = new OfficeDocumentModelNode { Kind = "section", Text = "Root" };
+        var child = new OfficeDocumentModelNode { Kind = "section", Text = "Child" };
+        var grandchild = new OfficeDocumentModelNode { Kind = "paragraph", Text = "Grandchild" };
+        root.Children = new[] { child };
+        child.Children = new[] { grandchild };
+        var deepModel = new OfficeDocumentModel { Format = OfficeDocumentFormat.DocBook, Structure = new[] { root } };
+
+        Assert.Throws<InvalidDataException>(() => DocBookDocument.FromOfficeDocumentModel(
+            deepModel, options: new DocBookConversionOptions { MaxStructureDepth = 2 }));
+        Assert.Throws<InvalidDataException>(() => DocBookDocument.FromOfficeDocumentModel(
+            deepModel, options: new DocBookConversionOptions { MaxStructureNodes = 2 }));
+    }
 }

@@ -753,6 +753,12 @@ internal static partial class DocumentReaderEngine {
         if (StartsWith(bytes, new byte[] { 0x00, 0x00, 0xFE, 0xFF })) return new UTF32Encoding(true, true).GetString(bytes);
         if (StartsWith(bytes, new byte[] { 0xFF, 0xFE })) return Encoding.Unicode.GetString(bytes);
         if (StartsWith(bytes, new byte[] { 0xFE, 0xFF })) return Encoding.BigEndianUnicode.GetString(bytes);
+        if (StartsWith(bytes, new byte[] { 0x3C, 0x00, 0x00, 0x00 })) return new UTF32Encoding(false, false).GetString(bytes);
+        if (StartsWith(bytes, new byte[] { 0x00, 0x00, 0x00, 0x3C })) return new UTF32Encoding(true, false).GetString(bytes);
+        if (bytes.Length >= 4 && bytes[0] == 0x3C && bytes[1] == 0x00 && bytes[3] == 0x00)
+            return Encoding.Unicode.GetString(bytes);
+        if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x3C && bytes[2] == 0x00)
+            return Encoding.BigEndianUnicode.GetString(bytes);
 
         int zeroCount = 0;
         int controlCount = 0;

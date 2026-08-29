@@ -108,12 +108,19 @@ public sealed partial class OpmlDocument {
     }
 
     /// <summary>Validates the supported OPML profile without discarding extension content.</summary>
-    public OpmlValidationResult Validate() => Validate(null);
+    public OpmlValidationResult Validate() => Validate(null, default);
+
+    /// <summary>Validates the supported OPML profile while observing cancellation during semantic walks.</summary>
+    public OpmlValidationResult Validate(CancellationToken cancellationToken) => Validate(null, cancellationToken);
 
     /// <summary>Validates the supported OPML profile with a bounded diagnostic budget.</summary>
-    public OpmlValidationResult Validate(OpmlValidationOptions? options) {
+    public OpmlValidationResult Validate(OpmlValidationOptions? options) => Validate(options, default);
+
+    /// <summary>Validates the supported OPML profile with a bounded diagnostic budget and cancellation.</summary>
+    public OpmlValidationResult Validate(OpmlValidationOptions? options, CancellationToken cancellationToken) {
         options ??= new OpmlValidationOptions();
         options.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         XElement? root = _xml.Root;
         string declaredVersion = (string?)root?.Attribute("version") ?? string.Empty;
@@ -123,13 +130,20 @@ public sealed partial class OpmlDocument {
                 "The document root must be opml in no namespace.", "/"));
         }
 
-        XElement[] headElements = root?.Elements("head").ToArray() ?? Array.Empty<XElement>();
-        XElement[] bodyElements = root?.Elements("body").ToArray() ?? Array.Empty<XElement>();
+        var rootChildrenList = new List<XElement>();
+        if (root != null) {
+            foreach (XElement child in root.Elements()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                rootChildrenList.Add(child);
+            }
+        }
+        XElement[] rootChildren = rootChildrenList.ToArray();
+        XElement[] headElements = rootChildren.Where(element => element.Name == "head").ToArray();
+        XElement[] bodyElements = rootChildren.Where(element => element.Name == "body").ToArray();
         if (headElements.Length != 1 || bodyElements.Length != 1) {
             diagnostics.Add(new OpmlDiagnostic("OPML004", OpmlDiagnosticSeverity.Error,
                 "An OPML document requires exactly one head and one body element.", "/opml"));
         } else {
-            XElement[] rootChildren = root!.Elements().ToArray();
             if (Array.IndexOf(rootChildren, headElements[0]) > Array.IndexOf(rootChildren, bodyElements[0])) {
                 diagnostics.Add(new OpmlDiagnostic("OPML005", OpmlDiagnosticSeverity.Error,
                     "The OPML head element must precede the body element.", "/opml"));
@@ -149,6 +163,7 @@ public sealed partial class OpmlDocument {
             ? bodyElements[0].Descendants("outline").Select(element => new OpmlOutline(this, element))
             : Enumerable.Empty<OpmlOutline>();
         foreach (OpmlOutline outline in outlines) {
+            cancellationToken.ThrowIfCancellationRequested();
             string path = $"/opml/body//outline[{++index}]";
             if (outline.Element.Attribute("text") == null) {
                 diagnostics.Add(new OpmlDiagnostic("OPML010", OpmlDiagnosticSeverity.Error,

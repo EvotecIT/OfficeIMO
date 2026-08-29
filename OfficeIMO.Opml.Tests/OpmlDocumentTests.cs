@@ -397,4 +397,35 @@ public sealed class OpmlDocumentTests {
         Assert.Equal("Owner", metadataResult.Value.Head.OwnerName);
         Assert.DoesNotContain(metadataResult.Diagnostics, diagnostic => diagnostic.Code == "OPML101");
     }
+
+    [Fact]
+    public void SemanticWalksObserveCancellation() {
+        OpmlDocument document = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Root\"><outline text=\"Child\"/></outline></body></opml>");
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => document.Validate(null, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => document.ToOfficeDocumentModel(null, null, cancellation.Token));
+    }
+
+    [Fact]
+    public void SharedReverseConversionRejectsCyclesAndConfiguredStructureLimits() {
+        var cyclic = new OfficeDocumentModelNode { Kind = "outline", Text = "Cycle" };
+        cyclic.Children = new[] { cyclic };
+        var cyclicModel = new OfficeDocumentModel { Format = OfficeDocumentFormat.Opml, Structure = new[] { cyclic } };
+        Assert.Throws<InvalidDataException>(() => OpmlDocument.FromOfficeDocumentModel(cyclicModel));
+
+        var root = new OfficeDocumentModelNode { Kind = "outline", Text = "Root" };
+        var child = new OfficeDocumentModelNode { Kind = "outline", Text = "Child" };
+        var grandchild = new OfficeDocumentModelNode { Kind = "outline", Text = "Grandchild" };
+        root.Children = new[] { child };
+        child.Children = new[] { grandchild };
+        var deepModel = new OfficeDocumentModel { Format = OfficeDocumentFormat.Opml, Structure = new[] { root } };
+
+        Assert.Throws<InvalidDataException>(() => OpmlDocument.FromOfficeDocumentModel(
+            deepModel, null, new OpmlConversionOptions { MaxStructureDepth = 2 }));
+        Assert.Throws<InvalidDataException>(() => OpmlDocument.FromOfficeDocumentModel(
+            deepModel, null, new OpmlConversionOptions { MaxStructureNodes = 2 }));
+    }
 }

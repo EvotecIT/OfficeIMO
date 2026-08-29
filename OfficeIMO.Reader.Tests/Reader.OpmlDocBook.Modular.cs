@@ -135,6 +135,20 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterScopesInlineProjectionToTheStructuralTitle() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><section><title>See <link xl:href=\"https://example.test\">site</link></title><para>Body</para></section></article>";
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
+        string markdown = result.Markdown.Replace("\r\n", "\n");
+
+        Assert.Contains("# See [site](https://example.test)", markdown, StringComparison.Ordinal);
+        Assert.Contains("\n\nBody", markdown, StringComparison.Ordinal);
+        Assert.Contains(result.Chunks, chunk => chunk.Text == "Body" && chunk.Location.SourceBlockKind == "paragraph");
+        Assert.DoesNotContain(result.Chunks, chunk => chunk.Text.IndexOf("Body", StringComparison.Ordinal) >= 0 && chunk.Text != "Body");
+    }
+
+    [Fact]
     public void DocBookAdapterUsesAFenceThatCannotBeClosedByListingContent() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><programlisting>before\n```\n# still code\nafter</programlisting></article>";
 
@@ -385,6 +399,26 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.Equal(ReaderInputKind.Opml, reader.Detect(opml, "renamed.bin", options).Kind);
         Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook, "renamed.bin", options).Kind);
+    }
+
+    [Fact]
+    public void ContentDetectionRecognizesBomlessUtf16AndUtf32XmlByteOrders() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+        Encoding[] encodings = {
+            new UnicodeEncoding(false, false),
+            new UnicodeEncoding(true, false),
+            new UTF32Encoding(false, false),
+            new UTF32Encoding(true, false)
+        };
+
+        foreach (Encoding encoding in encodings) {
+            byte[] opml = encoding.GetBytes("<opml version=\"2.0\"><head/><body><outline text=\"A\"/></body></opml>");
+            byte[] docBook = encoding.GetBytes("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>P</para></article>");
+            var options = new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent };
+
+            Assert.Equal(ReaderInputKind.Opml, reader.Detect(opml, "renamed.bin", options).Kind);
+            Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook, "renamed.bin", options).Kind);
+        }
     }
 
     [Fact]

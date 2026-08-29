@@ -1,4 +1,5 @@
 using OfficeIMO.Core;
+using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -58,10 +59,17 @@ public sealed class OpmlValidationOptions {
 
 /// <summary>Controls bounded OPML shared-model conversion diagnostics.</summary>
 public sealed class OpmlConversionOptions {
+    /// <summary>Maximum shared-model structure depth accepted by reverse conversion. Defaults to 128 and cannot exceed 256.</summary>
+    public int MaxStructureDepth { get; set; } = 128;
+    /// <summary>Maximum shared-model structure nodes accepted by reverse conversion. Defaults to 100,000.</summary>
+    public int MaxStructureNodes { get; set; } = 100_000;
     /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
     public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
 
     internal void Validate() {
+        if (MaxStructureDepth < 1 || MaxStructureDepth > OfficeDocumentModelStructureTraversal.MaximumSupportedDepth)
+            throw new ArgumentOutOfRangeException(nameof(MaxStructureDepth));
+        if (MaxStructureNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxStructureNodes));
         if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
     }
 }

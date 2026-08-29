@@ -7,13 +7,6 @@ using System.Linq;
 namespace OfficeIMO.DocBook;
 
 public sealed partial class DocBookDocument {
-    private static IEnumerable<OfficeDocumentModelNode> EnumerateModelNodes(IEnumerable<OfficeDocumentModelNode> roots) {
-        foreach (OfficeDocumentModelNode node in roots) {
-            yield return node;
-            foreach (OfficeDocumentModelNode child in EnumerateModelNodes(node.Children)) yield return child;
-        }
-    }
-
     private static bool IsDerivedBlock(OfficeDocumentModelBlock block, IEnumerable<OfficeDocumentModelNode> nodes) =>
         !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
             string.Equals(node.Id, block.Id, StringComparison.Ordinal) &&

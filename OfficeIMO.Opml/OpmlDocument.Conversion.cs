@@ -3,6 +3,7 @@ using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Opml;
@@ -10,23 +11,34 @@ namespace OfficeIMO.Opml;
 public sealed partial class OpmlDocument {
     /// <summary>Converts this document to the shared recursive document model.</summary>
     public OpmlConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(string? sourcePath = null) =>
-        ToOfficeDocumentModel(sourcePath, null);
+        ToOfficeDocumentModel(sourcePath, null, default);
 
     /// <summary>Converts this document to the shared recursive document model with a source path and bounded diagnostic budget.</summary>
     public OpmlConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(
         string? sourcePath,
-        OpmlConversionOptions? options) {
+        OpmlConversionOptions? options) => ToOfficeDocumentModel(sourcePath, options, default);
+
+    /// <summary>Converts this document to the shared recursive document model with bounded diagnostics and cancellation.</summary>
+    public OpmlConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(
+        string? sourcePath,
+        OpmlConversionOptions? options,
+        CancellationToken cancellationToken) {
         options ??= new OpmlConversionOptions();
         options.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         var blocks = new List<OfficeDocumentModelBlock>();
         var links = new List<OfficeDocumentModelLink>();
         int blockIndex = 0;
 
         OfficeDocumentModelNode Convert(OpmlOutline outline, int level, string parentPath) {
+            cancellationToken.ThrowIfCancellationRequested();
             string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " / ");
-            var attributes = outline.Attributes.ToDictionary(
-                pair => pair.Key.ToString(), pair => pair.Value, StringComparer.Ordinal);
+            var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (XAttribute attribute in outline.Element.Attributes()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                attributes.Add(attribute.Name.ToString(), attribute.Value);
+            }
             int nodeIndex = blockIndex++;
             blocks.Add(new OfficeDocumentModelBlock {
                 Id = "outline-" + nodeIndex,
@@ -38,9 +50,14 @@ public sealed partial class OpmlDocument {
             AddLink(outline.Url, "url");
             AddLink(outline.XmlUrl, "subscription");
             AddLink(outline.HtmlUrl, "html");
-            if (outline.Element.Elements().Any(element => element.Name != "outline")) {
+            if (HasExtensionElement(outline.Element)) {
                 diagnostics.Add(new OpmlDiagnostic("OPML200", OpmlDiagnosticSeverity.Warning,
                     "An outline extension element remains in native OPML but is not represented by the shared outline model.", headingPath));
+            }
+            var children = new List<OfficeDocumentModelNode>();
+            foreach (XElement child in outline.Element.Elements("outline")) {
+                cancellationToken.ThrowIfCancellationRequested();
+                children.Add(Convert(new OpmlOutline(this, child), level + 1, headingPath));
             }
             return new OfficeDocumentModelNode {
                 Id = "outline-" + nodeIndex,
@@ -48,7 +65,7 @@ public sealed partial class OpmlDocument {
                 Text = outline.Text,
                 Level = level,
                 Attributes = attributes,
-                Children = outline.Children.Select(child => Convert(child, level + 1, headingPath)).ToArray(),
+                Children = children,
                 Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = headingPath }
             };
 
@@ -64,12 +81,29 @@ public sealed partial class OpmlDocument {
             }
         }
 
+        bool HasExtensionElement(XElement outlineElement) {
+            foreach (XElement element in outlineElement.Elements()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (element.Name != "outline") return true;
+            }
+            return false;
+        }
+
+        IReadOnlyList<OfficeDocumentModelNode> ConvertRoots() {
+            var roots = new List<OfficeDocumentModelNode>();
+            foreach (XElement outline in BodyElement.Elements("outline")) {
+                cancellationToken.ThrowIfCancellationRequested();
+                roots.Add(Convert(new OpmlOutline(this, outline), 1, string.Empty));
+            }
+            return roots;
+        }
+
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.Opml,
             Source = new OfficeDocumentModelSource { Path = sourcePath, Title = Head.Title, Author = Head.OwnerName },
             CapabilitiesUsed = new[] { "opml.outlines", "opml.attributes", "opml.nesting" },
-            Metadata = BuildMetadata(diagnostics),
-            Structure = Outlines.Select(outline => Convert(outline, 1, string.Empty)).ToArray(),
+            Metadata = BuildMetadata(diagnostics, cancellationToken),
+            Structure = ConvertRoots(),
             Blocks = blocks,
             Links = links
         };
@@ -89,6 +123,8 @@ public sealed partial class OpmlDocument {
         if (model == null) throw new ArgumentNullException(nameof(model));
         options ??= new OpmlConversionOptions();
         options.Validate();
+        IReadOnlyList<OfficeDocumentModelNode> structureNodes = OfficeDocumentModelStructureTraversal.ValidateAndFlatten(
+            model.Structure, options.MaxStructureDepth, options.MaxStructureNodes);
         var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceVersion = model.Metadata.FirstOrDefault(entry => entry.Category == "opml" && entry.Name == "version")?.Value;
         bool sourceVersionIsSupported = sourceVersion == null || sourceVersion == "1.0" || sourceVersion == "1.1" || sourceVersion == "2.0";
@@ -226,7 +262,6 @@ public sealed partial class OpmlDocument {
 
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);
-            OfficeDocumentModelNode[] structureNodes = EnumerateNodes(model.Structure).ToArray();
             foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
                 document.AddOutline(block.Text);
                 diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
@@ -249,13 +284,6 @@ public sealed partial class OpmlDocument {
             foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
         }
         return new OpmlConversionResult<OpmlDocument>(document, diagnostics.ToArray());
-
-        static IEnumerable<OfficeDocumentModelNode> EnumerateNodes(IEnumerable<OfficeDocumentModelNode> roots) {
-            foreach (OfficeDocumentModelNode node in roots) {
-                yield return node;
-                foreach (OfficeDocumentModelNode child in EnumerateNodes(node.Children)) yield return child;
-            }
-        }
 
         static bool IsDerivedBlock(OfficeDocumentModelBlock block, IEnumerable<OfficeDocumentModelNode> nodes) =>
             !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
@@ -284,7 +312,9 @@ public sealed partial class OpmlDocument {
         }
     }
 
-    private IReadOnlyList<OfficeDocumentModelMetadataEntry> BuildMetadata(OpmlDiagnosticCollector diagnostics) {
+    private IReadOnlyList<OfficeDocumentModelMetadataEntry> BuildMetadata(
+        OpmlDiagnosticCollector diagnostics,
+        CancellationToken cancellationToken) {
         var values = new List<OfficeDocumentModelMetadataEntry> {
             new OfficeDocumentModelMetadataEntry {
                 Id = "opml-version", Category = "opml", Name = "version", Value = DeclaredVersion, ValueType = "string"
@@ -292,9 +322,15 @@ public sealed partial class OpmlDocument {
         };
         int index = 0;
         foreach (XElement element in HeadElement.Elements()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (element.HasElements) {
                 diagnostics.Add(new OpmlDiagnostic("OPML201", OpmlDiagnosticSeverity.Warning,
                     $"Head extension element '{element.Name}' contains nested XML that is not represented by shared metadata.", "/opml/head"));
+            }
+            var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (XAttribute attribute in element.Attributes()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                attributes.Add(attribute.Name.ToString(), attribute.Value);
             }
             values.Add(new OfficeDocumentModelMetadataEntry {
                 Id = "opml-head-" + index++,
@@ -302,46 +338,84 @@ public sealed partial class OpmlDocument {
                 Name = element.Name.ToString(),
                 Value = element.Value,
                 ValueType = "string",
-                Attributes = element.Attributes().ToDictionary(attribute => attribute.Name.ToString(), attribute => attribute.Value, StringComparer.Ordinal)
+                Attributes = attributes
             });
         }
-        if (Root.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration && attribute.Name != "version")) {
+        if (AnyWithCancellation(Root.Attributes(), attribute => !attribute.IsNamespaceDeclaration && attribute.Name != "version")) {
             diagnostics.Add(new OpmlDiagnostic("OPML202", OpmlDiagnosticSeverity.Warning,
                 "OPML root extension attributes remain native but are not represented by the shared document model.", "/opml"));
         }
-        if (HeadElement.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration)) {
+        if (AnyWithCancellation(HeadElement.Attributes(), attribute => !attribute.IsNamespaceDeclaration)) {
             diagnostics.Add(new OpmlDiagnostic("OPML208", OpmlDiagnosticSeverity.Warning,
                 "OPML head extension attributes remain native but are not represented by shared metadata.", "/opml/head"));
         }
-        if (BodyElement.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration)) {
+        if (AnyWithCancellation(BodyElement.Attributes(), attribute => !attribute.IsNamespaceDeclaration)) {
             diagnostics.Add(new OpmlDiagnostic("OPML209", OpmlDiagnosticSeverity.Warning,
                 "OPML body extension attributes remain native but are not represented by the shared outline model.", "/opml/body"));
         }
-        if (BodyElement.Elements().Any(element => element.Name != "outline")) {
+        if (AnyWithCancellation(BodyElement.Elements(), element => element.Name != "outline")) {
             diagnostics.Add(new OpmlDiagnostic("OPML203", OpmlDiagnosticSeverity.Warning,
                 "OPML body extension elements remain native but are not represented by the shared outline model.", "/opml/body"));
         }
-        if (Root.Elements().Any(element => element.Name != "head" && element.Name != "body")) {
+        if (AnyWithCancellation(Root.Elements(), element => element.Name != "head" && element.Name != "body")) {
             diagnostics.Add(new OpmlDiagnostic("OPML205", OpmlDiagnosticSeverity.Warning,
                 "OPML root extension elements remain native but are not represented by the shared document model.", "/opml"));
         }
-        bool hasUnrepresentedText = Root.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)) ||
-            HeadElement.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)) ||
-            BodyElement.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)) ||
-            BodyElement.Descendants("outline").SelectMany(element => element.Nodes().OfType<XText>())
-                .Any(text => !string.IsNullOrWhiteSpace(text.Value));
+        bool hasUnrepresentedText = HasSignificantText(Root.Nodes().OfType<XText>()) ||
+            HasSignificantText(HeadElement.Nodes().OfType<XText>()) ||
+            HasSignificantText(BodyElement.Nodes().OfType<XText>()) || HasSignificantOutlineText();
         if (hasUnrepresentedText) {
             diagnostics.Add(new OpmlDiagnostic("OPML206", OpmlDiagnosticSeverity.Warning,
                 "Significant element text remains native but is not represented by the shared outline model."));
         }
-        if (BodyElement.Descendants("outline").Any(outline => outline.Elements().Any(element => element.Name != "outline"))) {
+        if (HasOutlineExtensionElements()) {
             diagnostics.Add(new OpmlDiagnostic("OPML207", OpmlDiagnosticSeverity.Warning,
                 "Outline extension elements remain native but are not represented by the shared outline model.", "/opml/body"));
         }
-        if (_xml.DescendantNodes().Any(node => node is XComment || node is XProcessingInstruction)) {
+        if (HasUnrepresentedMarkup()) {
             diagnostics.Add(new OpmlDiagnostic("OPML204", OpmlDiagnosticSeverity.Warning,
                 "Comments and processing instructions remain native but are not represented by the shared document model."));
         }
         return values;
+
+        bool HasSignificantText(IEnumerable<XText> nodes) {
+            foreach (XText text in nodes) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!string.IsNullOrWhiteSpace(text.Value)) return true;
+            }
+            return false;
+        }
+
+        bool HasSignificantOutlineText() {
+            foreach (XElement outline in BodyElement.Descendants("outline")) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (HasSignificantText(outline.Nodes().OfType<XText>())) return true;
+            }
+            return false;
+        }
+
+        bool HasOutlineExtensionElements() {
+            foreach (XElement outline in BodyElement.Descendants("outline")) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (AnyWithCancellation(outline.Elements(), element => element.Name != "outline")) return true;
+            }
+            return false;
+        }
+
+        bool AnyWithCancellation<T>(IEnumerable<T> items, Func<T, bool> predicate) {
+            foreach (T item in items) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (predicate(item)) return true;
+            }
+            return false;
+        }
+
+        bool HasUnrepresentedMarkup() {
+            foreach (XNode node in _xml.DescendantNodes()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (node is XComment || node is XProcessingInstruction) return true;
+            }
+            return false;
+        }
     }
 }

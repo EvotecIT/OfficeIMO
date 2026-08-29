@@ -21,6 +21,8 @@ internal static class ReaderDocBookOptionsCloner {
             MaxInputBytes = read.MaxInputBytes, MaxCharacters = read.MaxCharacters, MaxDepth = read.MaxDepth,
             MaxElements = read.MaxElements, MaxAttributes = read.MaxAttributes, MaxCharactersFromEntities = read.MaxCharactersFromEntities
         }, ConversionOptions = new DocBookConversionOptions {
+            MaxStructureDepth = conversion.MaxStructureDepth,
+            MaxStructureNodes = conversion.MaxStructureNodes,
             MaxTotalTextCharacters = conversion.MaxTotalTextCharacters,
             MaxTableColumns = conversion.MaxTableColumns,
             MaxTableRows = conversion.MaxTableRows,
