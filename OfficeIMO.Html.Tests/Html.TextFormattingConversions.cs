@@ -808,7 +808,7 @@ public class HtmlTextFormattingConversionTests {
         AssertFontSize("Percent", 22.5D);
         AssertFontSize("Em", 22.5D);
         AssertFontSize("Rem", 24D);
-        AssertFontSize("Small", 13.35D);
+        AssertFontSize("Small", 10.68D);
     }
 
     [Fact]

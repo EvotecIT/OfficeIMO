@@ -94,6 +94,24 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     }
 
     [Fact]
+    public void ExcelHtml_RoundTripsQuotedFontFamiliesContainingSemicolons() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        workbook.AddWorksheet("Fonts").CellAt(1, 1).SetRichText(
+            new ExcelRichTextRun("Styled") { FontName = "A;B", Bold = true });
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        using ExcelDocument imported = result.RequireValue();
+        ExcelRichTextRun run = Assert.Single(Assert.Single(imported.Sheets).CellAt(1, 1).GetRichText());
+
+        Assert.Contains("A;B", html, StringComparison.Ordinal);
+        Assert.Equal("A;B", run.FontName);
+        Assert.True(run.Bold);
+    }
+
+    [Fact]
     public void ExcelHtml_TruncationClipsMergedRangeToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("Clipped");

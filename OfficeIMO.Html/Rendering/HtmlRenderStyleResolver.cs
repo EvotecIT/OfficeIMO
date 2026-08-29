@@ -81,7 +81,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.ContainerUnitHeight ?? viewportHeight;
         double parentFontSize = parent?.Font.Size ?? _options.DefaultFontSize;
         string fontSizeValue = computed.GetValue("font-size");
-        double fontSize = string.IsNullOrWhiteSpace(fontSizeValue)
+        double fontSize = computed.IsInheritedValue("font-size")
+            ? parentFontSize
+            : string.IsNullOrWhiteSpace(fontSizeValue)
             ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
             : ResolveFontSize(fontSizeValue, parentFontSize);
         OfficeFontStyle fontStyle = ResolveFontStyle(pseudoElement ? string.Empty : tag, computed);
@@ -505,16 +507,9 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveFontSize(string value, double parentFontSize) {
         if (string.IsNullOrWhiteSpace(value)) return parentFontSize;
         string normalized = value.Trim().ToLowerInvariant();
-        switch (normalized) {
-            case "xx-small": return parentFontSize * 0.6D;
-            case "x-small": return parentFontSize * 0.75D;
-            case "small": return parentFontSize * 0.89D;
-            case "medium": return _options.DefaultFontSize;
-            case "large": return parentFontSize * 1.2D;
-            case "x-large": return parentFontSize * 1.5D;
-            case "xx-large": return parentFontSize * 2D;
-            case "smaller": return parentFontSize * 0.8D;
-            case "larger": return parentFontSize * 1.2D;
+        if (HtmlRenderCssValues.TryResolveFontSizeKeyword(
+                normalized, parentFontSize, _options.DefaultFontSize, out double keywordSize)) {
+            return keywordSize;
         }
 
         return TryResolveLength(normalized, parentFontSize, parentFontSize, _options.DefaultFontSize, out double size) &&

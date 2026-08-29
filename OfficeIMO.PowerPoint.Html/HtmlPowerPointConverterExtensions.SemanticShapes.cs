@@ -325,15 +325,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static IReadOnlyDictionary<string, string> ParseTargetInlineStyle(string? value) {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string declaration in (value ?? string.Empty).Split(';')) {
-            int separator = declaration.IndexOf(':');
-            if (separator <= 0) continue;
-            string name = declaration.Substring(0, separator).Trim();
-            string content = declaration.Substring(separator + 1).Trim();
-            if (name.Length > 0 && content.Length > 0) result[name] = content;
-        }
-        return result;
+        return HtmlRenderCssValues.ParseInlineStyleDeclarations(value);
     }
 
     private static bool TryGetTargetCss(IReadOnlyDictionary<string, string> css, string name, out string value) =>
@@ -451,7 +443,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             target.FontSizePoints = Math.Max(1D, pixels * 0.75D);
         }
         if (!string.IsNullOrWhiteSpace(source.Hyperlink)
-            && Uri.TryCreate(source.Hyperlink, UriKind.Absolute, out Uri? hyperlink)) {
+            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? hyperlink)) {
             target.Hyperlink = hyperlink;
         }
     }

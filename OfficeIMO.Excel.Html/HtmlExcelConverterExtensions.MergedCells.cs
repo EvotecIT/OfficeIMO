@@ -308,15 +308,7 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static IReadOnlyDictionary<string, string> ParseInlineStyle(string? value) {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string declaration in (value ?? string.Empty).Split(';')) {
-            int separator = declaration.IndexOf(':');
-            if (separator <= 0) continue;
-            string name = declaration.Substring(0, separator).Trim();
-            string content = declaration.Substring(separator + 1).Trim();
-            if (name.Length > 0 && content.Length > 0) result[name] = content;
-        }
-        return result;
+        return HtmlRenderCssValues.ParseInlineStyleDeclarations(value);
     }
 
     private static bool TryGetCss(IReadOnlyDictionary<string, string> css, string name, out string value) =>

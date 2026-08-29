@@ -4,6 +4,28 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal static class HtmlRenderCssValues {
+    internal static bool TryResolveFontSizeKeyword(
+        string? value,
+        double inheritedFontSize,
+        double mediumFontSize,
+        out double result) {
+        string normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
+        result = normalized switch {
+            "xx-small" => mediumFontSize * 0.6D,
+            "x-small" => mediumFontSize * 0.75D,
+            "small" => mediumFontSize * 0.89D,
+            "medium" => mediumFontSize,
+            "large" => mediumFontSize * 1.2D,
+            "x-large" => mediumFontSize * 1.5D,
+            "xx-large" => mediumFontSize * 2D,
+            "xxx-large" => mediumFontSize * 3D,
+            "smaller" => inheritedFontSize * 0.8D,
+            "larger" => inheritedFontSize * 1.2D,
+            _ => 0D
+        };
+        return result > 0D;
+    }
+
     internal static bool TryLength(string? value, double reference, double fontSize, double rootFontSize, out double result) {
         return TryLength(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, out result);
     }
@@ -279,6 +301,18 @@ internal static class HtmlRenderCssValues {
     internal static string? FirstFontFamily(string? value) {
         IReadOnlyList<string> families = FontFamilyNames(value);
         return families.Count == 0 ? null : families[0];
+    }
+
+    internal static IReadOnlyDictionary<string, string> ParseInlineStyleDeclarations(string? value) {
+        var declarations = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
+        foreach (string declaration in SplitTopLevel(value, ';')) {
+            int separator = declaration.IndexOf(':');
+            if (separator <= 0) continue;
+            string name = declaration.Substring(0, separator).Trim();
+            string content = declaration.Substring(separator + 1).Trim();
+            if (name.Length > 0 && content.Length > 0) declarations[name] = content;
+        }
+        return declarations;
     }
 
     internal static IReadOnlyList<string> SplitWhitespace(string? value) {
