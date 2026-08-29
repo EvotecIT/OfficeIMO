@@ -226,8 +226,10 @@ public sealed partial class OpmlDocument {
                 }
             }
         } else {
-            diagnostics.Add(new OpmlDiagnostic("OPML101", OpmlDiagnosticSeverity.Warning,
-                "The shared model had no recursive Structure; flat Blocks and Links were emitted as top-level outlines."));
+            if (model.Blocks.Count > 0 || model.Links.Count > 0) {
+                diagnostics.Add(new OpmlDiagnostic("OPML101", OpmlDiagnosticSeverity.Warning,
+                    "The shared model had no recursive Structure; flat Blocks and Links were emitted as top-level outlines."));
+            }
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddOutline(block.Text);
             foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
         }

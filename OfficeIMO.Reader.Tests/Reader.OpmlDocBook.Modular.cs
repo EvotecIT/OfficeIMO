@@ -111,6 +111,10 @@ public sealed class ReaderOpmlDocBookModularTests {
         ReaderChunk legacyLink = Assert.Single(DocBookReaderAdapter.Read(DocBookDocument.Parse(
             "<article><ulink url=\"https://example.test/legacy\">legacy</ulink></article>")));
         Assert.Equal("[legacy](https://example.test/legacy)", legacyLink.Markdown);
+
+        ReaderChunk whitespaceLink = Assert.Single(DocBookReaderAdapter.Read(DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><link xl:href=\"https://example.test/a b&#x9;c&#xA0;d\">space</link></article>")));
+        Assert.Equal("[space](https://example.test/a%20b%09c%C2%A0d)", whitespaceLink.Markdown);
     }
 
     [Fact]
@@ -140,7 +144,7 @@ public sealed class ReaderOpmlDocBookModularTests {
 
     [Fact]
     public void DocBookAdapterPreservesItemizedOrderedAndNestedListMarkers() {
-        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><itemizedlist><listitem><para>Alpha</para><itemizedlist><listitem><para>Nested</para></listitem></itemizedlist></listitem><listitem><para>Beta</para></listitem></itemizedlist><orderedlist startingnumber=\"3\"><listitem><para>Third</para></listitem><listitem><para>Fourth</para></listitem></orderedlist></article>";
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><itemizedlist><listitem><para>Alpha</para><itemizedlist><listitem><para>Nested</para></listitem></itemizedlist></listitem><listitem><para>Beta</para></listitem></itemizedlist><orderedlist startingnumber=\"3\"><listitem><para>Third</para></listitem><listitem><para>Fourth</para></listitem></orderedlist><orderedlist startingnumber=\"100\"><listitem><para>Hundred</para><itemizedlist><listitem><para>Nested hundred</para></listitem></itemizedlist></listitem></orderedlist></article>";
 
         ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
 
@@ -149,12 +153,15 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Contains(chunks, chunk => chunk.Markdown == "- Beta" && chunk.Location.SourceBlockKind == "list-item");
         Assert.Contains(chunks, chunk => chunk.Markdown == "3. Third" && chunk.Location.SourceBlockKind == "list-item");
         Assert.Contains(chunks, chunk => chunk.Markdown == "4. Fourth" && chunk.Location.SourceBlockKind == "list-item");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "100. Hundred" && chunk.Location.SourceBlockKind == "list-item");
+        Assert.Contains(chunks, chunk => chunk.Markdown == "     - Nested hundred" && chunk.Location.SourceBlockKind == "list-item");
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
         string markdown = DocBookReaderAdapter.ReadDocument(stream).Markdown.Replace("\r\n", "\n");
         Assert.Contains("- Alpha", markdown, StringComparison.Ordinal);
         Assert.Contains("  - Nested", markdown, StringComparison.Ordinal);
         Assert.Contains("3. Third", markdown, StringComparison.Ordinal);
+        Assert.Contains("     - Nested hundred", markdown, StringComparison.Ordinal);
     }
 
     [Fact]

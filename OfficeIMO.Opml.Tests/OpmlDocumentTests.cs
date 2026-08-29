@@ -360,4 +360,22 @@ public sealed class OpmlDocumentTests {
         Assert.Equal(2, structuredResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
         Assert.Equal(2, flatResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
     }
+
+    [Fact]
+    public void SharedConversionDoesNotReportFlatFallbackForMetadataOnlyModels() {
+        var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.Opml };
+        var metadataOnly = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Source = new OfficeDocumentModelSource { Title = "Feeds", Author = "Owner" }
+        };
+
+        OpmlConversionResult<OpmlDocument> emptyResult = OpmlDocument.FromOfficeDocumentModel(empty);
+        OpmlConversionResult<OpmlDocument> metadataResult = OpmlDocument.FromOfficeDocumentModel(metadataOnly);
+
+        Assert.False(emptyResult.HasLoss);
+        Assert.False(metadataResult.HasLoss);
+        Assert.Equal("Feeds", metadataResult.Value.Head.Title);
+        Assert.Equal("Owner", metadataResult.Value.Head.OwnerName);
+        Assert.DoesNotContain(metadataResult.Diagnostics, diagnostic => diagnostic.Code == "OPML101");
+    }
 }

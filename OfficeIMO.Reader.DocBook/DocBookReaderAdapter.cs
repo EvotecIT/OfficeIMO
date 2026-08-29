@@ -90,7 +90,7 @@ internal static partial class DocBookReaderAdapter {
             return warnings;
         }
 
-        IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node, ListMarker? listMarker = null, int listDepth = 0,
+        IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node, ListMarker? listMarker = null,
             string? admonitionContext = null) {
             cancellationToken.ThrowIfCancellationRequested();
             string? nestedAdmonitionContext = IsAdmonition(node.Kind) ? node.Kind : admonitionContext;
@@ -104,12 +104,12 @@ internal static partial class DocBookReaderAdapter {
                 }
                 foreach (OfficeDocumentModelNode child in node.Children) {
                     if (child.Kind == "list-item") {
-                        string indentation = new string(' ', Math.Min(listDepth, 128) * 2);
+                        string indentation = listMarker?.ContinuationPrefix ?? string.Empty;
                         var childMarker = new ListMarker(indentation + (ordered ? ordinal + ". " : "- "));
-                        foreach (ReaderChunk chunk in BuildNode(child, childMarker, listDepth + 1, nestedAdmonitionContext)) yield return chunk;
+                        foreach (ReaderChunk chunk in BuildNode(child, childMarker, nestedAdmonitionContext)) yield return chunk;
                         if (ordinal < long.MaxValue) ordinal++;
                     } else {
-                        foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth, nestedAdmonitionContext)) yield return chunk;
+                        foreach (ReaderChunk chunk in BuildNode(child, listMarker, nestedAdmonitionContext)) yield return chunk;
                     }
                 }
                 yield break;
@@ -179,7 +179,7 @@ internal static partial class DocBookReaderAdapter {
             if (!ownsInlineText) {
                 foreach (OfficeDocumentModelNode child in node.Children) {
                     if ((node.Kind == "section" || node.Kind == "table" || node.Kind == "figure") && child.Kind == "title") continue;
-                    foreach (ReaderChunk chunk in BuildNode(child, listMarker, listDepth, nestedAdmonitionContext)) yield return chunk;
+                    foreach (ReaderChunk chunk in BuildNode(child, listMarker, nestedAdmonitionContext)) yield return chunk;
                 }
             }
         }
