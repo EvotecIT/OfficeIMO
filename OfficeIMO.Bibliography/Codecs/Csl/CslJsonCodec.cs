@@ -37,29 +37,30 @@ internal static class CslJsonCodec {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.WriteStartObject();
-                if (ShouldWriteTypedId(item)) writer.WriteString("id", CodecMappings.OutputKey(item, itemIndex));
-                if (ShouldWriteTypedType(item)) writer.WriteString("type", item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType : CodecMappings.ToCslType(item.Type));
+                if (ShouldWriteTypedId(item, cancellationToken)) writer.WriteString("id", CodecMappings.OutputKey(item, itemIndex));
+                if (ShouldWriteTypedType(item, cancellationToken)) writer.WriteString("type", item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType : CodecMappings.ToCslType(item.Type));
                 WriteString(writer, "title", item.Title); WriteString(writer, "container-title", item.ContainerTitle); WriteString(writer, "collection-title", item.CollectionTitle);
                 WriteString(writer, "publisher", item.Publisher); WriteString(writer, "publisher-place", item.PublisherPlace); WriteString(writer, "edition", item.Edition);
                 WriteString(writer, "volume", item.Volume); WriteString(writer, "issue", item.Issue); WriteString(writer, "page", item.Pages); WriteString(writer, "abstract", item.Abstract);
                 WriteString(writer, "language", item.Language); WriteString(writer, "URL", item.Url);
-                WriteNames(writer, item, BibliographyContributorRole.Author, "author", report); WriteNames(writer, item, BibliographyContributorRole.Editor, "editor", report);
-                WriteNames(writer, item, BibliographyContributorRole.Translator, "translator", report); WriteNames(writer, item, BibliographyContributorRole.Recipient, "recipient", report);
-                WriteNames(writer, item, BibliographyContributorRole.Interviewer, "interviewer", report); WriteNames(writer, item, BibliographyContributorRole.Composer, "composer", report);
-                WriteNames(writer, item, BibliographyContributorRole.CollectionEditor, "collection-editor", report);
-                foreach (BibliographyDateRole role in item.Dates.Select(static date => date.Role).Distinct()) {
+                WriteNames(writer, item, BibliographyContributorRole.Author, "author", report, cancellationToken); WriteNames(writer, item, BibliographyContributorRole.Editor, "editor", report, cancellationToken);
+                WriteNames(writer, item, BibliographyContributorRole.Translator, "translator", report, cancellationToken); WriteNames(writer, item, BibliographyContributorRole.Recipient, "recipient", report, cancellationToken);
+                WriteNames(writer, item, BibliographyContributorRole.Interviewer, "interviewer", report, cancellationToken); WriteNames(writer, item, BibliographyContributorRole.Composer, "composer", report, cancellationToken);
+                WriteNames(writer, item, BibliographyContributorRole.CollectionEditor, "collection-editor", report, cancellationToken);
+                foreach (BibliographyDateRole role in GetDistinctDateRoles(item, cancellationToken)) {
                     string? property = DateProperty(role);
-                    if (property != null) WriteDate(writer, item, role, property, report);
+                    if (property != null) WriteDate(writer, item, role, property, report, cancellationToken);
                 }
-                foreach (IGrouping<string, BibliographyIdentifier> group in item.Identifiers.Where(identifier => CodecMappings.IsCslIdentifierScheme(identifier.Scheme)).GroupBy(identifier => identifier.Scheme.ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)) WriteString(writer, group.Key, string.Join("; ", group.Select(static identifier => identifier.Value)));
-                if (item.Keywords.Count > 0) writer.WriteString("keyword", string.Join(", ", item.Keywords));
-                if (item.Notes.Count > 0) writer.WriteString("note", string.Join("; ", item.Notes));
+                WriteIdentifiers(writer, item, cancellationToken);
+                if (item.Keywords.Count > 0) writer.WriteString("keyword", JoinValues(item.Keywords, ", ", cancellationToken));
+                if (item.Notes.Count > 0) writer.WriteString("note", JoinValues(item.Notes, "; ", cancellationToken));
 
-                HashSet<string> emitted = GetEmittedProperties(item);
+                HashSet<string> emitted = GetEmittedProperties(item, cancellationToken);
                 foreach (BibliographyNativeField field in item.NativeFields) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) {
                         writer.WritePropertyName(field.Name);
-                        bool exact = WriteNativeValue(writer, field);
+                        bool exact = WriteNativeValue(writer, field, cancellationToken);
                         emitted.Add(field.Name);
                         report.Add(exact ? "BIBCONV012" : "BIBCONV126", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON property '{field.Name}'." : $"Native CSL JSON property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, field.Name);
                     } else if (field.Format != BibliographyFormat.CslJson) {
@@ -175,7 +176,7 @@ internal static class CslJsonCodec {
     }
 
     private static bool TryReadScalar(BibliographyItem item, JsonProperty property, IList<BibliographyItem> items, BibliographyLimitGuard limits, out string scalar) {
-        if (property.Value.ValueKind != JsonValueKind.Object && property.Value.ValueKind != JsonValueKind.Array) { scalar = Scalar(property.Value); return true; }
+        if (property.Value.ValueKind != JsonValueKind.Object && property.Value.ValueKind != JsonValueKind.Array && property.Value.ValueKind != JsonValueKind.Null && property.Value.ValueKind != JsonValueKind.Undefined) { scalar = Scalar(property.Value); return true; }
         string raw = GetBoundedRawValue(property.Value, items, limits);
         item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, raw, raw));
         scalar = string.Empty;
@@ -192,7 +193,7 @@ internal static class CslJsonCodec {
         if (value.ValueKind != JsonValueKind.Array) return false;
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
-            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array))) return false;
+            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array || property.Value.ValueKind == JsonValueKind.Null || property.Value.ValueKind == JsonValueKind.Undefined))) return false;
         }
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind == JsonValueKind.String) item.Contributors.Add(new BibliographyContributor(role, new BibliographyName { Literal = element.GetString() }));
@@ -237,7 +238,7 @@ internal static class CslJsonCodec {
                 continue;
             }
             if (string.Equals(property.Name, "literal", StringComparison.Ordinal)) {
-                if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array) { string literalRaw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, literalRaw, literalRaw)); }
+                if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array || property.Value.ValueKind == JsonValueKind.Null || property.Value.ValueKind == JsonValueKind.Undefined) { string literalRaw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, literalRaw, literalRaw)); }
                 else date.Literal = Scalar(property.Value);
             } else if (string.Equals(property.Name, "date-parts", StringComparison.Ordinal)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
             else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
@@ -261,11 +262,11 @@ internal static class CslJsonCodec {
         diagnostics.Add(new BibliographyDiagnostic("BIBCSL005", BibliographyDiagnosticSeverity.Warning, "CSL JSON date-parts could not be represented by the typed date model and were retained as native JSON.", itemKey: item.Key, field: role.ToString()));
     }
 
-    private static void WriteString(Utf8JsonWriter writer, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteString(name, value); }
-    private static HashSet<string> GetEmittedProperties(BibliographyItem item) {
+    private static void WriteString(Utf8JsonWriter writer, string name, string? value) { if (value != null) writer.WriteString(name, value); }
+    private static HashSet<string> GetEmittedProperties(BibliographyItem item, CancellationToken cancellationToken) {
         var emitted = new HashSet<string>(StringComparer.Ordinal);
-        if (ShouldWriteTypedId(item)) emitted.Add("id");
-        if (ShouldWriteTypedType(item)) emitted.Add("type");
+        if (ShouldWriteTypedId(item, cancellationToken)) emitted.Add("id");
+        if (ShouldWriteTypedType(item, cancellationToken)) emitted.Add("type");
         AddIfValue("title", item.Title); AddIfValue("container-title", item.ContainerTitle); AddIfValue("collection-title", item.CollectionTitle);
         AddIfValue("publisher", item.Publisher); AddIfValue("publisher-place", item.PublisherPlace); AddIfValue("edition", item.Edition);
         AddIfValue("volume", item.Volume); AddIfValue("issue", item.Issue); AddIfValue("page", item.Pages); AddIfValue("abstract", item.Abstract);
@@ -276,29 +277,38 @@ internal static class CslJsonCodec {
         AddIfContributors(BibliographyContributorRole.CollectionEditor, "collection-editor");
         AddIfDate(BibliographyDateRole.Issued, "issued"); AddIfDate(BibliographyDateRole.Accessed, "accessed");
         AddIfDate(BibliographyDateRole.Submitted, "submitted"); AddIfDate(BibliographyDateRole.Original, "original-date"); AddIfDate(BibliographyDateRole.Event, "event-date");
-        foreach (BibliographyIdentifier identifier in item.Identifiers.Where(identifier => CodecMappings.IsCslIdentifierScheme(identifier.Scheme))) emitted.Add(identifier.Scheme.ToUpperInvariant());
+        foreach (BibliographyIdentifier identifier in item.Identifiers) { cancellationToken.ThrowIfCancellationRequested(); if (CodecMappings.IsCslIdentifierScheme(identifier.Scheme)) emitted.Add(identifier.Scheme.ToUpperInvariant()); }
         if (item.Keywords.Count > 0) emitted.Add("keyword");
         if (item.Notes.Count > 0) emitted.Add("note");
         return emitted;
 
-        void AddIfValue(string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) emitted.Add(name); }
-        void AddIfContributors(BibliographyContributorRole role, string name) { if (item.Contributors.Any(contributor => contributor.Role == role)) emitted.Add(name); }
-        void AddIfDate(BibliographyDateRole role, string name) { if (item.GetDate(role) != null) emitted.Add(name); }
+        void AddIfValue(string name, string? value) { if (value != null) emitted.Add(name); }
+        void AddIfContributors(BibliographyContributorRole role, string name) { foreach (BibliographyContributor contributor in item.Contributors) { cancellationToken.ThrowIfCancellationRequested(); if (contributor.Role == role) { emitted.Add(name); break; } } }
+        void AddIfDate(BibliographyDateRole role, string name) { if (FindDate(item, role, cancellationToken) != null) emitted.Add(name); }
     }
 
-    private static bool ShouldWriteTypedId(BibliographyItem item) => !string.IsNullOrWhiteSpace(item.Key) || !HasNativeProperty(item, "id");
-    private static bool ShouldWriteTypedType(BibliographyItem item) => item.Type != BibliographyItemType.Unknown || !string.IsNullOrWhiteSpace(item.NativeType) || !HasNativeProperty(item, "type");
-    private static bool HasNativeProperty(BibliographyItem item, string property) => item.NativeFields.Any(field => field.Format == BibliographyFormat.CslJson && string.Equals(field.Name, property, StringComparison.Ordinal));
-    private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, BibliographyContributorRole role, string property, BibliographyConversionReport report) {
-        BibliographyContributor[] contributors = item.Contributors.Where(contributor => contributor.Role == role).ToArray();
-        if (contributors.Length == 0) return;
+    private static bool ShouldWriteTypedId(BibliographyItem item, CancellationToken cancellationToken) => !string.IsNullOrWhiteSpace(item.Key) || !HasNativeProperty(item, "id", cancellationToken);
+    private static bool ShouldWriteTypedType(BibliographyItem item, CancellationToken cancellationToken) => item.Type != BibliographyItemType.Unknown || !string.IsNullOrWhiteSpace(item.NativeType) || !HasNativeProperty(item, "type", cancellationToken);
+    private static bool HasNativeProperty(BibliographyItem item, string property, CancellationToken cancellationToken) {
+        foreach (BibliographyNativeField field in item.NativeFields) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (field.Format == BibliographyFormat.CslJson && string.Equals(field.Name, property, StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+    private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, BibliographyContributorRole role, string property, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        var contributors = new List<BibliographyContributor>();
+        foreach (BibliographyContributor contributor in item.Contributors) { cancellationToken.ThrowIfCancellationRequested(); if (contributor.Role == role) contributors.Add(contributor); }
+        if (contributors.Count == 0) return;
         writer.WritePropertyName(property); writer.WriteStartArray();
         foreach (BibliographyContributor contributor in contributors) {
+            cancellationToken.ThrowIfCancellationRequested();
             writer.WriteStartObject(); WriteString(writer, "literal", contributor.Name.Literal); WriteString(writer, "given", contributor.Name.Given); WriteString(writer, "family", contributor.Name.Family);
             WriteString(writer, "suffix", contributor.Name.Suffix); WriteString(writer, "dropping-particle", contributor.Name.DroppingParticle); WriteString(writer, "non-dropping-particle", contributor.Name.NonDroppingParticle);
             var known = new HashSet<string>(new[] { "literal", "given", "family", "suffix", "dropping-particle", "non-dropping-particle" }, StringComparer.Ordinal);
             foreach (BibliographyNativeField field in contributor.Name.NativeFields) {
-                if (field.Format == BibliographyFormat.CslJson && !known.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field); known.Add(field.Name); report.Add(exact ? "BIBCONV016" : "BIBCONV127", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON name property '{field.Name}'." : $"Native CSL JSON name property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (field.Format == BibliographyFormat.CslJson && !known.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field, cancellationToken); known.Add(field.Name); report.Add(exact ? "BIBCONV016" : "BIBCONV127", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON name property '{field.Name}'." : $"Native CSL JSON name property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
                 else report.Add("BIBCONV124", BibliographyDiagnosticSeverity.Warning, $"Native name property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
             }
             writer.WriteEndObject();
@@ -306,8 +316,8 @@ internal static class CslJsonCodec {
         writer.WriteEndArray();
     }
 
-    private static void WriteDate(Utf8JsonWriter writer, BibliographyItem item, BibliographyDateRole role, string property, BibliographyConversionReport report) {
-        BibliographyDate? date = item.GetDate(role); if (date == null) return;
+    private static void WriteDate(Utf8JsonWriter writer, BibliographyItem item, BibliographyDateRole role, string property, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        BibliographyDate? date = FindDate(item, role, cancellationToken); if (date == null) return;
         writer.WritePropertyName(property); writer.WriteStartObject();
         var emitted = new HashSet<string>(StringComparer.Ordinal);
         if (date.Year.HasValue) {
@@ -316,9 +326,10 @@ internal static class CslJsonCodec {
             if (date.EndYear.HasValue) WriteDatePart(writer, date.EndYear.Value, date.EndMonth, date.EndDay);
             writer.WriteEndArray(); emitted.Add("date-parts");
         }
-        if (!string.IsNullOrWhiteSpace(date.Literal)) { writer.WriteString("literal", date.Literal); emitted.Add("literal"); }
+        if (date.Literal != null) { writer.WriteString("literal", date.Literal); emitted.Add("literal"); }
         foreach (BibliographyNativeField field in date.NativeFields) {
-            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field, cancellationToken); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
             else report.Add("BIBCONV125", BibliographyDiagnosticSeverity.Warning, $"Native date property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
         }
         writer.WriteEndObject();
@@ -333,6 +344,48 @@ internal static class CslJsonCodec {
             case BibliographyDateRole.Event: return "event-date";
             default: return null;
         }
+    }
+
+    private static IEnumerable<BibliographyDateRole> GetDistinctDateRoles(BibliographyItem item, CancellationToken cancellationToken) {
+        var emitted = new HashSet<BibliographyDateRole>();
+        foreach (BibliographyDate date in item.Dates) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (emitted.Add(date.Role)) yield return date.Role;
+        }
+    }
+
+    private static BibliographyDate? FindDate(BibliographyItem item, BibliographyDateRole role, CancellationToken cancellationToken) {
+        foreach (BibliographyDate date in item.Dates) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (date.Role == role) return date;
+        }
+        return null;
+    }
+
+    private static void WriteIdentifiers(Utf8JsonWriter writer, BibliographyItem item, CancellationToken cancellationToken) {
+        var order = new List<string>();
+        var values = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (BibliographyIdentifier identifier in item.Identifiers) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!CodecMappings.IsCslIdentifierScheme(identifier.Scheme)) continue;
+            string scheme = identifier.Scheme.ToUpperInvariant();
+            if (!values.TryGetValue(scheme, out List<string>? group)) { group = new List<string>(); values.Add(scheme, group); order.Add(scheme); }
+            group.Add(identifier.Value);
+        }
+        foreach (string scheme in order) {
+            cancellationToken.ThrowIfCancellationRequested();
+            WriteString(writer, scheme, JoinValues(values[scheme], "; ", cancellationToken));
+        }
+    }
+
+    private static string JoinValues(IEnumerable<string> values, string separator, CancellationToken cancellationToken) {
+        var builder = new StringBuilder();
+        foreach (string value in values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (builder.Length > 0) builder.Append(separator);
+            builder.Append(value);
+        }
+        return builder.ToString();
     }
 
     private static bool TryReadDatePart(JsonElement value, out int? year, out int? month, out int? day) {
@@ -376,10 +429,11 @@ internal static class CslJsonCodec {
         stream.Position = 0;
         return JsonDocument.ParseAsync(stream, options, cancellationToken).GetAwaiter().GetResult();
     }
-    private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field) {
+    private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string? raw = field.UnmodifiedRawValue;
         if (raw != null) {
-            if (TryWriteRaw(writer, raw)) return true;
+            if (TryWriteRaw(writer, raw)) { cancellationToken.ThrowIfCancellationRequested(); return true; }
             writer.WriteStringValue(field.Value);
             return false;
         }
@@ -388,7 +442,7 @@ internal static class CslJsonCodec {
             writer.WriteStringValue(field.Value);
             return true;
         }
-        if (originalKind.HasValue && TryWriteEditedRaw(writer, field.Value)) return true;
+        if (originalKind.HasValue && TryWriteEditedRaw(writer, field.Value)) { cancellationToken.ThrowIfCancellationRequested(); return true; }
         writer.WriteStringValue(field.Value);
         return false;
     }

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewRegressionTests {
@@ -256,5 +258,126 @@ public sealed class BibliographyReviewRegressionTests {
         Assert.True(document.IsModified);
         Assert.False(written.UsedOriginalSource);
         Assert.Equal(!removeEmptyTitle, written.Content.Contains("TI  - ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Generic_EndNote_documents_round_trip_in_strict_mode() {
+        var document = new BibliographyDocument(BibliographyFormat.EndNoteXml);
+        document.Items.Add(new BibliographyItem { Key = "1", Type = BibliographyItemType.Document, Title = "Generic" });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+
+        Assert.Equal(BibliographyItemType.Document, Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items).Type);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Blank_CSL_scalars_round_trip_in_strict_mode(string title) {
+        var document = new BibliographyDocument(BibliographyFormat.CslJson);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = title });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+
+        Assert.Equal(title, Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items).Title);
+    }
+
+    [Fact]
+    public void Null_CSL_scalars_remain_native_null_values() {
+        BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"title\":null,\"author\":[{\"family\":null}],\"issued\":{\"literal\":null}}]", BibliographyFormat.CslJson).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
+
+        Assert.Null(reopened.Title);
+        Assert.Contains(reopened.NativeFields, field => field.Name == "title" && field.RawValue == "null");
+        Assert.Contains(reopened.NativeFields, field => field.Name == "author" && field.RawValue!.StartsWith("[", StringComparison.Ordinal));
+        Assert.Contains(Assert.Single(reopened.Dates).NativeFields, field => field.Name == "literal" && field.RawValue == "null");
+    }
+
+    [Theory]
+    [InlineData(BibliographyFormat.Ris)]
+    [InlineData(BibliographyFormat.Nbib)]
+    [InlineData(BibliographyFormat.EndNoteXml)]
+    public void Tagged_name_components_with_commas_block_strict_output(BibliographyFormat format) {
+        var document = new BibliographyDocument(format);
+        var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.Book, Title = "Names" };
+        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Doe, Smith", Given = "Jane" }));
+        if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
+        document.Items.Add(item);
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV236" && diagnostic.Field == "contributors");
+    }
+
+    [Fact]
+    public void CSL_writes_observe_cancellation_within_one_large_item() {
+        var document = new BibliographyDocument(BibliographyFormat.CslJson);
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book };
+        for (int index = 0; index < 100_000; index++) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, "field-" + index.ToString(CultureInfo.InvariantCulture), "true", "true"));
+        document.Items.Add(item);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
+
+        Assert.Throws<OperationCanceledException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, cancellation.Token));
+    }
+
+    [Fact]
+    public void EndNote_item_limits_are_enforced_before_the_XML_DOM_is_materialized() {
+        const string source = "<xml><records><record/><record/>";
+        var options = new BibliographyReadOptions { MaximumItemCount = 1 };
+
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options);
+
+        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
+        Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Code == "BIBEND002");
+    }
+
+    [Fact]
+    public void EndNote_item_limits_ignore_records_nested_in_root_extensions() {
+        const string source = "<xml><extension><records><record/><record/></records></extension><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type></record></records></xml>";
+        var options = new BibliographyReadOptions { MaximumItemCount = 1 };
+
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options);
+
+        Assert.False(read.HasErrors);
+        Assert.Single(read.Document.Items);
+    }
+
+    [Fact]
+    public void Clearing_the_primary_EndNote_URL_preserves_additional_URL_roles() {
+        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><urls><related-urls><url>https://primary.example</url><url>https://secondary.example</url></related-urls></urls></record></records></xml>";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
+        document.Items[0].Url = null;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
+
+        Assert.Null(reopened.Url);
+        Assert.Contains(reopened.NativeFields, field => field.Name == "url" && field.Value == "https://secondary.example");
+    }
+
+    [Fact]
+    public void Empty_EndNote_URLs_block_strict_null_normalization() {
+        var document = new BibliographyDocument(BibliographyFormat.EndNoteXml);
+        document.Items.Add(new BibliographyItem { Key = "1", Type = BibliographyItemType.Book, Url = string.Empty });
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV237" && diagnostic.Field == "URL");
+    }
+
+    [Fact]
+    public void Separate_EndNote_records_container_attributes_block_strict_coalescing() {
+        const string source = "<xml><records source=\"first\"><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type></record></records><records source=\"second\"><record><rec-number>2</rec-number><ref-type name=\"Book\">6</ref-type></record></records></xml>";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV238" && diagnostic.Field == "records");
     }
 }

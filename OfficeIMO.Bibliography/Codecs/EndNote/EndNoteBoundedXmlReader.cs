@@ -8,6 +8,8 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
     private readonly IList<BibliographyItem> _partialItems;
     private readonly EndNoteSourceOffsetMap _offsets;
     private readonly CancellationToken _cancellationToken;
+    private readonly List<string> _elementNames = new List<string>();
+    private readonly List<string> _elementNamespaces = new List<string>();
 
     internal EndNoteBoundedXmlReader(XmlReader reader, BibliographyLimitGuard limits, IList<BibliographyItem> partialItems, EndNoteSourceOffsetMap offsets, CancellationToken cancellationToken) {
         _reader = reader;
@@ -21,8 +23,27 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
         _cancellationToken.ThrowIfCancellationRequested();
         bool read = _reader.Read();
         _cancellationToken.ThrowIfCancellationRequested();
-        if (read && _reader.NodeType == XmlNodeType.Element) _limits.CheckDepth(_partialItems, _reader.Depth + 1, _offsets.GetOffset(this));
+        if (read && _reader.NodeType == XmlNodeType.Element) {
+            int offset = _offsets.GetOffset(this);
+            _limits.CheckDepth(_partialItems, _reader.Depth + 1, offset);
+            if (IsAcceptedRecordElement()) _limits.AddItem(_partialItems, offset);
+            if (!_reader.IsEmptyElement) {
+                _elementNames.Add(_reader.LocalName);
+                _elementNamespaces.Add(_reader.NamespaceURI);
+            }
+        } else if (read && _reader.NodeType == XmlNodeType.EndElement && _elementNames.Count > 0) {
+            _elementNames.RemoveAt(_elementNames.Count - 1);
+            _elementNamespaces.RemoveAt(_elementNamespaces.Count - 1);
+        }
         return read;
+    }
+
+    private bool IsAcceptedRecordElement() {
+        if (!string.Equals(_reader.LocalName, "record", StringComparison.OrdinalIgnoreCase)) return false;
+        int parentIndex = _elementNames.Count - 1;
+        if (parentIndex < 0 || !string.Equals(_elementNames[parentIndex], "records", StringComparison.OrdinalIgnoreCase) || !string.Equals(_elementNamespaces[parentIndex], _reader.NamespaceURI, StringComparison.Ordinal)) return false;
+        if (_elementNames.Count == 1) return true;
+        return _elementNames.Count == 2 && string.Equals(_elementNamespaces[0], _elementNamespaces[parentIndex], StringComparison.Ordinal);
     }
 
     public override bool ReadAttributeValue() {

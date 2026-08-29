@@ -74,6 +74,7 @@ internal static class BibliographyConversionInspector {
             report.Add("BIBCONV222", BibliographyDiagnosticSeverity.Warning, $"Canonical output is based on partially recovered source after parser diagnostic {diagnostic.Code}; unrecovered source content may be omitted.", BibliographyConversionAction.Omitted, field: diagnostic.Field);
         }
         InspectKeys(document, format, report);
+        InspectDocumentStructure(document, format, report);
         foreach (BibliographyItem item in document.Items) {
             InspectType(item, document.SourceFormat, format, report); InspectContributors(item, format, report); InspectDates(item, format, report); InspectNestedNativeFields(item, format, report); InspectProperties(item, format, report); InspectIdentifiers(item, format, report); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report); InspectNativeStructure(item, format, report);
         }
@@ -124,7 +125,7 @@ internal static class BibliographyConversionInspector {
                 exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && item.NativeFields.Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
                 break;
             case BibliographyFormat.EndNoteXml:
-                exact = item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.WebPage || item.Type == BibliographyItemType.Patent;
+                exact = item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.WebPage || item.Type == BibliographyItemType.Patent || item.Type == BibliographyItemType.Document;
                 break;
             default: exact = false; break;
         }
@@ -166,6 +167,8 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, "contributors", "BIBCONV229", $"Structured contributor particles are flattened in {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
             foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.Literal) && (!string.IsNullOrWhiteSpace(contributor.Name.Given) || !string.IsNullOrWhiteSpace(contributor.Name.Family) || !string.IsNullOrWhiteSpace(contributor.Name.Suffix))))
                 Loss(report, item, "contributors", "BIBCONV231", $"A literal contributor also has personal-name components that are omitted in {format} output.", BibliographyConversionAction.Omitted);
+            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => ContainsComma(contributor.Name.Given) || ContainsComma(contributor.Name.Family) || ContainsComma(contributor.Name.Suffix)))
+                Loss(report, item, "contributors", "BIBCONV236", $"A structured contributor name contains a comma that is indistinguishable from {format} name-component separators.", BibliographyConversionAction.Approximated);
         }
         if (ReordersContributors(item, format))
             Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
@@ -200,6 +203,13 @@ internal static class BibliographyConversionInspector {
         return !source.SequenceEqual(output);
     }
 
+    private static bool ContainsComma(string? value) => value?.IndexOf(',') >= 0;
+
+    private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
+        if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document))
+            report.Add("BIBCONV238", BibliographyDiagnosticSeverity.Warning, "Separate EndNote XML records-container metadata is coalesced into one canonical records container.", BibliographyConversionAction.Approximated, field: "records");
+    }
+
     private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
         foreach (BibliographyDateRole role in item.Dates.Select(static value => value.Role).Distinct()) {
             bool exact = format == BibliographyFormat.CslJson ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed || role == BibliographyDateRole.Submitted || role == BibliographyDateRole.Original || role == BibliographyDateRole.Event
@@ -232,6 +242,8 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.Nbib) {
             Check(item.Publisher, "publisher"); Check(item.PublisherPlace, "publisher-place"); Check(item.Edition, "edition"); Check(item.Url, "URL"); Check(item.CollectionTitle, "collection-title");
         } else if (format == BibliographyFormat.Ris) Check(item.CollectionTitle, "collection-title");
+        else if (format == BibliographyFormat.EndNoteXml && item.Url != null && item.Url.Length == 0)
+            Loss(report, item, "URL", "BIBCONV237", "An empty EndNote URL is reopened as a missing URL.", BibliographyConversionAction.Approximated);
         void Check(string? value, string field) { if (!string.IsNullOrWhiteSpace(value)) Loss(report, item, field, "BIBCONV203", $"Field '{field}' is not represented in {format}.", BibliographyConversionAction.Omitted); }
     }
 
