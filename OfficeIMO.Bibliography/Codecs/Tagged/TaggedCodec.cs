@@ -372,7 +372,19 @@ internal static class TaggedCodec {
     private static string NormalizeCompactName(string value) => new string(value.Where(char.IsLetterOrDigit).ToArray());
     private static void WriteTag(StringBuilder builder, string tag, string? value, string lineEnding) { if (value == null) return; string prefix = tag.PadRight(4) + "- "; string[] lines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'); builder.Append(prefix).Append(lines[0]).Append(lineEnding); for (int index = 1; index < lines.Length; index++) builder.Append("      ").Append(lines[index]).Append(lineEnding); }
     private static void WritePages(StringBuilder builder, string? pages, string lineEnding) { if (string.IsNullOrWhiteSpace(pages)) return; string[] parts = pages!.Split(new[] { '-' }, 2); WriteTag(builder, "SP", parts[0], lineEnding); if (parts.Length > 1) WriteTag(builder, "EP", parts[1], lineEnding); }
-    private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) { BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, DateTag(item, issued, issuedTag, "Y1", "DA"), CodecMappings.FormatDate(issued), lineEnding); BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed); if (accessed != null) WriteTag(builder, DateTag(item, accessed, accessedTag, "Y2"), CodecMappings.FormatDate(accessed), lineEnding); }
+    private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) {
+        bool wroteIssued = false;
+        bool wroteAccessed = false;
+        foreach (BibliographyDate date in item.Dates) {
+            if (date.Role == BibliographyDateRole.Issued && !wroteIssued) {
+                WriteTag(builder, DateTag(item, date, issuedTag, "Y1", "DA"), CodecMappings.FormatDate(date), lineEnding);
+                wroteIssued = true;
+            } else if (date.Role == BibliographyDateRole.Accessed && !wroteAccessed) {
+                WriteTag(builder, DateTag(item, date, accessedTag, "Y2"), CodecMappings.FormatDate(date), lineEnding);
+                wroteAccessed = true;
+            }
+        }
+    }
     private static void WriteRisIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "DO", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "SN", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "AN", identifier.Value.IndexOf(':') >= 0 ? "accession:" + identifier.Value : identifier.Value, lineEnding); else WriteTag(builder, "AN", identifier.Scheme + ":" + identifier.Value, lineEnding); }
     internal static bool CanRoundTripRisIdentifier(BibliographyIdentifier identifier) {
         if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) return true;
@@ -380,15 +392,18 @@ internal static class TaggedCodec {
         return !string.IsNullOrWhiteSpace(identifier.Scheme) && identifier.Scheme.IndexOf(':') < 0 && identifier.Scheme.IndexOf('\r') < 0 && identifier.Scheme.IndexOf('\n') < 0;
     }
     private static void WriteNbibPublicationTypes(StringBuilder builder, BibliographyItem item, string lineEnding, BibliographyConversionReport report) {
+        BibliographyNativeField[] nativeTypes = item.NativeFields.Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)).ToArray();
+        BibliographyItemType sourceType = nativeTypes.Select(field => CodecMappings.ParseType(field.Value)).FirstOrDefault(static type => type != BibliographyItemType.Unknown);
+        bool preserveRecognizedSourceTypes = sourceType == item.Type;
         bool wroteTypedValue = false;
-        foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase))) {
+        foreach (BibliographyNativeField field in nativeTypes) {
             BibliographyItemType parsed = CodecMappings.ParseType(field.Value);
             if (parsed == BibliographyItemType.Unknown) {
                 WriteTag(builder, "PT", field.Value, lineEnding);
                 report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, "Preserved an unrecognized NBIB publication type.", BibliographyConversionAction.PreservedExtension, item, "PT");
-            } else if (parsed == item.Type) {
+            } else if (preserveRecognizedSourceTypes || parsed == item.Type) {
                 WriteTag(builder, "PT", field.Value, lineEnding);
-                wroteTypedValue = true;
+                if (parsed == item.Type) wroteTypedValue = true;
             }
         }
         if (!wroteTypedValue && TryGetNbibPublicationType(item.Type, out string? publicationType)) WriteTag(builder, "PT", publicationType, lineEnding);

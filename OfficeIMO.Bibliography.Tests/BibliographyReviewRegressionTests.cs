@@ -175,4 +175,86 @@ public sealed class BibliographyReviewRegressionTests {
         Assert.StartsWith("{", field.RawValue, StringComparison.Ordinal);
         Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126");
     }
+
+    [Fact]
+    public void Detection_accepts_a_single_CSL_object_without_a_type_property() {
+        BibliographyReadResult read = BibliographyDocument.Parse("{\"id\":\"item\",\"title\":\"Example\"}");
+
+        BibliographyItem item = Assert.Single(read.Document.Items);
+        Assert.Equal(BibliographyFormat.CslJson, read.Document.SourceFormat);
+        Assert.Equal("item", item.Key);
+        Assert.Equal(BibliographyItemType.Unknown, item.Type);
+    }
+
+    [Fact]
+    public void Secondary_NBIB_publication_types_survive_strict_canonical_writes() {
+        const string source = "PMID- 1\nPT  - Journal Article\nPT  - Book\nTI  - Multiple types\n";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
+
+        Assert.Equal(new[] { "Journal Article", "Book" }, reopened.NativeFields.Where(field => field.Name == "PT").Select(field => field.Value));
+    }
+
+    [Fact]
+    public void RIS_dates_preserve_their_cross_role_source_order() {
+        const string source = "TY  - BOOK\nID  - x\nY2  - 2025-02-03\nPY  - 2024-01-02\nER  -\n";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
+
+        Assert.True(written.Content.IndexOf("Y2  -", StringComparison.Ordinal) < written.Content.IndexOf("PY  -", StringComparison.Ordinal));
+        Assert.Equal(new[] { BibliographyDateRole.Accessed, BibliographyDateRole.Issued }, reopened.Dates.Select(static date => date.Role));
+    }
+
+    [Fact]
+    public void Edited_structured_CSL_native_JSON_remains_structured_when_valid() {
+        BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"custom\":{\"old\":true}}]", BibliographyFormat.CslJson).Document;
+        Assert.Single(document.Items[0].NativeFields).Value = "{\"edited\":true}";
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyNativeField reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].NativeFields);
+
+        Assert.StartsWith("{", reopened.RawValue, StringComparison.Ordinal);
+        Assert.Contains("\"edited\": true", reopened.RawValue, StringComparison.Ordinal);
+        Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126");
+    }
+
+    [Fact]
+    public void Edited_structured_CSL_native_JSON_reports_shape_flattening() {
+        BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"custom\":{\"old\":true}}]", BibliographyFormat.CslJson).Document;
+        Assert.Single(document.Items[0].NativeFields).Value = "flattened";
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "custom");
+    }
+
+    [Fact]
+    public void Brace_wrapped_Bib_keywords_survive_strict_canonical_writes() {
+        BibliographyDocument document = BibliographyDocument.Parse("@book{x,title={Keyword},keywords={{{tag}}}}", BibliographyFormat.BibLatex).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items);
+
+        Assert.Equal("{tag}", Assert.Single(reopened.Keywords));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Preserve_fingerprint_distinguishes_null_and_empty_scalars(bool removeEmptyTitle) {
+        string source = removeEmptyTitle ? "TY  - BOOK\nID  - x\nTI  - \nER  -\n" : "TY  - BOOK\nID  - x\nER  -\n";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document;
+        document.Items[0].Title = removeEmptyTitle ? null : string.Empty;
+
+        BibliographyWriteResult written = document.Write();
+
+        Assert.True(document.IsModified);
+        Assert.False(written.UsedOriginalSource);
+        Assert.Equal(!removeEmptyTitle, written.Content.Contains("TI  - ", StringComparison.Ordinal));
+    }
 }

@@ -15,7 +15,7 @@ public sealed class BibliographyReviewRemediationTests {
     }
 
     [Fact]
-    public void Edited_raw_backed_CSL_fields_are_written_from_their_public_values() {
+    public void Edited_raw_backed_CSL_fields_report_shape_flattening_and_use_public_values() {
         const string source = "[{\"id\":\"x\",\"type\":\"book\",\"x-item\":{\"enabled\":true},\"author\":[{\"literal\":\"Team\",\"x-name\":{\"rank\":1}}],\"issued\":{\"literal\":\"soon\",\"x-date\":{\"certainty\":\"low\"}}}]";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
         BibliographyItem item = document.Items[0];
@@ -23,13 +23,16 @@ public sealed class BibliographyReviewRemediationTests {
         item.Contributors[0].Name.NativeFields[0].Value = "name-edited";
         item.Dates[0].NativeFields[0].Value = "date-edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
 
         using JsonDocument json = JsonDocument.Parse(written.Content);
         JsonElement root = json.RootElement[0];
         Assert.Equal("item-edited", root.GetProperty("x-item").GetString());
         Assert.Equal("name-edited", root.GetProperty("author")[0].GetProperty("x-name").GetString());
         Assert.Equal("date-edited", root.GetProperty("issued").GetProperty("x-date").GetString());
+        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "x-item");
+        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
+        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
     }
 
     [Fact]

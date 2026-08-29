@@ -121,7 +121,8 @@ internal static class BibCodec {
         return family + ", " + given;
     }
 
-    private static string FormatBibListItem(string value) => value.IndexOf(',') >= 0 || value.IndexOf(';') >= 0 ? "{" + value + "}" : value;
+    private static string FormatBibListItem(string value) =>
+        value.IndexOf(',') >= 0 || value.IndexOf(';') >= 0 || value.Length >= 2 && value[0] == '{' && value[value.Length - 1] == '}' ? "{" + value + "}" : value;
 
     private static string Escape(string value) {
         int depth = 0;

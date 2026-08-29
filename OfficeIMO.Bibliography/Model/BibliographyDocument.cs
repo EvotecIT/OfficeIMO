@@ -122,7 +122,7 @@ internal static class BibliographyFingerprint {
     }
 
     private static void Add(StringBuilder builder, string? value) {
-        value ??= string.Empty;
+        if (value == null) { builder.Append("-1:;"); return; }
         builder.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value).Append(';');
     }
 }

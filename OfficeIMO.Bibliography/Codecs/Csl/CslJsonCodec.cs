@@ -378,10 +378,36 @@ internal static class CslJsonCodec {
     }
     private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field) {
         string? raw = field.UnmodifiedRawValue;
-        if (raw == null) { writer.WriteStringValue(field.Value); return true; }
-        if (TryWriteRaw(writer, raw)) return true;
+        if (raw != null) {
+            if (TryWriteRaw(writer, raw)) return true;
+            writer.WriteStringValue(field.Value);
+            return false;
+        }
+        JsonValueKind? originalKind = GetRawJsonKind(field.RawValue);
+        if (originalKind == JsonValueKind.String || field.RawValue == null) {
+            writer.WriteStringValue(field.Value);
+            return true;
+        }
+        if (originalKind.HasValue && TryWriteEditedRaw(writer, field.Value)) return true;
         writer.WriteStringValue(field.Value);
         return false;
+    }
+
+    private static JsonValueKind? GetRawJsonKind(string? raw) {
+        if (raw == null) return null;
+        try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); return value.RootElement.ValueKind; }
+        catch (JsonException) { return null; }
+    }
+
+    private static bool TryWriteEditedRaw(Utf8JsonWriter writer, string value) {
+        try {
+            using JsonDocument parsed = JsonDocument.Parse(value, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
+            if (parsed.RootElement.ValueKind == JsonValueKind.String || parsed.RootElement.ValueKind == JsonValueKind.Null || parsed.RootElement.ValueKind == JsonValueKind.Undefined) return false;
+            parsed.RootElement.WriteTo(writer);
+            return true;
+        } catch (JsonException) {
+            return false;
+        }
     }
 
     private static string GetBoundedRawValue(JsonElement value, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
