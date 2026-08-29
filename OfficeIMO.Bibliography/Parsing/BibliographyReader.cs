@@ -74,6 +74,11 @@ internal sealed class BibliographyLimitGuard {
     internal void CheckValueLength(IList<BibliographyItem> partial, int length, int offset) {
         if (length > _options.MaximumValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
     }
+
+    internal void CheckAdditionalValueLength(IList<BibliographyItem> partial, int currentLength, int additionalLength, int offset) {
+        if (currentLength < 0 || additionalLength < 0 || currentLength > _options.MaximumValueLength || additionalLength > _options.MaximumValueLength - currentLength)
+            throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
+    }
 }
 
 internal sealed class BibliographyDiagnosticGuard {

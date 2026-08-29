@@ -23,7 +23,7 @@ internal static class TaggedCodec {
             foreach (BibliographyIdentifier identifier in item.Identifiers) WriteRisIdentifier(builder, identifier, options.LineEnding);
             foreach (string keyword in item.Keywords) WriteTag(builder, "KW", keyword, options.LineEnding);
             foreach (string note in item.Notes) WriteTag(builder, "N1", note, options.LineEnding);
-            WriteNativeFields(builder, item, BibliographyFormat.Ris, options.LineEnding, report, new HashSet<string>(new[] { "TY", "ID", "TI", "T1", "T2", "JF", "JO", "JA", "AU", "A1", "ED", "A2", "PY", "Y1", "Y2", "DA", "PB", "CY", "ET", "VL", "IS", "SP", "EP", "AB", "N2", "LA", "UR", "L1", "ER" }, StringComparer.OrdinalIgnoreCase));
+            WriteNativeFields(builder, item, BibliographyFormat.Ris, options.LineEnding, report, new HashSet<string>(new[] { "TY", "ID", "TI", "T1", "T2", "JF", "JO", "JA", "AU", "A1", "ED", "A2", "PY", "Y1", "Y2", "DA", "PB", "CY", "ET", "VL", "IS", "SP", "EP", "AB", "N2", "LA", "UR", "L1", "DO", "SN", "AN", "KW", "N1", "ER" }, StringComparer.OrdinalIgnoreCase));
             WriteTag(builder, "ER", string.Empty, options.LineEnding);
             if (itemIndex + 1 < document.Items.Count) builder.Append(options.LineEnding);
         }
@@ -123,7 +123,7 @@ internal static class TaggedCodec {
             case "EP": item.Pages = string.IsNullOrWhiteSpace(item.Pages) ? value : item.Pages + "-" + value; break;
             case "AB": case "N2": item.Abstract = value; break; case "LA": item.Language = value; break; case "UR": case "L1": item.Url = value; break;
             case "DO": CodecMappings.AddIdentifier(item, "DOI", value); break; case "SN": CodecMappings.AddIdentifier(item, CodecMappings.InferSerialScheme(value), value); break;
-            case "AN": if (string.IsNullOrWhiteSpace(item.Key)) item.Key = value; else ParseRisAccession(item, value, field); break;
+            case "AN": if (string.IsNullOrWhiteSpace(item.Key)) item.Key = value; ParseRisAccession(item, value); break;
             case "KW": item.Keywords.Add(value); break; case "N1": item.Notes.Add(value); break;
             default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, field, value)); break;
         }
@@ -151,10 +151,10 @@ internal static class TaggedCodec {
         else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value));
     }
 
-    private static void ParseRisAccession(BibliographyItem item, string value, string field) {
+    private static void ParseRisAccession(BibliographyItem item, string value) {
         int separator = value.IndexOf(':');
         if (separator > 0 && separator + 1 < value.Length) CodecMappings.AddIdentifier(item, value.Substring(0, separator), value.Substring(separator + 1));
-        else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, field, value));
+        else CodecMappings.AddIdentifier(item, "accession", value);
     }
 
     private static string StripBracketQualifier(string value) { int marker = value.LastIndexOf(" (", StringComparison.Ordinal); return marker > 0 && value.EndsWith(")", StringComparison.Ordinal) ? value.Substring(0, marker) : value; }
@@ -214,7 +214,7 @@ internal static class TaggedCodec {
     private static void WriteTag(StringBuilder builder, string tag, string? value, string lineEnding) { if (value == null) return; string prefix = tag.PadRight(4) + "- "; string[] lines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'); builder.Append(prefix).Append(lines[0]).Append(lineEnding); for (int index = 1; index < lines.Length; index++) builder.Append("      ").Append(lines[index]).Append(lineEnding); }
     private static void WritePages(StringBuilder builder, string? pages, string lineEnding) { if (string.IsNullOrWhiteSpace(pages)) return; string[] parts = pages!.Split(new[] { '-' }, 2); WriteTag(builder, "SP", parts[0], lineEnding); if (parts.Length > 1) WriteTag(builder, "EP", parts[1], lineEnding); }
     private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) { BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, issuedTag, CodecMappings.FormatDate(issued), lineEnding); BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed); if (accessed != null) WriteTag(builder, accessedTag, CodecMappings.FormatDate(accessed), lineEnding); }
-    private static void WriteRisIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "DO", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "SN", identifier.Value, lineEnding); else WriteTag(builder, "AN", identifier.Scheme + ":" + identifier.Value, lineEnding); }
+    private static void WriteRisIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "DO", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "SN", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "AN", identifier.Value.IndexOf(':') >= 0 ? "accession:" + identifier.Value : identifier.Value, lineEnding); else WriteTag(builder, "AN", identifier.Scheme + ":" + identifier.Value, lineEnding); }
     private static void WriteNbibIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) return; if (string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "IS", identifier.Value, lineEnding); else WriteTag(builder, "AID", identifier.Value + " [" + identifier.Scheme.ToLowerInvariant() + "]", lineEnding); }
     private static string CompactName(BibliographyName name) => string.IsNullOrWhiteSpace(name.Literal) ? ((name.Family ?? string.Empty) + " " + Initials(name.Given)).Trim() : name.Literal!;
     private static string Initials(string? value) => string.IsNullOrWhiteSpace(value) ? string.Empty : string.Concat(value!.Split(new[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries).Select(static part => part.Substring(0, 1)));

@@ -49,7 +49,7 @@ internal static class CslJsonCodec {
                 WriteNames(writer, item, BibliographyContributorRole.CollectionEditor, "collection-editor", report);
                 WriteDate(writer, item, BibliographyDateRole.Issued, "issued", report); WriteDate(writer, item, BibliographyDateRole.Accessed, "accessed", report);
                 WriteDate(writer, item, BibliographyDateRole.Submitted, "submitted", report); WriteDate(writer, item, BibliographyDateRole.Original, "original-date", report); WriteDate(writer, item, BibliographyDateRole.Event, "event-date", report);
-                foreach (IGrouping<string, BibliographyIdentifier> group in item.Identifiers.GroupBy(identifier => identifier.Scheme.ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)) WriteString(writer, group.Key, string.Join("; ", group.Select(static identifier => identifier.Value)));
+                foreach (IGrouping<string, BibliographyIdentifier> group in item.Identifiers.Where(identifier => CodecMappings.IsCslIdentifierScheme(identifier.Scheme)).GroupBy(identifier => identifier.Scheme.ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)) WriteString(writer, group.Key, string.Join("; ", group.Select(static identifier => identifier.Value)));
                 if (item.Keywords.Count > 0) writer.WriteString("keyword", string.Join(", ", item.Keywords));
                 if (item.Notes.Count > 0) writer.WriteString("note", string.Join("; ", item.Notes));
 

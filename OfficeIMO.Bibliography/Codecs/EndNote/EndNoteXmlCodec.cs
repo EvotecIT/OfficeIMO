@@ -67,11 +67,13 @@ internal static class EndNoteXmlCodec {
                 WriteElement(writer, "edition", item.Edition); WriteElement(writer, "publisher", item.Publisher); WriteElement(writer, "pub-location", item.PublisherPlace);
                 WriteElement(writer, "abstract", item.Abstract); WriteElement(writer, "language", item.Language); WriteDates(writer, item);
                 foreach (BibliographyIdentifier identifier in item.Identifiers) WriteIdentifier(writer, identifier);
-                if (!string.IsNullOrWhiteSpace(item.Url)) { writer.WriteStartElement("urls"); writer.WriteStartElement("related-urls"); WriteElement(writer, "url", item.Url); writer.WriteEndElement(); writer.WriteEndElement(); }
+                WriteUrls(writer, item, report);
                 if (item.Keywords.Count > 0) { writer.WriteStartElement("keywords"); foreach (string keyword in item.Keywords) WriteElement(writer, "keyword", keyword); writer.WriteEndElement(); }
                 if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", item.Notes));
                 foreach (BibliographyNativeField field in item.NativeFields) {
-                    if (field.Format == BibliographyFormat.EndNoteXml && !KnownRecordElements.Contains(field.Name) && TryWriteNativeField(writer, field)) {
+                    if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    } else if (field.Format == BibliographyFormat.EndNoteXml && !KnownRecordElements.Contains(field.Name) && TryWriteNativeField(writer, field)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
                     } else if (field.Format != BibliographyFormat.EndNoteXml) {
                         report.Add("BIBCONV115", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in EndNote XML.", BibliographyConversionAction.Omitted, item, field.Name);
@@ -100,7 +102,9 @@ internal static class EndNoteXmlCodec {
         foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "isbn")) AddIdentifier(item, CodecMappings.InferSerialScheme(identifier.Value), identifier.Value);
         foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "electronic-resource-num")) AddIdentifier(item, "DOI", identifier.Value);
         foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "accession-num")) ParseAccessionIdentifier(item, identifier.Value);
-        XElement? urls = Child(record, "urls"); item.Url = urls?.Descendants().FirstOrDefault(element => element.Name.LocalName == "url")?.Value;
+        XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => element.Name.LocalName == "url").ToArray() ?? Array.Empty<XElement>();
+        item.Url = relatedUrls.FirstOrDefault()?.Value;
+        foreach (XElement relatedUrl in relatedUrls.Skip(1)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, relatedUrl.ToString(SaveOptions.DisableFormatting)));
         XElement? keywords = Child(record, "keywords"); if (keywords != null) foreach (XElement keyword in keywords.Elements().Where(element => element.Name.LocalName == "keyword")) item.Keywords.Add(keyword.Value);
         string note = Value(record, "notes"); if (!string.IsNullOrWhiteSpace(note)) item.Notes.Add(note);
         foreach (XElement element in record.Elements()) {
@@ -144,6 +148,18 @@ internal static class EndNoteXmlCodec {
         BibliographyDate? date = item.GetDate(BibliographyDateRole.Issued); if (date == null) return;
         writer.WriteStartElement("dates"); if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture));
         string formatted = CodecMappings.FormatDate(date); if (!string.IsNullOrWhiteSpace(formatted)) { writer.WriteStartElement("pub-dates"); WriteElement(writer, "date", formatted); writer.WriteEndElement(); } writer.WriteEndElement();
+    }
+
+    private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report) {
+        BibliographyNativeField[] additionalUrls = item.NativeFields.Where(field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (string.IsNullOrWhiteSpace(item.Url) && additionalUrls.Length == 0) return;
+        writer.WriteStartElement("urls"); writer.WriteStartElement("related-urls");
+        WriteElement(writer, "url", item.Url);
+        foreach (BibliographyNativeField field in additionalUrls) {
+            if (TryWriteNativeField(writer, field)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
+            else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "An additional EndNote XML related URL is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "url");
+        }
+        writer.WriteEndElement(); writer.WriteEndElement();
     }
 
     private static void WriteIdentifier(XmlWriter writer, BibliographyIdentifier identifier) {

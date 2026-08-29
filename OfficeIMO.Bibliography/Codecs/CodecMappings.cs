@@ -14,7 +14,7 @@ internal static class CodecMappings {
             case "phdthesis": case "mastersthesis": case "thesis": case "thes": return BibliographyItemType.Thesis;
             case "webpage": case "web": case "web page": return BibliographyItemType.WebPage;
             case "dataset": case "data": return BibliographyItemType.Dataset;
-            case "software": case "computer program": return BibliographyItemType.Software;
+            case "software": case "computer program": case "comp": return BibliographyItemType.Software;
             case "patent": case "pat": return BibliographyItemType.Patent;
             case "legal_case": case "case": return BibliographyItemType.LegalCase;
             case "unpublished": case "manuscript": return BibliographyItemType.Manuscript;
@@ -101,6 +101,13 @@ internal static class CodecMappings {
     internal static void AddIdentifier(BibliographyItem item, string scheme, string? value) {
         if (!string.IsNullOrWhiteSpace(value)) item.Identifiers.Add(new BibliographyIdentifier(scheme, value!));
     }
+
+    internal static bool IsCslIdentifierScheme(string scheme) =>
+        string.Equals(scheme, "DOI", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(scheme, "ISBN", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(scheme, "ISSN", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(scheme, "PMID", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(scheme, "PMCID", StringComparison.OrdinalIgnoreCase);
 
     internal static string InferSerialScheme(string value) {
         string compact = new string(value.Where(char.IsLetterOrDigit).ToArray());

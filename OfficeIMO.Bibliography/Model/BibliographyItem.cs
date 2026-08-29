@@ -2,6 +2,8 @@ namespace OfficeIMO.Bibliography;
 
 /// <summary>A format-neutral citation-data record.</summary>
 public sealed class BibliographyItem {
+    internal IDictionary<string, string> BibFieldNames { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Stable citation key or source identifier.</summary>
     public string Key { get; set; } = string.Empty;
     /// <summary>Format-neutral item type.</summary>

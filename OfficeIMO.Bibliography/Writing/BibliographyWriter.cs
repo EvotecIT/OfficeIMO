@@ -87,17 +87,27 @@ internal static class BibliographyConversionInspector {
             foreach (BibliographyItem item in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key) && item.Key.Any(character => char.IsWhiteSpace(character) || character == ',' || character == '}')))
                 Loss(report, item, "key", "BIBCONV217", "The citation key contains characters that must be normalized for BibTeX output.", BibliographyConversionAction.Approximated);
         }
+        if (format == BibliographyFormat.Nbib) {
+            foreach (BibliographyItem item in document.Items) {
+                BibliographyIdentifier[] pmids = item.Identifiers.Where(static identifier => string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)).ToArray();
+                string? pmid = pmids.FirstOrDefault()?.Value;
+                if (string.IsNullOrWhiteSpace(pmid)) Loss(report, item, "identifiers.PMID", "BIBCONV223", "NBIB output uses the citation key as a PMID because the item has no PMID identifier.", BibliographyConversionAction.Approximated);
+                else if (!string.Equals(item.Key, pmid, StringComparison.Ordinal)) Loss(report, item, "key", "BIBCONV224", "NBIB represents PMID as its record identifier, so the distinct citation key is omitted.", BibliographyConversionAction.Omitted);
+                if (pmids.Length > 1) Loss(report, item, "identifiers.PMID", "BIBCONV227", "NBIB represents one PMID as record identity, so additional PMID identifiers are omitted.", BibliographyConversionAction.Omitted);
+            }
+        }
     }
 
     private static void InspectType(BibliographyItem item, BibliographyFormat sourceFormat, BibliographyFormat format, BibliographyConversionReport report) {
         bool exact;
-        bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && (sourceFormat == format || IsBibFamily(sourceFormat) && IsBibFamily(format));
+        bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
                 exact = sameFormatNativeType || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.Document;
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
-                exact = sameFormatNativeType && IsSafeBibType(item.NativeType) || item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Proceedings || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.Manuscript;
+                bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);
+                exact = hasNativeBibType ? BibCodec.CanPreserveNativeType(sourceFormat, format, item) : item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Proceedings || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.Manuscript;
                 break;
             case BibliographyFormat.Ris:
                 exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript && item.Type != BibliographyItemType.Document;
@@ -113,8 +123,6 @@ internal static class BibliographyConversionInspector {
         if (!exact) Loss(report, item, "type", "BIBCONV200", $"Item type '{item.Type}' is written using a broader {format} type.", BibliographyConversionAction.Approximated);
     }
 
-    private static bool IsBibFamily(BibliographyFormat format) => format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex;
-    private static bool IsSafeBibType(string? value) => !string.IsNullOrWhiteSpace(value) && value!.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':' || character == '.');
     private static bool IsSafeRisType(string? value) => !string.IsNullOrWhiteSpace(value) && value!.Length >= 2 && value.Length <= 6 && value.All(char.IsLetterOrDigit);
 
     private static void InspectContributors(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
@@ -129,6 +137,10 @@ internal static class BibliographyConversionInspector {
                 default: exact = false; break;
             }
             if (!exact) Loss(report, item, "contributors." + role, "BIBCONV201", $"Contributor role '{role}' is not represented exactly in {format}.", format == BibliographyFormat.EndNoteXml ? BibliographyConversionAction.Approximated : BibliographyConversionAction.Omitted);
+        }
+        if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
+            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !BibCodec.CanRoundTripStructuredName(contributor.Name)))
+                Loss(report, item, "contributors", "BIBCONV226", "A structured contributor particle does not follow BibTeX lowercase-particle syntax and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
         }
     }
 
@@ -175,7 +187,8 @@ internal static class BibliographyConversionInspector {
     private static void InspectIdentifiers(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
         if (format == BibliographyFormat.CslJson) {
             foreach (IGrouping<string, BibliographyIdentifier> group in item.Identifiers.GroupBy(static identifier => identifier.Scheme, StringComparer.OrdinalIgnoreCase)) {
-                if (group.Count() > 1) Loss(report, item, "identifiers." + group.Key, "BIBCONV206", $"Multiple '{group.Key}' identifiers collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
+                if (!CodecMappings.IsCslIdentifierScheme(group.Key)) Loss(report, item, "identifiers." + group.Key, "BIBCONV225", $"Identifier scheme '{group.Key}' is not represented by the typed CSL JSON model.", BibliographyConversionAction.Omitted);
+                else if (group.Count() > 1) Loss(report, item, "identifiers." + group.Key, "BIBCONV206", $"Multiple '{group.Key}' identifiers collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
             }
         }
         if (format != BibliographyFormat.EndNoteXml) return;
@@ -187,7 +200,7 @@ internal static class BibliographyConversionInspector {
 
     private static void InspectRepeatableValues(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
         if (item.Notes.Count > 1 && format != BibliographyFormat.Ris && format != BibliographyFormat.Nbib) Loss(report, item, "notes", "BIBCONV207", $"Multiple notes collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
-        if (item.Keywords.Count > 1 && (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex || format == BibliographyFormat.CslJson)) Loss(report, item, "keywords", "BIBCONV208", $"Multiple keywords collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
+        if (item.Keywords.Count > 1 && format == BibliographyFormat.CslJson) Loss(report, item, "keywords", "BIBCONV208", $"Multiple keywords collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
     }
 
     private static void InspectTextEncoding(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
