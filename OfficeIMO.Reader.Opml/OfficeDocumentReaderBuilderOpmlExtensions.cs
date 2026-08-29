@@ -15,6 +15,7 @@ public static class OfficeDocumentReaderBuilderOpmlExtensions {
             Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "OPML Reader Adapter",
             Description = "Bounded OPML adapter backed by the lossless OfficeIMO.Opml engine.", Kind = ReaderInputKind.Opml,
             Extensions = new[] { ".opml" },
+            DefaultMaxInputBytes = registered.ReadOptions.MaxInputBytes,
             ReadPath = (path, reader, token) => OpmlReaderAdapter.Read(path, reader, ReaderOpmlOptionsCloner.Clone(registered), token),
             ReadStream = (stream, name, reader, token) => OpmlReaderAdapter.Read(stream, name, reader, ReaderOpmlOptionsCloner.Clone(registered), token),
             WarningBehavior = ReaderWarningBehavior.WarningChunksOnly, DeterministicOutput = true

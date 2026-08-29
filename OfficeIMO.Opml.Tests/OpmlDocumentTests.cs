@@ -152,4 +152,18 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML206");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML207");
     }
+
+    [Fact]
+    public void SharedConversionReportsNonOutlineKindNormalization() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "paragraph", Text = "Body" } }
+        };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML104");
+        Assert.Equal("Body", converted.Value.Outlines.Single().Text);
+    }
 }

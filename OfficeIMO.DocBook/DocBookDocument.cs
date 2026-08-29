@@ -134,7 +134,8 @@ public sealed partial class DocBookDocument {
                 $"The document declares DocBook '{version ?? "unspecified"}'; OfficeIMO writes and validates the exact 5.2 common-structure profile.", "/" + rootName + "/@version"));
         } else if (RootElement.Name.NamespaceName.Length != 0) {
             diagnostics.Add(new DocBookDiagnostic("DB004", DocBookDiagnosticSeverity.Error, "DocBook 4.5 elements must be unqualified.", "/" + rootName));
-        } else if (_xml.DocumentType == null || _xml.DocumentType.PublicId != DocBookSchemaProfiles.DocBook45.DtdPublicId ||
+        } else if (_xml.DocumentType == null || _xml.DocumentType.Name != rootName ||
+                   _xml.DocumentType.PublicId != DocBookSchemaProfiles.DocBook45.DtdPublicId ||
                    _xml.DocumentType.SystemId != DocBookSchemaProfiles.DocBook45.DtdSystemId) {
             diagnostics.Add(new DocBookDiagnostic("DB005", DocBookDiagnosticSeverity.Warning,
                 "The document is read using the 4.5 common-structure profile but does not declare the exact DocBook XML 4.5 DTD identifiers.", "/" + rootName));
@@ -148,7 +149,8 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB010", DocBookDiagnosticSeverity.Info,
                     $"Extension element '{element.Name}' is preserved but is outside the typed common-structure API.", path));
             }
-            if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Table || kind == DocBookNodeKind.Figure) &&
+            if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
+                 kind == DocBookNodeKind.Table && element.Name.LocalName == "table") &&
                 !element.Elements(Namespace + "title").Any()) {
                 diagnostics.Add(new DocBookDiagnostic("DB011", DocBookDiagnosticSeverity.Warning,
                     $"{element.Name.LocalName} has no title in the bounded common-structure profile.", path));

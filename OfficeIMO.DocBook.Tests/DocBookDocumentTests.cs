@@ -88,10 +88,14 @@ public sealed class DocBookDocumentTests {
 
     [Fact]
     public void SharedModelPreservesInformalTablesAndMixedCodeWhitespace() {
-        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup><tbody><row><entry>V</entry></row></tbody></tgroup></informaltable><programlisting>before <emphasis>inside</emphasis> after</programlisting><screen>left <replaceable>value</replaceable> right</screen></article>";
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup><thead><row><entry>Name</entry><entry>Value</entry></row></thead><tbody><row><entry>A</entry><entry>1</entry></row></tbody></tgroup></informaltable><programlisting>before <emphasis>inside</emphasis> after</programlisting><screen>left <replaceable>value</replaceable> right</screen></article>";
         OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
 
         Assert.Equal("informal-table", model.Structure[0].Kind);
+        OfficeDocumentModelTable table = Assert.Single(model.Tables);
+        Assert.Equal("informaltable", table.Kind);
+        Assert.Equal(new[] { "Name", "Value" }, table.Columns);
+        Assert.Equal(new[] { "A", "1" }, Assert.Single(table.Rows));
         DocBookDocument restored = DocBookDocument.FromOfficeDocumentModel(model).Value;
         Assert.Contains(restored.Xml.Descendants(), element => element.Name.LocalName == "informaltable");
         XElement listing = restored.Xml.Descendants().Single(element => element.Name.LocalName == "programlisting");
@@ -122,6 +126,37 @@ public sealed class DocBookDocumentTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB110");
     }
 
+    [Theory]
+    [InlineData("<article><para>P</para></article>")]
+    [InlineData("<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para>P</para></article>")]
+    public void SharedConversionReportsDocBookFourDoctypeNormalization(string source) {
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB107");
+        XDocumentType restored = Assert.IsType<XDocumentType>(
+            DocBookDocument.FromOfficeDocumentModel(converted.Value).Value.Xml.DocumentType);
+        Assert.Equal("article", restored.Name);
+        Assert.Equal(DocBookSchemaProfiles.DocBook45.DtdPublicId, restored.PublicId);
+        Assert.Equal(DocBookSchemaProfiles.DocBook45.DtdSystemId, restored.SystemId);
+    }
+
+    [Fact]
+    public void SharedTableProjectionAlignsCalsSpansAndConsumesAllHeaderRows() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"3\"><colspec colname=\"c1\"/><colspec colname=\"c2\"/><colspec colname=\"c3\"/><thead><row><entry namest=\"c1\" nameend=\"c2\">Group</entry><entry>C</entry></row><row><entry>A</entry><entry>B</entry><entry>C2</entry></row></thead><tbody><row><entry namest=\"c1\" nameend=\"c2\">Wide</entry><entry>Last</entry></row><row><entry morerows=\"1\">Tall</entry><entry>R1B</entry><entry>R1C</entry></row><row><entry>R2B</entry><entry>R2C</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB112");
+        Assert.Equal(new[] { "Group / A", "B", "C / C2" }, table.Columns);
+        Assert.Equal(new[] { "Wide", "", "Last" }, table.Rows[0]);
+        Assert.Equal(new[] { "Tall", "R1B", "R1C" }, table.Rows[1]);
+        Assert.Equal(new[] { "", "R2B", "R2C" }, table.Rows[2]);
+        Assert.Equal(3, table.TotalRowCount);
+    }
+
     [Fact]
     public void SharedConversionKeepsNamespacedLookalikeExtensionsAndDocBook4Ulink() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:section x:flag=\"yes\">Extension</x:section></article>";
@@ -140,6 +175,36 @@ public sealed class DocBookDocumentTests {
             DocBookProfile.DocBook45).Value;
         Assert.Contains("<ulink", roundTripped.ToDocBook());
         Assert.Contains("url=\"https://example.test\"", roundTripped.ToDocBook());
+    }
+
+    [Fact]
+    public void ProfileConversionTranslatesExternalLinkElementAndAttribute() {
+        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><link xl:href=\"https://example.test/five\">Five</link></para></article>";
+        DocBookDocument asFour = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,
+            profile: DocBookProfile.DocBook45).Value;
+        XElement fourLink = asFour.Xml.Descendants().Single(element => element.Name.LocalName == "ulink");
+        Assert.Equal("https://example.test/five", (string?)fourLink.Attribute("url"));
+        Assert.Null(fourLink.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink")));
+
+        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para><ulink url=\"https://example.test/four\">Four</ulink></para></article>";
+        DocBookDocument asFive = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(docBookFour).ToOfficeDocumentModel().Value,
+            profile: DocBookProfile.DocBook52).Value;
+        XElement fiveLink = asFive.Xml.Descendants().Single(element => element.Name.LocalName == "link");
+        Assert.Equal("https://example.test/four", (string?)fiveLink.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink")));
+        Assert.Null(fiveLink.Attribute("url"));
+    }
+
+    [Fact]
+    public void PrimaryTitleLookupIgnoresNamespacedExtensionTitles() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><section><x:title>Extension</x:title><para>Body</para></section></article>";
+
+        OfficeDocumentModelNode section = Assert.Single(DocBookDocument.Parse(source).ToOfficeDocumentModel().Value.Structure);
+
+        Assert.Equal("section", section.Kind);
+        Assert.Equal(string.Empty, section.Text);
+        Assert.Contains(section.Children, child => child.Kind == "extension:{urn:test}title" && child.Text == "Extension");
     }
 
     [Fact]
@@ -203,6 +268,18 @@ public sealed class DocBookDocumentTests {
 
         DocBookDocument undeclared = DocBookDocument.Parse("<article><para>P</para></article>");
         Assert.Contains(undeclared.Validate().Diagnostics, d => d.Code == "DB005");
+
+        DocBookDocument wrongRoot = DocBookDocument.Parse(
+            "<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para>P</para></article>");
+        Assert.Contains(wrongRoot.Validate().Diagnostics, d => d.Code == "DB005");
+    }
+
+    [Fact]
+    public void InformalTableDoesNotRequireATitle() {
+        DocBookDocument document = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup><tbody><row><entry>V</entry></row></tbody></tgroup></informaltable></article>");
+
+        Assert.DoesNotContain(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB011");
     }
 
     [Fact]

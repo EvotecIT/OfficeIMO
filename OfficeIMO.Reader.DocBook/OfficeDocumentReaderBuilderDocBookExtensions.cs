@@ -15,6 +15,7 @@ public static class OfficeDocumentReaderBuilderDocBookExtensions {
             Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "DocBook Reader Adapter",
             Description = "Bounded DocBook adapter backed by the source-preserving OfficeIMO.DocBook engine.", Kind = ReaderInputKind.DocBook,
             Extensions = new[] { ".dbk", ".docbook" },
+            DefaultMaxInputBytes = registered.ReadOptions.MaxInputBytes,
             ReadPath = (path, reader, token) => DocBookReaderAdapter.Read(path, reader, ReaderDocBookOptionsCloner.Clone(registered), token),
             ReadStream = (stream, name, reader, token) => DocBookReaderAdapter.Read(stream, name, reader, ReaderDocBookOptionsCloner.Clone(registered), token),
             WarningBehavior = ReaderWarningBehavior.WarningChunksOnly, DeterministicOutput = true

@@ -537,7 +537,7 @@ internal static partial class DocumentReaderEngine {
             lower.StartsWith("<html", StringComparison.Ordinal)) {
             return DetectionCandidate.High(ReaderInputKind.Html, "text/html", "text:html-root");
         }
-        string xmlProbe = trimmed.Length > 4096 ? trimmed.Substring(0, 4096) : trimmed;
+        string xmlProbe = trimmed;
         if (TryGetXmlRoot(xmlProbe, out string qualifiedRootName, out string rootTag, out string xmlDocumentType)) {
             int prefixSeparator = qualifiedRootName.IndexOf(':');
             string localRootName = prefixSeparator >= 0 ? qualifiedRootName.Substring(prefixSeparator + 1) : qualifiedRootName;

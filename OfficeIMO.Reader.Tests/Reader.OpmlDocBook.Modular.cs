@@ -125,11 +125,40 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook, "renamed.bin", options).Kind);
     }
 
+    [Fact]
+    public void ContentDetectionScansTheConfiguredXmlProbeForDelayedRoots() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+        string prefix = "<!--" + new string('x', 6_000) + "-->";
+        var options = new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent, MaxProbeBytes = 8_192 };
+
+        Assert.Equal(ReaderInputKind.Opml, reader.Detect(
+            Encoding.UTF8.GetBytes(prefix + "<opml version=\"2.0\"><head/><body/></opml>"), "renamed.bin", options).Kind);
+        Assert.Equal(ReaderInputKind.DocBook, reader.Detect(
+            Encoding.UTF8.GetBytes(prefix + "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"/>"), "renamed.bin", options).Kind);
+    }
+
     [Theory]
     [InlineData(ReaderInputKind.Opml, OfficeDocumentFormat.Opml)]
     [InlineData(ReaderInputKind.DocBook, OfficeDocumentFormat.DocBook)]
     public void PdfBridgeRetainsNewReaderFormats(ReaderInputKind readerKind, OfficeDocumentFormat expectedFormat) {
         Assert.Equal(expectedFormat, OfficeDocumentReadResultPdfExtensions.MapFormat(readerKind));
+    }
+
+    [Fact]
+    public void RegistrationsPublishNativeLimitsBeforeSnapshottingStreams() {
+        var opmlOptions = new ReaderOpmlOptions { ReadOptions = new OpmlReadOptions { MaxInputBytes = 8 } };
+        OfficeDocumentReader opmlReader = new OfficeDocumentReaderBuilder().AddOpmlHandler(opmlOptions).Build();
+        Assert.Equal(8, opmlReader.GetHandlerDefaultMaxInputBytes("input.opml"));
+        using var opmlStream = new global::OfficeIMO.Tests.NonSeekableReadStream(new byte[9]);
+        IOException opmlException = Assert.Throws<IOException>(() => opmlReader.ReadDocument(opmlStream, "input.opml"));
+        Assert.Contains("MaxInputBytes", opmlException.Message, StringComparison.Ordinal);
+
+        var docBookOptions = new ReaderDocBookOptions { ReadOptions = new DocBookReadOptions { MaxInputBytes = 12 } };
+        OfficeDocumentReader docBookReader = new OfficeDocumentReaderBuilder().AddDocBookHandler(docBookOptions).Build();
+        Assert.Equal(12, docBookReader.GetHandlerDefaultMaxInputBytes("input.docbook"));
+        using var docBookStream = new global::OfficeIMO.Tests.NonSeekableReadStream(new byte[13]);
+        IOException docBookException = Assert.Throws<IOException>(() => docBookReader.ReadDocument(docBookStream, "input.docbook"));
+        Assert.Contains("MaxInputBytes", docBookException.Message, StringComparison.Ordinal);
     }
 
     [Fact]

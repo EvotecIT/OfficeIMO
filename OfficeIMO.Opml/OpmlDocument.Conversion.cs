@@ -103,6 +103,10 @@ public sealed partial class OpmlDocument {
         }
 
         void Add(OfficeDocumentModelNode node, OpmlOutline? parent) {
+            if (!string.Equals(node.Kind, "outline", StringComparison.OrdinalIgnoreCase)) {
+                diagnostics.Add(new OpmlDiagnostic("OPML104", OpmlDiagnosticSeverity.Warning,
+                    $"Shared node kind '{node.Kind}' was normalized to an OPML outline.", node.Location.HeadingPath));
+            }
             OpmlOutline outline = parent == null ? document.AddOutline(node.Text) : parent.AddChild(node.Text);
             foreach (KeyValuePair<string, string> attribute in node.Attributes) {
                 try { outline.SetAttribute(XName.Get(attribute.Key), attribute.Value); } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
