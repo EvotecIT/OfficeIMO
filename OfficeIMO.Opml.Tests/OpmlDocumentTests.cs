@@ -156,7 +156,7 @@ public sealed class OpmlDocumentTests {
 
     [Fact]
     public void SharedConversionReportsNativeOnlyExtensionContent() {
-        OpmlDocument document = OpmlDocument.Parse("<opml version=\"2.0\" custom=\"x\">root-text<head>head-text</head><body>body-text<!--native--><outline text=\"A\">outline-text<extra/></outline><body-extension/></body><root-extension/></opml>");
+        OpmlDocument document = OpmlDocument.Parse("<opml version=\"2.0\" custom=\"x\" xmlns:x=\"urn:test\">root-text<head x:flag=\"head\">head-text</head><body x:flag=\"body\">body-text<!--native--><outline text=\"A\">outline-text<extra/></outline><body-extension/></body><root-extension/></opml>");
         OpmlConversionResult<OfficeDocumentModel> result = document.ToOfficeDocumentModel();
         Assert.True(result.HasLoss);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML200");
@@ -166,6 +166,8 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML205");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML206");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML207");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML208" && diagnostic.Path == "/opml/head");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML209" && diagnostic.Path == "/opml/body");
     }
 
     [Fact]

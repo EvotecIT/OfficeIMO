@@ -49,8 +49,15 @@ internal static partial class OpmlReaderAdapter {
 
     private static IEnumerable<ReaderChunk> BuildChunks(OpmlDocument document, string sourceName, ReaderOptions reader, IReadOnlyList<string>? warnings, CancellationToken cancellationToken) {
         int sourceIndex = 0, emittedIndex = 0;
+        bool warningsAttached = false;
         foreach (OpmlOutline root in document.Outlines) {
             foreach (ReaderChunk chunk in BuildOutline(root, 1, string.Empty)) yield return chunk;
+        }
+
+        IReadOnlyList<string>? TakeWarnings() {
+            if (warningsAttached || warnings == null) return null;
+            warningsAttached = true;
+            return warnings;
         }
 
         IEnumerable<ReaderChunk> BuildOutline(OpmlOutline outline, int level, string parentPath) {
@@ -65,7 +72,7 @@ internal static partial class OpmlReaderAdapter {
                     Kind = ReaderInputKind.Opml, Text = parts[part], Markdown = new string('#', Math.Min(level, 6)) + " " + parts[part],
                     Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                         HeadingPath = headingPath, SourceBlockKind = "outline", BlockAnchor = "opml-outline-" + currentSource },
-                    Diagnostics = new ReaderChunkDiagnostics { SourceKind = "opml" }, Warnings = warnings
+                    Diagnostics = new ReaderChunkDiagnostics { SourceKind = "opml" }, Warnings = TakeWarnings()
                 };
             }
             foreach (OpmlOutline child in outline.Children) foreach (ReaderChunk chunk in BuildOutline(child, level + 1, headingPath)) yield return chunk;

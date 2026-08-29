@@ -49,6 +49,7 @@ internal static partial class DocBookReaderAdapter {
     private static IEnumerable<ReaderChunk> BuildChunks(OfficeDocumentModel model, string sourceName, ReaderOptions reader, IReadOnlyList<string>? warnings, CancellationToken cancellationToken) {
         ReaderTable[] tables = model.Tables.Select(table => MapTable(table, reader.MaxTableRows, sourceName)).ToArray();
         bool tablesAttached = false;
+        bool warningsAttached = false;
         int sourceIndex = 0, emittedIndex = 0;
         foreach (OfficeDocumentModelNode root in model.Structure) {
             foreach (ReaderChunk chunk in BuildNode(root)) {
@@ -68,8 +69,14 @@ internal static partial class DocBookReaderAdapter {
                 Tables = tables,
                 Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex, SourceBlockKind = "table" },
                 Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook", TableCount = tables.Length },
-                Warnings = warnings
+                Warnings = TakeWarnings()
             };
+        }
+
+        IReadOnlyList<string>? TakeWarnings() {
+            if (warningsAttached || warnings == null) return null;
+            warningsAttached = true;
+            return warnings;
         }
 
         IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node) {
@@ -86,7 +93,7 @@ internal static partial class DocBookReaderAdapter {
                         Kind = ReaderInputKind.DocBook, Text = parts[part], Markdown = markdown,
                         Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                             HeadingPath = node.Location.HeadingPath, SourceBlockKind = node.Kind, BlockAnchor = "docbook-node-" + currentSource },
-                        Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" }, Warnings = warnings
+                        Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" }, Warnings = TakeWarnings()
                     };
                 }
             }

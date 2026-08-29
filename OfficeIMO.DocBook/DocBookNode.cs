@@ -96,7 +96,9 @@ public sealed class DocBookNode {
     public DocBookNode Add(DocBookNodeKind kind, string? text = null) {
         if (kind == DocBookNodeKind.Unknown) throw new ArgumentOutOfRangeException(nameof(kind));
         if (kind == DocBookNodeKind.Info && _document.Profile == DocBookProfile.DocBook45) {
-            return AddRaw(_document.Kind == DocBookDocumentKind.Article ? "articleinfo" : "bookinfo", text);
+            return AddRaw(Kind == DocBookNodeKind.Section
+                ? "sectioninfo"
+                : _document.Kind == DocBookDocumentKind.Article ? "articleinfo" : "bookinfo", text);
         }
         return AddRaw(DocBookNames.GetElementName(kind), text);
     }
@@ -132,6 +134,7 @@ internal static class DocBookNames {
         ["info"] = DocBookNodeKind.Info,
         ["articleinfo"] = DocBookNodeKind.Info,
         ["bookinfo"] = DocBookNodeKind.Info,
+        ["sectioninfo"] = DocBookNodeKind.Info,
         ["title"] = DocBookNodeKind.Title,
         ["subtitle"] = DocBookNodeKind.Subtitle,
         ["author"] = DocBookNodeKind.Author,

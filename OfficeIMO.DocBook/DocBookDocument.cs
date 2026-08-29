@@ -151,8 +151,8 @@ public sealed partial class DocBookDocument {
                     $"Extension element '{element.Name}' is preserved but is outside the typed common-structure API.", path));
             }
             if (element != RootElement && element.Name.Namespace == Namespace &&
-                (Profile == DocBookProfile.DocBook52 &&
-                 (localName == "ulink" || localName == "articleinfo" || localName == "bookinfo" ||
+                 (Profile == DocBookProfile.DocBook52 &&
+                 (localName == "ulink" || localName == "articleinfo" || localName == "bookinfo" || localName == "sectioninfo" ||
                   localName == "sect1" || localName == "sect2" || localName == "sect3" || localName == "sect4" || localName == "sect5") ||
                  Profile == DocBookProfile.DocBook45 && localName == "info")) {
                 diagnostics.Add(new DocBookDiagnostic("DB014", DocBookDiagnosticSeverity.Error,

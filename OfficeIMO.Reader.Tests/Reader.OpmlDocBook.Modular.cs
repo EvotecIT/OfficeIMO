@@ -70,6 +70,26 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void OpmlAdapterAttachesDocumentWarningsToOnlyOneChunk() {
+        const string source = "<opml version=\"9.0\"><head/><body><outline text=\"One\"/><outline text=\"Two\"/></body></opml>";
+
+        ReaderChunk[] chunks = OpmlReaderAdapter.Read(OpmlDocument.Parse(source)).ToArray();
+
+        Assert.Equal(2, chunks.Length);
+        Assert.Single(chunks, chunk => chunk.Warnings?.Count > 0);
+    }
+
+    [Fact]
+    public void DocBookAdapterAttachesDocumentWarningsToOnlyOneChunk() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">Link</ulink><para>One</para><para>Two</para></article>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
+
+        Assert.True(chunks.Length > 1);
+        Assert.Single(chunks, chunk => chunk.Warnings?.Count > 0);
+    }
+
+    [Fact]
     public void AllPresetIncludesBothBoundedAdapters() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
         Assert.Contains(reader.GetCapabilities(), capability => capability.Id == "officeimo.reader.opml");

@@ -2,6 +2,12 @@
 
 `OfficeIMO.Reader.Opml` registers deterministic `.opml` ingestion backed by the lossless, bounded `OfficeIMO.Opml` package.
 
+## Install
+
+```shell
+dotnet add package OfficeIMO.Reader.Opml
+```
+
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Opml;

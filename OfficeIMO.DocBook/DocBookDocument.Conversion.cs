@@ -67,7 +67,8 @@ public sealed partial class DocBookDocument {
                 (element.Name.LocalName == "simpara" || element.Name.LocalName == "sect1" || element.Name.LocalName == "sect2" ||
                  element.Name.LocalName == "sect3" || element.Name.LocalName == "sect4" || element.Name.LocalName == "sect5" ||
                  (Profile == DocBookProfile.DocBook52 &&
-                    (element.Name.LocalName == "ulink" || element.Name.LocalName == "articleinfo" || element.Name.LocalName == "bookinfo")) ||
+                    (element.Name.LocalName == "ulink" || element.Name.LocalName == "articleinfo" || element.Name.LocalName == "bookinfo" ||
+                     element.Name.LocalName == "sectioninfo")) ||
                  (Profile == DocBookProfile.DocBook45 && element.Name.LocalName == "info"))) {
                 diagnostics.Add(new DocBookDiagnostic("DB115", DocBookDiagnosticSeverity.Warning,
                     $"Native element '{element.Name.LocalName}' is canonicalized by shared-model reconstruction.", path));
@@ -132,13 +133,17 @@ public sealed partial class DocBookDocument {
                 ? int.MaxValue : options.MaxTableRows * 2 + 1;
             var rowElements = new List<XElement>(Math.Min(discoveryCapacity, 4_096));
             bool rowDiscoveryTruncated = false;
+            int totalBodyRows = 0;
             foreach (XElement element in tableElement.Descendants()) {
                 if (DocBookNames.GetKind(element.Name, Namespace) != DocBookNodeKind.Row ||
                     !ReferenceEquals(element.Ancestors().FirstOrDefault(ancestor =>
                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Table), tableElement)) continue;
+                bool isHeader = element.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
+                    DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableHead);
+                if (!isHeader) totalBodyRows++;
                 if (rowElements.Count >= discoveryCapacity) {
                     rowDiscoveryTruncated = true;
-                    break;
+                    continue;
                 }
                 rowElements.Add(element);
             }
@@ -148,7 +153,6 @@ public sealed partial class DocBookDocument {
             int columnCount = 0;
             bool flattenedCalsLayout = false;
             bool projectionTruncated = rowDiscoveryTruncated;
-            int totalBodyRows = 0;
             int bodyRowsProjected = 0;
             int headerRowsProjected = 0;
 
@@ -161,7 +165,6 @@ public sealed partial class DocBookDocument {
                         continue;
                     }
                 } else {
-                    totalBodyRows++;
                     if (++bodyRowsProjected > options.MaxTableRows) {
                         projectionTruncated = true;
                         continue;
@@ -446,10 +449,9 @@ public sealed partial class DocBookDocument {
         }
 
         if (model.Structure.Count > 0) {
-            bool hasMetadata = model.Structure.Any(node => string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase));
-            bool hasRootTitle = model.Structure.Any(node => string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase));
-            if (!hasMetadata && !hasRootTitle) document.Title = model.Source.Title;
+            bool hasTitle = model.Structure.Any(ContainsTitle);
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
+            if (!hasTitle) document.Title = model.Source.Title;
         } else {
             document.Title = model.Source.Title;
             diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
@@ -457,6 +459,9 @@ public sealed partial class DocBookDocument {
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
         }
         return new DocBookConversionResult<DocBookDocument>(document, diagnostics);
+
+        static bool ContainsTitle(OfficeDocumentModelNode node) =>
+            string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsTitle);
     }
 
     private static string GetPrimaryText(XElement element, DocBookNodeKind kind) {
@@ -548,7 +553,8 @@ public sealed partial class DocBookDocument {
 
     private static bool NodeAcceptsDirectText(DocBookNodeKind kind) =>
         kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle || kind == DocBookNodeKind.Paragraph ||
-        kind == DocBookNodeKind.ProgramListing || kind == DocBookNodeKind.Screen || kind == DocBookNodeKind.Entry || kind == DocBookNodeKind.Link;
+        kind == DocBookNodeKind.ProgramListing || kind == DocBookNodeKind.Screen || kind == DocBookNodeKind.Entry ||
+        kind == DocBookNodeKind.Link || kind == DocBookNodeKind.Author;
 
     private static string SanitizeRole(string value) => new string((value ?? "unknown").Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '-').ToArray());
 

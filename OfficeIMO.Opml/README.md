@@ -2,6 +2,12 @@
 
 `OfficeIMO.Opml` creates, reads, edits, validates, converts, and writes OPML 1.0 and 2.0 documents without a third-party parser. A declared OPML 1.1 document is read using the 1.0 profile, as specified by OPML 2.0.
 
+## Install
+
+```shell
+dotnet add package OfficeIMO.Opml
+```
+
 ```csharp
 using OfficeIMO.Opml;
 

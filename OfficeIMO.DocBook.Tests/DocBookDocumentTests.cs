@@ -158,6 +158,23 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedTableProjectionReportsExactTotalBeyondProjectionCapacity() {
+        string rows = string.Concat(Enumerable.Range(1, 10)
+            .Select(index => $"<row><entry>Row {index}</entry></row>"));
+        string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup><tbody>" +
+            rows + "</tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableRows = 1 });
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal(10, table.TotalRowCount);
+        Assert.Single(table.Rows);
+        Assert.True(table.Truncated);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB113");
+    }
+
+    [Fact]
     public void SharedConversionKeepsNamespacedLookalikeExtensionsAndDocBook4Ulink() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:section x:flag=\"yes\">Extension</x:section></article>";
         DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
@@ -313,6 +330,7 @@ public sealed class DocBookDocumentTests {
 
     [Theory]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">X</ulink></article>", "DB014")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><sectioninfo/></section></article>", "DB014")]
     [InlineData("<article><info><title>T</title></info></article>", "DB014")]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><entry>X</entry></article>", "DB015")]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:row><entry>X</entry></x:row></article>", "DB015")]
@@ -354,6 +372,41 @@ public sealed class DocBookDocumentTests {
             "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><info><title>T</title></info></article>")
             .ToOfficeDocumentModel();
         Assert.Contains(docBookFourAlias.Diagnostics, diagnostic => diagnostic.Code == "DB115");
+    }
+
+    [Fact]
+    public void SharedConversionUsesSourceTitleWhenMetadataContainsOnlyAuthor() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Source = new OfficeDocumentModelSource { Title = "Guide" },
+            Structure = new[] {
+                new OfficeDocumentModelNode {
+                    Kind = "metadata",
+                    Children = new[] { new OfficeDocumentModelNode { Kind = "author", Text = "Jane Doe" } }
+                }
+            }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+
+        Assert.Equal("Guide", converted.Title);
+        Assert.Equal("Jane Doe", converted.Xml.Descendants().Single(element => element.Name.LocalName == "author").Value);
+        Assert.Single(converted.Xml.Root!.Elements(), element => element.Name.LocalName == "info");
+    }
+
+    [Fact]
+    public void DocBookFourUsesSectionInfoForTypedSectionMetadata() {
+        DocBookDocument created = DocBookDocument.CreateArticle(DocBookProfile.DocBook45);
+        DocBookNode sectionInfo = created.AddSection("Section").Add(DocBookNodeKind.Info);
+        Assert.Equal("sectioninfo", sectionInfo.Name);
+        Assert.Equal(DocBookNodeKind.Info, DocBookDocument.Parse(created.ToDocBook()).Root.Children
+            .Single(node => node.Kind == DocBookNodeKind.Section).Children.Single(node => node.Name == "sectioninfo").Kind);
+
+        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Section</title><info><author>Jane Doe</author></info></section></article>";
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,
+            profile: DocBookProfile.DocBook45).Value;
+        Assert.Contains(converted.Xml.Descendants(), element => element.Name.LocalName == "sectioninfo");
     }
 
     [Fact]

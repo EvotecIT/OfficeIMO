@@ -2,6 +2,12 @@
 
 `OfficeIMO.Reader.DocBook` registers deterministic `.dbk` and `.docbook` ingestion backed by the source-preserving, bounded `OfficeIMO.DocBook` package. Generic `.xml` remains routed to `OfficeIMO.Reader.Xml`.
 
+## Install
+
+```shell
+dotnet add package OfficeIMO.Reader.DocBook
+```
+
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.DocBook;

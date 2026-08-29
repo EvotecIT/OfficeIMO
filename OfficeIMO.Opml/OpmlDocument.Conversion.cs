@@ -174,6 +174,14 @@ public sealed partial class OpmlDocument {
             diagnostics.Add(new OpmlDiagnostic("OPML202", OpmlDiagnosticSeverity.Warning,
                 "OPML root extension attributes remain native but are not represented by the shared document model.", "/opml"));
         }
+        if (HeadElement.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration)) {
+            diagnostics.Add(new OpmlDiagnostic("OPML208", OpmlDiagnosticSeverity.Warning,
+                "OPML head extension attributes remain native but are not represented by shared metadata.", "/opml/head"));
+        }
+        if (BodyElement.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration)) {
+            diagnostics.Add(new OpmlDiagnostic("OPML209", OpmlDiagnosticSeverity.Warning,
+                "OPML body extension attributes remain native but are not represented by the shared outline model.", "/opml/body"));
+        }
         if (BodyElement.Elements().Any(element => element.Name != "outline")) {
             diagnostics.Add(new OpmlDiagnostic("OPML203", OpmlDiagnosticSeverity.Warning,
                 "OPML body extension elements remain native but are not represented by the shared outline model.", "/opml/body"));

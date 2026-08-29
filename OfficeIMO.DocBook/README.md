@@ -2,6 +2,12 @@
 
 `OfficeIMO.DocBook` creates, reads, edits, validates, converts, and writes a bounded common-structure profile of DocBook 4 and 5. It prioritizes articles, books, metadata, sections, paragraphs, lists, CALS-shaped tables, code, links, cross-references, admonitions, media, and indexes. It does not claim a typed object for every DocBook or extension element.
 
+## Install
+
+```shell
+dotnet add package OfficeIMO.DocBook
+```
+
 ```csharp
 using OfficeIMO.DocBook;
 
