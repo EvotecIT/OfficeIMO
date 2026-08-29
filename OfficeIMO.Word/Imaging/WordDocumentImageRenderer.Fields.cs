@@ -65,6 +65,21 @@ namespace OfficeIMO.Word {
             return caps ? WordCapsStyle.Caps : smallCaps ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
         }
 
+        private static WordVerticalTextPosition? ResolveImageExportVerticalTextAlignment(WordParagraph paragraph) {
+            RunProperties? direct = paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
+            VerticalPositionValues? directValue = direct?.VerticalTextAlignment?.Val?.Value;
+            if (directValue.HasValue) return directValue.Value.ToOfficeEnum();
+
+            foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
+                VerticalPositionValues? styleValue = properties.VerticalTextAlignment?.Val?.Value;
+                if (styleValue.HasValue) return styleValue.Value.ToOfficeEnum();
+            }
+
+            VerticalPositionValues? defaultValue = ResolveDocumentDefaultRunProperties(paragraph)?
+                .GetFirstChild<VerticalTextAlignment>()?.Val?.Value;
+            return defaultValue?.ToOfficeEnum();
+        }
+
         private static bool ResolveImageExportOnOff<T>(
             T? direct,
             WordParagraph paragraph) where T : OnOffType {

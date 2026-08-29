@@ -98,4 +98,45 @@ public sealed class WordPdfTextFormattingTests {
         Assert.Equal(OfficeTextDecorationStyle.Wavy, tableRunStyle.GetType().GetProperty("UnderlineStyle")!.GetValue(tableRunStyle));
         Assert.Equal(OfficeTextDecorationStyle.Double, tableRunStyle.GetType().GetProperty("StrikeStyle")!.GetValue(tableRunStyle));
     }
+
+    [Fact]
+    public void ImageRichTextResolvesInheritedScriptAndDirectBaselineOverrides() {
+        using WordDocument document = WordDocument.Create();
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(
+            new Style(
+                new StyleName { Val = "Superscript paragraph" },
+                new StyleRunProperties(
+                    new VerticalTextAlignment { Val = VerticalPositionValues.Superscript })) {
+                Type = StyleValues.Paragraph,
+                StyleId = "ImageSuperParagraph"
+            },
+            new Style(
+                new StyleName { Val = "Subscript character" },
+                new StyleRunProperties(
+                    new VerticalTextAlignment { Val = VerticalPositionValues.Subscript })) {
+                Type = StyleValues.Character,
+                StyleId = "ImageSubCharacter"
+            });
+
+        WordParagraph paragraphStyleRun = document.AddParagraph("Paragraph style")
+            .SetStyleId("ImageSuperParagraph");
+        WordParagraph characterStyleRun = document.AddParagraph("Character style")
+            .SetStyleId("ImageSuperParagraph")
+            .SetCharacterStyleId("ImageSubCharacter");
+        WordParagraph directResetRun = document.AddParagraph("Direct reset")
+            .SetStyleId("ImageSuperParagraph")
+            .SetCharacterStyleId("ImageSubCharacter")
+            .SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
+
+        Type renderer = typeof(WordDocument).Assembly.GetType("OfficeIMO.Word.WordDocumentImageRenderer", throwOnError: true)!;
+        MethodInfo createRichTextRun = renderer.GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .Single(method => method.Name == "CreateRichTextRun" && method.GetParameters().Length == 3);
+        OfficeRichTextRun Project(WordParagraph paragraph) =>
+            Assert.IsType<OfficeRichTextRun>(createRichTextRun.Invoke(null, new object?[] { paragraph, null, null }));
+
+        Assert.Equal(OfficeTextBaseline.Superscript, Project(paragraphStyleRun).Baseline);
+        Assert.Equal(OfficeTextBaseline.Subscript, Project(characterStyleRun).Baseline);
+        Assert.Equal(OfficeTextBaseline.Normal, Project(directResetRun).Baseline);
+    }
 }

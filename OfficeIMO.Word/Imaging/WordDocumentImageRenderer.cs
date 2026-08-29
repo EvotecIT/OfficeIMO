@@ -644,6 +644,7 @@ namespace OfficeIMO.Word {
 
         private static OfficeRichTextRun CreateRichTextRun(WordParagraph paragraph, DocumentFormat.OpenXml.Drawing.ColorScheme? colorScheme, string? text = null) {
             double fontSize = paragraph.FontSize ?? 11;
+            WordVerticalTextPosition? verticalTextAlignment = ResolveImageExportVerticalTextAlignment(paragraph);
             return new OfficeRichTextRun(
                 text ?? paragraph.Text,
                 fontSize,
@@ -660,9 +661,9 @@ namespace OfficeIMO.Word {
                     : paragraph.Strike
                         ? OfficeTextDecorationStyle.Single
                         : OfficeTextDecorationStyle.None,
-                paragraph.VerticalTextAlignment == WordVerticalTextPosition.Superscript
+                verticalTextAlignment == WordVerticalTextPosition.Superscript
                     ? OfficeTextBaseline.Superscript
-                    : paragraph.VerticalTextAlignment == WordVerticalTextPosition.Subscript
+                    : verticalTextAlignment == WordVerticalTextPosition.Subscript
                         ? OfficeTextBaseline.Subscript
                         : OfficeTextBaseline.Normal);
         }

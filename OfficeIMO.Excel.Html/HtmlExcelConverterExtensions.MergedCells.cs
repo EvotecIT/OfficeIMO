@@ -91,7 +91,7 @@ public static partial class HtmlExcelConverterExtensions {
                         result.Cells++;
                     }
                 }
-                ApplyImportedCellTextFormatting(cell, targetCell);
+                ApplyImportedCellTextFormatting(cell, targetCell, useSemanticValues);
 
                 if (rowSpan > 1 || columnSpan > 1) {
                     sheet.MergeRange(BuildRangeReference(cellRow, cellColumn, cellRow + rowSpan - 1, cellColumn + columnSpan - 1));
@@ -105,10 +105,12 @@ public static partial class HtmlExcelConverterExtensions {
         }
     }
 
-    private static void ApplyImportedCellTextFormatting(IElement source, ExcelCell target) {
+    private static void ApplyImportedCellTextFormatting(IElement source, ExcelCell target, bool useSemanticValues) {
         IReadOnlyDictionary<string, string> cellCss = ParseInlineStyle(source.GetAttribute("style"));
         ApplyImportedCellStyle(source, target, cellCss);
-        if (source.Children.Length > 0 && !source.HasAttribute("data-officeimo-excel-decoration-split")) {
+        if (CanImportCellRichText(source, useSemanticValues)
+            && source.Children.Length > 0
+            && !source.HasAttribute("data-officeimo-excel-decoration-split")) {
             var runs = new List<ExcelRichTextRun>();
             CollectImportedRichTextRuns(source, cellCss, ResolveNativeUnderline(source), HasInvalidNativeUnderline(source), runs);
             if (runs.Count > 0) {
@@ -116,6 +118,16 @@ public static partial class HtmlExcelConverterExtensions {
                 return;
             }
         }
+    }
+
+    private static bool CanImportCellRichText(IElement source, bool useSemanticValues) {
+        if (!useSemanticValues || source.GetAttribute("data-officeimo-value") == null) {
+            return true;
+        }
+
+        string kind = source.GetAttribute("data-officeimo-value-kind") ?? string.Empty;
+        return string.IsNullOrWhiteSpace(kind)
+               || kind.Equals("text", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void CollectImportedRichTextRuns(

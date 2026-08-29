@@ -402,6 +402,44 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void ExcelSemanticHtmlKeepsTypedCellsWhenVisibleTextUsesInlineMarkup() {
+        const string html = """
+            <section class="officeimo-sheet" data-officeimo-sheet="Typed">
+              <table><tbody><tr>
+                <td data-officeimo-value-kind="number" data-officeimo-value="42" data-officeimo-excel-vertical-align="Superscript"><sup>42</sup></td>
+                <td data-officeimo-value-kind="formula" data-officeimo-value="1+2"><em>3</em></td>
+                <td data-officeimo-value-kind="boolean" data-officeimo-value="true"><strong>TRUE</strong></td>
+                <td data-officeimo-value-kind="date-time" data-officeimo-value="2026-08-29T12:30:00" data-officeimo-excel-vertical-align="Subscript"><sub>29 August</sub></td>
+                <td data-officeimo-value-kind="error" data-officeimo-value="#DIV/0!"><s>#DIV/0!</s></td>
+              </tr></tbody></table>
+            </section>
+            """;
+
+        using ExcelDocument imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult()
+            .RequireValue();
+        ExcelSheet sheet = Assert.Single(imported.Sheets);
+
+        ExcelCellValueKind[] expectedKinds = {
+            ExcelCellValueKind.Number,
+            ExcelCellValueKind.Formula,
+            ExcelCellValueKind.Boolean,
+            ExcelCellValueKind.DateTime,
+            ExcelCellValueKind.Error
+        };
+        for (int column = 1; column <= expectedKinds.Length; column++) {
+            Assert.True(sheet.TryGetCellValueSnapshot(1, column, out ExcelCellValueSnapshot? snapshot));
+            Assert.Equal(expectedKinds[column - 1], snapshot!.Kind);
+            Assert.Empty(sheet.GetRichText(1, column));
+        }
+
+        Assert.Equal("1+2", sheet.GetFormulaText(1, 2));
+        Assert.Equal(ExcelVerticalTextAlignment.Superscript, sheet.GetCellStyle(1, 1).VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript, sheet.GetCellStyle(1, 4).VerticalTextAlignment);
+    }
+
+    [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsNativeRunTypography() {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointTextRun authored = source.AddSlide().AddTextBox("Styled")

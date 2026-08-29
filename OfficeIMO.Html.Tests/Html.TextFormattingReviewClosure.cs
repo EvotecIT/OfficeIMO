@@ -214,6 +214,23 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     }
 
     [Fact]
+    public void PowerPointOrdinaryHtmlDistributesStyledRunsAcrossExplicitBreakParagraphs() {
+        const string html = "<section class='officeimo-slide'><p><strong>one</strong><br><em>two</em></p></section>";
+
+        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+
+        PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
+        Assert.Equal(2, textBox.Paragraphs.Count);
+        Assert.Equal("one", textBox.Paragraphs[0].Text);
+        Assert.Equal("two", textBox.Paragraphs[1].Text);
+        Assert.True(Assert.Single(textBox.Paragraphs[0].Runs).Bold);
+        Assert.True(Assert.Single(textBox.Paragraphs[1].Runs).Italic);
+        Assert.Equal("one\ntwo", textBox.Text.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
     public void WordStyleDefinitionsRenderUnderlineAndDoubleStrikeWithIndependentPatterns() {
         using WordDocument source = WordDocument.Create();
         var style = new Style { Type = StyleValues.Character, StyleId = "Decorated" };
