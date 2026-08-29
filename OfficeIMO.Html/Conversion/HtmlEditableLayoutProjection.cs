@@ -126,7 +126,7 @@ public static partial class HtmlEditableLayoutProjector {
         "math", "ruby", "rb", "rp", "rt", "rtc"
     };
     private static readonly string[] RichTextStyleProperties = {
-        "color", "direction", "font-family", "font-size", "font-style", "font-variant", "font-weight",
+        "color", "direction", "font-family", "font-size", "font-style", "font-variant", "font-variant-caps", "font-weight",
         "letter-spacing", "line-height",
         "text-decoration", "text-decoration-color", "text-decoration-line", "text-decoration-style", "text-shadow",
         "text-align", "text-indent", "text-transform", "unicode-bidi", "vertical-align", "white-space", "word-spacing"

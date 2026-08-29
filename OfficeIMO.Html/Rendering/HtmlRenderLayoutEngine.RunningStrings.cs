@@ -33,7 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (!parentStyle.PaintVisible) continue;
 
-                string transformed = ApplyTextTransform(textNode.Data, parentStyle.TextTransform);
+                string transformed = ApplyTextTransform(textNode.Data, parentStyle);
                 foreach (char current in transformed) {
                     if (char.IsWhiteSpace(current)) {
                         whitespace = result.Length > 0;

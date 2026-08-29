@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Markup;
 
 public sealed class OfficeMarkupStyleResolver {
@@ -117,8 +119,41 @@ public sealed class OfficeMarkupStyleResolver {
             style.Italic = italic;
         }
 
+        if (TryGetAttribute(attributes, "underline", out value) || TryGetAttribute(attributes, "underline-style", out value)) {
+            style.UnderlineStyle = ParseDecoration(value, OfficeTextDecorationStyle.Single);
+        }
+
+        if (TryGetAttribute(attributes, "strike", out value)
+            || TryGetAttribute(attributes, "strikethrough", out value)
+            || TryGetAttribute(attributes, "strike-style", out value)) {
+            style.StrikethroughStyle = ParseDecoration(value, OfficeTextDecorationStyle.Single);
+        }
+
+        if ((TryGetAttribute(attributes, "baseline", out value) || TryGetAttribute(attributes, "script", out value))
+            && TryParseBaseline(value, out var baseline)) {
+            style.Baseline = baseline;
+        } else if (TryGetAttribute(attributes, "superscript", out value) && TryParseBool(value, out var superscript) && superscript) {
+            style.Baseline = OfficeTextBaseline.Superscript;
+        } else if (TryGetAttribute(attributes, "subscript", out value) && TryParseBool(value, out var subscript) && subscript) {
+            style.Baseline = OfficeTextBaseline.Subscript;
+        }
+
+        if ((TryGetAttribute(attributes, "text-case", out value) || TryGetAttribute(attributes, "case", out value))
+            && TryParseTextCase(value, out var textCase)) {
+            style.TextCase = textCase;
+        }
+
+        if ((TryGetAttribute(attributes, "small-caps", out value) || TryGetAttribute(attributes, "smallcaps", out value))
+            && TryParseBool(value, out var smallCaps)) {
+            style.SmallCaps = smallCaps;
+        }
+
         if (TryGetAttribute(attributes, "color", out value) || TryGetAttribute(attributes, "text-color", out value) || TryGetAttribute(attributes, "textcolor", out value)) {
             style.TextColor = NormalizeColor(value);
+        }
+
+        if (TryGetAttribute(attributes, "highlight", out value) || TryGetAttribute(attributes, "highlight-color", out value)) {
+            style.HighlightColor = NormalizeColor(value);
         }
 
         if (TryGetAttribute(attributes, "fill", out value) || TryGetAttribute(attributes, "fill-color", out value)) {
@@ -134,6 +169,77 @@ public sealed class OfficeMarkupStyleResolver {
         }
 
         return style;
+    }
+
+    private static OfficeTextDecorationStyle? ParseDecoration(string value, OfficeTextDecorationStyle enabledDefault) {
+        if (TryParseBool(value, out bool enabled)) return enabled ? enabledDefault : OfficeTextDecorationStyle.None;
+        return Normalize(value) switch {
+            "none" or "off" => OfficeTextDecorationStyle.None,
+            "single" or "solid" => OfficeTextDecorationStyle.Single,
+            "double" => OfficeTextDecorationStyle.Double,
+            "dot" or "dotted" => OfficeTextDecorationStyle.Dotted,
+            "dash" or "dashed" => OfficeTextDecorationStyle.Dashed,
+            "wave" or "wavy" => OfficeTextDecorationStyle.Wavy,
+            _ => null
+        };
+    }
+
+    private static bool TryParseBaseline(string value, out OfficeTextBaseline baseline) {
+        switch (Normalize(value)) {
+            case "normal":
+            case "baseline":
+            case "none":
+                baseline = OfficeTextBaseline.Normal;
+                return true;
+            case "sup":
+            case "super":
+            case "superscript":
+                baseline = OfficeTextBaseline.Superscript;
+                return true;
+            case "sub":
+            case "subscript":
+                baseline = OfficeTextBaseline.Subscript;
+                return true;
+            default:
+                baseline = OfficeTextBaseline.Normal;
+                return false;
+        }
+    }
+
+    private static bool TryParseTextCase(string value, out OfficeTextCase textCase) {
+        switch (Normalize(value)) {
+            case "none":
+            case "preserve":
+                textCase = OfficeTextCase.None;
+                return true;
+            case "upper":
+            case "uppercase":
+                textCase = OfficeTextCase.Uppercase;
+                return true;
+            case "lower":
+            case "lowercase":
+                textCase = OfficeTextCase.Lowercase;
+                return true;
+            case "title":
+            case "titlecase":
+                textCase = OfficeTextCase.TitleCase;
+                return true;
+            case "sentence":
+            case "sentencecase":
+                textCase = OfficeTextCase.SentenceCase;
+                return true;
+            case "toggle":
+            case "togglecase":
+                textCase = OfficeTextCase.ToggleCase;
+                return true;
+            case "capitalize":
+            case "capitalise":
+                textCase = OfficeTextCase.Capitalize;
+                return true;
+            default:
+                textCase = OfficeTextCase.None;
+                return false;
+        }
     }
 
     private static Palette CreatePalette(string? themeName) {

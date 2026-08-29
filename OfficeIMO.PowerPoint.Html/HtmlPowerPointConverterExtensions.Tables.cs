@@ -30,7 +30,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             out double left, out double tableTop, out double width, out double height);
         PptCore.PowerPointTable table = slide.AddTablePoints(grid.Rows, grid.Columns, left, tableTop, width, height);
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
-            table.GetCell(cell.Row, cell.Column).Text = cell.Text;
+            PptCore.PowerPointTableCell targetCell = table.GetCell(cell.Row, cell.Column);
+            targetCell.Text = cell.Text;
             if (cell.RowSpan > 1 || cell.ColumnSpan > 1) {
                 table.MergeCells(cell.Row, cell.Column, cell.Row + cell.RowSpan - 1, cell.Column + cell.ColumnSpan - 1);
                 result.MergedRanges++;
@@ -38,6 +39,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table, grid.Cells);
+        foreach (PowerPointHtmlTableCell cell in grid.Cells) {
+            TryApplyTargetSemanticRuns(table.GetCell(cell.Row, cell.Column), cell.Element);
+        }
 
         ApplyShapeTransforms(tableElement, table, budget, result);
         result.Tables++;
@@ -54,7 +58,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (layoutIndex >= layoutCells.Count) return;
                 PowerPointHtmlTableCell layoutCell = layoutCells[layoutIndex++];
                 PptCore.PowerPointTableCell targetCell = target.GetCell(layoutCell.Row, layoutCell.Column);
-                if (cell.Runs.Count > 0) ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs);
+                if (RequiresSemanticTableRunProjection(cell.Runs)) {
+                    ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs);
+                }
                 if (cell.IsHeader) {
                     foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
                 }
@@ -68,6 +74,17 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
         }
     }
+
+    private static bool RequiresSemanticTableRunProjection(IReadOnlyList<HtmlSemanticRun> runs) =>
+        runs.Count > 1 || runs.Any(run => run.Bold || run.Italic
+            || run.UnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
+            || run.StrikethroughStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
+            || run.Baseline != OfficeIMO.Drawing.OfficeTextBaseline.Normal
+            || !string.IsNullOrWhiteSpace(run.Hyperlink)
+            || !string.IsNullOrWhiteSpace(run.Style?.GetValue("color"))
+            || !string.IsNullOrWhiteSpace(run.Style?.GetValue("font-family"))
+            || !string.IsNullOrWhiteSpace(run.Style?.GetValue("font-size"))
+            || run.DataAttributes.ContainsKey("data-officeimo-powerpoint-capitalization"));
 
     private static void ApplySemanticTableAlignment(PptCore.PowerPointTableCell cell, string? alignment) {
         switch ((alignment ?? string.Empty).Trim().ToLowerInvariant()) {
@@ -145,6 +162,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     text = string.Empty;
                 }
                 cells.Add(new PowerPointHtmlTableCell(
+                    element,
                     rowIndex,
                     columnIndex,
                     rowSpan,
@@ -231,7 +249,8 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private sealed class PowerPointHtmlTableCell {
-        internal PowerPointHtmlTableCell(int row, int column, int rowSpan, int columnSpan, string text) {
+        internal PowerPointHtmlTableCell(IElement element, int row, int column, int rowSpan, int columnSpan, string text) {
+            Element = element;
             Row = row;
             Column = column;
             RowSpan = rowSpan;
@@ -239,6 +258,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             Text = text;
         }
 
+        internal IElement Element { get; }
         internal int Row { get; }
         internal int Column { get; }
         internal int RowSpan { get; }

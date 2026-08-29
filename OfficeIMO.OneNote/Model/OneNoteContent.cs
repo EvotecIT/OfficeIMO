@@ -161,6 +161,36 @@ public sealed class OneNoteTextRun {
     /// <summary>Run formatting.</summary>
     public OneNoteTextStyle Style { get; } = new OneNoteTextStyle();
 
+    /// <summary>Transforms the stored run text while preserving its native formatting, hyperlink, and opaque properties.</summary>
+    public OneNoteTextRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        if (MathExpression == null) {
+            Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+            return this;
+        }
+
+        OfficeIMO.Drawing.OfficeMathExpression transformed = MathExpression.TransformTextCase(textCase, culture);
+        if (!MathExpression.Equals(transformed)) {
+            MathExpression = transformed;
+            if (PreservedNativeMathRuns != null && PreservedNativeMathRuns.Count > 0) {
+                IReadOnlyList<string> transformedSegments = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(
+                    PreservedNativeMathRuns.Select(run => run.Text).ToArray(),
+                    textCase,
+                    culture);
+                var transformedNativeRuns = new OneNoteTextRun[PreservedNativeMathRuns.Count];
+                for (int index = 0; index < PreservedNativeMathRuns.Count; index++) {
+                    transformedNativeRuns[index] = OneNoteMathRunPreservation.Clone(PreservedNativeMathRuns[index]);
+                    transformedNativeRuns[index].Text = transformedSegments[index];
+                }
+                PreservedMathExpression = transformed;
+                PreservedNativeMathRuns = transformedNativeRuns;
+            } else {
+                PreservedMathExpression = null;
+            }
+        }
+        Text = MathExpression.ToPlainText();
+        return this;
+    }
+
     /// <summary>Optional hyperlink URI.</summary>
     public string? Hyperlink { get; set; }
 

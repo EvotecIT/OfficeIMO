@@ -106,6 +106,28 @@ public sealed class HtmlEpubImageExportTests {
     }
 
     [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Svg)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void StyledEpubExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
+        using var package = new MemoryStream(CreateEpub());
+        EpubDocument book = EpubDocument.Load(package, new EpubReadOptions { IncludeRawHtml = true });
+
+        OfficeImageExportResult result = Assert.Single(book.ExportImages(format));
+
+        Assert.Equal(format, result.Format);
+        Assert.True(result.Bytes.Length > 32);
+        if (format == OfficeImageExportFormat.Svg) {
+            string svg = Encoding.UTF8.GetString(result.Bytes);
+            Assert.Contains("Styled EPUB", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-decoration-style=\"wavy\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task EpubRetainedResourceByteLimitHasPreciseDiagnostic(
@@ -331,7 +353,7 @@ public sealed class HtmlEpubImageExportTests {
             Write(
                 archive,
                 "OEBPS/chapter.xhtml",
-                "<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Chapter One</title><link rel=\"stylesheet\" href=\"styles/book.css\" /></head><body><h1>Chapter One</h1><p>Rendered EPUB content</p><a href=\"next.xhtml\">Next chapter</a><img src=\"images/pixel.png\" alt=\"pixel\"/></body></html>");
+                "<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Chapter One</title><link rel=\"stylesheet\" href=\"styles/book.css\" /></head><body><h1>Chapter One</h1><p>Rendered EPUB content</p><p><span style=\"font-family:Aptos;font-size:18px;color:#336699;font-weight:700;font-style:italic;text-decoration-line:underline line-through;text-decoration-style:wavy;vertical-align:super\">Styled EPUB</span></p><a href=\"next.xhtml\">Next chapter</a><img src=\"images/pixel.png\" alt=\"pixel\"/></body></html>");
             if (includeSecondChapter) {
                 Write(
                     archive,

@@ -140,6 +140,12 @@ public sealed class RtfRun : IRtfInline {
         return this;
     }
 
+    /// <summary>Changes the stored run text casing while preserving character formatting.</summary>
+    public RtfRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+        return this;
+    }
+
     /// <summary>Enables underline formatting.</summary>
     public RtfRun SetUnderline(bool value = true) {
         Underline = value;

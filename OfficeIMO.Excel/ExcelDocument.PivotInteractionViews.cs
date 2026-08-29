@@ -518,8 +518,7 @@ namespace OfficeIMO.Excel {
                 if (sheet != null && fieldIndex >= 0 && c1 + fieldIndex <= c2) {
                     for (int row = r1 + 1; row <= r2; row++) {
                         if (sheet.TryGetCellValueSnapshot(row, c1 + fieldIndex, out ExcelCellValueSnapshot? snapshot)
-                            && snapshot!.Kind == ExcelCellValueKind.DateTime
-                            && snapshot.DateTimeValue.HasValue) values.Add(snapshot.DateTimeValue.Value);
+                            && snapshot!.DateTimeValue.HasValue) values.Add(snapshot.DateTimeValue.Value);
                     }
                 }
             }

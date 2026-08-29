@@ -690,9 +690,13 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
 
         body.Append("><tbody>");
-        foreach (PptCore.PowerPointTableRow row in table.RowItems) {
+        IReadOnlyList<PptCore.PowerPointTableRow> rowItems = table.RowItems;
+        for (int rowIndex = 0; rowIndex < rowItems.Count; rowIndex++) {
+            PptCore.PowerPointTableRow row = rowItems[rowIndex];
             body.Append("<tr>");
-            foreach (PptCore.PowerPointTableCell cell in row.Cells) {
+            IReadOnlyList<PptCore.PowerPointTableCell> cells = row.Cells;
+            for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
+                PptCore.PowerPointTableCell cell = cells[columnIndex];
                 if (cell.IsMergedCell) {
                     continue;
                 }
@@ -707,7 +711,24 @@ public static partial class PowerPointHtmlConverterExtensions {
                     body.Append(" colspan=\"").Append(columns.ToString(CultureInfo.InvariantCulture)).Append('"');
                 }
 
-                body.Append('>').Append(OfficeHtmlText.Escape(NormalizeText(cell.Text))).Append("</td>");
+                body.Append('>');
+                if (includeShapeMetadata) {
+                    IReadOnlyList<DocumentFormat.OpenXml.Drawing.TableCellTextStyle> tableTextStyles =
+                        PptCore.PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(
+                            table, rowIndex, columnIndex);
+                    if (RequiresSemanticTableCellContent(cell, tableTextStyles)) {
+                        DocumentFormat.OpenXml.Drawing.TextBody? textBody = cell.Cell.TextBody;
+                        DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
+                            .SlideMaster?.TextStyles?.OtherStyle;
+                        AppendSemanticParagraphContent(
+                            body, cell.Paragraphs, textBody?.ListStyle, masterTextStyle, tableTextStyles);
+                    } else {
+                        body.Append(OfficeHtmlText.Escape(NormalizeText(cell.Text)));
+                    }
+                } else {
+                    body.Append(OfficeHtmlText.Escape(NormalizeText(cell.Text)));
+                }
+                body.Append("</td>");
             }
 
             body.Append("</tr>");

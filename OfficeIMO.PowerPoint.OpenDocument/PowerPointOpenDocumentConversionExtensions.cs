@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using System.Globalization;
 
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
@@ -153,6 +154,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (textState.ApproximatedAlignments > 0) report.Add("paragraph-alignments",
             OdfConversionMappingStatus.Approximated, textState.ApproximatedAlignments,
             "PowerPoint distributed and low-justification variants are represented as ODF justification.");
+        if (textState.ApproximatedTextDecorations > 0) report.Add("text-decorations",
+            OdfConversionMappingStatus.Approximated, textState.ApproximatedTextDecorations,
+            "PowerPoint words-only and heavy underline variants are represented by the nearest ODF line pattern without their word or weight semantics.");
         int totalSkippedBasicFormatting = skippedBasicFormatting + textState.SkippedBasicFormatting;
         if (totalSkippedBasicFormatting > 0) report.Add("basic-formatting", OdfConversionMappingStatus.Skipped, totalSkippedBasicFormatting,
             "Common text, fill, and outline formatting was omitted because IncludeBasicFormatting is disabled.");
@@ -184,6 +188,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         PowerPointPresentation target = PowerPointPresentation.Create();
         var report = new OdfConversionReport("ODP", "PPTX");
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         int unsupportedMeasurements = 0;
         if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
@@ -226,7 +231,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     unsupportedMeasurements += CopyShapeAppearance(textBox, converted, effective);
                     CopyOdpParagraphsToPowerPoint(sourceParagraphs,
                         paragraphTexts => converted.SetParagraphs(paragraphTexts), source.Slides,
-                        pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                        pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                         ref skippedBasicFormatting, ref unsupportedWritingModes,
                         ref approximatedParagraphAlignments, ref unsupportedMeasurements,
@@ -283,7 +288,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             if (cell.IsCovered) continue;
                             CopyOdpParagraphsToPowerPoint(cell.Paragraphs,
                                 paragraphTexts => converted.GetCell(row, column).SetParagraphs(paragraphTexts), source.Slides,
-                                pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                                pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
                                 ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                                 ref skippedBasicFormatting, ref unsupportedWritingModes,
                                 ref approximatedParagraphAlignments, ref unsupportedMeasurements,
@@ -335,7 +340,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 if (noteParagraphs.Any(paragraph => paragraph.Text.Length > 0)) {
                     CopyOdpParagraphsToPowerPoint(noteParagraphs,
                         paragraphTexts => targetSlide.Notes.SetParagraphs(paragraphTexts), source.Slides,
-                        pendingInternalLinks, effective, ref paragraphs, ref textRuns, ref hyperlinks,
+                        pendingInternalLinks, effective, textCaseCulture, ref paragraphs, ref textRuns, ref hyperlinks,
                         ref externalHyperlinks, ref unsupportedHyperlinks, ref unsupportedHyperlinkBehaviors, ref approximatedRuns,
                         ref skippedBasicFormatting, ref unsupportedWritingModes,
                         ref approximatedParagraphAlignments, ref unsupportedMeasurements,
@@ -367,7 +372,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
             "Inline ODP elements outside plain text, spans, and hyperlinks were flattened to text.");
         if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
-            approximatedTextDecorations, "Non-solid ODF underline and line-through variants are simplified to solid PowerPoint decorations.");
+            approximatedTextDecorations, "Patterned ODF line-through and non-wave patterned double underline variants are simplified to PowerPoint's nearest native decoration.");
         if (approximatedFontFamilyLists > 0) report.Add("font-family-fallbacks", OdfConversionMappingStatus.Approximated,
             approximatedFontFamilyLists, "PowerPoint run properties retain the first ODF font family but cannot retain the authored fallback list.");
         AddUnsupported(report, "font-families", unsupportedFontFamilies,
@@ -469,8 +474,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return;
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
-        target.Underline = source.Underline ? true : (bool?)null;
-        target.StrikeThrough = source.Strikethrough ? true : (bool?)null;
+        ApplyPowerPointTextSemantics(source, target);
         if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
         target.FontFamily = source.FontName;
         if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
@@ -482,8 +486,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return;
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
-        target.Underline = source.Underline ? true : (bool?)null;
-        target.StrikeThrough = source.Strikethrough ? true : (bool?)null;
+        ApplyPowerPointTextSemantics(source, target);
         if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
         target.FontFamily = source.FontName;
         if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
@@ -492,20 +495,74 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static bool HasBasicFormatting(PowerPointTextRun run) =>
         run.Bold || run.Italic || run.Underline || run.Strikethrough || run.FontSizePoints.HasValue ||
+        run.UnderlineStyle.HasValue || run.StrikeStyle.HasValue || run.BaselinePercent.HasValue || run.Capitalization.HasValue ||
         !string.IsNullOrWhiteSpace(run.FontName) || !string.IsNullOrWhiteSpace(run.Color) ||
         !string.IsNullOrWhiteSpace(run.HighlightColor);
 
     private static bool HasBasicFormatting(OdpRun run) =>
         run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
+        run.UnderlineStyle.HasValue || run.UnderlineType.HasValue || run.LineThroughStyle.HasValue ||
+        run.LineThroughType.HasValue || run.TextPosition.HasValue || run.TextTransform.HasValue || run.SmallCaps.HasValue ||
         run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
 
     private static bool HasBasicFormatting(OdpParagraph paragraph) =>
         paragraph.Bold.HasValue || paragraph.Italic.HasValue || paragraph.Underline.HasValue || paragraph.StrikeThrough.HasValue ||
+        paragraph.UnderlineStyle.HasValue || paragraph.UnderlineType.HasValue || paragraph.LineThroughStyle.HasValue ||
+        paragraph.LineThroughType.HasValue || paragraph.TextPosition.HasValue || paragraph.TextTransform.HasValue || paragraph.SmallCaps.HasValue ||
         paragraph.FontSize.HasValue || !string.IsNullOrWhiteSpace(paragraph.FontFamily) || paragraph.Color.HasValue || paragraph.BackgroundColor.HasValue;
 
     private static bool HasBasicFormatting(OdpHyperlink run) =>
         run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
+        run.UnderlineStyle.HasValue || run.UnderlineType.HasValue || run.LineThroughStyle.HasValue ||
+        run.LineThroughType.HasValue || run.TextPosition.HasValue || run.TextTransform.HasValue || run.SmallCaps.HasValue ||
         run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
+
+    private static void ApplyPowerPointTextSemantics(PowerPointTextRun source, OdpRun target) {
+        (target.UnderlineStyle, target.UnderlineType) = MapPowerPointUnderline(source.UnderlineStyle);
+        target.LineThroughStyle = source.Strikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
+        target.LineThroughType = source.StrikeStyle == PowerPointStrikeStyle.Double
+            ? OdfTextDecorationType.Double
+            : source.Strikethrough ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
+        target.TextPosition = MapPowerPointTextPosition(source.BaselinePercent);
+        target.TextTransform = source.Capitalization == PowerPointCapitalization.AllCaps
+            ? OdfTextTransform.Uppercase
+            : OdfTextTransform.None;
+        target.SmallCaps = source.Capitalization == PowerPointCapitalization.SmallCaps ? true : (bool?)null;
+    }
+
+    private static void ApplyPowerPointTextSemantics(PowerPointTextRun source, OdpHyperlink target) {
+        (target.UnderlineStyle, target.UnderlineType) = MapPowerPointUnderline(source.UnderlineStyle);
+        target.LineThroughStyle = source.Strikethrough ? OdfTextDecorationStyle.Solid : OdfTextDecorationStyle.None;
+        target.LineThroughType = source.StrikeStyle == PowerPointStrikeStyle.Double
+            ? OdfTextDecorationType.Double
+            : source.Strikethrough ? OdfTextDecorationType.Single : OdfTextDecorationType.None;
+        target.TextPosition = MapPowerPointTextPosition(source.BaselinePercent);
+        target.TextTransform = source.Capitalization == PowerPointCapitalization.AllCaps
+            ? OdfTextTransform.Uppercase
+            : OdfTextTransform.None;
+        target.SmallCaps = source.Capitalization == PowerPointCapitalization.SmallCaps ? true : (bool?)null;
+    }
+
+    private static (OdfTextDecorationStyle? Style, OdfTextDecorationType? Type) MapPowerPointUnderline(
+        PowerPointUnderlineStyle? style) => style switch {
+        null or PowerPointUnderlineStyle.None => (OdfTextDecorationStyle.None, OdfTextDecorationType.None),
+        PowerPointUnderlineStyle.Double => (OdfTextDecorationStyle.Solid, OdfTextDecorationType.Double),
+        PowerPointUnderlineStyle.WavyDouble => (OdfTextDecorationStyle.Wave, OdfTextDecorationType.Double),
+        PowerPointUnderlineStyle.Dotted or PowerPointUnderlineStyle.HeavyDotted => (OdfTextDecorationStyle.Dotted, OdfTextDecorationType.Single),
+        PowerPointUnderlineStyle.Dash or PowerPointUnderlineStyle.DashHeavy => (OdfTextDecorationStyle.Dash, OdfTextDecorationType.Single),
+        PowerPointUnderlineStyle.DashLong or PowerPointUnderlineStyle.DashLongHeavy => (OdfTextDecorationStyle.LongDash, OdfTextDecorationType.Single),
+        PowerPointUnderlineStyle.DotDash or PowerPointUnderlineStyle.DotDashHeavy => (OdfTextDecorationStyle.DotDash, OdfTextDecorationType.Single),
+        PowerPointUnderlineStyle.DotDotDash or PowerPointUnderlineStyle.DotDotDashHeavy => (OdfTextDecorationStyle.DotDotDash, OdfTextDecorationType.Single),
+        PowerPointUnderlineStyle.Wavy or PowerPointUnderlineStyle.WavyHeavy => (OdfTextDecorationStyle.Wave, OdfTextDecorationType.Single),
+        _ => (OdfTextDecorationStyle.Solid, OdfTextDecorationType.Single)
+    };
+
+    private static OdfTextPosition? MapPowerPointTextPosition(double? value) => value switch {
+        > 0D => OdfTextPosition.Superscript,
+        < 0D => OdfTextPosition.Subscript,
+        0D => OdfTextPosition.Normal,
+        _ => null
+    };
 
     private static bool HasBasicFormatting(PowerPointShape shape) =>
         !string.IsNullOrWhiteSpace(shape.FillColor) || !string.IsNullOrWhiteSpace(shape.OutlineColor) || shape.OutlineWidthPoints.HasValue;

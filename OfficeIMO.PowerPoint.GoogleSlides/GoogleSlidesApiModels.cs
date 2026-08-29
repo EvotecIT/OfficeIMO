@@ -127,7 +127,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
     internal sealed class GoogleSlidesApiTextElement {
         [JsonPropertyName("textRun")] public GoogleSlidesApiTextRun? TextRun { get; set; }
+        [JsonPropertyName("paragraphMarker")] public GoogleSlidesApiParagraphMarker? ParagraphMarker { get; set; }
     }
+
+    internal sealed class GoogleSlidesApiParagraphMarker { }
 
     internal sealed class GoogleSlidesApiTextRun {
         [JsonPropertyName("content")] public string? Content { get; set; }
@@ -138,6 +141,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         [JsonPropertyName("bold")] public bool? Bold { get; set; }
         [JsonPropertyName("italic")] public bool? Italic { get; set; }
         [JsonPropertyName("underline")] public bool? Underline { get; set; }
+        [JsonPropertyName("strikethrough")] public bool? Strikethrough { get; set; }
+        [JsonPropertyName("smallCaps")] public bool? SmallCaps { get; set; }
+        [JsonPropertyName("baselineOffset")] public string? BaselineOffset { get; set; }
         [JsonPropertyName("fontSize")] public GoogleSlidesApiDimension? FontSize { get; set; }
         [JsonPropertyName("fontFamily")] public string? FontFamily { get; set; }
         [JsonPropertyName("foregroundColor")] public GoogleSlidesApiOptionalColor? ForegroundColor { get; set; }

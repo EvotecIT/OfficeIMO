@@ -4,7 +4,7 @@
 
 ## Semantic HTML
 
-The semantic path uses `OfficeIMO.OneNote.Markdown` and the first-party `OfficeIMO.Markdown` HTML renderer:
+The semantic path emits ordinary reflowable HTML through the first-party `OfficeIMO.Markdown` document shell. OneNote runs retain their font family, point size, foreground and highlight colors, bold, italic, underline, strikethrough, subscript, and superscript styling. Structural and source diagnostics continue to use the shared OneNote projection contracts:
 
 ```csharp
 using OfficeIMO.OneNote;
@@ -16,7 +16,7 @@ string html = export.RequireValue();
 section.SaveAsHtml("Section.html");
 ```
 
-Use `OneNoteMarkdownOptions` to include conflict copies or version-history pages and to resolve extracted asset destinations. HTML rendering remains fully offline unless a caller explicitly configures external assets in `HtmlOptions`.
+Use `OneNoteMarkdownOptions` to include conflict copies or version-history pages and to resolve extracted asset destinations. HTML rendering remains fully offline unless a caller explicitly configures external assets in `HtmlOptions`. The separate Markdown conversion remains syntax-oriented and reports font, color, underline, and script details that portable Markdown cannot represent; semantic HTML no longer inherits that loss.
 
 ## Visual page HTML
 

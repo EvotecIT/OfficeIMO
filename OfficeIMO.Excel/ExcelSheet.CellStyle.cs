@@ -45,9 +45,14 @@ namespace OfficeIMO.Excel {
                 NumberFormatId = numberFormatId,
                 NumberFormatCode = numberFormatCode,
                 IsDateLike = IsBuiltInDate(numberFormatId) || ExcelNumberFormatClassifier.LooksLikeDateFormat(numberFormatCode),
-                Bold = font?.Bold != null,
-                Italic = font?.Italic != null,
-                Underline = font?.Underline != null,
+                Bold = ExcelOpenXmlFontProperty.IsEnabled(font?.Bold),
+                Italic = ExcelOpenXmlFontProperty.IsEnabled(font?.Italic),
+                Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(font?.Underline),
+                UnderlineStyle = font?.Underline == null
+                    ? null
+                    : (font.Underline.Val?.Value ?? UnderlineValues.Single).ToOfficeEnum(),
+                Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(font?.Strike),
+                VerticalTextAlignment = font?.VerticalTextAlignment?.Val?.Value.ToOfficeEnum(),
                 FontName = font?.FontName?.Val?.Value,
                 IsFontFamilyExplicit = (format.FontId?.Value ?? 0U) != 0U,
                 FontSize = font?.FontSize?.Val?.Value,

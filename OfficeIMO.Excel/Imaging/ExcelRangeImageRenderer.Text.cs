@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
             }
 
             using (canvas.PushClipRectangle(x, y, w, h)) {
-                if (cell.RichTextRuns.Count > 0) {
+                if (cell.RichTextRuns.Count > 0 || HasAdvancedCellTypography(cell)) {
                     if (richTextSupported && TryDrawRasterRichText(canvas, cell, options, scale, x, y, w, h, textInsets.Left, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, out OfficeRichTextBlockLayout richLayout)) {
                         AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, options.Fonts, diagnostics);
                         AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (cell.RichTextRuns.Count > 0) {
+            if (cell.RichTextRuns.Count > 0 || HasAdvancedCellTypography(cell)) {
                 if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, textInsets.Left, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => MeasureSvgText(textMeasurer, text, size, family), out OfficeRichTextBlockLayout richLayout)) {
                     AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, options.Fonts, diagnostics);
                     AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
@@ -481,9 +481,31 @@ namespace OfficeIMO.Excel {
             OfficeTextOverflowBehavior overflowBehavior,
             Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
-            var runs = new List<OfficeRichTextRun>(cell.RichTextRuns.Count);
+            var runs = new List<OfficeRichTextRun>(Math.Max(1, cell.RichTextRuns.Count));
             OfficeColor fallbackColor = ResolveCellTextColor(cell, options);
             bool fallbackUnderline = ShouldUnderlineText(cell, options);
+            if (cell.RichTextRuns.Count == 0 && !string.IsNullOrEmpty(cell.Text)) {
+                OfficeTextDecorationStyle underlineStyle = MapExcelUnderlineStyle(cell.Style.UnderlineStyle);
+                if (underlineStyle == OfficeTextDecorationStyle.None && fallbackUnderline) {
+                    underlineStyle = OfficeTextDecorationStyle.Single;
+                }
+
+                runs.Add(new OfficeRichTextRun(
+                    cell.Text,
+                    ResolveCellFontSize(cell.Style, scale),
+                    fallbackColor,
+                    cell.Style.Bold,
+                    cell.Style.Italic,
+                    fallbackUnderline,
+                    ResolveCellFontFamily(cell.Style),
+                    strikethrough: cell.Style.Strikethrough,
+                    underlineStyle: underlineStyle,
+                    strikethroughStyle: cell.Style.Strikethrough
+                        ? OfficeTextDecorationStyle.Single
+                        : OfficeTextDecorationStyle.None,
+                    baseline: MapExcelBaseline(cell.Style.VerticalTextAlignment)));
+            }
+
             for (int i = 0; i < cell.RichTextRuns.Count; i++) {
                 ExcelVisualTextRun run = cell.RichTextRuns[i];
                 if (string.IsNullOrEmpty(run.Text)) {
@@ -492,10 +514,35 @@ namespace OfficeIMO.Excel {
 
                 double fontSize = ResolveRunFontSize(run, cell.Style, scale);
                 OfficeColor color = ResolveArgb(run.FontColorArgb) ?? fallbackColor;
-                bool bold = cell.Style.Bold || run.Bold;
-                bool italic = cell.Style.Italic || run.Italic;
-                bool underline = fallbackUnderline || run.Underline;
-                runs.Add(new OfficeRichTextRun(run.Text, fontSize, color, bold, italic, underline, ResolveRunFontFamily(run, cell.Style), strikethrough: run.Strikethrough));
+                bool bold = run.BoldSpecified ? run.Bold : cell.Style.Bold;
+                bool italic = run.ItalicSpecified ? run.Italic : cell.Style.Italic;
+                bool underline = run.UnderlineSpecified ? run.Underline : fallbackUnderline;
+                OfficeTextDecorationStyle underlineStyle = run.UnderlineSpecified
+                    ? MapExcelUnderlineStyle(run.UnderlineStyle)
+                    : MapExcelUnderlineStyle(cell.Style.UnderlineStyle);
+                if (underlineStyle == OfficeTextDecorationStyle.None && underline) {
+                    underlineStyle = OfficeTextDecorationStyle.Single;
+                } else if (!underline) {
+                    underlineStyle = OfficeTextDecorationStyle.None;
+                }
+                bool strikethrough = run.StrikethroughSpecified
+                    ? run.Strikethrough
+                    : cell.Style.Strikethrough;
+                OfficeTextBaseline baseline = MapExcelBaseline(run.VerticalTextAlignment ?? cell.Style.VerticalTextAlignment);
+                runs.Add(new OfficeRichTextRun(
+                    run.Text,
+                    fontSize,
+                    color,
+                    bold,
+                    italic,
+                    underline,
+                    ResolveRunFontFamily(run, cell.Style),
+                    strikethrough: strikethrough,
+                    underlineStyle: underlineStyle,
+                    strikethroughStyle: strikethrough
+                        ? OfficeTextDecorationStyle.Single
+                        : OfficeTextDecorationStyle.None,
+                    baseline: baseline));
             }
 
             if (runs.Count == 0) {
@@ -556,6 +603,23 @@ namespace OfficeIMO.Excel {
         private static bool IsRichTextRenderingSupported(ExcelVisualCell cell, bool rotated) {
             return true;
         }
+
+        private static bool HasAdvancedCellTypography(ExcelVisualCell cell) =>
+            cell.Style.Strikethrough
+            || MapExcelUnderlineStyle(cell.Style.UnderlineStyle) == OfficeTextDecorationStyle.Double
+            || MapExcelBaseline(cell.Style.VerticalTextAlignment) != OfficeTextBaseline.Normal;
+
+        private static OfficeTextDecorationStyle MapExcelUnderlineStyle(ExcelUnderlineStyle? style) => style switch {
+            ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting => OfficeTextDecorationStyle.Double,
+            ExcelUnderlineStyle.Single or ExcelUnderlineStyle.SingleAccounting => OfficeTextDecorationStyle.Single,
+            _ => OfficeTextDecorationStyle.None
+        };
+
+        private static OfficeTextBaseline MapExcelBaseline(ExcelVerticalTextAlignment? alignment) => alignment switch {
+            ExcelVerticalTextAlignment.Superscript => OfficeTextBaseline.Superscript,
+            ExcelVerticalTextAlignment.Subscript => OfficeTextBaseline.Subscript,
+            _ => OfficeTextBaseline.Normal
+        };
 
         private static CellTextViewport ReserveConditionalIconTextSpace(CellTextViewport viewport, ExcelVisualConditionalIcon icon, double scale) {
             IconBounds bounds = GetConditionalIconBounds(icon, scale);
@@ -848,8 +912,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 OfficeFontStyle style =
-                    (run.Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
-                    (run.Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+                    ((run.BoldSpecified ? run.Bold : cell.Style.Bold) ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
+                    ((run.ItalicSpecified ? run.Italic : cell.Style.Italic) ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
                 OfficeImageExportDiagnostic? diagnostic = fonts.CreateSubstitutionDiagnostic(
                     run.Text,
                     fontName,

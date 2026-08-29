@@ -9,6 +9,53 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void Test_PivotTimeline_UsesCachedDateResultsFromFormulaCells() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Sales");
+                    sheet.CellValue(1, 1, "Region");
+                    sheet.CellValue(1, 2, "OrderDate");
+                    sheet.CellValue(1, 3, "Sales");
+                    sheet.CellValue(2, 1, "East");
+                    sheet.CellValue(2, 2, new DateTime(2026, 1, 2));
+                    sheet.CellValue(2, 3, 10D);
+                    sheet.CellValue(3, 1, "West");
+                    sheet.CellValue(3, 2, new DateTime(2026, 2, 3));
+                    sheet.CellValue(3, 3, 20D);
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, true)) {
+                    Worksheet worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                    Cell[] dates = worksheet.Descendants<Cell>()
+                        .Where(cell => cell.CellReference?.Value == "B2" || cell.CellReference?.Value == "B3")
+                        .OrderBy(cell => cell.CellReference!.Value)
+                        .ToArray();
+                    dates[0].CellFormula = new CellFormula("DATE(2026,1,2)");
+                    dates[1].CellFormula = new CellFormula("DATE(2026,2,3)");
+                    worksheet.Save();
+                }
+
+                using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                    ExcelSheet sheet = document.Sheets[0];
+                    sheet.AddPivotTable(
+                        sourceRange: "A1:C3",
+                        destinationCell: "E2",
+                        name: "FormulaDatePivot",
+                        rowFields: new[] { "Region" },
+                        dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+
+                    document.AddPivotTimelineCache("FormulaDatePivot", "OrderDate", "FormulaDateTimeline");
+
+                    Assert.Equal("FormulaDateTimeline", Assert.Single(document.GetWorkbookTimelineCaches()).Name);
+                }
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void Test_PivotInteractionCaches_ValidateBindingsAndReadBackMetadata() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.PivotInteractions.xlsx");
 

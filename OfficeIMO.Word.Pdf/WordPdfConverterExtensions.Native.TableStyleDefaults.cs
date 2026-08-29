@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -8,11 +9,11 @@ namespace OfficeIMO.Word.Pdf {
             public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
-        private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, bool? AllCaps, W.VerticalPositionValues? Baseline, string? ColorHex, W.HighlightColorValues? Highlight, PdfCore.PdfColor? Color) {
+        private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, string? ColorHex, W.HighlightColorValues? Highlight, PdfCore.PdfColor? Color) {
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null);
         }
 
-        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, PdfCore.PdfColor? TextColor, double? FontSize, bool? Bold, bool? Italic, bool? Underline, bool? Strike, bool? AllCaps, W.VerticalPositionValues? Baseline, W.HighlightColorValues? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
+        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, PdfCore.PdfColor? TextColor, double? FontSize, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, W.HighlightColorValues? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
             public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
 
@@ -53,8 +54,8 @@ namespace OfficeIMO.Word.Pdf {
             string? fontFamily = null;
             bool? bold = null;
             bool? italic = null;
-            bool? underline = null;
-            bool? strike = null;
+            OfficeTextDecorationStyle? underlineStyle = null;
+            OfficeTextDecorationStyle? strikeStyle = null;
             bool? allCaps = null;
             W.VerticalPositionValues? baseline = null;
             string? colorHex = null;
@@ -72,8 +73,8 @@ namespace OfficeIMO.Word.Pdf {
                 fontFamily = ResolveNativeRunFontsFamily(table.Document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
                 bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
                 italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
-                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
-                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
+                strikeStyle = MapNativeStrikeStyle(runProperties) ?? strikeStyle;
                 allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
                 baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
                 colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
@@ -195,8 +196,8 @@ namespace OfficeIMO.Word.Pdf {
                     fontFamily,
                     bold,
                     italic,
-                    underline,
-                    strike,
+                    underlineStyle,
+                    strikeStyle,
                     allCaps,
                     baseline,
                     colorHex,
@@ -230,8 +231,8 @@ namespace OfficeIMO.Word.Pdf {
                 double? fontSize = GetNativeRunPropertiesBaseStyleFontSize(runProperties);
                 bool? bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>());
                 bool? italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>());
-                bool? underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>());
-                bool? strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>());
+                OfficeTextDecorationStyle? underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
+                OfficeTextDecorationStyle? strikeStyle = MapNativeStrikeStyle(runProperties);
                 bool? allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>());
                 W.VerticalPositionValues? baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value;
                 W.HighlightColorValues? highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value;
@@ -286,8 +287,8 @@ namespace OfficeIMO.Word.Pdf {
                     fontSize ?? result.FontSize,
                     bold ?? result.Bold,
                     italic ?? result.Italic,
-                    underline ?? result.Underline,
-                    strike ?? result.Strike,
+                    underlineStyle ?? result.UnderlineStyle,
+                    strikeStyle ?? result.StrikeStyle,
                     allCaps ?? result.AllCaps,
                     baseline ?? result.Baseline,
                     highlight ?? result.Highlight,

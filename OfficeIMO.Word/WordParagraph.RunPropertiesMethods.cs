@@ -1,4 +1,7 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -180,6 +183,68 @@ namespace OfficeIMO.Word {
         public WordParagraph SetText(string text) {
             this.Text = text;
             return this;
+        }
+
+        /// <summary>
+        /// Changes the stored run text casing while preserving run formatting.
+        /// </summary>
+        /// <param name="textCase">Casing transformation to apply.</param>
+        /// <param name="culture">Culture used for casing. The current culture is used when omitted.</param>
+        /// <returns>The current paragraph instance.</returns>
+        public WordParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
+            WordEquation? equation = Equation;
+            if (equation?.Representation == WordEquationRepresentation.Omml) {
+                M.Text[] textNodes = equation.MathElement?.Descendants<M.Text>().ToArray() ?? Array.Empty<M.Text>();
+                IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(
+                    textNodes.Select(node => node.Text ?? string.Empty).ToArray(), textCase, culture);
+                for (int index = 0; index < textNodes.Length; index++) textNodes[index].Text = transformed[index];
+                return this;
+            }
+
+            IReadOnlyList<OpenXmlElement> roots = GetTextCaseTransformationRoots();
+            var segmentNodes = new List<Text?>();
+            var segments = new List<string>();
+            foreach (OpenXmlElement root in roots) {
+                foreach (OpenXmlElement element in root.Descendants()) {
+                    switch (element) {
+                        case Text textNode:
+                            segmentNodes.Add(textNode);
+                            segments.Add(textNode.Text ?? string.Empty);
+                            break;
+                        case TabChar:
+                            segmentNodes.Add(null);
+                            segments.Add("\t");
+                            break;
+                        case Break breakNode:
+                            segmentNodes.Add(null);
+                            segments.Add(IsTextWrappingBreak(breakNode) ? "\n" : "\u2028");
+                            break;
+                        case CarriageReturn:
+                            segmentNodes.Add(null);
+                            segments.Add("\n");
+                            break;
+                    }
+                }
+            }
+            if (segmentNodes.Any(node => node != null)) {
+                IReadOnlyList<string> transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.ApplySegments(
+                    segments, textCase, culture);
+                for (int index = 0; index < segmentNodes.Count; index++) {
+                    if (segmentNodes[index] != null) segmentNodes[index]!.Text = transformed[index];
+                }
+                return this;
+            }
+            Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+            return this;
+        }
+
+        private IReadOnlyList<OpenXmlElement> GetTextCaseTransformationRoots() {
+            if (_run != null) return new OpenXmlElement[] { _run };
+            if (_hyperlink != null) return new OpenXmlElement[] { _hyperlink };
+            if (_simpleField != null) return new OpenXmlElement[] { _simpleField };
+            if (_runs != null && _runs.Count > 0) return GetComplexFieldResultRuns(_runs).Cast<OpenXmlElement>().ToArray();
+            if (_stdRun?.SdtContentRun != null) return new OpenXmlElement[] { _stdRun.SdtContentRun };
+            return Array.Empty<OpenXmlElement>();
         }
         /// <summary>
         /// Sets the paragraph style.

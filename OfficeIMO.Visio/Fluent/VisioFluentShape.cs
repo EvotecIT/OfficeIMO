@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Fluent {
@@ -48,6 +49,27 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Sets whether the whole-shape text is bold.</summary>
         public VisioFluentShape Bold(bool enabled = true) { EnsureTextStyle().Bold = enabled; return this; }
+
+        /// <summary>Sets whether the whole-shape text is italic.</summary>
+        public VisioFluentShape Italic(bool enabled = true) { EnsureTextStyle().Italic = enabled; return this; }
+
+        /// <summary>Sets the native underline variant for the whole-shape text.</summary>
+        public VisioFluentShape Underline(OfficeTextDecorationStyle style = OfficeTextDecorationStyle.Single) { EnsureTextStyle().UnderlineStyle = style; return this; }
+
+        /// <summary>Sets the native strikethrough variant for the whole-shape text.</summary>
+        public VisioFluentShape Strikethrough(OfficeTextDecorationStyle style = OfficeTextDecorationStyle.Single) { EnsureTextStyle().StrikethroughStyle = style; return this; }
+
+        /// <summary>Sets the native baseline placement for the whole-shape text.</summary>
+        public VisioFluentShape Baseline(OfficeTextBaseline baseline) { EnsureTextStyle().Baseline = baseline; return this; }
+
+        /// <summary>Sets Visio's native display-time capitalization for the whole-shape text.</summary>
+        public VisioFluentShape Capitalization(VisioTextCapitalization capitalization) { EnsureTextStyle().Capitalization = capitalization; return this; }
+
+        /// <summary>Enables or disables Visio's native small-capital style.</summary>
+        public VisioFluentShape SmallCaps(bool enabled = true) { EnsureTextStyle().SmallCaps = enabled; return this; }
+
+        /// <summary>Transforms the stored shape text casing without changing formatting.</summary>
+        public VisioFluentShape TransformTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) { _s.TransformTextCase(textCase, culture); return this; }
 
         /// <summary>Sets whole-shape text alignment.</summary>
         public VisioFluentShape TextAlignment(VisioTextHorizontalAlignment horizontal, VisioTextVerticalAlignment? vertical = null) {
