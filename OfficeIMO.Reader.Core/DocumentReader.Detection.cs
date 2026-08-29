@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 
 namespace OfficeIMO.Reader;
 
@@ -645,24 +644,6 @@ internal static partial class DocumentReaderEngine {
                 else if (current == '>') return index;
             }
             return -1;
-        }
-    }
-
-    private static bool TryResolveXmlRootNamespace(string qualifiedName, string rootTag, out string namespaceUri) {
-        namespaceUri = string.Empty;
-        try {
-            using var source = new StringReader(rootTag);
-            using XmlReader reader = XmlReader.Create(source, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                ConformanceLevel = ConformanceLevel.Fragment
-            });
-            if (!reader.Read() || reader.NodeType != XmlNodeType.Element ||
-                !string.Equals(reader.Name, qualifiedName, StringComparison.Ordinal)) return false;
-            namespaceUri = reader.NamespaceURI;
-            return true;
-        } catch (XmlException) {
-            return false;
         }
     }
 

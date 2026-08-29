@@ -21,7 +21,7 @@ IReadOnlyList<ReaderChunk> chunks = reader.Read("subscriptions.opml").ToList();
 OfficeDocumentReadResult document = reader.ReadDocument("subscriptions.opml");
 ```
 
-`Read` emits one or more bounded chunks per outline with stable IDs, nesting-aware heading paths, and optional OPML validation warnings. `ReadDocument` also publishes head metadata, subscription and outline links, and each native or conversion diagnostic once at document scope. Parsing, limits, validation, and the editable model remain owned by `OfficeIMO.Opml`.
+`Read` emits one or more bounded chunks per outline with stable IDs, nesting-aware heading paths, Markdown entries for distinct `xmlUrl`, `htmlUrl`, and `url` targets, and optional OPML validation warnings. `ReadDocument` also publishes head metadata, subscription and outline links, and each native or conversion diagnostic once at document scope. Parsing, limits, validation, and the editable model remain owned by `OfficeIMO.Opml`.
 
 ## Dependency footprint
 

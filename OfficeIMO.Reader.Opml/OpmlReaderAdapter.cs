@@ -77,11 +77,14 @@ internal static partial class OpmlReaderAdapter {
             int currentSource = sourceIndex++;
             IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(outline.Text, reader.MaxChars);
             if (parts.Count == 0) parts = new[] { string.Empty };
+            string targetMarkdown = BuildTargetMarkdown(outline);
             for (int part = 0; part < parts.Count; part++) {
+                string markdown = part == 0 ? new string('#', Math.Min(level, 6)) + " " + parts[part] : parts[part];
+                if (part == parts.Count - 1 && targetMarkdown.Length > 0) markdown += "\n\n" + targetMarkdown;
                 yield return new ReaderChunk {
                     Id = parts.Count == 1 ? "opml-" + currentSource : "opml-" + currentSource + "-part-" + (part + 1),
                     Kind = ReaderInputKind.Opml, Text = parts[part],
-                    Markdown = part == 0 ? new string('#', Math.Min(level, 6)) + " " + parts[part] : parts[part],
+                    Markdown = markdown,
                     ContinuesPreviousChunk = part > 0,
                     Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                         HeadingPath = headingPath, SourceBlockKind = "outline", BlockAnchor = "opml-outline-" + currentSource },
@@ -90,6 +93,39 @@ internal static partial class OpmlReaderAdapter {
             }
             foreach (OpmlOutline child in outline.Children) foreach (ReaderChunk chunk in BuildOutline(child, level + 1, headingPath)) yield return chunk;
         }
+    }
+
+    private static string BuildTargetMarkdown(OpmlOutline outline) {
+        var targets = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        Add("Feed", outline.XmlUrl);
+        Add("Website", outline.HtmlUrl);
+        Add("Link", outline.Url);
+        return string.Join("\n", targets);
+
+        void Add(string label, string? target) {
+            if (string.IsNullOrWhiteSpace(target) || !seen.Add(target!)) return;
+            targets.Add("- " + label + ": [" + EscapeMarkdownLabel(target!) + "](" + EscapeMarkdownDestination(target!) + ")");
+        }
+    }
+
+    private static string EscapeMarkdownLabel(string value) =>
+        value.Replace("\\", "\\\\").Replace("[", "\\[").Replace("]", "\\]");
+
+    private static string EscapeMarkdownDestination(string value) {
+        var escaped = new System.Text.StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (char.IsWhiteSpace(character)) {
+                foreach (byte utf8Byte in System.Text.Encoding.UTF8.GetBytes(character.ToString())) {
+                    escaped.Append('%').Append(utf8Byte.ToString("X2"));
+                }
+            } else if (character == '\\' || character == '(' || character == ')') {
+                escaped.Append('\\').Append(character);
+            } else {
+                escaped.Append(character);
+            }
+        }
+        return escaped.ToString();
     }
 
     private sealed class OpmlProjection {

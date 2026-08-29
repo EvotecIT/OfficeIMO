@@ -3,7 +3,7 @@
     <Description>Bidirectional CSV and Excel conversion adapter using the native OfficeIMO.CSV and OfficeIMO.Excel engines.</Description>
     <AssemblyName>OfficeIMO.Excel.Csv</AssemblyName>
     <AssemblyTitle>OfficeIMO.Excel.Csv</AssemblyTitle>
-    <VersionPrefix>3.2.5</VersionPrefix>
+    <VersionPrefix>3.2.7</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

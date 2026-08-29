@@ -115,7 +115,8 @@ internal static partial class DocBookReaderAdapter {
                 yield break;
             }
             int currentSource = sourceIndex++;
-            if (node.Kind != "code" && TryBuildInlineFragments(node, out IReadOnlyList<InlineFragment> inlineFragments)) {
+            bool preformatted = IsPreformatted(node.Kind);
+            if (!preformatted && TryBuildInlineFragments(node, out IReadOnlyList<InlineFragment> inlineFragments)) {
                 int inlinePart = 0;
                 foreach (InlineFragment fragment in inlineFragments) {
                     IReadOnlyList<string> fragmentParts = fragment.Text.Length == 0
@@ -144,10 +145,10 @@ internal static partial class DocBookReaderAdapter {
             }
             if (!string.IsNullOrWhiteSpace(node.Text) && node.Kind != "metadata" && node.Kind != "author") {
                 IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
-                string codeFence = node.Kind == "code" ? CreateCodeFence(node.Text) : string.Empty;
+                string codeFence = preformatted ? CreateCodeFence(node.Text) : string.Empty;
                 for (int part = 0; part < parts.Count; part++) {
                     string markdown;
-                    if (node.Kind == "code") {
+                    if (preformatted) {
                         markdown = parts.Count == 1 ? codeFence + "\n" + parts[part] + "\n" + codeFence
                             : (part == 0 ? codeFence + "\n" : string.Empty) + parts[part] +
                               (part == parts.Count - 1 ? "\n" + codeFence : string.Empty);
@@ -187,6 +188,8 @@ internal static partial class DocBookReaderAdapter {
 
     private static bool IsAdmonition(string kind) =>
         kind == "note" || kind == "tip" || kind == "important" || kind == "caution" || kind == "warning";
+
+    private static bool IsPreformatted(string kind) => kind == "code" || kind == "screen";
 
     private static string CreateCodeFence(string text) {
         int backticks = LongestRun(text, '`');

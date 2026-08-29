@@ -77,11 +77,14 @@ public sealed class DocBookNode {
         return node;
     }
     /// <summary>Adds an image media object.</summary>
-    public DocBookNode AddImage(string fileReference, string? caption = null) {
+    public DocBookNode AddImage(string fileReference, string? caption = null) => AddImage(fileReference, caption, null);
+    /// <summary>Adds an image media object with distinct caption and alternative text.</summary>
+    public DocBookNode AddImage(string fileReference, string? caption, string? alternateText) {
         DocBookNode media = Add(DocBookNodeKind.MediaObject);
         DocBookNode imageObject = media.Add(DocBookNodeKind.ImageObject);
         DocBookNode data = imageObject.Add(DocBookNodeKind.ImageData);
         data.SetAttribute("fileref", fileReference);
+        if (!string.IsNullOrEmpty(alternateText)) media.AddRaw("textobject").AddRaw("phrase", alternateText!);
         if (!string.IsNullOrEmpty(caption)) media.Add(DocBookNodeKind.Caption).AddParagraph(caption!);
         return media;
     }

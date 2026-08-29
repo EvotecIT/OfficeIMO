@@ -682,7 +682,7 @@ public sealed partial class DocBookDocument {
                     $"Shared asset '{source.Id}' could not be represented as a DocBook image reference.", source.Location?.HeadingPath));
                 return false;
             }
-            document.Root.AddImage(reference!, source.Title ?? source.AltText);
+            document.Root.AddImage(reference!, source.Title, source.AltText);
             return true;
         }
 
@@ -746,6 +746,18 @@ public sealed partial class DocBookDocument {
             foreach (OfficeDocumentModelAsset asset in model.Assets) AddFlatAsset(asset);
             foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
         }
+        foreach (OfficeDocumentModelPage page in model.Pages) {
+            string identity = page.Name ?? (page.Number.HasValue
+                ? page.Number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : "unnamed");
+            AddUnsupportedChannelDiagnostic("page", identity, page.Location?.HeadingPath);
+        }
+        foreach (OfficeDocumentModelFormField form in model.Forms) {
+            AddUnsupportedChannelDiagnostic("form", form.Name ?? form.Id, form.Location?.HeadingPath);
+        }
+        foreach (OfficeDocumentModelVisual visual in model.Visuals) {
+            AddUnsupportedChannelDiagnostic("visual", visual.SourceName ?? visual.Kind, visual.Location?.HeadingPath);
+        }
         bool hasAuthor = model.Structure.Any(ContainsDocumentAuthor);
         if (!hasAuthor && !string.IsNullOrWhiteSpace(model.Source.Author)) {
             new DocBookNode(document, document.EnsureInfo()).Add(DocBookNodeKind.Author, model.Source.Author);
@@ -755,6 +767,10 @@ public sealed partial class DocBookDocument {
         void AddSupplementaryDiagnostic(string channel, string identity, string? path) =>
             diagnostics.Add(new DocBookDiagnostic("DB122", DocBookDiagnosticSeverity.Warning,
                 $"Supplementary shared {channel} '{identity}' was appended at the document root because it was not represented by recursive Structure.", path));
+
+        void AddUnsupportedChannelDiagnostic(string channel, string identity, string? path) =>
+            diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
+                $"Shared {channel} '{identity}' could not be represented by the bounded DocBook common-structure profile.", path));
 
         static bool ContainsDocumentTitle(OfficeDocumentModelNode node) =>
             string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) ||

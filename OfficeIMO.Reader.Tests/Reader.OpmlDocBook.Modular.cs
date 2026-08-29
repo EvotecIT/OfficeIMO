@@ -24,6 +24,22 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void OpmlAdapterPublishesEveryDistinctOutlineTargetInChunkMarkdown() {
+        OpmlDocument document = OpmlDocument.Create();
+        OpmlOutline outline = document.AddOutline("Feed");
+        outline.XmlUrl = "https://example.test/feed.xml";
+        outline.HtmlUrl = "https://example.test/site (home)";
+        outline.Url = "https://example.test/feed.xml";
+
+        ReaderChunk chunk = Assert.Single(OpmlReaderAdapter.Read(document));
+
+        Assert.Equal("Feed", chunk.Text);
+        Assert.Contains("- Feed: [https://example.test/feed.xml](https://example.test/feed.xml)", chunk.Markdown, StringComparison.Ordinal);
+        Assert.Contains("- Website: [https://example.test/site (home)](https://example.test/site%20\\(home\\))", chunk.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- Link:", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocBookAdapterEmitsCommonStructureChunksAndRegistersDedicatedExtensions() {
         DocBookDocument document = DocBookDocument.CreateArticle();
         document.AddSection("Start").AddParagraph("Body");
@@ -128,6 +144,16 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.StartsWith("~~~\nbefore\n```\n# still code\nafter\n~~~", markdown, StringComparison.Ordinal);
         Assert.Equal("code", Assert.Single(result.Chunks).Location.SourceBlockKind);
+    }
+
+    [Fact]
+    public void DocBookAdapterFencesScreenContentAsPreformattedText() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><screen># prompt\n```\nstill screen</screen></article>";
+
+        ReaderChunk chunk = Assert.Single(DocBookReaderAdapter.Read(DocBookDocument.Parse(source)));
+
+        Assert.Equal("screen", chunk.Location.SourceBlockKind);
+        Assert.Equal("~~~\n# prompt\n```\nstill screen\n~~~", chunk.Markdown.Replace("\r\n", "\n"));
     }
 
     [Fact]
@@ -305,6 +331,15 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal(ReaderInputKind.DocBook, reader.Detect(referencedNamespace, "renamed.bin", new ReaderDetectionOptions {
             Mode = ReaderDetectionMode.PreferContent
         }).Kind);
+        byte[] entityBackedAttribute = Encoding.UTF8.GetBytes("<!DOCTYPE article [<!ENTITY role \"guide\">]><article xmlns=\"http://docbook.org/ns/docbook\" role=\"&role;\"><para>P</para></article>");
+        Assert.Equal(ReaderInputKind.DocBook, reader.Detect(entityBackedAttribute, "renamed.bin", new ReaderDetectionOptions {
+            Mode = ReaderDetectionMode.PreferContent
+        }).Kind);
+        OfficeDocumentReadResult entityBackedResult = reader.ReadDocument(entityBackedAttribute, "renamed.bin", new ReaderOptions {
+            DetectionMode = ReaderDetectionMode.PreferContent
+        });
+        Assert.Equal(ReaderInputKind.DocBook, entityBackedResult.Kind);
+        Assert.Equal("P", Assert.Single(entityBackedResult.Chunks).Text);
 
         byte[] ordinaryXml = Encoding.UTF8.GetBytes("<root><value>&lt;opml version=\"2.0\"&gt;</value></root>");
         Assert.NotEqual(ReaderInputKind.Opml, reader.Detect(ordinaryXml, "renamed.bin", new ReaderDetectionOptions {

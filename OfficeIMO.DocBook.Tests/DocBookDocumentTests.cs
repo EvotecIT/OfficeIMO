@@ -796,6 +796,51 @@ public sealed class DocBookDocumentTests {
         Assert.Equal("figure.png", image.Attribute("fileref")!.Value);
     }
 
+    [Theory]
+    [InlineData("4.5")]
+    [InlineData("5.2")]
+    public void SharedConversionPreservesDistinctImageCaptionAndAlternativeText(string profile) {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Pdf,
+            Metadata = new[] { new OfficeDocumentModelMetadataEntry { Category = "docbook", Name = "profile", Value = profile } },
+            Assets = new[] {
+                new OfficeDocumentModelAsset {
+                    Id = "figure",
+                    Kind = "image",
+                    FileName = "figure.png",
+                    Title = "Visible caption",
+                    AltText = "Alternative description"
+                }
+            }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+        XElement media = Assert.Single(converted.Xml.Descendants(), element => element.Name.LocalName == "mediaobject");
+        OfficeDocumentModelAsset restored = Assert.Single(converted.ToOfficeDocumentModel().Value.Assets);
+
+        Assert.Equal("Alternative description", media.Elements().Single(element => element.Name.LocalName == "textobject").Value);
+        Assert.Equal("Visible caption", media.Elements().Single(element => element.Name.LocalName == "caption").Value);
+        Assert.Equal("Alternative description", restored.AltText);
+        Assert.Equal("Visible caption", restored.Title);
+    }
+
+    [Fact]
+    public void SharedConversionDiagnosesUnsupportedPagesFormsAndVisuals() {
+        var model = new OfficeDocumentModel {
+            Pages = new[] { new OfficeDocumentModelPage { Number = 3, Name = "Page three" } },
+            Forms = new[] { new OfficeDocumentModelFormField { Id = "accept", Name = "Accept", Kind = "checkbox" } },
+            Visuals = new[] { new OfficeDocumentModelVisual { Kind = "diagram", SourceName = "Flow", Content = "A -> B" } }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Equal(3, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "DB124"));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" && diagnostic.Message.IndexOf("Page three", StringComparison.Ordinal) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" && diagnostic.Message.IndexOf("Accept", StringComparison.Ordinal) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" && diagnostic.Message.IndexOf("Flow", StringComparison.Ordinal) >= 0);
+    }
+
     [Fact]
     public void SharedConversionAppendsSupplementaryChannelsAlongsideStructure() {
         var model = new OfficeDocumentModel {
