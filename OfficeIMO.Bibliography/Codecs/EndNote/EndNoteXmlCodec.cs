@@ -11,6 +11,7 @@ internal static class EndNoteXmlCodec {
     internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyNativeEntry> nativeEntries, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
         var limits = new BibliographyLimitGuard(options);
+        var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaximumInputCharacters };
             ValidateDepth(source, settings, limits, items, cancellationToken);
@@ -18,16 +19,20 @@ internal static class EndNoteXmlCodec {
             using XmlReader reader = XmlReader.Create(textReader, settings);
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             XElement? root = document.Root;
-            if (root != null) foreach (XElement element in root.Elements().Where(element => element.Name.LocalName != "records")) nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, "element", element.ToString(SaveOptions.DisableFormatting), element.Name.LocalName));
+            if (root != null) foreach (XElement element in root.Elements().Where(element => element.Name.LocalName != "records")) {
+                ValidateAggregateValueLengths(element, items, limits, true);
+                limits.AddValue(items, null, GetOffset(element));
+                nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, "element", element.ToString(SaveOptions.DisableFormatting), element.Name.LocalName));
+            }
             foreach (XElement record in document.Descendants().Where(element => element.Name.LocalName == "record")) {
                 cancellationToken.ThrowIfCancellationRequested();
                 limits.AddItem(items, GetOffset(record));
-                BibliographyItem item = ParseRecord(record, items, limits, diagnostics);
+                BibliographyItem item = ParseRecord(record, items, limits, diagnosticGuard);
                 items.Add(item);
             }
-            if (items.Count == 0) diagnostics.Add(new BibliographyDiagnostic("BIBEND001", BibliographyDiagnosticSeverity.Warning, "EndNote XML contains no record elements."));
+            if (items.Count == 0) diagnosticGuard.Add(new BibliographyDiagnostic("BIBEND001", BibliographyDiagnosticSeverity.Warning, "EndNote XML contains no record elements."));
         } catch (XmlException exception) {
-            diagnostics.Add(new BibliographyDiagnostic("BIBEND002", BibliographyDiagnosticSeverity.Error, exception.Message, line: exception.LineNumber, column: exception.LinePosition));
+            diagnosticGuard.Add(new BibliographyDiagnostic("BIBEND002", BibliographyDiagnosticSeverity.Error, exception.Message, line: exception.LineNumber, column: exception.LinePosition));
         }
         return items;
     }
@@ -66,7 +71,7 @@ internal static class EndNoteXmlCodec {
                 if (item.Keywords.Count > 0) { writer.WriteStartElement("keywords"); foreach (string keyword in item.Keywords) WriteElement(writer, "keyword", keyword); writer.WriteEndElement(); }
                 if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", item.Notes));
                 foreach (BibliographyNativeField field in item.NativeFields) {
-                    if (field.Format == BibliographyFormat.EndNoteXml && !KnownRecordElements.Contains(field.Name) && TryWriteElement(writer, field.RawValue ?? field.Value)) {
+                    if (field.Format == BibliographyFormat.EndNoteXml && !KnownRecordElements.Contains(field.Name) && TryWriteNativeField(writer, field)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
                     } else if (field.Format != BibliographyFormat.EndNoteXml) {
                         report.Add("BIBCONV115", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in EndNote XML.", BibliographyConversionAction.Omitted, item, field.Name);
@@ -82,7 +87,8 @@ internal static class EndNoteXmlCodec {
         return builder.ToString();
     }
 
-    private static BibliographyItem ParseRecord(XElement record, IList<BibliographyItem> partial, BibliographyLimitGuard limits, List<BibliographyDiagnostic> diagnostics) {
+    private static BibliographyItem ParseRecord(XElement record, IList<BibliographyItem> partial, BibliographyLimitGuard limits, BibliographyDiagnosticGuard diagnostics) {
+        ValidateAggregateValueLengths(record, partial, limits, false);
         foreach (XElement leaf in record.Descendants().Where(static element => !element.HasElements)) limits.AddValue(partial, leaf.Value, GetOffset(leaf));
         string type = Child(record, "ref-type")?.Attribute("name")?.Value ?? Value(record, "ref-type");
         var item = new BibliographyItem { Key = Value(record, "rec-number"), NativeType = type, Type = CodecMappings.ParseType(type) };
@@ -147,6 +153,45 @@ internal static class EndNoteXmlCodec {
     }
 
     private static bool TryWriteElement(XmlWriter writer, string xml) { try { XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace); element.WriteTo(writer); return true; } catch (XmlException) { return false; } }
+    private static bool TryWriteNativeField(XmlWriter writer, BibliographyNativeField field) {
+        string? raw = field.UnmodifiedRawValue;
+        if (raw != null) return TryWriteElement(writer, raw);
+        if (HasInvalidXmlCharacters(field.Value)) return false;
+        try {
+            XmlConvert.VerifyNCName(field.Name);
+            writer.WriteElementString(field.Name, SanitizeXml(field.Value));
+            return true;
+        } catch (XmlException) {
+            return false;
+        }
+    }
+    private static bool HasInvalidXmlCharacters(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { index++; continue; }
+            if (!XmlConvert.IsXmlChar(value[index])) return true;
+        }
+        return false;
+    }
+
+    private static int ValidateAggregateValueLengths(XElement element, IList<BibliographyItem> partial, BibliographyLimitGuard limits, bool checkCurrent) {
+        int length = 0;
+        foreach (XAttribute attribute in element.Attributes()) limits.AddValue(partial, attribute.Value, GetOffset(element));
+        foreach (XNode node in element.Nodes()) {
+            int nodeLength = node is XElement child ? ValidateAggregateValueLengths(child, partial, limits, ShouldCheckAggregateValue(child)) : node is XText text ? text.Value.Length : 0;
+            if (nodeLength > int.MaxValue - length) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, GetOffset(element));
+            length += nodeLength;
+        }
+        if (checkCurrent) limits.CheckValueLength(partial, length, GetOffset(element));
+        return length;
+    }
+    private static bool ShouldCheckAggregateValue(XElement element) {
+        if (string.Equals(element.Parent?.Name.LocalName, "record", StringComparison.OrdinalIgnoreCase) && HasUnsupportedNestedContent(element)) return true;
+        switch (element.Name.LocalName.ToLowerInvariant()) {
+            case "xml": case "records": case "record": case "contributors": case "authors": case "secondary-authors": case "tertiary-authors": case "subsidiary-authors":
+            case "titles": case "periodical": case "dates": case "pub-dates": case "urls": case "related-urls": case "keywords": return false;
+            default: return true;
+        }
+    }
     private static void WriteElement(XmlWriter writer, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteElementString(name, SanitizeXml(value!)); }
     private static string SanitizeXml(string value) {
         var builder = new StringBuilder(value.Length);

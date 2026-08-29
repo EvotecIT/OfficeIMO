@@ -2,6 +2,12 @@
 
 `OfficeIMO.Bibliography` is the citation-data owner for OfficeIMO. It provides one editable model and deterministic codecs for BibTeX, BibLaTeX, CSL JSON, RIS, PubMed NBIB/MEDLINE, and EndNote XML without depending on Word or a citation-style engine.
 
+Install the package from NuGet:
+
+```shell
+dotnet add package OfficeIMO.Bibliography
+```
+
 ## Read, edit, write, and reopen
 
 ```csharp

@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 192,
-    "productionComponentCount": 101,
-    "testProjectCount": 34,
+    "projectCount": 194,
+    "productionComponentCount": 102,
+    "testProjectCount": 35,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 25,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41468
+    "conceptualWordCount": 41489
   },
   "categories": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 5
+      "componentCount": 6
     }
   ],
   "components": [
@@ -97,6 +97,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Pdf"
+    },
+    {
+      "name": "OfficeIMO.Bibliography",
+      "packageId": "OfficeIMO.Bibliography",
+      "category": "Specialized components",
+      "description": "Source-preserving citation data model and deterministic bibliography codecs for .NET.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj",
+      "sourceFileCount": 15,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Bibliography"
     },
     {
       "name": "OfficeIMO.ChartForgeX",
@@ -196,7 +209,7 @@
       "description": "Dependency-isolated safe HTML, RTF, text, and inline-resource projection for OfficeIMO email artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
-      "sourceFileCount": 1,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
       "apiUrl": null,
@@ -729,7 +742,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1019,
+      "sourceFileCount": 1027,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -846,7 +859,7 @@
       "description": "Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
-      "sourceFileCount": 111,
+      "sourceFileCount": 113,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
@@ -1223,7 +1236,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 30,
+      "sourceFileCount": 32,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

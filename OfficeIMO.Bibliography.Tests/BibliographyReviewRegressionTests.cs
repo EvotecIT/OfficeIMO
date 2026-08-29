@@ -3,7 +3,8 @@ namespace OfficeIMO.Bibliography.Tests;
 public sealed class BibliographyReviewRegressionTests {
     [Fact]
     public void Preserve_fingerprint_distinguishes_collection_boundaries() {
-        BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"keyword\":\"alpha, beta\"}]", BibliographyFormat.CslJson).Document;
+        BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"keyword\":\"alpha\"}]", BibliographyFormat.CslJson).Document;
+        document.Items[0].Keywords.Add("beta");
         string moved = document.Items[0].Keywords[1];
         document.Items[0].Keywords.RemoveAt(1);
         document.Items[0].Notes.Add(moved);

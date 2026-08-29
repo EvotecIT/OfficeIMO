@@ -12,17 +12,19 @@ internal static class CslJsonCodec {
     internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
         var limits = new BibliographyLimitGuard(options);
+        var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
             using JsonDocument json = JsonDocument.Parse(source, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
             if (json.RootElement.ValueKind == JsonValueKind.Array) {
-                foreach (JsonElement element in json.RootElement.EnumerateArray()) ParseItem(element, items, limits, diagnostics, cancellationToken);
+                foreach (JsonElement element in json.RootElement.EnumerateArray()) ParseItem(element, items, limits, diagnosticGuard, cancellationToken);
             } else if (json.RootElement.ValueKind == JsonValueKind.Object) {
-                ParseItem(json.RootElement, items, limits, diagnostics, cancellationToken);
+                ParseItem(json.RootElement, items, limits, diagnosticGuard, cancellationToken);
             } else {
-                diagnostics.Add(new BibliographyDiagnostic("BIBCSL001", BibliographyDiagnosticSeverity.Error, "CSL JSON root must be an object or an array."));
+                diagnosticGuard.Add(new BibliographyDiagnostic("BIBCSL001", BibliographyDiagnosticSeverity.Error, "CSL JSON root must be an object or an array."));
             }
         } catch (JsonException exception) {
-            diagnostics.Add(new BibliographyDiagnostic("BIBCSL002", BibliographyDiagnosticSeverity.Error, exception.Message, (int)(exception.BytePositionInLine ?? -1), (int)(exception.LineNumber ?? -1) + 1, (int)(exception.BytePositionInLine ?? -1) + 1));
+            GetJsonLocation(source, exception, out int offset, out int line, out int column);
+            diagnosticGuard.Add(new BibliographyDiagnostic("BIBCSL002", BibliographyDiagnosticSeverity.Error, exception.Message, offset, line, column));
         }
         return items;
     }
@@ -55,8 +57,7 @@ internal static class CslJsonCodec {
                 foreach (BibliographyNativeField field in item.NativeFields) {
                     if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) {
                         writer.WritePropertyName(field.Name);
-                        bool exact = TryWriteRaw(writer, field.RawValue ?? field.Value);
-                        if (!exact) writer.WriteStringValue(field.Value);
+                        bool exact = WriteNativeValue(writer, field);
                         emitted.Add(field.Name);
                         report.Add(exact ? "BIBCONV012" : "BIBCONV126", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON property '{field.Name}'." : $"Native CSL JSON property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, field.Name);
                     } else if (field.Format != BibliographyFormat.CslJson) {
@@ -74,7 +75,7 @@ internal static class CslJsonCodec {
         return options.LineEnding == "\n" ? text + options.LineEnding : NormalizeLineEndings(text, options.LineEnding) + options.LineEnding;
     }
 
-    private static void ParseItem(JsonElement element, IList<BibliographyItem> items, BibliographyLimitGuard limits, List<BibliographyDiagnostic> diagnostics, CancellationToken cancellationToken) {
+    private static void ParseItem(JsonElement element, IList<BibliographyItem> items, BibliographyLimitGuard limits, BibliographyDiagnosticGuard diagnostics, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (element.ValueKind != JsonValueKind.Object) { diagnostics.Add(new BibliographyDiagnostic("BIBCSL003", BibliographyDiagnosticSeverity.Warning, "Ignored a non-object CSL JSON array value.")); return; }
         limits.AddItem(items, 0);
@@ -116,7 +117,7 @@ internal static class CslJsonCodec {
                 case "issn": CodecMappings.AddIdentifier(item, "ISSN", Scalar(property.Value)); break;
                 case "pmid": CodecMappings.AddIdentifier(item, "PMID", Scalar(property.Value)); break;
                 case "pmcid": CodecMappings.AddIdentifier(item, "PMCID", Scalar(property.Value)); break;
-                case "keyword": foreach (string keyword in Scalar(property.Value).Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)) item.Keywords.Add(keyword.Trim()); break;
+                case "keyword": string keyword = Scalar(property.Value); if (!string.IsNullOrWhiteSpace(keyword)) item.Keywords.Add(keyword); break;
                 case "note": item.Notes.Add(Scalar(property.Value)); break;
                 default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, Scalar(property.Value), raw)); break;
             }
@@ -127,13 +128,18 @@ internal static class CslJsonCodec {
     private static void CountValues(JsonElement element, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         switch (element.ValueKind) {
             case JsonValueKind.Object:
-                foreach (JsonProperty property in element.EnumerateObject()) { limits.AddValue(items, property.Name, 0); CountValues(property.Value, items, limits); }
+                foreach (JsonProperty property in element.EnumerateObject()) {
+                    limits.AddValue(items, property.Name, 0);
+                    if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array) CountValues(property.Value, items, limits);
+                    else limits.CheckValueLength(items, property.Value.GetRawText(), 0);
+                }
                 break;
             case JsonValueKind.Array:
-                foreach (JsonElement value in element.EnumerateArray()) CountValues(value, items, limits);
-                break;
-            default:
-                limits.AddValue(items, element.GetRawText(), 0);
+                foreach (JsonElement value in element.EnumerateArray()) {
+                    limits.AddValue(items, null, 0);
+                    if (value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array) CountValues(value, items, limits);
+                    else limits.CheckValueLength(items, value.GetRawText(), 0);
+                }
                 break;
         }
     }
@@ -166,7 +172,7 @@ internal static class CslJsonCodec {
         }
     }
 
-    private static void ParseDate(BibliographyItem item, JsonElement value, BibliographyDateRole role, List<BibliographyDiagnostic> diagnostics) {
+    private static void ParseDate(BibliographyItem item, JsonElement value, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics) {
         var date = new BibliographyDate { Role = role };
         if (value.ValueKind == JsonValueKind.Object) {
             if (value.TryGetProperty("literal", out JsonElement literal)) date.Literal = Scalar(literal);
@@ -199,7 +205,7 @@ internal static class CslJsonCodec {
             WriteString(writer, "suffix", contributor.Name.Suffix); WriteString(writer, "dropping-particle", contributor.Name.DroppingParticle); WriteString(writer, "non-dropping-particle", contributor.Name.NonDroppingParticle);
             var known = new HashSet<string>(new[] { "literal", "given", "family", "suffix", "dropping-particle", "non-dropping-particle" }, StringComparer.OrdinalIgnoreCase);
             foreach (BibliographyNativeField field in contributor.Name.NativeFields) {
-                if (field.Format == BibliographyFormat.CslJson && !known.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = TryWriteRaw(writer, field.RawValue ?? field.Value); if (!exact) writer.WriteStringValue(field.Value); known.Add(field.Name); report.Add(exact ? "BIBCONV016" : "BIBCONV127", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON name property '{field.Name}'." : $"Native CSL JSON name property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
+                if (field.Format == BibliographyFormat.CslJson && !known.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field); known.Add(field.Name); report.Add(exact ? "BIBCONV016" : "BIBCONV127", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON name property '{field.Name}'." : $"Native CSL JSON name property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
                 else report.Add("BIBCONV124", BibliographyDiagnosticSeverity.Warning, $"Native name property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
             }
             writer.WriteEndObject();
@@ -219,7 +225,7 @@ internal static class CslJsonCodec {
         }
         if (!string.IsNullOrWhiteSpace(date.Literal)) { writer.WriteString("literal", date.Literal); emitted.Add("literal"); }
         foreach (BibliographyNativeField field in date.NativeFields) {
-            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = TryWriteRaw(writer, field.RawValue ?? field.Value); if (!exact) writer.WriteStringValue(field.Value); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
+            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
             else report.Add("BIBCONV125", BibliographyDiagnosticSeverity.Warning, $"Native date property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
         }
         writer.WriteEndObject();
@@ -244,6 +250,39 @@ internal static class CslJsonCodec {
 
     private static bool TryWriteRaw(Utf8JsonWriter writer, string raw) {
         try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = 1024 }); value.RootElement.WriteTo(writer); return true; } catch (JsonException) { return false; }
+    }
+    private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field) {
+        string? raw = field.UnmodifiedRawValue;
+        if (raw == null) { writer.WriteStringValue(field.Value); return true; }
+        if (TryWriteRaw(writer, raw)) return true;
+        writer.WriteStringValue(field.Value);
+        return false;
+    }
+
+    private static void GetJsonLocation(string source, JsonException exception, out int offset, out int line, out int column) {
+        if (!exception.LineNumber.HasValue || !exception.BytePositionInLine.HasValue) { offset = -1; line = -1; column = -1; return; }
+        int zeroBasedLine = checked((int)exception.LineNumber.Value);
+        int lineStart = 0;
+        for (int currentLine = 0; currentLine < zeroBasedLine && lineStart < source.Length; currentLine++) {
+            int newLine = source.IndexOf('\n', lineStart);
+            if (newLine < 0) { lineStart = source.Length; break; }
+            lineStart = newLine + 1;
+        }
+        int lineEnd = source.IndexOf('\n', lineStart);
+        if (lineEnd < 0) lineEnd = source.Length;
+        if (lineEnd > lineStart && source[lineEnd - 1] == '\r') lineEnd--;
+        long bytePosition = exception.BytePositionInLine.Value;
+        int characterCount = 0;
+        while (lineStart + characterCount < lineEnd) {
+            int width = char.IsHighSurrogate(source[lineStart + characterCount]) && lineStart + characterCount + 1 < lineEnd && char.IsLowSurrogate(source[lineStart + characterCount + 1]) ? 2 : 1;
+            int bytes = Encoding.UTF8.GetByteCount(source.Substring(lineStart + characterCount, width));
+            if (bytes > bytePosition) break;
+            bytePosition -= bytes;
+            characterCount += width;
+        }
+        offset = lineStart + characterCount;
+        line = zeroBasedLine + 1;
+        column = characterCount + 1;
     }
     private static string NormalizeLineEndings(string value, string lineEnding) => value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", lineEnding);
 }

@@ -1,6 +1,10 @@
 namespace OfficeIMO.Bibliography;
 
 internal static class BibCodec {
+    private static readonly HashSet<string> ReservedTypedFieldNames = new HashSet<string>(new[] {
+        "title", "author", "editor", "translator", "journal", "journaltitle", "booktitle", "publisher", "institution", "organization", "address", "location", "edition", "volume", "number", "issue", "pages", "eid", "abstract", "language", "langid", "url", "date", "year", "month", "urldate", "keywords", "note"
+    }, StringComparer.OrdinalIgnoreCase);
+
     internal static IList<BibliographyItem> Parse(string source, BibliographyFormat format, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyNativeEntry> nativeEntries, CancellationToken cancellationToken) {
         var parser = new Parser(source, format, options, diagnostics, nativeEntries, cancellationToken);
         return parser.Parse();
@@ -52,7 +56,11 @@ internal static class BibCodec {
             }
             BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed);
             if (accessed != null) Add(fields, "urldate", CodecMappings.FormatDate(accessed));
-            foreach (BibliographyIdentifier identifier in item.Identifiers) Add(fields, identifier.Scheme.ToLowerInvariant(), identifier.Value);
+            foreach (BibliographyIdentifier identifier in item.Identifiers) {
+                string fieldName = identifier.Scheme.ToLowerInvariant();
+                if (IsSafeFieldName(fieldName) && !ReservedTypedFieldNames.Contains(fieldName)) Add(fields, fieldName, identifier.Value);
+                else report.Add("BIBCONV129", BibliographyDiagnosticSeverity.Warning, $"Identifier scheme '{identifier.Scheme}' cannot be represented as a safe, non-conflicting BibTeX field.", BibliographyConversionAction.Omitted, item, "identifiers." + identifier.Scheme);
+            }
             if (item.Keywords.Count > 0) Add(fields, "keywords", string.Join(", ", item.Keywords));
             if (item.Notes.Count > 0) Add(fields, "note", string.Join("; ", item.Notes));
 
@@ -86,9 +94,12 @@ internal static class BibCodec {
     }
 
     private static void AddNames(ICollection<KeyValuePair<string, string>> fields, string name, BibliographyItem item, BibliographyContributorRole role) {
-        string[] names = item.Contributors.Where(contributor => contributor.Role == role).Select(contributor => CodecMappings.FormatName(contributor.Name)).Where(static value => value.Length > 0).ToArray();
+        string[] names = item.Contributors.Where(contributor => contributor.Role == role).Select(contributor => FormatBibName(contributor.Name)).Where(static value => value.Length > 0).ToArray();
         if (names.Length > 0) Add(fields, name, string.Join(" and ", names));
     }
+
+    private static string FormatBibName(BibliographyName name) =>
+        string.IsNullOrWhiteSpace(name.Literal) ? CodecMappings.FormatName(name) : "{" + name.Literal + "}";
 
     private static string Escape(string value) {
         int depth = 0;
@@ -142,20 +153,21 @@ internal static class BibCodec {
                 if (_position >= _source.Length || (_source[_position] != '{' && _source[_position] != '(')) { AddDiagnostic("BIBBIB002", "Expected '{' or '(' after the BibTeX entry type.", entryStart, severity: BibliographyDiagnosticSeverity.Error); RecoverToNextEntry(); continue; }
                 char open = _source[_position++];
                 char close = open == '{' ? '}' : ')';
-                if (string.Equals(type, "comment", StringComparison.OrdinalIgnoreCase)) { _nativeEntries.Add(new BibliographyNativeEntry(_format, "comment", ReadBalancedRaw(close))); continue; }
-                if (string.Equals(type, "preamble", StringComparison.OrdinalIgnoreCase)) { string value = ReadValue(close); ConsumeClose(close); _nativeEntries.Add(new BibliographyNativeEntry(_format, "preamble", value)); continue; }
-                if (string.Equals(type, "string", StringComparison.OrdinalIgnoreCase)) { ParseString(close); continue; }
+                if (string.Equals(type, "comment", StringComparison.OrdinalIgnoreCase)) { string value = ReadBalancedRaw(close); _limits.AddValue(_items, value, entryStart); _nativeEntries.Add(new BibliographyNativeEntry(_format, "comment", value)); continue; }
+                if (string.Equals(type, "preamble", StringComparison.OrdinalIgnoreCase)) { string value = ReadValue(close); _limits.AddValue(_items, value, entryStart); ConsumeClose(close); _nativeEntries.Add(new BibliographyNativeEntry(_format, "preamble", value)); continue; }
+                if (string.Equals(type, "string", StringComparison.OrdinalIgnoreCase)) { ParseString(close, entryStart); continue; }
                 ParseItem(type, close, entryStart);
             }
             return _items;
         }
 
-        private void ParseString(char close) {
+        private void ParseString(char close, int entryStart) {
             SkipWhitespace();
             string name = ReadIdentifier();
             SkipWhitespace();
             if (!Consume('=')) AddDiagnostic("BIBBIB003", "Expected '=' in a BibTeX string directive.", _position, severity: BibliographyDiagnosticSeverity.Error);
             string value = ReadValue(close);
+            _limits.AddValue(_items, value, entryStart);
             _strings[name] = value;
             _nativeEntries.Add(new BibliographyNativeEntry(_format, "string", value, name));
             ConsumeClose(close);
@@ -308,7 +320,7 @@ internal static class BibCodec {
         private void ConsumeClose(char close) { SkipWhitespaceAndCommas(); if (!Consume(close)) AddDiagnostic("BIBBIB009", $"Expected closing '{close}'.", _position, severity: BibliographyDiagnosticSeverity.Error); }
         private void SkipWhitespace() { while (_position < _source.Length && char.IsWhiteSpace(_source[_position])) _position++; }
         private void SkipWhitespaceAndCommas() { while (_position < _source.Length && (char.IsWhiteSpace(_source[_position]) || _source[_position] == ',')) _position++; }
-        private void SkipTrivia() { while (_position < _source.Length) { if (char.IsWhiteSpace(_source[_position])) { _position++; continue; } if (_source[_position] == '%') { int start = ++_position; while (_position < _source.Length && _source[_position] != '\n' && _source[_position] != '\r') _position++; _nativeEntries.Add(new BibliographyNativeEntry(_format, "line-comment", _source.Substring(start, _position - start))); continue; } break; } }
+        private void SkipTrivia() { while (_position < _source.Length) { if (char.IsWhiteSpace(_source[_position])) { _position++; continue; } if (_source[_position] == '%') { int start = ++_position; while (_position < _source.Length && _source[_position] != '\n' && _source[_position] != '\r') _position++; string value = _source.Substring(start, _position - start); _limits.AddValue(_items, value, start); _nativeEntries.Add(new BibliographyNativeEntry(_format, "line-comment", value)); continue; } break; } }
         private void RecoverToNextEntry() { int next = _source.IndexOf('@', _position); _position = next < 0 ? _source.Length : next; }
         private void RecoverToDelimiter(char close) { while (_position < _source.Length && _source[_position] != ',' && _source[_position] != close) _position++; }
         private void AddDiagnostic(string code, string message, int offset, string? key = null, string? field = null, BibliographyDiagnosticSeverity severity = BibliographyDiagnosticSeverity.Warning) {

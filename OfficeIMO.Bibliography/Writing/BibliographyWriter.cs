@@ -65,11 +65,17 @@ internal static class BibliographyWriter {
 
 internal static class BibliographyConversionInspector {
     internal static void Inspect(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
+        foreach (BibliographyDiagnostic diagnostic in document.Diagnostics.Where(IsRecoveryLossDiagnostic)) {
+            report.Add("BIBCONV222", BibliographyDiagnosticSeverity.Warning, $"Canonical output is based on partially recovered source after parser diagnostic {diagnostic.Code}; unrecovered source content may be omitted.", BibliographyConversionAction.Omitted, field: diagnostic.Field);
+        }
         InspectKeys(document, format, report);
         foreach (BibliographyItem item in document.Items) {
             InspectType(item, document.SourceFormat, format, report); InspectContributors(item, format, report); InspectDates(item, format, report); InspectNestedNativeFields(item, format, report); InspectProperties(item, format, report); InspectIdentifiers(item, format, report); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report);
         }
     }
+
+    private static bool IsRecoveryLossDiagnostic(BibliographyDiagnostic diagnostic) =>
+        diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBCSL003";
 
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
         foreach (BibliographyItem item in document.Items.Where(static item => string.IsNullOrWhiteSpace(item.Key)))

@@ -56,6 +56,7 @@ internal static class TaggedCodec {
     private static IList<BibliographyItem> Parse(string source, BibliographyFormat format, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
         var limits = new BibliographyLimitGuard(options);
+        var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         BibliographyItem? current = null;
         string? previousTag = null;
         string[] lines = source.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
@@ -82,11 +83,11 @@ internal static class TaggedCodec {
             } else if (current != null && previousTag != null && (char.IsWhiteSpace(line[0]) || format == BibliographyFormat.Ris)) {
                 string continuation = line.Trim();
                 limits.AddValue(items, continuation, lineIndex);
-                AppendContinuation(current, format, previousTag, continuation, diagnostics, lineIndex + 1, items, limits);
-            } else diagnostics.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", line: lineIndex + 1, column: 1));
+                AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, items, limits);
+            } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", line: lineIndex + 1, column: 1));
         }
         if (format == BibliographyFormat.Nbib) NormalizeNbibAuthors(items);
-        foreach (BibliographyItem item in items.Where(static item => string.IsNullOrWhiteSpace(item.Key))) diagnostics.Add(new BibliographyDiagnostic("BIBTAG003", BibliographyDiagnosticSeverity.Warning, $"{format} record has no citation identifier.", itemKey: item.Key));
+        foreach (BibliographyItem item in items.Where(static item => string.IsNullOrWhiteSpace(item.Key))) diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG003", BibliographyDiagnosticSeverity.Warning, $"{format} record has no citation identifier.", itemKey: item.Key));
         return items;
     }
 
@@ -158,7 +159,7 @@ internal static class TaggedCodec {
 
     private static string StripBracketQualifier(string value) { int marker = value.LastIndexOf(" (", StringComparison.Ordinal); return marker > 0 && value.EndsWith(")", StringComparison.Ordinal) ? value.Substring(0, marker) : value; }
 
-    private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, List<BibliographyDiagnostic> diagnostics, int line, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+    private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyDiagnosticGuard diagnostics, int line, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         string field = tag.ToUpperInvariant();
         if (format == BibliographyFormat.Ris) {
             switch (field) {

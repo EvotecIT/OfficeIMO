@@ -82,11 +82,14 @@ public sealed class BibliographyIdentifier {
 
 /// <summary>An ordered native field retained outside the typed model.</summary>
 public sealed class BibliographyNativeField {
+    private readonly string _originalValue;
+
     /// <summary>Initializes a native field.</summary>
     public BibliographyNativeField(BibliographyFormat format, string name, string value, string? rawValue = null) {
         Format = format;
         Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("Field name cannot be empty.", nameof(name)) : name;
         Value = value ?? throw new ArgumentNullException(nameof(value));
+        _originalValue = value;
         RawValue = rawValue;
     }
 
@@ -98,6 +101,8 @@ public sealed class BibliographyNativeField {
     public string Value { get; set; }
     /// <summary>Optional raw source representation.</summary>
     public string? RawValue { get; }
+
+    internal string? UnmodifiedRawValue => RawValue != null && string.Equals(Value, _originalValue, StringComparison.Ordinal) ? RawValue : null;
 }
 
 /// <summary>An ordered document-level directive or value outside citation records.</summary>

@@ -35,6 +35,9 @@ internal static class BibliographyReader {
         } catch (BibliographyLimitException exception) {
             diagnostics.Add(new BibliographyDiagnostic("BIBLIM001", BibliographyDiagnosticSeverity.Error, exception.Message, exception.Offset));
             items = exception.PartialItems;
+        } catch (BibliographyDiagnosticLimitException exception) {
+            diagnostics.Add(new BibliographyDiagnostic("BIBLIM002", BibliographyDiagnosticSeverity.Error, "Maximum bibliography diagnostic count was exceeded.", exception.Offset, exception.Line, exception.Column));
+            items = exception.PartialItems;
         }
 
         var document = new BibliographyDocument(format, items, nativeEntries, source, originalBytes, diagnostics.AsReadOnly());
@@ -65,8 +68,44 @@ internal sealed class BibliographyLimitGuard {
     }
 
     internal void CheckValueLength(IList<BibliographyItem> partial, string value, int offset) {
-        if (value.Length > _options.MaximumValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
+        CheckValueLength(partial, value.Length, offset);
     }
+
+    internal void CheckValueLength(IList<BibliographyItem> partial, int length, int offset) {
+        if (length > _options.MaximumValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
+    }
+}
+
+internal sealed class BibliographyDiagnosticGuard {
+    private readonly List<BibliographyDiagnostic> _diagnostics;
+    private readonly int _maximumCount;
+    private readonly IList<BibliographyItem> _partialItems;
+
+    internal BibliographyDiagnosticGuard(BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyItem> partialItems) {
+        _maximumCount = options.MaximumDiagnosticCount;
+        _diagnostics = diagnostics;
+        _partialItems = partialItems;
+    }
+
+    internal void Add(BibliographyDiagnostic diagnostic) {
+        if (_diagnostics.Count >= _maximumCount) throw new BibliographyDiagnosticLimitException(_partialItems, diagnostic.Offset, diagnostic.Line, diagnostic.Column);
+        _diagnostics.Add(diagnostic);
+    }
+}
+
+internal sealed class BibliographyDiagnosticLimitException : Exception {
+    internal BibliographyDiagnosticLimitException(IList<BibliographyItem> partialItems, int offset, int line, int column)
+        : base("Maximum bibliography diagnostic count was exceeded.") {
+        PartialItems = partialItems;
+        Offset = offset;
+        Line = line;
+        Column = column;
+    }
+
+    internal IList<BibliographyItem> PartialItems { get; }
+    internal int Offset { get; }
+    internal int Line { get; }
+    internal int Column { get; }
 }
 
 internal sealed class BibliographyLimitException : Exception {
