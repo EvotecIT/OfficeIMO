@@ -3,11 +3,6 @@ using System.Text.Json;
 namespace OfficeIMO.Bibliography;
 
 internal static class CslJsonCodec {
-    private static readonly HashSet<string> KnownProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-        "id", "type", "title", "container-title", "collection-title", "publisher", "publisher-place", "edition", "volume", "issue", "page", "abstract", "language", "URL",
-        "author", "editor", "translator", "recipient", "interviewer", "composer", "collection-editor", "issued", "accessed", "submitted", "original-date", "event-date",
-        "DOI", "ISBN", "ISSN", "PMID", "PMCID", "keyword", "note"
-    };
 
     internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, out bool singleObjectRoot, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
@@ -56,7 +51,7 @@ internal static class CslJsonCodec {
                 if (item.Keywords.Count > 0) writer.WriteString("keyword", string.Join(", ", item.Keywords));
                 if (item.Notes.Count > 0) writer.WriteString("note", string.Join("; ", item.Notes));
 
-                var emitted = new HashSet<string>(KnownProperties, StringComparer.OrdinalIgnoreCase);
+                HashSet<string> emitted = GetEmittedProperties(item);
                 foreach (BibliographyNativeField field in item.NativeFields) {
                     if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) {
                         writer.WritePropertyName(field.Name);
@@ -109,13 +104,13 @@ internal static class CslJsonCodec {
                 case "abstract": item.Abstract = Scalar(property.Value); break;
                 case "language": item.Language = Scalar(property.Value); break;
                 case "url": item.Url = Scalar(property.Value); break;
-                case "author": ParseNames(item, property.Value, BibliographyContributorRole.Author, items, limits); break;
-                case "editor": ParseNames(item, property.Value, BibliographyContributorRole.Editor, items, limits); break;
-                case "translator": ParseNames(item, property.Value, BibliographyContributorRole.Translator, items, limits); break;
-                case "recipient": ParseNames(item, property.Value, BibliographyContributorRole.Recipient, items, limits); break;
-                case "interviewer": ParseNames(item, property.Value, BibliographyContributorRole.Interviewer, items, limits); break;
-                case "composer": ParseNames(item, property.Value, BibliographyContributorRole.Composer, items, limits); break;
-                case "collection-editor": ParseNames(item, property.Value, BibliographyContributorRole.CollectionEditor, items, limits); break;
+                case "author": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Author, items, limits); break;
+                case "editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Editor, items, limits); break;
+                case "translator": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Translator, items, limits); break;
+                case "recipient": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Recipient, items, limits); break;
+                case "interviewer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Interviewer, items, limits); break;
+                case "composer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Composer, items, limits); break;
+                case "collection-editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.CollectionEditor, items, limits); break;
                 case "issued": ParseDate(item, property.Value, BibliographyDateRole.Issued, diagnostics, items, limits); break;
                 case "accessed": ParseDate(item, property.Value, BibliographyDateRole.Accessed, diagnostics, items, limits); break;
                 case "submitted": ParseDate(item, property.Value, BibliographyDateRole.Submitted, diagnostics, items, limits); break;
@@ -167,8 +162,18 @@ internal static class CslJsonCodec {
 
     private static string ScalarOrRaw(JsonElement value, string raw) => value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array ? raw : Scalar(value);
 
-    private static void ParseNames(BibliographyItem item, JsonElement value, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
-        if (value.ValueKind != JsonValueKind.Array) return;
+    private static void PreserveWrongShapedNames(BibliographyItem item, JsonProperty property, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        if (ParseNames(item, property.Value, role, items, limits)) return;
+        string raw = GetBoundedRawValue(property.Value, items, limits);
+        item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
+    }
+
+    private static bool ParseNames(BibliographyItem item, JsonElement value, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        if (value.ValueKind != JsonValueKind.Array) return false;
+        foreach (JsonElement element in value.EnumerateArray()) {
+            if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
+            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array))) return false;
+        }
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind == JsonValueKind.String) item.Contributors.Add(new BibliographyContributor(role, new BibliographyName { Literal = element.GetString() }));
             else if (element.ValueKind == JsonValueKind.Object) {
@@ -185,6 +190,14 @@ internal static class CslJsonCodec {
                 }
                 item.Contributors.Add(new BibliographyContributor(role, name));
             }
+        }
+        return true;
+    }
+
+    private static bool IsKnownNameProperty(string name) {
+        switch (name.ToLowerInvariant()) {
+            case "given": case "family": case "literal": case "suffix": case "dropping-particle": case "non-dropping-particle": return true;
+            default: return false;
         }
     }
 
@@ -223,6 +236,27 @@ internal static class CslJsonCodec {
     }
 
     private static void WriteString(Utf8JsonWriter writer, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteString(name, value); }
+    private static HashSet<string> GetEmittedProperties(BibliographyItem item) {
+        var emitted = new HashSet<string>(new[] { "id", "type" }, StringComparer.OrdinalIgnoreCase);
+        AddIfValue("title", item.Title); AddIfValue("container-title", item.ContainerTitle); AddIfValue("collection-title", item.CollectionTitle);
+        AddIfValue("publisher", item.Publisher); AddIfValue("publisher-place", item.PublisherPlace); AddIfValue("edition", item.Edition);
+        AddIfValue("volume", item.Volume); AddIfValue("issue", item.Issue); AddIfValue("page", item.Pages); AddIfValue("abstract", item.Abstract);
+        AddIfValue("language", item.Language); AddIfValue("URL", item.Url);
+        AddIfContributors(BibliographyContributorRole.Author, "author"); AddIfContributors(BibliographyContributorRole.Editor, "editor");
+        AddIfContributors(BibliographyContributorRole.Translator, "translator"); AddIfContributors(BibliographyContributorRole.Recipient, "recipient");
+        AddIfContributors(BibliographyContributorRole.Interviewer, "interviewer"); AddIfContributors(BibliographyContributorRole.Composer, "composer");
+        AddIfContributors(BibliographyContributorRole.CollectionEditor, "collection-editor");
+        AddIfDate(BibliographyDateRole.Issued, "issued"); AddIfDate(BibliographyDateRole.Accessed, "accessed");
+        AddIfDate(BibliographyDateRole.Submitted, "submitted"); AddIfDate(BibliographyDateRole.Original, "original-date"); AddIfDate(BibliographyDateRole.Event, "event-date");
+        foreach (BibliographyIdentifier identifier in item.Identifiers.Where(identifier => CodecMappings.IsCslIdentifierScheme(identifier.Scheme))) emitted.Add(identifier.Scheme.ToUpperInvariant());
+        if (item.Keywords.Count > 0) emitted.Add("keyword");
+        if (item.Notes.Count > 0) emitted.Add("note");
+        return emitted;
+
+        void AddIfValue(string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) emitted.Add(name); }
+        void AddIfContributors(BibliographyContributorRole role, string name) { if (item.Contributors.Any(contributor => contributor.Role == role)) emitted.Add(name); }
+        void AddIfDate(BibliographyDateRole role, string name) { if (item.GetDate(role) != null) emitted.Add(name); }
+    }
     private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, BibliographyContributorRole role, string property, BibliographyConversionReport report) {
         BibliographyContributor[] contributors = item.Contributors.Where(contributor => contributor.Role == role).ToArray();
         if (contributors.Length == 0) return;

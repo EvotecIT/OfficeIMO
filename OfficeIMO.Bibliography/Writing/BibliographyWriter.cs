@@ -145,6 +145,37 @@ internal static class BibliographyConversionInspector {
             foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.DroppingParticle) || !string.IsNullOrWhiteSpace(contributor.Name.NonDroppingParticle)))
                 Loss(report, item, "contributors", "BIBCONV229", $"Structured contributor particles are flattened in {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
         }
+        if (ReordersContributors(item, format))
+            Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
+    }
+
+    private static bool ReordersContributors(BibliographyItem item, BibliographyFormat format) {
+        BibliographyContributor[] source;
+        BibliographyContributor[] output;
+        switch (format) {
+            case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
+                BibliographyContributorRole[] bibRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.Translator };
+                source = item.Contributors.Where(contributor => bibRoles.Contains(contributor.Role)).ToArray();
+                output = bibRoles.SelectMany(role => source.Where(contributor => contributor.Role == role)).ToArray();
+                break;
+            case BibliographyFormat.CslJson:
+                BibliographyContributorRole[] cslRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.Translator, BibliographyContributorRole.Recipient, BibliographyContributorRole.Interviewer, BibliographyContributorRole.Composer, BibliographyContributorRole.CollectionEditor };
+                source = item.Contributors.Where(contributor => cslRoles.Contains(contributor.Role)).ToArray();
+                output = cslRoles.SelectMany(role => source.Where(contributor => contributor.Role == role)).ToArray();
+                break;
+            case BibliographyFormat.EndNoteXml:
+                BibliographyContributorRole[] endNoteRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.CollectionEditor, BibliographyContributorRole.Translator };
+                source = item.Contributors.Where(contributor => endNoteRoles.Contains(contributor.Role)).ToArray();
+                output = source.GroupBy(static contributor => contributor.Role).SelectMany(static group => group).ToArray();
+                break;
+            case BibliographyFormat.Nbib:
+                source = item.Contributors.Where(static contributor => contributor.Role == BibliographyContributorRole.Author).ToArray();
+                output = source.Where(static contributor => string.IsNullOrWhiteSpace(contributor.Name.Literal)).Concat(source.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.Literal))).ToArray();
+                break;
+            default:
+                return false;
+        }
+        return !source.SequenceEqual(output);
     }
 
     private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
@@ -219,6 +250,10 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, text.Key, "BIBCONV210", $"Invalid XML characters in '{text.Key}' are replaced in EndNote XML.", BibliographyConversionAction.Approximated);
             if ((format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) && !HasBalancedBraces(text.Value))
                 Loss(report, item, text.Key, "BIBCONV211", $"Unbalanced braces in '{text.Key}' are escaped for safe BibTeX output.", BibliographyConversionAction.Approximated);
+        }
+        if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) {
+            foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == format && (field.Value.IndexOf('\r') >= 0 || field.Value.IndexOf('\n') >= 0)))
+                Loss(report, item, "native." + field.Name, "BIBCONV209", $"Line breaks in native field '{field.Name}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
         }
     }
 

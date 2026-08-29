@@ -3,6 +3,7 @@ namespace OfficeIMO.Bibliography;
 /// <summary>A format-neutral citation-data record.</summary>
 public sealed class BibliographyItem {
     internal IDictionary<string, string> BibFieldNames { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    internal IDictionary<string, string> EndNoteFieldNames { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     internal IDictionary<string, string> TaggedFieldNames { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     internal IDictionary<BibliographyContributor, string> TaggedContributorTags { get; } = new Dictionary<BibliographyContributor, string>();
     internal IDictionary<BibliographyDate, string> TaggedDateTags { get; } = new Dictionary<BibliographyDate, string>();

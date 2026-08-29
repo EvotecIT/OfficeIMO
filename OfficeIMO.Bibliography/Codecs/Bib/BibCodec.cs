@@ -6,7 +6,7 @@ internal static class BibCodec {
     }, StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> BibLatexOnlyTypedFields = new HashSet<string>(new[] { "journaltitle", "location", "issue", "eid", "langid" }, StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> ReservedTypedFieldNames = new HashSet<string>(new[] {
-        "title", "author", "editor", "translator", "journal", "journaltitle", "booktitle", "publisher", "institution", "organization", "address", "location", "edition", "volume", "number", "issue", "pages", "eid", "abstract", "language", "langid", "url", "date", "year", "month", "urldate", "keywords", "note"
+        "title", "author", "editor", "translator", "journal", "journaltitle", "booktitle", "series", "publisher", "institution", "organization", "address", "location", "edition", "volume", "number", "issue", "pages", "eid", "abstract", "language", "langid", "url", "date", "year", "month", "urldate", "keywords", "note"
     }, StringComparer.OrdinalIgnoreCase);
 
     internal static IList<BibliographyItem> Parse(string source, BibliographyFormat format, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyNativeEntry> nativeEntries, CancellationToken cancellationToken) {
@@ -35,8 +35,8 @@ internal static class BibCodec {
             AddNames(fields, "author", item, BibliographyContributorRole.Author);
             AddNames(fields, "editor", item, BibliographyContributorRole.Editor);
             AddNames(fields, "translator", item, BibliographyContributorRole.Translator);
-            Add(fields, GetBibFieldName(item, "container-title", format == BibliographyFormat.BibLatex ? "journaltitle" : "journal", format), item.ContainerTitle);
-            Add(fields, "booktitle", item.CollectionTitle);
+            Add(fields, GetBibFieldName(item, "container-title", DefaultContainerField(item, format), format), item.ContainerTitle);
+            Add(fields, "series", item.CollectionTitle);
             Add(fields, GetBibFieldName(item, "publisher", "publisher", format), item.Publisher);
             Add(fields, GetBibFieldName(item, "publisher-place", format == BibliographyFormat.BibLatex ? "location" : "address", format), item.PublisherPlace);
             Add(fields, "edition", item.Edition);
@@ -96,6 +96,9 @@ internal static class BibCodec {
 
     private static string GetBibFieldName(BibliographyItem item, string property, string fallback, BibliographyFormat format) =>
         item.BibFieldNames.TryGetValue(property, out string? fieldName) && IsFieldAllowedInTarget(fieldName, format) ? fieldName : fallback;
+
+    private static string DefaultContainerField(BibliographyItem item, BibliographyFormat format) =>
+        item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference ? "booktitle" : format == BibliographyFormat.BibLatex ? "journaltitle" : "journal";
 
     private static void AddNames(ICollection<KeyValuePair<string, string>> fields, string name, BibliographyItem item, BibliographyContributorRole role) {
         string[] names = item.Contributors.Where(contributor => contributor.Role == role).Select(contributor => FormatBibName(contributor.Name)).Where(static value => value.Length > 0).ToArray();
@@ -202,6 +205,7 @@ internal static class BibCodec {
                 }
                 int entryStart = _position++;
                 string type = ReadIdentifier();
+                _limits.CheckValueLength(_items, type, entryStart);
                 SkipWhitespace();
                 if (_position >= _source.Length || (_source[_position] != '{' && _source[_position] != '(')) { AddDiagnostic("BIBBIB002", "Expected '{' or '(' after the BibTeX entry type.", entryStart, severity: BibliographyDiagnosticSeverity.Error); RecoverToNextEntry(); continue; }
                 char open = _source[_position++];
@@ -217,6 +221,7 @@ internal static class BibCodec {
         private void ParseString(char close, int entryStart) {
             SkipWhitespace();
             string name = ReadIdentifier();
+            _limits.CheckValueLength(_items, name, entryStart);
             SkipWhitespace();
             if (!Consume('=')) AddDiagnostic("BIBBIB003", "Expected '=' in a BibTeX string directive.", _position, severity: BibliographyDiagnosticSeverity.Error);
             string value = ReadValue(close);
@@ -246,6 +251,7 @@ internal static class BibCodec {
                 if (_source[_position] == close) { _position++; return; }
                 int fieldStart = _position;
                 string name = ReadIdentifier();
+                _limits.CheckValueLength(_items, name, fieldStart);
                 if (name.Length == 0) { AddDiagnostic("BIBBIB005", "Expected a BibTeX field name.", fieldStart, item.Key, severity: BibliographyDiagnosticSeverity.Error); RecoverToDelimiter(close); continue; }
                 SkipWhitespace();
                 if (!Consume('=')) { AddDiagnostic("BIBBIB006", "Expected '=' after a BibTeX field name.", _position, item.Key, name, BibliographyDiagnosticSeverity.Error); RecoverToDelimiter(close); continue; }
@@ -316,7 +322,8 @@ internal static class BibCodec {
             switch (field) {
                 case "title": SetScalar(item, field, value, () => item.Title, assigned => item.Title = assigned); break;
                 case "journal": case "journaltitle": if (item.ContainerTitle == null) { item.ContainerTitle = value; item.BibFieldNames["container-title"] = field; } else PreserveAdditionalField(item, field, value); break;
-                case "booktitle": SetScalar(item, field, value, () => item.CollectionTitle, assigned => item.CollectionTitle = assigned); break;
+                case "booktitle": if (item.ContainerTitle == null) { item.ContainerTitle = value; item.BibFieldNames["container-title"] = field; } else PreserveAdditionalField(item, field, value); break;
+                case "series": SetScalar(item, field, value, () => item.CollectionTitle, assigned => item.CollectionTitle = assigned); break;
                 case "publisher": case "institution": case "organization": if (item.Publisher == null) { item.Publisher = value; item.BibFieldNames["publisher"] = field; } else PreserveAdditionalField(item, field, value); break;
                 case "address": case "location": if (item.PublisherPlace == null) { item.PublisherPlace = value; item.BibFieldNames["publisher-place"] = field; } else PreserveAdditionalField(item, field, value); break;
                 case "edition": SetScalar(item, field, value, () => item.Edition, assigned => item.Edition = assigned); break;
