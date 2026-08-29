@@ -18,7 +18,9 @@ public static class OfficeDocumentReaderBuilderOpmlExtensions {
             DefaultMaxInputBytes = registered.ReadOptions.MaxInputBytes,
             ReadPath = (path, reader, token) => OpmlReaderAdapter.Read(path, reader, ReaderOpmlOptionsCloner.Clone(registered), token),
             ReadStream = (stream, name, reader, token) => OpmlReaderAdapter.Read(stream, name, reader, ReaderOpmlOptionsCloner.Clone(registered), token),
-            WarningBehavior = ReaderWarningBehavior.WarningChunksOnly, DeterministicOutput = true
+            ReadDocumentPath = (path, reader, token) => OpmlReaderAdapter.ReadDocument(path, reader, ReaderOpmlOptionsCloner.Clone(registered), token),
+            ReadDocumentStream = (stream, name, reader, token) => OpmlReaderAdapter.ReadDocument(stream, name, reader, ReaderOpmlOptionsCloner.Clone(registered), token),
+            WarningBehavior = ReaderWarningBehavior.Mixed, DeterministicOutput = true
         }, replaceExisting);
     }
 }

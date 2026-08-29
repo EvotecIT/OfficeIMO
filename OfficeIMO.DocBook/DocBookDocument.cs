@@ -83,7 +83,7 @@ public sealed partial class DocBookDocument {
         if (text.Length > options.MaxCharacters) throw new InvalidDataException("DocBook input exceeds MaxCharacters.");
         cancellationToken.ThrowIfCancellationRequested();
         using var source = new StringReader(text);
-        using var reader = XmlReader.Create(source, CreateSettings(options));
+        using var reader = CreateLimitingReader(XmlReader.Create(source, CreateSettings(options)), options, cancellationToken);
         XDocument xml = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         cancellationToken.ThrowIfCancellationRequested();
         DocBookProfile profile = DetectAndValidateShape(xml, options, cancellationToken);
@@ -145,9 +145,39 @@ public sealed partial class DocBookDocument {
         foreach (XElement element in RootElement.DescendantsAndSelf()) {
             string path = "/" + rootName + "//* [" + (++position) + "]";
             DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
+            string localName = element.Name.LocalName;
             if (element != RootElement && kind == DocBookNodeKind.Unknown) {
                 diagnostics.Add(new DocBookDiagnostic("DB010", DocBookDiagnosticSeverity.Info,
                     $"Extension element '{element.Name}' is preserved but is outside the typed common-structure API.", path));
+            }
+            if (element != RootElement && element.Name.Namespace == Namespace &&
+                (Profile == DocBookProfile.DocBook52 &&
+                 (localName == "ulink" || localName == "articleinfo" || localName == "bookinfo" ||
+                  localName == "sect1" || localName == "sect2" || localName == "sect3" || localName == "sect4" || localName == "sect5") ||
+                 Profile == DocBookProfile.DocBook45 && localName == "info")) {
+                diagnostics.Add(new DocBookDiagnostic("DB014", DocBookDiagnosticSeverity.Error,
+                    $"{localName} is not a typed element in the selected {Profile} common-structure profile.", path));
+            }
+            XElement? parent = element.Parent;
+            DocBookNodeKind parentKind = parent == null ? DocBookNodeKind.Unknown : DocBookNames.GetKind(parent.Name, Namespace);
+            bool invalidParent = kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
+                (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||
+                kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
+                    parent?.Name != Namespace + "tfoot" ||
+                kind == DocBookNodeKind.Entry && parentKind != DocBookNodeKind.Row ||
+                kind == DocBookNodeKind.Info && element != RootElement && !ReferenceEquals(parent, RootElement) && parentKind != DocBookNodeKind.Section;
+            if (invalidParent) {
+                diagnostics.Add(new DocBookDiagnostic("DB015", DocBookDiagnosticSeverity.Error,
+                    $"{localName} is not under a supported common-structure parent.", path));
+            }
+            XName xlinkHref = XName.Get("href", "http://www.w3.org/1999/xlink");
+            if (kind == DocBookNodeKind.Link &&
+                (Profile == DocBookProfile.DocBook52 && element.Attribute("url") != null ||
+                 Profile == DocBookProfile.DocBook45 && localName == "ulink" && string.IsNullOrWhiteSpace((string?)element.Attribute("url")) ||
+                 Profile == DocBookProfile.DocBook45 && localName != "ulink" && element.Attribute("url") != null ||
+                 Profile == DocBookProfile.DocBook45 && element.Attribute(xlinkHref) != null)) {
+                diagnostics.Add(new DocBookDiagnostic("DB016", DocBookDiagnosticSeverity.Error,
+                    $"{localName} uses a link target attribute outside the selected {Profile} common-structure profile.", path));
             }
             if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
                  kind == DocBookNodeKind.Table && element.Name.LocalName == "table") &&
@@ -221,7 +251,7 @@ public sealed partial class DocBookDocument {
     private static DocBookDocument ParseBytes(byte[] bytes, DocBookReadOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using var memory = new MemoryStream(bytes, writable: false);
-        using var reader = XmlReader.Create(memory, CreateSettings(options));
+        using var reader = CreateLimitingReader(XmlReader.Create(memory, CreateSettings(options)), options, cancellationToken);
         XDocument xml = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         cancellationToken.ThrowIfCancellationRequested();
         DocBookProfile profile = DetectAndValidateShape(xml, options, cancellationToken);
@@ -236,6 +266,9 @@ public sealed partial class DocBookDocument {
         IgnoreComments = false,
         IgnoreProcessingInstructions = false
     };
+
+    private static XmlReader CreateLimitingReader(XmlReader reader, DocBookReadOptions options, CancellationToken cancellationToken) =>
+        new OfficeXmlLimitingReader(reader, "DocBook", options.MaxDepth, options.MaxElements, options.MaxAttributes, cancellationToken);
 
     private static DocBookProfile DetectAndValidateShape(XDocument xml, DocBookReadOptions options, CancellationToken cancellationToken) {
         XElement? root = xml.Root;

@@ -20,12 +20,12 @@ document.Save("subscriptions.opml");
 
 Standard subscription attributes are typed, while `GetAttribute` and `SetAttribute` accept `XName` for namespaced extensions. Unknown attributes, elements, comments, processing instructions, and namespace declarations remain in the backing `XDocument`. An unchanged file or stream is written byte-for-byte; after an edit, preserved XML is serialized around the changed values.
 
-`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`. Conversion results implement `IOfficeConversionReport`, so callers can inspect diagnostics or call `RequireNoLoss()`.
+`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`; subscription and outline URLs are also published through `OfficeDocumentModel.Links`. Conversion results implement `IOfficeConversionReport`, so callers can inspect diagnostics or call `RequireNoLoss()`.
 
 ## Safety and profile limits
 
 - XML DTDs and external entity resolution are disabled.
-- Default limits are 16 MiB encoded input, 16 million XML characters, 128 levels, 100,000 outlines, and 500,000 attributes. Override them with `OpmlReadOptions`.
+- Default limits are 16 MiB encoded input, 16 million XML characters, 128 levels, 250,000 total elements, 100,000 outlines, and 500,000 attributes. Override them with `OpmlReadOptions`.
 - Validation covers the OPML root/head/body contract, declared version, required `text`, RSS `xmlUrl`, and link/include `url`.
 - Reader integration is provided by `OfficeIMO.Reader.Opml`.
 

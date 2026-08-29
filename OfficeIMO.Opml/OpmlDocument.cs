@@ -189,7 +189,7 @@ public sealed partial class OpmlDocument {
     private static OpmlDocument ParseBytes(byte[] bytes, OpmlReadOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using var memory = new MemoryStream(bytes, writable: false);
-        using var reader = XmlReader.Create(memory, CreateSettings(options));
+        using var reader = CreateLimitingReader(XmlReader.Create(memory, CreateSettings(options)), options, cancellationToken);
         XDocument xml = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         cancellationToken.ThrowIfCancellationRequested();
         ValidateShapeAndLimits(xml, options, cancellationToken);
@@ -197,7 +197,7 @@ public sealed partial class OpmlDocument {
     }
 
     private static XDocument ParseXml(TextReader source, OpmlReadOptions options, CancellationToken cancellationToken) {
-        using var reader = XmlReader.Create(source, CreateSettings(options));
+        using var reader = CreateLimitingReader(XmlReader.Create(source, CreateSettings(options)), options, cancellationToken);
         XDocument result = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         cancellationToken.ThrowIfCancellationRequested();
         return result;
@@ -212,6 +212,9 @@ public sealed partial class OpmlDocument {
         IgnoreProcessingInstructions = false
     };
 
+    private static XmlReader CreateLimitingReader(XmlReader reader, OpmlReadOptions options, CancellationToken cancellationToken) =>
+        new OfficeXmlLimitingReader(reader, "OPML", options.MaxDepth, options.MaxElements, options.MaxAttributes, cancellationToken);
+
     private static void ValidateShapeAndLimits(XDocument xml, OpmlReadOptions options, CancellationToken cancellationToken) {
         XElement? root = xml.Root;
         if (root == null || root.Name != "opml") throw new InvalidDataException("The document root must be opml in no namespace.");
@@ -222,6 +225,7 @@ public sealed partial class OpmlDocument {
         if (Array.IndexOf(rootChildren, root.Element("head")!) > Array.IndexOf(rootChildren, root.Element("body")!)) {
             throw new InvalidDataException("The OPML head element must precede the body element.");
         }
+        int elements = 0;
         int outlines = 0;
         int attributes = 0;
         var stack = new Stack<Tuple<XElement, int>>();
@@ -230,6 +234,7 @@ public sealed partial class OpmlDocument {
             cancellationToken.ThrowIfCancellationRequested();
             Tuple<XElement, int> entry = stack.Pop();
             if (entry.Item2 > options.MaxDepth) throw new InvalidDataException("OPML input exceeds MaxDepth.");
+            if (++elements > options.MaxElements) throw new InvalidDataException("OPML input exceeds MaxElements.");
             attributes = checked(attributes + entry.Item1.Attributes().Count());
             if (attributes > options.MaxAttributes) throw new InvalidDataException("OPML input exceeds MaxAttributes.");
             if (entry.Item1.Name == "outline" && ++outlines > options.MaxOutlines) throw new InvalidDataException("OPML input exceeds MaxOutlines.");

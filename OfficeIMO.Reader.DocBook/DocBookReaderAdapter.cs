@@ -9,7 +9,7 @@ using OfficeIMO.Reader;
 
 namespace OfficeIMO.Reader.DocBook;
 
-internal static class DocBookReaderAdapter {
+internal static partial class DocBookReaderAdapter {
     internal static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? readerOptions = null, ReaderDocBookOptions? docBookOptions = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         ReaderOptions reader = readerOptions ?? new ReaderOptions(); ReaderInputLimits.EnforceFileSize(path, reader.MaxInputBytes);
@@ -28,12 +28,49 @@ internal static class DocBookReaderAdapter {
     internal static IEnumerable<ReaderChunk> Read(DocBookDocument document, string sourceName = "document.xml", ReaderOptions? readerOptions = null, ReaderDocBookOptions? options = null, CancellationToken cancellationToken = default) =>
         Build(document ?? throw new ArgumentNullException(nameof(document)), sourceName, readerOptions ?? new ReaderOptions(), ReaderDocBookOptionsCloner.Clone(options), cancellationToken);
 
-    private static IEnumerable<ReaderChunk> Build(DocBookDocument document, string sourceName, ReaderOptions reader, ReaderDocBookOptions options, CancellationToken cancellationToken) {
-        IReadOnlyList<string>? warnings = options.IncludeDiagnostics
-            ? document.Validate().Diagnostics.Where(d => d.Severity != DocBookDiagnosticSeverity.Info).Select(d => d.Code + ": " + d.Message).ToArray() : null;
-        OfficeDocumentModel model = document.ToOfficeDocumentModel(sourceName).Value;
+    private static DocBookProjection CreateProjection(DocBookDocument document, string sourceName, ReaderOptions reader, ReaderDocBookOptions options, bool includeChunkWarnings, CancellationToken cancellationToken) {
+        DocBookConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName,
+            new DocBookConversionOptions { MaxTableRows = Math.Max(1, reader.MaxTableRows) });
+        DocBookDiagnostic[] diagnostics = options.IncludeDiagnostics
+            ? document.Validate().Diagnostics.Concat(conversion.Diagnostics).ToArray()
+            : Array.Empty<DocBookDiagnostic>();
+        IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
+            ? diagnostics.Where(d => d.Severity != DocBookDiagnosticSeverity.Info)
+                .Select(d => d.Code + ": " + d.Message).ToArray()
+            : null;
+        OfficeDocumentModel model = conversion.Value;
+        return new DocBookProjection(model, diagnostics,
+            BuildChunks(model, sourceName, reader, warnings, cancellationToken).ToArray());
+    }
+
+    private static IEnumerable<ReaderChunk> Build(DocBookDocument document, string sourceName, ReaderOptions reader, ReaderDocBookOptions options, CancellationToken cancellationToken) =>
+        CreateProjection(document, sourceName, reader, options, includeChunkWarnings: true, cancellationToken).Chunks;
+
+    private static IEnumerable<ReaderChunk> BuildChunks(OfficeDocumentModel model, string sourceName, ReaderOptions reader, IReadOnlyList<string>? warnings, CancellationToken cancellationToken) {
+        ReaderTable[] tables = model.Tables.Select(table => MapTable(table, reader.MaxTableRows, sourceName)).ToArray();
+        bool tablesAttached = false;
         int sourceIndex = 0, emittedIndex = 0;
-        foreach (OfficeDocumentModelNode root in model.Structure) foreach (ReaderChunk chunk in BuildNode(root)) yield return chunk;
+        foreach (OfficeDocumentModelNode root in model.Structure) {
+            foreach (ReaderChunk chunk in BuildNode(root)) {
+                if (!tablesAttached && tables.Length > 0) {
+                    chunk.Tables = tables;
+                    tablesAttached = true;
+                }
+                yield return chunk;
+            }
+        }
+        if (!tablesAttached && tables.Length > 0) {
+            yield return new ReaderChunk {
+                Id = "docbook-tables",
+                Kind = ReaderInputKind.DocBook,
+                Text = string.Empty,
+                Markdown = string.Empty,
+                Tables = tables,
+                Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex, SourceBlockKind = "table" },
+                Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook", TableCount = tables.Length },
+                Warnings = warnings
+            };
+        }
 
         IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -66,9 +103,54 @@ internal static class DocBookReaderAdapter {
         }
     }
 
+    private sealed class DocBookProjection {
+        internal DocBookProjection(OfficeDocumentModel model, IReadOnlyList<DocBookDiagnostic> diagnostics, ReaderChunk[] chunks) {
+            Model = model;
+            Diagnostics = diagnostics;
+            Chunks = chunks;
+        }
+        internal OfficeDocumentModel Model { get; }
+        internal IReadOnlyList<DocBookDiagnostic> Diagnostics { get; }
+        internal ReaderChunk[] Chunks { get; }
+    }
+
     private static void ApplyReaderLimit(DocBookReadOptions options, long? maxBytes) {
         if (maxBytes.HasValue) options.MaxInputBytes = Math.Min(options.MaxInputBytes, maxBytes.Value);
     }
+    private static ReaderTable MapTable(OfficeDocumentModelTable table, int maxRows, string sourceName) {
+        int rowLimit = Math.Max(1, maxRows);
+        IReadOnlyList<IReadOnlyList<string>> rows = table.Rows.Take(rowLimit).ToArray();
+        return new ReaderTable {
+            Title = table.Title,
+            Kind = table.Kind,
+            Summary = table.Summary,
+            PayloadHash = table.PayloadHash,
+            Location = MapLocation(table.Location, sourceName),
+            Columns = table.Columns,
+            ColumnProfiles = ReaderTableProfiler.CreateProfiles(table.Columns, rows),
+            Rows = rows,
+            TotalRowCount = Math.Max(table.TotalRowCount, table.Rows.Count),
+            Truncated = table.Truncated || rows.Count < table.Rows.Count
+        };
+    }
+    private static ReaderLocation MapLocation(OfficeDocumentModelLocation? location, string sourceName) => new ReaderLocation {
+        Path = location?.Path ?? sourceName,
+        BlockIndex = location?.BlockIndex,
+        SourceBlockIndex = location?.SourceBlockIndex,
+        StartLine = location?.StartLine,
+        EndLine = location?.EndLine,
+        NormalizedStartLine = location?.NormalizedStartLine,
+        NormalizedEndLine = location?.NormalizedEndLine,
+        HeadingPath = location?.HeadingPath,
+        HeadingSlug = location?.HeadingSlug,
+        SourceBlockKind = location?.SourceBlockKind ?? "table",
+        BlockAnchor = location?.BlockAnchor,
+        Sheet = location?.Sheet,
+        A1Range = location?.A1Range,
+        Slide = location?.Slide,
+        Page = location?.Page,
+        TableIndex = location?.TableIndex
+    };
     private static IReadOnlyList<string> Split(string value, int maxChars) {
         if (maxChars <= 0 || value.Length <= maxChars) return new[] { value };
         var parts = new List<string>();

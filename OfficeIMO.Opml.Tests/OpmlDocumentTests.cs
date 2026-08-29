@@ -57,6 +57,9 @@ public sealed class OpmlDocumentTests {
         Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
             "<opml version=\"2.0\"><head/><body><outline text=\"a\"/><outline text=\"b\"/></body></opml>",
             new OpmlReadOptions { MaxOutlines = 1 }));
+        Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><extension/></body></opml>",
+            new OpmlReadOptions { MaxElements = 3 }));
         Assert.ThrowsAny<Exception>(() => OpmlDocument.Parse(
             "<!DOCTYPE opml [<!ENTITY x \"boom\">]><opml version=\"2.0\"><head/><body><outline text=\"&x;\"/></body></opml>"));
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
@@ -125,6 +128,18 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionReportsUnsupportedVersionNormalization() {
+        OpmlConversionResult<OfficeDocumentModel> forward = OpmlDocument.Parse(
+            "<opml version=\"9.0\"><head/><body/></opml>").ToOfficeDocumentModel();
+
+        OpmlConversionResult<OpmlDocument> restored = OpmlDocument.FromOfficeDocumentModel(forward.Value);
+
+        Assert.True(restored.HasLoss);
+        Assert.Contains(restored.Diagnostics, diagnostic => diagnostic.Code == "OPML105");
+        Assert.Equal("2.0", restored.Value.DeclaredVersion);
+    }
+
+    [Fact]
     public void ParsingRejectsBodyBeforeHead() {
         Assert.Throws<InvalidDataException>(() =>
             OpmlDocument.Parse("<opml version=\"2.0\"><body/><head/></opml>"));
@@ -165,5 +180,21 @@ public sealed class OpmlDocumentTests {
         Assert.True(converted.HasLoss);
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML104");
         Assert.Equal("Body", converted.Value.Outlines.Single().Text);
+    }
+
+    [Fact]
+    public void SharedModelPublishesSubscriptionAndOutlineLinks() {
+        OpmlDocument document = OpmlDocument.Create();
+        OpmlOutline outline = document.AddOutline("Feed");
+        outline.Url = "https://example.test/direct";
+        outline.XmlUrl = "https://example.test/feed.xml";
+        outline.HtmlUrl = "https://example.test/";
+
+        OfficeDocumentModel model = document.ToOfficeDocumentModel().Value;
+
+        Assert.Equal(3, model.Links.Count);
+        Assert.Contains(model.Links, link => link.Kind == "url" && link.Uri == outline.Url);
+        Assert.Contains(model.Links, link => link.Kind == "subscription" && link.Uri == outline.XmlUrl);
+        Assert.Contains(model.Links, link => link.Kind == "html" && link.Uri == outline.HtmlUrl);
     }
 }

@@ -8,7 +8,7 @@ using OfficeIMO.Reader;
 
 namespace OfficeIMO.Reader.Opml;
 
-internal static class OpmlReaderAdapter {
+internal static partial class OpmlReaderAdapter {
     internal static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? readerOptions = null, ReaderOpmlOptions? opmlOptions = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
@@ -30,9 +30,24 @@ internal static class OpmlReaderAdapter {
     internal static IEnumerable<ReaderChunk> Read(OpmlDocument document, string sourceName = "document.opml", ReaderOptions? readerOptions = null, ReaderOpmlOptions? opmlOptions = null, CancellationToken cancellationToken = default) =>
         Build(document ?? throw new ArgumentNullException(nameof(document)), sourceName, readerOptions ?? new ReaderOptions(), ReaderOpmlOptionsCloner.Clone(opmlOptions), cancellationToken);
 
-    private static IEnumerable<ReaderChunk> Build(OpmlDocument document, string sourceName, ReaderOptions reader, ReaderOpmlOptions options, CancellationToken cancellationToken) {
-        IReadOnlyList<string>? warnings = options.IncludeDiagnostics
-            ? document.Validate().Diagnostics.Select(d => d.Code + ": " + d.Message).ToArray() : null;
+    private static OpmlProjection CreateProjection(OpmlDocument document, string sourceName, ReaderOptions reader, ReaderOpmlOptions options, bool includeChunkWarnings, CancellationToken cancellationToken) {
+        OpmlValidationResult validation = document.Validate();
+        OpmlConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName);
+        OpmlDiagnostic[] diagnostics = options.IncludeDiagnostics
+            ? validation.Diagnostics.Concat(conversion.Diagnostics).ToArray()
+            : Array.Empty<OpmlDiagnostic>();
+        IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
+            ? diagnostics.Where(d => d.Severity != OpmlDiagnosticSeverity.Info)
+                .Select(d => d.Code + ": " + d.Message).ToArray()
+            : null;
+        return new OpmlProjection(conversion.Value, diagnostics,
+            BuildChunks(document, sourceName, reader, warnings, cancellationToken).ToArray());
+    }
+
+    private static IEnumerable<ReaderChunk> Build(OpmlDocument document, string sourceName, ReaderOptions reader, ReaderOpmlOptions options, CancellationToken cancellationToken) =>
+        CreateProjection(document, sourceName, reader, options, includeChunkWarnings: true, cancellationToken).Chunks;
+
+    private static IEnumerable<ReaderChunk> BuildChunks(OpmlDocument document, string sourceName, ReaderOptions reader, IReadOnlyList<string>? warnings, CancellationToken cancellationToken) {
         int sourceIndex = 0, emittedIndex = 0;
         foreach (OpmlOutline root in document.Outlines) {
             foreach (ReaderChunk chunk in BuildOutline(root, 1, string.Empty)) yield return chunk;
@@ -55,6 +70,17 @@ internal static class OpmlReaderAdapter {
             }
             foreach (OpmlOutline child in outline.Children) foreach (ReaderChunk chunk in BuildOutline(child, level + 1, headingPath)) yield return chunk;
         }
+    }
+
+    private sealed class OpmlProjection {
+        internal OpmlProjection(OfficeDocumentModel model, IReadOnlyList<OpmlDiagnostic> diagnostics, ReaderChunk[] chunks) {
+            Model = model;
+            Diagnostics = diagnostics;
+            Chunks = chunks;
+        }
+        internal OfficeDocumentModel Model { get; }
+        internal IReadOnlyList<OpmlDiagnostic> Diagnostics { get; }
+        internal ReaderChunk[] Chunks { get; }
     }
 
     private static void ApplyReaderLimit(OpmlReadOptions options, long? maxBytes) {

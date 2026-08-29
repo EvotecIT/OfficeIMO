@@ -11,6 +11,7 @@ public sealed partial class OpmlDocument {
     public OpmlConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(string? sourcePath = null) {
         var diagnostics = new List<OpmlDiagnostic>();
         var blocks = new List<OfficeDocumentModelBlock>();
+        var links = new List<OfficeDocumentModelLink>();
         int blockIndex = 0;
 
         OfficeDocumentModelNode Convert(OpmlOutline outline, int level, string parentPath) {
@@ -25,6 +26,9 @@ public sealed partial class OpmlDocument {
                 Level = level,
                 Location = new OfficeDocumentModelLocation { Path = sourcePath, BlockIndex = nodeIndex, HeadingPath = headingPath }
             });
+            AddLink(outline.Url, "url");
+            AddLink(outline.XmlUrl, "subscription");
+            AddLink(outline.HtmlUrl, "html");
             if (outline.Element.Elements().Any(element => element.Name != "outline")) {
                 diagnostics.Add(new OpmlDiagnostic("OPML200", OpmlDiagnosticSeverity.Warning,
                     "An outline extension element remains in native OPML but is not represented by the shared outline model.", headingPath));
@@ -38,6 +42,17 @@ public sealed partial class OpmlDocument {
                 Children = outline.Children.Select(child => Convert(child, level + 1, headingPath)).ToArray(),
                 Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = headingPath }
             };
+
+            void AddLink(string? uri, string kind) {
+                if (string.IsNullOrWhiteSpace(uri)) return;
+                links.Add(new OfficeDocumentModelLink {
+                    Id = "opml-link-" + nodeIndex + "-" + kind,
+                    Kind = kind,
+                    Uri = uri,
+                    Text = outline.Text,
+                    Location = new OfficeDocumentModelLocation { Path = sourcePath, BlockIndex = nodeIndex, HeadingPath = headingPath }
+                });
+            }
         }
 
         var model = new OfficeDocumentModel {
@@ -46,7 +61,8 @@ public sealed partial class OpmlDocument {
             CapabilitiesUsed = new[] { "opml.outlines", "opml.attributes", "opml.nesting" },
             Metadata = BuildMetadata(diagnostics),
             Structure = Outlines.Select(outline => Convert(outline, 1, string.Empty)).ToArray(),
-            Blocks = blocks
+            Blocks = blocks,
+            Links = links
         };
         return new OpmlConversionResult<OfficeDocumentModel>(model, diagnostics);
     }
@@ -58,10 +74,15 @@ public sealed partial class OpmlDocument {
         if (model == null) throw new ArgumentNullException(nameof(model));
         var diagnostics = new List<OpmlDiagnostic>();
         string? sourceVersion = model.Metadata.FirstOrDefault(entry => entry.Category == "opml" && entry.Name == "version")?.Value;
+        bool sourceVersionIsSupported = sourceVersion == null || sourceVersion == "1.0" || sourceVersion == "1.1" || sourceVersion == "2.0";
         OpmlVersion inferredVersion = sourceVersion == "1.0" || sourceVersion == "1.1" ? OpmlVersion.Opml10 : OpmlVersion.Opml20;
         OpmlVersion selectedVersion = version ?? inferredVersion;
         OpmlDocument document = Create(selectedVersion);
         if (version == null && sourceVersion == "1.1") document.DeclaredVersion = "1.1";
+        if (!sourceVersionIsSupported) {
+            diagnostics.Add(new OpmlDiagnostic("OPML105", OpmlDiagnosticSeverity.Warning,
+                $"The unsupported source OPML version '{sourceVersion}' was normalized to '{document.DeclaredVersion}'."));
+        }
         if (version.HasValue && sourceVersion != null && selectedVersion != inferredVersion) {
             diagnostics.Add(new OpmlDiagnostic("OPML103", OpmlDiagnosticSeverity.Warning,
                 $"The source OPML profile '{sourceVersion}' was changed to '{document.DeclaredVersion}' by the requested conversion profile."));

@@ -296,4 +296,84 @@ public sealed class DocBookDocumentTests {
         Assert.Single(restored.Xml.Root!.Elements(), element => element.Name.LocalName == "title");
         Assert.DoesNotContain(restored.Xml.Root!.Elements(), element => element.Name.LocalName == "articleinfo");
     }
+
+    [Fact]
+    public void SharedTableProjectionBoundsHostileCalsGeometry() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"2147483647\"><colspec colname=\"far\" colnum=\"2147483647\"/><tbody><row><entry colname=\"far\">Value</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableColumns = 4, MaxTableRows = 10 });
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB113");
+        Assert.True(table.Columns.Count <= 4);
+        Assert.True(table.Truncated);
+    }
+
+    [Theory]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">X</ulink></article>", "DB014")]
+    [InlineData("<article><info><title>T</title></info></article>", "DB014")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><entry>X</entry></article>", "DB015")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:row><entry>X</entry></x:row></article>", "DB015")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><link url=\"https://example.test\">X</link></para></article>", "DB016")]
+    [InlineData("<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para><link url=\"https://example.test\">X</link></para></article>", "DB016")]
+    public void BoundedValidationRejectsWrongProfileNamesParentsAndLinkTargets(string source, string code) {
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.False(validation.IsValid);
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void SharedConversionReportsUnsupportedIdentityAndNativeAliases() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Metadata = new[] {
+                new OfficeDocumentModelMetadataEntry { Category = "docbook", Name = "kind", Value = "chapter" },
+                new OfficeDocumentModelMetadataEntry { Category = "docbook", Name = "profile", Value = "6.0" }
+            },
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "paragraph", Text = "Body" } }
+        };
+        DocBookConversionResult<DocBookDocument> restored = DocBookDocument.FromOfficeDocumentModel(model);
+        Assert.True(restored.HasLoss);
+        Assert.Equal(2, restored.Diagnostics.Count(diagnostic => diagnostic.Code == "DB114"));
+
+        DocBookConversionResult<OfficeDocumentModel> aliases = DocBookDocument.Parse(
+            "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><sect1><title>S</title><simpara>P</simpara></sect1></article>")
+            .ToOfficeDocumentModel();
+        Assert.True(aliases.HasLoss);
+        Assert.Contains(aliases.Diagnostics, diagnostic => diagnostic.Code == "DB115");
+
+        DocBookConversionResult<OfficeDocumentModel> docBookFiveAlias = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">Site</ulink></article>")
+            .ToOfficeDocumentModel();
+        Assert.Contains(docBookFiveAlias.Diagnostics, diagnostic => diagnostic.Code == "DB115");
+
+        DocBookConversionResult<OfficeDocumentModel> docBookFourAlias = DocBookDocument.Parse(
+            "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><info><title>T</title></info></article>")
+            .ToOfficeDocumentModel();
+        Assert.Contains(docBookFourAlias.Diagnostics, diagnostic => diagnostic.Code == "DB115");
+    }
+
+    [Fact]
+    public void SharedModelPublishesAuthorsAndNormalizedLinks() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><info><title>T</title><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></info><para><link xl:href=\"https://example.test\">Site</link><xref linkend=\"target\"/></para></article>";
+
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        Assert.Equal("Jane Doe", model.Source.Author);
+        Assert.Contains(model.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
+        Assert.Contains(model.Links, link => link.Uri == "https://example.test" && link.Text == "Site");
+        Assert.Contains(model.Links, link => link.DestinationName == "target" && link.Kind == "cross-reference");
+    }
+
+    [Fact]
+    public void NamespacedLookalikesRemainExtensionsWithoutProfileErrorsOrAliasLoss() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:ulink/><x:sect1/><x:simpara/></article>";
+        DocBookDocument document = DocBookDocument.Parse(source);
+
+        Assert.DoesNotContain(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB014");
+        Assert.DoesNotContain(document.ToOfficeDocumentModel().Diagnostics, diagnostic => diagnostic.Code == "DB115");
+    }
 }

@@ -16,7 +16,7 @@ internal static class ReaderOpmlOptionsCloner {
         OpmlReadOptions read = source.ReadOptions ?? new OpmlReadOptions();
         return new ReaderOpmlOptions { IncludeDiagnostics = source.IncludeDiagnostics, ReadOptions = new OpmlReadOptions {
             MaxInputBytes = read.MaxInputBytes, MaxCharacters = read.MaxCharacters, MaxDepth = read.MaxDepth,
-            MaxOutlines = read.MaxOutlines, MaxAttributes = read.MaxAttributes
+            MaxElements = read.MaxElements, MaxOutlines = read.MaxOutlines, MaxAttributes = read.MaxAttributes
         } };
     }
 }

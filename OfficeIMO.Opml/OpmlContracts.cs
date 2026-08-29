@@ -21,6 +21,8 @@ public sealed class OpmlReadOptions {
     public long MaxCharacters { get; set; } = 16_000_000L;
     /// <summary>Maximum XML element depth.</summary>
     public int MaxDepth { get; set; } = 128;
+    /// <summary>Maximum total number of XML elements, including extension elements.</summary>
+    public int MaxElements { get; set; } = 250_000;
     /// <summary>Maximum number of outline elements.</summary>
     public int MaxOutlines { get; set; } = 100_000;
     /// <summary>Maximum total number of XML attributes.</summary>
@@ -30,6 +32,7 @@ public sealed class OpmlReadOptions {
         if (MaxInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
         if (MaxCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaxCharacters));
         if (MaxDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxDepth));
+        if (MaxElements < 1) throw new ArgumentOutOfRangeException(nameof(MaxElements));
         if (MaxOutlines < 1) throw new ArgumentOutOfRangeException(nameof(MaxOutlines));
         if (MaxAttributes < 1) throw new ArgumentOutOfRangeException(nameof(MaxAttributes));
     }

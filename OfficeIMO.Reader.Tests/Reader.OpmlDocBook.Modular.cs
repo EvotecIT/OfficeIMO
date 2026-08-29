@@ -39,6 +39,25 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterPublishesBoundedCalsTablesAndConversionWarnings() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"2\"><colspec colname=\"c1\"/><colspec colname=\"c2\"/><thead><row><entry namest=\"c1\" nameend=\"c2\">Values</entry></row></thead><tbody><row><entry>A</entry><entry>1</entry></row><row><entry>B</entry><entry>2</entry></row></tbody></tgroup></informaltable></article>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            Encoding.UTF8.GetBytes(source), "table.docbook", new ReaderOptions { MaxTableRows = 1 });
+        ReaderTable table = Assert.Single(result.Tables);
+
+        Assert.Equal(new[] { "Values", "Column 2" }, table.Columns);
+        Assert.Equal(new[] { "A", "1" }, Assert.Single(table.Rows));
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.True(table.Truncated);
+        Assert.Contains(result.Chunks, chunk => chunk.Tables?.Count == 1);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB112");
+        Assert.All(result.Chunks, chunk => Assert.Null(chunk.Warnings));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB113");
+    }
+
+    [Fact]
     public void DocBookAdapterDoesNotDuplicateAggregateTitleOrExtensionText() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><info><title>Title</title></info><x:box>Extension</x:box></article>";
         ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
@@ -168,5 +187,64 @@ public sealed class ReaderOpmlDocBookModularTests {
         using var canceled = new System.Threading.CancellationTokenSource(); canceled.Cancel();
         using var second = new MemoryStream(Encoding.UTF8.GetBytes("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"/>"));
         Assert.Throws<OperationCanceledException>(() => DocBookReaderAdapter.Read(second, "a.docbook", cancellationToken: canceled.Token).ToArray());
+    }
+
+    [Fact]
+    public void OpmlRichResultPublishesMetadataLinksAndDocumentDiagnosticsOnce() {
+        const string source = "<opml version=\"9.0\"><head><title>Feeds</title></head><body><outline text=\"Feed\" type=\"rss\" xmlUrl=\"https://example.test/feed.xml\" htmlUrl=\"https://example.test/\"/></body></opml>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpmlHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "feeds.opml");
+
+        Assert.Equal("Feeds", result.Source.Title);
+        Assert.Contains(result.Metadata, entry => entry.Name == "version" && entry.Value == "9.0");
+        Assert.Contains(result.Links, link => link.Kind == "subscription" && link.Uri == "https://example.test/feed.xml");
+        Assert.Contains(result.Links, link => link.Kind == "html" && link.Uri == "https://example.test/");
+        Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "OPML001");
+        Assert.All(result.Chunks, chunk => Assert.Null(chunk.Warnings));
+    }
+
+    [Fact]
+    public void DocBookRichResultPublishesAuthorLinksTablesAndDocumentDiagnosticsOnce() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><info><title>Guide</title><author>Jane Doe</author></info><para><link xl:href=\"https://example.test\">Site</link></para><informaltable><tgroup cols=\"2\"><thead><row><entry namest=\"c1\" nameend=\"c2\">Header</entry></row></thead><tbody><row><entry>A</entry><entry>B</entry></row></tbody><colspec colname=\"c1\"/><colspec colname=\"c2\"/></tgroup></informaltable></article>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "guide.docbook");
+
+        Assert.Equal("Guide", result.Source.Title);
+        Assert.Equal("Jane Doe", result.Source.Author);
+        Assert.Contains(result.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
+        Assert.Contains(result.Links, link => link.Uri == "https://example.test" && link.Text == "Site");
+        Assert.Single(result.Tables);
+        Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "DB112");
+        Assert.All(result.Chunks, chunk => Assert.Null(chunk.Warnings));
+    }
+
+    [Fact]
+    public void RichResultsRetainDiagnosticsWhenNoChunksAreProduced() {
+        OfficeDocumentReader opmlReader = new OfficeDocumentReaderBuilder().AddOpmlHandler().Build();
+        OfficeDocumentReadResult opml = opmlReader.ReadDocument(
+            Encoding.UTF8.GetBytes("<opml version=\"2.0\"><head/><body><extension/></body></opml>"), "empty.opml");
+        Assert.Empty(opml.Chunks);
+        Assert.Contains(opml.Diagnostics, diagnostic => diagnostic.Code == "OPML203");
+
+        OfficeDocumentReader docBookReader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+        OfficeDocumentReadResult docBook = docBookReader.ReadDocument(
+            Encoding.UTF8.GetBytes("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\"/></article>"), "empty.docbook");
+        Assert.Empty(docBook.Chunks);
+        Assert.Contains(docBook.Diagnostics, diagnostic => diagnostic.Code == "DB014");
+    }
+
+    [Fact]
+    public void RichResultsPreserveDistinctDiagnosticOccurrences() {
+        OfficeDocumentReader opmlReader = new OfficeDocumentReaderBuilder().AddOpmlHandler().Build();
+        OfficeDocumentReadResult opml = opmlReader.ReadDocument(Encoding.UTF8.GetBytes(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Same\"><extension/></outline><outline text=\"Same\"><extension/></outline></body></opml>"), "duplicates.opml");
+        Assert.Equal(2, opml.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML200"));
+
+        OfficeDocumentReader docBookReader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+        OfficeDocumentReadResult docBook = docBookReader.ReadDocument(Encoding.UTF8.GetBytes(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:box/><x:box/></article>"), "duplicates.docbook");
+        Assert.Equal(2, docBook.Diagnostics.Count(diagnostic => diagnostic.Code == "DB100"));
     }
 }
