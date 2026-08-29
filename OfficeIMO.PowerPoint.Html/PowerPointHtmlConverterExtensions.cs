@@ -709,7 +709,10 @@ public static partial class PowerPointHtmlConverterExtensions {
 
                 body.Append('>');
                 if (includeShapeMetadata && RequiresSemanticTableCellContent(cell)) {
-                    AppendSemanticParagraphContent(body, cell.Paragraphs);
+                    DocumentFormat.OpenXml.Drawing.TextBody? textBody = cell.Cell.TextBody;
+                    DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
+                        .SlideMaster?.TextStyles?.OtherStyle;
+                    AppendSemanticParagraphContent(body, cell.Paragraphs, textBody?.ListStyle, masterTextStyle);
                 } else {
                     body.Append(OfficeHtmlText.Escape(NormalizeText(cell.Text)));
                 }

@@ -19,7 +19,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 body.Append("<p");
                 AppendSemanticShapeAttributes(body, textBox, "text");
                 body.Append('>');
-                AppendSemanticParagraphContent(body, paragraphs);
+                AppendSemanticParagraphContent(body, paragraphs, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
                 body.Append("</p>");
             } else if (shape is PptCore.PowerPointTable table && options.IncludeTables) {
                 AppendTable(body, table, includeShapeMetadata: true);
@@ -29,12 +29,16 @@ public static partial class PowerPointHtmlConverterExtensions {
 
     private static void AppendSemanticParagraphContent(
         StringBuilder body,
-        IReadOnlyList<PptCore.PowerPointParagraph> paragraphs) {
+        IReadOnlyList<PptCore.PowerPointParagraph> paragraphs,
+        DocumentFormat.OpenXml.Drawing.ListStyle? listStyle,
+        DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle) {
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
+            PptCore.PowerPointParagraph paragraph = paragraphs[paragraphIndex];
             if (paragraphIndex > 0) body.Append("<br data-officeimo-powerpoint-paragraph-break=\"true\">");
-            foreach (PptCore.PowerPointParagraphInline node in paragraphs[paragraphIndex].InlineNodes) {
+            foreach (PptCore.PowerPointParagraphInline node in paragraph.InlineNodes) {
                 if (node.Kind == PptCore.PowerPointParagraphInlineKind.Run && node.Run != null) {
-                    AppendSemanticTextRun(body, node.Run);
+                    AppendSemanticTextRun(body, node.Run,
+                        PptCore.PowerPointEffectiveRunStyleResolver.Resolve(node.Run, paragraph, listStyle, masterTextStyle));
                 } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.LineBreak) {
                     body.Append("<br data-officeimo-powerpoint-inline-break=\"true\">");
                 } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.Field) {
@@ -49,9 +53,13 @@ public static partial class PowerPointHtmlConverterExtensions {
                             .Append(OfficeHtmlText.EscapeAttribute(node.FieldType!))
                             .Append('"');
                     }
-                    if (node.Run != null) AppendSemanticTextStyleAttributes(body, node.Run);
+                    PptCore.PowerPointEffectiveRunStyle effective = default;
+                    if (node.Run != null) {
+                        effective = PptCore.PowerPointEffectiveRunStyleResolver.Resolve(node.Run, paragraph, listStyle, masterTextStyle);
+                        AppendSemanticTextStyleAttributes(body, node.Run, effective);
+                    }
                     body.Append('>');
-                    if (node.Run != null) AppendSemanticTextRunContent(body, node.Run);
+                    if (node.Run != null) AppendSemanticTextRunContent(body, node.Run, effective);
                     else body.Append(OfficeHtmlText.Escape(node.Text));
                     body.Append("</span>");
                 }
@@ -68,73 +76,87 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
 
         PptCore.PowerPointTextRun run = nodes[0].Run!;
-        return run.Bold || run.Italic || run.UnderlineStyle.HasValue || run.StrikeStyle.HasValue
-            || run.Capitalization.HasValue || run.BaselinePercent.HasValue
-            || run.FontSizePoints.HasValue || !string.IsNullOrWhiteSpace(run.FontName)
-            || !string.IsNullOrWhiteSpace(run.Color)
-            || !string.IsNullOrWhiteSpace(run.Language)
-               && !string.Equals(run.Language, PptCore.PowerPointTableTextDefaults.Language, StringComparison.OrdinalIgnoreCase)
+        DocumentFormat.OpenXml.Drawing.TextBody? textBody = cell.Cell.TextBody;
+        DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
+            .SlideMaster?.TextStyles?.OtherStyle;
+        PptCore.PowerPointEffectiveRunStyle effective = PptCore.PowerPointEffectiveRunStyleResolver.Resolve(
+            run, paragraphs[0], textBody?.ListStyle, masterTextStyle);
+        return effective.Bold == true || effective.Italic == true
+            || effective.UnderlineStyle is { } underline && underline != PptCore.PowerPointUnderlineStyle.None
+            || effective.StrikeStyle is { } strike && strike != PptCore.PowerPointStrikeStyle.None
+            || effective.Capitalization is { } capitalization && capitalization != PptCore.PowerPointCapitalization.None
+            || effective.BaselinePercent.HasValue
+            || effective.FontSizePoints.HasValue || !string.IsNullOrWhiteSpace(effective.FontName)
+            || !string.IsNullOrWhiteSpace(effective.Color)
+            || !string.IsNullOrWhiteSpace(effective.Language)
+               && !string.Equals(effective.Language, PptCore.PowerPointTableTextDefaults.Language, StringComparison.OrdinalIgnoreCase)
             || run.Hyperlink != null;
     }
 
-    private static void AppendSemanticTextRun(StringBuilder body, PptCore.PowerPointTextRun run) {
+    private static void AppendSemanticTextRun(
+        StringBuilder body,
+        PptCore.PowerPointTextRun run,
+        PptCore.PowerPointEffectiveRunStyle effective) {
         body.Append("<span data-officeimo-powerpoint-run=\"true\"");
-        AppendSemanticTextStyleAttributes(body, run);
+        AppendSemanticTextStyleAttributes(body, run, effective);
         body.Append('>');
-        AppendSemanticTextRunContent(body, run);
+        AppendSemanticTextRunContent(body, run, effective);
         body.Append("</span>");
     }
 
-    private static void AppendSemanticTextStyleAttributes(StringBuilder body, PptCore.PowerPointTextRun run) {
+    private static void AppendSemanticTextStyleAttributes(
+        StringBuilder body,
+        PptCore.PowerPointTextRun run,
+        PptCore.PowerPointEffectiveRunStyle effective) {
         var css = new StringBuilder();
-        AppendCss(css, "font-weight", run.Bold ? "700" : null);
-        AppendCss(css, "font-style", run.Italic ? "italic" : null);
-        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName)
-            ? "'" + run.FontName!.Replace("'", "\\'") + "'" : null);
-        AppendCss(css, "font-size", run.FontSizePoints.HasValue
-            ? run.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
-        AppendCss(css, "color", !string.IsNullOrWhiteSpace(run.Color) ? "#" + run.Color!.TrimStart('#') : null);
-        AppendCss(css, "vertical-align", run.BaselinePercent switch {
+        AppendCss(css, "font-weight", effective.Bold == true ? "700" : null);
+        AppendCss(css, "font-style", effective.Italic == true ? "italic" : null);
+        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(effective.FontName)
+            ? "'" + effective.FontName!.Replace("'", "\\'") + "'" : null);
+        AppendCss(css, "font-size", effective.FontSizePoints.HasValue
+            ? effective.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
+        AppendCss(css, "color", !string.IsNullOrWhiteSpace(effective.Color) ? "#" + effective.Color!.TrimStart('#') : null);
+        AppendCss(css, "vertical-align", effective.BaselinePercent switch {
             > 0D => "super",
             < 0D => "sub",
             _ => null
         });
-        AppendCss(css, "font-variant", run.Capitalization == PptCore.PowerPointCapitalization.SmallCaps ? "small-caps" : null);
-        AppendCss(css, "text-transform", run.Capitalization == PptCore.PowerPointCapitalization.AllCaps ? "uppercase" : null);
+        AppendCss(css, "font-variant", effective.Capitalization == PptCore.PowerPointCapitalization.SmallCaps ? "small-caps" : null);
+        AppendCss(css, "text-transform", effective.Capitalization == PptCore.PowerPointCapitalization.AllCaps ? "uppercase" : null);
 
         if (css.Length > 0) {
             body.Append(" style=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(css.ToString()))
                 .Append('"');
         }
-        if (run.UnderlineStyle.HasValue) {
+        if (effective.UnderlineStyle.HasValue) {
             body.Append(" data-officeimo-powerpoint-underline=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(run.UnderlineStyle.Value.ToString()))
+                .Append(OfficeHtmlText.EscapeAttribute(effective.UnderlineStyle.Value.ToString()))
                 .Append('"');
         }
-        if (run.StrikeStyle.HasValue) {
+        if (effective.StrikeStyle.HasValue) {
             body.Append(" data-officeimo-powerpoint-strike=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(run.StrikeStyle.Value.ToString()))
+                .Append(OfficeHtmlText.EscapeAttribute(effective.StrikeStyle.Value.ToString()))
                 .Append('"');
         }
-        if (run.Capitalization.HasValue) {
+        if (effective.Capitalization.HasValue) {
             body.Append(" data-officeimo-powerpoint-capitalization=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(run.Capitalization.Value.ToString()))
+                .Append(OfficeHtmlText.EscapeAttribute(effective.Capitalization.Value.ToString()))
                 .Append('"');
         }
-        if (run.BaselinePercent.HasValue) {
+        if (effective.BaselinePercent.HasValue) {
             body.Append(" data-officeimo-powerpoint-baseline-percent=\"")
-                .Append(run.BaselinePercent.Value.ToString("0.###", CultureInfo.InvariantCulture))
+                .Append(effective.BaselinePercent.Value.ToString("0.###", CultureInfo.InvariantCulture))
                 .Append('"');
         }
-        if (!string.IsNullOrWhiteSpace(run.FontName)) {
+        if (!string.IsNullOrWhiteSpace(effective.FontName)) {
             body.Append(" data-officeimo-powerpoint-font-family=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(run.FontName!))
+                .Append(OfficeHtmlText.EscapeAttribute(effective.FontName!))
                 .Append('"');
         }
-        if (!string.IsNullOrWhiteSpace(run.Language)) {
+        if (!string.IsNullOrWhiteSpace(effective.Language)) {
             body.Append(" data-officeimo-powerpoint-language=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(run.Language!))
+                .Append(OfficeHtmlText.EscapeAttribute(effective.Language!))
                 .Append('"');
         }
         if (run.Hyperlink != null) {
@@ -144,12 +166,15 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
     }
 
-    private static void AppendSemanticTextRunContent(StringBuilder body, PptCore.PowerPointTextRun run) {
-        AppendPowerPointDecorationStart(body, "underline", GetPowerPointUnderlineCssStyle(run.UnderlineStyle));
-        AppendPowerPointDecorationStart(body, "line-through", GetPowerPointStrikeCssStyle(run.StrikeStyle));
+    private static void AppendSemanticTextRunContent(
+        StringBuilder body,
+        PptCore.PowerPointTextRun run,
+        PptCore.PowerPointEffectiveRunStyle effective) {
+        AppendPowerPointDecorationStart(body, "underline", GetPowerPointUnderlineCssStyle(effective.UnderlineStyle));
+        AppendPowerPointDecorationStart(body, "line-through", GetPowerPointStrikeCssStyle(effective.StrikeStyle));
         body.Append(OfficeHtmlText.Escape(run.Text));
-        AppendPowerPointDecorationEnd(body, run.StrikeStyle.HasValue && run.StrikeStyle.Value != PptCore.PowerPointStrikeStyle.None);
-        AppendPowerPointDecorationEnd(body, run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != PptCore.PowerPointUnderlineStyle.None);
+        AppendPowerPointDecorationEnd(body, effective.StrikeStyle.HasValue && effective.StrikeStyle.Value != PptCore.PowerPointStrikeStyle.None);
+        AppendPowerPointDecorationEnd(body, effective.UnderlineStyle.HasValue && effective.UnderlineStyle.Value != PptCore.PowerPointUnderlineStyle.None);
     }
 
     private static string? GetPowerPointUnderlineCssStyle(PptCore.PowerPointUnderlineStyle? underline) => underline switch {

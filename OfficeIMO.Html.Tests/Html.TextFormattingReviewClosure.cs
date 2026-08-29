@@ -8,10 +8,81 @@ using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlTextFormattingReviewClosureTests {
+    [Fact]
+    public void PowerPointSemanticHtmlResolvesInheritedTypographyAndDirectOffOverrides() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Inherited")
+            .Paragraphs.Single();
+        A.ParagraphProperties paragraphProperties = paragraph.Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+        var defaults = new A.DefaultRunProperties {
+            Bold = true,
+            Italic = true,
+            Underline = A.TextUnderlineValues.Wavy,
+            Strike = A.TextStrikeValues.DoubleStrike,
+            Capital = A.TextCapsValues.Small,
+            Baseline = 30000,
+            FontSize = 1800,
+            Language = "pl-PL"
+        };
+        defaults.Append(new A.LatinFont { Typeface = "Aptos Display" });
+        defaults.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" }));
+        paragraphProperties.Append(defaults);
+
+        PowerPointTextRun directOff = paragraph.AddRun(" Plain");
+        directOff.Run.RunProperties = new A.RunProperties {
+            Bold = false,
+            Italic = false,
+            Underline = A.TextUnderlineValues.None,
+            Strike = A.TextStrikeValues.NoStrike,
+            Capital = A.TextCapsValues.None,
+            Baseline = 0
+        };
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("font-weight:700", html, StringComparison.Ordinal);
+        Assert.Contains("font-style:italic", html, StringComparison.Ordinal);
+        Assert.Contains("font-family:&#39;Aptos Display&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("font-size:18pt", html, StringComparison.Ordinal);
+        Assert.Contains("color:#336699", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-underline=\"Wavy\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-strike=\"Double\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-capitalization=\"SmallCaps\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-baseline-percent=\"30\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-language=\"pl-PL\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-underline=\"None\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-powerpoint-strike=\"None\"", html, StringComparison.Ordinal);
+
+        using PowerPointPresentation imported = HtmlConversionDocument
+            .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToPowerPointPresentationResult()
+            .RequireValue();
+        PowerPointTextRun[] runs = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs)
+            .Runs.ToArray();
+        Assert.Equal(2, runs.Length);
+        Assert.True(runs[0].Bold);
+        Assert.True(runs[0].Italic);
+        Assert.Equal(PowerPointUnderlineStyle.Wavy, runs[0].UnderlineStyle);
+        Assert.Equal(PowerPointStrikeStyle.Double, runs[0].StrikeStyle);
+        Assert.Equal(PowerPointCapitalization.SmallCaps, runs[0].Capitalization);
+        Assert.Equal(30D, runs[0].BaselinePercent);
+        Assert.Equal(18D, runs[0].FontSizePoints);
+        Assert.Equal("Aptos Display", runs[0].FontName);
+        Assert.Equal("336699", runs[0].Color);
+        Assert.Equal("pl-PL", runs[0].Language);
+        Assert.False(runs[1].Bold);
+        Assert.False(runs[1].Italic);
+        Assert.Equal(PowerPointUnderlineStyle.None, runs[1].UnderlineStyle);
+        Assert.Equal(PowerPointStrikeStyle.None, runs[1].StrikeStyle);
+        Assert.Equal(PowerPointCapitalization.None, runs[1].Capitalization);
+        Assert.Equal(0D, runs[1].BaselinePercent);
+    }
+
     [Fact]
     public void PowerPointSemanticHtmlRoundTripPreservesParagraphBreaksAndRunFormatting() {
         using PowerPointPresentation source = PowerPointPresentation.Create();

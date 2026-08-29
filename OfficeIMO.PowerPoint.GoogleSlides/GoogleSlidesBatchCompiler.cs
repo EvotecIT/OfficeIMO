@@ -242,79 +242,21 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             PowerPointParagraph paragraph,
             A.ListStyle? listStyle,
             OpenXmlCompositeElement? masterTextStyle) {
-            IReadOnlyList<A.TextCharacterPropertiesType> sources = ResolveTextPropertySources(run, paragraph, listStyle, masterTextStyle);
-            A.TextCapsValues? capitalization = sources.Select(source => source.Capital?.Value).FirstOrDefault(value => value.HasValue);
-            int? baseline = sources.Select(source => source.Baseline?.Value).FirstOrDefault(value => value.HasValue);
-            string? language = sources.Select(source => source.Language?.Value).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-            bool? bold = sources
-                .Select(source => source.Bold == null ? (bool?)null : source.Bold.Value)
-                .FirstOrDefault(value => value.HasValue);
-            bool? italic = sources
-                .Select(source => source.Italic == null ? (bool?)null : source.Italic.Value)
-                .FirstOrDefault(value => value.HasValue);
-            A.TextUnderlineValues? underline = sources
-                .Select(source => source.Underline?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            A.TextStrikeValues? strike = sources
-                .Select(source => source.Strike?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            PowerPointCapitalization? effectiveCapitalization = null;
-            if (capitalization == A.TextCapsValues.All) effectiveCapitalization = PowerPointCapitalization.AllCaps;
-            else if (capitalization == A.TextCapsValues.Small) effectiveCapitalization = PowerPointCapitalization.SmallCaps;
-            else if (capitalization == A.TextCapsValues.None) effectiveCapitalization = PowerPointCapitalization.None;
+            PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.Resolve(
+                run, paragraph, listStyle, masterTextStyle);
             return new EffectiveGoogleRunStyle(
-                effectiveCapitalization,
-                baseline.HasValue ? baseline.Value / 1000D : (double?)null,
-                language,
-                bold,
-                italic,
-                underline.HasValue ? underline.Value != A.TextUnderlineValues.None : (bool?)null,
-                strike.HasValue ? strike.Value != A.TextStrikeValues.NoStrike : (bool?)null);
+                effective.Capitalization,
+                effective.BaselinePercent,
+                effective.Language,
+                effective.Bold,
+                effective.Italic,
+                effective.UnderlineStyle.HasValue
+                    ? effective.UnderlineStyle.Value != PowerPointUnderlineStyle.None
+                    : (bool?)null,
+                effective.StrikeStyle.HasValue
+                    ? effective.StrikeStyle.Value != PowerPointStrikeStyle.None
+                    : (bool?)null);
         }
-
-        private static IReadOnlyList<A.TextCharacterPropertiesType> ResolveTextPropertySources(
-            PowerPointTextRun run,
-            PowerPointParagraph paragraph,
-            A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle) {
-            var sources = new List<A.TextCharacterPropertiesType>();
-            if (run.RunProperties != null) sources.Add(run.RunProperties);
-            A.DefaultRunProperties? paragraphDefaults = paragraph.Paragraph.ParagraphProperties?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (paragraphDefaults != null) sources.Add(paragraphDefaults);
-            int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
-            sources.AddRange(FindDefaultRunProperties(listStyle, level));
-            sources.AddRange(FindDefaultRunProperties(masterTextStyle, level));
-            return sources;
-        }
-
-        private static IEnumerable<A.DefaultRunProperties> FindDefaultRunProperties(
-            OpenXmlCompositeElement? container,
-            int level) {
-            A.DefaultRunProperties? levelDefaults = container?
-                .ChildElements
-                .OfType<A.TextParagraphPropertiesType>()
-                .FirstOrDefault(properties => GetTextLevel(properties) == level)?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (levelDefaults != null) yield return levelDefaults;
-            A.DefaultRunProperties? fallbackDefaults = container?
-                .GetFirstChild<A.DefaultParagraphProperties>()?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (fallbackDefaults != null) yield return fallbackDefaults;
-        }
-
-        private static int GetTextLevel(A.TextParagraphPropertiesType properties) => properties switch {
-            A.Level1ParagraphProperties => 0,
-            A.Level2ParagraphProperties => 1,
-            A.Level3ParagraphProperties => 2,
-            A.Level4ParagraphProperties => 3,
-            A.Level5ParagraphProperties => 4,
-            A.Level6ParagraphProperties => 5,
-            A.Level7ParagraphProperties => 6,
-            A.Level8ParagraphProperties => 7,
-            A.Level9ParagraphProperties => 8,
-            _ => -1
-        };
 
         private readonly struct EffectiveGoogleRunStyle {
             internal EffectiveGoogleRunStyle(
