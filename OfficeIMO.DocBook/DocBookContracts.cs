@@ -183,12 +183,15 @@ public sealed class DocBookConversionOptions {
     public int MaxTableColumns { get; set; } = 1_024;
     /// <summary>Maximum header rows and body rows inspected for one shared flat-table projection. Defaults to 100,000 of each.</summary>
     public int MaxTableRows { get; set; } = 100_000;
+    /// <summary>Maximum rectangular header/body cell slots materialized for one shared flat-table projection. Defaults to 1,000,000.</summary>
+    public int MaxTableCells { get; set; } = 1_000_000;
     /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
     public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
 
     internal void Validate() {
         if (MaxTableColumns < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableColumns));
         if (MaxTableRows < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableRows));
+        if (MaxTableCells < 1) throw new ArgumentOutOfRangeException(nameof(MaxTableCells));
         if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
     }
 }

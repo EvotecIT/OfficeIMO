@@ -9,8 +9,16 @@ namespace OfficeIMO.Opml;
 
 public sealed partial class OpmlDocument {
     /// <summary>Converts this document to the shared recursive document model.</summary>
-    public OpmlConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(string? sourcePath = null) {
-        var diagnostics = new List<OpmlDiagnostic>();
+    public OpmlConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(string? sourcePath = null) =>
+        ToOfficeDocumentModel(sourcePath, null);
+
+    /// <summary>Converts this document to the shared recursive document model with a source path and bounded diagnostic budget.</summary>
+    public OpmlConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(
+        string? sourcePath,
+        OpmlConversionOptions? options) {
+        options ??= new OpmlConversionOptions();
+        options.Validate();
+        var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         var blocks = new List<OfficeDocumentModelBlock>();
         var links = new List<OfficeDocumentModelLink>();
         int blockIndex = 0;
@@ -65,15 +73,23 @@ public sealed partial class OpmlDocument {
             Blocks = blocks,
             Links = links
         };
-        return new OpmlConversionResult<OfficeDocumentModel>(model, diagnostics);
+        return new OpmlConversionResult<OfficeDocumentModel>(model, diagnostics.ToArray());
     }
 
     /// <summary>Creates OPML from the recursive portion of the shared document model.</summary>
     public static OpmlConversionResult<OpmlDocument> FromOfficeDocumentModel(
         OfficeDocumentModel model,
-        OpmlVersion? version = null) {
+        OpmlVersion? version = null) => FromOfficeDocumentModel(model, version, null);
+
+    /// <summary>Creates OPML from the recursive portion of the shared document model with an explicit profile and bounded diagnostic budget.</summary>
+    public static OpmlConversionResult<OpmlDocument> FromOfficeDocumentModel(
+        OfficeDocumentModel model,
+        OpmlVersion? version,
+        OpmlConversionOptions? options) {
         if (model == null) throw new ArgumentNullException(nameof(model));
-        var diagnostics = new List<OpmlDiagnostic>();
+        options ??= new OpmlConversionOptions();
+        options.Validate();
+        var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceVersion = model.Metadata.FirstOrDefault(entry => entry.Category == "opml" && entry.Name == "version")?.Value;
         bool sourceVersionIsSupported = sourceVersion == null || sourceVersion == "1.0" || sourceVersion == "1.1" || sourceVersion == "2.0";
         OpmlVersion inferredVersion = sourceVersion == "1.0" || sourceVersion == "1.1" ? OpmlVersion.Opml10 : OpmlVersion.Opml20;
@@ -152,7 +168,7 @@ public sealed partial class OpmlDocument {
             foreach (OfficeDocumentModelNode child in node.Children) Add(child, outline);
         }
 
-        void AddFlatLink(OfficeDocumentModelLink link) {
+        bool AddFlatLink(OfficeDocumentModelLink link) {
             string text = link.Text ?? link.Uri ?? link.DestinationName ?? link.Id;
             bool represented = false;
             if (!string.IsNullOrWhiteSpace(link.Uri)) {
@@ -179,20 +195,68 @@ public sealed partial class OpmlDocument {
                         : $"Shared link '{link.Id}' had no OPML-representable URI.",
                     link.Location?.HeadingPath));
             }
+            return represented;
         }
 
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);
+            OfficeDocumentModelNode[] structureNodes = EnumerateNodes(model.Structure).ToArray();
+            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
+                document.AddOutline(block.Text);
+                diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
+                    $"Supplementary shared block '{block.Id}' was appended as a top-level outline because it was not represented by recursive Structure.",
+                    block.Location?.HeadingPath));
+            }
+            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodes))) {
+                if (AddFlatLink(link)) {
+                    diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
+                        $"Supplementary shared link '{link.Id}' was appended as a top-level outline because it was not represented by recursive Structure.",
+                        link.Location?.HeadingPath));
+                }
+            }
         } else {
             diagnostics.Add(new OpmlDiagnostic("OPML101", OpmlDiagnosticSeverity.Warning,
                 "The shared model had no recursive Structure; flat Blocks and Links were emitted as top-level outlines."));
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddOutline(block.Text);
             foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
         }
-        return new OpmlConversionResult<OpmlDocument>(document, diagnostics);
+        return new OpmlConversionResult<OpmlDocument>(document, diagnostics.ToArray());
+
+        static IEnumerable<OfficeDocumentModelNode> EnumerateNodes(IEnumerable<OfficeDocumentModelNode> roots) {
+            foreach (OfficeDocumentModelNode node in roots) {
+                yield return node;
+                foreach (OfficeDocumentModelNode child in EnumerateNodes(node.Children)) yield return child;
+            }
+        }
+
+        static bool IsDerivedBlock(OfficeDocumentModelBlock block, IEnumerable<OfficeDocumentModelNode> nodes) =>
+            !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
+                string.Equals(node.Id, block.Id, StringComparison.Ordinal) &&
+                string.Equals(node.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(node.Text, block.Text, StringComparison.Ordinal) && node.Level == block.Level);
+
+        static bool IsDerivedLink(OfficeDocumentModelLink link, IEnumerable<OfficeDocumentModelNode> nodes) {
+            const string prefix = "opml-link-";
+            if (string.IsNullOrEmpty(link.Id) || !link.Id.StartsWith(prefix, StringComparison.Ordinal) || string.IsNullOrEmpty(link.Uri) ||
+                !string.IsNullOrWhiteSpace(link.DestinationName) || link.DestinationPageNumber.HasValue ||
+                !string.IsNullOrWhiteSpace(link.DestinationMode) || !string.IsNullOrWhiteSpace(link.NamedAction) ||
+                !string.IsNullOrWhiteSpace(link.RemoteFile) || !string.IsNullOrWhiteSpace(link.RemoteDestinationName) ||
+                link.RemoteDestinationPageNumber.HasValue) return false;
+            int kindSeparator = link.Id.LastIndexOf('-');
+            if (kindSeparator <= prefix.Length) return false;
+            string nodeId = "outline-" + link.Id.Substring(prefix.Length, kindSeparator - prefix.Length);
+            string kind = link.Id.Substring(kindSeparator + 1);
+            string? attributeName = string.Equals(kind, "url", StringComparison.Ordinal) ? "url"
+                : string.Equals(kind, "subscription", StringComparison.Ordinal) ? "xmlUrl"
+                : string.Equals(kind, "html", StringComparison.Ordinal) ? "htmlUrl" : null;
+            if (attributeName == null || !string.Equals(kind, link.Kind, StringComparison.OrdinalIgnoreCase)) return false;
+            return nodes.Any(node => string.Equals(node.Id, nodeId, StringComparison.Ordinal) &&
+                (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal)) &&
+                node.Attributes.TryGetValue(attributeName, out string? value) && string.Equals(value, link.Uri, StringComparison.Ordinal));
+        }
     }
 
-    private IReadOnlyList<OfficeDocumentModelMetadataEntry> BuildMetadata(List<OpmlDiagnostic> diagnostics) {
+    private IReadOnlyList<OfficeDocumentModelMetadataEntry> BuildMetadata(OpmlDiagnosticCollector diagnostics) {
         var values = new List<OfficeDocumentModelMetadataEntry> {
             new OfficeDocumentModelMetadataEntry {
                 Id = "opml-version", Category = "opml", Name = "version", Value = DeclaredVersion, ValueType = "string"

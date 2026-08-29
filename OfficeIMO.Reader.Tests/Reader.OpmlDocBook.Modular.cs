@@ -446,4 +446,18 @@ public sealed class ReaderOpmlDocBookModularTests {
             "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:box/><x:box/></article>"), "duplicates.docbook");
         Assert.Equal(2, docBook.Diagnostics.Count(diagnostic => diagnostic.Code == "DB100"));
     }
+
+    [Fact]
+    public void OpmlRichResultBoundsRepeatedExtensionDiagnostics() {
+        string outlines = string.Concat(Enumerable.Range(1, 105)
+            .Select(index => $"<outline text=\"{index}\"><extension/></outline>"));
+        string source = $"<opml version=\"2.0\"><head/><body>{outlines}</body></opml>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpmlHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "extensions.opml");
+
+        Assert.Equal(101, result.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML200"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML200" &&
+            diagnostic.Message.StartsWith("5 additional", StringComparison.Ordinal));
+    }
 }

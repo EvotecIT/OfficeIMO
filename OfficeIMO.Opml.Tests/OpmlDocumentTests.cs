@@ -129,7 +129,9 @@ public sealed class OpmlDocumentTests {
         source.Head.OwnerName = "Jane Doe";
         source.Xml.Root!.Element("head")!.Element("title")!.SetAttributeValue(XName.Get("flag", "urn:test"), "metadata");
         source.Xml.Root!.Element("head")!.Element("ownerName")!.SetAttributeValue(XName.Get("flag", "urn:test"), "owner");
-        OpmlOutline root = source.AddOutline("Root"); root.SetAttribute(XName.Get("flag", "urn:test"), "yes"); root.AddChild("Child");
+        OpmlOutline root = source.AddOutline("Root"); root.SetAttribute(XName.Get("flag", "urn:test"), "yes");
+        root.Url = "https://example.test/root";
+        root.AddChild("Child");
         var model = source.ToOfficeDocumentModel().Value;
         Assert.Equal(OfficeDocumentFormat.Opml, model.Format);
         Assert.Equal("Jane Doe", model.Source.Author);
@@ -140,6 +142,8 @@ public sealed class OpmlDocumentTests {
         Assert.False(converted.HasLoss);
         Assert.Equal(OpmlVersion.Opml10, converted.Value.Version);
         Assert.Equal("yes", converted.Value.Outlines.Single().GetAttribute(XName.Get("flag", "urn:test")));
+        Assert.Equal("https://example.test/root", converted.Value.Outlines.Single().Url);
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
         Assert.Equal("metadata", converted.Value.Xml.Root!.Element("head")!.Element("title")!.Attribute(XName.Get("flag", "urn:test"))!.Value);
         Assert.Equal("Jane Doe", converted.Value.Head.OwnerName);
         Assert.Equal("owner", converted.Value.Xml.Root!.Element("head")!.Element("ownerName")!.Attribute(XName.Get("flag", "urn:test"))!.Value);
@@ -236,6 +240,36 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void RepeatedValidationAndConversionDiagnosticsAreBounded() {
+        const string source = "<opml version=\"2.0\"><head/><body><outline text=\"1\" type=\"rss\"><extension/></outline><outline text=\"2\" type=\"rss\"><extension/></outline><outline text=\"3\" type=\"rss\"><extension/></outline><outline text=\"4\" type=\"rss\"><extension/></outline><outline text=\"5\" type=\"rss\"><extension/></outline></body></opml>";
+        OpmlDocument document = OpmlDocument.Parse(source);
+
+        OpmlValidationResult validation = document.Validate(new OpmlValidationOptions { MaxDetailedDiagnosticsPerCode = 2 });
+        OpmlConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(
+            null, new OpmlConversionOptions { MaxDetailedDiagnosticsPerCode = 2 });
+        var model = new OfficeDocumentModel {
+            Structure = Enumerable.Range(1, 5)
+                .Select(index => new OfficeDocumentModelNode { Kind = "unsupported-" + index, Text = "Value" }).ToArray()
+        };
+        OpmlConversionResult<OpmlDocument> reverse = OpmlDocument.FromOfficeDocumentModel(
+            model, null, new OpmlConversionOptions { MaxDetailedDiagnosticsPerCode = 2 });
+
+        Assert.Equal(3, validation.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML011"));
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "OPML011" &&
+            diagnostic.Message.StartsWith("3 additional", StringComparison.Ordinal));
+        Assert.Equal(3, conversion.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML200"));
+        Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "OPML200" &&
+            diagnostic.Message.StartsWith("3 additional", StringComparison.Ordinal));
+        Assert.Equal(3, reverse.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML104"));
+        Assert.Contains(reverse.Diagnostics, diagnostic => diagnostic.Code == "OPML104" &&
+            diagnostic.Message.StartsWith("3 additional", StringComparison.Ordinal));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.Validate(
+            new OpmlValidationOptions { MaxDetailedDiagnosticsPerCode = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToOfficeDocumentModel(
+            null, new OpmlConversionOptions { MaxDetailedDiagnosticsPerCode = 0 }));
+    }
+
+    [Fact]
     public void SharedConversionReportsNonOutlineKindNormalization() {
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.DocBook,
@@ -283,5 +317,23 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(converted.Value.Outlines, outline => outline.XmlUrl == "https://example.test/feed.xml" && outline.Type == "rss");
         Assert.Contains(converted.Value.Outlines, outline => outline.HtmlUrl == "https://example.test/");
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML106" && diagnostic.Message.Contains("internal", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SharedConversionAppendsIndependentBlocksAndLinksAlongsideStructure() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Structure = new[] { new OfficeDocumentModelNode { Id = "outline-0", Kind = "outline", Text = "Structured" } },
+            Blocks = new[] { new OfficeDocumentModelBlock { Id = "supplemental-block", Kind = "outline", Text = "Supplemental" } },
+            Links = new[] {
+                new OfficeDocumentModelLink { Id = "supplemental-link", Kind = "url", Text = "Site", Uri = "https://example.test/" }
+            }
+        };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Equal(new[] { "Structured", "Supplemental", "Site" }, converted.Value.Outlines.Select(outline => outline.Text));
+        Assert.Equal("https://example.test/", converted.Value.Outlines[2].Url);
+        Assert.Equal(2, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML107"));
     }
 }

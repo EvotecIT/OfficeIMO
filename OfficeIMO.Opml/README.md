@@ -26,13 +26,14 @@ document.Save("subscriptions.opml");
 
 Standard subscription attributes are typed, while `GetAttribute` and `SetAttribute` accept `XName` for namespaced extensions. Unknown attributes, elements, comments, processing instructions, and namespace declarations remain in the backing `XDocument`. An unchanged file or stream is written byte-for-byte; after an edit, preserved XML is serialized around the changed values.
 
-`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`; subscription and outline URLs are also published through `OfficeDocumentModel.Links`. Conversion results implement `IOfficeConversionReport`, so callers can inspect diagnostics or call `RequireNoLoss()`.
+`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`; subscription and outline URLs are also published through `OfficeDocumentModel.Links`. Independent flat blocks or links are appended as top-level outlines when recursive structure does not already represent them, with a placement-loss diagnostic. Conversion results implement `IOfficeConversionReport`, so callers can inspect diagnostics or call `RequireNoLoss()`.
 
 ## Safety and profile limits
 
 - XML DTDs and external entity resolution are disabled.
 - Default limits are 16 MiB encoded input, 16 million XML characters, 128 levels, 250,000 total elements, 100,000 outlines, and 500,000 attributes. Override them with `OpmlReadOptions`.
 - Validation covers the OPML root/head/body contract, declared version, required `text`, RSS `xmlUrl`, and link/include `url`.
+- Validation and conversion retain at most 100 detailed diagnostics per code by default, followed by one occurrence summary. Override the budget with `OpmlValidationOptions` or `OpmlConversionOptions`.
 - Reader integration is provided by `OfficeIMO.Reader.Opml`.
 
 The implemented vocabulary follows the [OPML 2.0 specification](https://opml.org/spec2.opml). Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.

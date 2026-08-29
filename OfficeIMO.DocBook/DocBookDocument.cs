@@ -185,7 +185,8 @@ public sealed partial class DocBookDocument {
             }
             XName xlinkHref = XName.Get("href", "http://www.w3.org/1999/xlink");
             if (kind == DocBookNodeKind.Link &&
-                (Profile == DocBookProfile.DocBook52 && element.Attribute("url") != null ||
+                (element.Attribute("href") != null ||
+                 Profile == DocBookProfile.DocBook52 && element.Attribute("url") != null ||
                  Profile == DocBookProfile.DocBook45 && localName == "ulink" && string.IsNullOrWhiteSpace((string?)element.Attribute("url")) ||
                  Profile == DocBookProfile.DocBook45 && localName != "ulink" && element.Attribute("url") != null ||
                  Profile == DocBookProfile.DocBook45 && element.Attribute(xlinkHref) != null)) {

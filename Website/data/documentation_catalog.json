@@ -9,7 +9,7 @@
     "validationProjectCount": 25,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41578
+    "conceptualWordCount": 41580
   },
   "categories": [
     {
@@ -131,7 +131,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 459,
+      "sourceFileCount": 462,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -157,7 +157,7 @@
       "description": "Bounded, source-preserving DocBook 4.5 and 5.2 common-structure parser, editor, writer, validator, and converter.",
       "kind": "package",
       "projectPath": "OfficeIMO.DocBook/OfficeIMO.DocBook.csproj",
-      "sourceFileCount": 4,
+      "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -742,7 +742,7 @@
       "description": "Lossless OPML 1.0 and 2.0 parser, editor, writer, validator, and conversion model for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Opml/OfficeIMO.Opml.csproj",
-      "sourceFileCount": 5,
+      "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -898,7 +898,7 @@
       "description": "Modular OfficeIMO.Reader adapter for bounded DocBook ingestion.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj",
-      "sourceFileCount": 3,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1080,7 +1080,7 @@
       "description": "Modular OfficeIMO.Reader adapter for bounded OPML ingestion.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Opml/OfficeIMO.Reader.Opml.csproj",
-      "sourceFileCount": 3,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,

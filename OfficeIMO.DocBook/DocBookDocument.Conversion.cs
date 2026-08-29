@@ -20,6 +20,7 @@ public sealed partial class DocBookDocument {
         var tables = new List<OfficeDocumentModelTable>();
         var assets = new List<OfficeDocumentModelAsset>();
         var links = new List<OfficeDocumentModelLink>();
+        var tableIndexes = new Dictionary<XElement, int>();
         int index = 0;
         if (_xml.DescendantNodes().Any(node => node is XComment || node is XProcessingInstruction)) {
             diagnostics.Add(new DocBookDiagnostic("DB105", DocBookDiagnosticSeverity.Warning,
@@ -62,6 +63,8 @@ public sealed partial class DocBookDocument {
                 ? OfficeDocumentHeadingPath.Append(parentPath, text, " / ") : parentPath;
             var attributes = element.Attributes().ToDictionary(a => a.Name.ToString(), a => a.Value, StringComparer.Ordinal);
             int nodeIndex = index++;
+            int? tableIndex = kind == DocBookNodeKind.Table && tableIndexes.TryGetValue(element, out int projectedTableIndex)
+                ? projectedTableIndex : (int?)null;
             if (kind == DocBookNodeKind.Unknown) {
                 diagnostics.Add(new DocBookDiagnostic("DB100", DocBookDiagnosticSeverity.Info,
                     $"Extension element '{element.Name}' was represented as a generic shared-model node.", path));
@@ -132,7 +135,7 @@ public sealed partial class DocBookDocument {
                 Level = level,
                 Attributes = attributes,
                 Children = children,
-                Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = path }
+                Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = path, TableIndex = tableIndex }
             };
         }
 
@@ -200,6 +203,12 @@ public sealed partial class DocBookDocument {
             bool projectionTruncated = rowDiscoveryTruncated;
 
             foreach (XElement rowElement in rowElements) {
+                int maxWidthForAdditionalRow = options.MaxTableCells / (projectedRows.Count + 1);
+                if (maxWidthForAdditionalRow < Math.Max(1, columnCount)) {
+                    projectionTruncated = true;
+                    break;
+                }
+                int rowColumnLimit = Math.Min(options.MaxTableColumns, maxWidthForAdditionalRow);
                 bool isHeader = rowElement.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
                     DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableHead);
                 XElement? tableGroup = rowElement.Ancestors().FirstOrDefault(ancestor =>
@@ -253,11 +262,12 @@ public sealed partial class DocBookDocument {
                     activeRowSpans.Add(spanOwner, activeSpans);
                 }
                 int initialWidth = Math.Max(layout.DeclaredColumns, layout.NextColumn);
-                initialWidth = Math.Min(initialWidth, options.MaxTableColumns);
+                if (initialWidth > rowColumnLimit) projectionTruncated = true;
+                initialWidth = Math.Min(initialWidth, rowColumnLimit);
                 var cells = Enumerable.Repeat<string?>(null, initialWidth).ToList();
                 int nextEntryColumn = 0;
                 foreach (KeyValuePair<int, int> activeSpan in activeSpans.ToArray()) {
-                    if (activeSpan.Key >= options.MaxTableColumns) {
+                    if (activeSpan.Key >= rowColumnLimit) {
                         activeSpans.Remove(activeSpan.Key);
                         projectionTruncated = true;
                         continue;
@@ -296,19 +306,19 @@ public sealed partial class DocBookDocument {
                         while (start < cells.Count && cells[start] != null) start++;
                     }
                     if (end < start) end = start;
-                    if (start >= options.MaxTableColumns) {
+                    if (start >= rowColumnLimit) {
                         projectionTruncated = true;
                         continue;
                     }
-                    if (end >= options.MaxTableColumns) {
-                        end = options.MaxTableColumns - 1;
+                    if (end >= rowColumnLimit) {
+                        end = rowColumnLimit - 1;
                         projectionTruncated = true;
                     }
                     while (cells.Count <= end) cells.Add(null);
                     if (cells[start] != null) {
                         flattenedCalsLayout = true;
                         while (start < cells.Count && cells[start] != null) start++;
-                        if (start >= options.MaxTableColumns) {
+                        if (start >= rowColumnLimit) {
                             projectionTruncated = true;
                             continue;
                         }
@@ -370,10 +380,14 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB113", DocBookDiagnosticSeverity.Warning,
                     "CALS geometry exceeded the configured shared table projection limits; the recursive structure retains the native markup.", tableHeadingPath));
             }
+            int tableIndex = tables.Count;
+            tableIndexes[tableElement] = tableIndex;
             tables.Add(new OfficeDocumentModelTable {
                 Title = title,
                 Kind = tableElement.Name.LocalName,
-                Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = tableHeadingPath, SourceBlockKind = "table" },
+                Location = new OfficeDocumentModelLocation {
+                    Path = sourcePath, HeadingPath = tableHeadingPath, SourceBlockKind = "table", TableIndex = tableIndex
+                },
                 Columns = columns,
                 Rows = rows,
                 TotalRowCount = totalBodyRows,
@@ -573,17 +587,18 @@ public sealed partial class DocBookDocument {
             }
         }
 
-        void AddFlatAsset(OfficeDocumentModelAsset source) {
+        bool AddFlatAsset(OfficeDocumentModelAsset source) {
             string? reference = string.IsNullOrWhiteSpace(source.SourceObjectId) ? source.FileName : source.SourceObjectId;
             if (!string.Equals(source.Kind, "image", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(reference)) {
                 diagnostics.Add(new DocBookDiagnostic("DB118", DocBookDiagnosticSeverity.Warning,
                     $"Shared asset '{source.Id}' could not be represented as a DocBook image reference.", source.Location?.HeadingPath));
-                return;
+                return false;
             }
             document.Root.AddImage(reference!, source.Title ?? source.AltText);
+            return true;
         }
 
-        void AddFlatLink(OfficeDocumentModelLink source) {
+        bool AddFlatLink(OfficeDocumentModelLink source) {
             string text = source.Text ?? source.Uri ?? source.DestinationName ?? source.Id;
             DocBookNode paragraph = document.Root.Add(DocBookNodeKind.Paragraph);
             bool represented = false;
@@ -611,16 +626,33 @@ public sealed partial class DocBookDocument {
                         : $"Shared link '{source.Id}' had no DocBook-representable URI or named destination.",
                     source.Location?.HeadingPath));
             }
+            return represented;
         }
 
         if (model.Structure.Count > 0) {
             bool hasTitle = model.Structure.Any(ContainsDocumentTitle);
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
             if (!hasTitle) document.Title = model.Source.Title;
+            OfficeDocumentModelNode[] structureNodes = EnumerateModelNodes(model.Structure).ToArray();
+            var consumedTableNodes = new HashSet<OfficeDocumentModelNode>();
+            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
+                document.AddParagraph(block.Text);
+                AddSupplementaryDiagnostic("block", block.Id, block.Location?.HeadingPath);
+            }
+            foreach (OfficeDocumentModelTable table in model.Tables.Where(table => !IsDerivedTable(table, structureNodes, consumedTableNodes))) {
+                AddFlatTable(table);
+                AddSupplementaryDiagnostic("table", table.Title ?? table.Kind ?? "unnamed", table.Location?.HeadingPath);
+            }
+            foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodes))) {
+                if (AddFlatAsset(asset)) AddSupplementaryDiagnostic("asset", asset.Id, asset.Location?.HeadingPath);
+            }
+            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodes))) {
+                if (AddFlatLink(link)) AddSupplementaryDiagnostic("link", link.Id, link.Location?.HeadingPath);
+            }
         } else {
             document.Title = model.Source.Title;
             diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
-                "The shared model had no recursive Structure; flat Blocks, Tables, and image Assets were emitted as common DocBook structures."));
+                "The shared model had no recursive Structure; flat Blocks, Tables, image Assets, and Links were emitted as common DocBook structures."));
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
             foreach (OfficeDocumentModelTable table in model.Tables) AddFlatTable(table);
             foreach (OfficeDocumentModelAsset asset in model.Assets) AddFlatAsset(asset);
@@ -631,6 +663,10 @@ public sealed partial class DocBookDocument {
             new DocBookNode(document, document.EnsureInfo()).Add(DocBookNodeKind.Author, model.Source.Author);
         }
         return new DocBookConversionResult<DocBookDocument>(document, diagnostics.ToArray());
+
+        void AddSupplementaryDiagnostic(string channel, string identity, string? path) =>
+            diagnostics.Add(new DocBookDiagnostic("DB122", DocBookDiagnosticSeverity.Warning,
+                $"Supplementary shared {channel} '{identity}' was appended at the document root because it was not represented by recursive Structure.", path));
 
         static bool ContainsDocumentTitle(OfficeDocumentModelNode node) =>
             string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) ||

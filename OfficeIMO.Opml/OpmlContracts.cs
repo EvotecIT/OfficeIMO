@@ -46,6 +46,26 @@ public sealed class OpmlWriteOptions {
     public bool PreserveUnchangedSource { get; set; } = true;
 }
 
+/// <summary>Controls bounded OPML validation diagnostics.</summary>
+public sealed class OpmlValidationOptions {
+    /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
+    public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
+
+    internal void Validate() {
+        if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
+    }
+}
+
+/// <summary>Controls bounded OPML shared-model conversion diagnostics.</summary>
+public sealed class OpmlConversionOptions {
+    /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
+    public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
+
+    internal void Validate() {
+        if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
+    }
+}
+
 /// <summary>Severity of an OPML validation or conversion diagnostic.</summary>
 public enum OpmlDiagnosticSeverity {
     /// <summary>Informational diagnostic.</summary>

@@ -108,8 +108,13 @@ public sealed partial class OpmlDocument {
     }
 
     /// <summary>Validates the supported OPML profile without discarding extension content.</summary>
-    public OpmlValidationResult Validate() {
-        var diagnostics = new List<OpmlDiagnostic>();
+    public OpmlValidationResult Validate() => Validate(null);
+
+    /// <summary>Validates the supported OPML profile with a bounded diagnostic budget.</summary>
+    public OpmlValidationResult Validate(OpmlValidationOptions? options) {
+        options ??= new OpmlValidationOptions();
+        options.Validate();
+        var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         XElement? root = _xml.Root;
         string declaredVersion = (string?)root?.Attribute("version") ?? string.Empty;
         OpmlVersion profile = declaredVersion == "2.0" ? OpmlVersion.Opml20 : OpmlVersion.Opml10;
@@ -159,7 +164,7 @@ public sealed partial class OpmlDocument {
                     "A link/include outline requires url.", path));
             }
         }
-        return new OpmlValidationResult(profile, diagnostics);
+        return new OpmlValidationResult(profile, diagnostics.ToArray());
     }
 
     /// <summary>Returns OPML text, preserving the exact input while unchanged by default.</summary>

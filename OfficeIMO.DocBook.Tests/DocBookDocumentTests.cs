@@ -154,7 +154,7 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(new[] { "Name", "Value" }, table.Columns);
         Assert.Equal(new[] { "A", "1" }, Assert.Single(table.Rows));
         DocBookDocument restored = DocBookDocument.FromOfficeDocumentModel(model).Value;
-        Assert.Contains(restored.Xml.Descendants(), element => element.Name.LocalName == "informaltable");
+        Assert.Single(restored.Xml.Descendants(), element => element.Name.LocalName == "informaltable");
         XElement listing = restored.Xml.Descendants().Single(element => element.Name.LocalName == "programlisting");
         Assert.Equal("before inside after", listing.Value);
         Assert.Equal(new[] { "before ", "inside", " after" }, listing.Nodes().Select(node => node is XText text ? text.Value : ((XElement)node).Value));
@@ -489,6 +489,24 @@ public sealed class DocBookDocumentTests {
         Assert.True(table.Truncated);
     }
 
+    [Fact]
+    public void SharedTableProjectionBoundsTotalCellSlots() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"4\"><tbody><row><entry>A</entry></row><row><entry>B</entry></row><row><entry>C</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableColumns = 4, MaxTableRows = 10, MaxTableCells = 8 });
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal(4, table.Columns.Count);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.All(table.Rows, row => Assert.Equal(4, row.Count));
+        Assert.Equal(3, table.TotalRowCount);
+        Assert.True(table.Truncated);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB113");
+        Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableCells = 0 }));
+    }
+
     [Theory]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">X</ulink></article>", "DB014")]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><sectioninfo/></section></article>", "DB014")]
@@ -496,7 +514,9 @@ public sealed class DocBookDocumentTests {
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><entry>X</entry></article>", "DB015")]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:row><entry>X</entry></x:row></article>", "DB015")]
     [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><link url=\"https://example.test\">X</link></para></article>", "DB016")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><link href=\"https://example.test\">X</link></para></article>", "DB016")]
     [InlineData("<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para><link url=\"https://example.test\">X</link></para></article>", "DB016")]
+    [InlineData("<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para><link href=\"https://example.test\">X</link></para></article>", "DB016")]
     public void BoundedValidationRejectsWrongProfileNamesParentsAndLinkTargets(string source, string code) {
         DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
 
@@ -632,6 +652,47 @@ public sealed class DocBookDocumentTests {
         OfficeDocumentModel projected = converted.Value.ToOfficeDocumentModel().Value;
         Assert.Contains(projected.Links, link => link.Uri == "https://example.test/" && link.Text == "Site");
         Assert.Contains(projected.Links, link => link.DestinationName == "target-id" && link.Text == "Target");
+    }
+
+    [Fact]
+    public void SharedConversionAppendsSupplementaryChannelsAlongsideStructure() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = new[] { new OfficeDocumentModelNode { Id = "structure", Kind = "paragraph", Text = "Structured" } },
+            Blocks = new[] { new OfficeDocumentModelBlock { Id = "supplemental-block", Kind = "paragraph", Text = "Supplemental" } },
+            Tables = new[] {
+                new OfficeDocumentModelTable {
+                    Title = "Values", Columns = new[] { "Name" }, Rows = new[] { new[] { "A" } }, TotalRowCount = 1
+                }
+            },
+            Assets = new[] {
+                new OfficeDocumentModelAsset { Id = "supplemental-image", Kind = "image", SourceObjectId = "image.png" }
+            },
+            Links = new[] {
+                new OfficeDocumentModelLink { Id = "supplemental-link", Kind = "link", Text = "Site", Uri = "https://example.test/" }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "para" && element.Value == "Supplemental");
+        Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "table");
+        Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
+        Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "link");
+        Assert.Equal(4, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "DB122"));
+    }
+
+    [Fact]
+    public void SharedRoundTripDoesNotDuplicateDerivedSupplementaryChannels() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>See <link xmlns:xlink=\"http://www.w3.org/1999/xlink\" xlink:href=\"https://example.test/\">Site</link></para><informaltable><tgroup cols=\"1\"><tbody><row><entry>A</entry></row></tbody></tgroup></informaltable><mediaobject><imageobject><imagedata fileref=\"image.png\"/></imageobject></mediaobject></article>";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(source).ToOfficeDocumentModel().Value);
+
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122");
+        Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "link");
+        Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "informaltable");
+        Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
     }
 
     [Fact]
