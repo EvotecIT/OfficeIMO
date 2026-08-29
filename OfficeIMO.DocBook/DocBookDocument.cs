@@ -173,6 +173,11 @@ public sealed partial class DocBookDocument {
                 kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
                     parent?.Name != Namespace + "tfoot" ||
                 kind == DocBookNodeKind.Entry && parentKind != DocBookNodeKind.Row ||
+                kind == DocBookNodeKind.ListItem && parentKind != DocBookNodeKind.ItemizedList &&
+                    parentKind != DocBookNodeKind.OrderedList &&
+                    !(parent?.Name == Namespace + "varlistentry" &&
+                      parent?.Parent is XElement variableList &&
+                      DocBookNames.GetKind(variableList.Name, Namespace) == DocBookNodeKind.VariableList) ||
                 kind == DocBookNodeKind.Info && element != root && !ReferenceEquals(parent, root) && parentKind != DocBookNodeKind.Section;
             if (invalidParent) {
                 diagnostics.Add(new DocBookDiagnostic("DB015", DocBookDiagnosticSeverity.Error,
@@ -286,6 +291,7 @@ public sealed partial class DocBookDocument {
         if (root.Name.NamespaceName == DocBookSchemaProfiles.DocBook52.NamespaceUri) profile = DocBookProfile.DocBook52;
         else if (root.Name.NamespaceName.Length == 0) profile = DocBookProfile.DocBook45;
         else throw new InvalidDataException($"Unsupported DocBook namespace '{root.Name.NamespaceName}'.");
+        RejectUnsupportedEntityDeclarations(xml.DocumentType?.InternalSubset);
 
         int elements = 0, attributes = 0;
         var stack = new Stack<Tuple<XElement, int>>(); stack.Push(Tuple.Create(root, 0));
@@ -299,6 +305,45 @@ public sealed partial class DocBookDocument {
             foreach (XElement child in entry.Item1.Elements().Reverse()) stack.Push(Tuple.Create(child, entry.Item2 + 1));
         }
         return profile;
+    }
+
+    private static void RejectUnsupportedEntityDeclarations(string? internalSubset) {
+        if (string.IsNullOrEmpty(internalSubset)) return;
+        for (int index = 0; index < internalSubset!.Length;) {
+            if (Matches(index, "<!--")) {
+                int commentEnd = internalSubset.IndexOf("-->", index + 4, StringComparison.Ordinal);
+                index = commentEnd < 0 ? internalSubset.Length : commentEnd + 3;
+                continue;
+            }
+            char current = internalSubset[index];
+            if (current == '\'' || current == '"') {
+                int literalEnd = internalSubset.IndexOf(current, index + 1);
+                index = literalEnd < 0 ? internalSubset.Length : literalEnd + 1;
+                continue;
+            }
+            if (!Matches(index, "<!ENTITY")) {
+                index++;
+                continue;
+            }
+            int cursor = index + 8;
+            SkipWhitespace(ref cursor);
+            if (cursor < internalSubset.Length && internalSubset[cursor] == '%') {
+                throw UnsupportedEntity();
+            }
+            while (cursor < internalSubset.Length && !IsXmlWhitespace(internalSubset[cursor])) cursor++;
+            SkipWhitespace(ref cursor);
+            if (Matches(cursor, "SYSTEM") || Matches(cursor, "PUBLIC")) throw UnsupportedEntity();
+            index = cursor;
+        }
+
+        void SkipWhitespace(ref int cursor) {
+            while (cursor < internalSubset.Length && IsXmlWhitespace(internalSubset[cursor])) cursor++;
+        }
+        bool Matches(int offset, string value) => offset >= 0 && offset <= internalSubset.Length - value.Length &&
+            string.CompareOrdinal(internalSubset, offset, value, 0, value.Length) == 0;
+        static bool IsXmlWhitespace(char value) => value == ' ' || value == '\t' || value == '\r' || value == '\n';
+        static InvalidDataException UnsupportedEntity() => new InvalidDataException(
+            "DocBook internal subsets may use bounded internal general entities, but external and parameter entity declarations are not supported.");
     }
 
     private bool HasChanges => _modified || !string.Equals(_originalXmlFingerprint, GetXmlFingerprint(_xml), StringComparison.Ordinal);

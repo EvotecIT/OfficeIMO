@@ -352,6 +352,20 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookRichResultExcludesNestedEntryRowsAndExtensionAlternativeText() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><informaltable><tgroup cols=\"1\"><tbody><row><entry>Outer<entrytbl cols=\"1\"><tbody><row><entry>Nested</entry></row></tbody></entrytbl></entry></row></tbody></tgroup></informaltable><mediaobject><imageobject><imagedata fileref=\"figure.png\"/></imageobject><x:textobject><x:phrase>Internal data</x:phrase></x:textobject></mediaobject></article>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "nested.docbook");
+
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Equal(1, table.TotalRowCount);
+        Assert.Single(table.Rows);
+        Assert.Null(Assert.Single(result.Assets).AltText);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DB121");
+    }
+
+    [Fact]
     public void DocBookRichResultDoesNotPromoteSectionAuthorToDocumentSource() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Chapter</title><info><author>Jane Doe</author></info></section></article>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();

@@ -56,17 +56,32 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
-    public void LimitsAndEntityExpansionAreBounded() {
+    public void LimitsAndEntityPolicyAreBounded() {
         Assert.Throws<InvalidDataException>(() => DocBookDocument.Parse(
             "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para/><para/></article>",
             new DocBookReadOptions { MaxElements = 2 }));
         const string entity = "<!DOCTYPE article [<!ENTITY a \"1234567890\">]><article><para>&a;&a;</para></article>";
         Assert.ThrowsAny<Exception>(() => DocBookDocument.Parse(entity, new DocBookReadOptions { MaxCharactersFromEntities = 10 }));
-        DocBookDocument external = DocBookDocument.Parse(
-            "<!DOCTYPE article [<!ENTITY external SYSTEM \"file:///etc/passwd\">]><article><para>&external;</para></article>");
-        Assert.Equal(string.Empty, external.Root.Text);
+        InvalidDataException external = Assert.Throws<InvalidDataException>(() => DocBookDocument.Parse(
+            "<!DOCTYPE article [<!ENTITY external SYSTEM \"file:///etc/passwd\">]><article><para>&external;</para></article>"));
+        Assert.Contains("external and parameter entity declarations", external.Message, StringComparison.Ordinal);
+        Assert.ThrowsAny<Exception>(() => DocBookDocument.Parse(
+            "<!DOCTYPE article [<!ENTITY % external SYSTEM \"file:///etc/passwd\">]><article/>"));
         using var canceled = new System.Threading.CancellationTokenSource(); canceled.Cancel();
         Assert.Throws<OperationCanceledException>(() => DocBookDocument.Parse("<article><para>P</para></article>", cancellationToken: canceled.Token));
+    }
+
+    [Fact]
+    public void ValidationRejectsListItemsOutsideSupportedListParents() {
+        DocBookDocument invalid = DocBookDocument.CreateArticle();
+        invalid.Root.AddListItem("Root item");
+        invalid.AddSection("Section").AddListItem("Section item");
+
+        Assert.Equal(2, invalid.Validate().Diagnostics.Count(diagnostic => diagnostic.Code == "DB015"));
+
+        DocBookDocument variableList = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><variablelist><varlistentry><term>Name</term><listitem><para>Value</para></listitem></varlistentry></variablelist></article>");
+        Assert.DoesNotContain(variableList.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB015");
     }
 
     [Fact]
@@ -225,6 +240,18 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedTableProjectionExcludesNestedEntryTableRows() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\"><tbody><row><entry>Outer<entrytbl cols=\"1\"><tbody><row><entry>Nested</entry></row></tbody></entrytbl></entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal(1, table.TotalRowCount);
+        Assert.Equal("OuterNested", Assert.Single(Assert.Single(table.Rows)));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB121");
+    }
+
+    [Fact]
     public void SharedTableProjectionPlacesImplicitEntriesAfterExplicitColumns() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"3\"><colspec colname=\"c1\"/><colspec colname=\"c2\"/><colspec colname=\"c3\"/><tbody><row><entry colname=\"c2\">B</entry><entry>C</entry></row></tbody></tgroup></informaltable></article>";
 
@@ -264,6 +291,16 @@ public sealed class DocBookDocumentTests {
         Assert.Single(DocBookDocument.FromOfficeDocumentModel(model).Value.Xml.Descendants(),
             element => element.Name.LocalName == "imagedata" &&
                        (string?)element.Attribute("fileref") == "assets/figure.png?version=2");
+    }
+
+    [Fact]
+    public void SharedModelDoesNotUseExtensionTextAsImageAlternativeText() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"figure.png\"/></imageobject><x:textobject><x:phrase>Internal data</x:phrase></x:textobject></mediaobject></article>";
+
+        OfficeDocumentModelAsset asset = Assert.Single(DocBookDocument.Parse(source).ToOfficeDocumentModel().Value.Assets);
+
+        Assert.Null(asset.AltText);
+        Assert.Null(asset.Title);
     }
 
     [Fact]
@@ -519,6 +556,29 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionDoesNotDuplicateTitlesNestedInRootMetadata() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Source = new OfficeDocumentModelSource { Title = "Source title" },
+            Structure = new[] {
+                new OfficeDocumentModelNode {
+                    Kind = "metadata",
+                    Children = new[] {
+                        new OfficeDocumentModelNode {
+                            Kind = "extension:{urn:test}titles",
+                            Children = new[] { new OfficeDocumentModelNode { Kind = "title", Text = "Nested title" } }
+                        }
+                    }
+                }
+            }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+
+        Assert.Equal("Nested title", Assert.Single(converted.Xml.Descendants(), element => element.Name.LocalName == "title").Value);
+    }
+
+    [Fact]
     public void SharedConversionEmitsFlatTablesAndSourceAuthorWithoutRecursiveStructure() {
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.DocBook,
@@ -605,6 +665,18 @@ public sealed class DocBookDocumentTests {
 
         Assert.Equal("Jane Doe", converted.Xml.Root!.Elements().Single(element => element.Name.LocalName == "info")
             .Descendants().Single(element => element.Name.LocalName == "author").Value);
+    }
+
+    [Theory]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><authorgroup><author>Jane Doe</author></authorgroup></info></article>")]
+    [InlineData("<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><authorgroup><author>Jane Doe</author></authorgroup></articleinfo></article>")]
+    public void SharedRoundTripDoesNotDuplicateAuthorsNestedInRootMetadata(string source) {
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        DocBookDocument restored = DocBookDocument.FromOfficeDocumentModel(model).Value;
+
+        Assert.Equal("Jane Doe", model.Source.Author);
+        Assert.Single(restored.Xml.Descendants(), element => element.Name.LocalName == "author");
     }
 
     [Fact]

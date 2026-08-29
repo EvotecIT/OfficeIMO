@@ -146,7 +146,7 @@ public sealed class DocBookReadOptions {
     public int MaxElements { get; set; } = 250_000;
     /// <summary>Maximum attribute count.</summary>
     public int MaxAttributes { get; set; } = 1_000_000;
-    /// <summary>Maximum characters produced by internal entity expansion. External resolution is always disabled.</summary>
+    /// <summary>Maximum characters produced by bounded internal general-entity expansion. External resolution is disabled; external and parameter entity declarations in internal subsets are rejected.</summary>
     public long MaxCharactersFromEntities { get; set; } = 4096;
 
     internal void Validate() {

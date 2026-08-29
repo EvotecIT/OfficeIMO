@@ -93,8 +93,10 @@ public sealed partial class DocBookDocument {
                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.MediaObject);
                     string? caption = mediaObject?.Elements().FirstOrDefault(child =>
                         DocBookNames.GetKind(child.Name, Namespace) == DocBookNodeKind.Caption)?.Value;
-                    string? alternateText = mediaObject?.Descendants().FirstOrDefault(child =>
-                        child.Name.LocalName == "phrase" && child.Ancestors().Any(ancestor => ancestor.Name.LocalName == "textobject"))?.Value;
+                    string? alternateText = mediaObject?.Elements(Namespace + "textobject")
+                        .SelectMany(textObject => textObject.Descendants(Namespace + "phrase").Where(phrase =>
+                            ReferenceEquals(phrase.Ancestors(Namespace + "textobject").FirstOrDefault(), textObject)))
+                        .FirstOrDefault()?.Value;
                     string? fileName = GetReferenceFileName(fileReference!);
                     string? extension = GetReferenceExtension(fileName);
                     string mediaType = OfficeImageInfo.GetMimeTypeFromExtension(extension);
@@ -163,6 +165,7 @@ public sealed partial class DocBookDocument {
             var rowElements = new List<XElement>(Math.Min(discoveryCapacity, 4_096));
             bool rowDiscoveryTruncated = false;
             bool footerRowsEncountered = false;
+            bool nestedEntryTableEncountered = false;
             int totalBodyRows = 0;
             int headerRowsRetained = 0;
             int bodyRowsRetained = 0;
@@ -170,6 +173,11 @@ public sealed partial class DocBookDocument {
                 if (DocBookNames.GetKind(element.Name, Namespace) != DocBookNodeKind.Row ||
                     !ReferenceEquals(element.Ancestors().FirstOrDefault(ancestor =>
                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Table), tableElement)) continue;
+                if (element.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement))
+                    .Any(ancestor => ancestor.Name == Namespace + "entrytbl")) {
+                    nestedEntryTableEncountered = true;
+                    continue;
+                }
                 bool isHeader = element.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
                     DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.TableHead);
                 if (element.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, tableElement)).Any(ancestor =>
@@ -353,6 +361,10 @@ public sealed partial class DocBookDocument {
             if (flattenedFooterRows) {
                 diagnostics.Add(new DocBookDiagnostic("DB119", DocBookDiagnosticSeverity.Warning,
                     "CALS footer rows were flattened into shared body rows; the recursive structure retains the native tfoot markup.", tableHeadingPath));
+            }
+            if (nestedEntryTableEncountered) {
+                diagnostics.Add(new DocBookDiagnostic("DB121", DocBookDiagnosticSeverity.Warning,
+                    "Nested CALS entrytbl rows were omitted from the outer shared table projection; the recursive structure retains the nested table markup.", tableHeadingPath));
             }
             if (projectionTruncated) {
                 diagnostics.Add(new DocBookDiagnostic("DB113", DocBookDiagnosticSeverity.Warning,
@@ -623,12 +635,18 @@ public sealed partial class DocBookDocument {
         static bool ContainsDocumentTitle(OfficeDocumentModelNode node) =>
             string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase) &&
-            node.Children.Any(child => string.Equals(child.Kind, "title", StringComparison.OrdinalIgnoreCase));
+            node.Children.Any(ContainsTitleNode);
+
+        static bool ContainsTitleNode(OfficeDocumentModelNode node) =>
+            string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsTitleNode);
 
         static bool ContainsDocumentAuthor(OfficeDocumentModelNode node) =>
             string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase) &&
-            node.Children.Any(child => string.Equals(child.Kind, "author", StringComparison.OrdinalIgnoreCase));
+            node.Children.Any(ContainsAuthorNode);
+
+        static bool ContainsAuthorNode(OfficeDocumentModelNode node) =>
+            string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsAuthorNode);
     }
 
     private static string GetPrimaryText(XElement element, DocBookNodeKind kind) {
