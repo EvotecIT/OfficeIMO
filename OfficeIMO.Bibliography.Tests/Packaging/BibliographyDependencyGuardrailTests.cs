@@ -11,7 +11,7 @@ public sealed class BibliographyDependencyGuardrailTests {
         string[] packages = project.Descendants().Where(element => element.Name.LocalName == "PackageReference").Select(element => (string?)element.Attribute("Include") ?? string.Empty).ToArray();
 
         Assert.Empty(projects);
-        Assert.Equal(new[] { "System.Text.Json" }, packages);
+        Assert.Equal(new[] { "System.Text.Encoding.CodePages", "System.Text.Json" }, packages);
         Assert.DoesNotContain(project.Descendants(), element => ((string?)element.Attribute("Include"))?.IndexOf("OfficeIMO.Word", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.DoesNotContain(project.Descendants(), element => ((string?)element.Attribute("Include"))?.IndexOf("DocumentFormat.OpenXml", StringComparison.OrdinalIgnoreCase) >= 0);
     }

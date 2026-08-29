@@ -529,4 +529,46 @@ public sealed class BibliographyParserFidelityTests {
 
         Assert.Equal(new[] { "DOI", "PMID", "ISSN" }, reopened.Identifiers.Select(static identifier => identifier.Scheme.ToUpperInvariant()));
     }
+
+    [Fact]
+    public void EndNote_identifier_order_survives_strict_canonical_output() {
+        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><electronic-resource-num>10.1/example</electronic-resource-num><isbn>978-1-4028-9462-6</isbn><accession-num>2608.00001</accession-num></record></records></xml>";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
+
+        Assert.Equal(new[] { "DOI", "ISBN", "accession" }, document.Items[0].Identifiers.Select(static identifier => identifier.Scheme));
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
+
+        Assert.Equal(new[] { "DOI", "ISBN", "accession" }, reopened.Identifiers.Select(static identifier => identifier.Scheme));
+    }
+
+    [Fact]
+    public void Undefined_CSL_contributor_roles_block_strict_output() {
+        var document = new BibliographyDocument(BibliographyFormat.CslJson);
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Role" };
+        item.Contributors.Add(new BibliographyContributor((BibliographyContributorRole)99, new BibliographyName { Family = "Doe" }));
+        document.Items.Add(item);
+
+        BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.DoesNotContain("Doe", permissive.Content, StringComparison.Ordinal);
+        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV201" && diagnostic.Field == "contributors.99");
+    }
+
+    [Theory]
+    [InlineData(BibliographyItemType.PaperConference, "CPAPER")]
+    [InlineData(BibliographyItemType.Proceedings, "CONF")]
+    public void RIS_conference_types_use_distinct_standard_tokens(BibliographyItemType type, string token) {
+        var document = new BibliographyDocument(BibliographyFormat.Ris);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = type, Title = "Conference" });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
+
+        Assert.StartsWith("TY  - " + token, written.Content, StringComparison.Ordinal);
+        Assert.Equal(type, reopened.Type);
+    }
 }

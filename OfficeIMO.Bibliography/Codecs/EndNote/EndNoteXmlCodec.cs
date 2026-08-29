@@ -150,13 +150,14 @@ internal static class EndNoteXmlCodec {
         item.Pages = Value(record, "pages"); item.Volume = Value(record, "volume"); item.Issue = Value(record, "number"); item.Edition = Value(record, "edition");
         item.Publisher = Value(record, "publisher"); item.PublisherPlace = Value(record, "pub-location"); item.Abstract = Value(record, "abstract"); item.Language = Value(record, "language");
         ParseContributors(item, Child(record, "contributors")); ParseDates(item, Child(record, "dates"));
-        foreach (XElement identifier in record.Elements().Where(element => HasName(element, record.Name.Namespace, "isbn"))) {
-            string? declaredScheme = identifier.Attribute("type")?.Value;
-            string scheme = string.Equals(declaredScheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(declaredScheme, "ISSN", StringComparison.OrdinalIgnoreCase) ? declaredScheme! : CodecMappings.InferSerialScheme(identifier.Value);
-            AddIdentifier(item, scheme, identifier.Value);
+        foreach (XElement identifier in record.Elements().Where(element => HasNameInNamespace(element, record.Name.Namespace))) {
+            if (string.Equals(identifier.Name.LocalName, "isbn", StringComparison.OrdinalIgnoreCase)) {
+                string? declaredScheme = identifier.Attribute("type")?.Value;
+                string scheme = string.Equals(declaredScheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(declaredScheme, "ISSN", StringComparison.OrdinalIgnoreCase) ? declaredScheme! : CodecMappings.InferSerialScheme(identifier.Value);
+                AddIdentifier(item, scheme, identifier.Value);
+            } else if (string.Equals(identifier.Name.LocalName, "electronic-resource-num", StringComparison.OrdinalIgnoreCase)) AddIdentifier(item, "DOI", identifier.Value);
+            else if (string.Equals(identifier.Name.LocalName, "accession-num", StringComparison.OrdinalIgnoreCase)) ParseAccessionIdentifier(item, identifier.Value);
         }
-        foreach (XElement identifier in record.Elements().Where(element => HasName(element, record.Name.Namespace, "electronic-resource-num"))) AddIdentifier(item, "DOI", identifier.Value);
-        foreach (XElement identifier in record.Elements().Where(element => HasName(element, record.Name.Namespace, "accession-num"))) ParseAccessionIdentifier(item, identifier.Value);
         XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => HasName(element, record.Name.Namespace, "url")).ToArray() ?? Array.Empty<XElement>();
         item.Url = relatedUrls.FirstOrDefault()?.Value;
         foreach (XElement relatedUrl in relatedUrls.Skip(1)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits)));

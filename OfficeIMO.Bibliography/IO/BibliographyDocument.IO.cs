@@ -16,8 +16,8 @@ public sealed partial class BibliographyDocument {
         options ??= new BibliographyReadOptions();
         options.Validate();
         byte[] bytes = ReadAllBytes(stream, options.MaximumInputBytes, cancellationToken);
-        Encoding actualEncoding = encoding ?? DetectEncoding(bytes);
-        string text = actualEncoding.GetString(RemovePreamble(bytes, actualEncoding));
+        Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
+        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
         return BibliographyReader.Parse(text, format, options, bytes, cancellationToken);
     }
 
@@ -36,8 +36,8 @@ public sealed partial class BibliographyDocument {
         options ??= new BibliographyReadOptions();
         options.Validate();
         byte[] bytes = await ReadAllBytesAsync(stream, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
-        Encoding actualEncoding = encoding ?? DetectEncoding(bytes);
-        string text = actualEncoding.GetString(RemovePreamble(bytes, actualEncoding));
+        Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
+        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
         return BibliographyReader.Parse(text, format, options, bytes, cancellationToken);
     }
 
@@ -89,15 +89,15 @@ public sealed partial class BibliographyDocument {
 
     private static BibliographyReadResult LoadDetected(Stream stream, BibliographyReadOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
         options ??= new BibliographyReadOptions(); options.Validate();
-        byte[] bytes = ReadAllBytes(stream, options.MaximumInputBytes, cancellationToken); Encoding actualEncoding = encoding ?? DetectEncoding(bytes);
-        string text = actualEncoding.GetString(RemovePreamble(bytes, actualEncoding));
+        byte[] bytes = ReadAllBytes(stream, options.MaximumInputBytes, cancellationToken); Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
+        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
         return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text, options), options, bytes, cancellationToken);
     }
 
     private static async Task<BibliographyReadResult> LoadDetectedAsync(Stream stream, BibliographyReadOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
         options ??= new BibliographyReadOptions(); options.Validate();
-        byte[] bytes = await ReadAllBytesAsync(stream, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false); Encoding actualEncoding = encoding ?? DetectEncoding(bytes);
-        string text = actualEncoding.GetString(RemovePreamble(bytes, actualEncoding));
+        byte[] bytes = await ReadAllBytesAsync(stream, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false); Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
+        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
         return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text, options), options, bytes, cancellationToken);
     }
 
@@ -113,21 +113,4 @@ public sealed partial class BibliographyDocument {
         return output.ToArray();
     }
 
-    private static Encoding DetectEncoding(byte[] bytes) {
-        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) return new UTF8Encoding(true, true);
-        if (bytes.Length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xFE && bytes[2] == 0x00 && bytes[3] == 0x00) return new UTF32Encoding(false, true, true);
-        if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0xFE && bytes[3] == 0xFF) return new UTF32Encoding(true, true, true);
-        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) return new UnicodeEncoding(false, true, true);
-        if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) return new UnicodeEncoding(true, true, true);
-        return new UTF8Encoding(false, true);
-    }
-
-    private static byte[] RemovePreamble(byte[] bytes, Encoding encoding) {
-        byte[] preamble = encoding.GetPreamble();
-        if (preamble.Length == 0 || bytes.Length < preamble.Length) return bytes;
-        for (int index = 0; index < preamble.Length; index++) if (bytes[index] != preamble[index]) return bytes;
-        var result = new byte[bytes.Length - preamble.Length];
-        Buffer.BlockCopy(bytes, preamble.Length, result, 0, result.Length);
-        return result;
-    }
 }

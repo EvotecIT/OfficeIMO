@@ -30,6 +30,18 @@ public sealed class BibliographyIoAndSafetyTests {
     }
 
     [Fact]
+    public void EndNote_stream_loading_honors_a_declared_legacy_encoding() {
+        const string source = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Café</title></titles></record></records></xml>";
+        byte[] bytes = Encoding.Latin1.GetBytes(source);
+
+        BibliographyReadResult read = BibliographyDocument.Load(new MemoryStream(bytes), BibliographyFormat.EndNoteXml);
+
+        Assert.False(read.HasErrors);
+        Assert.Equal("Café", Assert.Single(read.Document.Items).Title);
+        Assert.Equal(bytes, read.Document.GetOriginalBytes());
+    }
+
+    [Fact]
     public void Format_detection_covers_each_family() {
         Assert.Equal(BibliographyFormat.BibLatex, BibliographyDocument.Parse("@book{x,title={x}}").Document.SourceFormat);
         Assert.Equal(BibliographyFormat.CslJson, BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\"}]").Document.SourceFormat);

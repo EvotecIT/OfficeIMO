@@ -65,28 +65,29 @@ internal static class TaggedCodec {
         BibliographyItem? current = null;
         string? previousTag = null;
         BibliographyNativeField? previousNativeField = null;
-        IList<TaggedLine> lines = SplitLines(source);
-        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+        for (int offset = 0, lineIndex = 0; offset <= source.Length; lineIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            TaggedLine sourceLine = lines[lineIndex];
-            string line = lineIndex == 0 && sourceLine.Value.Length > 0 && sourceLine.Value[0] == '\uFEFF' ? sourceLine.Value.Substring(1) : sourceLine.Value;
-            int offset = sourceLine.Offset;
+            int lineOffset = offset;
+            int lineEnd = FindLineEnd(source, lineOffset, cancellationToken);
+            offset = lineEnd >= source.Length ? source.Length + 1 : lineEnd + (source[lineEnd] == '\r' && lineEnd + 1 < source.Length && source[lineEnd + 1] == '\n' ? 2 : 1);
+            string line = source.Substring(lineOffset, lineEnd - lineOffset);
+            if (lineIndex == 0 && line.Length > 0 && line[0] == '\uFEFF') line = line.Substring(1);
             if (string.IsNullOrWhiteSpace(line)) {
                 if (format == BibliographyFormat.Nbib) current = null;
                 previousTag = null; previousNativeField = null; continue;
             }
             if (TrySplitLine(line, format, out string tag, out string value)) {
                 if (format == BibliographyFormat.Ris && string.Equals(tag, "TY", StringComparison.OrdinalIgnoreCase)) {
-                    limits.AddValue(items, value, offset);
-                    current = NewItem(items, limits, offset); current.NativeType = value; current.Type = CodecMappings.ParseType(value);
+                    limits.AddValue(items, value, lineOffset);
+                    current = NewItem(items, limits, lineOffset); current.NativeType = value; current.Type = CodecMappings.ParseRisType(value);
                     previousTag = tag;
                     previousNativeField = null;
                     continue;
                 } else if (format == BibliographyFormat.Nbib && string.Equals(tag, "PMID", StringComparison.OrdinalIgnoreCase) && current != null && !string.IsNullOrEmpty(current.Key)) {
-                    current = NewItem(items, limits, offset);
-                } else if (current == null) current = NewItem(items, limits, offset);
+                    current = NewItem(items, limits, lineOffset);
+                } else if (current == null) current = NewItem(items, limits, lineOffset);
                 if (format == BibliographyFormat.Nbib && current!.Type == BibliographyItemType.Unknown) { current.Type = BibliographyItemType.ArticleJournal; current.NativeType = "Journal Article"; }
-                limits.AddValue(items, value, offset);
+                limits.AddValue(items, value, lineOffset);
                 if (format == BibliographyFormat.Ris && string.Equals(tag, "ER", StringComparison.OrdinalIgnoreCase)) current = null;
                 else {
                     int nativeCount = current!.NativeFields.Count;
@@ -96,10 +97,10 @@ internal static class TaggedCodec {
                 previousTag = tag;
             } else if (current != null && previousTag != null && (char.IsWhiteSpace(line[0]) || format == BibliographyFormat.Ris)) {
                 string continuation = line.Trim();
-                limits.AddValue(items, continuation, offset);
-                if (previousNativeField != null) previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, offset);
-                else AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, offset, items, limits);
-            } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: offset, line: lineIndex + 1, column: 1));
+                limits.AddValue(items, continuation, lineOffset);
+                if (previousNativeField != null) previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, lineOffset);
+                else AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
+            } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
         }
         if (format == BibliographyFormat.Nbib) NormalizeNbibAuthors(items);
         foreach (BibliographyItem item in items.Where(static item => string.IsNullOrWhiteSpace(item.Key))) diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG003", BibliographyDiagnosticSeverity.Warning, $"{format} record has no citation identifier.", itemKey: item.Key));
@@ -108,24 +109,13 @@ internal static class TaggedCodec {
 
     private static BibliographyItem NewItem(IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) { limits.AddItem(items, offset); var item = new BibliographyItem(); items.Add(item); return item; }
 
-    private static IList<TaggedLine> SplitLines(string source) {
-        var lines = new List<TaggedLine>();
-        int start = 0;
-        for (int position = 0; position < source.Length; position++) {
-            char character = source[position];
-            if (character != '\r' && character != '\n') continue;
-            lines.Add(new TaggedLine(source.Substring(start, position - start), start));
-            if (character == '\r' && position + 1 < source.Length && source[position + 1] == '\n') position++;
-            start = position + 1;
+    private static int FindLineEnd(string source, int start, CancellationToken cancellationToken) {
+        int position = start;
+        while (position < source.Length && source[position] != '\r' && source[position] != '\n') {
+            if (((position - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            position++;
         }
-        lines.Add(new TaggedLine(source.Substring(start), start));
-        return lines;
-    }
-
-    private readonly struct TaggedLine {
-        internal TaggedLine(string value, int offset) { Value = value; Offset = offset; }
-        internal string Value { get; }
-        internal int Offset { get; }
+        return position;
     }
 
     private static bool TrySplitLine(string line, BibliographyFormat format, out string tag, out string value) {

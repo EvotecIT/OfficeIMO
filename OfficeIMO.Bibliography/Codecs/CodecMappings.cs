@@ -24,6 +24,12 @@ internal static class CodecMappings {
         }
     }
 
+    internal static BibliographyItemType ParseRisType(string? value) {
+        if (string.Equals(value, "CPAPER", StringComparison.OrdinalIgnoreCase)) return BibliographyItemType.PaperConference;
+        if (string.Equals(value, "CONF", StringComparison.OrdinalIgnoreCase)) return BibliographyItemType.Proceedings;
+        return ParseType(value);
+    }
+
     internal static BibliographyItemType ParseCslType(string? type) =>
         string.Equals(type?.Trim(), "article", StringComparison.OrdinalIgnoreCase) ? BibliographyItemType.Article : ParseType(type);
 
@@ -71,7 +77,8 @@ internal static class CodecMappings {
             case BibliographyItemType.ArticleNewspaper: return "NEWS";
             case BibliographyItemType.Book: return "BOOK";
             case BibliographyItemType.Chapter: return "CHAP";
-            case BibliographyItemType.PaperConference: return "CONF";
+            case BibliographyItemType.PaperConference: return "CPAPER";
+            case BibliographyItemType.Proceedings: return "CONF";
             case BibliographyItemType.Report: return "RPRT";
             case BibliographyItemType.Thesis: return "THES";
             case BibliographyItemType.WebPage: return "WEB";

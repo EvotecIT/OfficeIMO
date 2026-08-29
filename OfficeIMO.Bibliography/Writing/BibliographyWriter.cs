@@ -64,24 +64,7 @@ internal static class BibliographyWriter {
     }
 
     private static Encoding ResolvePreservedEncoding(string source, BibliographyFormat format, Encoding fallback) {
-        if (format != BibliographyFormat.EndNoteXml) return fallback;
-        int declarationStart = source.IndexOf("<?xml", StringComparison.OrdinalIgnoreCase);
-        if (declarationStart < 0 || source.Substring(0, declarationStart).Any(character => !char.IsWhiteSpace(character) && character != '\uFEFF')) return fallback;
-        int declarationEnd = source.IndexOf("?>", declarationStart, StringComparison.Ordinal);
-        if (declarationEnd < 0) return fallback;
-        string declaration = source.Substring(declarationStart, declarationEnd - declarationStart);
-        int encodingStart = declaration.IndexOf("encoding", StringComparison.OrdinalIgnoreCase);
-        if (encodingStart < 0) return fallback;
-        int equals = declaration.IndexOf('=', encodingStart + 8);
-        if (equals < 0) return fallback;
-        int quote = equals + 1;
-        while (quote < declaration.Length && char.IsWhiteSpace(declaration[quote])) quote++;
-        if (quote >= declaration.Length || declaration[quote] != '\'' && declaration[quote] != '"') return fallback;
-        char delimiter = declaration[quote++];
-        int valueEnd = declaration.IndexOf(delimiter, quote);
-        if (valueEnd <= quote) return fallback;
-        try { return Encoding.GetEncoding(declaration.Substring(quote, valueEnd - quote), EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback); }
-        catch (ArgumentException) { return fallback; }
+        return format == BibliographyFormat.EndNoteXml ? BibliographyEncoding.ResolveXmlDeclaration(source, fallback) : fallback;
     }
 }
 
@@ -135,7 +118,7 @@ internal static class BibliographyConversionInspector {
                     : BibCodec.CanRoundTripType(item.Type, format);
                 break;
             case BibliographyFormat.Ris:
-                exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Article && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript;
+                exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Article && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript;
                 break;
             case BibliographyFormat.Nbib:
                 exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && item.NativeFields.Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
@@ -156,7 +139,7 @@ internal static class BibliographyConversionInspector {
             switch (format) {
                 case BibliographyFormat.BibTex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor; break;
                 case BibliographyFormat.BibLatex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.Translator; break;
-                case BibliographyFormat.CslJson: exact = role != BibliographyContributorRole.Other; break;
+                case BibliographyFormat.CslJson: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.Translator || role == BibliographyContributorRole.Recipient || role == BibliographyContributorRole.Interviewer || role == BibliographyContributorRole.Composer || role == BibliographyContributorRole.CollectionEditor; break;
                 case BibliographyFormat.Ris: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor; break;
                 case BibliographyFormat.Nbib: exact = role == BibliographyContributorRole.Author; break;
                 case BibliographyFormat.EndNoteXml: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.CollectionEditor || role == BibliographyContributorRole.Translator; break;
