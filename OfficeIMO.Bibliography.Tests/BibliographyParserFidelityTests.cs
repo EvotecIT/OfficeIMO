@@ -380,4 +380,87 @@ public sealed class BibliographyParserFidelityTests {
         Assert.Equal(2024, reopened.Year);
         Assert.Equal(5, reopened.Month);
     }
+
+    [Theory]
+    [InlineData(BibliographyFormat.BibTex)]
+    [InlineData(BibliographyFormat.BibLatex)]
+    public void Native_Bib_field_brace_escaping_blocks_strict_output(BibliographyFormat format) {
+        var document = new BibliographyDocument(format);
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Native" };
+        item.NativeFields.Add(new BibliographyNativeField(format, "custom", "unbalanced { value"));
+        document.Items.Add(item);
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV233" && diagnostic.Field == "native.custom");
+    }
+
+    [Theory]
+    [InlineData(BibliographyFormat.BibTex)]
+    [InlineData(BibliographyFormat.BibLatex)]
+    public void Parsed_Bib_item_type_edits_use_the_new_exact_type(BibliographyFormat format) {
+        BibliographyDocument document = BibliographyDocument.Parse("@book{x,title={Type}}", format).Document;
+        document.Items[0].Type = BibliographyItemType.ArticleJournal;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
+
+        Assert.StartsWith("@article{", written.Content, StringComparison.Ordinal);
+        Assert.Equal(BibliographyItemType.ArticleJournal, reopened.Type);
+    }
+
+    [Fact]
+    public void CSL_date_role_order_survives_strict_canonical_output() {
+        const string source = "[{\"id\":\"x\",\"type\":\"book\",\"accessed\":{\"date-parts\":[[2026,2,3]]},\"issued\":{\"date-parts\":[[2025,1,2]]}}]";
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
+
+        Assert.Equal(new[] { BibliographyDateRole.Accessed, BibliographyDateRole.Issued }, reopened.Dates.Select(static date => date.Role));
+    }
+
+    [Fact]
+    public void Generic_thesis_is_exact_in_BibLaTeX() {
+        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Thesis, Title = "Thesis" });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items);
+
+        Assert.StartsWith("@thesis{", written.Content, StringComparison.Ordinal);
+        Assert.Equal(BibliographyItemType.Thesis, reopened.Type);
+    }
+
+    [Fact]
+    public void Generic_thesis_reports_narrowing_in_classic_BibTeX() {
+        var document = new BibliographyDocument(BibliographyFormat.BibTex);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Thesis, Title = "Thesis" });
+
+        BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.StartsWith("@phdthesis{", permissive.Content, StringComparison.Ordinal);
+        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
+    }
+
+    [Theory]
+    [InlineData("title", "title")]
+    [InlineData("date", "dates.Issued.literal")]
+    [InlineData("native", "native.custom")]
+    public void EndNote_carriage_return_normalization_blocks_strict_output(string valueOwner, string expectedField) {
+        var document = new BibliographyDocument(BibliographyFormat.EndNoteXml);
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Text" };
+        if (valueOwner == "title") item.Title = "A\r\nB";
+        else if (valueOwner == "date") item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = "A\rB" });
+        else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "custom", "A\rB"));
+        document.Items.Add(item);
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == expectedField);
+    }
 }

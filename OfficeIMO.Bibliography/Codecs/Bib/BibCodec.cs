@@ -28,7 +28,7 @@ internal static class BibCodec {
         for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
-            string type = CanPreserveNativeType(document.SourceFormat, format, item) ? item.NativeType! : CodecMappings.ToBibType(item.Type);
+            string type = CanPreserveNativeType(document.SourceFormat, format, item) ? item.NativeType! : OutputType(item.Type, format);
             builder.Append('@').Append(type.ToLowerInvariant()).Append('{').Append(SafeKey(CodecMappings.OutputKey(item, itemIndex))).Append(',').Append(options.LineEnding);
             var fields = new List<KeyValuePair<string, string>>();
             Add(fields, "title", item.Title);
@@ -163,6 +163,14 @@ internal static class BibCodec {
         if (!IsBibFamily(sourceFormat) || !IsBibFamily(targetFormat) || !IsSafeTypeName(item.NativeType) || CodecMappings.ParseType(item.NativeType) != item.Type) return false;
         return sourceFormat == targetFormat || targetFormat == BibliographyFormat.BibLatex || ClassicBibTypes.Contains(item.NativeType!);
     }
+
+    internal static bool CanRoundTripType(BibliographyItemType type, BibliographyFormat targetFormat) =>
+        type == BibliographyItemType.ArticleJournal || type == BibliographyItemType.Book || type == BibliographyItemType.Chapter ||
+        type == BibliographyItemType.PaperConference || type == BibliographyItemType.Proceedings || type == BibliographyItemType.Report ||
+        type == BibliographyItemType.Manuscript || targetFormat == BibliographyFormat.BibLatex && type == BibliographyItemType.Thesis;
+
+    private static string OutputType(BibliographyItemType type, BibliographyFormat format) =>
+        format == BibliographyFormat.BibLatex && type == BibliographyItemType.Thesis ? "thesis" : CodecMappings.ToBibType(type);
 
     internal static bool CanRoundTripStructuredName(BibliographyName name) {
         if (!string.IsNullOrWhiteSpace(name.Literal)) return string.IsNullOrWhiteSpace(name.Given) && string.IsNullOrWhiteSpace(name.Family) && string.IsNullOrWhiteSpace(name.Suffix) && string.IsNullOrWhiteSpace(name.NonDroppingParticle) && string.IsNullOrWhiteSpace(name.DroppingParticle);
@@ -355,9 +363,17 @@ internal static class BibCodec {
                 case "month": SetMonth(item, value); break;
                 case "urldate": item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Accessed, value)); break;
                 case "doi": case "isbn": case "issn": case "pmid": case "pmcid": AddIdentifier(item, field, value); break;
-                case "keywords": foreach (string keyword in SplitBibList(value)) item.Keywords.Add(UnwrapBibListItem(keyword)); break;
+                case "keywords": AddKeywords(item, value); break;
                 case "note": item.Notes.Add(value); break;
                 default: item.NativeFields.Add(new BibliographyNativeField(_format, name, value)); break;
+            }
+        }
+
+        private void AddKeywords(BibliographyItem item, string value) {
+            foreach (string keyword in SplitBibList(value)) {
+                string parsedKeyword = UnwrapBibListItem(keyword);
+                _limits.AddValue(_items, parsedKeyword, _position);
+                item.Keywords.Add(parsedKeyword);
             }
         }
 

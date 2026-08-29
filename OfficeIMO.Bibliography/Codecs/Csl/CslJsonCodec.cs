@@ -45,8 +45,10 @@ internal static class CslJsonCodec {
                 WriteNames(writer, item, BibliographyContributorRole.Translator, "translator", report); WriteNames(writer, item, BibliographyContributorRole.Recipient, "recipient", report);
                 WriteNames(writer, item, BibliographyContributorRole.Interviewer, "interviewer", report); WriteNames(writer, item, BibliographyContributorRole.Composer, "composer", report);
                 WriteNames(writer, item, BibliographyContributorRole.CollectionEditor, "collection-editor", report);
-                WriteDate(writer, item, BibliographyDateRole.Issued, "issued", report); WriteDate(writer, item, BibliographyDateRole.Accessed, "accessed", report);
-                WriteDate(writer, item, BibliographyDateRole.Submitted, "submitted", report); WriteDate(writer, item, BibliographyDateRole.Original, "original-date", report); WriteDate(writer, item, BibliographyDateRole.Event, "event-date", report);
+                foreach (BibliographyDateRole role in item.Dates.Select(static date => date.Role).Distinct()) {
+                    string? property = DateProperty(role);
+                    if (property != null) WriteDate(writer, item, role, property, report);
+                }
                 foreach (IGrouping<string, BibliographyIdentifier> group in item.Identifiers.Where(identifier => CodecMappings.IsCslIdentifierScheme(identifier.Scheme)).GroupBy(identifier => identifier.Scheme.ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)) WriteString(writer, group.Key, string.Join("; ", group.Select(static identifier => identifier.Value)));
                 if (item.Keywords.Count > 0) writer.WriteString("keyword", string.Join(", ", item.Keywords));
                 if (item.Notes.Count > 0) writer.WriteString("note", string.Join("; ", item.Notes));
@@ -318,6 +320,17 @@ internal static class CslJsonCodec {
             else report.Add("BIBCONV125", BibliographyDiagnosticSeverity.Warning, $"Native date property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
         }
         writer.WriteEndObject();
+    }
+
+    private static string? DateProperty(BibliographyDateRole role) {
+        switch (role) {
+            case BibliographyDateRole.Issued: return "issued";
+            case BibliographyDateRole.Accessed: return "accessed";
+            case BibliographyDateRole.Submitted: return "submitted";
+            case BibliographyDateRole.Original: return "original-date";
+            case BibliographyDateRole.Event: return "event-date";
+            default: return null;
+        }
     }
 
     private static bool TryReadDatePart(JsonElement value, out int? year, out int? month, out int? day) {

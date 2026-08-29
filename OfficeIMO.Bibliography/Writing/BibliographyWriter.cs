@@ -92,7 +92,7 @@ internal static class BibliographyConversionInspector {
         }
         InspectKeys(document, format, report);
         foreach (BibliographyItem item in document.Items) {
-            InspectType(item, document.SourceFormat, format, report); InspectContributors(item, format, report); InspectDates(item, format, report); InspectNestedNativeFields(item, format, report); InspectProperties(item, format, report); InspectIdentifiers(item, format, report); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report);
+            InspectType(item, document.SourceFormat, format, report); InspectContributors(item, format, report); InspectDates(item, format, report); InspectNestedNativeFields(item, format, report); InspectProperties(item, format, report); InspectIdentifiers(item, format, report); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report); InspectNativeStructure(item, format, report);
         }
     }
 
@@ -130,7 +130,9 @@ internal static class BibliographyConversionInspector {
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);
-                exact = hasNativeBibType ? BibCodec.CanPreserveNativeType(sourceFormat, format, item) : item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Proceedings || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.Manuscript;
+                exact = hasNativeBibType && CodecMappings.ParseType(item.NativeType) == item.Type
+                    ? BibCodec.CanPreserveNativeType(sourceFormat, format, item)
+                    : BibCodec.CanRoundTripType(item.Type, format);
                 break;
             case BibliographyFormat.Ris:
                 exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Article && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript && item.Type != BibliographyItemType.Document;
@@ -278,6 +280,8 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, text.Key, "BIBCONV209", $"Line breaks in '{text.Key}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
             if (format == BibliographyFormat.EndNoteXml && HasInvalidXmlCharacters(text.Value))
                 Loss(report, item, text.Key, "BIBCONV210", $"Invalid XML characters in '{text.Key}' are replaced in EndNote XML.", BibliographyConversionAction.Approximated);
+            if (format == BibliographyFormat.EndNoteXml && text.Value.IndexOf('\r') >= 0)
+                Loss(report, item, text.Key, "BIBCONV235", $"Carriage returns in '{text.Key}' normalize to line feeds in EndNote XML.", BibliographyConversionAction.Approximated);
             if ((format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) && !HasBalancedBraces(text.Value))
                 Loss(report, item, text.Key, "BIBCONV211", $"Unbalanced braces in '{text.Key}' are escaped for safe BibTeX output.", BibliographyConversionAction.Approximated);
         }
@@ -285,6 +289,20 @@ internal static class BibliographyConversionInspector {
             foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == format && (field.Value.IndexOf('\r') >= 0 || field.Value.IndexOf('\n') >= 0)))
                 Loss(report, item, "native." + field.Name, "BIBCONV209", $"Line breaks in native field '{field.Name}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
         }
+        if (format == BibliographyFormat.EndNoteXml) {
+            foreach (BibliographyNativeField field in item.NativeFields.Where(static field => field.Format == BibliographyFormat.EndNoteXml && field.Value.IndexOf('\r') >= 0))
+                Loss(report, item, "native." + field.Name, "BIBCONV235", $"Carriage returns in native field '{field.Name}' normalize to line feeds in EndNote XML.", BibliographyConversionAction.Approximated);
+        }
+        if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
+            foreach (BibliographyNativeField field in item.NativeFields.Where(static field => (field.Format == BibliographyFormat.BibTex || field.Format == BibliographyFormat.BibLatex) && !HasBalancedBraces(field.Value)))
+                Loss(report, item, "native." + field.Name, "BIBCONV233", $"Unbalanced braces in native field '{field.Name}' are escaped for safe BibTeX output.", BibliographyConversionAction.Approximated);
+        }
+    }
+
+    private static void InspectNativeStructure(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
+        if (format != BibliographyFormat.EndNoteXml) return;
+        foreach (BibliographyNativeField field in item.NativeFields.Where(EndNoteXmlCodec.EditedNativeFieldFlattensStructure))
+            Loss(report, item, "native." + field.Name, "BIBCONV234", $"Editing native EndNote field '{field.Name}' flattens its retained XML child structure.", BibliographyConversionAction.Approximated);
     }
 
     private static IEnumerable<KeyValuePair<string, string>> EnumerateText(BibliographyItem item) {
@@ -293,6 +311,7 @@ internal static class BibliographyConversionInspector {
         for (int index = 0; index < values.Length; index++) if (!string.IsNullOrEmpty(values[index])) yield return new KeyValuePair<string, string>(names[index], values[index]!);
         foreach (BibliographyContributor contributor in item.Contributors) foreach (string? value in new[] { contributor.Name.Given, contributor.Name.Family, contributor.Name.Literal, contributor.Name.Suffix, contributor.Name.DroppingParticle, contributor.Name.NonDroppingParticle }) if (!string.IsNullOrEmpty(value)) yield return new KeyValuePair<string, string>("contributors", value!);
         foreach (BibliographyIdentifier identifier in item.Identifiers) yield return new KeyValuePair<string, string>("identifiers." + identifier.Scheme, identifier.Value);
+        foreach (BibliographyDate date in item.Dates) if (!string.IsNullOrEmpty(date.Literal)) yield return new KeyValuePair<string, string>("dates." + date.Role + ".literal", date.Literal!);
         foreach (string value in item.Keywords) yield return new KeyValuePair<string, string>("keywords", value);
         foreach (string value in item.Notes) yield return new KeyValuePair<string, string>("notes", value);
     }

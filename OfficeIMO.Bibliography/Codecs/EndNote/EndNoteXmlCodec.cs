@@ -328,6 +328,15 @@ internal static class EndNoteXmlCodec {
             return false;
         }
     }
+    internal static bool EditedNativeFieldFlattensStructure(BibliographyNativeField field) {
+        if (field.Format != BibliographyFormat.EndNoteXml || field.RawValue == null || field.UnmodifiedRawValue != null) return false;
+        try {
+            XElement original = XElement.Parse(field.RawValue, LoadOptions.PreserveWhitespace);
+            return original.Nodes().Any(static node => !(node is XText));
+        } catch (Exception exception) when (exception is XmlException || exception is InvalidOperationException || exception is ArgumentException) {
+            return false;
+        }
+    }
     private static bool ConflictsWithTypedRecordElement(BibliographyNativeField field, string xmlNamespace) {
         if (string.Equals(field.Name, "periodical", StringComparison.OrdinalIgnoreCase)) return false;
         if (!KnownRecordElements.Contains(field.Name)) return false;

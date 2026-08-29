@@ -79,6 +79,16 @@ public sealed class BibliographyReviewRemediationTests {
     }
 
     [Fact]
+    public void Bib_keyword_items_observe_the_value_count_limit() {
+        const string source = "@book{x,keywords={alpha,beta,gamma}}";
+
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumValueCount = 4 });
+
+        Assert.True(read.HasErrors);
+        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
+    }
+
+    [Fact]
     public void Strict_canonical_write_rejects_partially_recovered_source() {
         BibliographyDocument document = BibliographyDocument.Parse("@book{a,title={A}}\n@book", BibliographyFormat.BibLatex).Document;
 
@@ -148,15 +158,18 @@ public sealed class BibliographyReviewRemediationTests {
     }
 
     [Fact]
-    public void Edited_raw_backed_EndNote_field_is_written_as_a_safe_element() {
+    public void Edited_structured_EndNote_field_reports_flattened_child_markup() {
         const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><custom><nested>original</nested></custom></record></records></xml>";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].NativeFields.Single(field => field.Name == "custom").Value = "edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
         BibliographyNativeField reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items[0].NativeFields.Single(field => field.Name == "custom");
 
         Assert.Equal("edited", reopened.Value);
         Assert.Contains("<custom>edited</custom>", written.Content, StringComparison.Ordinal);
+        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV234" && diagnostic.Field == "native.custom");
     }
 }
