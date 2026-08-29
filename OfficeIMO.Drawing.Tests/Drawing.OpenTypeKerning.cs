@@ -68,6 +68,73 @@ public sealed class DrawingOpenTypeKerningTests {
         Assert.Equal(-30, kerning.Adjustment(left: 1, right: 2));
     }
 
+    [Fact]
+    public void GposPairPositioningAppliesHorizontalFieldsFromBothValueRecords() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: -80,
+            gposAdjustment: -30,
+            gposRightGlyph: 2);
+        WritePairPositioningSubtable(
+            data,
+            subtable: 254,
+            rightGlyph: 2,
+            firstXPlacement: -10,
+            firstXAdvance: -20,
+            secondXPlacement: -30,
+            secondXAdvance: -40);
+        var kerning = new OfficeOpenTypeKerning(data, kern: 0, gpos: 64, includeExtendedGpos: true);
+
+        OfficeOpenTypePairPositioning positioning = kerning.Positioning(left: 1, right: 2, scriptTag: "DFLT");
+
+        Assert.Equal(-10, positioning.FirstGlyphXPlacement);
+        Assert.Equal(-20, positioning.FirstGlyphXAdvance);
+        Assert.Equal(-30, positioning.SecondGlyphXPlacement);
+        Assert.Equal(-40, positioning.SecondGlyphXAdvance);
+        Assert.Equal(-60, kerning.Adjustment(left: 1, right: 2));
+    }
+
+    [Fact]
+    public void GposClassPairPositioningAppliesHorizontalFieldsFromBothValueRecords() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: -80,
+            gposAdjustment: -30,
+            gposRightGlyph: 2);
+        WriteClassPairPositioningSubtable(
+            data,
+            subtable: 254,
+            firstXPlacement: 11,
+            firstXAdvance: 22,
+            secondXPlacement: 33,
+            secondXAdvance: 44);
+        var kerning = new OfficeOpenTypeKerning(data, kern: 0, gpos: 64);
+
+        OfficeOpenTypePairPositioning positioning = kerning.Positioning(left: 1, right: 2, scriptTag: "DFLT");
+
+        Assert.Equal(11, positioning.FirstGlyphXPlacement);
+        Assert.Equal(22, positioning.FirstGlyphXAdvance);
+        Assert.Equal(33, positioning.SecondGlyphXPlacement);
+        Assert.Equal(44, positioning.SecondGlyphXAdvance);
+        Assert.Equal(66, kerning.Adjustment(left: 1, right: 2));
+    }
+
+    [Fact]
+    public void GposRunSkipsTheSecondGlyphWhenValueRecord2IsPresent() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: 0,
+            gposAdjustment: 0,
+            gposRightGlyph: 2);
+        WriteSequencedPairPositioningSubtable(data, subtable: 254);
+        var kerning = new OfficeOpenTypeKerning(data, kern: 0, gpos: 64);
+
+        OfficeOpenTypeGlyphPositioning[] positioning = kerning.PositionRun(
+            new[] { 1, 2, 3 },
+            new[] { 0, 0, 0 });
+
+        Assert.Equal(-10, positioning[0].XAdvance);
+        Assert.Equal(-20, positioning[1].XAdvance);
+        Assert.Equal(0, positioning[2].XAdvance);
+    }
+
     private static byte[] CreateKerningTables(
         short legacyAdjustment,
         short gposAdjustment,
@@ -158,6 +225,99 @@ public sealed class DrawingOpenTypeKerningTests {
         WriteUInt16(data, subtable + 18, 1);
         WriteUInt16(data, subtable + 20, rightGlyph);
         WriteInt16(data, subtable + 22, adjustment);
+    }
+
+    private static void WritePairPositioningSubtable(
+        byte[] data,
+        int subtable,
+        ushort rightGlyph,
+        short firstXPlacement,
+        short firstXAdvance,
+        short secondXPlacement,
+        short secondXAdvance) {
+        WriteUInt16(data, subtable, 1);
+        WriteUInt16(data, subtable + 2, 12);
+        WriteUInt16(data, subtable + 4, 5);
+        WriteUInt16(data, subtable + 6, 5);
+        WriteUInt16(data, subtable + 8, 1);
+        WriteUInt16(data, subtable + 10, 18);
+        WriteUInt16(data, subtable + 12, 1);
+        WriteUInt16(data, subtable + 14, 1);
+        WriteUInt16(data, subtable + 16, 1);
+        WriteUInt16(data, subtable + 18, 1);
+        WriteUInt16(data, subtable + 20, rightGlyph);
+        WriteInt16(data, subtable + 22, firstXPlacement);
+        WriteInt16(data, subtable + 24, firstXAdvance);
+        WriteInt16(data, subtable + 26, secondXPlacement);
+        WriteInt16(data, subtable + 28, secondXAdvance);
+    }
+
+    private static void WriteClassPairPositioningSubtable(
+        byte[] data,
+        int subtable,
+        short firstXPlacement,
+        short firstXAdvance,
+        short secondXPlacement,
+        short secondXAdvance) {
+        WriteUInt16(data, subtable, 2);
+        WriteUInt16(data, subtable + 2, 48);
+        WriteUInt16(data, subtable + 4, 5);
+        WriteUInt16(data, subtable + 6, 5);
+        WriteUInt16(data, subtable + 8, 54);
+        WriteUInt16(data, subtable + 10, 62);
+        WriteUInt16(data, subtable + 12, 2);
+        WriteUInt16(data, subtable + 14, 2);
+
+        int classRecord = subtable + 16 + (3 * 8);
+        WriteInt16(data, classRecord, firstXPlacement);
+        WriteInt16(data, classRecord + 2, firstXAdvance);
+        WriteInt16(data, classRecord + 4, secondXPlacement);
+        WriteInt16(data, classRecord + 6, secondXAdvance);
+
+        int coverage = subtable + 48;
+        WriteUInt16(data, coverage, 1);
+        WriteUInt16(data, coverage + 2, 1);
+        WriteUInt16(data, coverage + 4, 1);
+
+        int classDef1 = subtable + 54;
+        WriteUInt16(data, classDef1, 1);
+        WriteUInt16(data, classDef1 + 2, 1);
+        WriteUInt16(data, classDef1 + 4, 1);
+        WriteUInt16(data, classDef1 + 6, 1);
+
+        int classDef2 = subtable + 62;
+        WriteUInt16(data, classDef2, 1);
+        WriteUInt16(data, classDef2 + 2, 2);
+        WriteUInt16(data, classDef2 + 4, 1);
+        WriteUInt16(data, classDef2 + 6, 1);
+    }
+
+    private static void WriteSequencedPairPositioningSubtable(byte[] data, int subtable) {
+        WriteUInt16(data, subtable, 1);
+        WriteUInt16(data, subtable + 2, 14);
+        WriteUInt16(data, subtable + 4, 4);
+        WriteUInt16(data, subtable + 6, 4);
+        WriteUInt16(data, subtable + 8, 2);
+        WriteUInt16(data, subtable + 10, 22);
+        WriteUInt16(data, subtable + 12, 34);
+
+        int coverage = subtable + 14;
+        WriteUInt16(data, coverage, 1);
+        WriteUInt16(data, coverage + 2, 2);
+        WriteUInt16(data, coverage + 4, 1);
+        WriteUInt16(data, coverage + 6, 2);
+
+        int firstPairSet = subtable + 22;
+        WriteUInt16(data, firstPairSet, 1);
+        WriteUInt16(data, firstPairSet + 2, 2);
+        WriteInt16(data, firstPairSet + 4, -10);
+        WriteInt16(data, firstPairSet + 6, -20);
+
+        int secondPairSet = subtable + 34;
+        WriteUInt16(data, secondPairSet, 1);
+        WriteUInt16(data, secondPairSet + 2, 3);
+        WriteInt16(data, secondPairSet + 4, -30);
+        WriteInt16(data, secondPairSet + 6, -40);
     }
 
     private static void WriteTag(byte[] data, int offset, string tag) {

@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Pdf.Tests;
@@ -470,7 +471,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
                 "/ColorSpace << /PrintRgb /DeviceRGB >> " +
                 "/ExtGState << /GS1 << /SMask << /S /Luminosity /G 5 0 R >> >> >>",
             extraObjects:
-                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency >> /Length " +
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency /CS /DeviceRGB >> /Length " +
                 formContent.Length + " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
@@ -484,6 +485,9 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     [InlineData("/S /Bogus /G 5 0 R", "/Group << /S /Transparency >>")]
     [InlineData("/S /Alpha /G 5 0 R", "")]
     [InlineData("/S /Luminosity /G 5 0 R", "/Group << /S /Bogus >>")]
+    [InlineData("/S /Luminosity /G 5 0 R", "/Group << /S /Transparency >>")]
+    [InlineData("/S /Alpha /G 5 0 R /TR <<>>", "/Group << /S /Transparency /CS /DeviceGray >>")]
+    [InlineData("/S /Luminosity /G 5 0 R /BC [0 0]", "/Group << /S /Transparency /CS /DeviceRGB >>")]
     public void ColorInspectorFailsClosedOnMalformedReachableSoftMask(
         string softMaskEntries,
         string formGroup) {
@@ -498,6 +502,53 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
         Assert.False(evidence.IsComplete);
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorAcceptsValidSoftMaskTransferAndBackdropEntries() {
+        byte[] pdf = BuildInspectionPdf(
+            "/GS1 gs",
+            resources: "/ExtGState << /GS1 << /SMask << /S /Luminosity /G 5 0 R /TR /Identity /BC [0 0 0] >> >> >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Group << /S /Transparency /CS /DeviceRGB >> /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorResolvesLuminosityGroupColorSpaceFromGroupResources() {
+        byte[] pdf = BuildInspectionPdf(
+            "/GS1 gs",
+            resources: "/ColorSpace << /BlendRgb /DeviceGray >> " +
+                       "/ExtGState << /GS1 << /SMask << /S /Luminosity /G 5 0 R /BC [0 0 0] >> >> >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Resources << /ColorSpace << /BlendRgb /DeviceRGB >> >> " +
+                "/Group << /S /Transparency /CS /BlendRgb >> /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorIgnoresBackdropForAlphaSoftMasks() {
+        byte[] pdf = BuildInspectionPdf(
+            "/GS1 gs",
+            resources: "/ExtGState << /GS1 << /SMask << /S /Alpha /G 5 0 R /BC /Ignored >> >> >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Group << /S /Transparency >> /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
     }
 
     [Fact]
@@ -715,6 +766,36 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Theory]
+    [InlineData("/FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /StemV 80 /FontFile2 7 0 R")]
+    [InlineData("/Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /FontFile2 7 0 R")]
+    [InlineData("/Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /StemV 80 /FontFile2 7 0 R")]
+    public void StructureInspectorRejectsIncompleteFontDescriptors(string descriptorEntries) {
+        byte[] pdf = BuildTrueTypeInspectionPdf(
+            BuildMinimalTrueTypeProgram(validLoca: true),
+            descriptorEntries);
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void StructureInspectorRejectsMultipleEmbeddedProgramEntries() {
+        byte[] pdf = BuildTrueTypeInspectionPdf(
+            BuildMinimalTrueTypeProgram(validLoca: true),
+            "/Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] " +
+            "/ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile 7 0 R /FontFile2 7 0 R");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Theory]
     [InlineData("/F1 /Bogus Tf")]
     [InlineData("/F1 [12] Tf")]
     public void StructureInspectorRejectsMalformedFontSizeOperands(string selectFont) {
@@ -862,6 +943,35 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         byte[] privateProgram = Encoding.ASCII.GetBytes(
             "seed/Private 1 dict dup begin\n/CharStrings 1 dict dup begin\n/.notdef 1 RD x ND\nend\nend\n");
         byte[] pdf = BuildType1InspectionPdf(BuildType1Pfa(privateProgram));
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void StructureInspectorSharesType1OperationBudgetAcrossSubroutineCalls() {
+        byte[] pdf = BuildType1InspectionPdf(BuildType1PfaWithRepeatedSubroutineWork(
+            callerCount: 100,
+            subroutineWorkItems: 400));
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
+    public void StructureInspectorRejectsCff2OpenTypeProgramsForPdfXEmbeddingProof() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCff2Font();
+        Assert.NotNull(fontPath);
+        byte[] fontProgram = File.ReadAllBytes(fontPath!);
+        Assert.True(HasSfntTable(fontProgram, "CFF2"));
+        Assert.False(HasSfntTable(fontProgram, "CFF "));
+        byte[] pdf = BuildOpenTypeCffInspectionPdf(fontProgram);
 
         PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
 
@@ -1351,7 +1461,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildTrueTypeInspectionPdf(byte[] trueTypeProgram) {
+    private static byte[] BuildTrueTypeInspectionPdf(byte[] trueTypeProgram, string? descriptorEntries = null) {
         byte[] content = Encoding.ASCII.GetBytes("BT /F1 12 Tf (A) Tj ET");
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
@@ -1362,11 +1472,44 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         output.Write(content, 0, content.Length);
         WriteAscii(output, "\nendstream\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /TrueType /BaseFont /Fixture /FontDescriptor 6 0 R >>\nendobj\n");
-        WriteAscii(output, "6 0 obj\n<< /Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 7 0 R >>\nendobj\n");
+        descriptorEntries ??= "/Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 7 0 R";
+        WriteAscii(output, "6 0 obj\n<< " + descriptorEntries + " >>\nendobj\n");
         WriteAscii(output, "7 0 obj\n<< /Length " + trueTypeProgram.Length + " >>\nstream\n");
         output.Write(trueTypeProgram, 0, trueTypeProgram.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static byte[] BuildOpenTypeCffInspectionPdf(byte[] openTypeProgram) {
+        byte[] content = Encoding.ASCII.GetBytes("BT /F1 12 Tf (A) Tj ET");
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /TrimBox [10 10 90 90] /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + content.Length + " >>\nstream\n");
+        output.Write(content, 0, content.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Fixture /FontDescriptor 6 0 R >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile3 7 0 R >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Subtype /OpenType /Length " + openTypeProgram.Length + " >>\nstream\n");
+        output.Write(openTypeProgram, 0, openTypeProgram.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static bool HasSfntTable(byte[] data, string tag) {
+        if (data.Length < 12 || tag.Length != 4) return false;
+        int tableCount = (data[4] << 8) | data[5];
+        if (tableCount <= 0 || 12L + tableCount * 16L > data.Length) return false;
+        for (int index = 0; index < tableCount; index++) {
+            int record = 12 + index * 16;
+            if (data[record] == tag[0] &&
+                data[record + 1] == tag[1] &&
+                data[record + 2] == tag[2] &&
+                data[record + 3] == tag[3]) return true;
+        }
+        return false;
     }
 
     private static byte[] BuildMinimalTrueTypeProgram(bool validLoca, byte[]? glyphData = null) {
@@ -1468,6 +1611,33 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         string hex = BitConverter.ToString(encrypted).Replace("-", string.Empty);
         return Encoding.ASCII.GetBytes(
             "%!PS-AdobeFont-1.0: Fixture 1.0\ncurrentfile eexec\n" + hex + "\ncleartomark\n");
+    }
+
+    private static byte[] BuildType1PfaWithRepeatedSubroutineWork(int callerCount, int subroutineWorkItems) {
+        using var subroutine = new MemoryStream();
+        for (int index = 0; index < subroutineWorkItems; index++) {
+            subroutine.WriteByte(139);
+            subroutine.WriteByte(139);
+            subroutine.WriteByte(1);
+        }
+        subroutine.WriteByte(11);
+
+        using var glyph = new MemoryStream();
+        for (int index = 0; index < callerCount; index++) {
+            glyph.WriteByte(139);
+            glyph.WriteByte(10);
+        }
+        glyph.WriteByte(14);
+
+        using var privateProgram = new MemoryStream();
+        WriteAscii(privateProgram, "seed/Private 1 dict dup begin\n/lenIV -1 def\n/Subrs 1 array\ndup 0 " + subroutine.Length + " RD ");
+        subroutine.Position = 0;
+        subroutine.CopyTo(privateProgram);
+        WriteAscii(privateProgram, " NP\n/CharStrings 1 dict dup begin\n/.notdef " + glyph.Length + " RD ");
+        glyph.Position = 0;
+        glyph.CopyTo(privateProgram);
+        WriteAscii(privateProgram, " ND\nend\nend\n");
+        return BuildType1Pfa(privateProgram.ToArray());
     }
 
     private static byte[] BuildValidType1Pfb() {

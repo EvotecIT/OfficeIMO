@@ -59,8 +59,8 @@ internal static partial class PdfPrintProductionStructureInspector {
         bool hasMaxp = false;
         bool hasGlyf = false;
         bool hasLoca = false;
-        bool hasCff = false;
-        bool cffIsVersion2 = false;
+        bool hasCff1 = false;
+        bool hasCff2 = false;
         int headOffset = 0;
         int headLength = 0;
         int maxpOffset = 0;
@@ -114,11 +114,12 @@ internal static partial class PdfPrintProductionStructureInspector {
                     locaLength = (int)tableLength;
                     break;
                 case "CFF ":
-                case "CFF2":
-                    hasCff = tableLength >= 4;
-                    cffIsVersion2 = string.Equals(tag, "CFF2", StringComparison.Ordinal);
+                    hasCff1 = tableLength >= 4;
                     cffOffset = (int)tableOffset;
                     cffLength = (int)tableLength;
+                    break;
+                case "CFF2":
+                    hasCff2 = tableLength >= 5;
                     break;
             }
         }
@@ -136,10 +137,9 @@ internal static partial class PdfPrintProductionStructureInspector {
                 locaOffset,
                 locaLength);
         }
-        if (!hasCff) return false;
+        if (!hasCff1 || hasCff2) return false;
         var cff = new byte[cffLength];
         Buffer.BlockCopy(data, cffOffset, cff, 0, cffLength);
-        if (cffIsVersion2) return IsValidCff2Program(cff);
         bool? requireCidKeyed = string.Equals(fontSubtype, "Type1", StringComparison.Ordinal)
             ? false
             : null;
@@ -189,10 +189,6 @@ internal static partial class PdfPrintProductionStructureInspector {
             data,
             isCff2: false,
             requireCidKeyed: requireCidKeyed);
-    }
-
-    private static bool IsValidCff2Program(byte[] data) {
-        return OfficeCffFontData.IsStructurallyValidProgram(data, isCff2: true);
     }
 
     private static bool IsValidPfaProgram(byte[] data) {

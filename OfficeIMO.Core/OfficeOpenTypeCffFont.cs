@@ -90,18 +90,17 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         ValidateTextAndSize(text, fontSize);
         double scale = Scale(fontSize);
         long width = 0;
-        int? previousGlyph = null;
-        int? previousScalar = null;
+        var glyphs = new List<int>();
+        var scalars = new List<int>();
         for (int index = 0; index < text.Length;) {
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            int glyphId = _reader.MapGlyph(scalar);
-            if (previousGlyph.HasValue && previousScalar.HasValue) {
-                width = checked(width + _kerning.Adjustment(previousGlyph.Value, glyphId, previousScalar.Value, scalar));
-            }
-            width = checked(width + AdvanceWidth(glyphId));
-            previousGlyph = glyphId;
-            previousScalar = scalar;
+            glyphs.Add(_reader.MapGlyph(scalar));
+            scalars.Add(scalar);
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        for (int index = 0; index < glyphs.Count; index++) {
+            width = checked(width + AdvanceWidth(glyphs[index]) + positioning[index].XAdvance);
         }
         return width * scale;
     }
@@ -111,23 +110,23 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         ValidateSize(fontSize);
         var result = new double[elements.Count];
         double scale = Scale(fontSize);
-        int? previousGlyph = null;
-        int? previousScalar = null;
+        var glyphs = new List<int>();
+        var scalars = new List<int>();
+        var elementIndexes = new List<int>();
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
-            long width = 0;
             for (int textIndex = 0; textIndex < text.Length;) {
                 int scalar = ReadScalar(text, ref textIndex);
                 if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-                int glyphId = _reader.MapGlyph(scalar);
-                if (previousGlyph.HasValue && previousScalar.HasValue) {
-                    width = checked(width + _kerning.Adjustment(previousGlyph.Value, glyphId, previousScalar.Value, scalar));
-                }
-                width = checked(width + AdvanceWidth(glyphId));
-                previousGlyph = glyphId;
-                previousScalar = scalar;
+                glyphs.Add(_reader.MapGlyph(scalar));
+                scalars.Add(scalar);
+                elementIndexes.Add(elementIndex);
             }
-            result[elementIndex] = width * scale;
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        for (int index = 0; index < glyphs.Count; index++) {
+            result[elementIndexes[index]] += checked(
+                AdvanceWidth(glyphs[index]) + positioning[index].XAdvance) * scale;
         }
         return result;
     }
@@ -177,21 +176,31 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         double cursor = x;
         double baseline = EnsureFiniteGeometry(y + _ascender * scale);
         int pointCount = 0;
-        int? previousGlyph = null;
-        int? previousScalar = null;
+        var glyphs = new List<(int Glyph, int Scalar)>();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            int glyphId = _reader.MapGlyph(scalar);
-            if (previousGlyph.HasValue && previousScalar.HasValue) {
-                cursor = EnsureFiniteGeometry(cursor +
-                    _kerning.Adjustment(previousGlyph.Value, glyphId, previousScalar.Value, scalar) * scale);
-            }
-            RenderGlyph(glyphId, cursor, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken, operationBudget);
-            cursor = EnsureFiniteGeometry(cursor + AdvanceWidth(glyphId) * scale);
-            previousGlyph = glyphId;
-            previousScalar = scalar;
+            glyphs.Add((_reader.MapGlyph(scalar), scalar));
+        }
+
+        var glyphIds = new List<int>(glyphs.Count);
+        var scalars = new List<int>(glyphs.Count);
+        foreach ((int glyph, int scalar) in glyphs) {
+            glyphIds.Add(glyph);
+            scalars.Add(scalar);
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
+
+        for (int index = 0; index < glyphs.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int glyphId = glyphs[index].Glyph;
+            double glyphX = EnsureFiniteGeometry(cursor + positioning[index].XPlacement * scale);
+            RenderGlyph(glyphId, glyphX, baseline, scale, contours, ref pointCount, maximumPointCount, cancellationToken, operationBudget);
+            int positionedAdvance = checked(
+                AdvanceWidth(glyphId) +
+                positioning[index].XAdvance);
+            cursor = EnsureFiniteGeometry(cursor + positionedAdvance * scale);
         }
         return contours;
     }

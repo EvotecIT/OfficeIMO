@@ -68,7 +68,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _hmtx = tables["hmtx"];
         _gpos = tables.TryGetValue("GPOS", out var gpos) ? gpos : -1;
         _kern = tables.TryGetValue("kern", out var kern) ? kern : -1;
-        _kerning = new OfficeOpenTypeKerning(_data, _kern, _gpos);
+        _kerning = new OfficeOpenTypeKerning(_data, _kern, _gpos, includeExtendedGpos: true);
         _loca = tables["loca"];
         _maxp = tables["maxp"];
         _name = tables.TryGetValue("name", out var name) ? name : -1;
@@ -296,19 +296,19 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     public double Measure(string text, double fontSize) {
         var scale = ScaleFor(fontSize);
         var width = 0.0;
-        ushort? previous = null;
-        int? previousScalar = null;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
+        var glyphs = new List<int>();
+        var scalars = new List<int>();
         for (int index = 0; index < text.Length;) {
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            var glyph = MapGlyph(scalar);
-            if (previous.HasValue && previousScalar.HasValue) {
-                width += Kerning(previous.Value, glyph, previousScalar.Value, scalar) * scale;
-            }
-            width += AdvanceWidth(glyph, variationWorkBudget, CancellationToken.None) * scale;
-            previous = glyph;
-            previousScalar = scalar;
+            glyphs.Add(MapGlyph(scalar));
+            scalars.Add(scalar);
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        for (int index = 0; index < glyphs.Count; index++) {
+            width += checked(AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
+                             positioning[index].XAdvance) * scale;
         }
         return width;
     }
@@ -316,24 +316,25 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     internal IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) {
         var widths = new double[elements.Count];
         double scale = ScaleFor(fontSize);
-        ushort? previous = null;
-        int? previousScalar = null;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
+        var glyphs = new List<int>();
+        var scalars = new List<int>();
+        var elementIndexes = new List<int>();
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
-            double width = 0D;
             for (int textIndex = 0; textIndex < text.Length;) {
                 int scalar = ReadScalar(text, ref textIndex);
                 if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-                ushort glyph = MapGlyph(scalar);
-                if (previous.HasValue && previousScalar.HasValue) {
-                    width += Kerning(previous.Value, glyph, previousScalar.Value, scalar) * scale;
-                }
-                width += AdvanceWidth(glyph, variationWorkBudget, CancellationToken.None) * scale;
-                previous = glyph;
-                previousScalar = scalar;
+                glyphs.Add(MapGlyph(scalar));
+                scalars.Add(scalar);
+                elementIndexes.Add(elementIndex);
             }
-            widths[elementIndex] = width;
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        for (int index = 0; index < glyphs.Count; index++) {
+            widths[elementIndexes[index]] += checked(
+                AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
+                positioning[index].XAdvance) * scale;
         }
         return widths;
     }
@@ -372,21 +373,31 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var scale = ScaleFor(fontSize);
         var cursor = x;
         var baseline = y + _ascender * scale;
-        ushort? previous = null;
-        int? previousScalar = null;
         int pointCount = 0;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
+        var glyphs = new List<(ushort Glyph, int Scalar)>();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             int scalar = ReadScalar(text, ref index);
             if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            var glyph = MapGlyph(scalar);
-            if (previous.HasValue && previousScalar.HasValue) {
-                cursor += Kerning(previous.Value, glyph, previousScalar.Value, scalar) * scale;
-            }
+            glyphs.Add((MapGlyph(scalar), scalar));
+        }
+
+        var glyphIds = new List<int>(glyphs.Count);
+        var scalars = new List<int>(glyphs.Count);
+        foreach ((ushort glyph, int scalar) in glyphs) {
+            glyphIds.Add(glyph);
+            scalars.Add(scalar);
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
+
+        for (int index = 0; index < glyphs.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ushort glyph = glyphs[index].Glyph;
+            double glyphX = cursor + positioning[index].XPlacement * scale;
             List<List<OfficePoint>> glyphContours = ReadGlyphContours(
                 glyph,
-                new FontTransform(scale, 0, 0, -scale, cursor, baseline),
+                new FontTransform(scale, 0, 0, -scale, glyphX, baseline),
                 0,
                 variationWorkBudget,
                 maximumPointCount,
@@ -394,9 +405,10 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 cancellationToken,
                 attachmentPoints: null);
             contours.AddRange(glyphContours);
-            cursor += AdvanceWidth(glyph, variationWorkBudget, cancellationToken) * scale;
-            previous = glyph;
-            previousScalar = scalar;
+            int positionedAdvance = checked(
+                AdvanceWidth(glyph, variationWorkBudget, cancellationToken) +
+                positioning[index].XAdvance);
+            cursor += positionedAdvance * scale;
         }
 
         return contours;
@@ -639,6 +651,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
     private int AdvanceWidth(ushort glyph) => AdvanceWidth(glyph, null, CancellationToken.None);
 
+    private int Kerning(ushort left, ushort right, int leftScalar, int rightScalar) =>
+        _kerning.Adjustment(left, right, leftScalar, rightScalar);
+
     private int AdvanceWidth(
         ushort glyph,
         OfficeTrueTypeVariations.WorkBudget? workBudget,
@@ -646,9 +661,6 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         int advance = BaseAdvanceWidth(glyph);
         return checked(advance + VariationAdvanceWidthDelta(glyph, advance, workBudget, cancellationToken));
     }
-
-    private int Kerning(ushort left, ushort right, int leftScalar, int rightScalar) =>
-        _kerning.Adjustment(left, right, leftScalar, rightScalar);
 
     private List<List<OfficePoint>> ReadGlyphContours(
         ushort glyph,

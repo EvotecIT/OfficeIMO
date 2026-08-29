@@ -3,6 +3,49 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
+internal readonly struct OfficeOpenTypePairPositioning {
+    internal OfficeOpenTypePairPositioning(
+        int firstGlyphXPlacement,
+        int firstGlyphXAdvance,
+        int secondGlyphXPlacement,
+        int secondGlyphXAdvance,
+        bool secondValueRecordPresent = false) {
+        FirstGlyphXPlacement = firstGlyphXPlacement;
+        FirstGlyphXAdvance = firstGlyphXAdvance;
+        SecondGlyphXPlacement = secondGlyphXPlacement;
+        SecondGlyphXAdvance = secondGlyphXAdvance;
+        SecondValueRecordPresent = secondValueRecordPresent;
+    }
+
+    internal int FirstGlyphXPlacement { get; }
+    internal int FirstGlyphXAdvance { get; }
+    internal int SecondGlyphXPlacement { get; }
+    internal int SecondGlyphXAdvance { get; }
+    internal bool SecondValueRecordPresent { get; }
+    internal int TotalXAdvance => checked(FirstGlyphXAdvance + SecondGlyphXAdvance);
+
+    internal OfficeOpenTypePairPositioning Add(OfficeOpenTypePairPositioning other) => new(
+        checked(FirstGlyphXPlacement + other.FirstGlyphXPlacement),
+        checked(FirstGlyphXAdvance + other.FirstGlyphXAdvance),
+        checked(SecondGlyphXPlacement + other.SecondGlyphXPlacement),
+        checked(SecondGlyphXAdvance + other.SecondGlyphXAdvance),
+        SecondValueRecordPresent || other.SecondValueRecordPresent);
+}
+
+internal readonly struct OfficeOpenTypeGlyphPositioning {
+    internal OfficeOpenTypeGlyphPositioning(int xPlacement, int xAdvance) {
+        XPlacement = xPlacement;
+        XAdvance = xAdvance;
+    }
+
+    internal int XPlacement { get; }
+    internal int XAdvance { get; }
+
+    internal OfficeOpenTypeGlyphPositioning Add(int xPlacement, int xAdvance) => new(
+        checked(XPlacement + xPlacement),
+        checked(XAdvance + xAdvance));
+}
+
 /// <summary>Shared bounded legacy kern and GPOS pair-adjustment reader.</summary>
 internal sealed class OfficeOpenTypeKerning {
     private readonly byte[] _data;
@@ -10,7 +53,7 @@ internal sealed class OfficeOpenTypeKerning {
     private readonly int _gpos;
     private readonly bool _includeExtendedGpos;
 
-    internal OfficeOpenTypeKerning(byte[] data, int kern, int gpos, bool includeExtendedGpos = false) {
+    internal OfficeOpenTypeKerning(byte[] data, int kern, int gpos, bool includeExtendedGpos = true) {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _kern = kern;
         _gpos = gpos;
@@ -26,17 +69,99 @@ internal sealed class OfficeOpenTypeKerning {
             includeExtendedGpos: true);
     }
 
-    internal int Adjustment(int left, int right) => Adjustment(left, right, "DFLT");
+    internal int Adjustment(int left, int right) => Positioning(left, right, "DFLT").TotalXAdvance;
 
     internal int Adjustment(int left, int right, int leftScalar, int rightScalar) =>
-        Adjustment(left, right, ResolveScriptTag(leftScalar, rightScalar));
+        Positioning(left, right, ResolveScriptTag(leftScalar, rightScalar)).TotalXAdvance;
 
-    internal int Adjustment(int left, int right, string scriptTag) {
-        if ((uint)left > ushort.MaxValue || (uint)right > ushort.MaxValue) return 0;
+    internal int Adjustment(int left, int right, string scriptTag) =>
+        Positioning(left, right, scriptTag).TotalXAdvance;
+
+    internal OfficeOpenTypePairPositioning Positioning(int left, int right, int leftScalar, int rightScalar) =>
+        Positioning(left, right, ResolveScriptTag(leftScalar, rightScalar));
+
+    internal OfficeOpenTypePairPositioning Positioning(int left, int right, string scriptTag) {
+        if ((uint)left > ushort.MaxValue || (uint)right > ushort.MaxValue) return default;
         if (string.IsNullOrEmpty(scriptTag) || scriptTag.Length != 4) scriptTag = "DFLT";
-        return TryGposPairAdjustment((ushort)left, (ushort)right, scriptTag, out int gposAdjustment)
+        return TryGposPairAdjustment((ushort)left, (ushort)right, scriptTag, out OfficeOpenTypePairPositioning gposAdjustment)
             ? gposAdjustment
-            : KernPairAdjustment((ushort)left, (ushort)right);
+            : new OfficeOpenTypePairPositioning(0, KernPairAdjustment((ushort)left, (ushort)right), 0, 0);
+    }
+
+    internal OfficeOpenTypeGlyphPositioning[] PositionRun(
+        IReadOnlyList<int> glyphs,
+        IReadOnlyList<int> scalars) {
+        if (glyphs == null) throw new ArgumentNullException(nameof(glyphs));
+        if (scalars == null) throw new ArgumentNullException(nameof(scalars));
+        if (glyphs.Count != scalars.Count) throw new ArgumentException("Glyph and scalar runs must have the same length.");
+
+        var result = new OfficeOpenTypeGlyphPositioning[glyphs.Count];
+        if (glyphs.Count < 2) return result;
+        for (int index = 0; index < glyphs.Count; index++) {
+            if ((uint)glyphs[index] > ushort.MaxValue) return result;
+        }
+
+        int pairCount = glyphs.Count - 1;
+        var pairLookups = new List<ushort>[pairCount];
+        var orderedLookups = new List<ushort>();
+        var knownLookups = new HashSet<ushort>();
+        bool hasGposLayout = TryGetGposLayoutTables(out int scriptList, out int featureList, out int lookupList);
+        if (hasGposLayout) {
+            for (int index = 0; index < pairCount; index++) {
+                string scriptTag = ResolveScriptTag(scalars[index], scalars[index + 1]);
+                var lookups = new List<ushort>();
+                var pairSeen = new HashSet<ushort>();
+                foreach (ushort lookupIndex in GposFeatureLookupIndexes(scriptList, featureList, "kern", scriptTag)) {
+                    if (!pairSeen.Add(lookupIndex)) continue;
+                    lookups.Add(lookupIndex);
+                    if (knownLookups.Add(lookupIndex)) orderedLookups.Add(lookupIndex);
+                }
+                pairLookups[index] = lookups;
+            }
+        }
+
+        var gposApplied = new bool[pairCount];
+        foreach (ushort lookupIndex in orderedLookups) {
+            for (int index = 0; index < pairCount;) {
+                List<ushort> activeLookups = pairLookups[index];
+                if (activeLookups.Contains(lookupIndex) &&
+                    TryGposPairAdjustmentFromLookup(
+                        lookupList,
+                        lookupIndex,
+                        (ushort)glyphs[index],
+                        (ushort)glyphs[index + 1],
+                        out OfficeOpenTypePairPositioning adjustment)) {
+                    result[index] = result[index].Add(
+                        adjustment.FirstGlyphXPlacement,
+                        adjustment.FirstGlyphXAdvance);
+                    result[index + 1] = result[index + 1].Add(
+                        adjustment.SecondGlyphXPlacement,
+                        adjustment.SecondGlyphXAdvance);
+                    gposApplied[index] = true;
+                    index += adjustment.SecondValueRecordPresent ? 2 : 1;
+                } else {
+                    index++;
+                }
+            }
+        }
+
+        for (int index = 0; index < pairCount; index++) {
+            if (gposApplied[index]) continue;
+            int legacyAdjustment = KernPairAdjustment((ushort)glyphs[index], (ushort)glyphs[index + 1]);
+            result[index] = result[index].Add(0, legacyAdjustment);
+        }
+        return result;
+    }
+
+    private bool TryGetGposLayoutTables(out int scriptList, out int featureList, out int lookupList) {
+        scriptList = 0;
+        featureList = 0;
+        lookupList = 0;
+        if (_gpos < 0 || !InBounds(_gpos, 10) || ReadUInt16(_gpos) != 1) return false;
+        scriptList = checked(_gpos + ReadUInt16(_gpos + 4));
+        featureList = checked(_gpos + ReadUInt16(_gpos + 6));
+        lookupList = checked(_gpos + ReadUInt16(_gpos + 8));
+        return InBounds(scriptList, 2) && InBounds(featureList, 2) && InBounds(lookupList, 2);
     }
 
     private int KernPairAdjustment(ushort left, ushort right) {
@@ -81,20 +206,16 @@ internal sealed class OfficeOpenTypeKerning {
         return 0;
     }
 
-    private bool TryGposPairAdjustment(ushort left, ushort right, string scriptTag, out int adjustment) {
-        adjustment = 0;
-        if (_gpos < 0 || !InBounds(_gpos, 10) || ReadUInt16(_gpos) != 1) return false;
-        int scriptList = checked(_gpos + ReadUInt16(_gpos + 4));
-        int featureList = checked(_gpos + ReadUInt16(_gpos + 6));
-        int lookupList = checked(_gpos + ReadUInt16(_gpos + 8));
-        if (!InBounds(scriptList, 2) || !InBounds(featureList, 2) || !InBounds(lookupList, 2)) return false;
+    private bool TryGposPairAdjustment(ushort left, ushort right, string scriptTag, out OfficeOpenTypePairPositioning adjustment) {
+        adjustment = default;
+        if (!TryGetGposLayoutTables(out int scriptList, out int featureList, out int lookupList)) return false;
 
         bool applied = false;
         var seen = new HashSet<ushort>();
         foreach (ushort lookupIndex in GposFeatureLookupIndexes(scriptList, featureList, "kern", scriptTag)) {
             if (seen.Add(lookupIndex) &&
-                TryGposPairAdjustmentFromLookup(lookupList, lookupIndex, left, right, out int lookupAdjustment)) {
-                adjustment = checked(adjustment + lookupAdjustment);
+                TryGposPairAdjustmentFromLookup(lookupList, lookupIndex, left, right, out OfficeOpenTypePairPositioning lookupAdjustment)) {
+                adjustment = adjustment.Add(lookupAdjustment);
                 applied = true;
             }
         }
@@ -202,8 +323,8 @@ internal sealed class OfficeOpenTypeKerning {
         ushort lookupIndex,
         ushort left,
         ushort right,
-        out int adjustment) {
-        adjustment = 0;
+        out OfficeOpenTypePairPositioning adjustment) {
+        adjustment = default;
         int lookupCount = ReadUInt16(lookupList);
         if (lookupIndex >= lookupCount) return false;
         int lookupOffset = checked(lookupList + 2 + (lookupIndex * 2));
@@ -225,7 +346,7 @@ internal sealed class OfficeOpenTypeKerning {
                 if (extensionOffset > int.MaxValue) continue;
                 subtable = checked(subtable + (int)extensionOffset);
             }
-            if (TryGposPairAdjustmentFromSubtable(subtable, left, right, out int subtableAdjustment)) {
+            if (TryGposPairAdjustmentFromSubtable(subtable, left, right, out OfficeOpenTypePairPositioning subtableAdjustment)) {
                 adjustment = subtableAdjustment;
                 return true;
             }
@@ -237,8 +358,8 @@ internal sealed class OfficeOpenTypeKerning {
         int subtable,
         ushort left,
         ushort right,
-        out int adjustment) {
-        adjustment = 0;
+        out OfficeOpenTypePairPositioning adjustment) {
+        adjustment = default;
         if (!InBounds(subtable, 10)) return false;
         ushort format = ReadUInt16(subtable);
         if (format == 2) {
@@ -269,7 +390,14 @@ internal sealed class OfficeOpenTypeKerning {
             if (!InBounds(record, recordSize)) return false;
             ushort candidate = ReadUInt16(record);
             if (candidate == right) {
-                adjustment = ReadValueRecordXAdvance(record + 2, valueFormat1);
+                OfficeOpenTypePairValue first = ReadValueRecordHorizontal(record + 2, valueFormat1);
+                OfficeOpenTypePairValue second = ReadValueRecordHorizontal(record + 2 + value1Size, valueFormat2);
+                adjustment = new OfficeOpenTypePairPositioning(
+                    first.XPlacement,
+                    first.XAdvance,
+                    second.XPlacement,
+                    second.XAdvance,
+                    secondValueRecordPresent: valueFormat2 != 0);
                 return true;
             }
             if (candidate < right) low = mid + 1;
@@ -278,8 +406,8 @@ internal sealed class OfficeOpenTypeKerning {
         return false;
     }
 
-    private bool TryGposClassPairAdjustment(int subtable, ushort left, ushort right, out int adjustment) {
-        adjustment = 0;
+    private bool TryGposClassPairAdjustment(int subtable, ushort left, ushort right, out OfficeOpenTypePairPositioning adjustment) {
+        adjustment = default;
         if (!InBounds(subtable, 16)) return false;
         int coverage = checked(subtable + ReadUInt16(subtable + 2));
         if (CoverageIndex(coverage, left) < 0) return false;
@@ -301,7 +429,14 @@ internal sealed class OfficeOpenTypeKerning {
         int recordIndex = checked((class1 * class2Count) + class2);
         int record = checked(subtable + 16 + (recordIndex * recordSize));
         if (!InBounds(record, recordSize)) return false;
-        adjustment = ReadValueRecordXAdvance(record, valueFormat1);
+        OfficeOpenTypePairValue first = ReadValueRecordHorizontal(record, valueFormat1);
+        OfficeOpenTypePairValue second = ReadValueRecordHorizontal(record + value1Size, valueFormat2);
+        adjustment = new OfficeOpenTypePairPositioning(
+            first.XPlacement,
+            first.XAdvance,
+            second.XPlacement,
+            second.XAdvance,
+            secondValueRecordPresent: valueFormat2 != 0);
         return true;
     }
 
@@ -367,11 +502,16 @@ internal sealed class OfficeOpenTypeKerning {
         return -1;
     }
 
-    private int ReadValueRecordXAdvance(int offset, ushort valueFormat) {
-        if ((valueFormat & 0x0001) != 0) offset += 2;
+    private OfficeOpenTypePairValue ReadValueRecordHorizontal(int offset, ushort valueFormat) {
+        int xPlacement = 0;
+        int xAdvance = 0;
+        if ((valueFormat & 0x0001) != 0) {
+            xPlacement = ReadInt16(offset);
+            offset += 2;
+        }
         if ((valueFormat & 0x0002) != 0) offset += 2;
-        if ((valueFormat & 0x0004) == 0) return 0;
-        return InBounds(offset, 2) ? ReadInt16(offset) : 0;
+        if ((valueFormat & 0x0004) != 0) xAdvance = ReadInt16(offset);
+        return new OfficeOpenTypePairValue(xPlacement, xAdvance);
     }
 
     private static int ValueRecordSize(ushort valueFormat) {
@@ -380,6 +520,16 @@ internal sealed class OfficeOpenTypeKerning {
             if ((valueFormat & bit) != 0) size += 2;
         }
         return size;
+    }
+
+    private readonly struct OfficeOpenTypePairValue {
+        internal OfficeOpenTypePairValue(int xPlacement, int xAdvance) {
+            XPlacement = xPlacement;
+            XAdvance = xAdvance;
+        }
+
+        internal int XPlacement { get; }
+        internal int XAdvance { get; }
     }
 
     private bool TagEquals(int offset, string tag) =>

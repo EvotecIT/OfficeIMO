@@ -11,8 +11,9 @@ internal static partial class PdfPrintProductionStructureInspector {
             !charStrings.ContainsKey(".notdef")) return false;
 
         foreach (byte[] encrypted in charStrings.Values) {
+            int operations = 0;
             if (!TryDecodeType1CharString(encrypted, lenIv, out byte[] program) ||
-                !TryExecuteType1CharString(program, subrs, lenIv, isSubroutine: false, depth: 0, new List<int>(), out _)) {
+                !TryExecuteType1CharString(program, subrs, lenIv, isSubroutine: false, depth: 0, new List<int>(), ref operations, out _)) {
                 return false;
             }
         }
@@ -136,10 +137,10 @@ internal static partial class PdfPrintProductionStructureInspector {
         bool isSubroutine,
         int depth,
         List<int> stack,
+        ref int operations,
         out bool terminated) {
         terminated = false;
         if (depth > MaximumType1CharStringDepth) return false;
-        int operations = 0;
         for (int offset = 0; offset < program.Length;) {
             if (++operations > MaximumType1CharStringOperations) return false;
             byte value = program[offset++];
@@ -177,7 +178,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                     stack.RemoveAt(stack.Count - 1);
                     if (!encryptedSubrs.TryGetValue(subrIndex, out byte[]? encryptedSubr) ||
                         !TryDecodeType1CharString(encryptedSubr, lenIv, out byte[] subr) ||
-                        !TryExecuteType1CharString(subr, encryptedSubrs, lenIv, true, depth + 1, stack, out bool returned) ||
+                        !TryExecuteType1CharString(subr, encryptedSubrs, lenIv, true, depth + 1, stack, ref operations, out bool returned) ||
                         !returned) return false;
                     break;
                 case 11:

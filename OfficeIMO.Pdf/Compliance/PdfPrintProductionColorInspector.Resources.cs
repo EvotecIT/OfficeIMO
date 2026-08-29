@@ -439,23 +439,15 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfObject? inheritedFontObject = null,
         ContentColorStateSnapshot? initialColorState = null) {
         if (contentDepth > limits.MaxContentNestingDepth) return false;
-
-        PdfDictionary? resources = inheritedResources;
-        ColorSpaceAliases aliases = inheritedAliases;
-        if (stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject)) {
-            if (ResolveObject(
-                    objects,
-                    resourcesObject,
-                    objectDepth + 1,
-                    limits.MaxObjectNestingDepth,
-                    out _) is not PdfDictionary directResources) return false;
-            resources = directResources;
-            aliases = CreateColorSpaceAliases(
-                directResources,
+        if (!TryResolveNestedStreamResources(
+                stream,
+                objectDepth,
+                inheritedResources,
+                inheritedAliases,
                 objects,
-                limits.MaxObjectNestingDepth,
-                limits.MaxDecodedStreamBytes);
-        }
+                limits,
+                out PdfDictionary? resources,
+                out ColorSpaceAliases aliases)) return false;
 
         int count = streams.Count;
         AddContentStream(
@@ -468,6 +460,33 @@ internal static partial class PdfPrintProductionColorInspector {
         if (streams.Count == count) return true;
         contentDepths.Add(contentDepth);
         if (IsTransparencyGroup(stream.Dictionary, objects, limits.MaxObjectNestingDepth)) transparencyGroups++;
+        return true;
+    }
+
+    private static bool TryResolveNestedStreamResources(
+        PdfStream stream,
+        int objectDepth,
+        PdfDictionary? inheritedResources,
+        ColorSpaceAliases inheritedAliases,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        out PdfDictionary? resources,
+        out ColorSpaceAliases aliases) {
+        resources = inheritedResources;
+        aliases = inheritedAliases;
+        if (!stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject)) return true;
+        if (ResolveObject(
+                objects,
+                resourcesObject,
+                objectDepth + 1,
+                limits.MaxObjectNestingDepth,
+                out _) is not PdfDictionary directResources) return false;
+        resources = directResources;
+        aliases = CreateColorSpaceAliases(
+            directResources,
+            objects,
+            limits.MaxObjectNestingDepth,
+            limits.MaxDecodedStreamBytes);
         return true;
     }
 
@@ -507,7 +526,16 @@ internal static partial class PdfPrintProductionColorInspector {
                 softMaskDepth + 1,
                 limits.MaxObjectNestingDepth,
                 out int groupDepth) is not PdfStream group) return false;
-        if (!string.Equals(
+        if (!TryResolveNestedStreamResources(
+                group,
+                groupDepth,
+                context.Resources,
+                context.Aliases,
+                objects,
+                limits,
+                out PdfDictionary? groupResources,
+                out ColorSpaceAliases groupAliases) ||
+            !string.Equals(
                 ResolveName(
                     group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? groupSubtypeObject)
                         ? groupSubtypeObject
@@ -523,18 +551,25 @@ internal static partial class PdfPrintProductionColorInspector {
                 limits.MaxObjectNestingDepth) ||
             !TryClassifyTransparencyGroup(
                 group.Dictionary,
-                context.Aliases,
+                groupAliases,
                 objects,
                 limits.MaxObjectNestingDepth,
                 limits.MaxDecodedStreamBytes,
                 out bool isTransparencyGroup,
-                out _) ||
-            !isTransparencyGroup) return false;
+                out ColorSpaceUsage? groupColorSpace) ||
+            !isTransparencyGroup ||
+            !HasValidSoftMaskOptions(
+                softMask,
+                softMaskSubtype,
+                groupColorSpace,
+                objects,
+                limits.MaxObjectNestingDepth,
+                limits.MaxDecodedStreamBytes)) return false;
         return AddNestedStream(
             group,
             groupDepth,
-            context.Resources,
-            context.Aliases,
+            groupResources,
+            groupAliases,
             contentDepth,
             streams,
             contentDepths,
@@ -542,6 +577,43 @@ internal static partial class PdfPrintProductionColorInspector {
             limits,
             ref transparencyGroups,
             initialColorState: initialColorState);
+    }
+
+    private static bool HasValidSoftMaskOptions(
+        PdfDictionary softMask,
+        string softMaskSubtype,
+        ColorSpaceUsage? groupColorSpace,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
+        if (softMask.Items.TryGetValue("TR", out PdfObject? transferObject)) {
+            PdfObject? transfer = ResolveObject(objects, transferObject, 0, maximumObjectDepth);
+            if (transfer is not PdfNull &&
+                transfer is not PdfName { Name: "Identity" } &&
+                !PdfColorSpaceFunctionResolver.TryCreateFunction(
+                    transferObject,
+                    inputCount: 1,
+                    outputCount: 1,
+                    objects,
+                    maximumDecodedStreamBytes,
+                    out _)) return false;
+        }
+
+        if (string.Equals(softMaskSubtype, "Luminosity", StringComparison.Ordinal) &&
+            groupColorSpace is not { IsKnown: true, ComponentCount: > 0 }) return false;
+        if (!string.Equals(softMaskSubtype, "Luminosity", StringComparison.Ordinal) ||
+            !softMask.Items.TryGetValue("BC", out PdfObject? backdropObject)) return true;
+        PdfObject? backdrop = ResolveObject(objects, backdropObject, 0, maximumObjectDepth);
+        if (backdrop is PdfNull) return true;
+        if (groupColorSpace is not { IsKnown: true, ComponentCount: > 0 } ||
+            backdrop is not PdfArray values ||
+            values.Items.Count != groupColorSpace.ComponentCount) return false;
+        foreach (PdfObject value in values.Items) {
+            if (ResolveObject(objects, value, 0, maximumObjectDepth) is not PdfNumber number ||
+                double.IsNaN(number.Value) ||
+                double.IsInfinity(number.Value)) return false;
+        }
+        return true;
     }
 
     private static bool TryAddPatternContext(

@@ -137,26 +137,11 @@ internal static partial class PdfPrintProductionStructureInspector {
         if (!fontWithDescriptor.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject) ||
             ResolveObject(objects, descriptorObject, 0, maximumObjectDepth, out _) is not PdfDictionary descriptor) return false;
 
-        return HasReadableFontStream(
-                programFontSubtype,
-                descriptor,
-                "FontFile",
-                objects,
-                maxDecodedStreamBytes,
-                maximumObjectDepth) ||
-            HasReadableFontStream(
-                programFontSubtype,
-                descriptor,
-                "FontFile2",
-                objects,
-                maxDecodedStreamBytes,
-                maximumObjectDepth) ||
-            HasReadableFontStream(
-                programFontSubtype,
-                descriptor,
-                "FontFile3",
-                objects,
-                maxDecodedStreamBytes,
+        return HasValidFontDescriptorAndProgram(
+            programFontSubtype,
+            descriptor,
+            objects,
+            maxDecodedStreamBytes,
             maximumObjectDepth);
     }
 
@@ -314,6 +299,67 @@ internal static partial class PdfPrintProductionStructureInspector {
             maxDecodedStreamBytes,
             out byte[] decoded,
             objects) && IsValidFontProgram(fontSubtype, key, stream, decoded, objects, maximumObjectDepth);
+    }
+
+    private static bool HasValidFontDescriptorAndProgram(
+        string? fontSubtype,
+        PdfDictionary descriptor,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        int maximumObjectDepth) {
+        if (!string.Equals(
+                ResolveName(
+                    descriptor.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "FontDescriptor",
+                StringComparison.Ordinal) ||
+            ResolveName(
+                descriptor.Items.TryGetValue("FontName", out PdfObject? fontNameObject) ? fontNameObject : null,
+                objects,
+                maximumObjectDepth) is not { Length: > 0 } ||
+            !TryReadInteger(descriptor, "Flags", objects, maximumObjectDepth, 0, int.MaxValue, out _) ||
+            !TryReadFiniteNumberArray(descriptor, "FontBBox", 4, objects, maximumObjectDepth, out double[] fontBox) ||
+            fontBox[2] < fontBox[0] ||
+            fontBox[3] < fontBox[1] ||
+            !TryReadFiniteNumber(descriptor, "ItalicAngle", objects, maximumObjectDepth, out _) ||
+            !TryReadFiniteNumber(descriptor, "Ascent", objects, maximumObjectDepth, out _) ||
+            !TryReadFiniteNumber(descriptor, "Descent", objects, maximumObjectDepth, out _) ||
+            !TryReadFiniteNumber(descriptor, "CapHeight", objects, maximumObjectDepth, out _) ||
+            !TryReadFiniteNumber(descriptor, "StemV", objects, maximumObjectDepth, out double stemV) ||
+            stemV <= 0D) return false;
+
+        string? programKey = null;
+        foreach (string key in new[] { "FontFile", "FontFile2", "FontFile3" }) {
+            if (!descriptor.Items.TryGetValue(key, out PdfObject? candidate)) continue;
+            PdfObject? resolved = ResolveObject(objects, candidate, 0, maximumObjectDepth, out _);
+            if (resolved is PdfNull) continue;
+            if (resolved is not PdfStream || programKey != null) return false;
+            programKey = key;
+        }
+
+        return programKey != null && HasReadableFontStream(
+            fontSubtype,
+            descriptor,
+            programKey,
+            objects,
+            maxDecodedStreamBytes,
+            maximumObjectDepth);
+    }
+
+    private static bool TryReadFiniteNumber(
+        PdfDictionary dictionary,
+        string key,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        out double value) {
+        value = 0D;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? candidate) ||
+            ResolveObject(objects, candidate, 0, maximumObjectDepth, out _) is not PdfNumber number ||
+            double.IsNaN(number.Value) ||
+            double.IsInfinity(number.Value)) return false;
+        value = number.Value;
+        return true;
     }
 
     private static string? ResolveName(
