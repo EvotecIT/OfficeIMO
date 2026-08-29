@@ -463,7 +463,8 @@ internal static class BibCodec {
             int start = 0;
             int depth = 0;
             for (int index = 0; index <= value.Length - 5; index++) {
-                if (value[index] == '{') depth++; else if (value[index] == '}') depth--;
+                if (value[index] == '\\' && index + 1 < value.Length) { index++; continue; }
+                if (value[index] == '{') depth++; else if (value[index] == '}' && depth > 0) depth--;
                 if (depth == 0 && string.Equals(value.Substring(index, 5), " and ", StringComparison.OrdinalIgnoreCase)) { yield return value.Substring(start, index - start).Trim(); start = index + 5; index += 4; }
             }
             if (start <= value.Length) yield return value.Substring(start).Trim();

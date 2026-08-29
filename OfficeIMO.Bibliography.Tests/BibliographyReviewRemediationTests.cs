@@ -69,6 +69,16 @@ public sealed class BibliographyReviewRemediationTests {
     }
 
     [Fact]
+    public void EndNote_limit_diagnostics_report_character_offsets() {
+        const string source = "<xml>\r\n  <records>\r\n    <record>\r\n      <rec-number>1</rec-number>\r\n      <ref-type name=\"Book\">6</ref-type>\r\n      <titles><title>abcdef</title></titles>\r\n    </record>\r\n  </records>\r\n</xml>";
+
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = 5 });
+
+        BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, static diagnostic => diagnostic.Code == "BIBLIM001");
+        Assert.Equal(source.IndexOf("<title>", StringComparison.Ordinal), diagnostic.Offset);
+    }
+
+    [Fact]
     public void Bib_native_entries_observe_the_value_count_limit() {
         const string source = "@comment{a}\n@comment{b}\n@comment{c}";
 

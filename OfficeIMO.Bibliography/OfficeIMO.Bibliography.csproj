@@ -4,7 +4,7 @@
     <Description>Source-preserving citation data model and deterministic bibliography codecs for .NET.</Description>
     <AssemblyName>OfficeIMO.Bibliography</AssemblyName>
     <AssemblyTitle>OfficeIMO.Bibliography</AssemblyTitle>
-    <VersionPrefix>3.2.5</VersionPrefix>
+    <VersionPrefix>3.2.7</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>

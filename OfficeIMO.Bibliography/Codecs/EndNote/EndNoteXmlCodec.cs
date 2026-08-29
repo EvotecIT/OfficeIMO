@@ -17,13 +17,16 @@ internal static class EndNoteXmlCodec {
         var limits = new BibliographyLimitGuard(options);
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
-            string xmlSource = source.Length > 0 && source[0] == '\uFEFF' ? source.Substring(1) : source;
+            int sourceOffset = source.Length > 0 && source[0] == '\uFEFF' ? 1 : 0;
+            string xmlSource = sourceOffset == 0 ? source : source.Substring(sourceOffset);
+            var offsets = new EndNoteSourceOffsetMap(xmlSource, sourceOffset);
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaximumInputCharacters };
-            ValidateDepth(xmlSource, settings, limits, items, cancellationToken);
             using var textReader = new StringReader(xmlSource);
-            using XmlReader reader = XmlReader.Create(textReader, settings);
+            using XmlReader innerReader = XmlReader.Create(textReader, settings);
+            using var reader = new EndNoteBoundedXmlReader(innerReader, limits, items, offsets, cancellationToken);
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             XElement? root = document.Root;
+            if (root != null) foreach (XElement element in root.DescendantsAndSelf()) element.AddAnnotation(new EndNoteSourceOffset(offsets.GetOffset(element)));
             bool rootIsRecords = root != null && string.Equals(root.Name.LocalName, "records", StringComparison.OrdinalIgnoreCase);
             recordsRoot = rootIsRecords;
             if (root != null) {
@@ -56,15 +59,6 @@ internal static class EndNoteXmlCodec {
             diagnosticGuard.Add(new BibliographyDiagnostic("BIBEND002", BibliographyDiagnosticSeverity.Error, exception.Message, line: exception.LineNumber, column: exception.LinePosition));
         }
         return items;
-    }
-
-    private static void ValidateDepth(string source, XmlReaderSettings settings, BibliographyLimitGuard limits, IList<BibliographyItem> items, CancellationToken cancellationToken) {
-        using var textReader = new StringReader(source);
-        using XmlReader reader = XmlReader.Create(textReader, settings);
-        while (reader.Read()) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (reader.NodeType == XmlNodeType.Element) limits.CheckDepth(items, reader.Depth + 1, 0);
-        }
     }
 
     internal static string Write(BibliographyDocument document, BibliographyWriteOptions options, BibliographyConversionReport report, CancellationToken cancellationToken) {
@@ -451,7 +445,7 @@ internal static class EndNoteXmlCodec {
     }
     private static string Value(XElement? parent, string name) => Child(parent, name)?.Value ?? string.Empty;
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
-    private static int GetOffset(XElement element) { IXmlLineInfo info = element; return info.HasLineInfo() ? info.LineNumber : 0; }
+    private static int GetOffset(XElement element) => element.Annotation<EndNoteSourceOffset>()?.Value ?? -1;
     private static void AddIdentifier(BibliographyItem item, string scheme, string value) { if (!string.IsNullOrWhiteSpace(value)) item.Identifiers.Add(new BibliographyIdentifier(scheme, value)); }
     private static void ParseAccessionIdentifier(BibliographyItem item, string value) {
         AddIdentifier(item, "accession", value);

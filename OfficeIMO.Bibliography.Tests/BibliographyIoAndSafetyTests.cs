@@ -32,13 +32,66 @@ public sealed class BibliographyIoAndSafetyTests {
     [Fact]
     public void EndNote_stream_loading_honors_a_declared_legacy_encoding() {
         const string source = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Café</title></titles></record></records></xml>";
-        byte[] bytes = Encoding.Latin1.GetBytes(source);
+        byte[] bytes = source.Select(static character => checked((byte)character)).ToArray();
 
         BibliographyReadResult read = BibliographyDocument.Load(new MemoryStream(bytes), BibliographyFormat.EndNoteXml);
 
         Assert.False(read.HasErrors);
         Assert.Equal("Café", Assert.Single(read.Document.Items).Title);
         Assert.Equal(bytes, read.Document.GetOriginalBytes());
+    }
+
+    [Fact]
+    public void EndNote_stream_loading_detects_BOMless_UTF16_and_UTF32() {
+        Encoding[] encodings = {
+            new UnicodeEncoding(false, false, true),
+            new UnicodeEncoding(true, false, true),
+            new UTF32Encoding(false, false, true),
+            new UTF32Encoding(true, false, true)
+        };
+
+        foreach (Encoding encoding in encodings) {
+            string source = $"<?xml version=\"1.0\" encoding=\"{encoding.WebName}\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Encoded</title></titles></record></records></xml>";
+
+            BibliographyReadResult read = BibliographyDocument.Load(new MemoryStream(encoding.GetBytes(source)), BibliographyFormat.EndNoteXml);
+
+            Assert.False(read.HasErrors);
+            Assert.Equal("Encoded", Assert.Single(read.Document.Items).Title);
+        }
+    }
+
+    [Fact]
+    public void EndNote_materialization_observes_cancellation() {
+        string source = "<xml><padding>" + new string('x', 16 * 1024 * 1024) + "</padding><records /></xml>";
+        var options = new BibliographyReadOptions { MaximumValueLength = 20 * 1024 * 1024 };
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(1);
+
+        Assert.Throws<OperationCanceledException>(() => BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options, cancellation.Token));
+    }
+
+    [Fact]
+    public async Task Stream_saves_replace_seekable_contents_and_rewind() {
+        var document = new BibliographyDocument(BibliographyFormat.CslJson);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Replacement" });
+        var options = new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical };
+
+        using var syncStream = new MemoryStream();
+        syncStream.Write(new byte[4096], 0, 4096);
+        syncStream.Position = 2000;
+        BibliographyWriteResult sync = document.Save(syncStream, options);
+
+        Assert.Equal(0, syncStream.Position);
+        Assert.Equal(sync.Bytes, syncStream.ToArray());
+        Assert.False(BibliographyDocument.Load(syncStream, BibliographyFormat.CslJson).HasErrors);
+
+        using var asyncStream = new MemoryStream();
+        asyncStream.Write(new byte[4096], 0, 4096);
+        BibliographyWriteResult asyncResult = await document.SaveAsync(asyncStream, options);
+
+        Assert.Equal(0, asyncStream.Position);
+        Assert.Equal(asyncResult.Bytes, asyncStream.ToArray());
+        Assert.False(BibliographyDocument.Load(asyncStream, BibliographyFormat.CslJson).HasErrors);
     }
 
     [Fact]

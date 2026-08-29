@@ -361,7 +361,7 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no TeX runtime, compiler, or pars
 - [x] Cross-format conversion reports with strict rejection of approximated or omitted data
 - [x] Bounded file, stream, text, sync, and async APIs with cancellation and inert XML/TeX handling
 
-_Dependency footprint:_ `System.Text.Json` only; no dependency on another OfficeIMO package, Word, Open XML, TeX, EndNote, rendering, or network clients.
+_Dependency footprint:_ `System.Text.Json` and `System.Text.Encoding.CodePages` on compatibility targets; no dependency on another OfficeIMO package, Word, Open XML, TeX, EndNote, rendering, or network clients.
 
 #### [OfficeIMO.CSV](OfficeIMO.CSV/README.md)
 

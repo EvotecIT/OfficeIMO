@@ -109,7 +109,7 @@ internal static class BibliographyConversionInspector {
         bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
-                exact = sameFormatNativeType || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Proceedings;
+                exact = sameFormatNativeType || IsExactCslType(item.Type);
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);
@@ -132,6 +132,17 @@ internal static class BibliographyConversionInspector {
     }
 
     private static bool IsSafeRisType(string? value) => !string.IsNullOrWhiteSpace(value) && value!.Length >= 2 && value.Length <= 6 && value.All(char.IsLetterOrDigit);
+
+    private static bool IsExactCslType(BibliographyItemType type) {
+        switch (type) {
+            case BibliographyItemType.Article: case BibliographyItemType.ArticleJournal: case BibliographyItemType.ArticleMagazine: case BibliographyItemType.ArticleNewspaper:
+            case BibliographyItemType.Book: case BibliographyItemType.Chapter: case BibliographyItemType.PaperConference: case BibliographyItemType.Report:
+            case BibliographyItemType.Thesis: case BibliographyItemType.WebPage: case BibliographyItemType.Dataset: case BibliographyItemType.Software:
+            case BibliographyItemType.Patent: case BibliographyItemType.LegalCase: case BibliographyItemType.Manuscript: case BibliographyItemType.PersonalCommunication:
+            case BibliographyItemType.Document: return true;
+            default: return false;
+        }
+    }
 
     private static void InspectContributors(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
         foreach (BibliographyContributorRole role in item.Contributors.Select(static value => value.Role).Distinct()) {
@@ -191,7 +202,7 @@ internal static class BibliographyConversionInspector {
 
     private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
         foreach (BibliographyDateRole role in item.Dates.Select(static value => value.Role).Distinct()) {
-            bool exact = format == BibliographyFormat.CslJson ? role != BibliographyDateRole.Other
+            bool exact = format == BibliographyFormat.CslJson ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed || role == BibliographyDateRole.Submitted || role == BibliographyDateRole.Original || role == BibliographyDateRole.Event
                 : (format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris) ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed
                 : format == BibliographyFormat.BibTex ? role == BibliographyDateRole.Issued
                 : role == BibliographyDateRole.Issued;

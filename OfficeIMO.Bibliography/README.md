@@ -88,4 +88,4 @@ See the [bibliography support matrix](../Docs/officeimo.bibliography-support-mat
 
 ## Dependencies
 
-`OfficeIMO.Bibliography` has no dependency on another OfficeIMO package. It uses `System.Text.Json` for CSL JSON and has no dependency on `OfficeIMO.Word`, the Open XML SDK, a TeX runtime, EndNote, or a network client.
+`OfficeIMO.Bibliography` has no dependency on another OfficeIMO package. It uses `System.Text.Json` for CSL JSON and `System.Text.Encoding.CodePages` for declared legacy XML encodings on compatibility targets. It has no dependency on `OfficeIMO.Word`, the Open XML SDK, a TeX runtime, EndNote, or a network client.

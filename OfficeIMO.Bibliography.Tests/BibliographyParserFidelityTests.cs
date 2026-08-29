@@ -558,6 +558,30 @@ public sealed class BibliographyParserFidelityTests {
         Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV201" && diagnostic.Field == "contributors.99");
     }
 
+    [Fact]
+    public void Undefined_CSL_item_and_date_roles_block_strict_output() {
+        var document = new BibliographyDocument(BibliographyFormat.CslJson);
+        var item = new BibliographyItem { Key = "x", Type = (BibliographyItemType)99, Title = "Enums" };
+        item.Dates.Add(new BibliographyDate { Role = (BibliographyDateRole)99, Year = 2026 });
+        document.Items.Add(item);
+
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
+        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV202" && diagnostic.Field == "dates.99");
+    }
+
+    [Fact]
+    public void Escaped_BibTeX_braces_do_not_group_name_separators() {
+        const string source = "@book{x,author={Doe, John \\{ and Smith, Jane}}";
+
+        BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.BibTex).Document.Items);
+
+        Assert.Equal(2, item.Contributors.Count);
+        Assert.Equal(new[] { "Doe", "Smith" }, item.Contributors.Select(static contributor => contributor.Name.Family));
+    }
+
     [Theory]
     [InlineData(BibliographyItemType.PaperConference, "CPAPER")]
     [InlineData(BibliographyItemType.Proceedings, "CONF")]

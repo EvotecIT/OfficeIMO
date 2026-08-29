@@ -53,7 +53,9 @@ public sealed partial class BibliographyDocument {
     public BibliographyWriteResult Save(Stream stream, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         BibliographyWriteResult result = Write(options, cancellationToken);
+        PrepareOutputStream(stream);
         stream.Write(result.Bytes, 0, result.Bytes.Length);
+        RewindOutputStream(stream);
         return result;
     }
 
@@ -70,8 +72,20 @@ public sealed partial class BibliographyDocument {
     public async Task<BibliographyWriteResult> SaveAsync(Stream stream, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         BibliographyWriteResult result = Write(options, cancellationToken);
+        PrepareOutputStream(stream);
         await stream.WriteAsync(result.Bytes, 0, result.Bytes.Length, cancellationToken).ConfigureAwait(false);
+        RewindOutputStream(stream);
         return result;
+    }
+
+    private static void PrepareOutputStream(Stream stream) {
+        if (!stream.CanSeek) return;
+        stream.Position = 0;
+        stream.SetLength(0);
+    }
+
+    private static void RewindOutputStream(Stream stream) {
+        if (stream.CanSeek) stream.Position = 0;
     }
 
     private static byte[] ReadAllBytes(Stream stream, long maximum, CancellationToken cancellationToken) {
