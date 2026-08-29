@@ -316,7 +316,7 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(converted.Value.Outlines, outline => outline.Url == "https://example.test/direct");
         Assert.Contains(converted.Value.Outlines, outline => outline.XmlUrl == "https://example.test/feed.xml" && outline.Type == "rss");
         Assert.Contains(converted.Value.Outlines, outline => outline.HtmlUrl == "https://example.test/");
-        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML106" && diagnostic.Message.Contains("internal", StringComparison.Ordinal));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML106" && diagnostic.Message.IndexOf("internal", StringComparison.Ordinal) >= 0);
     }
 
     [Fact]
@@ -359,6 +359,25 @@ public sealed class OpmlDocumentTests {
         Assert.True(structuredResult.HasLoss);
         Assert.Equal(2, structuredResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
         Assert.Equal(2, flatResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
+    }
+
+    [Fact]
+    public void SharedConversionDiagnosesUnsupportedPagesFormsAndVisuals() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "outline", Text = "Root" } },
+            Pages = new[] { new OfficeDocumentModelPage { Number = 1, Name = "Page" } },
+            Forms = new[] { new OfficeDocumentModelFormField { Id = "field", Kind = "text" } },
+            Visuals = new[] { new OfficeDocumentModelVisual { Kind = "diagram", SourceName = "Visual" } }
+        };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Equal(3, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Message.IndexOf("page", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Message.IndexOf("form field", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Message.IndexOf("visual", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     [Fact]

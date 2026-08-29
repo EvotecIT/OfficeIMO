@@ -208,6 +208,21 @@ public sealed partial class OpmlDocument {
                 $"Shared asset '{asset.Id}' cannot be represented in OPML and was omitted.",
                 asset.Location?.HeadingPath));
         }
+        foreach (OfficeDocumentModelPage page in model.Pages) {
+            diagnostics.Add(new OpmlDiagnostic("OPML108", OpmlDiagnosticSeverity.Warning,
+                $"Shared page '{page.Name ?? (page.Number.HasValue ? page.Number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "unnamed")}' cannot be represented in OPML and was omitted.",
+                page.Location?.HeadingPath));
+        }
+        foreach (OfficeDocumentModelFormField form in model.Forms) {
+            diagnostics.Add(new OpmlDiagnostic("OPML108", OpmlDiagnosticSeverity.Warning,
+                $"Shared form field '{form.Id}' cannot be represented in OPML and was omitted.",
+                form.Location?.HeadingPath));
+        }
+        foreach (OfficeDocumentModelVisual visual in model.Visuals) {
+            diagnostics.Add(new OpmlDiagnostic("OPML108", OpmlDiagnosticSeverity.Warning,
+                $"Shared visual '{visual.SourceName ?? visual.Kind}' cannot be represented in OPML and was omitted.",
+                visual.Location?.HeadingPath));
+        }
 
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);

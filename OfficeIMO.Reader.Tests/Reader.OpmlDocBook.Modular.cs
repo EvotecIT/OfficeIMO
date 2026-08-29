@@ -3,6 +3,7 @@ using OfficeIMO.Opml;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.DocBook;
 using OfficeIMO.Reader.Opml;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
@@ -127,6 +128,40 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.StartsWith("~~~\nbefore\n```\n# still code\nafter\n~~~", markdown, StringComparison.Ordinal);
         Assert.Equal("code", Assert.Single(result.Chunks).Location.SourceBlockKind);
+    }
+
+    [Fact]
+    public void DocBookAdapterKeepsInlineTargetsInsideProgramListingFences() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><programlisting>before <link xl:href=\"https://example.test\">target</link> after</programlisting></article>";
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+
+        Assert.Equal("before target after", chunk.Text);
+        Assert.Equal("```\nbefore target after\n```", chunk.Markdown.Replace("\r\n", "\n"));
+        Assert.DoesNotContain("[target]", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocBookAdapterObservesCancellationDuringSemanticProjection() {
+        DocBookDocument document = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Body</para></article>");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            DocBookReaderAdapter.Read(document, cancellationToken: cancellation.Token).ToArray());
+    }
+
+    [Fact]
+    public void DocBookAdapterExcludesIndexTermsFromMarkdown() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Body<indexterm><primary>topic</primary></indexterm></para></article>";
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
+
+        Assert.Equal("Body", result.Markdown);
     }
 
     [Fact]

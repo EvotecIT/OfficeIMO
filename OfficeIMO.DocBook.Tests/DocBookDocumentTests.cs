@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.DocBook.Tests;
 
@@ -510,13 +511,73 @@ public sealed class DocBookDocumentTests {
         OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
 
         Assert.Equal(4, table.Columns.Count);
-        Assert.Equal(2, table.Rows.Count);
+        Assert.Single(table.Rows);
         Assert.All(table.Rows, row => Assert.Equal(4, row.Count));
         Assert.Equal(3, table.TotalRowCount);
         Assert.True(table.Truncated);
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB113");
         Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
             .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableCells = 0 }));
+    }
+
+    [Fact]
+    public void SharedTableProjectionBoundsCellSlotsAcrossAllTables() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"2\"><tbody><row><entry>A</entry><entry>1</entry></row></tbody></tgroup></informaltable><informaltable><tgroup cols=\"2\"><tbody><row><entry>B</entry><entry>2</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source)
+            .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTableColumns = 2, MaxTableRows = 10, MaxTableCells = 4 });
+
+        Assert.Equal(2, converted.Value.Tables.Count);
+        Assert.True(converted.Value.Tables.Sum(table => table.Columns.Count + table.Rows.Sum(row => row.Count)) <= 4);
+        Assert.Empty(converted.Value.Tables[1].Columns);
+        Assert.Empty(converted.Value.Tables[1].Rows);
+        Assert.True(converted.Value.Tables[1].Truncated);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB113");
+    }
+
+    [Fact]
+    public void SharedProjectionExcludesIndexTermsFromDisplayedText() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Body<indexterm><primary>topic</primary></indexterm></para></article>";
+
+        OfficeDocumentModelNode paragraph = Assert.Single(DocBookDocument.Parse(source).ToOfficeDocumentModel().Value.Structure);
+
+        Assert.Equal("Body", paragraph.Text);
+        Assert.Contains(paragraph.Children, child => child.Kind == "index-term");
+
+        const string extensionSource = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><para>Body<x:indexterm>visible</x:indexterm></para></article>";
+        OfficeDocumentModelNode extensionParagraph = Assert.Single(
+            DocBookDocument.Parse(extensionSource).ToOfficeDocumentModel().Value.Structure);
+        Assert.Equal("Bodyvisible", extensionParagraph.Text);
+    }
+
+    [Theory]
+    [InlineData("<xref/>")]
+    [InlineData("<xref linkend=\"  \"/>")]
+    public void BoundedValidationRejectsCrossReferencesWithoutTargets(string crossReference) {
+        DocBookDocument document = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>" + crossReference + "</para></article>");
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB017" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void BoundedValidationRejectsUnsupportedCrossReferenceTargetAttributes() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><xref linkend=\"target\" xl:href=\"https://example.test\"/></para></article>";
+
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB016" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void ValidationAndProjectionObserveCancellation() {
+        DocBookDocument document = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Body</para></article>");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => document.Validate(cancellationToken: cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => document.ToOfficeDocumentModel(cancellationToken: cancellation.Token));
     }
 
     [Fact]

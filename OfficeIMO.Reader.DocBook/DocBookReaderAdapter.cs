@@ -31,8 +31,8 @@ internal static partial class DocBookReaderAdapter {
     private static DocBookProjection CreateProjection(DocBookDocument document, string sourceName, ReaderOptions reader, ReaderDocBookOptions options, bool includeChunkWarnings, CancellationToken cancellationToken) {
         DocBookConversionOptions conversionOptions = options.ConversionOptions;
         conversionOptions.MaxTableRows = Math.Min(conversionOptions.MaxTableRows, Math.Max(1, reader.MaxTableRows));
-        DocBookConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName, conversionOptions);
-        DocBookDiagnostic[] diagnostics = document.Validate().Diagnostics.Concat(conversion.Diagnostics).ToArray();
+        DocBookConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName, conversionOptions, cancellationToken);
+        DocBookDiagnostic[] diagnostics = document.Validate(cancellationToken: cancellationToken).Diagnostics.Concat(conversion.Diagnostics).ToArray();
         IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
             ? diagnostics.Where(d => d.Severity != DocBookDiagnosticSeverity.Info)
                 .Select(d => d.Code + ": " + d.Message).ToArray()
@@ -115,7 +115,7 @@ internal static partial class DocBookReaderAdapter {
                 yield break;
             }
             int currentSource = sourceIndex++;
-            if (TryBuildInlineFragments(node, out IReadOnlyList<InlineFragment> inlineFragments)) {
+            if (node.Kind != "code" && TryBuildInlineFragments(node, out IReadOnlyList<InlineFragment> inlineFragments)) {
                 int inlinePart = 0;
                 foreach (InlineFragment fragment in inlineFragments) {
                     IReadOnlyList<string> fragmentParts = fragment.Text.Length == 0

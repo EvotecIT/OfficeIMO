@@ -119,9 +119,10 @@ public sealed partial class DocBookDocument {
     /// Validates the bounded OfficeIMO common-structure profile. The returned result explicitly does not represent
     /// a complete external DTD, RELAX NG, Schematron, XInclude, assembly, or vocabulary-extension validation run.
     /// </summary>
-    public DocBookValidationResult Validate(DocBookValidationOptions? options = null) {
+    public DocBookValidationResult Validate(DocBookValidationOptions? options = null, CancellationToken cancellationToken = default) {
         options ??= new DocBookValidationOptions();
         options.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         XElement? root = _xml.Root;
         if (root == null) {
@@ -151,6 +152,7 @@ public sealed partial class DocBookDocument {
 
         int position = 0;
         foreach (XElement element in root.DescendantsAndSelf()) {
+            cancellationToken.ThrowIfCancellationRequested();
             string path = "/" + rootName + "//* [" + (++position) + "]";
             DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
             string localName = element.Name.LocalName;
@@ -192,6 +194,16 @@ public sealed partial class DocBookDocument {
                  Profile == DocBookProfile.DocBook45 && element.Attribute(xlinkHref) != null)) {
                 diagnostics.Add(new DocBookDiagnostic("DB016", DocBookDiagnosticSeverity.Error,
                     $"{localName} uses a link target attribute outside the selected {Profile} common-structure profile.", path));
+            }
+            if (kind == DocBookNodeKind.CrossReference) {
+                if (string.IsNullOrWhiteSpace((string?)element.Attribute("linkend"))) {
+                    diagnostics.Add(new DocBookDiagnostic("DB017", DocBookDiagnosticSeverity.Error,
+                        "xref requires a nonblank linkend target in the bounded common-structure profile.", path));
+                }
+                if (element.Attribute("href") != null || element.Attribute("url") != null || element.Attribute(xlinkHref) != null) {
+                    diagnostics.Add(new DocBookDiagnostic("DB016", DocBookDiagnosticSeverity.Error,
+                        $"{localName} uses a link target attribute outside the selected {Profile} common-structure profile.", path));
+                }
             }
             if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
                  kind == DocBookNodeKind.Table && element.Name.LocalName == "table") &&

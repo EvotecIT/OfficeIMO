@@ -26,7 +26,7 @@ document.Save("subscriptions.opml");
 
 Standard subscription attributes are typed, while `GetAttribute` and `SetAttribute` accept `XName` for namespaced extensions. Unknown attributes, elements, comments, processing instructions, and namespace declarations remain in the backing `XDocument`. An unchanged file or stream is written byte-for-byte; after an edit, preserved XML is serialized around the changed values.
 
-`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`; subscription and outline URLs are also published through `OfficeDocumentModel.Links`. Independent flat blocks or links are appended as top-level outlines when recursive structure does not already represent them, with a placement-loss diagnostic. Tables and assets have no OPML outline equivalent, so reverse conversion omits them and reports the loss. Conversion results implement `IOfficeConversionReport`, so callers can inspect diagnostics or call `RequireNoLoss()`.
+`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`; subscription and outline URLs are also published through `OfficeDocumentModel.Links`. Independent flat blocks or links are appended as top-level outlines when recursive structure does not already represent them, with a placement-loss diagnostic. Tables, assets, pages, forms, and structured visuals have no OPML outline equivalent, so reverse conversion omits each populated item with a loss diagnostic. Conversion results implement `IOfficeConversionReport`, so callers can inspect diagnostics or call `RequireNoLoss()`.
 
 ## Safety and profile limits
 

@@ -185,7 +185,7 @@ public sealed class DocBookConversionOptions {
     public int MaxTableColumns { get; set; } = 1_024;
     /// <summary>Maximum header rows and body rows inspected for one shared flat-table projection. Defaults to 100,000 of each.</summary>
     public int MaxTableRows { get; set; } = 100_000;
-    /// <summary>Maximum rectangular header/body cell slots materialized for one shared flat-table projection. Defaults to 1,000,000.</summary>
+    /// <summary>Maximum aggregate column-label and rectangular row-cell slots materialized across the shared flat-table projection. Also bounds each table independently. Defaults to 1,000,000.</summary>
     public int MaxTableCells { get; set; } = 1_000_000;
     /// <summary>Maximum detailed diagnostics retained for each diagnostic code before one summary is emitted. Defaults to 100.</summary>
     public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;

@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.DocBook;
@@ -12,26 +13,53 @@ public sealed partial class DocBookDocument {
     /// <summary>Converts the typed common structure to the shared recursive document model.</summary>
     public DocBookConversionResult<OfficeDocumentModel> ToOfficeDocumentModel(
         string? sourcePath = null,
-        DocBookConversionOptions? options = null) {
+        DocBookConversionOptions? options = null,
+        CancellationToken cancellationToken = default) {
         options ??= new DocBookConversionOptions();
         options.Validate();
+        cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
-        var textBudget = new DocBookTextProjectionBudget(options.MaxTotalTextCharacters, diagnostics);
+        var textBudget = new DocBookTextProjectionBudget(options.MaxTotalTextCharacters, diagnostics, Namespace, cancellationToken);
         var blocks = new List<OfficeDocumentModelBlock>();
         var tables = new List<OfficeDocumentModelTable>();
         var assets = new List<OfficeDocumentModelAsset>();
         var links = new List<OfficeDocumentModelLink>();
         var tableIndexes = new Dictionary<XElement, int>();
+        int remainingTableCells = options.MaxTableCells;
         int index = 0;
-        if (_xml.DescendantNodes().Any(node => node is XComment || node is XProcessingInstruction)) {
+        bool hasPreservedNonElementNodes = false;
+        foreach (XNode node in _xml.DescendantNodes()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (node is XComment || node is XProcessingInstruction) {
+                hasPreservedNonElementNodes = true;
+                break;
+            }
+        }
+        if (hasPreservedNonElementNodes) {
             diagnostics.Add(new DocBookDiagnostic("DB105", DocBookDiagnosticSeverity.Warning,
                 "Comments and processing instructions remain native but are not represented by the shared document model."));
         }
-        if (RootElement.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration && attribute.Name != XName.Get("version"))) {
+        bool hasRootExtensionAttributes = false;
+        foreach (XAttribute attribute in RootElement.Attributes()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!attribute.IsNamespaceDeclaration && attribute.Name != XName.Get("version")) {
+                hasRootExtensionAttributes = true;
+                break;
+            }
+        }
+        if (hasRootExtensionAttributes) {
             diagnostics.Add(new DocBookDiagnostic("DB106", DocBookDiagnosticSeverity.Warning,
                 "Root extension attributes remain native but are not represented by the shared document model.", "/" + RootElement.Name.LocalName));
         }
-        if (RootElement.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value))) {
+        bool hasSignificantRootText = false;
+        foreach (XNode node in RootElement.Nodes()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (node is XText text && !string.IsNullOrWhiteSpace(text.Value)) {
+                hasSignificantRootText = true;
+                break;
+            }
+        }
+        if (hasSignificantRootText) {
             diagnostics.Add(new DocBookDiagnostic("DB110", DocBookDiagnosticSeverity.Warning,
                 "Significant root text remains native but is not represented by the shared document model.", "/" + RootElement.Name.LocalName));
         }
@@ -53,6 +81,7 @@ public sealed partial class DocBookDocument {
         }
 
         OfficeDocumentModelNode Convert(XElement element, int level, string parentPath) {
+            cancellationToken.ThrowIfCancellationRequested();
             DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
             string normalizedKind = kind == DocBookNodeKind.Unknown
                 ? "extension:" + element.Name
@@ -62,7 +91,11 @@ public sealed partial class DocBookDocument {
             string text = textBudget.GetPrimaryText(element, kind, Namespace, parentPath);
             string path = kind == DocBookNodeKind.Section
                 ? OfficeDocumentHeadingPath.Append(parentPath, text, " / ") : parentPath;
-            var attributes = element.Attributes().ToDictionary(a => a.Name.ToString(), a => a.Value, StringComparer.Ordinal);
+            var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (XAttribute attribute in element.Attributes()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                attributes.Add(attribute.Name.ToString(), attribute.Value);
+            }
             int nodeIndex = index++;
             int? tableIndex = kind == DocBookNodeKind.Table && tableIndexes.TryGetValue(element, out int projectedTableIndex)
                 ? projectedTableIndex : (int?)null;
@@ -149,6 +182,7 @@ public sealed partial class DocBookDocument {
             var children = new List<OfficeDocumentModelNode>();
             int childLevel = kind == DocBookNodeKind.Info ? level : level + 1;
             foreach (XNode node in element.Nodes()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (node is XElement child) {
                     children.Add(Convert(child, childLevel, path));
                 } else if (node is XText textNode && textNode.Value.Length > 0 && (mixedContent || !string.IsNullOrWhiteSpace(textNode.Value))) {
@@ -164,8 +198,10 @@ public sealed partial class DocBookDocument {
             return children;
         }
 
-        foreach (XElement tableElement in RootElement.Descendants().Where(element =>
-                     DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Table)) {
+        foreach (XElement tableElement in RootElement.Descendants()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (DocBookNames.GetKind(tableElement.Name, Namespace) != DocBookNodeKind.Table) continue;
+            int tableCellBudget = Math.Min(options.MaxTableCells, remainingTableCells);
             int discoveryCapacity = options.MaxTableRows > int.MaxValue / 2
                 ? int.MaxValue : options.MaxTableRows * 2;
             var rowElements = new List<XElement>(Math.Min(discoveryCapacity, 4_096));
@@ -176,6 +212,7 @@ public sealed partial class DocBookDocument {
             int headerRowsRetained = 0;
             int bodyRowsRetained = 0;
             foreach (XElement element in tableElement.Descendants()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (DocBookNames.GetKind(element.Name, Namespace) != DocBookNodeKind.Row ||
                     !ReferenceEquals(element.Ancestors().FirstOrDefault(ancestor =>
                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Table), tableElement)) continue;
@@ -206,7 +243,8 @@ public sealed partial class DocBookDocument {
             bool projectionTruncated = rowDiscoveryTruncated;
 
             foreach (XElement rowElement in rowElements) {
-                int maxWidthForAdditionalRow = options.MaxTableCells / (projectedRows.Count + 1);
+                cancellationToken.ThrowIfCancellationRequested();
+                int maxWidthForAdditionalRow = tableCellBudget / (projectedRows.Count + 2);
                 if (maxWidthForAdditionalRow < Math.Max(1, columnCount)) {
                     projectionTruncated = true;
                     break;
@@ -234,6 +272,7 @@ public sealed partial class DocBookDocument {
                     var namedSpans = new Dictionary<string, KeyValuePair<int, int>>(StringComparer.Ordinal);
                     int nextColumn = 0;
                     foreach (XElement columnSpec in tableGroup.Elements(Namespace + "colspec")) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         int column = nextColumn;
                         if (int.TryParse((string?)columnSpec.Attribute("colnum"), out int columnNumber) && columnNumber > 0) {
                             if (columnNumber > options.MaxTableColumns) {
@@ -248,6 +287,7 @@ public sealed partial class DocBookDocument {
                         nextColumn = Math.Max(nextColumn, column + 1);
                     }
                     foreach (XElement spanSpec in tableGroup.Elements(Namespace + "spanspec")) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string? spanName = (string?)spanSpec.Attribute("spanname");
                         string? startName = (string?)spanSpec.Attribute("namest");
                         string? endName = (string?)spanSpec.Attribute("nameend");
@@ -283,6 +323,7 @@ public sealed partial class DocBookDocument {
 
                 foreach (XElement entry in rowElement.Elements().Where(element =>
                              DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Entry)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int start = -1;
                     int end = -1;
                     string? spanName = (string?)entry.Attribute("spanname");
@@ -346,13 +387,24 @@ public sealed partial class DocBookDocument {
                     cells.Select(cell => cell ?? string.Empty).ToArray()));
             }
 
-            List<IReadOnlyList<string>> headerRows = projectedRows.Where(row => row.Key).Select(row => row.Value).ToList();
+            var headerRows = new List<IReadOnlyList<string>>();
+            var bodyRows = new List<IReadOnlyList<string>>();
+            foreach (KeyValuePair<bool, IReadOnlyList<string>> projectedRow in projectedRows) {
+                cancellationToken.ThrowIfCancellationRequested();
+                (projectedRow.Key ? headerRows : bodyRows).Add(projectedRow.Value);
+            }
             if (headerRows.Count > 1) flattenedCalsLayout = true;
             var columns = new List<string>(columnCount);
             if (headerRows.Count > 0) {
                 for (int column = 0; column < columnCount; column++) {
-                    columns.Add(string.Join(" / ", headerRows.Select(row => column < row.Count ? row[column] : string.Empty)
-                        .Where(value => !string.IsNullOrWhiteSpace(value))));
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var labels = new List<string>();
+                    foreach (IReadOnlyList<string> headerRow in headerRows) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        string label = column < headerRow.Count ? headerRow[column] : string.Empty;
+                        if (!string.IsNullOrWhiteSpace(label)) labels.Add(label);
+                    }
+                    columns.Add(string.Join(" / ", labels));
                 }
             }
             while (columns.Count < columnCount) columns.Add("Column " + (columns.Count + 1));
@@ -360,7 +412,8 @@ public sealed partial class DocBookDocument {
                 if (string.IsNullOrWhiteSpace(columns[column])) columns[column] = "Column " + (column + 1);
             }
             var rows = new List<IReadOnlyList<string>>();
-            foreach (IReadOnlyList<string> sourceRow in projectedRows.Where(row => !row.Key).Select(row => row.Value)) {
+            foreach (IReadOnlyList<string> sourceRow in bodyRows) {
+                cancellationToken.ThrowIfCancellationRequested();
                 rows.Add(sourceRow.Count == columnCount
                     ? sourceRow
                     : sourceRow.Concat(Enumerable.Repeat(string.Empty, columnCount - sourceRow.Count)).ToArray());
@@ -397,10 +450,25 @@ public sealed partial class DocBookDocument {
                 TotalRowCount = totalBodyRows,
                 Truncated = projectionTruncated || rows.Count < totalBodyRows
             });
+            int retainedCellSlots = columns.Count;
+            foreach (IReadOnlyList<string> row in rows) {
+                cancellationToken.ThrowIfCancellationRequested();
+                retainedCellSlots += row.Count;
+            }
+            remainingTableCells -= retainedCellSlots;
         }
 
-        XElement? firstAuthor = FindInfo()?.Descendants().FirstOrDefault(element =>
-            DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Author);
+        XElement? firstAuthor = null;
+        XElement? documentInfo = FindInfo();
+        if (documentInfo != null) {
+            foreach (XElement element in documentInfo.Descendants()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Author) {
+                    firstAuthor = element;
+                    break;
+                }
+            }
+        }
         string? author = firstAuthor == null ? null : textBudget.GetAuthorName(firstAuthor, string.Empty);
         var metadata = new List<OfficeDocumentModelMetadataEntry> {
             new OfficeDocumentModelMetadataEntry {
@@ -413,15 +481,21 @@ public sealed partial class DocBookDocument {
             }
         };
         int authorIndex = 0;
-        foreach (XElement authorElement in RootElement.Descendants().Where(element =>
-                     DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Author)) {
+        foreach (XElement authorElement in RootElement.Descendants()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (DocBookNames.GetKind(authorElement.Name, Namespace) != DocBookNodeKind.Author) continue;
             metadata.Add(new OfficeDocumentModelMetadataEntry {
                 Id = "docbook-author-" + authorIndex++, Category = "docbook", Name = "author",
                 Value = textBudget.GetAuthorName(authorElement, string.Empty), ValueType = "string"
             });
         }
 
-        OfficeDocumentModelNode[] structure = RootElement.Elements().Select(child => Convert(child, 1, string.Empty)).ToArray();
+        var structureItems = new List<OfficeDocumentModelNode>();
+        foreach (XElement child in RootElement.Elements()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            structureItems.Add(Convert(child, 1, string.Empty));
+        }
+        OfficeDocumentModelNode[] structure = structureItems.ToArray();
         var capabilities = new List<string> {
             "docbook.common-structure", "docbook.extensions", Profile == DocBookProfile.DocBook45 ? "docbook.4.5" : "docbook.5.2"
         };
@@ -443,6 +517,7 @@ public sealed partial class DocBookDocument {
             string path = string.Empty;
             foreach (XElement section in tableElement.Ancestors().Reverse().Where(ancestor =>
                          DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Section)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 path = OfficeDocumentHeadingPath.Append(path,
                     textBudget.GetPrimaryText(section, DocBookNodeKind.Section, Namespace, path), " / ");
             }

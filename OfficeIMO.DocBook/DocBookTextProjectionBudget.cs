@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.DocBook;
@@ -12,14 +13,19 @@ internal sealed class DocBookTextProjectionBudget {
     };
 
     private readonly DocBookDiagnosticCollector _diagnostics;
+    private readonly XNamespace _docBookNamespace;
+    private readonly CancellationToken _cancellationToken;
     private readonly Dictionary<XElement, string> _elementValues = new Dictionary<XElement, string>();
     private readonly Dictionary<XElement, string> _authorValues = new Dictionary<XElement, string>();
     private long _remaining;
 
-    internal DocBookTextProjectionBudget(long maximumCharacters, DocBookDiagnosticCollector diagnostics) {
+    internal DocBookTextProjectionBudget(long maximumCharacters, DocBookDiagnosticCollector diagnostics,
+        XNamespace docBookNamespace, CancellationToken cancellationToken) {
         if (maximumCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maximumCharacters));
         _remaining = maximumCharacters;
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        _docBookNamespace = docBookNamespace;
+        _cancellationToken = cancellationToken;
     }
 
     internal string GetPrimaryText(XElement element, DocBookNodeKind kind, XNamespace ns, string? path) {
@@ -39,12 +45,15 @@ internal sealed class DocBookTextProjectionBudget {
     internal string GetElementValue(XElement? element, string? path) {
         if (element == null) return string.Empty;
         if (_elementValues.TryGetValue(element, out string? cached)) return cached;
-        string value = MaterializeExact(() => element.DescendantNodes().OfType<XText>(), path);
+        string value = MaterializeExact(() => element.DescendantNodes().OfType<XText>().Where(text =>
+            text.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, element))
+                .All(ancestor => ancestor.Name != _docBookNamespace + "indexterm")), path);
         _elementValues.Add(element, value);
         return value;
     }
 
     internal string GetTextValue(XText text, string? path) {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (text.Value.Length > _remaining) {
             ReportLimit(path);
             return string.Empty;
@@ -56,7 +65,12 @@ internal sealed class DocBookTextProjectionBudget {
     internal string GetAuthorName(XElement author, string? path) {
         if (_authorValues.TryGetValue(author, out string? cached)) return cached;
         IEnumerable<XText> nameNodes = SelectAuthorNameNodes(author);
-        var parts = nameNodes.Select(node => node.Value.Trim()).Where(value => value.Length > 0).ToList();
+        var parts = new List<string>();
+        foreach (XText node in nameNodes) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            string part = node.Value.Trim();
+            if (part.Length > 0) parts.Add(part);
+        }
         long length = parts.Sum(part => (long)part.Length) + Math.Max(0, parts.Count - 1);
         string value;
         if (length > _remaining) {
@@ -73,6 +87,7 @@ internal sealed class DocBookTextProjectionBudget {
     private string MaterializeExact(Func<IEnumerable<XText>> textFactory, string? path) {
         long length = 0;
         foreach (XText text in textFactory()) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (text.Value.Length > _remaining - length) {
                 ReportLimit(path);
                 return string.Empty;
@@ -80,7 +95,13 @@ internal sealed class DocBookTextProjectionBudget {
             length += text.Value.Length;
         }
         _remaining -= length;
-        return length == 0 ? string.Empty : string.Concat(textFactory().Select(text => text.Value));
+        if (length == 0) return string.Empty;
+        var value = new System.Text.StringBuilder((int)Math.Min(length, int.MaxValue));
+        foreach (XText text in textFactory()) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            value.Append(text.Value);
+        }
+        return value.ToString();
     }
 
     private static IEnumerable<XText> SelectAuthorNameNodes(XElement author) {
