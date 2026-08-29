@@ -146,6 +146,57 @@ public sealed class PowerPointPdfTextFormattingTests {
     }
 
     [Fact]
+    public void TextBoxRunsAndFieldsResolveParagraphListAndMasterDefaults() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+            new MemoryStream(), new PowerPointCreateOptions());
+        PowerPointTextBox textBox = presentation.AddSlide()
+            .AddTextBoxPoints("i", 10, 10, 200, 60);
+        A.Paragraph paragraph = Assert.Single(textBox.TextBody!.Elements<A.Paragraph>());
+        paragraph.ParagraphProperties = new A.ParagraphProperties(
+            new A.DefaultRunProperties {
+                Bold = true,
+                Underline = A.TextUnderlineValues.Wavy,
+                Capital = A.TextCapsValues.All
+            });
+        textBox.TextBody.ListStyle!.PrependChild(new A.DefaultParagraphProperties(
+            new A.DefaultRunProperties { Language = "tr-TR" }));
+        textBox.TextBody.ListStyle.Append(new A.Level1ParagraphProperties(
+            new A.DefaultRunProperties {
+                Strike = A.TextStrikeValues.DoubleStrike,
+                Baseline = 30000
+            }));
+        P.OtherStyle otherStyle = Assert.IsType<P.OtherStyle>(textBox.MasterTextStyle);
+        A.Level1ParagraphProperties masterLevel = otherStyle.GetFirstChild<A.Level1ParagraphProperties>()
+            ?? otherStyle.AppendChild(new A.Level1ParagraphProperties());
+        A.DefaultRunProperties masterDefaults = masterLevel.GetFirstChild<A.DefaultRunProperties>()
+            ?? masterLevel.AppendChild(new A.DefaultRunProperties());
+        masterDefaults.Italic = true;
+        masterDefaults.FontSize = 1800;
+        masterDefaults.RemoveAllChildren<A.LatinFont>();
+        masterDefaults.Append(new A.LatinFont { Typeface = "Aptos" });
+        Assert.Single(paragraph.Elements<A.Run>()).RunProperties = new A.RunProperties();
+        textBox.Paragraphs[0].AddField("i", "slidenum", "{33333333-3333-3333-3333-333333333333}");
+
+        PdfCore.PdfDocument document = presentation.ToPdfDocument();
+        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(document.Blocks));
+        PdfCore.PdfTextRun[] runs = canvas.Items.OfType<PdfCore.PdfCanvasTextBoxItem>()
+            .SelectMany(item => item.Runs)
+            .Where(run => run.Text == "İ")
+            .ToArray();
+
+        Assert.Equal(2, runs.Length);
+        Assert.All(runs, run => {
+            Assert.True(run.Bold);
+            Assert.True(run.Italic);
+            Assert.Equal(OfficeTextDecorationStyle.Wavy, run.UnderlineStyle);
+            Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
+            Assert.Equal(PdfCore.PdfTextBaseline.Superscript, run.Baseline);
+            Assert.Equal(18D, run.FontSize);
+            Assert.Equal("Aptos", run.FontFamily);
+        });
+    }
+
+    [Fact]
     public void TableInheritedAndFieldFontsParticipateInPdfFontPreflight() {
         const string inheritedFamily = "OfficeIMO Missing Inherited Table Face";
         const string fieldFamily = "OfficeIMO Missing Field Face";

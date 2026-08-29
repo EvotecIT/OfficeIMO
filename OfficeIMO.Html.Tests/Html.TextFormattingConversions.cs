@@ -52,6 +52,22 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void ManagedHtmlRenderingComposesOpposingNestedScriptShifts() {
+        const string html = "<p><sup><sub>First</sub></sup><sub><sup>Second</sup></sub><sup><sup>Raised</sup></sup></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions());
+        HtmlRenderText[] text = Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>()
+            .Where(item => item.Text.Length > 0)
+            .ToArray();
+
+        Assert.Equal(OfficeTextBaseline.Normal, Assert.Single(text, item => item.Text == "First").Baseline);
+        Assert.Equal(OfficeTextBaseline.Normal, Assert.Single(text, item => item.Text == "Second").Baseline);
+        Assert.Equal(OfficeTextBaseline.Superscript, Assert.Single(text, item => item.Text == "Raised").Baseline);
+    }
+
+    [Fact]
     public void ManagedHtmlRenderingRecognizesInheritedFontVariantCapsLonghand() {
         const string html = "<p style=\"font-variant-caps:small-caps\"><span>Longhand</span></p>";
 

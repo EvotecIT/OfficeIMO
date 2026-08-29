@@ -206,9 +206,18 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 _ => ExcelVerticalTextAlignment.Baseline
             });
         }
-        if (style.TextTransform == OdfTextTransform.Uppercase) target.TransformTextCase(OfficeTextCase.Uppercase, textCaseCulture);
-        else if (style.TextTransform == OdfTextTransform.Lowercase) target.TransformTextCase(OfficeTextCase.Lowercase, textCaseCulture);
-        else if (style.TextTransform == OdfTextTransform.Capitalize) target.TransformTextCase(OfficeTextCase.Capitalize, textCaseCulture);
+        bool hasTextTransform = style.TextTransform is OdfTextTransform.Uppercase
+            or OdfTextTransform.Lowercase
+            or OdfTextTransform.Capitalize;
+        if (hasTextTransform && target.GetValue().HasFormula) {
+            unsupportedCapitalization++;
+        } else if (style.TextTransform == OdfTextTransform.Uppercase) {
+            target.TransformTextCase(OfficeTextCase.Uppercase, textCaseCulture);
+        } else if (style.TextTransform == OdfTextTransform.Lowercase) {
+            target.TransformTextCase(OfficeTextCase.Lowercase, textCaseCulture);
+        } else if (style.TextTransform == OdfTextTransform.Capitalize) {
+            target.TransformTextCase(OfficeTextCase.Capitalize, textCaseCulture);
+        }
         if (style.SmallCaps == true) unsupportedCapitalization++;
         if (style.FontSize.HasValue) {
             if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);

@@ -104,6 +104,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             : computed.GetValue("text-transform").Trim().ToLowerInvariant();
         bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
 
+        int baselineLevel = ResolveTextBaselineLevel(
+            pseudoElement ? string.Empty : tag,
+            computed.GetValue("vertical-align"),
+            parent?.BaselineLevel ?? 0);
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
@@ -115,10 +119,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             StrikethroughStyle = (fontStyle & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
                 ? decorationStyle
                 : OfficeTextDecorationStyle.None,
-            Baseline = ResolveTextBaseline(
-                pseudoElement ? string.Empty : tag,
-                computed.GetValue("vertical-align"),
-                parent?.Baseline ?? OfficeTextBaseline.Normal),
+            Baseline = baselineLevel switch {
+                > 0 => OfficeTextBaseline.Superscript,
+                < 0 => OfficeTextBaseline.Subscript,
+                _ => OfficeTextBaseline.Normal
+            },
+            BaselineLevel = baselineLevel,
             Color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
@@ -534,13 +540,13 @@ internal sealed partial class HtmlRenderStyleResolver {
         _ => OfficeTextDecorationStyle.Single
     };
 
-    private static OfficeTextBaseline ResolveTextBaseline(string tag, string value, OfficeTextBaseline inherited) {
+    private static int ResolveTextBaselineLevel(string tag, string value, int inherited) {
         string normalized = value.Trim().ToLowerInvariant();
-        if (tag == "sup" || normalized == "super") return OfficeTextBaseline.Superscript;
-        if (tag == "sub" || normalized == "sub") return OfficeTextBaseline.Subscript;
+        if (tag == "sup" || normalized == "super") return inherited + 1;
+        if (tag == "sub" || normalized == "sub") return inherited - 1;
         if (normalized.Length == 0) return inherited;
         if (normalized == "baseline") return inherited;
-        return OfficeTextBaseline.Normal;
+        return 0;
     }
 
     private static bool TryFontWeight(string value, out int weight) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight);

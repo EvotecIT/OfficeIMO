@@ -147,6 +147,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         UnderlineStyle = parentStyle.UnderlineStyle,
         StrikethroughStyle = parentStyle.StrikethroughStyle,
         Baseline = parentStyle.Baseline,
+        BaselineLevel = parentStyle.BaselineLevel,
         FontVariant = parentStyle.FontVariant,
         ApproximateSmallCaps = parentStyle.ApproximateSmallCaps,
         Language = parentStyle.Language,

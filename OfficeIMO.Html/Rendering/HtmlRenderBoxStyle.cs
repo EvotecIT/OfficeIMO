@@ -117,6 +117,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeTextDecorationStyle UnderlineStyle;
     internal OfficeTextDecorationStyle StrikethroughStyle;
     internal OfficeTextBaseline Baseline;
+    internal int BaselineLevel;
     internal OfficeColor Color = OfficeColor.Black;
     internal OfficeTextAlignment Alignment;
     internal double LineHeight;

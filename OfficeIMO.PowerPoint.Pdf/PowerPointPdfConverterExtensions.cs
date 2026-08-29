@@ -789,35 +789,32 @@ public static partial class PowerPointPdfConverterExtensions {
             runs.Add(new PdfCore.PdfTextRun(prefix, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
         }
 
-        IReadOnlyList<PptCore.PowerPointTextRun> paragraphRuns = paragraph.Runs;
-        if (paragraphRuns.Count == 0 && !paragraph.Paragraph.ChildElements.Any(child => child is A.Break or A.Field)) {
+        IReadOnlyList<PptCore.PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
+        if (inlineNodes.Count == 0) {
             runs.Add(new PdfCore.PdfTextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
             return runs;
         }
 
-        int runIndex = 0;
         bool hasInlineContent = false;
-        foreach (OpenXmlElement child in paragraph.Paragraph.ChildElements) {
-            switch (child) {
-                case A.Run:
-                    if (runIndex < paragraphRuns.Count) {
-                        runs.Add(CreateTextRun(paragraphRuns[runIndex], textBox, slideNumber, options));
+        foreach (PptCore.PowerPointParagraphInline node in inlineNodes) {
+            switch (node.Kind) {
+                case PptCore.PowerPointParagraphInlineKind.Run:
+                case PptCore.PowerPointParagraphInlineKind.Field:
+                    if (node.Run != null && !string.IsNullOrEmpty(node.Text)) {
+                        runs.Add(CreateTextRun(
+                            node.Run,
+                            paragraph,
+                            textBox.TextBody?.ListStyle,
+                            textBox.MasterTextStyle,
+                            textBox,
+                            slideNumber,
+                            options));
                         hasInlineContent = true;
                     }
-
-                    runIndex++;
                     break;
-                case A.Break:
+                case PptCore.PowerPointParagraphInlineKind.LineBreak:
                     runs.Add(PdfCore.PdfTextRun.LineBreak());
                     hasInlineContent = true;
-                    break;
-                case A.Field field:
-                    string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
-                    if (!string.IsNullOrEmpty(fieldText)) {
-                        runs.Add(new PdfCore.PdfTextRun(fieldText, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
-                        hasInlineContent = true;
-                    }
-
                     break;
             }
         }
@@ -846,34 +843,44 @@ public static partial class PowerPointPdfConverterExtensions {
         return string.Empty;
     }
 
-    private static PdfCore.PdfTextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
-        string text = ApplyPowerPointDisplayCase(run.Text ?? string.Empty, run.Capitalization, run.Language, options, slideNumber);
-        PdfCore.PdfColor? color = ParsePdfColor(run.Color ?? textBox.Color);
-        string? fontFamily = run.FontName ?? ResolveTextBoxFontFamily(textBox, options);
+    private static PdfCore.PdfTextRun CreateTextRun(
+        PptCore.PowerPointTextRun run,
+        PptCore.PowerPointParagraph paragraph,
+        A.ListStyle? listStyle,
+        OpenXmlCompositeElement? masterTextStyle,
+        PptCore.PowerPointTextBox textBox,
+        int slideNumber,
+        PowerPointPdfSaveOptions options) {
+        PptCore.PowerPointEffectiveRunStyle effective = PptCore.PowerPointEffectiveRunStyleResolver.Resolve(
+            run, paragraph, listStyle, masterTextStyle);
+        string text = ApplyPowerPointDisplayCase(run.Text ?? string.Empty, effective.Capitalization, effective.Language, options, slideNumber);
+        PdfCore.PdfColor? color = ParsePdfColor(effective.Color ?? textBox.Color);
+        string? fontFamily = effective.FontName ?? ResolveTextBoxFontFamily(textBox, options);
         PdfCore.PdfStandardFont? font = MapFont(fontFamily);
-        double? fontSize = run.FontSize ?? textBox.FontSize;
+        double? fontSize = effective.FontSizePoints ?? textBox.FontSize;
         Uri? hyperlink = run.Hyperlink;
         string? linkUri = hyperlink != null && hyperlink.IsAbsoluteUri && !string.IsNullOrEmpty(text) ? hyperlink.AbsoluteUri : null;
+        PptCore.PowerPointUnderlineStyle effectiveUnderline = effective.UnderlineStyle ?? PptCore.PowerPointUnderlineStyle.None;
         if (hyperlink != null && !hyperlink.IsAbsoluteUri) {
             AddWarning(options, slideNumber, "relative-hyperlink", "Skipped a relative PowerPoint hyperlink because PDF URI annotations require absolute targets.");
         }
 
         return new PdfCore.PdfTextRun(
             text,
-            bold: run.Bold,
-            underline: run.Underline || linkUri != null,
+            bold: effective.Bold == true,
+            underline: effectiveUnderline != PptCore.PowerPointUnderlineStyle.None || linkUri != null,
             color: color,
-            italic: run.Italic,
-            strike: run.Strikethrough,
+            italic: effective.Italic == true,
+            strike: effective.StrikeStyle is { } strikeStyle && strikeStyle != PptCore.PowerPointStrikeStyle.None,
             fontSize: fontSize,
             font: font,
             linkUri: linkUri,
-            baseline: MapPowerPointBaseline(run.BaselinePercent, options, slideNumber),
+            baseline: MapPowerPointBaseline(effective.BaselinePercent, options, slideNumber),
             fontFamily: fontFamily,
-            underlineStyle: linkUri != null && !run.Underline
+            underlineStyle: linkUri != null && effectiveUnderline == PptCore.PowerPointUnderlineStyle.None
                 ? OfficeTextDecorationStyle.Single
-                : MapPowerPointUnderline(run.UnderlineStyle),
-            strikeStyle: MapPowerPointStrike(run.StrikeStyle));
+                : MapPowerPointUnderline(effectiveUnderline),
+            strikeStyle: MapPowerPointStrike(effective.StrikeStyle));
     }
 
     private static string ApplyPowerPointDisplayCase(
