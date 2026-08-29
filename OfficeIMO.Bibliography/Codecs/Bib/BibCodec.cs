@@ -91,7 +91,7 @@ internal static class BibCodec {
     }
 
     private static void Add(ICollection<KeyValuePair<string, string>> fields, string name, string? value) {
-        if (!string.IsNullOrWhiteSpace(value)) fields.Add(new KeyValuePair<string, string>(name, value!));
+        if (value != null) fields.Add(new KeyValuePair<string, string>(name, value));
     }
 
     private static string? FormatClassicMonth(BibliographyItem item, int? month) {

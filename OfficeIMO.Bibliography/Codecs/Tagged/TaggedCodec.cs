@@ -391,6 +391,12 @@ internal static class TaggedCodec {
         if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, CodecMappings.InferSerialScheme(identifier.Value), StringComparison.OrdinalIgnoreCase);
         return !string.IsNullOrWhiteSpace(identifier.Scheme) && identifier.Scheme.IndexOf(':') < 0 && identifier.Scheme.IndexOf('\r') < 0 && identifier.Scheme.IndexOf('\n') < 0;
     }
+    internal static bool CanRoundTripRisType(BibliographyItemType type) =>
+        type != BibliographyItemType.Unknown && CodecMappings.ParseRisType(CodecMappings.ToRisType(type)) == type;
+
+    internal static bool CanPreserveUnknownRisType(string? nativeType) =>
+        IsRisType(nativeType) && CodecMappings.ParseRisType(nativeType) == BibliographyItemType.Unknown;
+
     private static void WriteNbibPublicationTypes(StringBuilder builder, BibliographyItem item, string lineEnding, BibliographyConversionReport report) {
         BibliographyNativeField[] nativeTypes = item.NativeFields.Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)).ToArray();
         BibliographyItemType sourceType = nativeTypes.Select(field => CodecMappings.ParseType(field.Value)).FirstOrDefault(static type => type != BibliographyItemType.Unknown);

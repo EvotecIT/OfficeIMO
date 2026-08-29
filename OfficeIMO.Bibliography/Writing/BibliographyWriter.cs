@@ -119,7 +119,9 @@ internal static class BibliographyConversionInspector {
                     : BibCodec.CanRoundTripType(item.Type, format);
                 break;
             case BibliographyFormat.Ris:
-                exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Article && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript;
+                exact = item.Type == BibliographyItemType.Unknown
+                    ? sameFormatNativeType && TaggedCodec.CanPreserveUnknownRisType(item.NativeType)
+                    : TaggedCodec.CanRoundTripRisType(item.Type);
                 break;
             case BibliographyFormat.Nbib:
                 exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && item.NativeFields.Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
@@ -131,8 +133,6 @@ internal static class BibliographyConversionInspector {
         }
         if (!exact) Loss(report, item, "type", "BIBCONV200", $"Item type '{item.Type}' is written using a broader {format} type.", BibliographyConversionAction.Approximated);
     }
-
-    private static bool IsSafeRisType(string? value) => !string.IsNullOrWhiteSpace(value) && value!.Length >= 2 && value.Length <= 6 && value.All(char.IsLetterOrDigit);
 
     private static bool IsExactCslType(BibliographyItemType type) {
         switch (type) {

@@ -85,7 +85,7 @@ internal static class CslJsonCodec {
         limits.AddItem(items, 0);
         var item = new BibliographyItem();
         items.Add(item);
-        CountValues(element, items, limits);
+        CountValues(element, items, limits, cancellationToken);
         var seenProperties = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonProperty property in element.EnumerateObject()) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -137,19 +137,21 @@ internal static class CslJsonCodec {
         if (string.IsNullOrWhiteSpace(item.Key)) diagnostics.Add(new BibliographyDiagnostic("BIBCSL004", BibliographyDiagnosticSeverity.Warning, "CSL JSON item has no id."));
     }
 
-    private static void CountValues(JsonElement element, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+    private static void CountValues(JsonElement element, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
         switch (element.ValueKind) {
             case JsonValueKind.Object:
                 foreach (JsonProperty property in element.EnumerateObject()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     limits.AddValue(items, property.Name, 0);
-                    if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array) CountValues(property.Value, items, limits);
+                    if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array) CountValues(property.Value, items, limits, cancellationToken);
                     else limits.CheckValueLength(items, GetScalarValueLength(property.Value), 0);
                 }
                 break;
             case JsonValueKind.Array:
                 foreach (JsonElement value in element.EnumerateArray()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     limits.AddValue(items, null, 0);
-                    if (value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array) CountValues(value, items, limits);
+                    if (value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array) CountValues(value, items, limits, cancellationToken);
                     else limits.CheckValueLength(items, GetScalarValueLength(value), 0);
                 }
                 break;
@@ -439,7 +441,12 @@ internal static class CslJsonCodec {
         var limits = new BibliographyLimitGuard(options);
         var reader = new Utf8JsonReader(source, new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
         var arrayContainers = new List<bool>();
+        var containerOffsets = new List<int>();
+        var containerUtf16Starts = new List<int>();
+        var boundedContainers = new List<bool>();
         bool rootIsArray = false;
+        int measuredByteOffset = 0;
+        int measuredUtf16Offset = 0;
         int tokenCount = 0;
         while (reader.Read()) {
             if ((tokenCount++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -460,13 +467,49 @@ internal static class CslJsonCodec {
                 limits.CheckValueLength(partialItems, GetJsonStringUtf16Length(reader.ValueSpan, reader.ValueIsEscaped), checked((int)reader.TokenStartIndex));
             else if (token == JsonTokenType.Number || token == JsonTokenType.True || token == JsonTokenType.False || token == JsonTokenType.Null)
                 limits.CheckValueLength(partialItems, reader.ValueSpan.Length, checked((int)reader.TokenStartIndex));
+            if (token == JsonTokenType.StartArray || token == JsonTokenType.StartObject) {
+                bool rootContainer = arrayContainers.Count == 0;
+                bool itemContainer = token == JsonTokenType.StartObject && (rootContainer || rootIsArray && arrayContainers.Count == 1);
+                int containerOffset = checked((int)reader.TokenStartIndex);
+                AdvanceJsonUtf16Offset(source, containerOffset, ref measuredByteOffset, ref measuredUtf16Offset, cancellationToken);
+                containerOffsets.Add(containerOffset);
+                containerUtf16Starts.Add(measuredUtf16Offset);
+                boundedContainers.Add(!rootContainer && !itemContainer);
+            }
             if (token == JsonTokenType.StartArray) {
                 if (arrayContainers.Count == 0) rootIsArray = true;
                 arrayContainers.Add(true);
             } else if (token == JsonTokenType.StartObject) arrayContainers.Add(false);
-            else if ((token == JsonTokenType.EndArray || token == JsonTokenType.EndObject) && arrayContainers.Count > 0) arrayContainers.RemoveAt(arrayContainers.Count - 1);
+            else if ((token == JsonTokenType.EndArray || token == JsonTokenType.EndObject) && arrayContainers.Count > 0) {
+                int containerIndex = arrayContainers.Count - 1;
+                if (boundedContainers[containerIndex]) {
+                    int end = checked((int)reader.BytesConsumed);
+                    AdvanceJsonUtf16Offset(source, end, ref measuredByteOffset, ref measuredUtf16Offset, cancellationToken);
+                    limits.CheckValueLength(partialItems, measuredUtf16Offset - containerUtf16Starts[containerIndex], containerOffsets[containerIndex]);
+                }
+                arrayContainers.RemoveAt(containerIndex);
+                containerOffsets.RemoveAt(containerIndex);
+                containerUtf16Starts.RemoveAt(containerIndex);
+                boundedContainers.RemoveAt(containerIndex);
+            }
         }
         cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static void AdvanceJsonUtf16Offset(ReadOnlySpan<byte> source, int targetByteOffset, ref int byteOffset, ref int utf16Offset, CancellationToken cancellationToken) {
+        ReadOnlySpan<byte> value = source.Slice(byteOffset, targetByteOffset - byteOffset);
+        int length = 0;
+        int nextCancellationCheck = 0;
+        for (int index = 0; index < value.Length;) {
+            if (index >= nextCancellationCheck) { cancellationToken.ThrowIfCancellationRequested(); nextCancellationCheck = index + 4096; }
+            byte current = value[index];
+            if (current < 0x80) { length++; index++; }
+            else if (current < 0xE0) { length++; index += 2; }
+            else if (current < 0xF0) { length++; index += 3; }
+            else { length += 2; index += 4; }
+        }
+        utf16Offset += length;
+        byteOffset = targetByteOffset;
     }
 
     private static int GetJsonStringUtf16Length(ReadOnlySpan<byte> value, bool escaped) {

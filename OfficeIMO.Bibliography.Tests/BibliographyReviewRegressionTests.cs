@@ -574,4 +574,66 @@ public sealed class BibliographyReviewRegressionTests {
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV240" && diagnostic.Field == "dates.Issued.literal");
     }
+
+    [Theory]
+    [InlineData(99, null)]
+    [InlineData((int)BibliographyItemType.Unknown, "JOUR")]
+    public void RIS_types_that_reopen_with_different_semantics_block_strict_output(int type, string? nativeType) {
+        var document = new BibliographyDocument(BibliographyFormat.Ris);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = (BibliographyItemType)type, NativeType = nativeType, Title = "Type" });
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
+    }
+
+    [Fact]
+    public void Unknown_native_RIS_types_that_remain_unknown_reopen_exactly() {
+        var document = new BibliographyDocument(BibliographyFormat.Ris);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Unknown, NativeType = "CUSTOM", Title = "Type" });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
+
+        Assert.Equal(BibliographyItemType.Unknown, reopened.Type);
+        Assert.Equal("CUSTOM", reopened.NativeType);
+    }
+
+    [Theory]
+    [InlineData(BibliographyFormat.BibTex, "")]
+    [InlineData(BibliographyFormat.BibTex, " ")]
+    [InlineData(BibliographyFormat.BibLatex, "")]
+    [InlineData(BibliographyFormat.BibLatex, " ")]
+    public void Blank_Bib_scalars_remain_distinct_from_absent_values(BibliographyFormat format, string title) {
+        var document = new BibliographyDocument(format);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = title });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
+
+        Assert.Equal(title, reopened.Title);
+    }
+
+    [Fact]
+    public void CSL_aggregate_value_lengths_are_enforced_before_the_JSON_DOM_is_materialized() {
+        const string source = "[{\"id\":\"x\",\"custom\":{\"a\":1,\"b\":2}";
+        var options = new BibliographyReadOptions { MaximumValueLength = 10 };
+
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
+
+        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
+        Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Code == "BIBCSL002");
+    }
+
+    [Fact]
+    public void CSL_aggregate_value_lengths_use_UTF16_coordinates() {
+        const string source = "[{\"id\":\"x\",\"custom\":{\"text\":\"😀\"}}]";
+
+        BibliographyReadResult accepted = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumValueLength = 13 });
+        BibliographyReadResult rejected = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumValueLength = 12 });
+
+        Assert.False(accepted.HasErrors);
+        Assert.Contains(rejected.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
+    }
 }
