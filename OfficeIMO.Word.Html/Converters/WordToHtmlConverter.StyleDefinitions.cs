@@ -28,7 +28,7 @@ namespace OfficeIMO.Word.Html {
                 .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
-            string BuildCss(string styleId) {
+            string BuildCss(string styleId, bool includeInlineVerticalAlignment) {
                 var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -71,10 +71,12 @@ namespace OfficeIMO.Word.Html {
                         // Decorations are emitted as independent nested wrappers at each style
                         // use site. CSS exposes one text-decoration-style value, so a single rule
                         // cannot faithfully combine patterns such as wavy underline + double strike.
-                        if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Superscript) {
-                            props["vertical-align"] = "super";
-                        } else if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Subscript) {
-                            props["vertical-align"] = "sub";
+                        if (includeInlineVerticalAlignment) {
+                            if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Superscript) {
+                                props["vertical-align"] = "super";
+                            } else if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Subscript) {
+                                props["vertical-align"] = "sub";
+                            }
                         }
                         if (IsEnabled(rPr.SmallCaps)) {
                             props["font-variant"] = "small-caps";
@@ -109,12 +111,12 @@ namespace OfficeIMO.Word.Html {
 
             foreach (var s in paragraphStyles) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var css = BuildCss(s);
+                var css = BuildCss(s, includeInlineVerticalAlignment: false);
                 AppendCssRule(s, css);
             }
             foreach (var s in runStyles) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var css = BuildCss(s);
+                var css = BuildCss(s, includeInlineVerticalAlignment: true);
                 AppendCssRule(s, css);
             }
             styleElement.TextContent = sb.ToString();
@@ -139,7 +141,8 @@ namespace OfficeIMO.Word.Html {
             string source,
             bool suppressUnderline = false,
             bool suppressStrike = false,
-            bool suppressDoubleStrike = false) {
+            bool suppressDoubleStrike = false,
+            bool suppressVerticalPosition = false) {
             WordStyleTextDecorations decorations = ResolveStyleDefinitionTextDecorations(document, styleId);
             if (decorations.DoubleStrike && !suppressDoubleStrike) {
                 var strike = CreateOutputElement(htmlDocument, "span");
@@ -170,20 +173,19 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            return node;
-        }
+            if (!suppressVerticalPosition) {
+                if (decorations.VerticalPosition == WordVerticalTextPosition.Superscript) {
+                    var superscript = CreateOutputElement(htmlDocument, "sup");
+                    superscript.AppendChild(node);
+                    node = superscript;
+                } else if (decorations.VerticalPosition == WordVerticalTextPosition.Subscript) {
+                    var subscript = CreateOutputElement(htmlDocument, "sub");
+                    subscript.AppendChild(node);
+                    node = subscript;
+                }
+            }
 
-        private void ApplyStyleDefinitionTextDecorationsToChildren(
-            WordDocument document,
-            IDocument htmlDocument,
-            string? styleId,
-            IElement element,
-            string source) {
-            WordStyleTextDecorations decorations = ResolveStyleDefinitionTextDecorations(document, styleId);
-            if (!decorations.HasAny || element.ChildNodes.Length == 0) return;
-            var container = CreateOutputElement(htmlDocument, "span");
-            foreach (INode child in element.ChildNodes.ToArray()) container.AppendChild(child);
-            element.AppendChild(ApplyStyleDefinitionTextDecorations(document, htmlDocument, styleId, container, source));
+            return node;
         }
 
         private WordStyleTextDecorations ResolveStyleDefinitionTextDecorations(WordDocument document, string? styleId) {
@@ -216,6 +218,9 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (properties?.Strike != null) result.Strike = IsEnabled(properties.Strike);
                 if (properties?.DoubleStrike != null) result.DoubleStrike = IsEnabled(properties.DoubleStrike);
+                if (properties?.VerticalTextAlignment?.Val?.Value is VerticalPositionValues verticalPosition) {
+                    result.VerticalPosition = verticalPosition.ToOfficeEnum();
+                }
             }
             _styleDecorationCache[styleId!] = result;
             return result;
@@ -225,7 +230,7 @@ namespace OfficeIMO.Word.Html {
             internal WordUnderlineStyle? Underline { get; set; }
             internal bool Strike { get; set; }
             internal bool DoubleStrike { get; set; }
-            internal bool HasAny => Underline.HasValue && Underline.Value != WordUnderlineStyle.None || Strike || DoubleStrike;
+            internal WordVerticalTextPosition? VerticalPosition { get; set; }
         }
 
         private static bool IsSixDigitHexColor(string value) {

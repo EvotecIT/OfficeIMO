@@ -163,6 +163,25 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     }
 
     [Fact]
+    public void OdtParagraphLowercasePreservesFinalSigmaAcrossFormattingBoundaries() {
+        OdtDocument odt = OdtDocument.Create();
+        odt.Metadata.Language = "el-GR";
+        OdtParagraph paragraph = odt.AddParagraph();
+        paragraph.TextTransform = OdfTextTransform.Lowercase;
+        paragraph.AddSpan("Ο").Bold = true;
+        paragraph.AddSpan("Σ").Italic = true;
+
+        using WordDocument word = odt.ToWordDocument();
+        WordParagraphSnapshot converted = Assert.Single(word.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+
+        Assert.Equal("ος", converted.Text);
+        Assert.Equal(new[] { "ο", "ς" }, converted.Runs.Select(run => run.Text).ToArray());
+        Assert.True(converted.Runs[0].Bold);
+        Assert.True(converted.Runs[1].Italic);
+    }
+
+    [Fact]
     public void OdtDisplayCaseUsesDocumentLanguageInsteadOfHostCulture() {
         CultureInfo originalCulture = CultureInfo.CurrentCulture;
         CultureInfo originalUiCulture = CultureInfo.CurrentUICulture;

@@ -298,23 +298,35 @@ public static partial class WordOpenDocumentConversionExtensions {
         ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,
         ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
-        string[] sourceTexts = source.InlineNodes.Select(node => node.Text).ToArray();
-        IReadOnlyList<string> capitalizedTexts = OfficeTextCaseTransformer.ApplySegments(
-            sourceTexts,
-            OfficeTextCase.Capitalize,
-            textCaseCulture);
+        OdfTextTransform?[] transforms = source.InlineNodes.Select(node => node.Kind switch {
+            OdtInlineNodeKind.Span => node.Span!.TextTransform ?? source.TextTransform,
+            OdtInlineNodeKind.Hyperlink => node.Hyperlink!.TextTransform ?? source.TextTransform,
+            _ => source.TextTransform
+        }).ToArray();
+        string[] displayTexts = source.InlineNodes.Select(node => node.Text).ToArray();
+        for (int start = 0; start < transforms.Length;) {
+            OdfTextTransform? transform = transforms[start];
+            int end = start + 1;
+            while (end < transforms.Length && transforms[end] == transform) end++;
+            OfficeTextCase? textCase = transform switch {
+                OdfTextTransform.Capitalize => OfficeTextCase.Capitalize,
+                OdfTextTransform.Lowercase => OfficeTextCase.Lowercase,
+                _ => null
+            };
+            if (textCase.HasValue) {
+                IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(
+                    displayTexts.Skip(start).Take(end - start).ToArray(),
+                    textCase.Value,
+                    textCaseCulture);
+                for (int index = start; index < end; index++) {
+                    displayTexts[index] = transformed[index - start];
+                }
+            }
+            start = end;
+        }
         for (int nodeIndex = 0; nodeIndex < source.InlineNodes.Count; nodeIndex++) {
             OdtInlineNode node = source.InlineNodes[nodeIndex];
-            OdfTextTransform? transform = node.Kind switch {
-                OdtInlineNodeKind.Span => node.Span!.TextTransform ?? source.TextTransform,
-                OdtInlineNodeKind.Hyperlink => node.Hyperlink!.TextTransform ?? source.TextTransform,
-                _ => source.TextTransform
-            };
-            string displayText = transform switch {
-                OdfTextTransform.Capitalize => capitalizedTexts[nodeIndex],
-                OdfTextTransform.Lowercase => OfficeTextCaseTransformer.Apply(node.Text, OfficeTextCase.Lowercase, textCaseCulture),
-                _ => node.Text
-            };
+            string displayText = displayTexts[nodeIndex];
             switch (node.Kind) {
                 case OdtInlineNodeKind.Text:
                     unsupportedMeasurements += ApplyOdtParagraphTextFormatting(source, target.AddText(displayText),

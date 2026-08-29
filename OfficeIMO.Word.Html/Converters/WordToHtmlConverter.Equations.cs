@@ -205,9 +205,29 @@ namespace OfficeIMO.Word.Html {
                 var span = CreateOutputElement(htmlDocument, "span");
                 SetOutputAttribute(span, "class", GetSafeStyleClassName(run.CharacterStyleId), "EquationRunFormatting:class");
                 span.AppendChild(ApplyStyleDefinitionTextDecorations(
-                    document, htmlDocument, run.CharacterStyleId, node, "EquationRunStyleFormatting"));
+                    document,
+                    htmlDocument,
+                    run.CharacterStyleId,
+                    node,
+                    "EquationRunStyleFormatting",
+                    suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                    suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                    suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                    suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null));
                 node = span;
                 runStyles.Add(run.CharacterStyleId!);
+            }
+            if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(run.StyleId)) {
+                node = ApplyStyleDefinitionTextDecorations(
+                    document,
+                    htmlDocument,
+                    run.StyleId,
+                    node,
+                    "EquationParagraphStyleFormatting",
+                    suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                    suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                    suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                    suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null);
             }
             string? language = NormalizeRunLanguage(run.Language, documentLanguage);
             if (!string.IsNullOrEmpty(language)) {

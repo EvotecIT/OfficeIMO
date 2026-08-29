@@ -65,8 +65,7 @@ namespace OfficeIMO.PowerPoint {
                 .FirstOrDefault(value => value.HasValue);
             int? fontSize = sources.Select(source => source.FontSize?.Value)
                 .FirstOrDefault(value => value.HasValue);
-            string? fontName = sources.Select(source => source.GetFirstChild<A.LatinFont>()?.Typeface?.Value)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            string? fontName = ResolveFontName(run, sources);
             string? color = ResolveColor(run, sources);
             string? language = sources.Select(source => source.Language?.Value)
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
@@ -82,6 +81,51 @@ namespace OfficeIMO.PowerPoint {
                 fontName,
                 color,
                 language);
+        }
+
+        private static string? ResolveFontName(
+            PowerPointTextRun run,
+            IReadOnlyList<A.TextCharacterPropertiesType> sources) {
+            string? typeface = sources.Select(source => source.GetFirstChild<A.LatinFont>()?.Typeface?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            if (string.IsNullOrWhiteSpace(typeface)) return null;
+            string token = typeface!.Trim().ToLowerInvariant();
+            if (token is not ("+mj-lt" or "+mn-lt" or "+mj-ea" or "+mn-ea" or "+mj-cs" or "+mn-cs")) {
+                return typeface;
+            }
+
+            foreach (A.FontScheme scheme in EnumerateFontSchemes(run.OwnerPart)) {
+                string? resolved = token switch {
+                    "+mj-lt" => scheme.MajorFont?.LatinFont?.Typeface?.Value,
+                    "+mn-lt" => scheme.MinorFont?.LatinFont?.Typeface?.Value,
+                    "+mj-ea" => scheme.MajorFont?.EastAsianFont?.Typeface?.Value,
+                    "+mn-ea" => scheme.MinorFont?.EastAsianFont?.Typeface?.Value,
+                    "+mj-cs" => scheme.MajorFont?.ComplexScriptFont?.Typeface?.Value,
+                    "+mn-cs" => scheme.MinorFont?.ComplexScriptFont?.Typeface?.Value,
+                    _ => null
+                };
+                if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
+            }
+
+            return PowerPointTextDefaults.LegacyFallbackFontFamily;
+        }
+
+        private static IEnumerable<A.FontScheme> EnumerateFontSchemes(OpenXmlPartContainer? ownerPart) {
+            if (ownerPart is SlidePart slidePart) {
+                if (slidePart.ThemeOverridePart?.ThemeOverride?.FontScheme is A.FontScheme slideScheme) yield return slideScheme;
+                if (slidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FontScheme is A.FontScheme layoutScheme) yield return layoutScheme;
+                if (slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme is A.FontScheme masterScheme) yield return masterScheme;
+                yield break;
+            }
+            if (ownerPart is SlideLayoutPart layoutPart) {
+                if (layoutPart.ThemeOverridePart?.ThemeOverride?.FontScheme is A.FontScheme layoutScheme) yield return layoutScheme;
+                if (layoutPart.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme is A.FontScheme masterScheme) yield return masterScheme;
+                yield break;
+            }
+            if (ownerPart is SlideMasterPart masterPart
+                && masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme is A.FontScheme scheme) {
+                yield return scheme;
+            }
         }
 
         private static string? ResolveColor(

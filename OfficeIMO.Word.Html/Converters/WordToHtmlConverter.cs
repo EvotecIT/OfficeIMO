@@ -654,7 +654,8 @@ namespace OfficeIMO.Word.Html {
                             "RunStyleFormatting",
                             suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
                             suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
-                            suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike)));
+                            suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                            suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null));
                         node = spanClass;
                         runStyles.Add(run.CharacterStyleId!);
                     }
@@ -665,6 +666,19 @@ namespace OfficeIMO.Word.Html {
                         SetOutputAttribute(spanLanguage, "lang", runLanguage!, "RunFormatting:language");
                         spanLanguage.AppendChild(node);
                         node = spanLanguage;
+                    }
+
+                    if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
+                        node = ApplyStyleDefinitionTextDecorations(
+                            document,
+                            htmlDoc,
+                            para.StyleId,
+                            node,
+                            "ParagraphStyleFormatting",
+                            suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                            suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                            suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                            suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null);
                     }
 
                     if (inQuote && quote != null) {
@@ -828,9 +842,6 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(element, "style", string.Join(";", pStyles), "Paragraph:style");
                 }
                 AppendRuns(element, para);
-                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
-                    ApplyStyleDefinitionTextDecorationsToChildren(document, htmlDoc, para.StyleId, element, "ParagraphStyleFormatting");
-                }
                 parent.AppendChild(element);
             }
 
@@ -859,9 +870,6 @@ namespace OfficeIMO.Word.Html {
                     paragraphStyles.Add(captionParagraph.StyleId!);
                 }
                 AppendRuns(figCaption, captionParagraph);
-                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionParagraph.StyleId)) {
-                    ApplyStyleDefinitionTextDecorationsToChildren(document, htmlDoc, captionParagraph.StyleId, figCaption, "FigureCaptionStyleFormatting");
-                }
                 figure.AppendChild(figCaption);
             }
 
@@ -876,9 +884,6 @@ namespace OfficeIMO.Word.Html {
                     paragraphStyles.Add(captionParagraph.StyleId!);
                 }
                 AppendRuns(caption, captionParagraph);
-                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionParagraph.StyleId)) {
-                    ApplyStyleDefinitionTextDecorationsToChildren(document, htmlDoc, captionParagraph.StyleId, caption, "TableCaptionStyleFormatting");
-                }
                 tableElement.AppendChild(caption);
             }
 
@@ -1365,9 +1370,6 @@ namespace OfficeIMO.Word.Html {
                                     paragraphStyles.Add(captionPara.StyleId!);
                                 }
                                 AppendRuns(figCap, captionPara);
-                                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionPara.StyleId)) {
-                                    ApplyStyleDefinitionTextDecorationsToChildren(document, htmlDoc, captionPara.StyleId, figCap, "FigureCaptionStyleFormatting");
-                                }
                                 figure.AppendChild(figCap);
                                 sectionParent.AppendChild(figure);
                                 processedParagraphs.Add(captionPara);
@@ -1382,9 +1384,6 @@ namespace OfficeIMO.Word.Html {
                                     paragraphStyles.Add(paragraph.StyleId!);
                                 }
                                 AppendRuns(figCap, paragraph);
-                                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(paragraph.StyleId)) {
-                                    ApplyStyleDefinitionTextDecorationsToChildren(document, htmlDoc, paragraph.StyleId, figCap, "FigureCaptionStyleFormatting");
-                                }
                                 figure.AppendChild(figCap);
                                 AppendRuns(figure, imagePara);
                                 sectionParent.AppendChild(figure);

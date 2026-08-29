@@ -62,10 +62,27 @@ public static partial class OfficeTextBlockRenderer {
                 builder.Append(" font-style=\"italic\"");
             }
 
-            AppendSvgTextDecorationAttribute(builder, segment.UnderlineStyle, segment.StrikethroughStyle);
-            builder.Append('>')
-                .Append(OfficeSvgFormatting.Escape(segment.Text))
-                .Append("</tspan>");
+            bool splitDecorations = RequiresSeparateSvgDecorations(
+                segment.UnderlineStyle,
+                segment.StrikethroughStyle);
+            AppendSvgTextDecorationAttribute(
+                builder,
+                splitDecorations ? OfficeTextDecorationStyle.None : segment.UnderlineStyle,
+                segment.StrikethroughStyle);
+            builder.Append('>');
+            if (splitDecorations) {
+                builder.Append("<tspan");
+                AppendSvgTextDecorationAttribute(
+                    builder,
+                    segment.UnderlineStyle,
+                    OfficeTextDecorationStyle.None);
+                builder.Append('>')
+                    .Append(OfficeSvgFormatting.Escape(segment.Text))
+                    .Append("</tspan>");
+            } else {
+                builder.Append(OfficeSvgFormatting.Escape(segment.Text));
+            }
+            builder.Append("</tspan>");
         }
 
         builder.Append("</text>");

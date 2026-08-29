@@ -75,6 +75,25 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     }
 
     [Fact]
+    public void ExcelHtml_ImportsSemanticRichTextTagsWithoutInlineCss() {
+        const string html = "<table><tr><td><strong>Bold</strong> <em>italic</em> <u>under</u> <s>strike</s> <sup>2</sup><sub>3</sub></td></tr></table>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.RequireValue();
+        IReadOnlyList<ExcelRichTextRun> runs = Assert.Single(workbook.Sheets).CellAt(1, 1).GetRichText();
+
+        Assert.True(Assert.Single(runs, run => run.Text == "Bold").Bold);
+        Assert.True(Assert.Single(runs, run => run.Text == "italic").Italic);
+        Assert.True(Assert.Single(runs, run => run.Text == "under").Underline);
+        Assert.True(Assert.Single(runs, run => run.Text == "strike").Strikethrough);
+        Assert.Equal(ExcelVerticalTextAlignment.Superscript,
+            Assert.Single(runs, run => run.Text == "2").VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript,
+            Assert.Single(runs, run => run.Text == "3").VerticalTextAlignment);
+    }
+
+    [Fact]
     public void ExcelHtml_TruncationClipsMergedRangeToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("Clipped");

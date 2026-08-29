@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -114,6 +115,20 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     }
 
     [Fact]
+    public void PowerPointSemanticHtmlResolvesThemeFontTokensToRealFamilies() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        source.SetThemeLatinFonts("Theme Major", "Theme Minor");
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Theme font").Paragraphs[0].Runs[0];
+        run.Run.RunProperties = new A.RunProperties();
+        run.RunProperties.Append(new A.LatinFont { Typeface = "+mn-lt" });
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("font-family:&#39;Theme Minor&#39;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("+mn-lt", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PowerPointSemanticHtmlRoundTripPreservesParagraphBreaksAndRunFormatting() {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("First");
@@ -227,6 +242,41 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.Equal(WordUnderlineStyle.Wave, actual.Underline);
         Assert.True(actual.DoubleStrike);
+    }
+
+    [Fact]
+    public void WordParagraphStyleDecorationsAndScriptAllowDirectRunResets() {
+        using WordDocument source = WordDocument.Create();
+        var style = new Style { Type = StyleValues.Paragraph, StyleId = "ParagraphDecoratedScript" };
+        style.Append(new StyleName { Val = "Paragraph Decorated Script" });
+        var properties = new StyleRunProperties();
+        properties.Append(new Underline { Val = UnderlineValues.Single });
+        properties.Append(new Strike());
+        properties.Append(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
+        style.Append(properties);
+        source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph.SetStyleId("ParagraphDecoratedScript");
+        paragraph.AddText("Inherited");
+        WordParagraph reset = paragraph.AddText("Reset")
+            .SetUnderline(WordUnderlineStyle.None)
+            .SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
+        reset._runProperties!.Strike = new Strike { Val = false };
+
+        string html = source.ToHtml(new WordToHtmlOptions { IncludeParagraphClasses = true });
+        IElement output = HtmlDocumentParser.ParseDocument(html)
+            .QuerySelector("p.ParagraphDecoratedScript")!;
+
+        Assert.Equal("Inherited", Assert.Single(output.QuerySelectorAll("sup")).TextContent);
+        Assert.Equal("Inherited", Assert.Single(output.QuerySelectorAll("u")).TextContent);
+        IHtmlCollection<IElement> strikeElements = output.QuerySelectorAll("s");
+        Assert.NotEmpty(strikeElements);
+        Assert.All(strikeElements, element => Assert.Equal("Inherited", element.TextContent));
+        Assert.Equal("InheritedReset", output.TextContent);
+        string styleRule = Assert.Single(html.Split('\n'), line => line.Contains(".ParagraphDecoratedScript {", StringComparison.Ordinal));
+        Assert.DoesNotContain("text-decoration", styleRule, StringComparison.Ordinal);
+        Assert.DoesNotContain("vertical-align", styleRule, StringComparison.Ordinal);
     }
 
     [Fact]

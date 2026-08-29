@@ -138,8 +138,11 @@ public static partial class HtmlExcelConverterExtensions {
                 runs.Add(CreateImportedRichTextRun("\n", inheritedCss, inheritedNativeUnderline, suppressCssUnderline));
                 continue;
             }
-            IReadOnlyDictionary<string, string> effectiveCss = MergeInlineStyles(
+            IReadOnlyDictionary<string, string> semanticCss = ApplySemanticElementStyle(
                 inheritedCss,
+                element.LocalName);
+            IReadOnlyDictionary<string, string> effectiveCss = MergeInlineStyles(
+                semanticCss,
                 ParseInlineStyle(element.GetAttribute("style")));
             bool invalidNativeUnderline = HasInvalidNativeUnderline(element);
             ExcelUnderlineStyle? nativeUnderline = invalidNativeUnderline
@@ -159,6 +162,58 @@ public static partial class HtmlExcelConverterExtensions {
         foreach (KeyValuePair<string, string> declaration in inherited) merged[declaration.Key] = declaration.Value;
         foreach (KeyValuePair<string, string> declaration in direct) merged[declaration.Key] = declaration.Value;
         return merged;
+    }
+
+    private static IReadOnlyDictionary<string, string> ApplySemanticElementStyle(
+        IReadOnlyDictionary<string, string> inherited,
+        string elementName) {
+        string name = elementName.ToLowerInvariant();
+        if (name is not ("strong" or "b" or "em" or "i" or "u" or "s" or "strike" or "del" or "sup" or "sub")) {
+            return inherited;
+        }
+
+        var merged = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, string> declaration in inherited) merged[declaration.Key] = declaration.Value;
+        switch (name) {
+            case "strong":
+            case "b":
+                merged["font-weight"] = "bold";
+                break;
+            case "em":
+            case "i":
+                merged["font-style"] = "italic";
+                break;
+            case "u":
+                merged["text-decoration-line"] = MergeSemanticDecorationLines(inherited, "underline");
+                break;
+            case "s":
+            case "strike":
+            case "del":
+                merged["text-decoration-line"] = MergeSemanticDecorationLines(inherited, "line-through");
+                break;
+            case "sup":
+                merged["vertical-align"] = "super";
+                break;
+            case "sub":
+                merged["vertical-align"] = "sub";
+                break;
+        }
+        return merged;
+    }
+
+    private static string MergeSemanticDecorationLines(
+        IReadOnlyDictionary<string, string> inherited,
+        string added) {
+        bool underline = added == "underline";
+        bool lineThrough = added == "line-through";
+        if (TryGetCss(inherited, "text-decoration-line", out string line)
+            || TryGetCss(inherited, "text-decoration", out line)) {
+            underline |= line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                .Any(value => value.Equals("underline", StringComparison.OrdinalIgnoreCase));
+            lineThrough |= line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                .Any(value => value.Equals("line-through", StringComparison.OrdinalIgnoreCase));
+        }
+        return underline && lineThrough ? "underline line-through" : underline ? "underline" : "line-through";
     }
 
     private static void ApplyImportedCellStyle(IElement source, ExcelCell target, IReadOnlyDictionary<string, string> css) {
