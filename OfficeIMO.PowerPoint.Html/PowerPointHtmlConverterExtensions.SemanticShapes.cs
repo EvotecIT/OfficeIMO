@@ -176,11 +176,21 @@ public static partial class PowerPointHtmlConverterExtensions {
         StringBuilder body,
         PptCore.PowerPointTextRun run,
         PptCore.PowerPointEffectiveRunStyle effective) {
+        string hyperlink = HtmlUrlPolicyEvaluator.ResolveUrl(
+            run.Hyperlink?.ToString(),
+            null,
+            HtmlUrlPolicy.CreateHyperlinkProfile());
+        if (hyperlink.Length > 0) {
+            body.Append("<a href=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(hyperlink))
+                .Append("\">");
+        }
         AppendPowerPointDecorationStart(body, "underline", GetPowerPointUnderlineCssStyle(effective.UnderlineStyle));
         AppendPowerPointDecorationStart(body, "line-through", GetPowerPointStrikeCssStyle(effective.StrikeStyle));
         body.Append(OfficeHtmlText.Escape(run.Text));
         AppendPowerPointDecorationEnd(body, effective.StrikeStyle.HasValue && effective.StrikeStyle.Value != PptCore.PowerPointStrikeStyle.None);
         AppendPowerPointDecorationEnd(body, effective.UnderlineStyle.HasValue && effective.UnderlineStyle.Value != PptCore.PowerPointUnderlineStyle.None);
+        if (hyperlink.Length > 0) body.Append("</a>");
     }
 
     private static string? GetPowerPointUnderlineCssStyle(PptCore.PowerPointUnderlineStyle? underline) => underline switch {

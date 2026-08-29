@@ -308,6 +308,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         ApplyRichTextLineHeights(lines, lineFactor, maxFontSize);
+        lineHeight = ResolveMaximumRichTextLineHeight(lines, lineHeight);
 
         if (!wrap && lines.Count > 0 && lines[0].OffsetX + lines[0].Width > width + 0.01D) {
             if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
@@ -620,12 +621,44 @@ public static partial class OfficeTextLayoutEngine {
             return line.LineHeight;
         }
 
-        double fontSize = 0D;
-        for (int i = 0; i < line.Segments.Count; i++) {
-            fontSize = Math.Max(fontSize, EffectiveFontSize(line.Segments[i]));
+        ResolveRichTextVerticalExtents(line.Segments, out double top, out double bottom);
+        double extent = bottom - top;
+        if (extent <= 0D) extent = Math.Max(1D, fallbackFontSize);
+        return Math.Max(1D, Math.Ceiling(extent * lineHeightFactor));
+    }
+
+    private static double ResolveMaximumRichTextLineHeight(IReadOnlyList<OfficeRichTextLine> lines, double fallbackLineHeight) {
+        double maximum = Math.Max(1D, fallbackLineHeight);
+        for (int i = 0; i < lines.Count; i++) {
+            maximum = Math.Max(maximum, lines[i].LineHeight);
         }
-        if (fontSize <= 0D) fontSize = Math.Max(1D, fallbackFontSize);
-        return Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
+        return maximum;
+    }
+
+    internal static void ResolveRichTextVerticalExtents(
+        IReadOnlyList<OfficeRichTextSegment> segments,
+        out double top,
+        out double bottom) {
+        top = 0D;
+        bottom = 0D;
+        bool hasSegment = false;
+        for (int i = 0; i < segments.Count; i++) {
+            OfficeRichTextSegment segment = segments[i];
+            double renderedFontSize = EffectiveFontSize(segment);
+            double baselineOffset = segment.Baseline == OfficeTextBaseline.Superscript
+                ? -(segment.FontSize * 0.30D)
+                : segment.Baseline == OfficeTextBaseline.Subscript ? segment.FontSize * 0.15D : 0D;
+            double segmentTop = baselineOffset - (renderedFontSize * 0.84D);
+            double segmentBottom = segmentTop + renderedFontSize;
+            if (!hasSegment) {
+                top = segmentTop;
+                bottom = segmentBottom;
+                hasSegment = true;
+            } else {
+                top = Math.Min(top, segmentTop);
+                bottom = Math.Max(bottom, segmentBottom);
+            }
+        }
     }
 
     private static bool ClipRichTextLinesToHeight(

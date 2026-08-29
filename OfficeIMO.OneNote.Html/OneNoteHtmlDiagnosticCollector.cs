@@ -48,6 +48,13 @@ internal static class OneNoteHtmlDiagnosticCollector {
                 lossKind: OfficeConversionLossKind.Approximation);
         }
 
+        foreach (OneNoteOutline outline in page.Outlines) {
+            foreach (HtmlDiagnostic diagnostic in InspectAssetUris(outline, options, 0)) yield return diagnostic;
+        }
+        foreach (OneNoteElement element in page.DirectContent) {
+            foreach (HtmlDiagnostic diagnostic in InspectAssetUris(element, options, 0)) yield return diagnostic;
+        }
+
         if (options.IncludeConflictPages) {
             foreach (OneNotePage conflict in page.ConflictPages) {
                 foreach (HtmlDiagnostic diagnostic in InspectPage(conflict, options)) yield return diagnostic;
@@ -86,5 +93,45 @@ internal static class OneNoteHtmlDiagnosticCollector {
             }
         }
         return count;
+    }
+
+    private static IEnumerable<HtmlDiagnostic> InspectAssetUris(
+        OneNoteElement element,
+        OneNoteMarkdownOptions options,
+        int depth) {
+        if (depth >= options.MaxContentDepth) yield break;
+        if (element is OneNoteBinaryElement binary
+            && binary.Payload != null
+            && options.AssetUriResolver != null) {
+            string? candidate = options.AssetUriResolver(binary);
+            if (!string.IsNullOrWhiteSpace(candidate)
+                && OneNoteSemanticHtmlRenderer.ResolveResourceUri(candidate).Length == 0) {
+                yield return new HtmlDiagnostic(
+                    "OfficeIMO.OneNote.Html",
+                    "ONENOTE_HTML_ASSET_URI_REJECTED_BY_POLICY",
+                    "An asset URI returned by AssetUriResolver was rejected by the HTML resource policy and the asset was emitted as a placeholder.",
+                    HtmlDiagnosticSeverity.Warning,
+                    string.IsNullOrWhiteSpace(binary.FileName) ? binary.Kind.ToString() : binary.FileName,
+                    lossKind: OfficeConversionLossKind.Omission);
+            }
+        }
+
+        if (element is OneNoteOutline outline) {
+            foreach (OneNoteElement child in outline.Children) {
+                foreach (HtmlDiagnostic diagnostic in InspectAssetUris(child, options, depth + 1)) yield return diagnostic;
+            }
+        } else if (element is OneNoteParagraph paragraph) {
+            foreach (OneNoteElement child in paragraph.Children) {
+                foreach (HtmlDiagnostic diagnostic in InspectAssetUris(child, options, depth + 1)) yield return diagnostic;
+            }
+        } else if (element is OneNoteTable table) {
+            foreach (OneNoteTableRow row in table.Rows) {
+                foreach (OneNoteTableCell cell in row.Cells) {
+                    foreach (OneNoteElement child in cell.Content) {
+                        foreach (HtmlDiagnostic diagnostic in InspectAssetUris(child, options, depth + 1)) yield return diagnostic;
+                    }
+                }
+            }
+        }
     }
 }

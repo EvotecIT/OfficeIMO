@@ -1,7 +1,9 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Drawing.Tests;
@@ -117,6 +119,48 @@ public sealed class OfficeRichTextFormattingTests {
         Assert.Equal(13D, layout.LineHeight);
         Assert.Equal(13D, layout.Height);
         Assert.False(layout.Clipped);
+    }
+
+    [Fact]
+    public void ScriptLineBaselinesStayInsideTheirMeasuredLineBoxes() {
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            new[] {
+                new OfficeRichTextRun("H", 20D, OfficeColor.Black),
+                new OfficeRichTextRun("\n2", 20D, OfficeColor.Black, baseline: OfficeTextBaseline.Subscript)
+            },
+            maxWidth: 100D,
+            maxHeight: 33D,
+            lineHeightFactor: 1D,
+            measure: static (text, size, _) => (text?.Length ?? 0) * size,
+            wrap: false);
+        var svg = new StringBuilder();
+
+        svg.AppendSvgRichTextBlock(layout, 0D, 0D, 100D, 33D, centerLineInLineHeight: true);
+
+        Assert.Equal(33D, layout.Height);
+        Assert.Equal(13D, layout.Lines[1].LineHeight);
+        MatchCollection baselines = Regex.Matches(svg.ToString(), "<text[^>]* y=\\\"([^\\\"]+)\\\"");
+        Assert.Equal(2, baselines.Count);
+        Assert.Equal(30.92D, double.Parse(baselines[1].Groups[1].Value, CultureInfo.InvariantCulture), 6);
+    }
+
+    [Fact]
+    public void MixedNormalAndSubscriptRunsExpandTheSharedVerticalExtent() {
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            new[] {
+                new OfficeRichTextRun("H", 20D, OfficeColor.Black),
+                new OfficeRichTextRun("2", 20D, OfficeColor.Black, baseline: OfficeTextBaseline.Subscript)
+            },
+            maxWidth: 100D,
+            maxHeight: 22D,
+            lineHeightFactor: 1D,
+            measure: static (text, size, _) => (text?.Length ?? 0) * size,
+            wrap: false);
+
+        OfficeRichTextLine line = Assert.Single(layout.Lines);
+        Assert.Equal(22D, line.LineHeight);
+        Assert.Equal(22D, layout.LineHeight);
+        Assert.Equal(22D, layout.Height);
     }
 
     [Fact]

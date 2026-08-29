@@ -329,6 +329,35 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     }
 
     [Fact]
+    public void OneNoteSemanticHtmlReportsAssetUrisRejectedByPolicy() {
+        OneNoteSection section = CreateOneNoteSection(out _);
+        OneNotePage page = Assert.Single(section.Pages);
+        page.DirectContent.Add(new OneNoteImage {
+            FileName = "blocked.png",
+            AltText = "Blocked",
+            Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
+        });
+
+        HtmlTextConversionResult result = section.ToHtmlDocumentResult(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+            AssetUriResolver = _ => "javascript:alert(1)"
+        });
+
+        Assert.Contains("officeimo-onenote-image-placeholder", result.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("javascript:", result.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "ONENOTE_HTML_ASSET_URI_REJECTED_BY_POLICY"
+            && diagnostic.Source == "blocked.png"
+            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+
+        HtmlTextConversionResult allowed = section.ToHtmlDocumentResult(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+            AssetUriResolver = _ => "https://example.com/allowed.png"
+        });
+        Assert.Contains("src=\"https://example.com/allowed.png\"", allowed.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(allowed.Report.Diagnostics,
+            diagnostic => diagnostic.Code == "ONENOTE_HTML_ASSET_URI_REJECTED_BY_POLICY");
+    }
+
+    [Fact]
     public void OneNoteHtmlDiagnosticsSuppressPreservedStylesButRetainSpacingLoss() {
         OneNoteSection section = CreateOneNoteSection(out OneNoteParagraph paragraph);
         paragraph.Runs.Add(new OneNoteTextRun { Text = "Styled" });

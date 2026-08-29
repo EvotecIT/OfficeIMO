@@ -310,11 +310,7 @@ public static partial class OfficeTextBlockRenderer {
             }
 
             double lineHeight = ResolveRichTextRenderLineHeight(line, layout.LineHeight);
-            double lineFontSize = Math.Max(1D, line.FontSize);
-            double runTop = centerLineInLineHeight
-                ? lineTop + Math.Max(0D, (lineHeight - lineFontSize) / 2D)
-                : lineTop;
-            double baseline = runTop + (lineFontSize * 0.84D);
+            double baseline = ResolveRichTextRenderBaseline(line, lineTop, lineHeight, centerLineInLineHeight);
             double lineLeft = left + line.OffsetX;
             double lineWidth = Math.Max(0D, width - line.OffsetX);
             if (ShouldJustifyRichTextLine(line, lineIndex, layout.Lines.Count, lineWidth, horizontalAlignment)) {
@@ -417,11 +413,7 @@ public static partial class OfficeTextBlockRenderer {
             }
 
             double lineHeight = ResolveRichTextRenderLineHeight(line, layout.LineHeight);
-            double lineFontSize = Math.Max(1D, line.FontSize);
-            double runTop = centerLineInLineHeight
-                ? lineTop + Math.Max(0D, (lineHeight - lineFontSize) / 2D)
-                : lineTop;
-            double baseline = runTop + (lineFontSize * 0.84D);
+            double baseline = ResolveRichTextRenderBaseline(line, lineTop, lineHeight, centerLineInLineHeight);
             double lineLeft = left + line.OffsetX;
             double lineWidth = Math.Max(0D, width - line.OffsetX);
             if (ShouldJustifyRichTextLine(line, lineIndex, layout.Lines.Count, lineWidth, horizontalAlignment)) {
@@ -1299,6 +1291,17 @@ public static partial class OfficeTextBlockRenderer {
 
     private static double ResolveRichTextRenderLineHeight(OfficeRichTextLine line, double fallbackLineHeight) =>
         line.LineHeight > 0D ? line.LineHeight : fallbackLineHeight;
+
+    private static double ResolveRichTextRenderBaseline(
+        OfficeRichTextLine line,
+        double lineTop,
+        double lineHeight,
+        bool centerLineInLineHeight) {
+        OfficeTextLayoutEngine.ResolveRichTextVerticalExtents(line.Segments, out double contentTop, out double contentBottom);
+        double contentHeight = Math.Max(0D, contentBottom - contentTop);
+        double leading = centerLineInLineHeight ? Math.Max(0D, lineHeight - contentHeight) / 2D : 0D;
+        return lineTop + leading - contentTop;
+    }
 
     private static bool RequiresSvgWhitespacePreserve(OfficeTextBlockLayout layout) {
         for (int i = 0; i < layout.Lines.Count; i++) {

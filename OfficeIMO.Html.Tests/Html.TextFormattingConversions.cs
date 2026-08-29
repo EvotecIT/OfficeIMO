@@ -471,6 +471,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Contains("data-officeimo-powerpoint-run=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-language=\"pl-PL\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-hyperlink=\"https://example.com/styled\"", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://example.com/styled\">", html, StringComparison.Ordinal);
 
         HtmlConversionDocument prepared = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile());
@@ -497,6 +498,19 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal("Aptos", runs[1].FontName);
         Assert.Equal("336699", runs[1].Color);
         Assert.Equal(new Uri("https://example.com/styled", UriKind.Absolute), runs[1].Hyperlink);
+    }
+
+    [Fact]
+    public void PowerPointSemanticHtmlDoesNotActivatePolicyRejectedRunHyperlinks() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Blocked")
+            .Paragraphs.Single().Runs.Single();
+        run.Hyperlink = new Uri("javascript:alert(1)", UriKind.Absolute);
+
+        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+
+        Assert.Contains("data-officeimo-powerpoint-hyperlink=\"javascript:alert(1)\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"javascript:", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -576,12 +590,14 @@ public class HtmlTextFormattingConversionTests {
             run.BaselinePercent = 30D;
             run.FontName = "Aptos";
             run.Color = "336699";
+            run.Hyperlink = new Uri("https://example.com/field", UriKind.Absolute);
         });
 
         string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-underline=\"WavyDouble\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-baseline-percent=\"30\"", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://example.com/field\">", html, StringComparison.Ordinal);
 
         using PowerPointPresentation imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
@@ -596,6 +612,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(30D, formatting.BaselinePercent);
         Assert.Equal("Aptos", formatting.FontName);
         Assert.Equal("336699", formatting.Color);
+        Assert.Equal(new Uri("https://example.com/field", UriKind.Absolute), formatting.Hyperlink);
     }
 
     [Fact]

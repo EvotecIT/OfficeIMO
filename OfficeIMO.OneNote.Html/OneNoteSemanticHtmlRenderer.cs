@@ -248,7 +248,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     }
 
     private static void AppendImage(StringBuilder html, OneNoteImage image, Func<OneNoteBinaryElement, string?>? resolver) {
-        string source = image.Payload == null ? string.Empty : SafeResource(resolver?.Invoke(image));
+        string source = image.Payload == null ? string.Empty : ResolveResourceUri(resolver?.Invoke(image));
         string label = image.AltText ?? image.FileName ?? "image";
         string hyperlink = SafeLink(image.Hyperlink);
         if (hyperlink.Length > 0) html.Append("<a href=\"").Append(Attribute(hyperlink)).Append("\">");
@@ -258,7 +258,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     }
 
     private static void AppendBinary(StringBuilder html, OneNoteBinaryElement element, string label, Func<OneNoteBinaryElement, string?>? resolver) {
-        string target = element.Payload == null ? string.Empty : SafeResource(resolver?.Invoke(element));
+        string target = element.Payload == null ? string.Empty : ResolveResourceUri(resolver?.Invoke(element));
         if (target.Length == 0) html.Append("<span class=\"officeimo-onenote-attachment\">[").Append(Text(label)).Append("]</span>");
         else html.Append("<a class=\"officeimo-onenote-attachment\" href=\"").Append(Attribute(target)).Append("\">[").Append(Text(label)).Append("]</a>");
     }
@@ -290,7 +290,8 @@ internal static class OneNoteSemanticHtmlRenderer {
     }
 
     private static string SafeLink(string? value) => HtmlUrlPolicyEvaluator.ResolveUrl(EncodeUrl(value), null, HtmlUrlPolicy.CreateHyperlinkProfile());
-    private static string SafeResource(string? value) => HtmlUrlPolicyEvaluator.ResolveUrl(EncodeUrl(value), null, HtmlUrlPolicy.CreateOfficeIMOProfile());
+    internal static string ResolveResourceUri(string? value) =>
+        HtmlUrlPolicyEvaluator.ResolveUrl(EncodeUrl(value), null, HtmlUrlPolicy.CreateOfficeIMOProfile());
     private static string Name(string? value, string fallback) => OneNoteTextProjection.Normalize(string.IsNullOrWhiteSpace(value) ? fallback : value);
     private static string Text(string? value) => WebUtility.HtmlEncode(OneNoteTextProjection.Normalize(value));
     private static string Attribute(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
