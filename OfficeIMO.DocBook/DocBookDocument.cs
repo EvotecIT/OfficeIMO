@@ -48,10 +48,10 @@ public sealed partial class DocBookDocument {
             return (info?.Element(Namespace + "title") ?? RootElement.Element(Namespace + "title"))?.Value;
         }
         set {
-            XElement info = EnsureInfo();
-            XElement? title = info.Element(Namespace + "title");
+            XElement? info = FindInfo();
+            XElement? title = info?.Element(Namespace + "title") ?? RootElement.Element(Namespace + "title");
             if (value == null) title?.Remove();
-            else if (title == null) info.AddFirst(new XElement(Namespace + "title", value));
+            else if (title == null) EnsureInfo().AddFirst(new XElement(Namespace + "title", value));
             else title.Value = value;
             MarkModified();
         }

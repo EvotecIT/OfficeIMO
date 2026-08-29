@@ -66,10 +66,29 @@ public sealed partial class OpmlDocument {
             diagnostics.Add(new OpmlDiagnostic("OPML103", OpmlDiagnosticSeverity.Warning,
                 $"The source OPML profile '{sourceVersion}' was changed to '{document.DeclaredVersion}' by the requested conversion profile."));
         }
-        document.Head.Title = model.Source.Title ?? model.Metadata.FirstOrDefault(entry =>
-            entry.Category == "opml.head" && entry.Name == "title")?.Value;
+        OfficeDocumentModelMetadataEntry? titleMetadata = model.Metadata.FirstOrDefault(entry =>
+            entry.Category == "opml.head" && entry.Name == "title");
+        document.Head.Title = model.Source.Title ?? (titleMetadata == null ? null : titleMetadata.Value ?? string.Empty);
+        if (titleMetadata != null) {
+            XElement? titleElement = document.HeadElement.Element("title");
+            if (titleElement != null) {
+                foreach (KeyValuePair<string, string> attribute in titleMetadata.Attributes) {
+                    try {
+                        titleElement.SetAttributeValue(XName.Get(attribute.Key), attribute.Value);
+                    } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
+                        diagnostics.Add(new OpmlDiagnostic("OPML102", OpmlDiagnosticSeverity.Warning,
+                            $"Title attribute '{attribute.Key}' could not be represented in OPML."));
+                    }
+                }
+            }
+        }
+        bool primaryTitleConsumed = false;
         foreach (OfficeDocumentModelMetadataEntry metadata in model.Metadata.Where(entry => entry.Category == "opml.head")) {
-            if (metadata.Name == "title" || metadata.Value == null) continue;
+            if (metadata.Name == "title" && !primaryTitleConsumed) {
+                primaryTitleConsumed = true;
+                continue;
+            }
+            if (metadata.Value == null) continue;
             try {
                 XName name = XName.Get(metadata.Name);
                 var element = new XElement(name, metadata.Value);

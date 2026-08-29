@@ -110,6 +110,28 @@ public sealed class ReaderOpmlDocBookModularTests {
         }).Kind);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ContentDetectionRecognizesUtf32XmlInBothByteOrders(bool bigEndian) {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+        var encoding = new UTF32Encoding(bigEndian, byteOrderMark: true, throwOnInvalidCharacters: true);
+
+        byte[] opml = encoding.GetPreamble().Concat(encoding.GetBytes("<opml version=\"2.0\"><head/><body/></opml>")).ToArray();
+        byte[] docBook = encoding.GetPreamble().Concat(encoding.GetBytes("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"/>")).ToArray();
+        var options = new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent };
+
+        Assert.Equal(ReaderInputKind.Opml, reader.Detect(opml, "renamed.bin", options).Kind);
+        Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook, "renamed.bin", options).Kind);
+    }
+
+    [Theory]
+    [InlineData(ReaderInputKind.Opml, OfficeDocumentFormat.Opml)]
+    [InlineData(ReaderInputKind.DocBook, OfficeDocumentFormat.DocBook)]
+    public void PdfBridgeRetainsNewReaderFormats(ReaderInputKind readerKind, OfficeDocumentFormat expectedFormat) {
+        Assert.Equal(expectedFormat, OfficeDocumentReadResultPdfExtensions.MapFormat(readerKind));
+    }
+
     [Fact]
     public void ReaderLimitIsAppliedBeforeNativeParsing() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<opml version=\"2.0\"><head/><body><outline text=\"too long\"/></body></opml>"));

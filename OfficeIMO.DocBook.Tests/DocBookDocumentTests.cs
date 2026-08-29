@@ -87,6 +87,31 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedModelPreservesInformalTablesAndMixedCodeWhitespace() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup><tbody><row><entry>V</entry></row></tbody></tgroup></informaltable><programlisting>before <emphasis>inside</emphasis> after</programlisting><screen>left <replaceable>value</replaceable> right</screen></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        Assert.Equal("informal-table", model.Structure[0].Kind);
+        DocBookDocument restored = DocBookDocument.FromOfficeDocumentModel(model).Value;
+        Assert.Contains(restored.Xml.Descendants(), element => element.Name.LocalName == "informaltable");
+        XElement listing = restored.Xml.Descendants().Single(element => element.Name.LocalName == "programlisting");
+        Assert.Equal("before inside after", listing.Value);
+        Assert.Equal(new[] { "before ", "inside", " after" }, listing.Nodes().Select(node => node is XText text ? text.Value : ((XElement)node).Value));
+        XElement screen = restored.Xml.Descendants().Single(element => element.Name.LocalName == "screen");
+        Assert.Equal(new[] { "left ", "value", " right" }, screen.Nodes().Select(node => node is XText text ? text.Value : ((XElement)node).Value));
+    }
+
+    [Fact]
+    public void SharedConversionReportsDocBookFiveVersionNormalization() {
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.0\"><para>P</para></article>").ToOfficeDocumentModel();
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB111");
+        Assert.Contains("version=\"5.2\"", DocBookDocument.FromOfficeDocumentModel(converted.Value).Value.ToDocBook());
+    }
+
+    [Fact]
     public void SharedConversionReportsNativeOnlyComments() {
         DocBookDocument document = DocBookDocument.Parse("<!DOCTYPE article [<!ENTITY marker \"x\">]><article custom=\"x\">root-text<!--native--><para>P</para></article>");
         DocBookConversionResult<OfficeDocumentModel> result = document.ToOfficeDocumentModel();
@@ -178,5 +203,20 @@ public sealed class DocBookDocumentTests {
 
         DocBookDocument undeclared = DocBookDocument.Parse("<article><para>P</para></article>");
         Assert.Contains(undeclared.Validate().Diagnostics, d => d.Code == "DB005");
+    }
+
+    [Fact]
+    public void EditingDirectDocBookFourTitleDoesNotCreateDuplicateMetadataTitle() {
+        DocBookDocument document = DocBookDocument.Parse("<article><title>Before</title><para>P</para></article>");
+
+        document.Title = "After";
+
+        XElement title = Assert.Single(document.Xml.Root!.Elements(), element => element.Name.LocalName == "title");
+        Assert.Equal("After", title.Value);
+        Assert.DoesNotContain(document.Xml.Root!.Elements(), element => element.Name.LocalName == "articleinfo");
+
+        DocBookDocument restored = DocBookDocument.FromOfficeDocumentModel(document.ToOfficeDocumentModel().Value).Value;
+        Assert.Single(restored.Xml.Root!.Elements(), element => element.Name.LocalName == "title");
+        Assert.DoesNotContain(restored.Xml.Root!.Elements(), element => element.Name.LocalName == "articleinfo");
     }
 }

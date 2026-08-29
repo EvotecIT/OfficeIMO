@@ -24,6 +24,11 @@ public sealed partial class DocBookDocument {
             diagnostics.Add(new DocBookDiagnostic("DB110", DocBookDiagnosticSeverity.Warning,
                 "Significant root text remains native but is not represented by the shared document model.", "/" + RootElement.Name.LocalName));
         }
+        if (Profile == DocBookProfile.DocBook52 && (string?)RootElement.Attribute("version") != "5.2") {
+            diagnostics.Add(new DocBookDiagnostic("DB111", DocBookDiagnosticSeverity.Warning,
+                $"The source declares DocBook '{(string?)RootElement.Attribute("version") ?? "unspecified"}'; shared-model reconstruction normalizes it to the exact 5.2 writer profile.",
+                "/" + RootElement.Name.LocalName + "/@version"));
+        }
         XDocumentType? documentType = _xml.DocumentType;
         if (documentType != null && (!string.IsNullOrWhiteSpace(documentType.InternalSubset) ||
             (Profile == DocBookProfile.DocBook45 &&
@@ -34,7 +39,11 @@ public sealed partial class DocBookDocument {
 
         OfficeDocumentModelNode Convert(XElement element, int level, string parentPath) {
             DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
-            string normalizedKind = kind == DocBookNodeKind.Unknown ? "extension:" + element.Name : ToModelKind(kind);
+            string normalizedKind = kind == DocBookNodeKind.Unknown
+                ? "extension:" + element.Name
+                : kind == DocBookNodeKind.Table && element.Name.LocalName == "informaltable"
+                    ? "informal-table"
+                    : ToModelKind(kind);
             string text = GetPrimaryText(element, kind);
             string path = kind == DocBookNodeKind.Section
                 ? (string.IsNullOrEmpty(parentPath) ? text : parentPath + " / " + text) : parentPath;
@@ -69,7 +78,8 @@ public sealed partial class DocBookDocument {
 
         IReadOnlyList<OfficeDocumentModelNode> BuildChildren(XElement element, DocBookNodeKind kind, int level, string path) {
             bool mixedContent = kind == DocBookNodeKind.Unknown || kind == DocBookNodeKind.Paragraph || kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle ||
-                kind == DocBookNodeKind.Link || kind == DocBookNodeKind.Entry || kind == DocBookNodeKind.Caption || kind == DocBookNodeKind.Author;
+                kind == DocBookNodeKind.Link || kind == DocBookNodeKind.Entry || kind == DocBookNodeKind.Caption || kind == DocBookNodeKind.Author ||
+                kind == DocBookNodeKind.ProgramListing || kind == DocBookNodeKind.Screen;
             var children = new List<OfficeDocumentModelNode>();
             foreach (XNode node in element.Nodes()) {
                 if (node is XElement child) {
@@ -145,6 +155,8 @@ public sealed partial class DocBookDocument {
                     diagnostics.Add(new DocBookDiagnostic("DB104", DocBookDiagnosticSeverity.Warning,
                         $"Extension node name '{expandedName}' could not be reconstructed and was represented as a paragraph.", source.Location.HeadingPath));
                 }
+            } else if (string.Equals(source.Kind, "informal-table", StringComparison.OrdinalIgnoreCase)) {
+                target = parent.AddRaw("informaltable");
             } else if (TryMapKind(source.Kind, out DocBookNodeKind nodeKind)) {
                 string? directText = NodeAcceptsDirectText(nodeKind) && source.Children.Count == 0 ? source.Text : null;
                 target = nodeKind == DocBookNodeKind.Link && selectedProfile == DocBookProfile.DocBook45 && source.Attributes.ContainsKey("url")
@@ -167,7 +179,8 @@ public sealed partial class DocBookDocument {
 
         if (model.Structure.Count > 0) {
             bool hasMetadata = model.Structure.Any(node => string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase));
-            if (!hasMetadata) document.Title = model.Source.Title;
+            bool hasRootTitle = model.Structure.Any(node => string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase));
+            if (!hasMetadata && !hasRootTitle) document.Title = model.Source.Title;
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
         } else {
             document.Title = model.Source.Title;

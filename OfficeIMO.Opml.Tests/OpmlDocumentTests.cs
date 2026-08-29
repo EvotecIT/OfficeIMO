@@ -109,6 +109,8 @@ public sealed class OpmlDocumentTests {
     [Fact]
     public void SharedModelRoundTripRetainsNestingAndAttributes() {
         OpmlDocument source = OpmlDocument.Create(OpmlVersion.Opml10);
+        source.Head.Title = "Title";
+        source.Xml.Root!.Element("head")!.Element("title")!.SetAttributeValue(XName.Get("flag", "urn:test"), "metadata");
         OpmlOutline root = source.AddOutline("Root"); root.SetAttribute(XName.Get("flag", "urn:test"), "yes"); root.AddChild("Child");
         var model = source.ToOfficeDocumentModel().Value;
         Assert.Equal(OfficeDocumentFormat.Opml, model.Format);
@@ -119,6 +121,13 @@ public sealed class OpmlDocumentTests {
         Assert.False(converted.HasLoss);
         Assert.Equal(OpmlVersion.Opml10, converted.Value.Version);
         Assert.Equal("yes", converted.Value.Outlines.Single().GetAttribute(XName.Get("flag", "urn:test")));
+        Assert.Equal("metadata", converted.Value.Xml.Root!.Element("head")!.Element("title")!.Attribute(XName.Get("flag", "urn:test"))!.Value);
+    }
+
+    [Fact]
+    public void ParsingRejectsBodyBeforeHead() {
+        Assert.Throws<InvalidDataException>(() =>
+            OpmlDocument.Parse("<opml version=\"2.0\"><body/><head/></opml>"));
     }
 
     [Fact]

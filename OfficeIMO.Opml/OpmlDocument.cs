@@ -218,6 +218,10 @@ public sealed partial class OpmlDocument {
         if (root.Elements("head").Count() != 1 || root.Elements("body").Count() != 1) {
             throw new InvalidDataException("An OPML document requires exactly one head and one body element.");
         }
+        XElement[] rootChildren = root.Elements().ToArray();
+        if (Array.IndexOf(rootChildren, root.Element("head")!) > Array.IndexOf(rootChildren, root.Element("body")!)) {
+            throw new InvalidDataException("The OPML head element must precede the body element.");
+        }
         int outlines = 0;
         int attributes = 0;
         var stack = new Stack<Tuple<XElement, int>>();

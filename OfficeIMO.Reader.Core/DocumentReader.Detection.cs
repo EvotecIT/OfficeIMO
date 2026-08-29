@@ -785,6 +785,8 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static string? DecodeTextPrefix(byte[] bytes) {
+        if (StartsWith(bytes, new byte[] { 0xFF, 0xFE, 0x00, 0x00 })) return Encoding.UTF32.GetString(bytes);
+        if (StartsWith(bytes, new byte[] { 0x00, 0x00, 0xFE, 0xFF })) return new UTF32Encoding(true, true).GetString(bytes);
         if (StartsWith(bytes, new byte[] { 0xFF, 0xFE })) return Encoding.Unicode.GetString(bytes);
         if (StartsWith(bytes, new byte[] { 0xFE, 0xFF })) return Encoding.BigEndianUnicode.GetString(bytes);
 
