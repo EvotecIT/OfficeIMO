@@ -216,6 +216,23 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void TextCaseTransformationTreatsStructuralMathNodesAsContextBoundaries() {
+        OfficeMathExpression expression = OfficeMath.Row(
+            OfficeMath.Text("hello"),
+            OfficeMath.Fraction(OfficeMath.Number("1"), OfficeMath.Number("2")),
+            OfficeMath.Text("world"));
+
+        OfficeMathExpression transformed = expression.TransformTextCase(
+            OfficeTextCase.Capitalize,
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal("Hello(1)/(2)World", transformed.ToPlainText());
+        Assert.Equal("Hello", transformed.Children[0].Text);
+        Assert.Equal(OfficeMathKind.Fraction, transformed.Children[1].Kind);
+        Assert.Equal("World", transformed.Children[2].Text);
+    }
+
+    [Fact]
     public void LatexSerializerEscapesTextWithoutTurningItIntoScripts() {
         OfficeMathExpression expression = OfficeMath.Text(@"literal x_y^z\{#%&$~}");
         string latex = OfficeMathMarkup.ToLatex(expression);

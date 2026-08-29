@@ -12,6 +12,7 @@ using OfficeIMO.Word.OpenDocument;
 using Xunit;
 using OpenXmlSpreadsheetDocument = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument;
 using OpenXmlUnderline = DocumentFormat.OpenXml.Spreadsheet.Underline;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
@@ -41,6 +42,41 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         Assert.True(converted.DoubleStrike);
         Assert.Equal(nameof(WordVerticalTextPosition.Superscript), converted.VerticalTextAlignment);
         Assert.Equal(nameof(WordCapsStyle.SmallCaps), converted.CapsStyle);
+    }
+
+    [Fact]
+    public void WordToOdtResolvesInheritedCapsForSpansAndHyperlinks() {
+        using WordDocument source = WordDocument.Create(new MemoryStream());
+        W.Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(
+            new W.Style(
+                new W.StyleName { Val = "Inherited Caps Character" },
+                new W.StyleRunProperties(new W.Caps())) {
+                Type = W.StyleValues.Character,
+                StyleId = "InheritedCapsCharacter",
+                CustomStyle = true
+            },
+            new W.Style(
+                new W.StyleName { Val = "Inherited Caps Paragraph" },
+                new W.StyleRunProperties(new W.Caps())) {
+                Type = W.StyleValues.Paragraph,
+                StyleId = "InheritedCapsParagraph",
+                CustomStyle = true
+            });
+        styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.SmallCaps = new W.SmallCaps();
+
+        source.AddParagraph("Character").SetCharacterStyleId("InheritedCapsCharacter");
+        source.AddParagraph().AddHyperLink("Hyperlink", new Uri("https://example.test"))
+            .SetCharacterStyleId("InheritedCapsCharacter");
+        source.AddParagraph("Paragraph").SetStyleId("InheritedCapsParagraph");
+        source.AddParagraph("Default");
+
+        OdtDocument target = source.ToOpenDocument();
+
+        Assert.Equal(OdfTextTransform.Uppercase, Assert.Single(target.Paragraphs[0].Spans).TextTransform);
+        Assert.Equal(OdfTextTransform.Uppercase, Assert.Single(target.Paragraphs[1].Hyperlinks).TextTransform);
+        Assert.Equal(OdfTextTransform.Uppercase, Assert.Single(target.Paragraphs[2].Spans).TextTransform);
+        Assert.True(Assert.Single(target.Paragraphs[3].Spans).SmallCaps);
     }
 
     [Fact]
@@ -219,6 +255,26 @@ public sealed class OpenDocumentTextFormattingConversionTests {
 
         Assert.Equal("Hello World", converted.Text);
         Assert.Equal(new[] { "He", "llo World" }, converted.Runs.Select(run => run.Text).ToArray());
+        Assert.True(converted.Runs[0].Bold);
+        Assert.True(converted.Runs[1].Italic);
+    }
+
+    [Fact]
+    public void OdpParagraphLowercasePreservesFinalSigmaAcrossFormattingBoundaries() {
+        OdpPresentation odp = OdpPresentation.Create();
+        odp.Metadata.Language = "el-GR";
+        OdpParagraph paragraph = odp.AddSlide("Text")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text")
+            .AddParagraph();
+        paragraph.TextTransform = OdfTextTransform.Lowercase;
+        paragraph.AddRun("Ο").Bold = true;
+        paragraph.AddRun("Σ").Italic = true;
+
+        using PowerPointPresentation powerPoint = odp.ToPowerPointPresentation();
+        PowerPointParagraph converted = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single();
+
+        Assert.Equal("ος", converted.Text);
+        Assert.Equal(new[] { "ο", "ς" }, converted.Runs.Select(run => run.Text).ToArray());
         Assert.True(converted.Runs[0].Bold);
         Assert.True(converted.Runs[1].Italic);
     }

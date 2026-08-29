@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using A = DocumentFormat.OpenXml.Drawing;
 using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Html;
@@ -30,15 +31,17 @@ public static partial class PowerPointHtmlConverterExtensions {
     private static void AppendSemanticParagraphContent(
         StringBuilder body,
         IReadOnlyList<PptCore.PowerPointParagraph> paragraphs,
-        DocumentFormat.OpenXml.Drawing.ListStyle? listStyle,
-        DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle) {
+        A.ListStyle? listStyle,
+        DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle,
+        IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PptCore.PowerPointParagraph paragraph = paragraphs[paragraphIndex];
             if (paragraphIndex > 0) body.Append("<br data-officeimo-powerpoint-paragraph-break=\"true\">");
             foreach (PptCore.PowerPointParagraphInline node in paragraph.InlineNodes) {
                 if (node.Kind == PptCore.PowerPointParagraphInlineKind.Run && node.Run != null) {
                     AppendSemanticTextRun(body, node.Run,
-                        PptCore.PowerPointEffectiveRunStyleResolver.Resolve(node.Run, paragraph, listStyle, masterTextStyle));
+                        PptCore.PowerPointEffectiveRunStyleResolver.Resolve(
+                            node.Run, paragraph, listStyle, masterTextStyle, tableTextStyles));
                 } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.LineBreak) {
                     body.Append("<br data-officeimo-powerpoint-inline-break=\"true\">");
                 } else if (node.Kind == PptCore.PowerPointParagraphInlineKind.Field) {
@@ -55,7 +58,8 @@ public static partial class PowerPointHtmlConverterExtensions {
                     }
                     PptCore.PowerPointEffectiveRunStyle effective = default;
                     if (node.Run != null) {
-                        effective = PptCore.PowerPointEffectiveRunStyleResolver.Resolve(node.Run, paragraph, listStyle, masterTextStyle);
+                        effective = PptCore.PowerPointEffectiveRunStyleResolver.Resolve(
+                            node.Run, paragraph, listStyle, masterTextStyle, tableTextStyles);
                         AppendSemanticTextStyleAttributes(body, node.Run, effective);
                     }
                     body.Append('>');
@@ -67,7 +71,9 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
     }
 
-    private static bool RequiresSemanticTableCellContent(PptCore.PowerPointTableCell cell) {
+    private static bool RequiresSemanticTableCellContent(
+        PptCore.PowerPointTableCell cell,
+        IReadOnlyList<A.TableCellTextStyle> tableTextStyles) {
         IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = cell.Paragraphs;
         if (paragraphs.Count != 1) return true;
         IReadOnlyList<PptCore.PowerPointParagraphInline> nodes = paragraphs[0].InlineNodes;
@@ -80,7 +86,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         DocumentFormat.OpenXml.OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
             .SlideMaster?.TextStyles?.OtherStyle;
         PptCore.PowerPointEffectiveRunStyle effective = PptCore.PowerPointEffectiveRunStyleResolver.Resolve(
-            run, paragraphs[0], textBody?.ListStyle, masterTextStyle);
+            run, paragraphs[0], textBody?.ListStyle, masterTextStyle, tableTextStyles);
         return effective.Bold == true || effective.Italic == true
             || effective.UnderlineStyle is { } underline && underline != PptCore.PowerPointUnderlineStyle.None
             || effective.StrikeStyle is { } strike && strike != PptCore.PowerPointStrikeStyle.None

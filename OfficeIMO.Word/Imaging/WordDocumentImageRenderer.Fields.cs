@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
                 text = paragraph.Text ?? string.Empty;
             }
 
-            WordCapsStyle capsStyle = ResolveImageExportCapsStyle(paragraph);
+            WordCapsStyle capsStyle = ResolveEffectiveCapsStyle(paragraph);
             if (capsStyle == WordCapsStyle.None || text.Length == 0) {
                 return text;
             }
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
             return ResolveDocumentDefaultRunProperties(paragraph)?.Languages?.Val?.Value;
         }
 
-        private static WordCapsStyle ResolveImageExportCapsStyle(WordParagraph paragraph) {
+        internal static WordCapsStyle ResolveEffectiveCapsStyle(WordParagraph paragraph) {
             RunProperties? direct = paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
             bool caps = ResolveImageExportOnOff(direct?.Caps, paragraph);
             bool smallCaps = ResolveImageExportOnOff(direct?.SmallCaps, paragraph);

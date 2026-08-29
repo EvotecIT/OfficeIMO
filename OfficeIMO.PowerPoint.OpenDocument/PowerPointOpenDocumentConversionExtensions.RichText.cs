@@ -128,18 +128,53 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             IReadOnlyList<OdpInlineNode> inlineNodes = sourceParagraph.InlineNodes;
             IReadOnlyList<PowerPointTextRun> existingRuns = targetParagraph.Runs;
             bool useExistingRun = existingRuns.Count > 0;
-            var capitalizeRunGroup = new List<PowerPointTextRun>();
+            var textCaseRunGroup = new List<PowerPointTextRun>();
+            OfficeTextCase? groupedTextCase = null;
 
-            void FlushCapitalizeRunGroup() {
-                if (capitalizeRunGroup.Count == 0) return;
-                IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(
-                    capitalizeRunGroup.Select(run => run.Text).ToList(),
-                    OfficeTextCase.Capitalize,
-                    textCaseCulture);
-                for (int runIndex = 0; runIndex < capitalizeRunGroup.Count; runIndex++) {
-                    capitalizeRunGroup[runIndex].Text = transformed[runIndex];
+            void FlushTextCaseRunGroup() {
+                if (textCaseRunGroup.Count == 0 || !groupedTextCase.HasValue) {
+                    textCaseRunGroup.Clear();
+                    groupedTextCase = null;
+                    return;
                 }
-                capitalizeRunGroup.Clear();
+                IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(
+                    textCaseRunGroup.Select(run => run.Text).ToList(),
+                    groupedTextCase.Value,
+                    textCaseCulture);
+                for (int runIndex = 0; runIndex < textCaseRunGroup.Count; runIndex++) {
+                    textCaseRunGroup[runIndex].Text = transformed[runIndex];
+                }
+                textCaseRunGroup.Clear();
+                groupedTextCase = null;
+            }
+
+            void QueueTextCaseRuns(
+                IReadOnlyList<PowerPointTextRun> targetRuns,
+                OdfTextTransform? transform,
+                bool containsLineBreak) {
+                OfficeTextCase? textCase = transform switch {
+                    OdfTextTransform.Capitalize => OfficeTextCase.Capitalize,
+                    OdfTextTransform.Lowercase => OfficeTextCase.Lowercase,
+                    _ => null
+                };
+                if (!options.IncludeBasicFormatting || !textCase.HasValue) {
+                    FlushTextCaseRunGroup();
+                    return;
+                }
+                if (groupedTextCase.HasValue && groupedTextCase.Value != textCase.Value) {
+                    FlushTextCaseRunGroup();
+                }
+                groupedTextCase = textCase;
+                if (containsLineBreak) {
+                    FlushTextCaseRunGroup();
+                    foreach (PowerPointTextRun targetRun in targetRuns) {
+                        groupedTextCase = textCase;
+                        textCaseRunGroup.Add(targetRun);
+                        FlushTextCaseRunGroup();
+                    }
+                } else {
+                    textCaseRunGroup.AddRange(targetRuns);
+                }
             }
 
             PowerPointTextRun AddInlineRun(string text) {
@@ -171,10 +206,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     ? existingRuns[0]
                     : targetParagraph.AddRun(string.Empty);
                 unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
-                    textCaseCulture, ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                if (options.IncludeBasicFormatting && sourceParagraph.TextTransform == OdfTextTransform.Capitalize) {
-                    capitalizeRunGroup.Add(run);
-                }
+                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                QueueTextCaseRuns(new[] { run }, sourceParagraph.TextTransform, containsLineBreak: false);
             } else {
                 foreach (OdpInlineNode node in inlineNodes) {
                     IReadOnlyList<PowerPointTextRun> targetRuns = AddInlineRuns(node.Text);
@@ -186,14 +219,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     if (node.Kind == OdpInlineNodeKind.Run) {
                         foreach (PowerPointTextRun targetRun in targetRuns) {
                             unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, options,
-                                textCaseCulture, ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         }
                         if (!options.IncludeBasicFormatting && HasBasicFormatting(node.Run!)) skippedBasicFormatting++;
                     } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
                         OdpHyperlink hyperlink = node.Hyperlink!;
                         foreach (PowerPointTextRun targetRun in targetRuns) {
                             unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, options,
-                                textCaseCulture, ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         }
                         if (!string.IsNullOrWhiteSpace(hyperlink.TargetFrameName)
                             || !string.IsNullOrWhiteSpace(hyperlink.ShowBehavior)) {
@@ -217,34 +250,25 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     } else {
                         foreach (PowerPointTextRun targetRun in targetRuns) {
                             unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, options,
-                                textCaseCulture, ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         }
                         if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
                     }
-                    if (options.IncludeBasicFormatting && effectiveTransform == OdfTextTransform.Capitalize) {
-                        if (node.Text.IndexOfAny(new[] { '\r', '\n' }) >= 0) {
-                            FlushCapitalizeRunGroup();
-                            foreach (PowerPointTextRun targetRun in targetRuns) {
-                                capitalizeRunGroup.Add(targetRun);
-                                FlushCapitalizeRunGroup();
-                            }
-                        } else {
-                            capitalizeRunGroup.AddRange(targetRuns);
-                        }
-                    } else {
-                        FlushCapitalizeRunGroup();
-                    }
+                    QueueTextCaseRuns(
+                        targetRuns,
+                        effectiveTransform,
+                        node.Text.IndexOfAny(new[] { '\r', '\n' }) >= 0);
                     textRuns += targetRuns.Count;
                 }
             }
-            FlushCapitalizeRunGroup();
+            FlushTextCaseRunGroup();
             if (!options.IncludeBasicFormatting && HasBasicFormatting(sourceParagraph)) skippedBasicFormatting++;
             paragraphs++;
         }
     }
 
     private static int ApplyOdpRun(OdpRun source, OdpParagraph paragraph, PowerPointTextRun target,
-        PowerPointOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
+        PowerPointOpenDocumentConversionOptions options,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
         target.Text = source.Text;
         if (!options.IncludeBasicFormatting) return 0;
@@ -260,8 +284,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             source.TextPosition ?? paragraph.TextPosition,
             source.TextTransform ?? paragraph.TextTransform,
             source.SmallCaps ?? paragraph.SmallCaps,
-            target,
-            textCaseCulture);
+            target);
         OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
@@ -276,7 +299,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static int ApplyOdpHyperlink(OdpHyperlink source, OdpParagraph paragraph,
         PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options,
-        CultureInfo textCaseCulture,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
         if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold ?? paragraph.Bold ?? false;
@@ -291,8 +313,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             source.TextPosition ?? paragraph.TextPosition,
             source.TextTransform ?? paragraph.TextTransform,
             source.SmallCaps ?? paragraph.SmallCaps,
-            target,
-            textCaseCulture);
+            target);
         OdfLength? fontSize = source.FontSize ?? paragraph.FontSize;
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
@@ -307,7 +328,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static int ApplyOdpParagraphFormatting(OdpParagraph source, PowerPointTextRun target,
         PowerPointOpenDocumentConversionOptions options,
-        CultureInfo textCaseCulture,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
         if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold == true;
@@ -322,8 +342,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             source.TextPosition,
             source.TextTransform,
             source.SmallCaps,
-            target,
-            textCaseCulture);
+            target);
         int unsupported = ApplyOdpFontSize(source.FontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
@@ -360,8 +379,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         OdfTextPosition? position,
         OdfTextTransform? transform,
         bool? smallCaps,
-        PowerPointTextRun target,
-        CultureInfo textCaseCulture) {
+        PowerPointTextRun target) {
         target.UnderlineStyle = MapOdfUnderline(underline, underlineStyle, underlineType);
         bool hasStrike = strike == true && strikeStyle != OdfTextDecorationStyle.None && strikeType != OdfTextDecorationType.None;
         target.StrikeStyle = !hasStrike
@@ -380,9 +398,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             : smallCaps == true
                 ? PowerPointCapitalization.SmallCaps
                 : PowerPointCapitalization.None;
-        if (transform == OdfTextTransform.Lowercase) {
-            target.TransformTextCase(OfficeTextCase.Lowercase, textCaseCulture);
-        }
     }
 
     private static PowerPointUnderlineStyle? MapOdfUnderline(

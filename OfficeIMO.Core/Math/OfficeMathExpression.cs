@@ -201,21 +201,30 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
             ? OfficeTextCaseTransformer.Apply(expression.Text ?? string.Empty, textCase, culture)
             : expression.Text;
         var transformedChildren = new OfficeMathExpression[expression._children.Count];
-        IReadOnlyList<string>? rowTokens = null;
-        int rowTokenIndex = 0;
         if (expression.Kind == OfficeMathKind.Row) {
-            string[] sourceTokens = expression._children
-                .Where(child => child.Text != null)
-                .Select(child => child.Text!)
-                .ToArray();
-            if (sourceTokens.Length > 0) rowTokens = OfficeTextCaseTransformer.ApplySegments(sourceTokens, textCase, culture);
-        }
-        for (int index = 0; index < expression._children.Count; index++) {
-            OfficeMathExpression child = TransformTextCaseCore(expression._children[index], textCase, culture);
-            if (rowTokens != null && expression._children[index].Text != null) {
-                child = child.WithText(rowTokens[rowTokenIndex++]);
+            for (int start = 0; start < expression._children.Count;) {
+                if (expression._children[start].Text == null) {
+                    transformedChildren[start] = TransformTextCaseCore(expression._children[start], textCase, culture);
+                    start++;
+                    continue;
+                }
+
+                int end = start + 1;
+                while (end < expression._children.Count && expression._children[end].Text != null) end++;
+                IReadOnlyList<string> rowTokens = OfficeTextCaseTransformer.ApplySegments(
+                    expression._children.Skip(start).Take(end - start).Select(child => child.Text!).ToArray(),
+                    textCase,
+                    culture);
+                for (int index = start; index < end; index++) {
+                    transformedChildren[index] = TransformTextCaseCore(expression._children[index], textCase, culture)
+                        .WithText(rowTokens[index - start]);
+                }
+                start = end;
             }
-            transformedChildren[index] = child;
+        } else {
+            for (int index = 0; index < expression._children.Count; index++) {
+                transformedChildren[index] = TransformTextCaseCore(expression._children[index], textCase, culture);
+            }
         }
         return new OfficeMathExpression(
             expression.Kind,
