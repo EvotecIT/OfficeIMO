@@ -772,9 +772,25 @@ public sealed partial class DocBookDocument {
         }
 
         if (model.Structure.Count > 0) {
-            bool hasTitle = model.Structure.Any(ContainsDocumentTitle);
+            OfficeDocumentModelNode? documentTitleNode = FindDocumentTitleNode(model.Structure);
+            bool sourceTitleWins = false;
+            bool titleConflict = documentTitleNode != null &&
+                !string.Equals(model.Source.Title, documentTitleNode.Text, StringComparison.Ordinal);
+            if (titleConflict) {
+                OfficeDocumentModelNode conflictingTitleNode = documentTitleNode!;
+                string recursiveProjection = GetRepresentedPrimaryChildText(conflictingTitleNode);
+                sourceTitleWins = conflictingTitleNode.Children.Count > 0 &&
+                    !string.Equals(model.Source.Title, recursiveProjection, StringComparison.Ordinal) &&
+                    string.Equals(conflictingTitleNode.Text, recursiveProjection, StringComparison.Ordinal);
+            }
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
-            if (!hasTitle) document.Title = model.Source.Title;
+            if (documentTitleNode == null || sourceTitleWins) document.Title = model.Source.Title;
+            if (titleConflict) {
+                diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                    sourceTitleWins
+                        ? "Shared Source.Title differed from its unchanged recursive title projection; the edited Source title took precedence."
+                        : "Shared Source.Title and recursive document title contain conflicting values; the recursive title took precedence."));
+            }
             var consumedTableNodes = new HashSet<OfficeDocumentModelNode>();
             foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
                 document.AddParagraph(block.Text);
@@ -850,13 +866,24 @@ public sealed partial class DocBookDocument {
             diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
                 $"Shared {channel} '{identity}' could not be represented by the bounded DocBook common-structure profile.", path));
 
-        static bool ContainsDocumentTitle(OfficeDocumentModelNode node) =>
-            string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase) &&
-            node.Children.Any(ContainsTitleNode);
+        static OfficeDocumentModelNode? FindDocumentTitleNode(IReadOnlyList<OfficeDocumentModelNode> nodes) {
+            foreach (OfficeDocumentModelNode node in nodes) {
+                if (string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase)) return node;
+                if (!string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase)) continue;
+                OfficeDocumentModelNode? title = FindTitleDescendant(node.Children);
+                if (title != null) return title;
+            }
+            return null;
+        }
 
-        static bool ContainsTitleNode(OfficeDocumentModelNode node) =>
-            string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsTitleNode);
+        static OfficeDocumentModelNode? FindTitleDescendant(IReadOnlyList<OfficeDocumentModelNode> nodes) {
+            foreach (OfficeDocumentModelNode node in nodes) {
+                if (string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase)) return node;
+                OfficeDocumentModelNode? title = FindTitleDescendant(node.Children);
+                if (title != null) return title;
+            }
+            return null;
+        }
 
     }
 

@@ -153,8 +153,20 @@ public sealed partial class OpmlDocument {
             entry.Category == "opml.head" && entry.Name == "ownerName");
         document.Head.Title = model.Source.Title ?? (titleMetadata == null ? null : titleMetadata.Value ?? string.Empty);
         document.Head.OwnerName = model.Source.Author ?? (ownerMetadata == null ? null : ownerMetadata.Value ?? string.Empty);
+        ReportPrimaryMetadataConflict("title", model.Source.Title, titleMetadata);
+        ReportPrimaryMetadataConflict("ownerName", model.Source.Author, ownerMetadata);
         ApplyPrimaryMetadataAttributes("title", titleMetadata);
         ApplyPrimaryMetadataAttributes("ownerName", ownerMetadata);
+
+        void ReportPrimaryMetadataConflict(
+            string elementName,
+            string? sourceValue,
+            OfficeDocumentModelMetadataEntry? metadata) {
+            if (sourceValue == null || metadata == null || string.Equals(sourceValue, metadata.Value, StringComparison.Ordinal)) return;
+            diagnostics.Add(new OpmlDiagnostic("OPML110", OpmlDiagnosticSeverity.Warning,
+                $"Shared Source and opml.head/{elementName} metadata contain conflicting values; the Source value took precedence.",
+                "/opml/head/" + elementName));
+        }
 
         void ApplyPrimaryMetadataAttributes(string elementName, OfficeDocumentModelMetadataEntry? metadata) {
             if (metadata == null) return;

@@ -181,6 +181,21 @@ internal static partial class DocBookReaderAdapter {
                     };
                 }
             }
+            if (node.Kind == "list-item" && listMarker != null && !listMarker.Applied &&
+                BeginsWithNestedList(node)) {
+                yield return new ReaderChunk {
+                    Id = "docbook-" + currentSource,
+                    Kind = ReaderInputKind.DocBook,
+                    Text = string.Empty,
+                    Markdown = listMarker.TakePrefix().TrimEnd(),
+                    Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
+                        HeadingPath = node.Location.HeadingPath,
+                        SourceBlockKind = admonitionContext ?? "list-item",
+                        BlockAnchor = "docbook-node-" + currentSource },
+                    Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" },
+                    Warnings = TakeWarnings()
+                };
+            }
             if (!ownsInlineText) {
                 foreach (OfficeDocumentModelNode child in node.Children) {
                     if ((node.Kind == "section" || node.Kind == "table" || node.Kind == "figure") && child.Kind == "title") continue;
@@ -194,6 +209,14 @@ internal static partial class DocBookReaderAdapter {
         kind == "note" || kind == "tip" || kind == "important" || kind == "caution" || kind == "warning";
 
     private static bool IsPreformatted(string kind) => kind == "code" || kind == "screen";
+
+    private static bool BeginsWithNestedList(OfficeDocumentModelNode node) {
+        OfficeDocumentModelNode? firstContent = node.Children.FirstOrDefault(child =>
+            !string.Equals(child.Kind, "text", StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrWhiteSpace(child.Text));
+        return firstContent != null &&
+            (firstContent.Kind == "itemized-list" || firstContent.Kind == "ordered-list");
+    }
 
     private static bool OwnsInlineText(OfficeDocumentModelNode node) =>
         node.Kind == "paragraph" || node.Kind == "code" || node.Kind == "screen" ||

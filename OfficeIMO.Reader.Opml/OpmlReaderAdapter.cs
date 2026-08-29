@@ -33,7 +33,8 @@ internal static partial class OpmlReaderAdapter {
 
     private static OpmlProjection CreateProjection(OpmlDocument document, string sourceName, ReaderOptions reader, ReaderOpmlOptions options, bool includeChunkWarnings, CancellationToken cancellationToken) {
         OpmlValidationResult validation = document.Validate(null, cancellationToken);
-        OpmlConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName, null, cancellationToken);
+        OpmlConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(
+            sourceName, options.ConversionOptions, cancellationToken);
         OpmlDiagnostic[] diagnostics = validation.Diagnostics.Concat(conversion.Diagnostics).ToArray();
         IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
             ? diagnostics.Where(d => d.Severity != OpmlDiagnosticSeverity.Info)

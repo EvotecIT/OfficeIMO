@@ -180,6 +180,30 @@ public sealed class OpmlDocumentTests {
         Assert.Equal("Alex Smith", converted.Head.OwnerName);
     }
 
+    [Theory]
+    [InlineData("title", "Source title", "Metadata title")]
+    [InlineData("ownerName", "Source owner", "Metadata owner")]
+    public void SharedConversionDiagnosesConflictingPrimaryHeadProjections(
+        string metadataName,
+        string sourceValue,
+        string metadataValue) {
+        OpmlDocument source = OpmlDocument.Create();
+        source.Head.Title = "Original title";
+        source.Head.OwnerName = "Original owner";
+        OfficeDocumentModel model = source.ToOfficeDocumentModel().Value;
+        OfficeDocumentModelMetadataEntry metadata = model.Metadata.Single(entry =>
+            entry.Category == "opml.head" && entry.Name == metadataName);
+        metadata.Value = metadataValue;
+        if (metadataName == "title") model.Source.Title = sourceValue;
+        else model.Source.Author = sourceValue;
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML110" &&
+            diagnostic.Message.IndexOf(metadataName, StringComparison.Ordinal) >= 0);
+        Assert.Equal(sourceValue, metadataName == "title" ? converted.Value.Head.Title : converted.Value.Head.OwnerName);
+    }
+
     [Fact]
     public void SharedConversionReportsUnsupportedVersionNormalization() {
         OpmlConversionResult<OfficeDocumentModel> forward = OpmlDocument.Parse(

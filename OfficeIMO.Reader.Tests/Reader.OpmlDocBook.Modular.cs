@@ -115,6 +115,16 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterEmitsParentMarkerBeforeLeadingNestedList() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><itemizedlist><listitem><itemizedlist><listitem><para>Nested</para></listitem></itemizedlist><para>After</para></listitem></itemizedlist></article>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
+
+        Assert.Equal(new[] { "-", "  - Nested", "  After" }, chunks.Select(chunk => chunk.Markdown));
+        Assert.Equal(new[] { string.Empty, "Nested", "After" }, chunks.Select(chunk => chunk.Text));
+    }
+
+    [Fact]
     public void DocBookAdapterRendersInlineLinkAndCrossReferenceTargets() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para>See <link xl:href=\"https://example.test/a_(b)\">site</link> and <xref linkend=\"target\"/>.</para></article>";
 
@@ -475,6 +485,18 @@ public sealed class ReaderOpmlDocBookModularTests {
         using var canceled = new System.Threading.CancellationTokenSource(); canceled.Cancel();
         using var second = new MemoryStream(Encoding.UTF8.GetBytes("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"/>"));
         Assert.Throws<OperationCanceledException>(() => DocBookReaderAdapter.Read(second, "a.docbook", cancellationToken: canceled.Token).ToArray());
+    }
+
+    [Fact]
+    public void OpmlAdapterAppliesCallerConversionBounds() {
+        OpmlDocument document = OpmlDocument.Create();
+        document.AddOutline("One");
+        document.AddOutline("Two");
+        var options = new ReaderOpmlOptions {
+            ConversionOptions = new OpmlConversionOptions { MaxStructureNodes = 1 }
+        };
+
+        Assert.Throws<InvalidDataException>(() => OpmlReaderAdapter.Read(document, opmlOptions: options).ToArray());
     }
 
     [Fact]

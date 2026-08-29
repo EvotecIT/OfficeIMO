@@ -1148,6 +1148,27 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionReconcilesDocumentTitleProjectionEdits() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><title>Original</title></info><para>Body</para></article>";
+
+        OfficeDocumentModel sourceEdited = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        sourceEdited.Source.Title = "Edited source";
+        DocBookConversionResult<DocBookDocument> sourceResult = DocBookDocument.FromOfficeDocumentModel(sourceEdited);
+
+        Assert.Equal("Edited source", sourceResult.Value.Title);
+        Assert.Contains(sourceResult.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("Source.Title", StringComparison.Ordinal) >= 0);
+
+        OfficeDocumentModel structureEdited = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        FindStructureNode(structureEdited.Structure, "title").Text = "Edited structure";
+        DocBookConversionResult<DocBookDocument> structureResult = DocBookDocument.FromOfficeDocumentModel(structureEdited);
+
+        Assert.Equal("Edited structure", structureResult.Value.Title);
+        Assert.Contains(structureResult.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("recursive title", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
     public void SharedConversionDoesNotReportFlatFallbackWithoutFlatContent() {
         var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.DocBook };
         var titleOnly = new OfficeDocumentModel {
