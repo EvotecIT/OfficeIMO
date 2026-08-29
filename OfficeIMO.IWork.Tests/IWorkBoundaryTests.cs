@@ -1,5 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.IWork;
+using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.IWork.Tests;
 
@@ -99,6 +100,37 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Missing_numbers_tiles_are_preserved_and_disable_editable_claims() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Missing tile", 1, 1, 0d, missingTile: true)
+        }, includePreview: true);
+
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
+        IWorkNumbersProjection projection = source.ReadNumbers();
+        IWorkImportReport report = projection.CreateImportReport(
+            IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview);
+
+        Assert.False(projection.HasEditableContent);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_NUMBERS_TILE_UNSUPPORTED");
+        Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6001);
+    }
+
+    [Fact]
+    public void Missing_keynote_slides_are_preserved_and_use_visual_fallback() {
+        using MemoryStream package = CreateKeynotePackageWithMissingSlide();
+
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Empty(result.Projection.Slides);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_KEYNOTE_SLIDE_MISSING");
+        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.MessageType == 7001);
+    }
+
+    [Fact]
     public void Visual_only_numbers_import_bypasses_semantic_table_limits() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Large", 100, 1, 42d)
@@ -177,7 +209,8 @@ public sealed class IWorkBoundaryTests {
         using (var target = new ZipArchive(package, ZipArchiveMode.Create, leaveOpen: true)) {
             foreach (ZipArchiveEntry entry in source.Entries.Where(candidate =>
                          !string.Equals(candidate.FullName, "preview.jpg", StringComparison.OrdinalIgnoreCase)
-                         && !string.Equals(candidate.FullName, "preview-web.jpg", StringComparison.OrdinalIgnoreCase))) {
+                         && !string.Equals(candidate.FullName, "preview-web.jpg", StringComparison.OrdinalIgnoreCase)
+                         && !string.Equals(candidate.FullName, "preview.png", StringComparison.OrdinalIgnoreCase))) {
                 ZipArchiveEntry copy = target.CreateEntry(entry.FullName);
                 using Stream sourceStream = entry.Open();
                 using Stream targetStream = copy.Open();
@@ -186,6 +219,7 @@ public sealed class IWorkBoundaryTests {
             byte[] validPreview = ReadEntry(source, "preview.jpg");
             WriteEntry(target, "Data/unrelated-preview.jpg", validPreview);
             WriteEntry(target, "preview.jpg", new byte[] { 0xff, 0xd8, 0xff });
+            WriteEntry(target, "preview.png", CreateIncompletePngHeader(1200, 900));
             WriteEntry(target, "preview-web.jpg", validPreview);
         }
         package.Position = 0;
@@ -194,7 +228,23 @@ public sealed class IWorkBoundaryTests {
 
         Assert.DoesNotContain(document.Previews, preview => preview.Path.StartsWith("Data/", StringComparison.Ordinal));
         Assert.DoesNotContain(document.Previews, preview => preview.Path == "preview.jpg");
+        Assert.DoesNotContain(document.Previews, preview => preview.Path == "preview.png");
         Assert.Equal("preview-web.jpg", document.PreferredRasterPreview!.Path);
+    }
+
+    private static MemoryStream CreateKeynotePackageWithMissingSlide() {
+        const ulong documentId = 1;
+        const ulong showId = 2;
+        const ulong nodeId = 3;
+        const ulong missingSlideId = 4;
+        byte[] slideTree = Message(ReferenceField(2, nodeId));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
+            ArchiveRecord(showId, 7000, Message(BytesField(3, slideTree))),
+            ArchiveRecord(nodeId, 7001, Message(ReferenceField(2, missingSlideId))));
+        return CreatePackage(
+            ("Index/Document.iwa", FrameIwa(records)),
+            ("preview.png", ValidPreviewPng()));
     }
 
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
@@ -220,7 +270,7 @@ public sealed class IWorkBoundaryTests {
                 ? Message(VarintField(1, 0), BytesField(3, new byte[] { 1 }), BytesField(4, new byte[] { 1 }))
                 : CreateBncRow(table.Value, table.WideOffsets, table.HasFormula);
             byte[] tilePayload = Message(BytesField(5, rowInfo));
-            records.Add(ArchiveRecord(tileId, 6002, tilePayload));
+            if (!table.MissingTile) records.Add(ArchiveRecord(tileId, 6002, tilePayload));
 
             byte[] tileEntry = Message(VarintField(1, 0), ReferenceField(2, tileId));
             byte[] tileStorage = Message(BytesField(1, tileEntry));
@@ -364,6 +414,27 @@ public sealed class IWorkBoundaryTests {
         bytes[offset + 3] = (byte)(value >> 24);
     }
 
+    private static byte[] CreateIncompletePngHeader(int width, int height) {
+        var bytes = new byte[24] {
+            0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+            0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+            0, 0, 0, 0, 0, 0, 0, 0
+        };
+        WriteBigEndian32(bytes, 16, width);
+        WriteBigEndian32(bytes, 20, height);
+        return bytes;
+    }
+
+    private static void WriteBigEndian32(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)(value >> 24);
+        bytes[offset + 1] = (byte)(value >> 16);
+        bytes[offset + 2] = (byte)(value >> 8);
+        bytes[offset + 3] = (byte)value;
+    }
+
+    private static byte[] ValidPreviewPng() => Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
     private static string Fixture(string relativePath) =>
         Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             relativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -371,7 +442,7 @@ public sealed class IWorkBoundaryTests {
     private sealed class TableSpec {
         internal TableSpec(string name, int rows, int columns, double value,
             bool wideOffsets = false, bool legacyStorage = false, bool hasFormula = false,
-            bool missingModel = false) {
+            bool missingModel = false, bool missingTile = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -380,6 +451,7 @@ public sealed class IWorkBoundaryTests {
             LegacyStorage = legacyStorage;
             HasFormula = hasFormula;
             MissingModel = missingModel;
+            MissingTile = missingTile;
         }
 
         internal string Name { get; }
@@ -390,5 +462,6 @@ public sealed class IWorkBoundaryTests {
         internal bool LegacyStorage { get; }
         internal bool HasFormula { get; }
         internal bool MissingModel { get; }
+        internal bool MissingTile { get; }
     }
 }

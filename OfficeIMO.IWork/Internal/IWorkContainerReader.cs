@@ -18,12 +18,9 @@ internal static class IWorkContainerReader {
         if (Directory.Exists(path)) return ReadDirectory(path, options);
         if (!File.Exists(path)) throw new FileNotFoundException("The iWork source was not found.", path);
 
-        long length = new FileInfo(path).Length;
-        if (length > options.MaximumPackageBytes) {
-            throw new InvalidDataException($"Package size {length} exceeds the configured limit of {options.MaximumPackageBytes} bytes.");
-        }
-        using FileStream stream = File.OpenRead(path);
-        return ReadZip(stream, options);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+            bufferSize: 81920, FileOptions.SequentialScan);
+        return Read(stream, options);
     }
 
     internal static IWorkPackageData Read(Stream stream, IWorkReadOptions options) {
@@ -68,12 +65,19 @@ internal static class IWorkContainerReader {
                 string full = Path.GetFullPath(fileSystemEntry);
                 if (!full.StartsWith(root, pathComparison)) throw new InvalidDataException("A bundle entry resolves outside the source directory.");
                 string relative = NormalizePath(full.Substring(root.Length));
-                long length = new FileInfo(full).Length;
-                EnforceEntryBounds(length, ref total, options, relative);
-                if (total > options.MaximumPackageBytes) {
-                    throw new InvalidDataException($"Directory bundle size exceeds the configured limit of {options.MaximumPackageBytes} bytes.");
+                long remainingPackageBytes = options.MaximumPackageBytes - total;
+                long remainingEntryBytes = options.MaximumTotalEntryBytes - total;
+                long readLimit = Math.Min(options.MaximumEntryBytes,
+                    Math.Min(remainingPackageBytes, remainingEntryBytes));
+                if (readLimit < 0) {
+                    throw new InvalidDataException("Directory bundle size exceeds a configured package limit.");
                 }
-                byte[] bytes = File.ReadAllBytes(full);
+                byte[] bytes;
+                using (var input = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read,
+                           bufferSize: 81920, FileOptions.SequentialScan)) {
+                    bytes = ReadBounded(input, readLimit, relative);
+                }
+                EnforceEntryBounds(bytes.LongLength, ref total, options, relative);
                 AddEntry(entries, relative, bytes);
             }
         }
@@ -121,7 +125,7 @@ internal static class IWorkContainerReader {
             }
             EnforceEntryBounds(entry.Length, ref total, options, normalized);
             using Stream input = entry.Open();
-            byte[] bytes = ReadBounded(input, options.MaximumEntryBytes, normalized);
+            byte[] bytes = ReadBounded(input, Math.Min(options.MaximumEntryBytes, entry.Length), normalized);
             if (bytes.LongLength != entry.Length) throw new InvalidDataException($"Entry {normalized} changed length while it was read.");
             AddEntry(entries, normalized, bytes);
         }

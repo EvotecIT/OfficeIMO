@@ -28,10 +28,20 @@ internal sealed class IWorkObjectIndex {
     }
 
     internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field) {
+        return DereferenceAll(message, field, out _);
+    }
+
+    internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field,
+        out int unresolvedReferenceCount) {
         var result = new List<IWorkArchiveRecord>();
+        unresolvedReferenceCount = 0;
         foreach (IWorkWireMessage reference in TryGetMessages(message, field)) {
             ulong? identifier = reference.GetUnsigned(1);
-            if (identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)) result.Add(record);
+            if (identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)) {
+                result.Add(record);
+            } else {
+                unresolvedReferenceCount++;
+            }
         }
         return result;
     }
