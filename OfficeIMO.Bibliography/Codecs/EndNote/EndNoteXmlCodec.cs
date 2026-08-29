@@ -15,6 +15,7 @@ internal static class EndNoteXmlCodec {
         var items = new List<BibliographyItem>();
         recordsRoot = false;
         var limits = new BibliographyLimitGuard(options);
+        var materializationLimits = new BibliographyLimitGuard(options);
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
             int sourceOffset = source.Length > 0 && source[0] == '\uFEFF' ? 1 : 0;
@@ -23,7 +24,7 @@ internal static class EndNoteXmlCodec {
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaximumInputCharacters };
             using var textReader = new StringReader(xmlSource);
             using XmlReader innerReader = XmlReader.Create(textReader, settings);
-            using var reader = new EndNoteBoundedXmlReader(innerReader, limits, items, offsets, cancellationToken);
+            using var reader = new EndNoteBoundedXmlReader(innerReader, limits, materializationLimits, items, offsets, cancellationToken);
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             XElement? root = document.Root;
             if (root != null) foreach (XElement element in root.DescendantsAndSelf()) element.AddAnnotation(new EndNoteSourceOffset(offsets.GetOffset(element)));
@@ -133,15 +134,15 @@ internal static class EndNoteXmlCodec {
             item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, RecordAttributesFieldName, recordMetadata));
         }
         XElement? titles = Child(record, "titles"); XElement? periodical = Child(record, "periodical");
-        string secondaryTitle = Value(titles, "secondary-title"); string periodicalTitle = Value(periodical, "full-title");
-        item.Title = Value(titles, "title"); item.ContainerTitle = FirstNonEmpty(secondaryTitle, periodicalTitle); item.CollectionTitle = Value(titles, "tertiary-title");
+        string? secondaryTitle = OptionalValue(titles, "secondary-title"); string? periodicalTitle = OptionalValue(periodical, "full-title");
+        item.Title = OptionalValue(titles, "title"); item.ContainerTitle = FirstNonEmpty(secondaryTitle, periodicalTitle); item.CollectionTitle = OptionalValue(titles, "tertiary-title");
         if (!string.IsNullOrWhiteSpace(secondaryTitle)) item.EndNoteFieldNames["container-title"] = "secondary-title";
         else if (!string.IsNullOrWhiteSpace(periodicalTitle)) item.EndNoteFieldNames["container-title"] = "periodical";
         bool retainedAdditionalPeriodical = periodical != null && !string.IsNullOrWhiteSpace(secondaryTitle) && !string.IsNullOrWhiteSpace(periodicalTitle) && !string.Equals(secondaryTitle, periodicalTitle, StringComparison.Ordinal);
         if (retainedAdditionalPeriodical)
             item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "periodical", periodical!.Value, SerializeBoundedElement(periodical, partial, limits)));
-        item.Pages = Value(record, "pages"); item.Volume = Value(record, "volume"); item.Issue = Value(record, "number"); item.Edition = Value(record, "edition");
-        item.Publisher = Value(record, "publisher"); item.PublisherPlace = Value(record, "pub-location"); item.Abstract = Value(record, "abstract"); item.Language = Value(record, "language");
+        item.Pages = OptionalValue(record, "pages"); item.Volume = OptionalValue(record, "volume"); item.Issue = OptionalValue(record, "number"); item.Edition = OptionalValue(record, "edition");
+        item.Publisher = OptionalValue(record, "publisher"); item.PublisherPlace = OptionalValue(record, "pub-location"); item.Abstract = OptionalValue(record, "abstract"); item.Language = OptionalValue(record, "language");
         ParseContributors(item, Child(record, "contributors")); ParseDates(item, Child(record, "dates"));
         foreach (XElement identifier in record.Elements().Where(element => HasNameInNamespace(element, record.Name.Namespace))) {
             if (string.Equals(identifier.Name.LocalName, "isbn", StringComparison.OrdinalIgnoreCase)) {
@@ -202,12 +203,12 @@ internal static class EndNoteXmlCodec {
 
     private static void WriteTitles(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
         string? secondaryTitle = item.EndNoteFieldNames.TryGetValue("container-title", out string? source) && string.Equals(source, "periodical", StringComparison.OrdinalIgnoreCase) ? null : item.ContainerTitle;
-        if (string.IsNullOrWhiteSpace(item.Title) && string.IsNullOrWhiteSpace(secondaryTitle) && string.IsNullOrWhiteSpace(item.CollectionTitle)) return;
+        if (item.Title == null && secondaryTitle == null && item.CollectionTitle == null) return;
         writer.WriteStartElement(null, "titles", xmlNamespace); WriteElement(writer, "title", item.Title, xmlNamespace); WriteElement(writer, "secondary-title", secondaryTitle, xmlNamespace); WriteElement(writer, "tertiary-title", item.CollectionTitle, xmlNamespace); writer.WriteEndElement();
     }
 
     private static void WritePeriodical(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
-        if (!item.EndNoteFieldNames.TryGetValue("container-title", out string? source) || !string.Equals(source, "periodical", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(item.ContainerTitle)) return;
+        if (!item.EndNoteFieldNames.TryGetValue("container-title", out string? source) || !string.Equals(source, "periodical", StringComparison.OrdinalIgnoreCase) || item.ContainerTitle == null) return;
         writer.WriteStartElement(null, "periodical", xmlNamespace); WriteElement(writer, "full-title", item.ContainerTitle, xmlNamespace); writer.WriteEndElement();
     }
 
@@ -390,7 +391,7 @@ internal static class EndNoteXmlCodec {
             default: return true;
         }
     }
-    private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value!)); }
+    private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace) { if (value != null) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value)); }
     private static string SanitizeXml(string value) {
         var builder = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
@@ -446,7 +447,8 @@ internal static class EndNoteXmlCodec {
         return parent.Elements().FirstOrDefault(element => HasName(element, xmlNamespace, name));
     }
     private static string Value(XElement? parent, string name) => Child(parent, name)?.Value ?? string.Empty;
-    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    private static string? OptionalValue(XElement? parent, string name) => Child(parent, name)?.Value;
+    private static string? FirstNonEmpty(params string?[] values) => values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? values.FirstOrDefault(static value => value != null);
     private static int GetOffset(XElement element) => element.Annotation<EndNoteSourceOffset>()?.Value ?? -1;
     private static void AddIdentifier(BibliographyItem item, string scheme, string value) { if (!string.IsNullOrWhiteSpace(value)) item.Identifiers.Add(new BibliographyIdentifier(scheme, value)); }
     private static void ParseAccessionIdentifier(BibliographyItem item, string value) {

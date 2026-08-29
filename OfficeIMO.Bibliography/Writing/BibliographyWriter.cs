@@ -228,6 +228,9 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, "dates." + date.Role + ".end", "BIBCONV219", $"Date ranges are not represented exactly in {format}.", BibliographyConversionAction.Approximated);
             if (format != BibliographyFormat.CslJson && date.Year.HasValue && !string.IsNullOrWhiteSpace(date.Literal))
                 Loss(report, item, "dates." + date.Role + ".literal", "BIBCONV221", $"The literal date value is not represented alongside numeric date parts in {format}.", BibliographyConversionAction.Omitted);
+            if ((format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) &&
+                !date.Year.HasValue && !string.IsNullOrWhiteSpace(date.Literal) && CodecMappings.IsStructuredDateText(date.Literal!))
+                Loss(report, item, "dates." + date.Role + ".literal", "BIBCONV240", $"A parseable literal date is reopened as structured numeric parts in {format}.", BibliographyConversionAction.Approximated);
         }
     }
 
@@ -284,6 +287,8 @@ internal static class BibliographyConversionInspector {
         foreach (KeyValuePair<string, string> text in EnumerateText(item)) {
             if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && (text.Value.IndexOf('\r') >= 0 || text.Value.IndexOf('\n') >= 0))
                 Loss(report, item, text.Key, "BIBCONV209", $"Line breaks in '{text.Key}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
+            if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && text.Value.Length > 0 && char.IsWhiteSpace(text.Value[0]))
+                Loss(report, item, text.Key, "BIBCONV239", $"Leading whitespace in '{text.Key}' is normalized by {format} tagged-value parsing.", BibliographyConversionAction.Approximated);
             if (format == BibliographyFormat.EndNoteXml && HasInvalidXmlCharacters(text.Value))
                 Loss(report, item, text.Key, "BIBCONV210", $"Invalid XML characters in '{text.Key}' are replaced in EndNote XML.", BibliographyConversionAction.Approximated);
             if (format == BibliographyFormat.EndNoteXml && text.Value.IndexOf('\r') >= 0)
@@ -294,6 +299,8 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) {
             foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == format && (field.Value.IndexOf('\r') >= 0 || field.Value.IndexOf('\n') >= 0)))
                 Loss(report, item, "native." + field.Name, "BIBCONV209", $"Line breaks in native field '{field.Name}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
+            foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == format && field.Value.Length > 0 && char.IsWhiteSpace(field.Value[0])))
+                Loss(report, item, "native." + field.Name, "BIBCONV239", $"Leading whitespace in native field '{field.Name}' is normalized by {format} tagged-value parsing.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.EndNoteXml) {
             foreach (BibliographyNativeField field in item.NativeFields.Where(static field => field.Format == BibliographyFormat.EndNoteXml && field.Value.IndexOf('\r') >= 0))

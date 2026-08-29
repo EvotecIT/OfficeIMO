@@ -157,9 +157,8 @@ internal static class BibliographyFormatDetector {
         if (LooksLikeCsl(source, start)) return BibliographyFormat.CslJson;
         if (start < source.Length && source[start] == '<') {
             int xml = SkipLeadingXmlTrivia(source, start);
-            if (StartsWith(source, xml, "<xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, xml, "<records", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.EndNoteXml;
+            if (LooksLikeEndNoteRoot(source, xml)) return BibliographyFormat.EndNoteXml;
         }
-        if (StartsWith(source, start, "<?xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "<xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "<records", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.EndNoteXml;
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (StartsWith(source, start, "TY  -", StringComparison.Ordinal)) return BibliographyFormat.Ris;
         if (StartsWith(source, start, "PMID-", StringComparison.Ordinal) || StartsWith(source, start, "PMID -", StringComparison.Ordinal) || StartsWith(source, start, "OWN -", StringComparison.Ordinal)) return BibliographyFormat.Nbib;
@@ -212,6 +211,20 @@ internal static class BibliographyFormatDetector {
 
     private static bool LooksLikeCsl(string source, int position) =>
         StartsWith(source, position, "[", StringComparison.Ordinal) || StartsWith(source, position, "{", StringComparison.Ordinal);
+
+    private static bool LooksLikeEndNoteRoot(string source, int position) {
+        if (position < 0 || position >= source.Length || source[position] != '<' || position + 1 >= source.Length) return false;
+        int nameStart = position + 1;
+        if (source[nameStart] == '/' || source[nameStart] == '!' || source[nameStart] == '?') return false;
+        int nameEnd = nameStart;
+        while (nameEnd < source.Length && !char.IsWhiteSpace(source[nameEnd]) && source[nameEnd] != '/' && source[nameEnd] != '>') nameEnd++;
+        if (nameEnd == nameStart) return false;
+        int localStart = nameStart;
+        for (int index = nameStart; index < nameEnd; index++) if (source[index] == ':') localStart = index + 1;
+        int localLength = nameEnd - localStart;
+        return localLength == 3 && string.Compare(source, localStart, "xml", 0, 3, StringComparison.OrdinalIgnoreCase) == 0 ||
+            localLength == 7 && string.Compare(source, localStart, "records", 0, 7, StringComparison.OrdinalIgnoreCase) == 0;
+    }
 
     private static bool StartsWith(string source, int position, string value, StringComparison comparison) =>
         position >= 0 && position <= source.Length - value.Length && string.Compare(source, position, value, 0, value.Length, comparison) == 0;

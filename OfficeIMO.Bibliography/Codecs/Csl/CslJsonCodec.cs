@@ -12,7 +12,7 @@ internal static class CslJsonCodec {
         var limits = new BibliographyLimitGuard(options);
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
-            using JsonDocument json = ParseDocument(source, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth }, cancellationToken);
+            using JsonDocument json = ParseDocument(source, options, items, cancellationToken);
             if (json.RootElement.ValueKind == JsonValueKind.Array) {
                 foreach (JsonElement element in json.RootElement.EnumerateArray()) ParseItem(element, items, limits, diagnosticGuard, cancellationToken);
             } else if (json.RootElement.ValueKind == JsonValueKind.Object) {
@@ -143,14 +143,14 @@ internal static class CslJsonCodec {
                 foreach (JsonProperty property in element.EnumerateObject()) {
                     limits.AddValue(items, property.Name, 0);
                     if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array) CountValues(property.Value, items, limits);
-                    else limits.CheckValueLength(items, property.Value.GetRawText(), 0);
+                    else limits.CheckValueLength(items, GetScalarValueLength(property.Value), 0);
                 }
                 break;
             case JsonValueKind.Array:
                 foreach (JsonElement value in element.EnumerateArray()) {
                     limits.AddValue(items, null, 0);
                     if (value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array) CountValues(value, items, limits);
-                    else limits.CheckValueLength(items, value.GetRawText(), 0);
+                    else limits.CheckValueLength(items, GetScalarValueLength(value), 0);
                 }
                 break;
         }
@@ -164,6 +164,8 @@ internal static class CslJsonCodec {
             default: return value.GetRawText();
         }
     }
+
+    private static int GetScalarValueLength(JsonElement value) => value.ValueKind == JsonValueKind.String ? (value.GetString()?.Length ?? 0) : value.GetRawText().Length;
 
     private static string ScalarOrRaw(JsonElement value, string raw) => value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array ? raw : Scalar(value);
 
@@ -409,7 +411,7 @@ internal static class CslJsonCodec {
         try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); value.RootElement.WriteTo(writer); return true; } catch (JsonException) { return false; }
     }
 
-    private static JsonDocument ParseDocument(string source, JsonDocumentOptions options, CancellationToken cancellationToken) {
+    private static JsonDocument ParseDocument(string source, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {
         const int ChunkCharacters = 4096;
         using var stream = new MemoryStream(Math.Min(source.Length, 1024 * 1024));
         var encoder = Encoding.UTF8.GetEncoder();
@@ -426,8 +428,69 @@ internal static class CslJsonCodec {
             position += charactersUsed;
         }
         cancellationToken.ThrowIfCancellationRequested();
+        if (!stream.TryGetBuffer(out ArraySegment<byte> buffer) || buffer.Array == null) throw new InvalidOperationException("The CSL JSON input buffer is unavailable.");
+        ValidateBeforeMaterialization(new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, checked((int)stream.Length)), options, partialItems, cancellationToken);
         stream.Position = 0;
-        return JsonDocument.ParseAsync(stream, options, cancellationToken).GetAwaiter().GetResult();
+        return JsonDocument.ParseAsync(stream, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth }, cancellationToken).GetAwaiter().GetResult();
+    }
+
+    private static void ValidateBeforeMaterialization(ReadOnlySpan<byte> source, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {
+        if (source.Length >= 3 && source[0] == 0xEF && source[1] == 0xBB && source[2] == 0xBF) source = source.Slice(3);
+        var limits = new BibliographyLimitGuard(options);
+        var reader = new Utf8JsonReader(source, new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
+        var arrayContainers = new List<bool>();
+        bool rootIsArray = false;
+        int tokenCount = 0;
+        while (reader.Read()) {
+            if ((tokenCount++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            JsonTokenType token = reader.TokenType;
+            bool parentIsArray = arrayContainers.Count > 0 && arrayContainers[arrayContainers.Count - 1];
+            if (token == JsonTokenType.PropertyName) {
+                int offset = checked((int)reader.TokenStartIndex);
+                limits.CheckValueLength(partialItems, GetJsonStringUtf16Length(reader.ValueSpan, reader.ValueIsEscaped), offset);
+                limits.AddValue(partialItems, null, offset);
+                continue;
+            }
+            if (token == JsonTokenType.StartObject || token == JsonTokenType.StartArray || token == JsonTokenType.String || token == JsonTokenType.Number || token == JsonTokenType.True || token == JsonTokenType.False || token == JsonTokenType.Null) {
+                if (parentIsArray && !(rootIsArray && arrayContainers.Count == 1)) limits.AddValue(partialItems, null, checked((int)reader.TokenStartIndex));
+                if (token == JsonTokenType.StartObject && (arrayContainers.Count == 0 || rootIsArray && arrayContainers.Count == 1))
+                    limits.AddItem(partialItems, checked((int)reader.TokenStartIndex));
+            }
+            if (token == JsonTokenType.String)
+                limits.CheckValueLength(partialItems, GetJsonStringUtf16Length(reader.ValueSpan, reader.ValueIsEscaped), checked((int)reader.TokenStartIndex));
+            else if (token == JsonTokenType.Number || token == JsonTokenType.True || token == JsonTokenType.False || token == JsonTokenType.Null)
+                limits.CheckValueLength(partialItems, reader.ValueSpan.Length, checked((int)reader.TokenStartIndex));
+            if (token == JsonTokenType.StartArray) {
+                if (arrayContainers.Count == 0) rootIsArray = true;
+                arrayContainers.Add(true);
+            } else if (token == JsonTokenType.StartObject) arrayContainers.Add(false);
+            else if ((token == JsonTokenType.EndArray || token == JsonTokenType.EndObject) && arrayContainers.Count > 0) arrayContainers.RemoveAt(arrayContainers.Count - 1);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static int GetJsonStringUtf16Length(ReadOnlySpan<byte> value, bool escaped) {
+        int length = 0;
+        for (int index = 0; index < value.Length;) {
+            byte current = value[index];
+            if (escaped && current == (byte)'\\') {
+                length++;
+                index += index + 1 < value.Length && value[index + 1] == (byte)'u' ? 6 : 2;
+            } else if (current < 0x80) {
+                length++;
+                index++;
+            } else if (current < 0xE0) {
+                length++;
+                index += 2;
+            } else if (current < 0xF0) {
+                length++;
+                index += 3;
+            } else {
+                length += 2;
+                index += 4;
+            }
+        }
+        return length;
     }
     private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

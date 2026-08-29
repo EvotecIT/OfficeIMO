@@ -164,6 +164,11 @@ internal static class CodecMappings {
         return end.Length == 0 ? start : start + "/" + end;
     }
 
+    internal static bool IsStructuredDateText(string value) {
+        BibliographyDate parsed = ParseDate(BibliographyDateRole.Other, value);
+        return parsed.Year.HasValue && parsed.Literal == null;
+    }
+
     internal static string OutputKey(BibliographyItem item, int zeroBasedIndex) =>
         string.IsNullOrWhiteSpace(item.Key) ? "item-" + (zeroBasedIndex + 1).ToString(CultureInfo.InvariantCulture) : item.Key;
 

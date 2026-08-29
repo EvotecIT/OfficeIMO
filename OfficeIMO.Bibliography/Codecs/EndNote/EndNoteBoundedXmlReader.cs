@@ -5,15 +5,20 @@ namespace OfficeIMO.Bibliography;
 internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
     private readonly XmlReader _reader;
     private readonly BibliographyLimitGuard _limits;
+    private readonly BibliographyLimitGuard _materializationLimits;
     private readonly IList<BibliographyItem> _partialItems;
     private readonly EndNoteSourceOffsetMap _offsets;
     private readonly CancellationToken _cancellationToken;
     private readonly List<string> _elementNames = new List<string>();
     private readonly List<string> _elementNamespaces = new List<string>();
+    private readonly List<bool> _elementHasChildren = new List<bool>();
+    private readonly List<int> _elementTextLengths = new List<int>();
+    private readonly List<int> _elementOffsets = new List<int>();
 
-    internal EndNoteBoundedXmlReader(XmlReader reader, BibliographyLimitGuard limits, IList<BibliographyItem> partialItems, EndNoteSourceOffsetMap offsets, CancellationToken cancellationToken) {
+    internal EndNoteBoundedXmlReader(XmlReader reader, BibliographyLimitGuard limits, BibliographyLimitGuard materializationLimits, IList<BibliographyItem> partialItems, EndNoteSourceOffsetMap offsets, CancellationToken cancellationToken) {
         _reader = reader;
         _limits = limits;
+        _materializationLimits = materializationLimits;
         _partialItems = partialItems;
         _offsets = offsets;
         _cancellationToken = cancellationToken;
@@ -25,15 +30,34 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
         _cancellationToken.ThrowIfCancellationRequested();
         if (read && _reader.NodeType == XmlNodeType.Element) {
             int offset = _offsets.GetOffset(this);
+            if (_elementHasChildren.Count > 0) _elementHasChildren[_elementHasChildren.Count - 1] = true;
             _limits.CheckDepth(_partialItems, _reader.Depth + 1, offset);
             if (IsAcceptedRecordElement()) _limits.AddItem(_partialItems, offset);
+            for (int index = 0; index < _reader.AttributeCount; index++) _materializationLimits.AddValue(_partialItems, _reader.GetAttribute(index), offset);
             if (!_reader.IsEmptyElement) {
                 _elementNames.Add(_reader.LocalName);
                 _elementNamespaces.Add(_reader.NamespaceURI);
+                _elementHasChildren.Add(false);
+                _elementTextLengths.Add(0);
+                _elementOffsets.Add(offset);
+            } else {
+                _materializationLimits.AddValue(_partialItems, string.Empty, offset);
             }
         } else if (read && _reader.NodeType == XmlNodeType.EndElement && _elementNames.Count > 0) {
+            int last = _elementNames.Count - 1;
+            if (!_elementHasChildren[last]) {
+                _materializationLimits.CheckValueLength(_partialItems, _elementTextLengths[last], _elementOffsets[last]);
+                _materializationLimits.AddValue(_partialItems, null, _elementOffsets[last]);
+            }
             _elementNames.RemoveAt(_elementNames.Count - 1);
             _elementNamespaces.RemoveAt(_elementNamespaces.Count - 1);
+            _elementHasChildren.RemoveAt(last);
+            _elementTextLengths.RemoveAt(last);
+            _elementOffsets.RemoveAt(last);
+        } else if (read && _elementTextLengths.Count > 0 && (_reader.NodeType == XmlNodeType.Text || _reader.NodeType == XmlNodeType.CDATA)) {
+            int last = _elementTextLengths.Count - 1;
+            _materializationLimits.CheckAdditionalValueLength(_partialItems, _elementTextLengths[last], _reader.Value.Length, _elementOffsets[last]);
+            _elementTextLengths[last] += _reader.Value.Length;
         }
         return read;
     }
