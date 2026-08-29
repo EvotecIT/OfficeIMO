@@ -23,6 +23,27 @@ public sealed class DrawingConversionCapabilities {
         ];
 
         Assert.NotNull(typeof(OfficeConversionCapability).GetConstructor(originalParameters));
+
+        Type[] originalExplicitAssessmentParameters = [
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(OfficeConversionInputKind),
+            typeof(IEnumerable<string>),
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(OfficeConversionFidelityKind),
+            typeof(string),
+            typeof(bool),
+            typeof(bool),
+            typeof(OfficeConversionSupportLevel),
+            typeof(string),
+            typeof(string)
+        ];
+
+        Assert.NotNull(typeof(OfficeConversionCapability).GetConstructor(originalExplicitAssessmentParameters));
     }
 
     [Fact]
@@ -57,7 +78,7 @@ public sealed class DrawingConversionCapabilities {
         Assert.DoesNotContain(
             OfficeConversionCapabilityCatalog.All,
             static route => route.SupportLevel == OfficeConversionSupportLevel.ReferenceVerified);
-        Assert.Equal(4, OfficeConversionCapabilityCatalog.All.Count(static route => route.SupportLevel == OfficeConversionSupportLevel.Advanced));
+        Assert.Equal(8, OfficeConversionCapabilityCatalog.All.Count(static route => route.SupportLevel == OfficeConversionSupportLevel.Advanced));
     }
 
     [Theory]
@@ -93,7 +114,8 @@ public sealed class DrawingConversionCapabilities {
         Assert.Contains("PdfDocumentConversionResult", first, StringComparison.Ordinal);
         Assert.Contains("What it does", first, StringComparison.Ordinal);
         Assert.Contains("| Support | Evidence | Known limits |", first, StringComparison.Ordinal);
-        Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | Advanced |", first, StringComparison.Ordinal);
+        Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | FixedLayoutAppearance |", first, StringComparison.Ordinal);
+        Assert.Contains("| Advanced | Realistic DOCX fixtures", first, StringComparison.Ordinal);
         Assert.DoesNotContain("RtfDocument.Parse", first, StringComparison.Ordinal);
         Assert.Contains("RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)", first, StringComparison.Ordinal);
     }
@@ -110,5 +132,15 @@ public sealed class DrawingConversionCapabilities {
         Assert.Equal(OfficeConversionFidelityKind.FixedLayout, pdfToPng.Fidelity);
         Assert.Equal(OfficeConversionSupportLevel.Advanced, pdfToPng.SupportLevel);
         Assert.Contains("not page-layout recovery", pdfToWord.KnownLimitations, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SharedCatalog_OneNoteImageRoutesExposeACompleteFilePipeline() {
+        OfficeConversionCapability route = Assert.IsType<OfficeConversionCapability>(
+            OfficeConversionCapabilityCatalog.Find("onenote-png"));
+
+        Assert.Equal(OfficeConversionInputKind.File, route.InputKind);
+        Assert.Contains("OneNoteSectionReader.Read(stream)", route.Api, StringComparison.Ordinal);
+        Assert.Contains(".ExportImages(", route.Api, StringComparison.Ordinal);
     }
 }

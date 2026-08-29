@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
 
         private static bool AddTextBox(WordTextBox textBox, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, A.ColorScheme? colorScheme) {
             List<WordParagraph> paragraphs = textBox.Paragraphs;
-            string text = GetTextBoxText(textBox, paragraphs, context);
+            string text = GetTextBoxText(textBox, paragraphs, context, diagnostics);
             if (string.IsNullOrWhiteSpace(text)) {
                 text = string.Empty;
             }
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word {
             }
 
             if (context.IsTargetPage) {
-                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, context.Left, context.Y, width, height, context, colorScheme);
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, context.Left, context.Y, width, height, context, colorScheme, diagnostics);
             }
 
             context.Y += height + ParagraphGapPoints;
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word {
 
             WordTextBoxFrameTransform transform = GetTextBoxFrameTransform(textBox);
             if (context.IsTargetPage) {
-                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme);
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme, diagnostics);
             }
 
             bool hasSquareWrap = anchor.GetFirstChild<WrapSquare>() != null;
@@ -182,7 +182,7 @@ namespace OfficeIMO.Word {
             }
 
             if (context.IsTargetPage) {
-                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme);
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme, diagnostics);
             }
 
             context.Y = bottom + distanceFromBottom + ParagraphGapPoints;
@@ -201,7 +201,8 @@ namespace OfficeIMO.Word {
             double width,
             double height,
             WordImageFlowContext context,
-            A.ColorScheme? colorScheme) {
+            A.ColorScheme? colorScheme,
+            List<OfficeImageExportDiagnostic> diagnostics) {
             OfficeShape frame = OfficeShape.Rectangle(width, height);
             ApplyTextBoxStyle(frame, textBox);
             WordTextBoxFrameTransform transform = GetTextBoxFrameTransform(textBox);
@@ -219,7 +220,7 @@ namespace OfficeIMO.Word {
             double rotationCenterX = left + (width / 2D);
             double rotationCenterY = top + (height / 2D);
 
-            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, context);
+            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, context, diagnostics);
             if (ShouldRenderTextBoxAsRichText(textBox, richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double richLineHeight = Math.Max(maxFontSize * 1.25D, 12D);
@@ -403,19 +404,19 @@ namespace OfficeIMO.Word {
                 string.Equals(value, expectedValue, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string GetTextBoxText(WordTextBox textBox, IEnumerable<WordParagraph> fallbackRuns, WordImageFlowContext? context = null) {
+        private static string GetTextBoxText(
+            WordTextBox textBox,
+            IEnumerable<WordParagraph> fallbackRuns,
+            WordImageFlowContext? context = null,
+            List<OfficeImageExportDiagnostic>? diagnostics = null) {
             DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
             if (content != null) {
                 List<string> paragraphText = content.ChildElements
                     .OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
                     .Select(paragraph => {
-                        if (context?.ResolveDynamicPageFields != true) {
-                            return NormalizeTextBoxParagraphText(paragraph.InnerText);
-                        }
-
                         string resolvedText = string.Concat(
                             WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
-                                .Select(run => ResolveImageExportText(run, context)));
+                                .Select(run => ResolveImageExportText(run, context, diagnostics)));
                         return string.IsNullOrEmpty(resolvedText)
                             ? NormalizeTextBoxParagraphText(paragraph.InnerText)
                             : NormalizeTextBoxParagraphText(resolvedText);
@@ -428,7 +429,7 @@ namespace OfficeIMO.Word {
             }
 
             List<string> parts = fallbackRuns
-                .Select(paragraph => NormalizeTextBoxParagraphText(ResolveImageExportText(paragraph, context)))
+                .Select(paragraph => NormalizeTextBoxParagraphText(ResolveImageExportText(paragraph, context, diagnostics)))
                 .Where(text => !string.IsNullOrEmpty(text))
                 .ToList();
             return string.Join(Environment.NewLine, parts);
@@ -469,7 +470,11 @@ namespace OfficeIMO.Word {
             left.Strikethrough == right.Strikethrough &&
             string.Equals(left.FontFamily, right.FontFamily, StringComparison.Ordinal);
 
-        private static List<OfficeRichTextRun> CreateTextBoxRichTextRuns(WordTextBox textBox, A.ColorScheme? colorScheme, WordImageFlowContext? context = null) {
+        private static List<OfficeRichTextRun> CreateTextBoxRichTextRuns(
+            WordTextBox textBox,
+            A.ColorScheme? colorScheme,
+            WordImageFlowContext? context = null,
+            List<OfficeImageExportDiagnostic>? diagnostics = null) {
             var richRuns = new List<OfficeRichTextRun>();
             DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
             if (content == null) {
@@ -478,7 +483,7 @@ namespace OfficeIMO.Word {
 
             foreach (DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph in content.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
                 List<(WordParagraph Run, string Text)> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
-                    .Select(run => (Run: run, Text: ResolveImageExportText(run, context)))
+                    .Select(run => (Run: run, Text: ResolveImageExportText(run, context, diagnostics)))
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
                 if (paragraphRuns.Count == 0) {

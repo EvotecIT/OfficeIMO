@@ -55,6 +55,7 @@ namespace OfficeIMO.Visio {
             double maxHeight = 0D,
             bool drawLabelBackground = false,
             bool labelAdjusted = false) {
+            text = ResolveSvgDisplayText(text, style);
             double fontSize = PointsToSvgPixels(style?.Size ?? defaultSize, scale);
             string fontFamily = ResolveSvgTextFontFamily(style);
             OfficeFontStyle fontStyle = ResolveOfficeFontStyle(style);
@@ -63,6 +64,8 @@ namespace OfficeIMO.Visio {
             double availableHeight = IsFinitePositive(maxHeight) ? maxHeight : double.PositiveInfinity;
             OfficeTextAlignment alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment(style?.HorizontalAlignment);
             OfficeTextVerticalAlignment verticalAlignment = VisioDrawingTextAlignment.ToOfficeTextVerticalAlignment(style?.VerticalAlignment);
+            OfficeTextBaseline baseline = style?.Baseline ?? OfficeTextBaseline.Normal;
+            double baselineScale = baseline == OfficeTextBaseline.Normal ? 1D : 0.65D;
             OfficeTextBlockRenderPlan plan = OfficeTextBlockRenderPlan.CreateFittedFromCenter(
                 text,
                 fontSize,
@@ -70,16 +73,17 @@ namespace OfficeIMO.Visio {
                 y,
                 availableWidth,
                 availableHeight,
-                (candidate, candidateFontSize) => MeasureSvgTextWidth(textMeasurer, candidate, candidateFontSize, fontFamily, fontStyle),
+                (candidate, candidateFontSize) => MeasureSvgTextWidth(textMeasurer, candidate, candidateFontSize * baselineScale, fontFamily, fontStyle),
                 alignment,
                 verticalAlignment,
-                lineHeightFactor: 1.2D,
+                lineHeightFactor: 1.2D * baselineScale,
                 minimumFontSize: 5D);
             fontSize = plan.Layout.FontSize;
+            double renderedFontSize = fontSize * baselineScale;
 
             Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
-            double padX = Math.Max(3D, fontSize * 0.22D);
-            double padY = Math.Max(2D, fontSize * 0.16D);
+            double padX = Math.Max(3D, renderedFontSize * 0.22D);
+            double padY = Math.Max(2D, renderedFontSize * 0.16D);
             OfficeTextBlockRenderer.WriteSvgTextBox(
                 writer,
                 plan,
@@ -95,8 +99,12 @@ namespace OfficeIMO.Visio {
                 backgroundColor,
                 padX,
                 padY,
-                labelAdjusted ? static textWriter => textWriter.WriteAttributeString("data-officeimo-label-adjusted", "true") : null,
-                backgroundWriter => ConfigureTextBackgroundAttributes(backgroundWriter, drawLabelBackground, labelAdjusted));
+                textWriter => ConfigureSvgTextAttributes(textWriter, style, labelAdjusted),
+                backgroundWriter => ConfigureTextBackgroundAttributes(backgroundWriter, drawLabelBackground, labelAdjusted),
+                strikethrough: style?.Strikethrough == true,
+                underlineStyle: style?.UnderlineStyle ?? OfficeTextDecorationStyle.None,
+                strikethroughStyle: style?.StrikethroughStyle ?? OfficeTextDecorationStyle.None,
+                baseline: baseline);
         }
 
         private static void WriteArrow(
@@ -146,6 +154,10 @@ namespace OfficeIMO.Visio {
                 fontStyle |= OfficeFontStyle.Underline;
             }
 
+            if (style?.Strikethrough == true) {
+                fontStyle |= OfficeFontStyle.Strikethrough;
+            }
+
             return fontStyle;
         }
 
@@ -158,6 +170,17 @@ namespace OfficeIMO.Visio {
             }
 
             return drawLabelBackground ? Color.FromRgba(255, 255, 255, 230) : null;
+        }
+
+        private static string ResolveSvgDisplayText(string text, VisioTextStyle? style) => style?.Capitalization switch {
+            VisioTextCapitalization.AllCaps => OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, CultureInfo.InvariantCulture),
+            VisioTextCapitalization.InitialCaps => OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Capitalize, CultureInfo.InvariantCulture),
+            _ => text
+        };
+
+        private static void ConfigureSvgTextAttributes(XmlWriter writer, VisioTextStyle? style, bool labelAdjusted) {
+            if (labelAdjusted) writer.WriteAttributeString("data-officeimo-label-adjusted", "true");
+            if (style?.SmallCaps == true) writer.WriteAttributeString("font-variant", "small-caps");
         }
 
         private static Color ApplyBackgroundTransparency(Color color, double? transparency) {

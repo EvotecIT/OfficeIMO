@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel.Html;
 
@@ -498,22 +499,58 @@ public static partial class HtmlExcelConverterExtensions {
 
     private static ExcelRichTextRun ToExcelRun(HtmlSemanticRun source) {
         var run = new ExcelRichTextRun(source.Text) {
-            Bold = source.Bold,
-            Italic = source.Italic,
-            Underline = source.Underline,
-            Strikethrough = source.Strikethrough
+            VerticalTextAlignment = source.Baseline switch {
+                OfficeTextBaseline.Superscript => ExcelVerticalTextAlignment.Superscript,
+                OfficeTextBaseline.Subscript => ExcelVerticalTextAlignment.Subscript,
+                _ => (ExcelVerticalTextAlignment?)null
+            }
         };
+        if (source.Bold || source.Style?.IsSpecifiedValue("font-weight") == true) run.Bold = source.Bold;
+        if (source.Italic || source.Style?.IsSpecifiedValue("font-style") == true) run.Italic = source.Italic;
+
+        bool decorationSpecified = source.Style?.IsSpecifiedValue("text-decoration") == true
+            || source.Style?.IsSpecifiedValue("text-decoration-line") == true;
+        if (source.Underline || decorationSpecified || source.DataAttributes.ContainsKey("data-officeimo-excel-underline")) {
+            ExcelUnderlineStyle? underlineStyle = ResolveExcelUnderlineStyle(source);
+            if (underlineStyle.HasValue) run.UnderlineStyle = underlineStyle;
+            else run.Underline = source.Underline;
+        }
+        if (source.Strikethrough || decorationSpecified || source.DataAttributes.ContainsKey("data-officeimo-excel-strikethrough")) {
+            run.Strikethrough = source.Strikethrough;
+        }
+
         string color = NormalizeHexColor(source.Style?.GetValue("color"));
         if (color.Length > 0) run.FontColor = color;
-        string fontName = NormalizeFontName(source.Style?.GetValue("font-family"));
+        string fontName = HtmlRenderCssValues.FirstFontFamily(source.Style?.GetValue("font-family")) ?? string.Empty;
         if (fontName.Length > 0) run.FontName = fontName;
         if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = pixels * 0.75D;
         return run;
     }
 
+    private static ExcelUnderlineStyle? MapUnderlineStyle(OfficeTextDecorationStyle style) => style switch {
+        OfficeTextDecorationStyle.None => null,
+        OfficeTextDecorationStyle.Double => ExcelUnderlineStyle.Double,
+        _ => ExcelUnderlineStyle.Single
+    };
+
+    private static ExcelUnderlineStyle? ResolveExcelUnderlineStyle(HtmlSemanticRun source) {
+        if (source.DataAttributes.TryGetValue("data-officeimo-excel-underline", out string? exact)
+            && Enum.TryParse(exact, ignoreCase: true, out ExcelUnderlineStyle native)
+            && Enum.IsDefined(typeof(ExcelUnderlineStyle), native)) {
+            return native;
+        }
+        return MapUnderlineStyle(source.UnderlineStyle);
+    }
+
     private static string NormalizeHexColor(string? value) {
         string color = (value ?? string.Empty).Trim();
+        if (color.Length == 9 && color[0] == '#') return color.Substring(1, 6).ToUpperInvariant();
         if (color.Length == 7 && color[0] == '#') return color.Substring(1).ToUpperInvariant();
+        if (color.Length == 5 && color[0] == '#') {
+            return string.Concat(char.ToUpperInvariant(color[1]), char.ToUpperInvariant(color[1]),
+                char.ToUpperInvariant(color[2]), char.ToUpperInvariant(color[2]),
+                char.ToUpperInvariant(color[3]), char.ToUpperInvariant(color[3]));
+        }
         if (color.Length == 4 && color[0] == '#') {
             return string.Concat(char.ToUpperInvariant(color[1]), char.ToUpperInvariant(color[1]),
                 char.ToUpperInvariant(color[2]), char.ToUpperInvariant(color[2]),
@@ -522,14 +559,14 @@ public static partial class HtmlExcelConverterExtensions {
         return string.Empty;
     }
 
-    private static string NormalizeFontName(string? value) =>
-        (value ?? string.Empty).Split(',').FirstOrDefault()?.Trim().Trim('\'', '"') ?? string.Empty;
-
     private static bool TryParseCssPixels(string? value, out double pixels) {
         pixels = 0D;
         string text = (value ?? string.Empty).Trim();
-        if (!text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return false;
-        return double.TryParse(text.Substring(0, text.Length - 2), System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out pixels) && pixels > 0D;
+        bool points = text.EndsWith("pt", StringComparison.OrdinalIgnoreCase);
+        if (!points && !text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!double.TryParse(text.Substring(0, text.Length - 2), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out pixels) || pixels <= 0D) return false;
+        if (points) pixels /= 0.75D;
+        return true;
     }
 }

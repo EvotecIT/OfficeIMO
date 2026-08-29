@@ -789,35 +789,28 @@ public static partial class PowerPointPdfConverterExtensions {
             runs.Add(new PdfCore.PdfTextRun(prefix, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
         }
 
-        IReadOnlyList<PptCore.PowerPointTextRun> paragraphRuns = paragraph.Runs;
-        if (paragraphRuns.Count == 0 && !paragraph.Paragraph.ChildElements.Any(child => child is A.Break or A.Field)) {
+        IReadOnlyList<PptCore.PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
+        if (inlineNodes.Count == 0) {
             runs.Add(new PdfCore.PdfTextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
             return runs;
         }
 
-        int runIndex = 0;
         bool hasInlineContent = false;
-        foreach (OpenXmlElement child in paragraph.Paragraph.ChildElements) {
-            switch (child) {
-                case A.Run:
-                    if (runIndex < paragraphRuns.Count) {
-                        runs.Add(CreateTextRun(paragraphRuns[runIndex], textBox, slideNumber, options));
+        foreach (PptCore.PowerPointParagraphInline node in inlineNodes) {
+            switch (node.Kind) {
+                case PptCore.PowerPointParagraphInlineKind.Run:
+                case PptCore.PowerPointParagraphInlineKind.Field:
+                    if (node.Run != null && !string.IsNullOrEmpty(node.Text)) {
+                        foreach (PptCore.PowerPointEffectiveTextSegment segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
+                                     node.Run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
+                            runs.Add(CreateTextRun(node.Run, segment.Text, segment.Style, textBox, slideNumber, options));
+                        }
                         hasInlineContent = true;
                     }
-
-                    runIndex++;
                     break;
-                case A.Break:
+                case PptCore.PowerPointParagraphInlineKind.LineBreak:
                     runs.Add(PdfCore.PdfTextRun.LineBreak());
                     hasInlineContent = true;
-                    break;
-                case A.Field field:
-                    string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
-                    if (!string.IsNullOrEmpty(fieldText)) {
-                        runs.Add(new PdfCore.PdfTextRun(fieldText, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
-                        hasInlineContent = true;
-                    }
-
                     break;
             }
         }
@@ -846,28 +839,119 @@ public static partial class PowerPointPdfConverterExtensions {
         return string.Empty;
     }
 
-    private static PdfCore.PdfTextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
-        string text = run.Text ?? string.Empty;
-        PdfCore.PdfColor? color = ParsePdfColor(run.Color ?? textBox.Color);
-        string? fontFamily = run.FontName ?? ResolveTextBoxFontFamily(textBox, options);
+    private static PdfCore.PdfTextRun CreateTextRun(
+        PptCore.PowerPointTextRun run,
+        string segmentText,
+        PptCore.PowerPointEffectiveRunStyle effective,
+        PptCore.PowerPointTextBox textBox,
+        int slideNumber,
+        PowerPointPdfSaveOptions options) {
+        string text = ApplyPowerPointDisplayCase(segmentText, effective.Capitalization, effective.Language, options, slideNumber);
+        PdfCore.PdfColor? color = ParsePdfColor(effective.Color ?? textBox.Color);
+        string? fontFamily = effective.FontName ?? ResolveTextBoxFontFamily(textBox, options);
         PdfCore.PdfStandardFont? font = MapFont(fontFamily);
-        double? fontSize = run.FontSize ?? textBox.FontSize;
+        double? fontSize = effective.FontSizePoints ?? textBox.FontSize;
         Uri? hyperlink = run.Hyperlink;
         string? linkUri = hyperlink != null && hyperlink.IsAbsoluteUri && !string.IsNullOrEmpty(text) ? hyperlink.AbsoluteUri : null;
+        PptCore.PowerPointUnderlineStyle effectiveUnderline = effective.UnderlineStyle ?? PptCore.PowerPointUnderlineStyle.None;
         if (hyperlink != null && !hyperlink.IsAbsoluteUri) {
             AddWarning(options, slideNumber, "relative-hyperlink", "Skipped a relative PowerPoint hyperlink because PDF URI annotations require absolute targets.");
         }
 
         return new PdfCore.PdfTextRun(
             text,
-            bold: run.Bold,
-            underline: run.Underline || linkUri != null,
+            bold: effective.Bold == true,
+            underline: effectiveUnderline != PptCore.PowerPointUnderlineStyle.None || linkUri != null,
             color: color,
-            italic: run.Italic,
+            italic: effective.Italic == true,
+            strike: effective.StrikeStyle is { } strikeStyle && strikeStyle != PptCore.PowerPointStrikeStyle.None,
             fontSize: fontSize,
             font: font,
             linkUri: linkUri,
-            fontFamily: fontFamily);
+            baseline: MapPowerPointBaseline(effective.BaselinePercent, options, slideNumber),
+            fontFamily: fontFamily,
+            underlineStyle: linkUri != null && effectiveUnderline == PptCore.PowerPointUnderlineStyle.None
+                ? OfficeTextDecorationStyle.Single
+                : MapPowerPointUnderline(effectiveUnderline),
+            strikeStyle: MapPowerPointStrike(effective.StrikeStyle));
+    }
+
+    private static string ApplyPowerPointDisplayCase(
+        string text,
+        PptCore.PowerPointCapitalization? capitalization,
+        string? language,
+        PowerPointPdfSaveOptions options,
+        int slideNumber) {
+        if (capitalization is not (PptCore.PowerPointCapitalization.AllCaps or PptCore.PowerPointCapitalization.SmallCaps)) {
+            return text;
+        }
+
+        if (capitalization == PptCore.PowerPointCapitalization.SmallCaps) {
+            AddWarning(options, slideNumber, "small-caps-approximation", "Rendered PowerPoint small caps as uppercase because PDF text runs do not provide native small-cap glyph substitution.");
+        }
+
+        return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, ResolvePowerPointRunCulture(language));
+    }
+
+    private static CultureInfo ResolvePowerPointRunCulture(string? language) {
+        if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
+        try {
+            return CultureInfo.GetCultureInfo(language);
+        } catch (CultureNotFoundException) {
+            return CultureInfo.InvariantCulture;
+        }
+    }
+
+    private static OfficeTextDecorationStyle MapPowerPointUnderline(PptCore.PowerPointUnderlineStyle? style) => style switch {
+        null or PptCore.PowerPointUnderlineStyle.None => OfficeTextDecorationStyle.None,
+        PptCore.PowerPointUnderlineStyle.Double or PptCore.PowerPointUnderlineStyle.WavyDouble => OfficeTextDecorationStyle.Double,
+        PptCore.PowerPointUnderlineStyle.Dotted or PptCore.PowerPointUnderlineStyle.HeavyDotted => OfficeTextDecorationStyle.Dotted,
+        PptCore.PowerPointUnderlineStyle.Dash or PptCore.PowerPointUnderlineStyle.DashHeavy or
+            PptCore.PowerPointUnderlineStyle.DashLong or PptCore.PowerPointUnderlineStyle.DashLongHeavy or
+            PptCore.PowerPointUnderlineStyle.DotDash or PptCore.PowerPointUnderlineStyle.DotDashHeavy or
+            PptCore.PowerPointUnderlineStyle.DotDotDash or PptCore.PowerPointUnderlineStyle.DotDotDashHeavy => OfficeTextDecorationStyle.Dashed,
+        PptCore.PowerPointUnderlineStyle.Wavy or PptCore.PowerPointUnderlineStyle.WavyHeavy => OfficeTextDecorationStyle.Wavy,
+        _ => OfficeTextDecorationStyle.Single
+    };
+
+    private static OfficeTextDecorationStyle MapPowerPointUnderline(TextUnderlineValues? style) {
+        if (!style.HasValue || style.Value == TextUnderlineValues.None) return OfficeTextDecorationStyle.None;
+        if (style.Value == TextUnderlineValues.Double || style.Value == TextUnderlineValues.WavyDouble) return OfficeTextDecorationStyle.Double;
+        if (style.Value == TextUnderlineValues.Dotted || style.Value == TextUnderlineValues.HeavyDotted) return OfficeTextDecorationStyle.Dotted;
+        if (style.Value == TextUnderlineValues.Wavy || style.Value == TextUnderlineValues.WavyHeavy) return OfficeTextDecorationStyle.Wavy;
+        if (style.Value == TextUnderlineValues.Dash || style.Value == TextUnderlineValues.DashHeavy ||
+            style.Value == TextUnderlineValues.DashLong || style.Value == TextUnderlineValues.DashLongHeavy ||
+            style.Value == TextUnderlineValues.DotDash || style.Value == TextUnderlineValues.DotDashHeavy ||
+            style.Value == TextUnderlineValues.DotDotDash || style.Value == TextUnderlineValues.DotDotDashHeavy) {
+            return OfficeTextDecorationStyle.Dashed;
+        }
+
+        return OfficeTextDecorationStyle.Single;
+    }
+
+    private static OfficeTextDecorationStyle MapPowerPointStrike(PptCore.PowerPointStrikeStyle? style) => style switch {
+        PptCore.PowerPointStrikeStyle.Double => OfficeTextDecorationStyle.Double,
+        PptCore.PowerPointStrikeStyle.Single => OfficeTextDecorationStyle.Single,
+        _ => OfficeTextDecorationStyle.None
+    };
+
+    private static PdfCore.PdfTextBaseline MapPowerPointBaseline(
+        double? baselinePercent,
+        PowerPointPdfSaveOptions options,
+        int slideNumber) {
+        if (baselinePercent.HasValue && baselinePercent.Value != 0D &&
+            Math.Abs(baselinePercent.Value - 30D) > 0.0001D &&
+            Math.Abs(baselinePercent.Value + 25D) > 0.0001D &&
+            !options.Warnings.Any(warning => warning.SlideNumber == slideNumber && warning.Code == "baseline-percent-approximation")) {
+            AddWarning(options, slideNumber, "baseline-percent-approximation",
+                "Rendered a native PowerPoint baseline percentage using the PDF superscript or subscript geometry; the exact authored percentage is not representable.");
+        }
+
+        return baselinePercent switch {
+            > 0D => PdfCore.PdfTextBaseline.Superscript,
+            < 0D => PdfCore.PdfTextBaseline.Subscript,
+            _ => PdfCore.PdfTextBaseline.Normal
+        };
     }
 
     private static string? ResolveTextBoxFontFamily(PptCore.PowerPointTextBox textBox, PowerPointPdfSaveOptions options) {

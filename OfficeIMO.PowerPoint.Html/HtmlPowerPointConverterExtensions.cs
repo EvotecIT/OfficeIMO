@@ -98,7 +98,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             return result;
         }
 
-        foreach (IElement slideSection in slideSections) {
+        for (int slideIndex = 0; slideIndex < slideSections.Count; slideIndex++) {
+            IElement slideSection = slideSections[slideIndex];
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional semantic slides were omitted because the shared import limit was reached.",
@@ -107,7 +108,10 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             PptCore.PowerPointSlide slide = presentation.AddSlide();
-            ImportSlide(slideSection, slide, options, result, budget);
+            HtmlSemanticSection? semanticSection = slideIndex < semanticDocument.Sections.Count
+                ? semanticDocument.Sections[slideIndex]
+                : null;
+            ImportSlide(slideSection, semanticSection, slide, options, result, budget);
             if (IsTrueAttribute(slideSection.GetAttribute("data-officeimo-hidden"))) {
                 slide.Hidden = true;
             }
@@ -123,9 +127,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         throw new HtmlConversionException(result.Report.Diagnostics);
     }
 
-    private static void ImportSlide(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result, HtmlImportBudget budget) {
+    private static void ImportSlide(IElement section, HtmlSemanticSection? semanticSection, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result, HtmlImportBudget budget) {
         result.Slides++;
-        ImportSemanticShapes(section, slide, options, result, budget);
+        ImportSemanticShapes(section, semanticSection, slide, options, result, budget);
 
         if (options.ImportNotes) {
             ImportNotes(section, slide, result, budget);

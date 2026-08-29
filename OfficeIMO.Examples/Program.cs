@@ -283,6 +283,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--visio-basic")) {
+                Visio.BasicVisioDocument.Example_BasicVisio(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
+                return;
+            }
+
             if (HasArgument(args, "--visio-showcase") || HasArgument(args, "--visio")) {
                 RunVisioShowcaseExamples(folderPath, args);
                 return;

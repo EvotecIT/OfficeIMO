@@ -140,7 +140,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             ApplyTransform(table, geometry);
                             for (int row = 0; row < Math.Min(table.RowItems.Count, element.Table.TableRows.Count); row++) {
                                 for (int column = 0; column < Math.Min(table.RowItems[row].Cells.Count, element.Table.TableRows[row].TableCells.Count); column++) {
-                                    table.RowItems[row].Cells[column].Text = ExtractText(element.Table.TableRows[row].TableCells[column].Text);
+                                    GoogleSlidesApiTextContent? cellText = element.Table.TableRows[row].TableCells[column].Text;
+                                    PowerPointTableCell cell = table.RowItems[row].Cells[column];
+                                    if (cellText != null) ApplyTextRuns(cell, cellText);
                                 }
                             }
                         } else if (element.Image?.ContentUrl is string url && !string.IsNullOrWhiteSpace(url)) {
@@ -182,30 +184,75 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         private static void ApplyTextRuns(PowerPointTextBox box, GoogleSlidesApiTextContent text) {
-            List<GoogleSlidesApiTextRun> sourceRuns = text.TextElements
-                .Select(element => element.TextRun)
-                .Where(run => run != null)
-                .Cast<GoogleSlidesApiTextRun>()
-                .ToList();
-            if (sourceRuns.Count == 0) return;
+            IReadOnlyList<ImportedTextParagraph> sourceParagraphs = CreateImportedTextParagraphs(text);
+            IReadOnlyList<PowerPointParagraph> targetParagraphs = box.SetParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
+            ApplyTextRuns(targetParagraphs, sourceParagraphs);
+        }
 
-            int lastContentRun = sourceRuns.FindLastIndex(run => !string.IsNullOrEmpty(run.Content));
-            PowerPointParagraph paragraph = box.Paragraphs.FirstOrDefault() ?? box.AddParagraph();
-            PowerPointTextRun targetRun = paragraph.Runs.FirstOrDefault() ?? paragraph.AddRun(string.Empty);
-            for (int index = 0; index < sourceRuns.Count; index++) {
-                GoogleSlidesApiTextRun sourceRun = sourceRuns[index];
-                string content = sourceRun.Content ?? string.Empty;
-                if (index == lastContentRun && content.EndsWith("\n", StringComparison.Ordinal)) {
-                    content = content.Substring(0, content.Length - 1);
-                }
+        private static void ApplyTextRuns(PowerPointTableCell cell, GoogleSlidesApiTextContent text) {
+            IReadOnlyList<ImportedTextParagraph> sourceParagraphs = CreateImportedTextParagraphs(text);
+            IReadOnlyList<PowerPointParagraph> targetParagraphs = cell.SetParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
+            ApplyTextRuns(targetParagraphs, sourceParagraphs);
+        }
 
-                if (index == 0) {
-                    targetRun.Text = content;
-                } else {
-                    targetRun = paragraph.AddRun(content);
+        private static void ApplyTextRuns(
+            IReadOnlyList<PowerPointParagraph> targetParagraphs,
+            IReadOnlyList<ImportedTextParagraph> sourceParagraphs) {
+            for (int paragraphIndex = 0; paragraphIndex < targetParagraphs.Count && paragraphIndex < sourceParagraphs.Count; paragraphIndex++) {
+                PowerPointParagraph targetParagraph = targetParagraphs[paragraphIndex];
+                IReadOnlyList<ImportedTextRun> sourceRuns = sourceParagraphs[paragraphIndex].Runs;
+                if (sourceRuns.Count == 0) continue;
+
+                PowerPointTextRun targetRun = targetParagraph.Runs.FirstOrDefault() ?? targetParagraph.AddRun(string.Empty);
+                for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
+                    ImportedTextRun sourceRun = sourceRuns[runIndex];
+                    if (runIndex == 0) {
+                        targetRun.Text = sourceRun.Text;
+                    } else {
+                        targetRun = targetParagraph.AddRun(sourceRun.Text);
+                    }
+                    ApplyTextRunStyle(targetRun, sourceRun.Style);
                 }
-                ApplyTextRunStyle(targetRun, sourceRun.Style);
             }
+        }
+
+        private static IReadOnlyList<ImportedTextParagraph> CreateImportedTextParagraphs(GoogleSlidesApiTextContent text) {
+            var paragraphs = new List<ImportedTextParagraph> { new ImportedTextParagraph() };
+            ImportedTextParagraph current = paragraphs[0];
+            foreach (GoogleSlidesApiTextElement element in text.TextElements) {
+                if (element.ParagraphMarker != null && current.Runs.Count > 0) {
+                    current = new ImportedTextParagraph();
+                    paragraphs.Add(current);
+                }
+
+                GoogleSlidesApiTextRun? sourceRun = element.TextRun;
+                if (sourceRun == null) continue;
+                string normalized = (sourceRun.Content ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+                string[] parts = normalized.Split(new[] { '\n' }, StringSplitOptions.None);
+                for (int partIndex = 0; partIndex < parts.Length; partIndex++) {
+                    if (parts[partIndex].Length > 0) current.Runs.Add(new ImportedTextRun(parts[partIndex], sourceRun.Style));
+                    if (partIndex < parts.Length - 1) {
+                        current = new ImportedTextParagraph();
+                        paragraphs.Add(current);
+                    }
+                }
+            }
+
+            // Google terminates text content with a newline. Keep intentional empty paragraphs but not the
+            // extra container created solely by that final terminator.
+            if (paragraphs.Count > 1 && paragraphs[paragraphs.Count - 1].Runs.Count == 0) paragraphs.RemoveAt(paragraphs.Count - 1);
+            return paragraphs;
+        }
+
+        private sealed class ImportedTextParagraph {
+            internal List<ImportedTextRun> Runs { get; } = new List<ImportedTextRun>();
+            internal string Text => string.Concat(Runs.Select(run => run.Text));
+        }
+
+        private sealed class ImportedTextRun {
+            internal ImportedTextRun(string text, GoogleSlidesApiTextStyle? style) { Text = text; Style = style; }
+            internal string Text { get; }
+            internal GoogleSlidesApiTextStyle? Style { get; }
         }
 
         private static void ApplyTextRunStyle(PowerPointTextRun run, GoogleSlidesApiTextStyle? style) {
@@ -213,6 +260,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             run.Bold = style.Bold == true;
             run.Italic = style.Italic == true;
             run.Underline = style.Underline == true;
+            run.Strikethrough = style.Strikethrough == true;
+            run.Capitalization = style.SmallCaps == true ? PowerPointCapitalization.SmallCaps : null;
+            run.BaselinePercent = style.BaselineOffset switch {
+                "SUPERSCRIPT" => 30D,
+                "SUBSCRIPT" => -25D,
+                _ => null,
+            };
             if (style.FontSize != null) run.FontSize = (int)Math.Round(ToPoints(style.FontSize));
             if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontName = style.FontFamily;
             if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);

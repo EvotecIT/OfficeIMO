@@ -1,6 +1,7 @@
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Spreadsheet;
+using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Excel.OpenDocument;
@@ -383,11 +384,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges);
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
         int invalidValues = 0, normalizedDateTimeOffsets = 0, validations = 0, convertedValidations = 0, unsupportedValidationAssignments = 0, sortedValidationLists = 0, unsupportedHyperlinks = 0, unsupportedMeasurements = 0, unsupportedDataStyleFormats = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
+        int approximatedTextDecorations = 0, unsupportedCapitalization = 0;
         int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
@@ -487,7 +490,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
                                 unsupportedMeasurements += ApplyOdsStyle(converted, cellRun, dataStyles,
                                     out bool unsupportedDataStyleFormat, ref approximatedFontFamilyLists,
-                                    ref unsupportedFontFamilies);
+                                    ref unsupportedFontFamilies, ref approximatedTextDecorations,
+                                    ref unsupportedCapitalization, textCaseCulture);
                                 if (unsupportedDataStyleFormat) unsupportedDataStyleFormats++;
                                 styles++;
                             } else if (cellRun.StyleName != null) {
@@ -592,6 +596,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             approximatedFontFamilyLists, "Excel cell styles retain the first ODF font family but cannot retain the authored fallback list.");
         AddUnsupported(report, "font-families", unsupportedFontFamilies,
             "Malformed ODF font-family syntax was omitted instead of being emitted as an invalid Excel typeface name.");
+        if (approximatedTextDecorations > 0) report.Add("text-decorations", OdfConversionMappingStatus.Approximated,
+            approximatedTextDecorations,
+            "ODF underline and line-through variants without an exact Excel equivalent were mapped to the nearest native decoration.");
+        AddUnsupported(report, "text-capitalization", unsupportedCapitalization,
+            "ODF small caps cannot be represented by an Excel native cell style and were omitted.");
         if (skippedStyles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Skipped, skippedStyles,
             "Cell styles were omitted because IncludeBasicStyles is disabled.");
         if (renamedSheets > 0) report.Add("worksheet-names", OdfConversionMappingStatus.Approximated, renamedSheets,

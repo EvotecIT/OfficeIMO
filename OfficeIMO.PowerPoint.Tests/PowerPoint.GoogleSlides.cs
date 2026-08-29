@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -66,6 +67,7 @@ namespace OfficeIMO.Tests {
             hiddenText.Hidden = true;
             PowerPointTable table = slide.AddTablePoints(2, 2, 40, 140, 400, 160);
             table.RowItems[0].Cells[0].Text = "A1";
+            table.RowItems[0].Cells[0].Runs[0].Italic = true;
             slide.Notes.Text = "Speaker note";
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch(new GoogleSlidesSaveOptions { Title = "Deck" });
@@ -76,6 +78,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(batch.Slides[0].Elements, element => element is GoogleSlidesTextBox text && text.Text == "Hello Slides" && text.Bold);
             Assert.DoesNotContain(batch.Slides[0].Elements, element => element is GoogleSlidesTextBox text && text.Text == "Hidden shape");
             Assert.Contains(batch.Slides[0].Elements, element => element is GoogleSlidesTable grid && grid.Cells[0][0] == "A1");
+            Assert.True(Assert.Single(Assert.IsType<GoogleSlidesTable>(batch.Slides[0].Elements.Single(element => element is GoogleSlidesTable))
+                .StyledCells[0][0].TextRuns).Italic);
             Assert.Equal("Speaker note", batch.Slides[0].SpeakerNotes);
             Assert.Equal(1, batch.Plan.NativeTextBoxCount);
             Assert.Equal(1, batch.Plan.NativeTableCount);
@@ -109,6 +113,326 @@ namespace OfficeIMO.Tests {
 
             Assert.Null(text.ForegroundColorHex);
             Assert.Null(Assert.Single(text.TextRuns).ForegroundColorHex);
+        }
+
+        [Fact]
+        public void BatchCompiler_PreservesSupportedTypographyAndMaterializesAllCaps() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Normal", 20, 30, 300, 80);
+            PowerPointTextRun first = textBox.Paragraphs[0].Runs[0];
+            first.Strikethrough = true;
+            first.Capitalization = PowerPointCapitalization.SmallCaps;
+            first.SetSuperscript();
+            PowerPointTextRun second = textBox.Paragraphs[0].AddRun(" caps");
+            second.Capitalization = PowerPointCapitalization.AllCaps;
+            second.SetSubscript();
+
+            GoogleSlidesTextBox compiled = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTextBox>());
+
+            Assert.Equal("Normal CAPS", compiled.Text);
+            Assert.Collection(compiled.TextRuns,
+                run => {
+                    Assert.True(run.Strikethrough);
+                    Assert.True(run.SmallCaps);
+                    Assert.Equal("SUPERSCRIPT", run.BaselineOffset);
+                },
+                run => {
+                    Assert.False(run.SmallCaps);
+                    Assert.Equal("SUBSCRIPT", run.BaselineOffset);
+                });
+        }
+
+        [Fact]
+        public void BatchCompilerAndCheckpointProjectInternalLinksWithoutDereferencingRelativeUris() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide source = presentation.AddSlide();
+            PowerPointSlide target = presentation.AddSlide();
+            PowerPointTextRun shapeRun = source.AddTextBox("Shape link").Paragraphs.Single().Runs.Single();
+            PowerPointTextRun tableRun = source.AddTablePoints(1, 1, 20, 100, 220, 60)
+                .GetCell(0, 0).Runs.Single();
+            tableRun.Text = "Table link";
+            shapeRun.SetHyperlink(target);
+            tableRun.SetHyperlink(target);
+
+            GoogleSlidesSlide compiled = presentation.BuildGoogleSlidesBatch().Slides[0];
+            Assert.Equal("#slide-2", Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTextBox>()).TextRuns).Hyperlink);
+            Assert.Equal("#slide-2", Assert.Single(Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTable>()).StyledCells).Single().TextRuns).Hyperlink);
+            Assert.NotEmpty(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes);
+
+            JsonObject style = GoogleSlidesExporter.BuildTextStyle(
+                bold: false, italic: false, underline: false, strikethrough: false,
+                smallCaps: false, baselineOffset: null, fontSize: null, fontFamily: null,
+                foregroundColorHex: null, hyperlink: "#slide-2", scale: 1D);
+            Assert.Equal("officeimo_slide_0002_0001", style["link"]!["pageObjectId"]!.GetValue<string>());
+        }
+
+        [Fact]
+        public void BooleanDecorationSettersWriteExplicitOffValuesOverInheritedDefaults() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Plain").Paragraphs.Single();
+            PowerPointTextRun run = paragraph.Runs.Single();
+            paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties {
+                    Underline = A.TextUnderlineValues.Single,
+                    Strike = A.TextStrikeValues.SingleStrike
+                });
+
+            run.Underline = false;
+            run.Strikethrough = false;
+
+            Assert.Equal(PowerPointUnderlineStyle.None, run.UnderlineStyle);
+            Assert.Equal(PowerPointStrikeStyle.None, run.StrikeStyle);
+            Assert.Equal(A.TextUnderlineValues.None, run.Run.RunProperties!.Underline!.Value);
+            Assert.Equal(A.TextStrikeValues.NoStrike, run.Run.RunProperties.Strike!.Value);
+            GoogleSlidesTextStyleRun projected = Assert.Single(Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides).Elements.OfType<GoogleSlidesTextBox>()).TextRuns);
+            Assert.False(projected.Underline);
+            Assert.False(projected.Strikethrough);
+        }
+
+        [Fact]
+        public void BatchCompiler_ResolvesParagraphDefaultCapsAndBaselineForTextBoxesAndTables() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            cell.Text = "table";
+            string baselineFingerprint = string.Join("|", GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes
+                .Where(pair => pair.Key.Contains("/element/", StringComparison.Ordinal))
+                .OrderBy(pair => pair.Key)
+                .Select(pair => pair.Value));
+
+            textBox.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.Small, Baseline = 25000 });
+            cell.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties { Capital = A.TextCapsValues.Small, Baseline = -25000 });
+
+            GoogleSlidesSlide compiled = Assert.Single(presentation.BuildGoogleSlidesBatch().Slides);
+            GoogleSlidesTextStyleRun textRun = Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTextBox>()).TextRuns);
+            GoogleSlidesTextStyleRun tableRun = Assert.Single(Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTable>()).StyledCells).Single().TextRuns);
+
+            Assert.True(textRun.SmallCaps);
+            Assert.Equal("SUPERSCRIPT", textRun.BaselineOffset);
+            Assert.True(tableRun.SmallCaps);
+            Assert.Equal("SUBSCRIPT", tableRun.BaselineOffset);
+            string styledFingerprint = string.Join("|", GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes
+                .Where(pair => pair.Key.Contains("/element/", StringComparison.Ordinal))
+                .OrderBy(pair => pair.Key)
+                .Select(pair => pair.Value));
+            Assert.NotEqual(baselineFingerprint, styledFingerprint);
+        }
+
+        [Fact]
+        public void BatchCompiler_ResolvesEastAsianAndComplexScriptThemeFonts() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SetThemeFontsForAllMasters(new PowerPointThemeFontSet(
+                majorLatin: "Major Latin",
+                minorLatin: "Minor Latin",
+                majorEastAsian: "Major East Asian",
+                minorEastAsian: "Minor East Asian",
+                majorComplexScript: "Major Complex Script",
+                minorComplexScript: "Minor Complex Script"));
+            PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("日本語").Paragraphs[0];
+            PowerPointTextRun eastAsian = paragraph.Runs[0];
+            eastAsian.Run.RunProperties = new A.RunProperties { Language = "ja-JP" };
+            eastAsian.RunProperties.Append(new A.EastAsianFont { Typeface = "+mj-ea" });
+            PowerPointTextRun complexScript = paragraph.AddRun(" العربية");
+            complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
+            complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
+
+            IReadOnlyList<GoogleSlidesTextStyleRun> textRuns = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides).Elements.OfType<GoogleSlidesTextBox>()).TextRuns;
+
+            Assert.Equal("Major East Asian", textRuns[0].FontFamily);
+            Assert.Equal("Minor Complex Script", textRuns[1].FontFamily);
+        }
+
+        [Fact]
+        public void BatchCompiler_SplitsMixedScriptRunAcrossFontSlots() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextRun run = presentation.AddSlide().AddTextBox("Latin 日本語 العربية").Paragraphs[0].Runs[0];
+            run.Run.RunProperties = new A.RunProperties();
+            run.RunProperties.Append(new A.LatinFont { Typeface = "Latin Face" });
+            run.RunProperties.Append(new A.EastAsianFont { Typeface = "East Asian Face" });
+            run.RunProperties.Append(new A.ComplexScriptFont { Typeface = "Complex Face" });
+
+            GoogleSlidesTextBox textBox = Assert.Single(Assert.Single(
+                presentation.BuildGoogleSlidesBatch().Slides).Elements.OfType<GoogleSlidesTextBox>());
+
+            Assert.Equal("Latin 日本語 العربية", textBox.Text);
+            Assert.Collection(textBox.TextRuns,
+                item => Assert.Equal("Latin Face", item.FontFamily),
+                item => Assert.Equal("East Asian Face", item.FontFamily),
+                item => Assert.Equal("Complex Face", item.FontFamily));
+        }
+
+        [Fact]
+        public void BatchCompiler_ResolvesInheritedEmphasisAndDecorationsForTextBoxesAndTables() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            cell.Text = "table";
+            textBox.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties {
+                    Bold = true,
+                    Italic = true,
+                    Underline = A.TextUnderlineValues.Single,
+                    Strike = A.TextStrikeValues.SingleStrike
+                });
+            PowerPointTextRun explicitOff = textBox.Paragraphs[0].AddRun(" off");
+            explicitOff.Run.RunProperties = new A.RunProperties {
+                Bold = false,
+                Italic = false,
+                Underline = A.TextUnderlineValues.None,
+                Strike = A.TextStrikeValues.NoStrike
+            };
+            cell.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
+                new A.DefaultRunProperties {
+                    Bold = true,
+                    Italic = true,
+                    Underline = A.TextUnderlineValues.Single,
+                    Strike = A.TextStrikeValues.SingleStrike
+                });
+
+            GoogleSlidesSlide compiled = Assert.Single(presentation.BuildGoogleSlidesBatch().Slides);
+            IReadOnlyList<GoogleSlidesTextStyleRun> textRuns = Assert.Single(compiled.Elements.OfType<GoogleSlidesTextBox>()).TextRuns;
+            Assert.Equal(2, textRuns.Count);
+            GoogleSlidesTextStyleRun textRun = textRuns[0];
+            GoogleSlidesTextStyleRun offRun = textRuns[1];
+            GoogleSlidesTextStyleRun tableRun = Assert.Single(Assert.Single(Assert.Single(compiled.Elements.OfType<GoogleSlidesTable>()).StyledCells).Single().TextRuns);
+
+            Assert.True(textRun.Bold);
+            Assert.True(textRun.Italic);
+            Assert.True(textRun.Underline);
+            Assert.True(textRun.Strikethrough);
+            Assert.False(offRun.Bold);
+            Assert.False(offRun.Italic);
+            Assert.False(offRun.Underline);
+            Assert.False(offRun.Strikethrough);
+            Assert.True(tableRun.Bold);
+            Assert.True(tableRun.Italic);
+            Assert.True(tableRun.Underline);
+            Assert.True(tableRun.Strikethrough);
+        }
+
+        [Fact]
+        public void BatchCompiler_ResolvesApplicableTableStyleTypographyForGoogleCells() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            const string styleId = "{9A53DA13-207B-4877-931D-000000000239}";
+            DocumentFormat.OpenXml.Packaging.PresentationPart presentationPart = slide.SlidePart
+                .GetParentParts()
+                .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>()
+                .Single();
+            PowerPointUtils.CreateTableStylesPart(presentationPart);
+            A.TableStyleList styles = presentationPart.TableStylesPart!.TableStyleList!;
+            styles.RemoveAllChildren<A.TableStyleEntry>();
+            styles.Append(new A.TableStyleEntry(
+                $@"<a:tblStyle xmlns:a=""http://schemas.openxmlformats.org/drawingml/2006/main"" styleId=""{styleId}"" styleName=""Google typography"">
+  <a:wholeTbl><a:tcTxStyle i=""on""><a:font><a:latin typeface=""Consolas"" /></a:font><a:srgbClr val=""112233"" /></a:tcTxStyle></a:wholeTbl>
+  <a:band1H><a:tcTxStyle i=""on""><a:font><a:latin typeface=""Courier New"" /></a:font><a:srgbClr val=""445566"" /></a:tcTxStyle></a:band1H>
+  <a:firstRow><a:tcTxStyle b=""on""><a:font><a:latin typeface=""Arial"" /></a:font><a:srgbClr val=""AABBCC"" /></a:tcTxStyle></a:firstRow>
+  <a:nwCell><a:tcTxStyle b=""on"" i=""on""><a:font><a:latin typeface=""Times New Roman"" /></a:font><a:srgbClr val=""FF00FF"" /></a:tcTxStyle></a:nwCell>
+</a:tblStyle>"));
+
+            PowerPointTable table = slide.AddTablePoints(3, 2, 20, 30, 220, 120);
+            table.StyleId = styleId;
+            table.FirstRow = true;
+            table.FirstColumn = true;
+            table.BandedRows = true;
+            table.GetCell(0, 0).Text = "Corner";
+            table.GetCell(0, 1).Text = "Header";
+            table.GetCell(1, 0).Text = "Band";
+            table.GetCell(2, 0).Text = "Body";
+
+            GoogleSlidesTable compiled = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTable>());
+            GoogleSlidesTextStyleRun corner = Assert.Single(compiled.StyledCells[0][0].TextRuns);
+            GoogleSlidesTextStyleRun header = Assert.Single(compiled.StyledCells[0][1].TextRuns);
+            GoogleSlidesTextStyleRun band = Assert.Single(compiled.StyledCells[1][0].TextRuns);
+            GoogleSlidesTextStyleRun body = Assert.Single(compiled.StyledCells[2][0].TextRuns);
+
+            Assert.True(corner.Bold);
+            Assert.True(corner.Italic);
+            Assert.Equal("Times New Roman", corner.FontFamily);
+            Assert.Equal("FF00FF", corner.ForegroundColorHex);
+            Assert.True(header.Bold);
+            Assert.Equal("Arial", header.FontFamily);
+            Assert.Equal("AABBCC", header.ForegroundColorHex);
+            Assert.True(band.Italic);
+            Assert.Equal("Courier New", band.FontFamily);
+            Assert.Equal("445566", band.ForegroundColorHex);
+            Assert.True(body.Italic);
+            Assert.Equal("Consolas", body.FontFamily);
+            Assert.Equal("112233", body.ForegroundColorHex);
+            Assert.Equal("Corner", compiled.StyledCells[0][0].Text);
+            Assert.Equal("Header", compiled.StyledCells[0][1].Text);
+            Assert.Equal("Band", compiled.StyledCells[1][0].Text);
+            Assert.Equal("Body", compiled.StyledCells[2][0].Text);
+        }
+
+        [Fact]
+        public void BatchCompiler_PreservesTableFieldsAndLineBreaksInAuthoredOrder() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTableCell cell = presentation.AddSlide()
+                .AddTablePoints(1, 1, 20, 30, 300, 100)
+                .GetCell(0, 0);
+            PowerPointParagraph paragraph = cell.Paragraphs[0];
+            paragraph.Text = "Before ";
+            paragraph.AddField("2", "slidenum", fieldId: null, configure: run => {
+                run.Bold = true;
+                run.Color = "336699";
+            });
+            paragraph.AddLineBreak();
+            paragraph.AddRun("After").Italic = true;
+
+            PowerPointParagraphInline field = Assert.Single(paragraph.InlineNodes,
+                node => node.Kind == PowerPointParagraphInlineKind.Field);
+            string fieldFingerprint = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+            field.Run!.Text = "3";
+            Assert.NotEqual(fieldFingerprint, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
+            field.Run.Text = "2";
+
+            GoogleSlidesTableCell compiled = Assert.Single(Assert.Single(
+                Assert.Single(
+                    Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                        .Elements.OfType<GoogleSlidesTable>())
+                    .StyledCells));
+
+            Assert.Equal("Before 2\nAfter", compiled.Text);
+            Assert.Collection(compiled.TextRuns,
+                run => Assert.Equal("Before ".Length, run.EndIndex),
+                run => {
+                    Assert.Equal("Before ".Length, run.StartIndex);
+                    Assert.Equal("Before 2".Length, run.EndIndex);
+                    Assert.True(run.Bold);
+                    Assert.Equal("336699", run.ForegroundColorHex);
+                },
+                run => {
+                    Assert.Equal("Before 2\n".Length, run.StartIndex);
+                    Assert.Equal("Before 2\nAfter".Length, run.EndIndex);
+                    Assert.True(run.Italic);
+                });
+        }
+
+        [Fact]
+        public void BatchCompiler_MaterializesAllCapsUsingTheRunLanguage() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextRun run = presentation.AddSlide()
+                .AddTextBoxPoints("i", 20, 30, 300, 80)
+                .Paragraphs[0].Runs[0];
+            run.Capitalization = PowerPointCapitalization.AllCaps;
+            run.Language = "tr-TR";
+
+            GoogleSlidesTextBox compiled = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTextBox>());
+
+            Assert.Equal("İ", compiled.Text);
         }
 
         [Fact]
@@ -232,8 +556,17 @@ namespace OfficeIMO.Tests {
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
             PowerPointTextBox mixedText = authoredSlide.AddTextBoxPoints("Hello ", 20, 30, 300, 80);
-            mixedText.Paragraphs[0].AddRun("Slides", run => run.Bold = true);
+            mixedText.Paragraphs[0].AddRun("Slides", run => {
+                run.Bold = true;
+                run.Strikethrough = true;
+                run.Capitalization = PowerPointCapitalization.SmallCaps;
+                run.SetSuperscript();
+            });
             authoredSlide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 340, 30, 160, 80);
+            PowerPointTableCell styledCell = authoredSlide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            styledCell.Text = "Styled cell";
+            styledCell.Runs[0].Italic = true;
+            styledCell.Runs[0].Underline = true;
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -284,11 +617,24 @@ namespace OfficeIMO.Tests {
                     && slideProperties.GetProperty("fields").GetString() == "background");
                 JsonElement textStyle = Assert.Single(requests, request =>
                     request.TryGetProperty("updateTextStyle", out JsonElement updateTextStyle)
+                    && !updateTextStyle.TryGetProperty("cellLocation", out _)
                     && updateTextStyle.GetProperty("style").TryGetProperty("bold", out _))
                     .GetProperty("updateTextStyle");
                 Assert.Equal("FIXED_RANGE", textStyle.GetProperty("textRange").GetProperty("type").GetString());
                 Assert.Equal(6, textStyle.GetProperty("textRange").GetProperty("startIndex").GetInt32());
                 Assert.Equal(12, textStyle.GetProperty("textRange").GetProperty("endIndex").GetInt32());
+                JsonElement style = textStyle.GetProperty("style");
+                Assert.True(style.GetProperty("strikethrough").GetBoolean());
+                Assert.True(style.GetProperty("smallCaps").GetBoolean());
+                Assert.Equal("SUPERSCRIPT", style.GetProperty("baselineOffset").GetString());
+                JsonElement tableTextStyle = Assert.Single(requests, request =>
+                    request.TryGetProperty("updateTextStyle", out JsonElement updateTextStyle)
+                    && updateTextStyle.TryGetProperty("cellLocation", out _))
+                    .GetProperty("updateTextStyle");
+                Assert.Equal(0, tableTextStyle.GetProperty("cellLocation").GetProperty("rowIndex").GetInt32());
+                Assert.Equal(0, tableTextStyle.GetProperty("cellLocation").GetProperty("columnIndex").GetInt32());
+                Assert.True(tableTextStyle.GetProperty("style").GetProperty("italic").GetBoolean());
+                Assert.True(tableTextStyle.GetProperty("style").GetProperty("underline").GetBoolean());
             }
             Assert.Contains("\"createShape\"", body);
             Assert.Contains("Hello Slides", body);
@@ -657,7 +1003,7 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDownloadIsAllowed() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":true}}"));
-                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported \",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}},{\"textRun\":{\"content\":\"text\\n\",\"style\":{\"italic\":true,\"underline\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.8,\"green\":0.2,\"blue\":0.1}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
+                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported \",\"style\":{\"bold\":true,\"strikethrough\":true,\"smallCaps\":true,\"baselineOffset\":\"SUPERSCRIPT\",\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}},{\"textRun\":{\"content\":\"text\\n\",\"style\":{\"italic\":true,\"underline\":true,\"baselineOffset\":\"SUBSCRIPT\",\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.8,\"green\":0.2,\"blue\":0.1}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -672,12 +1018,16 @@ namespace OfficeIMO.Tests {
                     run => {
                         Assert.Equal("Imported ", run.Text);
                         Assert.True(run.Bold);
+                        Assert.True(run.Strikethrough);
+                        Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
+                        Assert.True(run.BaselinePercent > 0);
                         Assert.Equal("336699", run.Color);
                     },
                     run => {
                         Assert.Equal("text", run.Text);
                         Assert.True(run.Italic);
                         Assert.True(run.Underline);
+                        Assert.True(run.BaselinePercent < 0);
                         Assert.Equal("CC331A", run.Color);
                     });
                 GoogleSlidesTextBox roundTripText = Assert.Single(
@@ -688,6 +1038,9 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(0, run.StartIndex);
                         Assert.Equal(9, run.EndIndex);
                         Assert.True(run.Bold);
+                        Assert.True(run.Strikethrough);
+                        Assert.True(run.SmallCaps);
+                        Assert.Equal("SUPERSCRIPT", run.BaselineOffset);
                         Assert.Equal("336699", run.ForegroundColorHex);
                     },
                     run => {
@@ -695,6 +1048,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(13, run.EndIndex);
                         Assert.True(run.Italic);
                         Assert.True(run.Underline);
+                        Assert.Equal("SUBSCRIPT", run.BaselineOffset);
                         Assert.Equal("CC331A", run.ForegroundColorHex);
                     });
                 PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());
@@ -920,6 +1274,94 @@ namespace OfficeIMO.Tests {
             string styled = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));
 
             Assert.NotEqual(baseline, styled);
+        }
+
+        [Fact]
+        public async Task NativeImporter_PreservesStyledTableCellRuns() {
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-table-style\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
+                const string slides = "{\"presentationId\":\"deck-table-style\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Styled \",\"style\":{\"bold\":true,\"smallCaps\":true}}},{\"textRun\":{\"content\":\"cell\\n\",\"style\":{\"italic\":true,\"underline\":true,\"baselineOffset\":\"SUBSCRIPT\"}}}]}}]}]}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-table-style", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
+            using (imported.Presentation) {
+                IReadOnlyList<PowerPointTextRun> runs = imported.Presentation.Slides.Single().Tables.Single().GetCell(0, 0).Runs;
+                Assert.Collection(runs,
+                    run => {
+                        Assert.Equal("Styled ", run.Text);
+                        Assert.True(run.Bold);
+                        Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
+                    },
+                    run => {
+                        Assert.Equal("cell", run.Text);
+                        Assert.True(run.Italic);
+                        Assert.True(run.Underline);
+                        Assert.True(run.BaselinePercent < 0);
+                    });
+            }
+        }
+
+        [Fact]
+        public async Task NativeImporter_PreservesParagraphBoundariesAndRunStylesInShapesAndTableCells() {
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-paragraphs\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
+                const string slides = "{\"presentationId\":\"deck-paragraphs\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":240,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Shape first\\n\",\"style\":{\"bold\":true}}},{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Shape second\\n\",\"style\":{\"italic\":true}}}]}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Cell first\\n\",\"style\":{\"underline\":true}}},{\"paragraphMarker\":{}},{\"textRun\":{\"content\":\"Cell second\\n\",\"style\":{\"strikethrough\":true}}}]}}]}]}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-paragraphs", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
+            using (imported.Presentation) {
+                IReadOnlyList<PowerPointParagraph> shapeParagraphs = imported.Presentation.Slides.Single().TextBoxes.Single().Paragraphs;
+                Assert.Equal(new[] { "Shape first", "Shape second" }, shapeParagraphs.Select(paragraph => paragraph.Text));
+                Assert.True(shapeParagraphs[0].Runs.Single().Bold);
+                Assert.True(shapeParagraphs[1].Runs.Single().Italic);
+
+                IReadOnlyList<PowerPointParagraph> cellParagraphs = imported.Presentation.Slides.Single().Tables.Single().GetCell(0, 0).Paragraphs;
+                Assert.Equal(new[] { "Cell first", "Cell second" }, cellParagraphs.Select(paragraph => paragraph.Text));
+                Assert.True(cellParagraphs[0].Runs.Single().Underline);
+                Assert.True(cellParagraphs[1].Runs.Single().Strikethrough);
+            }
+        }
+
+        [Fact]
+        public void DiffPlanner_HashesEveryTextRunBoundaryAndSynchronizedStyle() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointParagraph paragraph = presentation.AddSlide()
+                .AddTextBox("First")
+                .Paragraphs.Single();
+            PowerPointTextRun second = paragraph.AddRun("Second");
+            string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            second.Capitalization = PowerPointCapitalization.SmallCaps;
+            second.BaselinePercent = 30D;
+            string styled = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            Assert.NotEqual(baseline, styled);
+        }
+
+        [Fact]
+        public void DiffPlanner_UsesGoogleProjectedValuesAndIncludesTableRuns() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextRun textRun = slide.AddTextBox("mixed").Paragraphs.Single().Runs.Single();
+            textRun.Capitalization = PowerPointCapitalization.AllCaps;
+            textRun.BaselinePercent = 80D;
+            textRun.FontSizePoints = 12.75D;
+            string projected = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            textRun.Text = "MIXED";
+            textRun.Capitalization = null;
+            textRun.BaselinePercent = 30D;
+            textRun.FontSize = 13;
+            Assert.Equal(projected, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
+
+            using PowerPointPresentation tablePresentation = PowerPointPresentation.Create();
+            PowerPointTextRun tableRun = tablePresentation.AddSlide().AddTablePoints(1, 1, 10, 80, 200, 50).GetCell(0, 0).Runs.Single();
+            tableRun.Text = "Cell";
+            string tableBaseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(tablePresentation));
+            tableRun.Strikethrough = true;
+            Assert.NotEqual(tableBaseline, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(tablePresentation)));
         }
 
         [Fact]

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
@@ -20,9 +21,21 @@ namespace OfficeIMO.Examples.Visio {
                     .Rect("start", 2, 2, 2, 1, "Rectangle")
                     .Shape("start", s => s
                         .Fill(Color.LightBlue)
-                        .Stroke(Color.DarkBlue, 0.02)))
+                        .Stroke(Color.DarkBlue, 0.02)
+                        .Font("Aptos")
+                        .FontSize(14)
+                        .TextColor(Color.DarkBlue)
+                        .Bold()
+                        .Italic()
+                        .Underline(OfficeTextDecorationStyle.Double)
+                        .Strikethrough(OfficeTextDecorationStyle.Single)
+                        .Baseline(OfficeTextBaseline.Superscript)
+                        .Capitalization(VisioTextCapitalization.AllCaps)
+                        .TransformTextCase(OfficeTextCase.TitleCase)))
                 .End();
             document.Save();
+            File.WriteAllText(Path.Combine(folderPath, "Basic Visio.svg"), document.ToSvg());
+            document.SaveAsPng(Path.Combine(folderPath, "Basic Visio.png"), new VisioPngSaveOptions { PixelsPerInch = 144 });
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

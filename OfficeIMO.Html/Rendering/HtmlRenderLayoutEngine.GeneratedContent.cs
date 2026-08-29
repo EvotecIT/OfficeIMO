@@ -24,7 +24,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReportUnsupportedGeneratedLayout(style, source);
         ResolvePositionPaintOffset(style, width, containingHeight, source, out double offsetX, out double offsetY);
         runs.Add(new HtmlInlineRun(
-            ApplyTextTransform(content, style.TextTransform),
+            ApplyTextTransform(content, style),
             style,
             link,
             source,
@@ -53,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link = string.Equals(element.TagName, "a", StringComparison.OrdinalIgnoreCase)
             ? ResolveSafeLink(element.GetAttribute("href"), element)
             : null;
-        var run = new HtmlInlineRun(ApplyTextTransform(content, style.TextTransform), style, link, source, ownerElement: element);
+        var run = new HtmlInlineRun(ApplyTextTransform(content, style), style, link, source, ownerElement: element);
         HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);

@@ -21,7 +21,9 @@ public sealed partial class OfficeDrawing {
                     WithTint(text.Color ?? OfficeColor.Black, tint), text.Alignment, text.LineHeight,
                     text.VerticalAlignment, text.RotationDegrees, text.RotationCenterX, text.RotationCenterY,
                     text.WrapText, text.ShrinkToFit, text.StackedText, text.FlipHorizontal, text.FlipVertical,
-                    text.Padding, text.ParagraphIndent, text.OverflowBehavior, text.TextAdvanceWidth);
+                    text.Padding, text.ParagraphIndent, text.OverflowBehavior, text.TextAdvanceWidth,
+                    text.UnderlineStyle, text.StrikethroughStyle, text.Baseline, text.BaselineLevel,
+                    text.BaselineScale, text.BaselineOffset);
             } else if (current is OfficeDrawingRichText richText) {
                 var runs = new List<OfficeRichTextRun>(richText.Runs.Count);
                 for (int runIndex = 0; runIndex < richText.Runs.Count; runIndex++) {
@@ -29,7 +31,8 @@ public sealed partial class OfficeDrawing {
                     runs.Add(new OfficeRichTextRun(
                         run.Text, run.FontSize, WithTint(run.Color, tint), run.Bold, run.Italic, run.Underline,
                         run.FontFamily, run.Strikethrough,
-                        run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null));
+                        run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null,
+                        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline));
                 }
                 replacement = new OfficeDrawingRichText(
                     runs, richText.X, richText.Y, richText.Width, richText.Height, richText.Alignment,

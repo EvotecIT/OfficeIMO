@@ -1289,6 +1289,7 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 - [OfficeIMO roadmap](Docs/ROADMAP.md)
 - [Examples](OfficeIMO.Examples/README.md)
 - [Image export capability matrix](Docs/officeimo.image-export-capability-matrix.md)
+- [Text formatting support matrix](Docs/officeimo.text-formatting-support-matrix.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)
 - [PDF conversion support matrix](Docs/officeimo.pdf-conversion-support-matrix.md)
 - [HTML renderer support matrix](Docs/officeimo.html-support-matrix.md)

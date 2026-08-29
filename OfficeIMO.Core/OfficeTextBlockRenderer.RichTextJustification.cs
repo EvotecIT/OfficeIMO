@@ -42,10 +42,17 @@ public static partial class OfficeTextBlockRenderer {
         builder.Append('>');
         for (int i = 0; i < line.Segments.Count; i++) {
             OfficeRichTextSegment segment = line.Segments[i];
+            double renderedFontSize = ResolveRichTextRenderedFontSize(segment);
             builder.Append("<tspan")
                 .AppendAttribute("font-family", string.IsNullOrWhiteSpace(segment.FontFamily) ? "Arial, sans-serif" : segment.FontFamily)
-                .AppendNumberAttribute("font-size", segment.FontSize)
+                .AppendNumberAttribute("font-size", renderedFontSize)
                 .AppendPaintAttribute("fill", segment.Color);
+
+            if (segment.Baseline == OfficeTextBaseline.Superscript) {
+                builder.AppendNumberAttribute("baseline-shift", segment.FontSize * 0.30D);
+            } else if (segment.Baseline == OfficeTextBaseline.Subscript) {
+                builder.AppendNumberAttribute("baseline-shift", -segment.FontSize * 0.15D);
+            }
 
             if (segment.Bold) {
                 builder.Append(" font-weight=\"700\"");
@@ -55,10 +62,27 @@ public static partial class OfficeTextBlockRenderer {
                 builder.Append(" font-style=\"italic\"");
             }
 
-            AppendSvgTextDecorationAttribute(builder, segment.Underline, segment.Strikethrough);
-            builder.Append('>')
-                .Append(OfficeSvgFormatting.Escape(segment.Text))
-                .Append("</tspan>");
+            bool splitDecorations = RequiresSeparateSvgDecorations(
+                segment.UnderlineStyle,
+                segment.StrikethroughStyle);
+            AppendSvgTextDecorationAttribute(
+                builder,
+                splitDecorations ? OfficeTextDecorationStyle.None : segment.UnderlineStyle,
+                segment.StrikethroughStyle);
+            builder.Append('>');
+            if (splitDecorations) {
+                builder.Append("<tspan");
+                AppendSvgTextDecorationAttribute(
+                    builder,
+                    segment.UnderlineStyle,
+                    OfficeTextDecorationStyle.None);
+                builder.Append('>')
+                    .Append(OfficeSvgFormatting.Escape(segment.Text))
+                    .Append("</tspan>");
+            } else {
+                builder.Append(OfficeSvgFormatting.Escape(segment.Text));
+            }
+            builder.Append("</tspan>");
         }
 
         builder.Append("</text>");
@@ -112,6 +136,9 @@ public static partial class OfficeTextBlockRenderer {
         double cursor = left;
         for (int i = 0; i < tokens.Count; i++) {
             RichTextRenderToken token = tokens[i];
+            double renderedFontSize = ResolveRichTextRenderedFontSize(token.Segment);
+            double renderedBaseline = ResolveRichTextRenderedBaseline(token.Segment, baseline);
+            double segmentTop = renderedBaseline - (renderedFontSize * 0.84D);
             if (token.IsWhitespace) {
                 double whitespaceWidth = token.Width;
                 if (hasWordBefore && HasWordAfter(tokens, i + 1)) {
@@ -122,7 +149,7 @@ public static partial class OfficeTextBlockRenderer {
                     canvas,
                     token.Segment,
                     cursor,
-                    baseline - (token.Segment.FontSize * 0.84D),
+                    segmentTop,
                     whitespaceWidth,
                     rotationDegrees,
                     rotationCenterX,
@@ -137,7 +164,6 @@ public static partial class OfficeTextBlockRenderer {
                 continue;
             }
 
-            double segmentTop = baseline - (token.Segment.FontSize * 0.84D);
             DrawRasterRichTextSegmentTokenBackground(
                 canvas,
                 token.Segment,
@@ -153,7 +179,7 @@ public static partial class OfficeTextBlockRenderer {
                 token.Text,
                 cursor,
                 segmentTop,
-                token.Segment.FontSize,
+                renderedFontSize,
                 token.Segment.Color,
                 token.Segment.Bold,
                 token.Segment.Italic,
@@ -165,7 +191,9 @@ public static partial class OfficeTextBlockRenderer {
                 token.Segment.Strikethrough,
                 token.Segment.FontFamily,
                 flipHorizontal,
-                flipVertical);
+                flipVertical,
+                token.Segment.UnderlineStyle,
+                token.Segment.StrikethroughStyle);
             cursor += token.Width;
             hasWordBefore = true;
         }
@@ -201,7 +229,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        tokens.Add(new RichTextRenderToken(segment, text, canvas.MeasureText(text, segment.FontSize, segment.FontFamily), whitespace));
+        tokens.Add(new RichTextRenderToken(segment, text, canvas.MeasureText(text, ResolveRichTextRenderedFontSize(segment), segment.FontFamily), whitespace));
     }
 
     private static int CountJustifiableRichTextGaps(List<RichTextRenderToken> tokens) {
@@ -282,7 +310,10 @@ public static partial class OfficeTextBlockRenderer {
             segment.Underline,
             segment.FontFamily,
             segment.Strikethrough,
-            segment.BackgroundColor);
+            segment.BackgroundColor,
+            segment.UnderlineStyle,
+            segment.StrikethroughStyle,
+            segment.Baseline);
         DrawRasterRichTextSegmentBackground(canvas, backgroundSegment, x, top, rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
     }
 }

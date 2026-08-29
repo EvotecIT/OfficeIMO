@@ -47,16 +47,50 @@ public sealed class OdfStyle {
     }
     /// <summary>True when text underline is explicitly enabled by this style.</summary>
     public bool? Underline {
-        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-underline-style");
-        set => WriteDecorationToggle(OdfNamespaces.Style + "text-underline-style", value);
+        get => ReadDecorationToggle(TextProperties,
+            OdfNamespaces.Style + "text-underline-style",
+            OdfNamespaces.Style + "text-underline-type");
+        set => WriteDecorationToggle(
+            OdfNamespaces.Style + "text-underline-style",
+            OdfNamespaces.Style + "text-underline-type",
+            value);
+    }
+    /// <summary>Explicit native ODF underline line style.</summary>
+    public OdfTextDecorationStyle? UnderlineStyle {
+        get => ReadDecorationStyle(TextProperties, OdfNamespaces.Style + "text-underline-style");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"),
+            OdfNamespaces.Style + "text-underline-style", value.HasValue ? DecorationStyleToken(value.Value) : null);
+    }
+    /// <summary>Explicit native ODF underline line count.</summary>
+    public OdfTextDecorationType? UnderlineType {
+        get => ReadDecorationType(TextProperties, OdfNamespaces.Style + "text-underline-type");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"),
+            OdfNamespaces.Style + "text-underline-type", value.HasValue ? DecorationTypeToken(value.Value) : null);
     }
     /// <summary>Whether this style explicitly uses an underline variant other than <c>solid</c> or <c>none</c>.</summary>
     public bool? UsesNonSolidUnderlineStyle => ReadNonSolidDecoration(
         TextProperties, OdfNamespaces.Style + "text-underline-style");
     /// <summary>True when text strike-through is explicitly enabled by this style.</summary>
     public bool? StrikeThrough {
-        get => ReadDecorationToggle(TextProperties, OdfNamespaces.Style + "text-line-through-style");
-        set => WriteDecorationToggle(OdfNamespaces.Style + "text-line-through-style", value);
+        get => ReadDecorationToggle(TextProperties,
+            OdfNamespaces.Style + "text-line-through-style",
+            OdfNamespaces.Style + "text-line-through-type");
+        set => WriteDecorationToggle(
+            OdfNamespaces.Style + "text-line-through-style",
+            OdfNamespaces.Style + "text-line-through-type",
+            value);
+    }
+    /// <summary>Explicit native ODF line-through style.</summary>
+    public OdfTextDecorationStyle? LineThroughStyle {
+        get => ReadDecorationStyle(TextProperties, OdfNamespaces.Style + "text-line-through-style");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"),
+            OdfNamespaces.Style + "text-line-through-style", value.HasValue ? DecorationStyleToken(value.Value) : null);
+    }
+    /// <summary>Explicit native ODF line-through count.</summary>
+    public OdfTextDecorationType? LineThroughType {
+        get => ReadDecorationType(TextProperties, OdfNamespaces.Style + "text-line-through-type");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"),
+            OdfNamespaces.Style + "text-line-through-type", value.HasValue ? DecorationTypeToken(value.Value) : null);
     }
     /// <summary>Whether this style explicitly uses a line-through variant other than <c>solid</c> or <c>none</c>.</summary>
     public bool? UsesNonSolidLineThroughStyle => ReadNonSolidDecoration(
@@ -65,6 +99,35 @@ public sealed class OdfStyle {
     public OdfLength? FontSize {
         get => ReadLength(TextProperties, OdfNamespaces.Fo + "font-size");
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "font-size", value?.ToString());
+    }
+    /// <summary>Exact ODF <c>style:text-position</c> value, including authored percentages.</summary>
+    public string? TextPositionValue {
+        get => (string?)TextProperties?.Attribute(OdfNamespaces.Style + "text-position");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"),
+            OdfNamespaces.Style + "text-position", string.IsNullOrWhiteSpace(value) ? null : value!.Trim());
+    }
+    /// <summary>Common native ODF baseline placement.</summary>
+    public OdfTextPosition? TextPosition {
+        get => ParseTextPosition(TextPositionValue);
+        set => TextPositionValue = value switch {
+            null => null,
+            OdfTextPosition.Normal => "0% 100%",
+            OdfTextPosition.Superscript => "super 58%",
+            OdfTextPosition.Subscript => "sub 58%",
+            _ => throw new ArgumentOutOfRangeException(nameof(value))
+        };
+    }
+    /// <summary>Native ODF display-time case transformation.</summary>
+    public OdfTextTransform? TextTransform {
+        get => ParseTextTransform((string?)TextProperties?.Attribute(OdfNamespaces.Fo + "text-transform"));
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"),
+            OdfNamespaces.Fo + "text-transform", value.HasValue ? TextTransformToken(value.Value) : null);
+    }
+    /// <summary>Native ODF small-cap display formatting.</summary>
+    public bool? SmallCaps {
+        get => ParseSmallCaps((string?)TextProperties?.Attribute(OdfNamespaces.Fo + "font-variant"));
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"),
+            OdfNamespaces.Fo + "font-variant", value.HasValue ? value.Value ? "small-caps" : "normal" : null);
     }
     /// <summary>Explicit font family.</summary>
     public string? FontFamily {
@@ -194,10 +257,13 @@ public sealed class OdfStyle {
         SetAttribute(element, attribute, value.HasValue ? (value.Value ? trueValue : falseValue) : null);
     }
 
-    private static bool? ReadDecorationToggle(XElement? element, XName attribute) {
-        string? value = (string?)element?.Attribute(attribute);
-        if (value == null) return null;
-        return string.Equals(value, "none", StringComparison.OrdinalIgnoreCase) ? false : true;
+    private static bool? ReadDecorationToggle(XElement? element, XName styleAttribute, XName typeAttribute) {
+        string? style = (string?)element?.Attribute(styleAttribute);
+        string? type = (string?)element?.Attribute(typeAttribute);
+        if (style == null && type == null) return null;
+        if (string.Equals(style, "none", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(type, "none", StringComparison.OrdinalIgnoreCase)) return false;
+        return true;
     }
 
     private static bool? ReadNonSolidDecoration(XElement? element, XName attribute) {
@@ -207,9 +273,98 @@ public sealed class OdfStyle {
             && !string.Equals(value, "solid", StringComparison.OrdinalIgnoreCase);
     }
 
-    private void WriteDecorationToggle(XName attribute, bool? value) {
-        SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), attribute,
-            value.HasValue ? (value.Value ? "solid" : "none") : null);
+    private static OdfTextDecorationStyle? ReadDecorationStyle(XElement? element, XName attribute) {
+        string? value = (string?)element?.Attribute(attribute);
+        return value?.ToLowerInvariant() switch {
+            null => null,
+            "none" => OdfTextDecorationStyle.None,
+            "solid" => OdfTextDecorationStyle.Solid,
+            "dotted" => OdfTextDecorationStyle.Dotted,
+            "dash" => OdfTextDecorationStyle.Dash,
+            "long-dash" => OdfTextDecorationStyle.LongDash,
+            "dot-dash" => OdfTextDecorationStyle.DotDash,
+            "dot-dot-dash" => OdfTextDecorationStyle.DotDotDash,
+            "wave" => OdfTextDecorationStyle.Wave,
+            _ => null
+        };
+    }
+
+    private static OdfTextDecorationType? ReadDecorationType(XElement? element, XName attribute) {
+        string? value = (string?)element?.Attribute(attribute);
+        return value?.ToLowerInvariant() switch {
+            null => null,
+            "none" => OdfTextDecorationType.None,
+            "single" => OdfTextDecorationType.Single,
+            "double" => OdfTextDecorationType.Double,
+            _ => null
+        };
+    }
+
+    private static string DecorationStyleToken(OdfTextDecorationStyle value) => value switch {
+        OdfTextDecorationStyle.None => "none",
+        OdfTextDecorationStyle.Solid => "solid",
+        OdfTextDecorationStyle.Dotted => "dotted",
+        OdfTextDecorationStyle.Dash => "dash",
+        OdfTextDecorationStyle.LongDash => "long-dash",
+        OdfTextDecorationStyle.DotDash => "dot-dash",
+        OdfTextDecorationStyle.DotDotDash => "dot-dot-dash",
+        OdfTextDecorationStyle.Wave => "wave",
+        _ => throw new ArgumentOutOfRangeException(nameof(value))
+    };
+
+    private static string DecorationTypeToken(OdfTextDecorationType value) => value switch {
+        OdfTextDecorationType.None => "none",
+        OdfTextDecorationType.Single => "single",
+        OdfTextDecorationType.Double => "double",
+        _ => throw new ArgumentOutOfRangeException(nameof(value))
+    };
+
+    private static OdfTextPosition? ParseTextPosition(string? value) {
+        string? normalized = value?.Trim();
+        if (normalized == null) return null;
+        if (normalized.StartsWith("super", StringComparison.OrdinalIgnoreCase)) return OdfTextPosition.Superscript;
+        if (normalized.StartsWith("sub", StringComparison.OrdinalIgnoreCase)) return OdfTextPosition.Subscript;
+        string offset = normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+        if (offset.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(offset.Substring(0, offset.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
+            if (percentage > 0D) return OdfTextPosition.Superscript;
+            if (percentage < 0D) return OdfTextPosition.Subscript;
+            return OdfTextPosition.Normal;
+        }
+        return null;
+    }
+
+    private static OdfTextTransform? ParseTextTransform(string? value) => value?.ToLowerInvariant() switch {
+        null => null,
+        "none" => OdfTextTransform.None,
+        "uppercase" => OdfTextTransform.Uppercase,
+        "lowercase" => OdfTextTransform.Lowercase,
+        "capitalize" => OdfTextTransform.Capitalize,
+        _ => null
+    };
+
+    private static bool? ParseSmallCaps(string? value) => value?.ToLowerInvariant() switch {
+        "small-caps" => true,
+        "normal" => false,
+        _ => null
+    };
+
+    private static string TextTransformToken(OdfTextTransform value) => value switch {
+        OdfTextTransform.None => "none",
+        OdfTextTransform.Uppercase => "uppercase",
+        OdfTextTransform.Lowercase => "lowercase",
+        OdfTextTransform.Capitalize => "capitalize",
+        _ => throw new ArgumentOutOfRangeException(nameof(value))
+    };
+
+    private void WriteDecorationToggle(XName styleAttribute, XName typeAttribute, bool? value) {
+        XElement properties = GetProperties(OdfNamespaces.Style + "text-properties");
+        SetAttribute(properties, styleAttribute, value.HasValue ? (value.Value ? "solid" : "none") : null);
+        if (value == false) {
+            SetAttribute(properties, typeAttribute, "none");
+        } else if (value == true && string.Equals((string?)properties.Attribute(typeAttribute), "none", StringComparison.OrdinalIgnoreCase)) {
+            SetAttribute(properties, typeAttribute, "single");
+        }
     }
 
     private static OdfLength? ReadLength(XElement? element, XName attribute) {

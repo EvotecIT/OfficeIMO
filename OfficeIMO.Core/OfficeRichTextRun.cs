@@ -4,6 +4,12 @@ namespace OfficeIMO.Drawing;
 /// Describes one styled text run for shared rich text layout and rendering.
 /// </summary>
 public sealed class OfficeRichTextRun {
+    /// <summary>Creates a styled text run using the pre-typography constructor signature.</summary>
+    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string? fontFamily, bool strikethrough, OfficeColor? backgroundColor)
+        : this(text, fontSize, color, bold, italic, underline, fontFamily, strikethrough, backgroundColor,
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal) {
+    }
+
     /// <summary>
     /// Creates a styled text run.
     /// </summary>
@@ -16,14 +22,31 @@ public sealed class OfficeRichTextRun {
     /// <param name="fontFamily">Preferred font family for SVG or future font-aware renderers.</param>
     /// <param name="strikethrough">Whether the run should render with strikethrough.</param>
     /// <param name="backgroundColor">Optional run background/highlight color.</param>
-    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold = false, bool italic = false, bool underline = false, string? fontFamily = null, bool strikethrough = false, OfficeColor? backgroundColor = null) {
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
+    /// <param name="baseline">Vertical baseline placement.</param>
+    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold = false, bool italic = false, bool underline = false, string? fontFamily = null, bool strikethrough = false, OfficeColor? backgroundColor = null, OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None, OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None, OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
+        if (underlineStyle < OfficeTextDecorationStyle.None || underlineStyle > OfficeTextDecorationStyle.Wavy) {
+            throw new System.ArgumentOutOfRangeException(nameof(underlineStyle));
+        }
+        if (strikethroughStyle < OfficeTextDecorationStyle.None || strikethroughStyle > OfficeTextDecorationStyle.Wavy) {
+            throw new System.ArgumentOutOfRangeException(nameof(strikethroughStyle));
+        }
+        if (baseline < OfficeTextBaseline.Normal || baseline > OfficeTextBaseline.Subscript) {
+            throw new System.ArgumentOutOfRangeException(nameof(baseline));
+        }
         Text = text ?? string.Empty;
         FontSize = fontSize;
         Color = color;
         Bold = bold;
         Italic = italic;
-        Underline = underline;
-        Strikethrough = strikethrough;
+        UnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
+            ? underlineStyle
+            : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        StrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
+            ? strikethroughStyle
+            : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
+        Baseline = baseline;
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily!;
         BackgroundColor = backgroundColor;
     }
@@ -56,12 +79,24 @@ public sealed class OfficeRichTextRun {
     /// <summary>
     /// Gets whether the run should render with underline.
     /// </summary>
-    public bool Underline { get; }
+    public bool Underline => UnderlineStyle != OfficeTextDecorationStyle.None;
+
+    /// <summary>Gets the underline line pattern.</summary>
+    public OfficeTextDecorationStyle UnderlineStyle { get; }
 
     /// <summary>
     /// Gets whether the run should render with strikethrough.
     /// </summary>
-    public bool Strikethrough { get; }
+    public bool Strikethrough => StrikethroughStyle != OfficeTextDecorationStyle.None;
+
+    /// <summary>Gets the strikethrough line pattern.</summary>
+    public OfficeTextDecorationStyle StrikethroughStyle { get; }
+
+    /// <summary>Gets the vertical baseline placement.</summary>
+    public OfficeTextBaseline Baseline { get; }
+
+    /// <summary>Gets the effective font size used for measuring and rendering this run.</summary>
+    public double EffectiveFontSize => Baseline == OfficeTextBaseline.Normal ? FontSize : FontSize * 0.65D;
 
     /// <summary>
     /// Gets the preferred font family for SVG or future font-aware renderers.
@@ -72,4 +107,20 @@ public sealed class OfficeRichTextRun {
     /// Gets the optional run background/highlight color.
     /// </summary>
     public OfficeColor? BackgroundColor { get; }
+
+    /// <summary>Creates a copy with transformed text casing while preserving all drawing styles.</summary>
+    public OfficeRichTextRun WithTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) =>
+        new OfficeRichTextRun(
+            OfficeTextCaseTransformer.Apply(Text, textCase, culture),
+            FontSize,
+            Color,
+            Bold,
+            Italic,
+            Underline,
+            FontFamily,
+            Strikethrough,
+            BackgroundColor,
+            UnderlineStyle,
+            StrikethroughStyle,
+            Baseline);
 }

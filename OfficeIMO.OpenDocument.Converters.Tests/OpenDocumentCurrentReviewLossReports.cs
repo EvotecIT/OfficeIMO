@@ -62,7 +62,23 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void WordDecorationVariantsAreSimplifiedAndReported() {
+    public void PowerPointHeavyAndWordsOnlyUnderlinesReportTheirApproximation() {
+        using PowerPointPresentation source = PowerPointPresentation.Create();
+        PowerPointTextBox textBox = source.AddSlide().AddTextBoxPoints("Heavy", 10, 10, 200, 40);
+        textBox.Paragraphs[0].Runs[0].UnderlineStyle = PowerPointUnderlineStyle.WavyHeavy;
+        textBox.Paragraphs[0].AddRun(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+
+        OdfConversionMapping mapping = Assert.Single(conversion.Report.Mappings,
+            item => item.Feature == "text-decorations");
+        Assert.Equal(OdfConversionMappingStatus.Approximated, mapping.Status);
+        Assert.Equal(2, mapping.Count);
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void WordDecorationVariantsArePreservedWithoutFalseLoss() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Decorated");
         paragraph.Underline = WordUnderlineStyle.Double;
@@ -77,9 +93,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.True(authored.DoubleStrike);
         Assert.True(converted.Underline);
         Assert.True(converted.StrikeThrough);
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
-            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Equal(OdfTextDecorationType.Double, converted.UnderlineType);
+        Assert.Equal(OdfTextDecorationType.Double, converted.LineThroughType);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
+            && mapping.Status != OdfConversionMappingStatus.Converted);
+        conversion.Report.RequireNoLoss();
     }
 
     [Fact]
@@ -382,7 +400,13 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointParagraph noteParagraph = slide.Notes.SetParagraphs(new[] { "Before" }).Single();
 
         foreach (PowerPointParagraph paragraph in new[] { textBoxParagraph, tableParagraph, noteParagraph }) {
-            paragraph.AddLineBreak().AddField("1", "slidenum").AddRun("After");
+            paragraph.AddLineBreak().AddField("1", "slidenum", fieldId: null, configure: run => {
+                run.Bold = true;
+                run.Italic = true;
+                run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
+                run.SetSuperscript();
+                run.Color = "336699";
+            }).AddRun("After");
             Assert.Equal(new[] {
                 PowerPointParagraphInlineKind.Run,
                 PowerPointParagraphInlineKind.LineBreak,
@@ -403,6 +427,19 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             && mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 3);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "paragraph-fields"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 3);
+        foreach (OdpParagraph paragraph in new[] {
+            Assert.IsType<OdpTextBox>(convertedSlide.Shapes[0]).Paragraphs.Single(),
+            Assert.IsType<OdpTable>(convertedSlide.Shapes[1]).Cell(0, 0).Paragraphs.Single(),
+            convertedSlide.SpeakerNotes!.Paragraphs.Single()
+        }) {
+            OdpRun field = Assert.Single(paragraph.InlineNodes, node => node.Kind == OdpInlineNodeKind.Run && node.Text == "1").Run!;
+            Assert.Equal("1", field.Text);
+            Assert.True(field.Bold);
+            Assert.True(field.Italic);
+            Assert.True(field.Underline);
+            Assert.Equal(OdfTextPosition.Superscript, field.TextPosition);
+            Assert.Equal("#336699", field.Color?.ToString());
+        }
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
         Assert.True(OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes())).Validate().IsValid);
 
@@ -594,6 +631,25 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
+    }
+
+    [Fact]
+    public void OdsDecorationAndSmallCapsLossesUseSpecificDiagnostics() {
+        OdsDocument source = OdsDocument.Create();
+        OdsCell cell = source.AddSheet("Data").Cell(0, 0);
+        cell.SetString("Styled");
+        cell.Underline = true;
+        cell.UnderlineStyle = OdfTextDecorationStyle.Wave;
+        cell.SmallCaps = true;
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
+            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-capitalization"
+            && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "relative-measurements");
     }
 
     [Fact]
@@ -1307,7 +1363,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void OdtNonSolidDecorationsAreFlattenedAndReported() {
+    public void OdtPatternedUnderlineIsPreservedWhilePatternedStrikeIsReported() {
         OdtDocument source = OdtDocument.Create();
         OdfStyle style = source.Styles.CreateNamed("WaveText", OdfStyleFamily.Text);
         style.Underline = true;
@@ -1327,7 +1383,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void OdpFractionalFontSizeIsPreservedWhileNonSolidDecorationsAreReported() {
+    public void OdpFractionalFontSizeAndWaveUnderlineArePreservedWithoutLoss() {
         OdpPresentation source = OdpPresentation.Create();
         OdpRun run = source.AddSlide("Styled")
             .AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2)).AddParagraph().AddRun("Precise");
@@ -1347,9 +1403,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
         Assert.Equal(10.5D, reopened.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().Runs.Single().FontSizePoints);
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
-            && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Equal(PowerPointUnderlineStyle.Wavy, converted.UnderlineStyle);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations");
     }
 
     [Fact]

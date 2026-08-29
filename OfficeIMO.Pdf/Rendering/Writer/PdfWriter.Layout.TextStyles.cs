@@ -24,7 +24,9 @@ internal static partial class PdfWriter {
                 tabLeader: run.TabLeader,
                 tabAlignment: run.TabAlignment,
                 backgroundColor: run.BackgroundColor,
-                fontFamily: run.FontFamily));
+                fontFamily: run.FontFamily,
+                underlineStyle: run.UnderlineStyle,
+                strikeStyle: run.StrikeStyle));
         }
 
         return stripped;

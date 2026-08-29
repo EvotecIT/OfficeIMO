@@ -54,17 +54,15 @@ internal static partial class PdfWriter {
                 }
 
                 if (width > 0D && (run.Underline || run.Strike)) {
-                    double halfDecorationWidth = System.Math.Max(0.45D, effectiveFontSize * 0.055D) / 2D;
+                    double decorationWidth = System.Math.Max(0.45D, effectiveFontSize * 0.055D);
                     if (run.Underline) {
                         double underlineY = runBaseline - System.Math.Max(0.8D, effectiveFontSize * 0.1D);
-                        runBottom = System.Math.Min(runBottom, underlineY - halfDecorationWidth);
-                        runTop = System.Math.Max(runTop, underlineY + halfDecorationWidth);
+                        IncludeDecorationVerticalBounds(run.UnderlineStyle, underlineY, decorationWidth, ref runBottom, ref runTop);
                     }
 
                     if (run.Strike) {
                         double strikeY = runBaseline + (effectiveFontSize * 0.28D);
-                        runBottom = System.Math.Min(runBottom, strikeY - halfDecorationWidth);
-                        runTop = System.Math.Max(runTop, strikeY + halfDecorationWidth);
+                        IncludeDecorationVerticalBounds(run.StrikeStyle, strikeY, decorationWidth, ref runBottom, ref runTop);
                     }
                 }
 
@@ -74,6 +72,18 @@ internal static partial class PdfWriter {
         }
 
         return !double.IsPositiveInfinity(bottom) && !double.IsNegativeInfinity(top);
+    }
+
+    private static void IncludeDecorationVerticalBounds(OfficeIMO.Drawing.OfficeTextDecorationStyle style, double y, double width, ref double bottom, ref double top) {
+        double extra = width / 2D;
+        if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Double) {
+            extra += Math.Max(width * 1.8D, 0.8D) / 2D;
+        } else if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+            extra += Math.Max(width * 1.5D, 0.75D);
+        }
+
+        bottom = Math.Min(bottom, y - extra);
+        top = Math.Max(top, y + extra);
     }
 
     private static double[] BuildPageTextLineBaselines(
@@ -154,10 +164,10 @@ internal static partial class PdfWriter {
                 if (width > 0D && (run.Underline || run.Strike)) {
                     double decorationWidth = Math.Max(0.45D, effectiveFontSize * 0.055D);
                     if (run.Underline) {
-                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D), decorationWidth, runColor);
+                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D), decorationWidth, runColor, run.UnderlineStyle);
                     }
                     if (run.Strike) {
-                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise + (effectiveFontSize * 0.28D), decorationWidth, runColor);
+                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise + (effectiveFontSize * 0.28D), decorationWidth, runColor, run.StrikeStyle);
                     }
                 }
 
@@ -166,14 +176,44 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AppendPageTextDecorationLine(StringBuilder sb, double x1, double x2, double y, double width, PdfColor color) {
-        new ContentStreamBuilder(sb)
+    private static void AppendPageTextDecorationLine(StringBuilder sb, double x1, double x2, double y, double width, PdfColor color, OfficeIMO.Drawing.OfficeTextDecorationStyle style) {
+        if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.None || x2 <= x1) {
+            return;
+        }
+
+        if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Double) {
+            double separation = Math.Max(width * 1.8D, 0.8D);
+            AppendPageTextDecorationLine(sb, x1, x2, y - (separation / 2D), width, color, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single);
+            AppendPageTextDecorationLine(sb, x1, x2, y + (separation / 2D), width, color, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single);
+            return;
+        }
+
+        var content = new ContentStreamBuilder(sb)
             .SaveState()
             .StrokeColor(color)
-            .LineWidth(width)
-            .MoveTo(x1, y)
-            .LineTo(x2, y)
-            .StrokePath()
-            .RestoreState();
+            .LineWidth(width);
+        if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Dashed) {
+            content.StrokeDash(Math.Max(width * 5D, 2D), Math.Max(width * 3D, 1D));
+        } else if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Dotted) {
+            content.LineCap(1).StrokeDash(Math.Max(width, 0.5D), Math.Max(width * 3D, 1D));
+        }
+
+        if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+            double step = Math.Max(width * 5D, 2D);
+            double amplitude = Math.Max(width * 1.5D, 0.75D);
+            content.MoveTo(x1, y);
+            double cursor = x1;
+            bool raised = true;
+            while (cursor < x2) {
+                double next = Math.Min(x2, cursor + step);
+                content.LineTo(next, y + (raised ? amplitude : -amplitude));
+                cursor = next;
+                raised = !raised;
+            }
+        } else {
+            content.MoveTo(x1, y).LineTo(x2, y);
+        }
+
+        content.StrokePath().RestoreState();
     }
 }

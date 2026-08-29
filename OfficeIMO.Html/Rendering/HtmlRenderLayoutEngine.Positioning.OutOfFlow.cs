@@ -333,7 +333,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
         if (tag == "img") return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
-        string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style.TextTransform);
+        string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style);
         double preferredContentWidth = Math.Max(1D, MeasureInlineText(content, style));
         double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
             .Select(token => MeasureInlineText(token, style))

@@ -319,14 +319,8 @@ internal static partial class HtmlPdfRenderedConverter {
             (face.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic)) == normalized);
     }
 
-    private static IEnumerable<string> EnumerateFamilies(string? familyNames) {
-        if (string.IsNullOrWhiteSpace(familyNames)) yield break;
-
-        foreach (string raw in familyNames!.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-            string family = raw.Trim().Trim('"', '\'');
-            if (family.Length > 0) yield return family;
-        }
-    }
+    private static IEnumerable<string> EnumerateFamilies(string? familyNames) =>
+        HtmlRenderCssValues.FontFamilyNames(familyNames);
 
     private sealed class RegisteredWebFonts {
         internal RegisteredWebFonts(

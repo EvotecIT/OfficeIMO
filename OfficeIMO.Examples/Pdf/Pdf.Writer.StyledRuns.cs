@@ -53,6 +53,22 @@ namespace OfficeIMO.Examples.Pdf {
                     .Underlined("green", PdfColor.FromRgb(0, 128, 0))
                     .Text("."))
                 .Paragraph(p => p
+                    .Text("Decoration variants: ")
+                    .Underlined("double", OfficeIMO.Drawing.OfficeTextDecorationStyle.Double)
+                    .Text(", ")
+                    .Underlined("dotted", OfficeIMO.Drawing.OfficeTextDecorationStyle.Dotted)
+                    .Text(", ")
+                    .Strikethrough("wavy strike", OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy)
+                    .Text("; H")
+                    .Subscript("2")
+                    .Text("O and x")
+                    .Superscript("2")
+                    .Text("."))
+                .Paragraph(p => p.Runs(new[] {
+                    new PdfTextRun("stored casing", bold: true, color: PdfColor.FromRgb(112, 48, 160))
+                        .WithTextCase(OfficeIMO.Drawing.OfficeTextCase.TitleCase)
+                }))
+                .Paragraph(p => p
                     .Text("Stateful color toggles: ")
                     .Color(PdfColor.FromRgb(185, 28, 28)).Text("critical ")
                     .Color(PdfColor.FromRgb(20, 90, 180)).Text("informational ")

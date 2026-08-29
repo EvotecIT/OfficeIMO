@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -848,6 +849,90 @@ public sealed class AdfContractTests {
         AdfNode text = Assert.Single(Assert.Single(roundTrip.Value.Content).Content);
         Assert.Equal("first second", text.Text);
         Assert.Contains(text.Marks, mark => mark.Type == "code");
+    }
+
+    [Theory]
+    [InlineData("sup", "^2^")]
+    [InlineData("sub", "~2~")]
+    public void SubsupProjection_RoundTripsThroughMarkdownAndHtml(string script, string expectedMarkdown) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = {
+                AdfNode.TextNode("2", new[] { new AdfMark("subsup").SetAttribute("type", script) })
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+        AdfConversionResult<string> html = AdfConverter.ToHtml(document);
+
+        Assert.Contains(expectedMarkdown, markdown.Value);
+        AdfMark mark = Assert.Single(Assert.Single(Assert.Single(roundTrip.Value.Content).Content).Marks);
+        Assert.Equal("subsup", mark.Type);
+        Assert.Equal(script, mark.GetStringAttribute("type"));
+        Assert.Contains(script == "sup" ? "<sup>2</sup>" : "<sub>2</sub>", html.Value);
+    }
+
+    [Theory]
+    [InlineData("sup", "x^y", "^x\\^y^")]
+    [InlineData("sub", "x~y", "~x\\~y~")]
+    public void SubsupProjectionEscapesItsOwnDelimiter(string script, string text, string expectedMarkdown) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = {
+                AdfNode.TextNode(text, new[] { new AdfMark("subsup").SetAttribute("type", script) })
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.Contains(expectedMarkdown, markdown.Value, StringComparison.Ordinal);
+        IReadOnlyList<AdfNode> restored = Assert.Single(roundTrip.Value.Content).Content;
+        Assert.Equal(text, string.Concat(restored.Select(node => node.Text)));
+        Assert.All(restored, node => Assert.Contains(node.Marks,
+            mark => mark.Type == "subsup" && mark.GetStringAttribute("type") == script));
+    }
+
+    [Theory]
+    [InlineData("sup", "before ^ready^ after")]
+    [InlineData("sub", "before ~ready~ after")]
+    public void SubsupProjectionMovesBoundaryWhitespaceOutsideMarkdownDelimiters(string script, string expectedMarkdown) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = {
+                AdfNode.TextNode("before"),
+                AdfNode.TextNode(" ready ", new[] { new AdfMark("subsup").SetAttribute("type", script) }),
+                AdfNode.TextNode("after")
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.Contains(expectedMarkdown, markdown.Value, StringComparison.Ordinal);
+        Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED");
+        IReadOnlyList<AdfNode> restored = Assert.Single(roundTrip.Value.Content).Content;
+        Assert.Equal("before ready after", string.Concat(restored.Select(node => node.Text)));
+        Assert.Contains(restored, node => node.Text == "ready" && node.Marks.Any(mark =>
+            mark.Type == "subsup" && mark.GetStringAttribute("type") == script));
+    }
+
+    [Fact]
+    public void UnderlineProjection_RoundTripsThroughMarkdownAndHtml() {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = { AdfNode.TextNode("underlined", new[] { new AdfMark("underline") }) }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+        AdfConversionResult<string> html = AdfConverter.ToHtml(document);
+
+        Assert.Contains("<u>underlined</u>", markdown.Value);
+        Assert.Contains("<u>underlined</u>", html.Value);
+        Assert.Contains(Assert.Single(Assert.Single(roundTrip.Value.Content).Content).Marks,
+            mark => mark.Type == "underline");
     }
 
     private static AdfNode TableCell(string type, string text) => new AdfNode(type) {

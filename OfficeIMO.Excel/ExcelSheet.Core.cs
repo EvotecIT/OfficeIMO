@@ -657,9 +657,9 @@ namespace OfficeIMO.Excel {
 
                 var fontName = firstFont.GetFirstChild<FontName>()?.Val?.Value;
                 var fontSize = firstFont.GetFirstChild<FontSize>()?.Val?.Value ?? 11.0;
-                bool bold = firstFont.GetFirstChild<Bold>() != null;
-                bool italic = firstFont.GetFirstChild<Italic>() != null;
-                bool underline = firstFont.GetFirstChild<Underline>() != null;
+                bool bold = ExcelOpenXmlFontProperty.IsEnabled(firstFont.GetFirstChild<Bold>());
+                bool italic = ExcelOpenXmlFontProperty.IsEnabled(firstFont.GetFirstChild<Italic>());
+                bool underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(firstFont.GetFirstChild<Underline>());
 
                 if (!string.IsNullOrEmpty(fontName)) {
                     return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic, underline));
@@ -692,9 +692,9 @@ namespace OfficeIMO.Excel {
         private static OfficeFontInfo CreateFontInfoFromOpenXml(DocumentFormat.OpenXml.Spreadsheet.Font fontElement, float fallbackSize) {
             var fontName = fontElement.GetFirstChild<FontName>()?.Val?.Value;
             var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? fallbackSize;
-            bool bold = fontElement.GetFirstChild<Bold>() != null;
-            bool italic = fontElement.GetFirstChild<Italic>() != null;
-            bool underline = fontElement.GetFirstChild<Underline>() != null;
+            bool bold = ExcelOpenXmlFontProperty.IsEnabled(fontElement.GetFirstChild<Bold>());
+            bool italic = ExcelOpenXmlFontProperty.IsEnabled(fontElement.GetFirstChild<Italic>());
+            bool underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(fontElement.GetFirstChild<Underline>());
 
             return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic, underline));
         }

@@ -1,21 +1,33 @@
+using OfficeIMO.Adf;
 using OfficeIMO.AsciiDoc;
+using OfficeIMO.Confluence;
+using OfficeIMO.CSV;
+using OfficeIMO.Drawing;
+using OfficeIMO.Email;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
+using OfficeIMO.Excel.GoogleSheets;
+using OfficeIMO.Excel.Csv;
+using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Html.Pdf.Browser;
+using OfficeIMO.Epub;
 using OfficeIMO.Latex;
 using OfficeIMO.Markdown;
+using OfficeIMO.Markup;
 using OfficeIMO.Mhtml;
 using OfficeIMO.OneNote;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
+using OfficeIMO.PowerPoint.GoogleSlides;
 using OfficeIMO.Rtf;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using OfficeIMO.Word.GoogleDocs;
 using HtmlTinkerX;
 
 internal static class ConversionApiCompileContract {
@@ -25,12 +37,18 @@ internal static class ConversionApiCompileContract {
     internal static void Verify(
         Stream stream,
         string source,
+        AdfDocument adf,
         AsciiDocDocument asciiDoc,
+        ConfluencePage confluencePage,
+        CsvDocument csv,
+        EmailDocument email,
+        global::OfficeIMO.Epub.EpubDocument epub,
         ExcelDocument excel,
         HtmlConversionDocument html,
         HtmlBrowserPdfResult browserPdf,
         LatexDocument latex,
         MarkdownDoc markdown,
+        OfficeMarkupDocument officeMarkup,
         MhtmlDocument mhtml,
         OneNoteSection oneNote,
         OdtDocument odt,
@@ -41,7 +59,8 @@ internal static class ConversionApiCompileContract {
         RtfDocument rtf,
         RtfReadResult rtfRead,
         VisioDocument visio,
-        WordDocument word) {
+        WordDocument word,
+        GoogleWorkspaceSession session) {
         OfficeHtmlDocumentOptions output = new OfficeHtmlDocumentOptions {
             EmitDocumentShell = true,
             IncludeDefaultStyles = true,
@@ -128,5 +147,40 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdfDocumentResult(odp);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdpPresentationResult(pdf);
         _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
+        _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
+        _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");
+        _ = ExcelGoogleSheetsExtensions.ExportToGoogleSheetsAsync(excel, session);
+        _ = ExcelGoogleSheetsExtensions.ImportGoogleSheetAsync(session, "spreadsheet-id");
+        _ = PowerPointGoogleSlidesExtensions.ExportToGoogleSlidesAsync(powerPoint, session);
+        _ = PowerPointGoogleSlidesExtensions.ImportGoogleSlidesAsync(session, "presentation-id");
+        _ = AdfConverter.ToMarkdown(adf);
+        _ = AdfConverter.FromMarkdown(source);
+        _ = AdfConverter.ToHtml(adf);
+        _ = AdfConverter.FromHtml(source);
+        _ = ConfluenceContentConverter.FromMarkdown(source);
+        _ = ConfluenceContentConverter.FromHtml(source);
+        _ = ConfluenceContentConverter.ToMarkdown(confluencePage);
+        _ = ConfluenceContentConverter.ToHtml(confluencePage);
+        _ = ExcelDocumentCsvExtensions.ToExcelDocument(csv);
+        _ = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
+        _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
+        _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
+        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointPresentationResult(officeMarkup);
+
+        // Every cataloged image source compiles against the same five-format owner
+        // contract. Runtime tests enumerate PNG, SVG, JPEG, TIFF, and WebP.
+        const OfficeImageExportFormat imageFormat = OfficeImageExportFormat.Png;
+        _ = word.ExportImages(imageFormat);
+        _ = excel.ExportImages(imageFormat);
+        _ = powerPoint.ExportImages(imageFormat);
+        _ = OfficeIMO.Html.HtmlImageExportExtensions.ExportImages(html, imageFormat);
+        _ = OfficeIMO.OneNote.OneNoteImageExportExtensions.ExportImages(oneNote, imageFormat);
+        _ = OfficeIMO.Visio.VisioImageExportExtensions.ExportImages(visio, imageFormat);
+        _ = OfficeIMO.Email.EmailImageExportExtensions.ExportImages(email, imageFormat);
+        _ = OfficeIMO.Epub.Image.EpubImageExportExtensions.ExportImages(epub, imageFormat);
+        _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentImageExportExtensions.ExportImages(odt, imageFormat);
+        _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentImageExportExtensions.ExportImages(ods, imageFormat);
+        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentImageExportExtensions.ExportImages(odp, imageFormat);
+        _ = OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(pdf, imageFormat);
     }
 }

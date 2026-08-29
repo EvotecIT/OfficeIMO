@@ -527,7 +527,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             textAdvanceWidth: paintSegment.Advance,
                             bidiVisualOrderResolved: segment.BidiResolved,
                             semanticFragmentOrder: segment.Run.SemanticFragmentOrder,
-                            logicalTextOrder: segment.Run.LogicalTextOrder));
+                            logicalTextOrder: segment.Run.LogicalTextOrder,
+                            underlineStyle: segment.Run.Style.UnderlineStyle,
+                            strikethroughStyle: segment.Run.Style.StrikethroughStyle,
+                            baseline: segment.Run.Style.Baseline,
+                            baselineLevel: segment.Run.Style.BaselineLevel,
+                            baselineScale: segment.Run.Style.BaselineScale,
+                            baselineOffset: segment.Run.Style.BaselineOffset));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||

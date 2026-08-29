@@ -1,5 +1,6 @@
 using OfficeIMO.Html;
 using OfficeIMO.OneNote.Html;
+using OfficeIMO.OneNote.Markdown;
 
 namespace OfficeIMO.OneNote.Tests;
 
@@ -99,5 +100,190 @@ public sealed class HtmlImportTests {
 
         Assert.True(result.Succeeded);
         Assert.Contains("Page", result.Value);
+    }
+
+    [Fact]
+    public void OneNoteHtmlExportGroupsConsecutiveListItemsIntoOneList() {
+        var section = new OneNoteSection { Name = "Lists" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach (string text in new[] { "First", "Second" }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = true, Level = 0 }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+
+        Assert.Equal(1, html.Split(new[] { "<ol data-level=\"0\">" }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, html.Split(new[] { "<li>" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("<ol data-level=\"0\"><li>First</li><li>Second</li></ol>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteHtmlExportNestsConsecutiveListLevelsUnderTheirParentItem() {
+        var section = new OneNoteSection { Name = "Nested lists" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach ((string text, int level, bool ordered) in new[] {
+            ("Parent", 0, false),
+            ("Child one", 1, true),
+            ("Child two", 1, true),
+            ("Sibling", 0, false)
+        }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = ordered, Level = level }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+
+        Assert.Contains(
+            "<ul data-level=\"0\"><li>Parent<ol data-level=\"1\"><li>Child one</li><li>Child two</li></ol></li><li>Sibling</li></ul>",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteHtmlExportAppliesContentDepthLimitToNestedLists() {
+        var section = new OneNoteSection { Name = "Bounded lists" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach ((string text, int level) in new[] { ("Parent", 0), ("Child", 1), ("Deep", 2), ("Sibling", 0) }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = false, Level = level }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult(
+            new OneNoteMarkdownOptions { MaxContentDepth = 1 }).Value;
+
+        Assert.Contains("Parent", html, StringComparison.Ordinal);
+        Assert.Contains("Sibling", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Child", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Deep", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteSemanticHtmlPreservesOrderedListOrdinals() {
+        var section = new OneNoteSection { Name = "Ordinals" };
+        var page = new OneNotePage { Title = "Page" };
+        foreach ((string text, bool restart, int? displayIndex) in new[] {
+                     ("Four", true, (int?)4), ("Five", false, (int?)null), ("Nine", true, (int?)9) }) {
+            var paragraph = new OneNoteParagraph {
+                List = new OneNoteListInfo { Ordered = true, Level = 0, Restart = restart, DisplayIndex = displayIndex }
+            };
+            paragraph.Runs.Add(new OneNoteTextRun { Text = text });
+            page.DirectContent.Add(paragraph);
+        }
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+        Assert.Contains("<ol data-level=\"0\" start=\"4\"><li>Four</li><li>Five</li><li value=\"9\">Nine</li></ol>", html, StringComparison.Ordinal);
+
+        OneNoteParagraph[] imported = Assert.Single(Assert.Single(HtmlConversionDocument.Parse(
+                    html, HtmlConversionDocumentOptions.CreateTrustedProfile()).ToOneNoteSectionResult().RequireValue().Pages).Outlines)
+            .Children.OfType<OneNoteParagraph>().Where(item => item.List != null).ToArray();
+        Assert.Equal(new int?[] { 4, null, 9 }, imported.Select(item => item.List?.DisplayIndex));
+        Assert.Equal(new bool?[] { true, false, true }, imported.Select(item => item.List?.Restart));
+    }
+
+    [Fact]
+    public void OneNoteSemanticHtmlRoundTripPreservesArgbAlpha() {
+        var section = new OneNoteSection { Name = "Alpha" };
+        var page = new OneNotePage { Title = "Page" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun {
+            Text = "Styled",
+            Style = {
+                ColorArgb = 0x80336699U,
+                HighlightColorArgb = 0x40FFF2CCU
+            }
+        });
+        paragraph.Runs.Add(new OneNoteTextRun {
+            Text = "Transparent",
+            Style = { ColorArgb = 0x00336699U }
+        });
+        var table = new OneNoteTable();
+        var row = new OneNoteTableRow();
+        var cell = new OneNoteTableCell { ShadingColorArgb = 0xA0112233U };
+        cell.Content.Add(new OneNoteParagraph { Runs = { new OneNoteTextRun { Text = "Cell" } } });
+        row.Cells.Add(cell);
+        table.Rows.Add(row);
+        page.DirectContent.Add(paragraph);
+        page.DirectContent.Add(table);
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+        Assert.Contains("#33669980", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#FFF2CC40", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#112233A0", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#33669900", html, StringComparison.OrdinalIgnoreCase);
+
+        OneNoteSection imported = HtmlConversionDocument.Parse(
+                html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToOneNoteSectionResult()
+            .RequireValue();
+        OneNoteOutline outline = Assert.Single(Assert.Single(imported.Pages).Outlines);
+        OneNoteTextRun run = Assert.Single(
+            outline.Children.OfType<OneNoteParagraph>().SelectMany(item => item.Runs),
+            item => item.Text == "Styled");
+        OneNoteTableCell importedCell = Assert.Single(Assert.Single(
+            outline.Children.OfType<OneNoteTable>().Single().Rows).Cells);
+
+        Assert.Equal(0x80336699U, run.Style.ColorArgb);
+        Assert.Equal(0x40FFF2CCU, run.Style.HighlightColorArgb);
+        OneNoteTextRun transparent = Assert.Single(
+            outline.Children.OfType<OneNoteParagraph>().SelectMany(item => item.Runs),
+            item => item.Text == "Transparent");
+        Assert.Equal(0x00336699U, transparent.Style.ColorArgb);
+        Assert.Equal(0xA0112233U, importedCell.ShadingColorArgb);
+    }
+
+    [Fact]
+    public void OneNoteHtmlExportClosesParagraphBeforeRenderingChildBlocks() {
+        var section = new OneNoteSection { Name = "Structure" };
+        var page = new OneNotePage { Title = "Page" };
+        var parent = new OneNoteParagraph();
+        parent.Runs.Add(new OneNoteTextRun { Text = "Parent" });
+        var child = new OneNoteParagraph();
+        child.Runs.Add(new OneNoteTextRun { Text = "Child" });
+        parent.Children.Add(child);
+        page.DirectContent.Add(parent);
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+
+        Assert.Contains("<p>Parent</p><p>Child</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<p>Parent<p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OneNoteHtmlRoundTripReconstructsStructuredInlineMath() {
+        var section = new OneNoteSection { Name = "Math" };
+        var page = new OneNotePage { Title = "Page" };
+        var paragraph = new OneNoteParagraph();
+        OfficeIMO.Drawing.OfficeMathExpression expected = OfficeIMO.Drawing.OfficeMath.Fraction(
+            OfficeIMO.Drawing.OfficeMath.Identifier("x"),
+            OfficeIMO.Drawing.OfficeMath.Number("2"));
+        paragraph.AddMath(expected);
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        string html = section.ToHtmlDocumentResult().Value;
+        HtmlToOneNoteSectionResult imported = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+
+        OneNoteTextRun run = Assert.Single(Assert.Single(imported.Value.Pages).Outlines
+            .SelectMany(outline => outline.Children)
+            .OfType<OneNoteParagraph>()
+            .SelectMany(item => item.Runs), item => item.MathExpression != null);
+        Assert.True(run.Style.IsMath);
+        Assert.Equal(expected, run.MathExpression);
     }
 }
