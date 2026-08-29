@@ -685,6 +685,62 @@ public class PdfXGroundworkTests {
         Assert.Equal(expectedComplete ? 0 : 1, evidence.UninspectableContentStreamCount);
     }
 
+    [Fact]
+    public void PrintProductionInspectorFailsClosedOnInvalidInlineImagePayload() {
+        byte[] pdf = BuildInspectionPdf(
+            "BI /W 1 /H 1 /BPC 8 /CS /DeviceCMYK /F /FlateDecode ID x EI");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("BI /W 1 /H 1 /IM true /BPC 8 ID x EI")]
+    [InlineData("BI /W 1 /H 1 /IM true /BPC 1 /F /FlateDecode ID x EI")]
+    public void PrintProductionInspectorFailsClosedOnMalformedInlineImageMask(string content) {
+        byte[] pdf = BuildInspectionPdf(content);
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void PrintProductionInspectorAcceptsStructurallyValidImageMaskXObject() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 " +
+                "/ImageMask true /BitsPerComponent 1 /Decode [1 0] /Length 1 >>\nstream\nx\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("/Height 1 /ImageMask true /BitsPerComponent 1")]
+    [InlineData("/Width 1 /Height 1 /ImageMask true /BitsPerComponent 8")]
+    [InlineData("/Width 16 /Height 1 /ImageMask true /BitsPerComponent 1")]
+    public void PrintProductionInspectorFailsClosedOnMalformedImageMaskXObject(string imageEntries) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Image " + imageEntries +
+                " /Length 1 >>\nstream\nx\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Theory]
     [InlineData("1e309 0 0 rg 0 0 10 10 re f")]
     [InlineData("BI /W 1e309 /H 1 /BPC 8 /CS /G ID A EI")]

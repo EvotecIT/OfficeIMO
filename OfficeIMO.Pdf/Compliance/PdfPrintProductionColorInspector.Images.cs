@@ -9,13 +9,27 @@ internal static partial class PdfPrintProductionColorInspector {
         int componentCount,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
+        int maximumDecodedStreamBytes) => IsStructurallyInspectableImage(
+            context.Dictionary,
+            context.Stream.Data,
+            componentCount,
+            objects,
+            maximumObjectDepth,
+            maximumDecodedStreamBytes);
+
+    private static bool IsStructurallyInspectableImage(
+        PdfDictionary image,
+        byte[] data,
+        int componentCount,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
         int maximumDecodedStreamBytes) {
-        PdfDictionary image = context.Dictionary;
         if (componentCount < 1 ||
             !TryResolveInteger(image, "Width", objects, maximumObjectDepth, 1, int.MaxValue, out int width) ||
             !TryResolveInteger(image, "Height", objects, maximumObjectDepth, 1, int.MaxValue, out int height) ||
             !TryResolveIntegerFromSet(image, "BitsPerComponent", objects, maximumObjectDepth, 1, 2, 4, 8, 16) ||
             !TryResolveInteger(image, "BitsPerComponent", objects, maximumObjectDepth, 1, 16, out int bitsPerComponent) ||
+            !HasOptionalBoolean(image, "ImageMask", objects, maximumObjectDepth) ||
             !HasOptionalBoolean(image, "Interpolate", objects, maximumObjectDepth) ||
             !HasOptionalExactFiniteNumberArray(
                 image,
@@ -30,13 +44,13 @@ internal static partial class PdfPrintProductionColorInspector {
             string.Equals(filterName, "DCTDecode", StringComparison.Ordinal)) {
             return HasValidDctDecodeParameters(image, objects, maximumObjectDepth) &&
                 TryReadJpegFrame(
-                    context.Stream.Data,
+                    data,
                     out int jpegWidth,
                     out int jpegHeight,
                     out int jpegPrecision,
                     out int jpegComponents) &&
                 jpegPrecision == bitsPerComponent && jpegComponents == componentCount &&
-                OfficeRasterContainerInspector.TryInspect(context.Stream.Data, out OfficeRasterContainerInfo? container) &&
+                OfficeRasterContainerInspector.TryInspect(data, out OfficeRasterContainerInfo? container) &&
                 container != null && container.Format == OfficeImageFormat.Jpeg &&
                 jpegWidth == width && jpegHeight == height &&
                 container.CanvasWidth == width && container.CanvasHeight == height;
@@ -45,7 +59,7 @@ internal static partial class PdfPrintProductionColorInspector {
         if (filterName != null && string.Equals(filterName, "JPXDecode", StringComparison.Ordinal)) return false;
         if (!StreamDecoder.TryDecode(
                 image,
-                context.Stream.Data,
+                data,
                 maximumDecodedStreamBytes,
                 out byte[] decoded,
                 objects)) return false;
@@ -57,6 +71,46 @@ internal static partial class PdfPrintProductionColorInspector {
             rowBits = checked((long)width * componentCount * bitsPerComponent);
             rowBytes = checked((rowBits + 7L) / 8L);
             requiredBytes = checked(rowBytes * height);
+        } catch (OverflowException) {
+            return false;
+        }
+        return requiredBytes <= maximumDecodedStreamBytes && decoded.LongLength == requiredBytes;
+    }
+
+    private static bool IsStructurallyInspectableImageMask(
+        ImageContext context,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) => IsStructurallyInspectableImageMask(
+            context.Dictionary,
+            context.Stream.Data,
+            objects,
+            maximumObjectDepth,
+            maximumDecodedStreamBytes);
+
+    private static bool IsStructurallyInspectableImageMask(
+        PdfDictionary image,
+        byte[] data,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
+        if (!TryResolveInteger(image, "Width", objects, maximumObjectDepth, 1, int.MaxValue, out int width) ||
+            !TryResolveInteger(image, "Height", objects, maximumObjectDepth, 1, int.MaxValue, out int height) ||
+            image.Items.ContainsKey("ColorSpace") ||
+            (image.Items.TryGetValue("BitsPerComponent", out _) &&
+                !TryResolveInteger(image, "BitsPerComponent", objects, maximumObjectDepth, 1, 1, out _)) ||
+            !HasOptionalBoolean(image, "Interpolate", objects, maximumObjectDepth) ||
+            !HasOptionalExactFiniteNumberArray(image, "Decode", 2, objects, maximumObjectDepth) ||
+            !TryResolveSingleFilterName(image, objects, maximumObjectDepth, out string? filterName) ||
+            string.Equals(filterName, "DCTDecode", StringComparison.Ordinal) ||
+            string.Equals(filterName, "JPXDecode", StringComparison.Ordinal) ||
+            !StreamDecoder.TryDecode(image, data, maximumDecodedStreamBytes, out byte[] decoded, objects)) {
+            return false;
+        }
+
+        long requiredBytes;
+        try {
+            requiredBytes = checked(((long)width + 7L) / 8L * height);
         } catch (OverflowException) {
             return false;
         }

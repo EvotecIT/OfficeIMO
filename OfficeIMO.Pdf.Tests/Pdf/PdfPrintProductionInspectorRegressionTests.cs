@@ -1275,6 +1275,24 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
+    [Theory]
+    [InlineData("/Type /Bogus")]
+    [InlineData("/I 1")]
+    [InlineData("/K /False")]
+    public void ColorInspectorFailsClosedOnMalformedTransparencyGroupOptions(string groupEntries) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm1 Do",
+            resources: "/XObject << /Fm1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Group << /S /Transparency " + groupEntries + " >> /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void StructureInspectorInspectsOnlyPaintedType3CharacterProcedures() {
         const string painted = "500 0 0 0 500 700 d1 0 0 500 700 re f";

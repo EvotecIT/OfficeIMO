@@ -136,6 +136,18 @@ internal static partial class PdfPrintProductionColorInspector {
             cancellationToken.ThrowIfCancellationRequested();
             if (image.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
                 ResolveObject(objects, imageMaskObject, 0, maximumObjectDepth) is PdfBoolean { Value: true }) {
+                bool hasMaskContext = false;
+                bool maskIsInspectable = true;
+                foreach (ImageContext context in imageContexts) {
+                    if (!ReferenceEquals(context.Dictionary, image)) continue;
+                    hasMaskContext = true;
+                    maskIsInspectable &= IsStructurallyInspectableImageMask(
+                        context,
+                        objects,
+                        maximumObjectDepth,
+                        maximumDecodedStreamBytes);
+                }
+                if (!hasMaskContext || !maskIsInspectable) uninspectable++;
                 continue;
             }
 
@@ -479,8 +491,27 @@ internal static partial class PdfPrintProductionColorInspector {
                         }
 
                         if (operation.InlineImage != null) {
-                            PdfDictionary inlineImage = operation.InlineImage.Dictionary;
-                            if (inlineImage.Items.TryGetValue("ColorSpace", out PdfObject? inlineColorSpace)) {
+                            PdfContentInlineImage inlineImageData = operation.InlineImage;
+                            PdfDictionary inlineImage = inlineImageData.Dictionary;
+                            bool hasValidMaskFlag = HasOptionalBoolean(
+                                inlineImage,
+                                "ImageMask",
+                                objects,
+                                maximumObjectDepth);
+                            bool isImageMask = inlineImage.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
+                                ResolveObject(objects, imageMaskObject, 0, maximumObjectDepth) is PdfBoolean { Value: true };
+                            if (!hasValidMaskFlag) {
+                                contextWasUninspectable = true;
+                            } else if (isImageMask) {
+                                if (!IsStructurallyInspectableImageMask(
+                                        inlineImage,
+                                        inlineImageData.Data,
+                                        objects,
+                                        maximumObjectDepth,
+                                        maximumDecodedStreamBytes)) {
+                                    contextWasUninspectable = true;
+                                }
+                            } else if (inlineImage.Items.TryGetValue("ColorSpace", out PdfObject? inlineColorSpace)) {
                                 ColorSpaceUsage usage = ClassifyColorSpace(
                                     inlineColorSpace,
                                     objects,
@@ -488,15 +519,20 @@ internal static partial class PdfPrintProductionColorInspector {
                                     maximumDecodedStreamBytes,
                                     aliases,
                                     normalizeInlineImageAbbreviations: true);
-                                if (!usage.IsKnown) contextWasUninspectable = true;
+                                if (!usage.IsKnown ||
+                                    !IsStructurallyInspectableImage(
+                                        inlineImage,
+                                        inlineImageData.Data,
+                                        usage.ComponentCount,
+                                        objects,
+                                        maximumObjectDepth,
+                                        maximumDecodedStreamBytes)) {
+                                    contextWasUninspectable = true;
+                                }
                                 if (usage.UsesDeviceRgb) rgbImages++;
                                 if (usage.UsesDeviceCmyk) cmykImages++;
                                 if (usage.UsesDeviceIndependent) deviceIndependentColorUses++;
-                            } else {
-                                bool isImageMask = inlineImage.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
-                                    ResolveObject(objects, imageMaskObject, 0, maximumObjectDepth) is PdfBoolean { Value: true };
-                                if (!isImageMask) contextWasUninspectable = true;
-                            }
+                            } else contextWasUninspectable = true;
                         }
                     },
                     inlineImageComponentCount: colorSpaceName => ResolveInlineImageComponentCount(
@@ -1054,6 +1090,12 @@ internal static partial class PdfPrintProductionColorInspector {
         }
         if (!string.Equals(subtypeName, "Transparency", StringComparison.Ordinal)) return false;
         isTransparencyGroup = true;
+        if ((group.Items.TryGetValue("Type", out PdfObject? typeObject) &&
+                !string.Equals(ResolveName(typeObject, objects, maximumObjectDepth), "Group", StringComparison.Ordinal)) ||
+            !HasOptionalBoolean(group, "I", objects, maximumObjectDepth) ||
+            !HasOptionalBoolean(group, "K", objects, maximumObjectDepth)) {
+            return false;
+        }
         if (!group.Items.TryGetValue("CS", out PdfObject? colorSpace)) return true;
         usage = ClassifyColorSpace(colorSpace, objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases);
         return usage.IsKnown;

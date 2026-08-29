@@ -106,6 +106,28 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void VariableAxisSelectionReportsExperimentalAvar2AsUnsupported() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        int avarOffset = FindTableOffset(data, "avar");
+        WriteUInt16(data, avarOffset, 2);
+        WriteUInt16(data, avarOffset + 2, 0);
+        var fonts = new OfficeFontFaceCollection {
+            FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 700F }
+        };
+
+        Assert.False(fonts.TryAddBounded(
+            "Roboto Flex",
+            data,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            8 * 1024 * 1024,
+            out _,
+            out string? error));
+        Assert.Contains("avar 2.0", error, StringComparison.Ordinal);
+        Assert.Contains("not supported", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ProviderReceivesTheResolvedVariableFontCoordinates() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         var provider = new CapturingFontProgramProvider();

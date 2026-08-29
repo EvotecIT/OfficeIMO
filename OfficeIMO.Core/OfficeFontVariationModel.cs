@@ -128,6 +128,10 @@ internal sealed class OfficeFontVariationModel {
         Axis[] axes,
         double[] normalized) {
         if (!reader.TryGetTable("avar", out int offset, out int length)) return;
+        if (length >= 4 && reader.ReadUInt16(offset) == 2 && reader.ReadUInt16(offset + 2) == 0) {
+            throw new NotSupportedException(
+                "The experimental OpenType avar 2.0 cross-axis mapping table is not supported; standardized avar 1.0 segment maps are supported.");
+        }
         if (length < 8 || reader.ReadUInt16(offset) != 1 || reader.ReadUInt16(offset + 2) != 0
             || reader.ReadUInt16(offset + 4) != 0 || reader.ReadUInt16(offset + 6) != axes.Length) {
             throw new InvalidDataException("The OpenType avar header is invalid.");
