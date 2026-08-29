@@ -547,7 +547,8 @@ internal static partial class PdfComplianceAnalyzer {
         outputIntent = null;
         if (outputIntents.Count != 1) return false;
         PdfOutputIntentInfo candidate = outputIntents[0];
-        if (!string.Equals(candidate.Subtype, "GTS_PDFX", StringComparison.Ordinal)) return false;
+        if (!string.Equals(candidate.Type, "OutputIntent", StringComparison.Ordinal) ||
+            !string.Equals(candidate.Subtype, "GTS_PDFX", StringComparison.Ordinal)) return false;
         outputIntent = candidate;
         return true;
     }

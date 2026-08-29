@@ -9,6 +9,7 @@ public sealed class PdfOutputIntentInfo {
 
     internal PdfOutputIntentInfo(
         int? objectNumber,
+        string? type,
         string? subtype,
         string? outputConditionIdentifier,
         string? outputCondition,
@@ -21,6 +22,7 @@ public sealed class PdfOutputIntentInfo {
         bool hasDestinationOutputProfile,
         Func<PdfOutputIntentProfileMetadata?>? profileMetadataFactory) {
         ObjectNumber = objectNumber;
+        Type = type;
         Subtype = subtype;
         OutputConditionIdentifier = outputConditionIdentifier;
         OutputCondition = outputCondition;
@@ -38,6 +40,9 @@ public sealed class PdfOutputIntentInfo {
 
     /// <summary>Output intent object number when the output intent is indirect.</summary>
     public int? ObjectNumber { get; }
+
+    /// <summary>Resolved output-intent dictionary /Type value.</summary>
+    public string? Type { get; }
 
     /// <summary>Output intent /S subtype, for example GTS_PDFA1.</summary>
     public string? Subtype { get; }

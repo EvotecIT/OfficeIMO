@@ -6,7 +6,7 @@ public sealed partial class PdfReadDocument {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
     public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => ReadLogicalContent(_outputIntents);
 
-    /// <summary>True when every entry in the catalog /OutputIntents array was resolved as an output-intent dictionary.</summary>
+    /// <summary>True when every entry in the catalog /OutputIntents array resolved to a dictionary typed as /OutputIntent.</summary>
     public bool OutputIntentsAreComplete => ReadLogicalContent(_outputIntentsAreComplete);
 
     private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete) {
@@ -30,6 +30,8 @@ public sealed partial class PdfReadDocument {
                 isComplete = false;
                 continue;
             }
+            string? type = TryReadName(outputIntent, "Type");
+            if (!string.Equals(type, "OutputIntent", StringComparison.Ordinal)) isComplete = false;
 
             PdfStream? profileStream = null;
             int? profileObjectNumber = null;
@@ -46,6 +48,7 @@ public sealed partial class PdfReadDocument {
                 : () => ReadOutputIntentProfileMetadata(profileStream);
             result.Add(new PdfOutputIntentInfo(
                 objectNumber,
+                type,
                 TryReadName(outputIntent, "S"),
                 TryReadText(outputIntent, "OutputConditionIdentifier"),
                 TryReadText(outputIntent, "OutputCondition"),

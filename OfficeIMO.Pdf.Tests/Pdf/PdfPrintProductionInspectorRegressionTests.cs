@@ -208,6 +208,50 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorRejectsUndersizedIndexedLookupPayload() {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0 sc",
+            resources: "/ColorSpace << /CS1 [/Indexed /DeviceCMYK 255 <00>] >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(0, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorDecodesCompleteIndexedLookupStreams() {
+        const string lookup = "00000000FFFFFFFF>";
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0 sc",
+            resources: "/ColorSpace << /CS1 [/Indexed /DeviceCMYK 1 5 0 R] >>",
+            extraObjects:
+                "5 0 obj\n<< /Filter /ASCIIHexDecode /Length " + lookup.Length + " >>\nstream\n" +
+                lookup + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceCmykOperatorCount);
+    }
+
+    [Theory]
+    [InlineData("[/Separation /Spot /DeviceCMYK <<>>]", "0.5 sc")]
+    [InlineData("[/DeviceN [/Cyan /Spot] /DeviceCMYK <<>>]", "0.5 0.5 sc")]
+    public void ColorInspectorRejectsMalformedSpotTintTransforms(string colorSpace, string paint) {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs " + paint,
+            resources: "/ColorSpace << /CS1 " + colorSpace + " >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(0, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void ColorInspectorAppliesValidDefaultRgbIccProfile() {
         byte[] pdf = BuildInspectionPdf(
             "1 0 0 rg /DeviceRGB cs 1 0 0 sc",
@@ -339,6 +383,27 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
         Assert.Equal(2, evidence.DeviceRgbOperatorCount);
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/BBox [10 0 0 10]")]
+    [InlineData("/BBox [0 0 10]")]
+    public void ColorInspectorRejectsMalformedReachableFormGeometry(string formGeometry) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm Do",
+            resources: "/XObject << /Fm 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form " + formGeometry +
+                " /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+        PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+        Assert.False(structure.IsComplete);
+        Assert.True(structure.UninspectableFontResourceCount > 0);
     }
 
     [Fact]
@@ -882,7 +947,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
     [Fact]
     public void StructureInspectorIgnoresUnusedFontResources() {
-        const string charProc = "0 0 500 700 d1 0 0 500 700 re f";
+        const string charProc = "500 0 0 0 500 700 d1 0 0 500 700 re f";
         byte[] pdf = BuildInspectionPdf(
             "BT /F1 12 Tf (A) Tj ET",
             resources: "/Font << /F1 5 0 R /Unused 7 0 R >>",
@@ -905,7 +970,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     [Fact]
     public void StructureInspectorFollowsFontSelectionsInInvokedForms() {
         const string formContent = "BT /F2 12 Tf (A) Tj ET";
-        const string charProc = "0 0 500 700 d1 0 0 500 700 re f";
+        const string charProc = "500 0 0 0 500 700 d1 0 0 500 700 re f";
         byte[] pdf = BuildInspectionPdf(
             "/Fm Do",
             resources: "/Font << /Unused 9 0 R >> /XObject << /Fm 5 0 R >>",
@@ -929,7 +994,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     [Fact]
     public void StructureInspectorFollowsFontSelectionsInPatternsAndSoftMasks() {
         const string selectedText = "BT /F1 12 Tf (A) Tj ET";
-        const string charProc = "0 0 500 700 d1 0 0 500 700 re f";
+        const string charProc = "500 0 0 0 500 700 d1 0 0 500 700 re f";
         string type3Font =
             "<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
             "/CharProcs << /A {0} 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
@@ -1102,7 +1167,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
     [Fact]
     public void StructureInspectorInspectsOnlyPaintedType3CharacterProcedures() {
-        const string painted = "0 0 500 700 d1 0 0 500 700 re f";
+        const string painted = "500 0 0 0 500 700 d1 0 0 500 700 re f";
         byte[] pdf = BuildInspectionPdf(
             "BT /F1 12 Tf (A) Tj ET",
             resources: "/Font << /F1 5 0 R >>",
@@ -1120,6 +1185,62 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.FontResourceCount);
         Assert.Equal(0, evidence.UnembeddedFontResourceCount);
         Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("0 0 m 10 10 l S")]
+    [InlineData("0 0 500 d1")]
+    public void StructureInspectorRejectsSelectedType3GlyphWithoutValidInitialMetrics(string glyphContent) {
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+                "/CharProcs << /A 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+                "/FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n" +
+                "6 0 obj\n<< /Length " + glyphContent.Length + " >>\nstream\n" + glyphContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/FontBBox [0 0 500]")]
+    [InlineData("/FontMatrix [0 0 0 0 0 0]")]
+    [InlineData("/Widths [500 500]")]
+    public void StructureInspectorRejectsMalformedType3FontDictionary(string replacement) {
+        const string glyphContent = "500 0 0 0 500 700 d1 0 0 500 700 re f";
+        string requiredEntries =
+            "/FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /Widths [500]";
+        if (replacement.Length == 0) {
+            requiredEntries = "/FontMatrix [0.001 0 0 0.001 0 0] /Widths [500]";
+        } else if (replacement.StartsWith("/FontBBox", StringComparison.Ordinal)) {
+            requiredEntries = replacement + " /FontMatrix [0.001 0 0 0.001 0 0] /Widths [500]";
+        } else if (replacement.StartsWith("/FontMatrix", StringComparison.Ordinal)) {
+            requiredEntries = "/FontBBox [0 0 500 700] " + replacement + " /Widths [500]";
+        } else {
+            requiredEntries = "/FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] " + replacement;
+        }
+        byte[] pdf = BuildInspectionPdf(
+            "BT /F1 12 Tf (A) Tj ET",
+            resources: "/Font << /F1 5 0 R >>",
+            pageEntries: "/TrimBox [10 10 90 90]",
+            extraObjects:
+                "5 0 obj\n<< /Type /Font /Subtype /Type3 " + requiredEntries +
+                " /CharProcs << /A 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+                "/FirstChar 65 /LastChar 65 /Resources << >> >>\nendobj\n" +
+                "6 0 obj\n<< /Length " + glyphContent.Length + " >>\nstream\n" + glyphContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
     }
 
     [Fact]

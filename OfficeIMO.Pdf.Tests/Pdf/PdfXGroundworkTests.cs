@@ -607,6 +607,25 @@ public class PdfXGroundworkTests {
     }
 
     [Fact]
+    public void PdfXReadbackRequiresOutputIntentDictionaryType() {
+        var options = new PdfOptions().ConfigurePdfXGroundwork(
+            PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            "FOGRA51");
+        byte[] pdf = PdfDocument.Create(options).ToBytes();
+        ReplaceAsciiAll(pdf, "/Type /OutputIntent", "/Type /NullIntent  ");
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        PdfOutputIntentInfo intent = Assert.Single(info.OutputIntents);
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+
+        Assert.Equal("NullIntent", intent.Type);
+        Assert.False(info.OutputIntentsAreComplete);
+        Assert.False(PdfComplianceAnalyzer.TryGetSinglePdfXOutputIntent(info.OutputIntents, out _));
+        Assert.Equal(PdfComplianceRequirementStatus.Missing, report.FindRequirement("readback-pdfx-output-intent")!.Status);
+    }
+
+    [Fact]
     public void PrintProductionInspectorFindsNamedAndInlineDeviceRgb() {
         byte[] pdf = BuildInspectionPdf(
             "/CsRgb cs 0.1 0.2 0.3 sc /DeviceRGB CS 0.4 0.5 0.6 SCN " +
@@ -1595,7 +1614,7 @@ public class PdfXGroundworkTests {
         WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /TrimBox [0 0 100 100] /Resources << /Font << /F1 5 0 R /F2 7 0 R >> >> /Contents 4 0 R >>\nendobj\n");
         WriteInspectionStream(output, 4, string.Empty, "BT /F1 12 Tf ET q BT /F2 12 Tf ET Q BT (A) Tj ET");
         WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj\n");
-        WriteInspectionStream(output, 6, string.Empty, "0 0 500 700 re f");
+        WriteInspectionStream(output, 6, string.Empty, "500 0 0 0 500 700 d1 0 0 500 700 re f");
         WriteAscii(output, "7 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 8 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj\n");
         WriteInspectionStream(output, 8, string.Empty, "0 0 500 700 re f");
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");

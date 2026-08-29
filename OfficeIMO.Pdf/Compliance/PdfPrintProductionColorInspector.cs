@@ -767,35 +767,59 @@ internal static partial class PdfPrintProductionColorInspector {
                 case "Indexed":
                 case "I":
                     if (array.Items.Count != 4 ||
-                        !TryResolveBoundedInteger(array.Items[2], objects, maximumObjectDepth, 0, 255) ||
-                        ResolveObject(objects, array.Items[3], resolvedDepth + 1, maximumObjectDepth) is not (PdfStringObj or PdfStream)) {
+                        !TryResolveBoundedInteger(array.Items[2], objects, maximumObjectDepth, 0, 255, out int highValue)) {
                         return ColorSpaceUsage.Unknown;
                     }
-                    return ClassifyColorSpaceCore(
+                    ColorSpaceUsage indexedBaseUsage = ClassifyColorSpaceCore(
                         array.Items[1], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
-                        activeArrays, resolvedDepth + 1).WithComponentCount(1);
+                        activeArrays, resolvedDepth + 1);
+                    int requiredLookupBytes = indexedBaseUsage.IsKnown &&
+                        !indexedBaseUsage.UsesPattern &&
+                        !IsIndexedColorSpace(array.Items[1], objects, maximumObjectDepth) &&
+                        indexedBaseUsage.ComponentCount > 0
+                        ? (highValue + 1) * indexedBaseUsage.ComponentCount
+                        : 0;
+                    if (requiredLookupBytes <= 0 ||
+                        requiredLookupBytes > maximumDecodedStreamBytes ||
+                        !PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
+                            array.Items[3],
+                            objects,
+                            maximumDecodedStreamBytes,
+                            out byte[] lookupBytes) ||
+                        lookupBytes.Length < requiredLookupBytes) {
+                        return ColorSpaceUsage.Unknown;
+                    }
+                    return indexedBaseUsage.WithComponentCount(1);
                 case "Separation":
                     if (array.Items.Count != 4 ||
-                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is not PdfName ||
-                        !IsColorSpaceFunction(array.Items[3], objects, maximumObjectDepth, resolvedDepth + 1)) {
+                        ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is not PdfName) {
                         return ColorSpaceUsage.Unknown;
                     }
-                    return ClassifyColorSpaceCore(
+                    ColorSpaceUsage separationAlternate = ClassifyColorSpaceCore(
                         array.Items[2], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
-                        activeArrays, resolvedDepth + 1).WithComponentCount(1);
+                        activeArrays, resolvedDepth + 1);
+                    if (!HasValidTintTransform(
+                            array.Items[3], 1, separationAlternate, objects, maximumDecodedStreamBytes)) {
+                        return ColorSpaceUsage.Unknown;
+                    }
+                    return separationAlternate.WithComponentCount(1);
                 case "DeviceN":
                     if ((array.Items.Count != 4 && array.Items.Count != 5) ||
                         ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is not PdfArray colorants ||
                         colorants.Items.Count < 1 ||
                         !AllArrayItemsAreNames(colorants, objects, maximumObjectDepth, resolvedDepth + 1) ||
-                        !IsColorSpaceFunction(array.Items[3], objects, maximumObjectDepth, resolvedDepth + 1) ||
                         (array.Items.Count == 5 &&
                             ResolveObject(objects, array.Items[4], resolvedDepth + 1, maximumObjectDepth) is not PdfDictionary)) {
                         return ColorSpaceUsage.Unknown;
                     }
-                    return ClassifyColorSpaceCore(
+                    ColorSpaceUsage deviceNAlternate = ClassifyColorSpaceCore(
                         array.Items[2], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
-                        activeArrays, resolvedDepth + 1).WithComponentCount(colorants.Items.Count);
+                        activeArrays, resolvedDepth + 1);
+                    if (!HasValidTintTransform(
+                            array.Items[3], colorants.Items.Count, deviceNAlternate, objects, maximumDecodedStreamBytes)) {
+                        return ColorSpaceUsage.Unknown;
+                    }
+                    return deviceNAlternate.WithComponentCount(colorants.Items.Count);
                 case "Pattern":
                     if (array.Items.Count == 1) return ColorSpaceUsage.Pattern;
                     if (array.Items.Count != 2) return ColorSpaceUsage.Unknown;
@@ -816,20 +840,44 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth,
         int minimum,
-        int maximum) {
+        int maximum,
+        out int result) {
+        result = 0;
         if (ResolveObject(objects, value, 0, maximumObjectDepth) is not PdfNumber number ||
             double.IsNaN(number.Value) ||
             double.IsInfinity(number.Value) ||
             number.Value != Math.Truncate(number.Value)) return false;
-        return number.Value >= minimum && number.Value <= maximum;
+        if (number.Value < minimum || number.Value > maximum) return false;
+        result = (int)number.Value;
+        return true;
     }
 
-    private static bool IsColorSpaceFunction(
+    private static bool HasValidTintTransform(
+        PdfObject function,
+        int inputCount,
+        ColorSpaceUsage alternateUsage,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumDecodedStreamBytes) =>
+        alternateUsage.IsKnown &&
+        alternateUsage.ComponentCount > 0 &&
+        PdfColorSpaceFunctionResolver.TryCreateTintTransform(
+            function,
+            inputCount,
+            alternateUsage.ComponentCount,
+            objects,
+            maximumDecodedStreamBytes,
+            out _);
+
+    private static bool IsIndexedColorSpace(
         PdfObject value,
         Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth,
-        int depth) =>
-        ResolveObject(objects, value, depth, maximumObjectDepth) is PdfDictionary or PdfStream;
+        int maximumObjectDepth) {
+        PdfObject? resolved = ResolveObject(objects, value, 0, maximumObjectDepth);
+        return resolved is PdfArray { Items.Count: > 0 } array &&
+            ResolveObject(objects, array.Items[0], 0, maximumObjectDepth) is PdfName family &&
+            (string.Equals(family.Name, "Indexed", StringComparison.Ordinal) ||
+             string.Equals(family.Name, "I", StringComparison.Ordinal));
+    }
 
     private static bool AllArrayItemsAreNames(
         PdfArray values,

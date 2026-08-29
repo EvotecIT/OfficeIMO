@@ -16,6 +16,8 @@ internal static partial class PdfPrintProductionStructureInspector {
         private readonly PdfReadLimits _limits;
         private readonly System.Threading.CancellationToken _cancellationToken;
         private readonly HashSet<PdfDictionary> _fonts = new HashSet<PdfDictionary>();
+        private readonly Dictionary<PdfDictionary, HashSet<int>> _selectedType3CharacterCodes =
+            new Dictionary<PdfDictionary, HashSet<int>>();
         private readonly List<ContentContext> _pending = new List<ContentContext>();
         private readonly List<ContentContext> _visited = new List<ContentContext>();
         private int _uninspectableContextCount;
@@ -60,7 +62,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                 InspectContent(context);
             }
 
-            return new ReachableFontInspection(_fonts, _uninspectableContextCount);
+            return new ReachableFontInspection(_fonts, _selectedType3CharacterCodes, _uninspectableContextCount);
         }
 
         private void InspectContent(ContentContext context) {
@@ -133,7 +135,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                             break;
                         case "Do" when operation.Operands.Count == 1 && operation.Operands[0] is string xObjectName:
                             if (!TryResolveResource(context.Resources, "XObject", xObjectName, out PdfObject? xObject) ||
-                                ResolveObject(_objects, xObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfStream form) {
+                                ResolveObject(_objects, xObject, 0, _limits.MaxObjectNestingDepth, out int formDepth) is not PdfStream form) {
                                 contextWasUninspectable = true;
                                 break;
                             }
@@ -143,11 +145,19 @@ internal static partial class PdfPrintProductionStructureInspector {
                                     _limits.MaxObjectNestingDepth),
                                 "Form",
                                 StringComparison.Ordinal)) {
-                                AddStream(
-                                    form,
-                                    ResolveStreamResources(form, context.Resources),
-                                    context.ContentDepth + 1,
-                                    activeFontObject);
+                                if (!PdfPrintProductionColorInspector.IsStructurallyValidFormXObject(
+                                        form.Dictionary,
+                                        formDepth,
+                                        _objects,
+                                        _limits.MaxObjectNestingDepth)) {
+                                    contextWasUninspectable = true;
+                                } else {
+                                    AddStream(
+                                        form,
+                                        ResolveStreamResources(form, context.Resources),
+                                        context.ContentDepth + 1,
+                                        activeFontObject);
+                                }
                             }
                             break;
                         case "Do":
@@ -155,7 +165,9 @@ internal static partial class PdfPrintProductionStructureInspector {
                             break;
                         case "gs" when operation.Operands.Count == 1 && operation.Operands[0] is string graphicsStateName:
                             if (!TryResolveResource(context.Resources, "ExtGState", graphicsStateName, out PdfObject? graphicsStateObject)) break;
-                            AddSoftMaskContent(graphicsStateObject!, context.Resources, context.ContentDepth + 1, activeFontObject);
+                            if (!AddSoftMaskContent(graphicsStateObject!, context.Resources, context.ContentDepth + 1, activeFontObject)) {
+                                contextWasUninspectable = true;
+                            }
                             break;
                         case "scn":
                         case "SCN":
@@ -213,13 +225,32 @@ internal static partial class PdfPrintProductionStructureInspector {
             }
         }
 
-        private void AddSoftMaskContent(PdfObject graphicsStateObject, PdfDictionary? resources, int contentDepth, PdfObject? selectedFontObject) {
-            if (ResolveObject(_objects, graphicsStateObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfDictionary graphicsState ||
-                !graphicsState.Items.TryGetValue("SMask", out PdfObject? softMaskObject) ||
+        private bool AddSoftMaskContent(PdfObject graphicsStateObject, PdfDictionary? resources, int contentDepth, PdfObject? selectedFontObject) {
+            if (ResolveObject(_objects, graphicsStateObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfDictionary graphicsState) {
+                return false;
+            }
+            if (!graphicsState.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) return true;
+            if (string.Equals(ResolveName(softMaskObject, _objects, _limits.MaxObjectNestingDepth), "None", StringComparison.Ordinal)) {
+                return true;
+            }
+            if (
                 ResolveObject(_objects, softMaskObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfDictionary softMask ||
                 !softMask.Items.TryGetValue("G", out PdfObject? groupObject) ||
-                ResolveObject(_objects, groupObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfStream group) return;
+                ResolveObject(_objects, groupObject, 0, _limits.MaxObjectNestingDepth, out int groupDepth) is not PdfStream group ||
+                !string.Equals(
+                    ResolveName(
+                        group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null,
+                        _objects,
+                        _limits.MaxObjectNestingDepth),
+                    "Form",
+                    StringComparison.Ordinal) ||
+                !PdfPrintProductionColorInspector.IsStructurallyValidFormXObject(
+                    group.Dictionary,
+                    groupDepth,
+                    _objects,
+                    _limits.MaxObjectNestingDepth)) return false;
             AddStream(group, ResolveStreamResources(group, resources), contentDepth, selectedFontObject);
+            return true;
         }
 
         private bool TryAddShownType3CharProcs(
@@ -241,16 +272,23 @@ internal static partial class PdfPrintProductionStructureInspector {
 
             PdfDictionary? resources = ResolveDirectResources(font) ?? context.Resources;
             var shownGlyphNames = new HashSet<string>(StringComparer.Ordinal);
+            var shownCharacterCodes = new HashSet<int>();
             foreach (byte[] text in shownText) {
                 for (int index = 0; index < text.Length; index++) {
                     if (!glyphNames.TryGetValue(text[index], out string? glyphName)) return false;
                     shownGlyphNames.Add(glyphName);
+                    shownCharacterCodes.Add(text[index]);
                 }
             }
             foreach (string glyphName in shownGlyphNames) {
                 if (!charProcs.Items.TryGetValue(glyphName, out PdfObject? charProc) ||
                     !AddContentObject(charProc, resources, contentDepth)) return false;
             }
+            if (!_selectedType3CharacterCodes.TryGetValue(font, out HashSet<int>? selectedCodes)) {
+                selectedCodes = new HashSet<int>();
+                _selectedType3CharacterCodes.Add(font, selectedCodes);
+            }
+            selectedCodes.UnionWith(shownCharacterCodes);
             return true;
         }
 
@@ -267,7 +305,15 @@ internal static partial class PdfPrintProductionStructureInspector {
                 return;
             }
             if (resolved is PdfStream appearance) {
-                AddStream(appearance, ResolveStreamResources(appearance, pageResources), contentDepth: 1);
+                if (PdfPrintProductionColorInspector.IsStructurallyValidFormXObject(
+                        appearance.Dictionary,
+                        resolvedDepth,
+                        _objects,
+                        _limits.MaxObjectNestingDepth)) {
+                    AddStream(appearance, ResolveStreamResources(appearance, pageResources), contentDepth: 1);
+                } else {
+                    _uninspectableContextCount++;
+                }
                 return;
             }
             if (resolved is not PdfDictionary dictionary) return;
@@ -285,7 +331,15 @@ internal static partial class PdfPrintProductionStructureInspector {
             PdfObject? resolved = ResolveObject(_objects, value, objectDepth, _limits.MaxObjectNestingDepth, out int resolvedDepth);
             if (resolved == null || !visited.Add(resolved)) return;
             if (resolved is PdfStream appearance) {
-                AddStream(appearance, ResolveStreamResources(appearance, pageResources), contentDepth: 1);
+                if (PdfPrintProductionColorInspector.IsStructurallyValidFormXObject(
+                        appearance.Dictionary,
+                        resolvedDepth,
+                        _objects,
+                        _limits.MaxObjectNestingDepth)) {
+                    AddStream(appearance, ResolveStreamResources(appearance, pageResources), contentDepth: 1);
+                } else {
+                    _uninspectableContextCount++;
+                }
             } else if (resolved is PdfDictionary dictionary) {
                 foreach (PdfObject child in dictionary.Items.Values) {
                     _cancellationToken.ThrowIfCancellationRequested();
@@ -456,5 +510,8 @@ internal static partial class PdfPrintProductionStructureInspector {
         int ContentDepth,
         PdfObject? SelectedFontObject,
         PageFontState? PageFontState);
-    private sealed record ReachableFontInspection(HashSet<PdfDictionary> Fonts, int UninspectableContextCount);
+    private sealed record ReachableFontInspection(
+        HashSet<PdfDictionary> Fonts,
+        Dictionary<PdfDictionary, HashSet<int>> SelectedType3CharacterCodes,
+        int UninspectableContextCount);
 }

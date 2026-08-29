@@ -188,6 +188,11 @@ internal static partial class PdfPrintProductionColorInspector {
                                 if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
                                     AddImageContext(xObjectStream, context.Aliases, images);
                                 } else if (!string.Equals(subtype, "Form", StringComparison.Ordinal) ||
+                                    !IsStructurallyValidFormXObject(
+                                        xObjectStream.Dictionary,
+                                        xObjectDepth,
+                                        objects,
+                                        limits.MaxObjectNestingDepth) ||
                                     !AddNestedStream(
                                         xObjectStream,
                                         xObjectDepth,
@@ -511,6 +516,11 @@ internal static partial class PdfPrintProductionColorInspector {
                     limits.MaxObjectNestingDepth),
                 "Form",
                 StringComparison.Ordinal) ||
+            !IsStructurallyValidFormXObject(
+                group.Dictionary,
+                groupDepth,
+                objects,
+                limits.MaxObjectNestingDepth) ||
             !TryClassifyTransparencyGroup(
                 group.Dictionary,
                 context.Aliases,
@@ -626,6 +636,26 @@ internal static partial class PdfPrintProductionColorInspector {
         }
 
         return true;
+    }
+
+    internal static bool IsStructurallyValidFormXObject(
+        PdfDictionary form,
+        int formDepth,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!HasExactFiniteNumberArray(form, "BBox", 4, objects, maximumObjectDepth, out double[] bounds) ||
+            bounds[2] < bounds[0] || bounds[3] < bounds[1] ||
+            !HasOptionalExactFiniteNumberArray(form, "Matrix", 6, objects, maximumObjectDepth)) {
+            return false;
+        }
+
+        if (form.Items.TryGetValue("FormType", out PdfObject? formTypeObject) &&
+            ResolveObject(objects, formTypeObject, formDepth + 1, maximumObjectDepth) is not PdfNull) {
+            if (!TryResolveInteger(form, "FormType", objects, maximumObjectDepth, 1, 1, out _)) return false;
+        }
+
+        return !form.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ||
+            ResolveObject(objects, resourcesObject, formDepth + 1, maximumObjectDepth, out _) is PdfNull or PdfDictionary;
     }
 
     private static bool TryAddShownType3CharProcs(
