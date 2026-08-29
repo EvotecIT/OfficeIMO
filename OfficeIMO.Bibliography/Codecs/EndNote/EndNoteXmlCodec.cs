@@ -385,11 +385,7 @@ internal static class EndNoteXmlCodec {
     }
     private static bool ShouldCheckAggregateValue(XElement element) {
         if (string.Equals(element.Parent?.Name.LocalName, "record", StringComparison.OrdinalIgnoreCase) && HasUnsupportedNestedContent(element)) return true;
-        switch (element.Name.LocalName.ToLowerInvariant()) {
-            case "xml": case "records": case "record": case "contributors": case "authors": case "secondary-authors": case "tertiary-authors": case "subsidiary-authors":
-            case "titles": case "periodical": case "dates": case "pub-dates": case "urls": case "related-urls": case "keywords": return false;
-            default: return true;
-        }
+        return !IsKnownContainer(element.Name.LocalName);
     }
     private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace) { if (value != null) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value)); }
     private static string SanitizeXml(string value) {
@@ -405,7 +401,17 @@ internal static class EndNoteXmlCodec {
         foreach (XElement descendant in element.Descendants()) {
             if (descendant.Attributes().Any() || !IsKnownNestedElement(element, descendant)) return true;
         }
+        foreach (XElement container in element.DescendantsAndSelf().Where(static candidate => IsKnownContainer(candidate.Name.LocalName))) {
+            if (container.Nodes().Any(static node => node is XText text && !string.IsNullOrWhiteSpace(text.Value) || !(node is XElement) && !(node is XText))) return true;
+        }
         return false;
+    }
+    private static bool IsKnownContainer(string name) {
+        switch (name.ToLowerInvariant()) {
+            case "xml": case "records": case "record": case "contributors": case "authors": case "secondary-authors": case "tertiary-authors": case "subsidiary-authors":
+            case "titles": case "periodical": case "dates": case "pub-dates": case "urls": case "related-urls": case "keywords": return true;
+            default: return false;
+        }
     }
     private static bool IsKnownAttribute(XElement element, XAttribute attribute) {
         if (attribute.IsNamespaceDeclaration || attribute.Name.Namespace != XNamespace.None) return false;

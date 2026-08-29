@@ -175,11 +175,14 @@ internal static class BibCodec {
 
     internal static bool CanRoundTripStructuredName(BibliographyName name) {
         if (!string.IsNullOrWhiteSpace(name.Literal)) return string.IsNullOrWhiteSpace(name.Given) && string.IsNullOrWhiteSpace(name.Family) && string.IsNullOrWhiteSpace(name.Suffix) && string.IsNullOrWhiteSpace(name.NonDroppingParticle) && string.IsNullOrWhiteSpace(name.DroppingParticle);
+        if (new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle }.Any(ContainsBibNameSeparator)) return false;
         if (!IsLowercaseParticle(name.NonDroppingParticle) || !IsLowercaseParticle(name.DroppingParticle)) return false;
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         return CountLeadingBibParticleWords(family) == CountWords(name.NonDroppingParticle) && CountTrailingLowercaseWords(given) == CountWords(name.DroppingParticle);
     }
+
+    private static bool ContainsBibNameSeparator(string? value) => value?.IndexOf(" and ", StringComparison.OrdinalIgnoreCase) >= 0;
 
     private static bool IsLowercaseParticle(string? value) => string.IsNullOrWhiteSpace(value) || value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).All(static word => StartsWithLowercaseLetter(word));
     private static int CountWords(string? value) => string.IsNullOrWhiteSpace(value) ? 0 : value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
@@ -323,6 +326,7 @@ internal static class BibCodec {
             var builder = new StringBuilder();
             int depth = 1;
             while (_position < _source.Length) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 char current = _source[_position++];
                 if (current == '\\' && _position < _source.Length) { AppendValue(builder, current, _position - 1); AppendValue(builder, _source[_position++], _position - 1); continue; }
                 if (current == close) { depth--; if (depth == 0) return builder.ToString(); }

@@ -245,8 +245,11 @@ internal static class TaggedCodec {
         else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, "SP", value));
     }
 
-    private static void UpdateRisPages(BibliographyItem item) =>
-        item.Pages = string.IsNullOrWhiteSpace(item.RisPageStart) ? item.RisPageEnd : string.IsNullOrWhiteSpace(item.RisPageEnd) ? item.RisPageStart : item.RisPageStart + "-" + item.RisPageEnd;
+    private static void UpdateRisPages(BibliographyItem item) {
+        bool hasStart = item.TaggedScalarBindings.Contains("Ris:pages-start");
+        bool hasEnd = item.TaggedScalarBindings.Contains("Ris:pages-end");
+        item.Pages = hasStart && hasEnd ? item.RisPageStart + "-" + item.RisPageEnd : hasStart ? item.RisPageStart : hasEnd ? item.RisPageEnd : null;
+    }
 
     private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyDiagnosticGuard diagnostics, int line, int offset, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         string field = tag.ToUpperInvariant();
@@ -371,7 +374,7 @@ internal static class TaggedCodec {
 
     private static string NormalizeCompactName(string value) => new string(value.Where(char.IsLetterOrDigit).ToArray());
     private static void WriteTag(StringBuilder builder, string tag, string? value, string lineEnding) { if (value == null) return; string prefix = tag.PadRight(4) + "- "; string[] lines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'); builder.Append(prefix).Append(lines[0]).Append(lineEnding); for (int index = 1; index < lines.Length; index++) builder.Append("      ").Append(lines[index]).Append(lineEnding); }
-    private static void WritePages(StringBuilder builder, string? pages, string lineEnding) { if (string.IsNullOrWhiteSpace(pages)) return; string[] parts = pages!.Split(new[] { '-' }, 2); WriteTag(builder, "SP", parts[0], lineEnding); if (parts.Length > 1) WriteTag(builder, "EP", parts[1], lineEnding); }
+    private static void WritePages(StringBuilder builder, string? pages, string lineEnding) { if (pages == null) return; string[] parts = pages.Split(new[] { '-' }, 2); WriteTag(builder, "SP", parts[0], lineEnding); if (parts.Length > 1) WriteTag(builder, "EP", parts[1], lineEnding); }
     private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) {
         bool wroteIssued = false;
         bool wroteAccessed = false;

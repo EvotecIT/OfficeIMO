@@ -300,6 +300,8 @@ internal static class CslJsonCodec {
         }
         return false;
     }
+    internal static bool HasNativeProperty(BibliographyItem item, string property) =>
+        item.NativeFields.Any(field => field.Format == BibliographyFormat.CslJson && string.Equals(field.Name, property, StringComparison.Ordinal));
     private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, BibliographyContributorRole role, string property, BibliographyConversionReport report, CancellationToken cancellationToken) {
         var contributors = new List<BibliographyContributor>();
         foreach (BibliographyContributor contributor in item.Contributors) { cancellationToken.ThrowIfCancellationRequested(); if (contributor.Role == role) contributors.Add(contributor); }

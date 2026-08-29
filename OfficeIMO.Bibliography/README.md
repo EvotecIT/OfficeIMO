@@ -82,7 +82,7 @@ Path loading recognizes `.bib`, `.json`, `.ris`, `.nbib`, `.medline`, and `.xml`
 
 The package parses data only. It does not execute TeX, fetch DOI or PubMed metadata, resolve remote resources, render citations or bibliographies, manage attachments, remove DRM, or decrypt resources. Citation-style rendering is a separate product boundary.
 
-`OfficeIMO.Word` does not depend on this package. A future optional Word bridge can map Word bibliography XML to this model without putting Word/Open XML types into the citation-data owner.
+`OfficeIMO.Word` does not depend on this package.
 
 See the [bibliography support matrix](../Docs/officeimo.bibliography-support-matrix.md) for exact field, preservation, conversion, and security behavior.
 

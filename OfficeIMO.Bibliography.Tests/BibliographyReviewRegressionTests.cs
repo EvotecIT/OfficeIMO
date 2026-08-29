@@ -636,4 +636,87 @@ public sealed class BibliographyReviewRegressionTests {
         Assert.False(accepted.HasErrors);
         Assert.Contains(rejected.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
     }
+
+    [Fact]
+    public void Structured_Bib_names_with_contributor_separators_block_strict_output() {
+        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Names" };
+        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Smith and Jones", Given = "Jane" }));
+        document.Items.Add(item);
+
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV226" && diagnostic.Field == "contributors");
+    }
+
+    [Fact]
+    public void Bib_raw_directives_observe_cancellation_during_scan() {
+        string source = "@comment{" + new string('x', 8 * 1024 * 1024);
+        var options = new BibliographyReadOptions { MaximumValueLength = 16 * 1024 * 1024 };
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
+
+        Assert.Throws<OperationCanceledException>(() =>
+            BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options, cancellation.Token));
+    }
+
+    [Fact]
+    public void Empty_RIS_pages_remain_distinct_from_absent_pages() {
+        var document = new BibliographyDocument(BibliographyFormat.Ris);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Pages", Pages = string.Empty });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
+
+        Assert.Equal(string.Empty, reopened.Pages);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{\"legacy\":1}")]
+    public void Native_CSL_identifiers_do_not_trigger_generated_key_loss(string nativeId) {
+        BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":" + nativeId + ",\"type\":\"book\",\"title\":\"Native id\"}]", BibliographyFormat.CslJson).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
+
+        Assert.True(string.IsNullOrWhiteSpace(reopened.Key));
+        BibliographyNativeField field = Assert.Single(reopened.NativeFields, field => field.Format == BibliographyFormat.CslJson && field.Name == "id");
+        if (nativeId == "null") Assert.Equal("null", field.RawValue);
+        else Assert.StartsWith("{", field.RawValue, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ty  - jour", BibliographyFormat.Ris)]
+    [InlineData("PmId- 123", BibliographyFormat.Nbib)]
+    [InlineData("own - medline", BibliographyFormat.Nbib)]
+    public void Detection_accepts_tag_casing_supported_by_tagged_parsers(string source, BibliographyFormat expected) {
+        Assert.Equal(expected, BibliographyDocument.Parse(source).Document.SourceFormat);
+    }
+
+    [Theory]
+    [InlineData("titles")]
+    [InlineData("contributors")]
+    [InlineData("dates")]
+    [InlineData("keywords")]
+    [InlineData("urls")]
+    public void EndNote_containers_retain_unsupported_direct_text(string container) {
+        string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><" + container + ">loose text</" + container + "></record></records></xml>";
+
+        BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document.Items);
+
+        BibliographyNativeField field = Assert.Single(item.NativeFields, field => field.Name == container);
+        Assert.Contains("loose text", field.RawValue, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EndNote_containers_retain_unhandled_child_nodes() {
+        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><!--native note--><title>Typed</title></titles></record></records></xml>";
+
+        BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document.Items);
+
+        BibliographyNativeField field = Assert.Single(item.NativeFields, field => field.Name == "titles");
+        Assert.Contains("<!--native note-->", field.RawValue, StringComparison.Ordinal);
+    }
 }

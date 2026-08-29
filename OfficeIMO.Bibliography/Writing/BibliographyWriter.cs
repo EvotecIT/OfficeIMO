@@ -84,7 +84,7 @@ internal static class BibliographyConversionInspector {
         diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBCSL003";
 
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
-        foreach (BibliographyItem item in document.Items.Where(static item => string.IsNullOrWhiteSpace(item.Key)))
+        foreach (BibliographyItem item in document.Items.Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id"))))
             Loss(report, item, "key", "BIBCONV215", $"A missing citation key is replaced with a deterministic generated identifier in {format}.", BibliographyConversionAction.Approximated);
         StringComparer keyComparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
         foreach (IGrouping<string, BibliographyItem> duplicate in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(static item => item.Key, keyComparer).Where(static group => group.Count() > 1)) {
@@ -161,7 +161,7 @@ internal static class BibliographyConversionInspector {
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
             foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !BibCodec.CanRoundTripStructuredName(contributor.Name)))
-                Loss(report, item, "contributors", "BIBCONV226", "A structured contributor particle does not follow BibTeX lowercase-particle syntax and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
+                Loss(report, item, "contributors", "BIBCONV226", "A structured contributor name cannot be reopened exactly through BibTeX name syntax.", BibliographyConversionAction.Approximated);
         } else if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) {
             foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.DroppingParticle) || !string.IsNullOrWhiteSpace(contributor.Name.NonDroppingParticle)))
                 Loss(report, item, "contributors", "BIBCONV229", $"Structured contributor particles are flattened in {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);

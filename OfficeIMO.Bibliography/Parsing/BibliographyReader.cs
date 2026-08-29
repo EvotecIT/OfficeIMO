@@ -160,8 +160,8 @@ internal static class BibliographyFormatDetector {
             if (LooksLikeEndNoteRoot(source, xml)) return BibliographyFormat.EndNoteXml;
         }
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
-        if (StartsWith(source, start, "TY  -", StringComparison.Ordinal)) return BibliographyFormat.Ris;
-        if (StartsWith(source, start, "PMID-", StringComparison.Ordinal) || StartsWith(source, start, "PMID -", StringComparison.Ordinal) || StartsWith(source, start, "OWN -", StringComparison.Ordinal)) return BibliographyFormat.Nbib;
+        if (StartsWith(source, start, "TY  -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Ris;
+        if (StartsWith(source, start, "PMID-", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "PMID -", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "OWN -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Nbib;
         throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
     }
 
