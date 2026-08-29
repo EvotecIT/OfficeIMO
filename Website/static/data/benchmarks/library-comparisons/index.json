@@ -787,10 +787,10 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-08-29T13:48:55.7900555+02:00",
+      "generatedUtc": "2026-08-29T16:25:28.790106+02:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.json",
-      "resultSha256": "f8064ab1ad1cf3d41c8f85292410bd323fe4322013a153d59f753989cb8f49ac",
+      "resultSha256": "4cf1cef5dc1d12937f51d40eb0423de13e2b4366a90f928be17a94d249e933ce",
       "artifactDestinationSha256": "5f8176805cb41dac1888f69619e22de6373d169380fbcfcea8345b3207ce53f1",
       "artifactFileName": "pdf-html-generation-net10.0-linux-full.json",
       "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.json",
@@ -823,8 +823,8 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "61c9281365e4caedac23f633b560c8c1db446a91",
-        "gitSha": "61c9281365e4caedac23f633b560c8c1db446a91",
+        "benchmark.workload.sourceCommit": "a71a082d15538440315ee160bfc0f6ae898c2079",
+        "gitSha": "a71a082d15538440315ee160bfc0f6ae898c2079",
         "runMode": "full"
       },
       "comparable": true,
@@ -884,10 +884,10 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-29T13:27:36.4628702+02:00",
+      "generatedUtc": "2026-08-29T15:57:31.3027958+02:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.json",
-      "resultSha256": "c1b97bde5e963e456b29940b24d7b0e16725533374f793a7b84849a56a610d35",
+      "resultSha256": "e87862f0de40b3938036e956f85af309046d4e45de6d36bb0c19cb2f8774bef0",
       "artifactDestinationSha256": "458dd48975fd71568139bfe12ca4e4126085c5ecebaaf613ae893faff67c4e0b",
       "artifactFileName": "pdf-html-generation-net10.0-windows-full.json",
       "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.json",
@@ -920,8 +920,8 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "61c9281365e4caedac23f633b560c8c1db446a91",
-        "gitSha": "61c9281365e4caedac23f633b560c8c1db446a91",
+        "benchmark.workload.sourceCommit": "a71a082d15538440315ee160bfc0f6ae898c2079",
+        "gitSha": "a71a082d15538440315ee160bfc0f6ae898c2079",
         "runMode": "full"
       },
       "comparable": true,
@@ -1350,6 +1350,16 @@
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
       "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-08-16T10:51:57.8134281+02:00"
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write-net10.0",
+      "runMode": "full",
       "platform": "linux",
       "available": false,
       "runModes": [],
@@ -1365,13 +1375,11 @@
     },
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
-      "runMode": "full",
+      "runMode": "quick",
       "platform": "windows",
-      "available": true,
-      "runModes": [
-        "full"
-      ],
-      "latestUtc": "2026-08-16T10:51:57.8134281+02:00"
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "csv-25k-datareader-write-net10.0",
@@ -1392,30 +1400,6 @@
       "latestUtc": "2026-07-31T12:57:12.894909+02:00"
     },
     {
-      "comparisonId": "csv-25k-datareader-write-net10.0",
-      "runMode": "quick",
-      "platform": "windows",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
-      "comparisonId": "image-tiff-lzw-net10.0",
-      "runMode": "quick",
-      "platform": "linux",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
-      "comparisonId": "image-tiff-lzw-net10.0",
-      "runMode": "quick",
-      "platform": "macos",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
       "comparisonId": "image-tiff-lzw-net10.0",
       "runMode": "quick",
       "platform": "windows",
@@ -1426,7 +1410,7 @@
       "latestUtc": "2026-08-24T14:56:30.1963817+02:00"
     },
     {
-      "comparisonId": "image-webp-lossless-net10.0",
+      "comparisonId": "image-tiff-lzw-net10.0",
       "runMode": "quick",
       "platform": "linux",
       "available": false,
@@ -1434,7 +1418,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "image-webp-lossless-net10.0",
+      "comparisonId": "image-tiff-lzw-net10.0",
       "runMode": "quick",
       "platform": "macos",
       "available": false,
@@ -1452,6 +1436,32 @@
       "latestUtc": "2026-08-24T14:57:15.33459+02:00"
     },
     {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "image-webp-lossless-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-08-23T22:46:35.3302154+02:00"
+    },
+    {
       "comparisonId": "markdown-commonmark-parse-net10.0",
       "runMode": "quick",
       "platform": "linux",
@@ -1468,14 +1478,14 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "markdown-commonmark-parse-net10.0",
-      "runMode": "quick",
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "quick"
+        "full"
       ],
-      "latestUtc": "2026-08-23T22:46:35.3302154+02:00"
+      "latestUtc": "2026-08-16T10:46:10.5871415+02:00"
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -1497,32 +1507,6 @@
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
-      "runMode": "full",
-      "platform": "windows",
-      "available": true,
-      "runModes": [
-        "full"
-      ],
-      "latestUtc": "2026-08-16T10:46:10.5871415+02:00"
-    },
-    {
-      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
-      "runMode": "quick",
-      "platform": "linux",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
-      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
-      "runMode": "quick",
-      "platform": "macos",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
-      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "runMode": "quick",
       "platform": "windows",
       "available": true,
@@ -1532,16 +1516,16 @@
       "latestUtc": "2026-07-31T02:16:03.0483052+02:00"
     },
     {
-      "comparisonId": "markpflug-65k-xls-typed-net10.0",
-      "runMode": "full",
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "quick",
       "platform": "linux",
       "available": false,
       "runModes": [],
       "latestUtc": null
     },
     {
-      "comparisonId": "markpflug-65k-xls-typed-net10.0",
-      "runMode": "full",
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "quick",
       "platform": "macos",
       "available": false,
       "runModes": [],
@@ -1556,6 +1540,32 @@
         "full"
       ],
       "latestUtc": "2026-08-16T10:53:25.5645046+02:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xls-typed-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-08-16T11:04:20.1090395+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -1577,13 +1587,13 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
-      "runMode": "full",
+      "runMode": "quick",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "full"
+        "quick"
       ],
-      "latestUtc": "2026-08-16T11:04:20.1090395+02:00"
+      "latestUtc": "2026-07-31T02:17:41.778021+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -1602,14 +1612,14 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
-      "runMode": "quick",
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "quick"
+        "full"
       ],
-      "latestUtc": "2026-07-31T02:17:41.778021+02:00"
+      "latestUtc": "2026-08-16T10:57:22.5678827+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
@@ -1631,13 +1641,13 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
-      "runMode": "full",
+      "runMode": "quick",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "full"
+        "quick"
       ],
-      "latestUtc": "2026-08-16T10:57:22.5678827+02:00"
+      "latestUtc": "2026-07-31T02:17:17.730363+02:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
@@ -1658,14 +1668,14 @@
       "latestUtc": "2026-07-31T12:49:02.003238+02:00"
     },
     {
-      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
-      "runMode": "quick",
+      "comparisonId": "pdf-html-generation-net10.0",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "quick"
+        "full"
       ],
-      "latestUtc": "2026-07-31T02:17:17.730363+02:00"
+      "latestUtc": "2026-08-29T15:57:31.3027958+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1675,7 +1685,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-29T13:48:55.7900555+02:00"
+      "latestUtc": "2026-08-29T16:25:28.790106+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1687,13 +1697,13 @@
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
-      "runMode": "full",
+      "runMode": "quick",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "full"
+        "quick"
       ],
-      "latestUtc": "2026-08-29T13:27:36.4628702+02:00"
+      "latestUtc": "2026-08-23T17:08:52.4492183+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1714,32 +1724,6 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-html-generation-net10.0",
-      "runMode": "quick",
-      "platform": "windows",
-      "available": true,
-      "runModes": [
-        "quick"
-      ],
-      "latestUtc": "2026-08-23T17:08:52.4492183+02:00"
-    },
-    {
-      "comparisonId": "pdf-merge-net10.0",
-      "runMode": "full",
-      "platform": "linux",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
-      "comparisonId": "pdf-merge-net10.0",
-      "runMode": "full",
-      "platform": "macos",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
-    },
-    {
       "comparisonId": "pdf-merge-net10.0",
       "runMode": "full",
       "platform": "windows",
@@ -1750,7 +1734,7 @@
       "latestUtc": "2026-08-16T12:16:12.4029791+02:00"
     },
     {
-      "comparisonId": "pdf-page-selection-net10.0",
+      "comparisonId": "pdf-merge-net10.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -1758,7 +1742,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-page-selection-net10.0",
+      "comparisonId": "pdf-merge-net10.0",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -1776,7 +1760,7 @@
       "latestUtc": "2026-08-16T12:24:08.5364279+02:00"
     },
     {
-      "comparisonId": "pdf-split-net10.0",
+      "comparisonId": "pdf-page-selection-net10.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -1784,7 +1768,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-split-net10.0",
+      "comparisonId": "pdf-page-selection-net10.0",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -1802,7 +1786,7 @@
       "latestUtc": "2026-08-16T12:05:37.2179955+02:00"
     },
     {
-      "comparisonId": "pdf-structured-generation-net10.0",
+      "comparisonId": "pdf-split-net10.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -1810,7 +1794,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-structured-generation-net10.0",
+      "comparisonId": "pdf-split-net10.0",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -1828,7 +1812,7 @@
       "latestUtc": "2026-08-16T11:11:31.4319075+02:00"
     },
     {
-      "comparisonId": "pdf-text-extraction-net10.0",
+      "comparisonId": "pdf-structured-generation-net10.0",
       "runMode": "full",
       "platform": "linux",
       "available": false,
@@ -1836,7 +1820,7 @@
       "latestUtc": null
     },
     {
-      "comparisonId": "pdf-text-extraction-net10.0",
+      "comparisonId": "pdf-structured-generation-net10.0",
       "runMode": "full",
       "platform": "macos",
       "available": false,
@@ -1854,16 +1838,16 @@
       "latestUtc": "2026-08-16T11:44:43.9912518+02:00"
     },
     {
-      "comparisonId": "rtf-to-html-net8.0",
-      "runMode": "quick",
+      "comparisonId": "pdf-text-extraction-net10.0",
+      "runMode": "full",
       "platform": "linux",
       "available": false,
       "runModes": [],
       "latestUtc": null
     },
     {
-      "comparisonId": "rtf-to-html-net8.0",
-      "runMode": "quick",
+      "comparisonId": "pdf-text-extraction-net10.0",
+      "runMode": "full",
       "platform": "macos",
       "available": false,
       "runModes": [],
@@ -1880,6 +1864,32 @@
       "latestUtc": "2026-08-23T19:04:34.7973563+02:00"
     },
     {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "rtf-to-html-net8.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-08-16T11:00:53.6363585+02:00"
+    },
+    {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
       "runMode": "full",
       "platform": "linux",
@@ -1897,13 +1907,11 @@
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
-      "runMode": "full",
+      "runMode": "quick",
       "platform": "windows",
-      "available": true,
-      "runModes": [
-        "full"
-      ],
-      "latestUtc": "2026-08-16T11:00:53.6363585+02:00"
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net10.0",
@@ -1922,14 +1930,6 @@
         "quick"
       ],
       "latestUtc": "2026-07-31T12:28:47.27305+02:00"
-    },
-    {
-      "comparisonId": "xlsx-25k-datareader-write-net10.0",
-      "runMode": "quick",
-      "platform": "windows",
-      "available": false,
-      "runModes": [],
-      "latestUtc": null
     }
   ]
 }
