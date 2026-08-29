@@ -35,7 +35,8 @@ internal static partial class DocBookReaderAdapter {
             projection.Chunks,
             ReaderInputKind.DocBook,
             new OfficeDocumentSource { Path = sourceName, Title = model.Source.Title, Author = model.Source.Author },
-            new[] { "officeimo.reader.docbook.rich-v5", "officeimo.docbook.common-structure" });
+            new[] { "officeimo.reader.docbook.rich-v5", "officeimo.docbook.common-structure" },
+            assets: model.Assets.Select(asset => MapAsset(asset, sourceName)).ToArray());
         result.Metadata = model.Metadata.Select(MapMetadata).ToArray();
         result.Links = model.Links.Select(link => MapLink(link, sourceName)).ToArray();
         result.Diagnostics = projection.Diagnostics.Select(diagnostic => MapDiagnostic(diagnostic, sourceName)).ToArray();
@@ -65,7 +66,30 @@ internal static partial class DocBookReaderAdapter {
         RemoteDestinationName = link.RemoteDestinationName,
         RemoteDestinationPageNumber = link.RemoteDestinationPageNumber,
         Text = link.Text,
-        Location = MapLocation(link.Location, sourceName)
+        Location = MapLocation(link.Location, sourceName, "link")
+    };
+
+    private static OfficeDocumentAsset MapAsset(OfficeDocumentModelAsset asset, string sourceName) => new OfficeDocumentAsset {
+        Id = asset.Id,
+        Kind = asset.Kind,
+        MediaType = asset.MediaType,
+        Extension = asset.Extension,
+        FileName = asset.FileName,
+        AltText = asset.AltText,
+        Title = asset.Title,
+        Width = asset.Width,
+        Height = asset.Height,
+        LengthBytes = asset.LengthBytes,
+        PayloadHash = asset.PayloadHash,
+        PayloadBytes = asset.PayloadBytes,
+        SourceObjectId = asset.SourceObjectId,
+        Region = asset.Region == null ? null : new OfficeDocumentRegion {
+            X = asset.Region.X,
+            Y = asset.Region.Y,
+            Width = asset.Region.Width,
+            Height = asset.Region.Height
+        },
+        Location = MapLocation(asset.Location, sourceName, "image")
     };
 
     private static OfficeDocumentDiagnostic MapDiagnostic(DocBookDiagnostic diagnostic, string sourceName) => new OfficeDocumentDiagnostic {

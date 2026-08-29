@@ -308,6 +308,27 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookRichResultKeepsDocumentTitleDepthTableContextAndImageReferences() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><title>Guide</title></info><section><title>Details</title><table><title>Values</title><tgroup><tbody><row><entry>A</entry></row></tbody></tgroup></table><mediaobject><imageobject><imagedata fileref=\"assets/figure.png\"/></imageobject><caption><para>Chart</para></caption></mediaobject></section></article>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "guide.docbook");
+        ReaderTable table = Assert.Single(result.Tables);
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+
+        Assert.StartsWith("# Guide", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("\n\n# Details", result.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("## Guide", result.Markdown, StringComparison.Ordinal);
+        Assert.Equal("Details / Values", table.Location!.HeadingPath);
+        Assert.Equal("assets/figure.png", asset.SourceObjectId);
+        Assert.Equal("figure.png", asset.FileName);
+        Assert.Equal("Chart", asset.Title);
+        Assert.Equal("Details", asset.Location.HeadingPath);
+        Assert.Equal("image", asset.Location.SourceBlockKind);
+        Assert.Null(asset.PayloadBytes);
+    }
+
+    [Fact]
     public void DocBookRichResultDoesNotPromoteSectionAuthorToDocumentSource() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Chapter</title><info><author>Jane Doe</author></info></section></article>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();

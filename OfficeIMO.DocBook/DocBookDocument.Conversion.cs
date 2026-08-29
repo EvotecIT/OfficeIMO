@@ -1,5 +1,6 @@
 using OfficeIMO;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,7 @@ public sealed partial class DocBookDocument {
         var diagnostics = new List<DocBookDiagnostic>();
         var blocks = new List<OfficeDocumentModelBlock>();
         var tables = new List<OfficeDocumentModelTable>();
+        var assets = new List<OfficeDocumentModelAsset>();
         var links = new List<OfficeDocumentModelLink>();
         int index = 0;
         if (_xml.DescendantNodes().Any(node => node is XComment || node is XProcessingInstruction)) {
@@ -84,6 +86,31 @@ public sealed partial class DocBookDocument {
                     Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = path }
                 });
             }
+            if (kind == DocBookNodeKind.ImageData) {
+                string? fileReference = (string?)element.Attribute("fileref");
+                if (!string.IsNullOrWhiteSpace(fileReference)) {
+                    XElement? mediaObject = element.Ancestors().FirstOrDefault(ancestor =>
+                        DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.MediaObject);
+                    string? caption = mediaObject?.Elements().FirstOrDefault(child =>
+                        DocBookNames.GetKind(child.Name, Namespace) == DocBookNodeKind.Caption)?.Value;
+                    string? alternateText = mediaObject?.Descendants().FirstOrDefault(child =>
+                        child.Name.LocalName == "phrase" && child.Ancestors().Any(ancestor => ancestor.Name.LocalName == "textobject"))?.Value;
+                    string? fileName = GetReferenceFileName(fileReference!);
+                    string? extension = GetReferenceExtension(fileName);
+                    string mediaType = OfficeImageInfo.GetMimeTypeFromExtension(extension);
+                    assets.Add(new OfficeDocumentModelAsset {
+                        Id = "docbook-image-" + nodeIndex,
+                        Kind = "image",
+                        MediaType = mediaType == "application/octet-stream" ? null : mediaType,
+                        Extension = extension,
+                        FileName = fileName,
+                        AltText = string.IsNullOrWhiteSpace(alternateText) ? caption : alternateText,
+                        Title = caption,
+                        SourceObjectId = fileReference,
+                        Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = path, SourceBlockKind = "image" }
+                    });
+                }
+            }
             if (kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Paragraph || kind == DocBookNodeKind.ProgramListing ||
                 kind == DocBookNodeKind.Screen || kind == DocBookNodeKind.ListItem || kind == DocBookNodeKind.Note ||
                 kind == DocBookNodeKind.Warning || kind == DocBookNodeKind.Tip || kind == DocBookNodeKind.Important || kind == DocBookNodeKind.Caution) {
@@ -112,15 +139,16 @@ public sealed partial class DocBookDocument {
                 kind == DocBookNodeKind.Link || kind == DocBookNodeKind.Entry || kind == DocBookNodeKind.Caption || kind == DocBookNodeKind.Author ||
                 kind == DocBookNodeKind.ProgramListing || kind == DocBookNodeKind.Screen;
             var children = new List<OfficeDocumentModelNode>();
+            int childLevel = kind == DocBookNodeKind.Info ? level : level + 1;
             foreach (XNode node in element.Nodes()) {
                 if (node is XElement child) {
-                    children.Add(Convert(child, level + 1, path));
+                    children.Add(Convert(child, childLevel, path));
                 } else if (node is XText textNode && textNode.Value.Length > 0 && (mixedContent || !string.IsNullOrWhiteSpace(textNode.Value))) {
                     children.Add(new OfficeDocumentModelNode {
                         Id = "docbook-" + index++,
                         Kind = "text",
                         Text = textNode.Value,
-                        Level = level + 1,
+                        Level = childLevel,
                         Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = path }
                     });
                 }
@@ -313,18 +341,19 @@ public sealed partial class DocBookDocument {
                     : sourceRow.Concat(Enumerable.Repeat(string.Empty, columnCount - sourceRow.Count)).ToArray());
             }
             string? title = tableElement.Element(Namespace + "title")?.Value;
+            string tableHeadingPath = BuildTableHeadingPath(tableElement, title);
             if (flattenedCalsLayout) {
                 diagnostics.Add(new DocBookDiagnostic("DB112", DocBookDiagnosticSeverity.Warning,
-                    "CALS spans or multi-row headers were flattened in the shared table projection; the recursive structure retains the native markup.", title));
+                    "CALS spans or multi-row headers were flattened in the shared table projection; the recursive structure retains the native markup.", tableHeadingPath));
             }
             if (projectionTruncated) {
                 diagnostics.Add(new DocBookDiagnostic("DB113", DocBookDiagnosticSeverity.Warning,
-                    "CALS geometry exceeded the configured shared table projection limits; the recursive structure retains the native markup.", title));
+                    "CALS geometry exceeded the configured shared table projection limits; the recursive structure retains the native markup.", tableHeadingPath));
             }
             tables.Add(new OfficeDocumentModelTable {
                 Title = title,
                 Kind = tableElement.Name.LocalName,
-                Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = title },
+                Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = tableHeadingPath, SourceBlockKind = "table" },
                 Columns = columns,
                 Rows = rows,
                 TotalRowCount = totalBodyRows,
@@ -354,17 +383,46 @@ public sealed partial class DocBookDocument {
             });
         }
 
+        OfficeDocumentModelNode[] structure = RootElement.Elements().Select(child => Convert(child, 1, string.Empty)).ToArray();
+        var capabilities = new List<string> {
+            "docbook.common-structure", "docbook.extensions", Profile == DocBookProfile.DocBook45 ? "docbook.4.5" : "docbook.5.2"
+        };
+        if (assets.Count > 0) capabilities.Add("docbook.media-references");
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.DocBook,
             Source = new OfficeDocumentModelSource { Path = sourcePath, Title = Title, Author = author },
-            CapabilitiesUsed = new[] { "docbook.common-structure", "docbook.extensions", Profile == DocBookProfile.DocBook45 ? "docbook.4.5" : "docbook.5.2" },
+            CapabilitiesUsed = capabilities,
             Metadata = metadata,
-            Structure = RootElement.Elements().Select(child => Convert(child, 1, string.Empty)).ToArray(),
+            Structure = structure,
             Blocks = blocks,
             Tables = tables,
+            Assets = assets,
             Links = links
         };
         return new DocBookConversionResult<OfficeDocumentModel>(model, diagnostics);
+
+        string BuildTableHeadingPath(XElement tableElement, string? tableTitle) {
+            string path = string.Empty;
+            foreach (XElement section in tableElement.Ancestors().Reverse().Where(ancestor =>
+                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Section)) {
+                path = OfficeDocumentHeadingPath.Append(path, GetPrimaryText(section, DocBookNodeKind.Section), " / ");
+            }
+            return OfficeDocumentHeadingPath.Append(path, tableTitle, " / ");
+        }
+
+        static string? GetReferenceFileName(string fileReference) {
+            int delimiter = fileReference.IndexOfAny(new[] { '?', '#' });
+            string clean = delimiter < 0 ? fileReference : fileReference.Substring(0, delimiter);
+            int separator = Math.Max(clean.LastIndexOf('/'), clean.LastIndexOf('\\'));
+            string fileName = separator < 0 ? clean : clean.Substring(separator + 1);
+            return string.IsNullOrWhiteSpace(fileName) ? null : fileName;
+        }
+
+        static string? GetReferenceExtension(string? fileName) {
+            if (string.IsNullOrWhiteSpace(fileName)) return null;
+            int dot = fileName!.LastIndexOf('.');
+            return dot < 0 || dot == fileName.Length - 1 ? null : fileName.Substring(dot);
+        }
     }
 
     /// <summary>Creates an article or book from the shared recursive common structure.</summary>
@@ -492,6 +550,16 @@ public sealed partial class DocBookDocument {
             }
         }
 
+        void AddFlatAsset(OfficeDocumentModelAsset source) {
+            string? reference = string.IsNullOrWhiteSpace(source.SourceObjectId) ? source.FileName : source.SourceObjectId;
+            if (!string.Equals(source.Kind, "image", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(reference)) {
+                diagnostics.Add(new DocBookDiagnostic("DB118", DocBookDiagnosticSeverity.Warning,
+                    $"Shared asset '{source.Id}' could not be represented as a DocBook image reference.", source.Location?.HeadingPath));
+                return;
+            }
+            document.Root.AddImage(reference!, source.Title ?? source.AltText);
+        }
+
         if (model.Structure.Count > 0) {
             bool hasTitle = model.Structure.Any(ContainsDocumentTitle);
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, document.Root);
@@ -499,9 +567,10 @@ public sealed partial class DocBookDocument {
         } else {
             document.Title = model.Source.Title;
             diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
-                "The shared model had no recursive Structure; flat Blocks and Tables were emitted as common DocBook structures."));
+                "The shared model had no recursive Structure; flat Blocks, Tables, and image Assets were emitted as common DocBook structures."));
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
             foreach (OfficeDocumentModelTable table in model.Tables) AddFlatTable(table);
+            foreach (OfficeDocumentModelAsset asset in model.Assets) AddFlatAsset(asset);
         }
         bool hasAuthor = model.Structure.Any(ContainsDocumentAuthor);
         if (!hasAuthor && !string.IsNullOrWhiteSpace(model.Source.Author)) {

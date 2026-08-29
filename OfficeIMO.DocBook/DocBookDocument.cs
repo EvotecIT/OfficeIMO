@@ -121,18 +121,24 @@ public sealed partial class DocBookDocument {
     /// </summary>
     public DocBookValidationResult Validate() {
         var diagnostics = new List<DocBookDiagnostic>();
-        string rootName = RootElement.Name.LocalName;
+        XElement? root = _xml.Root;
+        if (root == null) {
+            diagnostics.Add(new DocBookDiagnostic("DB001", DocBookDiagnosticSeverity.Error,
+                "The document requires an article or book root element.", "/"));
+            return new DocBookValidationResult(SchemaProfile, diagnostics);
+        }
+        string rootName = root.Name.LocalName;
         if (rootName != "article" && rootName != "book") {
             diagnostics.Add(new DocBookDiagnostic("DB001", DocBookDiagnosticSeverity.Error, "The root must be article or book.", "/" + rootName));
         }
         if (Profile == DocBookProfile.DocBook52) {
-            if (RootElement.Name.NamespaceName != DocBookSchemaProfiles.DocBook52.NamespaceUri) {
+            if (root.Name.NamespaceName != DocBookSchemaProfiles.DocBook52.NamespaceUri) {
                 diagnostics.Add(new DocBookDiagnostic("DB002", DocBookDiagnosticSeverity.Error, "DocBook 5 requires the DocBook namespace.", "/" + rootName));
             }
-            string? version = (string?)RootElement.Attribute("version");
+            string? version = (string?)root.Attribute("version");
             if (version != "5.2") diagnostics.Add(new DocBookDiagnostic("DB003", DocBookDiagnosticSeverity.Warning,
                 $"The document declares DocBook '{version ?? "unspecified"}'; OfficeIMO writes and validates the exact 5.2 common-structure profile.", "/" + rootName + "/@version"));
-        } else if (RootElement.Name.NamespaceName.Length != 0) {
+        } else if (root.Name.NamespaceName.Length != 0) {
             diagnostics.Add(new DocBookDiagnostic("DB004", DocBookDiagnosticSeverity.Error, "DocBook 4.5 elements must be unqualified.", "/" + rootName));
         } else if (_xml.DocumentType == null || _xml.DocumentType.Name != rootName ||
                    _xml.DocumentType.PublicId != DocBookSchemaProfiles.DocBook45.DtdPublicId ||
@@ -142,15 +148,15 @@ public sealed partial class DocBookDocument {
         }
 
         int position = 0;
-        foreach (XElement element in RootElement.DescendantsAndSelf()) {
+        foreach (XElement element in root.DescendantsAndSelf()) {
             string path = "/" + rootName + "//* [" + (++position) + "]";
             DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
             string localName = element.Name.LocalName;
-            if (element != RootElement && kind == DocBookNodeKind.Unknown) {
+            if (element != root && kind == DocBookNodeKind.Unknown) {
                 diagnostics.Add(new DocBookDiagnostic("DB010", DocBookDiagnosticSeverity.Info,
                     $"Extension element '{element.Name}' is preserved but is outside the typed common-structure API.", path));
             }
-            if (element != RootElement && element.Name.Namespace == Namespace &&
+            if (element != root && element.Name.Namespace == Namespace &&
                  (Profile == DocBookProfile.DocBook52 &&
                  (localName == "ulink" || localName == "articleinfo" || localName == "bookinfo" || localName == "sectioninfo" ||
                   localName == "sect1" || localName == "sect2" || localName == "sect3" || localName == "sect4" || localName == "sect5") ||
@@ -165,7 +171,7 @@ public sealed partial class DocBookDocument {
                 kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
                     parent?.Name != Namespace + "tfoot" ||
                 kind == DocBookNodeKind.Entry && parentKind != DocBookNodeKind.Row ||
-                kind == DocBookNodeKind.Info && element != RootElement && !ReferenceEquals(parent, RootElement) && parentKind != DocBookNodeKind.Section;
+                kind == DocBookNodeKind.Info && element != root && !ReferenceEquals(parent, root) && parentKind != DocBookNodeKind.Section;
             if (invalidParent) {
                 diagnostics.Add(new DocBookDiagnostic("DB015", DocBookDiagnosticSeverity.Error,
                     $"{localName} is not under a supported common-structure parent.", path));

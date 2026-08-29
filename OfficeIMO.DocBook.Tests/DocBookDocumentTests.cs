@@ -33,6 +33,18 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void ValidationReportsAMissingRootInsteadOfThrowing() {
+        DocBookDocument document = DocBookDocument.CreateArticle();
+        document.Xml.Root!.Remove();
+
+        DocBookValidationResult validation = document.Validate();
+
+        Assert.False(validation.IsValid);
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB001" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void UnchangedInputIsExactAndEditPreservesExtensions() {
         const string source = "<?xml version=\"1.0\"?><article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><info><title>T</title><x:meta key=\"v\"/></info><!--keep--><section x:flag=\"yes\"><title>S</title><x:block>payload</x:block></section></article>";
         DocBookDocument document = DocBookDocument.Parse(source);
@@ -164,6 +176,39 @@ public sealed class DocBookDocumentTests {
         OfficeDocumentModelTable table = Assert.Single(DocBookDocument.Parse(source).ToOfficeDocumentModel().Value.Tables);
 
         Assert.Equal(new[] { "", "B", "C" }, Assert.Single(table.Rows));
+    }
+
+    [Fact]
+    public void SharedTableProjectionRetainsEnclosingSectionPath() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Outer</title><section><title>Inner</title><table><title>Values</title><tgroup><tbody><row><entry>A</entry></row></tbody></tgroup></table><informaltable><tgroup><tbody><row><entry>B</entry></row></tbody></tgroup></informaltable></section></section></article>";
+
+        OfficeDocumentModelTable[] tables = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value.Tables.ToArray();
+
+        Assert.Equal("Outer / Inner / Values", tables[0].Location!.HeadingPath);
+        Assert.Equal("Outer / Inner", tables[1].Location!.HeadingPath);
+    }
+
+    [Fact]
+    public void SharedModelPublishesMetadataOnlyImageReferences() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Figures</title><mediaobject><imageobject><imagedata fileref=\"assets/figure.png?version=2\"/></imageobject><textobject><phrase>Chart alternative</phrase></textobject><caption><para>Chart title</para></caption></mediaobject></section></article>";
+
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel("guide.docbook").Value;
+        OfficeDocumentModelAsset asset = Assert.Single(model.Assets);
+
+        Assert.Equal("image", asset.Kind);
+        Assert.Equal("figure.png", asset.FileName);
+        Assert.Equal(".png", asset.Extension);
+        Assert.Equal("image/png", asset.MediaType);
+        Assert.Equal("assets/figure.png?version=2", asset.SourceObjectId);
+        Assert.Equal("Chart alternative", asset.AltText);
+        Assert.Equal("Chart title", asset.Title);
+        Assert.Equal("Figures", asset.Location.HeadingPath);
+        Assert.Equal("guide.docbook", asset.Location.Path);
+        Assert.Null(asset.PayloadBytes);
+        Assert.Contains("docbook.media-references", model.CapabilitiesUsed);
+        Assert.Single(DocBookDocument.FromOfficeDocumentModel(model).Value.Xml.Descendants(),
+            element => element.Name.LocalName == "imagedata" &&
+                       (string?)element.Attribute("fileref") == "assets/figure.png?version=2");
     }
 
     [Fact]
@@ -430,16 +475,27 @@ public sealed class DocBookDocumentTests {
                     Rows = new[] { new[] { "A", "1" } },
                     TotalRowCount = 1
                 }
+            },
+            Assets = new[] {
+                new OfficeDocumentModelAsset {
+                    Id = "figure",
+                    Kind = "image",
+                    FileName = "figure.png",
+                    SourceObjectId = "assets/figure.png",
+                    Title = "Chart"
+                }
             }
         };
 
         DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
         XElement info = Assert.Single(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "info");
         XElement table = Assert.Single(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "table");
+        XElement image = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
 
         Assert.Equal("Jane Doe", info.Descendants().Single(element => element.Name.LocalName == "author").Value);
         Assert.Equal(new[] { "Name", "Value", "A", "1" },
             table.Descendants().Where(element => element.Name.LocalName == "entry").Select(element => element.Value));
+        Assert.Equal("assets/figure.png", image.Attribute("fileref")!.Value);
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB103");
     }
 

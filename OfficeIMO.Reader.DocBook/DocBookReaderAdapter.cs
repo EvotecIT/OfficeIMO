@@ -141,7 +141,7 @@ internal static partial class DocBookReaderAdapter {
             Kind = table.Kind,
             Summary = table.Summary,
             PayloadHash = table.PayloadHash,
-            Location = MapLocation(table.Location, sourceName),
+            Location = MapLocation(table.Location, sourceName, "table"),
             Columns = table.Columns,
             ColumnProfiles = ReaderTableProfiler.CreateProfiles(table.Columns, rows),
             Rows = rows,
@@ -149,7 +149,7 @@ internal static partial class DocBookReaderAdapter {
             Truncated = table.Truncated || rows.Count < table.Rows.Count
         };
     }
-    private static ReaderLocation MapLocation(OfficeDocumentModelLocation? location, string sourceName) => new ReaderLocation {
+    private static ReaderLocation MapLocation(OfficeDocumentModelLocation? location, string sourceName, string? defaultSourceBlockKind = null) => new ReaderLocation {
         Path = location?.Path ?? sourceName,
         BlockIndex = location?.BlockIndex,
         SourceBlockIndex = location?.SourceBlockIndex,
@@ -159,7 +159,7 @@ internal static partial class DocBookReaderAdapter {
         NormalizedEndLine = location?.NormalizedEndLine,
         HeadingPath = location?.HeadingPath,
         HeadingSlug = location?.HeadingSlug,
-        SourceBlockKind = location?.SourceBlockKind ?? "table",
+        SourceBlockKind = location?.SourceBlockKind ?? defaultSourceBlockKind,
         BlockAnchor = location?.BlockAnchor,
         Sheet = location?.Sheet,
         A1Range = location?.A1Range,
