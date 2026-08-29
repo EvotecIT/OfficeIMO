@@ -49,26 +49,37 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
             A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle) {
-            IReadOnlyList<A.TextCharacterPropertiesType> sources = ResolveSources(run, paragraph, listStyle, masterTextStyle);
-            bool? bold = sources.Select(source => source.Bold == null ? (bool?)null : source.Bold.Value)
-                .FirstOrDefault(value => value.HasValue);
-            bool? italic = sources.Select(source => source.Italic == null ? (bool?)null : source.Italic.Value)
-                .FirstOrDefault(value => value.HasValue);
-            A.TextUnderlineValues? underline = sources.Select(source => source.Underline?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            A.TextStrikeValues? strike = sources.Select(source => source.Strike?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            A.TextCapsValues? capitalization = sources.Select(source => source.Capital?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            int? baseline = sources.Select(source => source.Baseline?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            int? fontSize = sources.Select(source => source.FontSize?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            string? fontName = ResolveFontName(run, sources);
-            string? color = ResolveColor(run, sources);
-            string? language = sources.Select(source => source.Language?.Value)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            IReadOnlyList<A.TextCharacterPropertiesType> directSources = ResolveDirectSources(run, paragraph, listStyle);
+            IReadOnlyList<A.TextCharacterPropertiesType> masterSources = FindDefaultRunProperties(
+                masterTextStyle,
+                paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0).Cast<A.TextCharacterPropertiesType>().ToArray();
+            IReadOnlyList<A.TableCellTextStyle> tableSources = tableTextStyles ?? Array.Empty<A.TableCellTextStyle>();
+            bool? bold = ResolveBoolean(directSources, static source => source.Bold?.Value)
+                ?? ResolveTableBoolean(tableSources, static source => source.Bold?.Value)
+                ?? ResolveBoolean(masterSources, static source => source.Bold?.Value);
+            bool? italic = ResolveBoolean(directSources, static source => source.Italic?.Value)
+                ?? ResolveTableBoolean(tableSources, static source => source.Italic?.Value)
+                ?? ResolveBoolean(masterSources, static source => source.Italic?.Value);
+            A.TextUnderlineValues? underline = ResolveValue(directSources, static source => source.Underline?.Value)
+                ?? ResolveValue(masterSources, static source => source.Underline?.Value);
+            A.TextStrikeValues? strike = ResolveValue(directSources, static source => source.Strike?.Value)
+                ?? ResolveValue(masterSources, static source => source.Strike?.Value);
+            A.TextCapsValues? capitalization = ResolveValue(directSources, static source => source.Capital?.Value)
+                ?? ResolveValue(masterSources, static source => source.Capital?.Value);
+            int? baseline = ResolveValue(directSources, static source => source.Baseline?.Value)
+                ?? ResolveValue(masterSources, static source => source.Baseline?.Value);
+            int? fontSize = ResolveValue(directSources, static source => source.FontSize?.Value)
+                ?? ResolveValue(masterSources, static source => source.FontSize?.Value);
+            string? fontName = ResolveFontName(run, directSources)
+                ?? ResolveTableFontName(run, tableSources)
+                ?? ResolveFontName(run, masterSources);
+            string? color = ResolveColor(run, directSources)
+                ?? ResolveTableColor(run, tableSources)
+                ?? ResolveColor(run, masterSources);
+            string? language = ResolveString(directSources, static source => source.Language?.Value)
+                ?? ResolveString(masterSources, static source => source.Language?.Value);
 
             return new PowerPointEffectiveRunStyle(
                 bold,
@@ -82,6 +93,31 @@ namespace OfficeIMO.PowerPoint {
                 color,
                 language);
         }
+
+        private static T? ResolveValue<T>(
+            IEnumerable<A.TextCharacterPropertiesType> sources,
+            Func<A.TextCharacterPropertiesType, T?> selector) where T : struct =>
+            sources.Select(selector).FirstOrDefault(static value => value.HasValue);
+
+        private static bool? ResolveBoolean(
+            IEnumerable<A.TextCharacterPropertiesType> sources,
+            Func<A.TextCharacterPropertiesType, bool?> selector) =>
+            sources.Select(selector).FirstOrDefault(static value => value.HasValue);
+
+        private static bool? ResolveTableBoolean(
+            IEnumerable<A.TableCellTextStyle> sources,
+            Func<A.TableCellTextStyle, A.BooleanStyleValues?> selector) {
+            A.BooleanStyleValues? value = sources.Select(selector).FirstOrDefault(static item => item.HasValue);
+            if (!value.HasValue) return null;
+            if (value.Value == A.BooleanStyleValues.On) return true;
+            if (value.Value == A.BooleanStyleValues.Off) return false;
+            return null;
+        }
+
+        private static string? ResolveString(
+            IEnumerable<A.TextCharacterPropertiesType> sources,
+            Func<A.TextCharacterPropertiesType, string?> selector) =>
+            sources.Select(selector).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value));
 
         private static string? ResolveFontName(
             PowerPointTextRun run,
@@ -107,6 +143,34 @@ namespace OfficeIMO.PowerPoint {
                 if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
             }
 
+            return PowerPointTextDefaults.LegacyFallbackFontFamily;
+        }
+
+        private static string? ResolveTableFontName(
+            PowerPointTextRun run,
+            IEnumerable<A.TableCellTextStyle> sources) {
+            foreach (A.TableCellTextStyle source in sources) {
+                string? typeface = source.GetFirstChild<A.Fonts>()?
+                    .GetFirstChild<A.LatinFont>()?.Typeface?.Value;
+                if (!string.IsNullOrWhiteSpace(typeface)) return typeface;
+                A.FontReference? reference = source.GetFirstChild<A.FontReference>();
+                if (reference?.Index?.Value == A.FontCollectionIndexValues.Major) {
+                    return ResolveThemeFontName(run.OwnerPart, major: true);
+                }
+                if (reference?.Index?.Value == A.FontCollectionIndexValues.Minor) {
+                    return ResolveThemeFontName(run.OwnerPart, major: false);
+                }
+            }
+            return null;
+        }
+
+        private static string? ResolveThemeFontName(OpenXmlPartContainer? ownerPart, bool major) {
+            foreach (A.FontScheme scheme in EnumerateFontSchemes(ownerPart)) {
+                string? typeface = major
+                    ? scheme.MajorFont?.LatinFont?.Typeface?.Value
+                    : scheme.MinorFont?.LatinFont?.Typeface?.Value;
+                if (!string.IsNullOrWhiteSpace(typeface)) return typeface;
+            }
             return PowerPointTextDefaults.LegacyFallbackFontFamily;
         }
 
@@ -144,14 +208,33 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
-        private static OpenXmlElement ApplyColorMap(A.SolidFill fill, OpenXmlCompositeElement? colorMap) {
-            A.SchemeColor? scheme = fill.GetFirstChild<A.SchemeColor>();
+        private static string? ResolveTableColor(
+            PowerPointTextRun run,
+            IEnumerable<A.TableCellTextStyle> sources) {
+            A.ColorScheme? colorScheme = ResolveColorScheme(run.OwnerPart);
+            OpenXmlCompositeElement? colorMap = ResolveColorMap(run.OwnerPart);
+            foreach (A.TableCellTextStyle source in sources) {
+                OpenXmlElement? color = source.ChildElements.FirstOrDefault(IsColorElement)
+                    ?? source.GetFirstChild<A.FontReference>()?.ChildElements.FirstOrDefault(IsColorElement);
+                if (color == null) continue;
+                OpenXmlElement effectiveColor = ApplyColorMap(color, colorMap);
+                OfficeColor? resolved = OfficeOpenXmlThemeColorResolver.ResolveColor(effectiveColor, colorScheme);
+                if (resolved.HasValue) return resolved.Value.ToRgbHex();
+            }
+            return null;
+        }
+
+        private static bool IsColorElement(OpenXmlElement element) => element is
+            A.RgbColorModelHex or A.RgbColorModelPercentage or A.HslColor or A.SystemColor or A.SchemeColor or A.PresetColor;
+
+        private static OpenXmlElement ApplyColorMap(OpenXmlElement colorOwner, OpenXmlCompositeElement? colorMap) {
+            A.SchemeColor? scheme = colorOwner as A.SchemeColor ?? colorOwner.GetFirstChild<A.SchemeColor>();
             string? schemeName = scheme?.GetAttribute("val", string.Empty).Value;
             string? mapped = MapSchemeColor(schemeName, colorMap);
             if (string.IsNullOrWhiteSpace(mapped)
-                || string.Equals(mapped, schemeName, StringComparison.OrdinalIgnoreCase)) return fill;
-            var clone = (A.SolidFill)fill.CloneNode(true);
-            clone.GetFirstChild<A.SchemeColor>()!
+                || string.Equals(mapped, schemeName, StringComparison.OrdinalIgnoreCase)) return colorOwner;
+            OpenXmlElement clone = colorOwner.CloneNode(true);
+            (clone as A.SchemeColor ?? clone.GetFirstChild<A.SchemeColor>())!
                 .SetAttribute(new OpenXmlAttribute("val", string.Empty, mapped!));
             return clone;
         }
@@ -199,11 +282,10 @@ namespace OfficeIMO.PowerPoint {
             _ => null
         };
 
-        private static IReadOnlyList<A.TextCharacterPropertiesType> ResolveSources(
+        private static IReadOnlyList<A.TextCharacterPropertiesType> ResolveDirectSources(
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
-            A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle) {
+            A.ListStyle? listStyle) {
             var sources = new List<A.TextCharacterPropertiesType>();
             if (run.RunProperties != null) sources.Add(run.RunProperties);
             A.DefaultRunProperties? paragraphDefaults = paragraph.Paragraph.ParagraphProperties?
@@ -211,7 +293,6 @@ namespace OfficeIMO.PowerPoint {
             if (paragraphDefaults != null) sources.Add(paragraphDefaults);
             int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
             sources.AddRange(FindDefaultRunProperties(listStyle, level));
-            sources.AddRange(FindDefaultRunProperties(masterTextStyle, level));
             return sources;
         }
 

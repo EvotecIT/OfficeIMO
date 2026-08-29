@@ -226,6 +226,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_ResolvesApplicableTableStyleTypographyForGoogleCells() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            const string styleId = "{9A53DA13-207B-4877-931D-000000000239}";
+            DocumentFormat.OpenXml.Packaging.PresentationPart presentationPart = slide.SlidePart
+                .GetParentParts()
+                .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>()
+                .Single();
+            PowerPointUtils.CreateTableStylesPart(presentationPart);
+            A.TableStyleList styles = presentationPart.TableStylesPart!.TableStyleList!;
+            styles.RemoveAllChildren<A.TableStyleEntry>();
+            styles.Append(new A.TableStyleEntry(
+                $@"<a:tblStyle xmlns:a=""http://schemas.openxmlformats.org/drawingml/2006/main"" styleId=""{styleId}"" styleName=""Google typography"">
+  <a:wholeTbl><a:tcTxStyle i=""on""><a:font><a:latin typeface=""Consolas"" /></a:font><a:srgbClr val=""112233"" /></a:tcTxStyle></a:wholeTbl>
+  <a:band1H><a:tcTxStyle i=""on""><a:font><a:latin typeface=""Courier New"" /></a:font><a:srgbClr val=""445566"" /></a:tcTxStyle></a:band1H>
+  <a:firstRow><a:tcTxStyle b=""on""><a:font><a:latin typeface=""Arial"" /></a:font><a:srgbClr val=""AABBCC"" /></a:tcTxStyle></a:firstRow>
+  <a:nwCell><a:tcTxStyle b=""on"" i=""on""><a:font><a:latin typeface=""Times New Roman"" /></a:font><a:srgbClr val=""FF00FF"" /></a:tcTxStyle></a:nwCell>
+</a:tblStyle>"));
+
+            PowerPointTable table = slide.AddTablePoints(3, 2, 20, 30, 220, 120);
+            table.StyleId = styleId;
+            table.FirstRow = true;
+            table.FirstColumn = true;
+            table.BandedRows = true;
+            table.GetCell(0, 0).Text = "Corner";
+            table.GetCell(0, 1).Text = "Header";
+            table.GetCell(1, 0).Text = "Band";
+            table.GetCell(2, 0).Text = "Body";
+
+            GoogleSlidesTable compiled = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTable>());
+            GoogleSlidesTextStyleRun corner = Assert.Single(compiled.StyledCells[0][0].TextRuns);
+            GoogleSlidesTextStyleRun header = Assert.Single(compiled.StyledCells[0][1].TextRuns);
+            GoogleSlidesTextStyleRun band = Assert.Single(compiled.StyledCells[1][0].TextRuns);
+            GoogleSlidesTextStyleRun body = Assert.Single(compiled.StyledCells[2][0].TextRuns);
+
+            Assert.True(corner.Bold);
+            Assert.True(corner.Italic);
+            Assert.Equal("Times New Roman", corner.FontFamily);
+            Assert.Equal("FF00FF", corner.ForegroundColorHex);
+            Assert.True(header.Bold);
+            Assert.Equal("Arial", header.FontFamily);
+            Assert.Equal("AABBCC", header.ForegroundColorHex);
+            Assert.True(band.Italic);
+            Assert.Equal("Courier New", band.FontFamily);
+            Assert.Equal("445566", band.ForegroundColorHex);
+            Assert.True(body.Italic);
+            Assert.Equal("Consolas", body.FontFamily);
+            Assert.Equal("112233", body.ForegroundColorHex);
+        }
+
+        [Fact]
         public void BatchCompiler_PreservesTableFieldsAndLineBreaksInAuthoredOrder() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointTableCell cell = presentation.AddSlide()

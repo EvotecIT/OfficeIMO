@@ -67,10 +67,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var result = new List<InlinePaintSegment>();
         double cursor = x;
         IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
+        OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
         if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D) {
             for (int index = 0; index < elements.Count; index++) {
                 string element = elements[index];
-                double glyphWidth = MeasureText(element, segment.Run.Style.Font);
+                double glyphWidth = MeasureText(element, effectiveFont);
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
                     + (IsWhitespaceToken(element) ? segment.Run.Style.WordSpacing : 0D);
@@ -86,7 +87,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int end = start + 1;
             while (end < elements.Count && IsWhitespaceToken(elements[end]) == whitespace) end++;
             string text = string.Concat(elements.Skip(start).Take(end - start));
-            double glyphWidth = MeasureText(text, segment.Run.Style.Font);
+            double glyphWidth = MeasureText(text, effectiveFont);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
             result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? start));
             cursor += advance;
@@ -154,12 +155,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             InlineSegment segment = segments[segmentIndex];
             IReadOnlyList<string> paintElements = OfficeTextElements.Split(segment.Text);
             IReadOnlyList<string> logicalElements = OfficeTextElements.Split(segment.LogicalText);
+            OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
             bool hasContextualWidths = _fonts.TryMeasureTextElements(
                 segment.Text,
                 paintElements,
-                segment.Run.Style.Font.Size,
-                segment.Run.Style.Font.FamilyName,
-                segment.Run.Style.Font.Style,
+                effectiveFont.Size,
+                effectiveFont.FamilyName,
+                effectiveFont.Style,
                 out IReadOnlyList<double> contextualWidths);
             var widths = new double[paintElements.Count];
             double visibleWidth = 0D;
@@ -168,7 +170,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (OfficeTextElements.ContainsBidiControl(paintText)) continue;
                 double elementWidth = hasContextualWidths
                     ? contextualWidths[elementIndex]
-                    : MeasureText(paintText, segment.Run.Style.Font);
+                    : MeasureText(paintText, effectiveFont);
                 widths[elementIndex] = elementWidth;
                 visibleWidth += elementWidth;
             }
@@ -233,22 +235,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, HtmlRenderBoxStyle style) {
         IReadOnlyList<string> elements = OfficeTextElements.Enumerate(group.Text).ToList();
+        OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
         bool hasContextualWidths = _fonts.TryMeasureTextElements(
             group.Text,
             elements,
-            style.Font.Size,
-            style.Font.FamilyName,
-            style.Font.Style,
+            effectiveFont.Size,
+            effectiveFont.FamilyName,
+            effectiveFont.Style,
             out IReadOnlyList<double> contextualWidths);
         double right = x + group.Width;
         for (int index = 0; index < elements.Count; index++) {
             CheckCancellation();
             string element = elements[index];
-            double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, style.Font))
+            double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont))
                 + style.LetterSpacing
                 + (IsWhitespaceToken(element) ? style.WordSpacing : 0D);
             right -= advance;
-            double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, style.Font);
+            double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont);
             result.Add(new InlinePaintSegment(
                 OfficeBidiTextResolver.MirrorText(element),
                 right,

@@ -97,8 +97,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             break;
                         case PowerPointTable table when !HasMergedCells(table):
                             IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> cells = table.RowItems
-                                .Select(row => (IReadOnlyList<GoogleSlidesTableCell>)row.Cells
-                                    .Select(BuildTableCell).ToArray()).ToArray();
+                                .Select((row, rowIndex) => (IReadOnlyList<GoogleSlidesTableCell>)row.Cells
+                                    .Select((cell, columnIndex) => BuildTableCell(table, cell, rowIndex, columnIndex))
+                                    .ToArray()).ToArray();
                             target.Add(PreserveTransform(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells), shape));
                             plan.NativeTableCount++;
                             break;
@@ -161,12 +162,18 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             PopulateTextRuns(target.TextRuns, source.Paragraphs, source.TextBody?.ListStyle, source.MasterTextStyle);
         }
 
-        private static GoogleSlidesTableCell BuildTableCell(PowerPointTableCell cell) {
+        private static GoogleSlidesTableCell BuildTableCell(
+            PowerPointTable table,
+            PowerPointTableCell cell,
+            int row,
+            int column) {
             var textRuns = new List<GoogleSlidesTextStyleRun>();
             A.TextBody? textBody = cell.Cell.TextBody;
             OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
                 .SlideMaster?.TextStyles?.OtherStyle;
-            PopulateTextRuns(textRuns, cell.Paragraphs, textBody?.ListStyle, masterTextStyle);
+            IReadOnlyList<A.TableCellTextStyle> tableTextStyles =
+                PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(table, row, column);
+            PopulateTextRuns(textRuns, cell.Paragraphs, textBody?.ListStyle, masterTextStyle, tableTextStyles);
             return new GoogleSlidesTableCell(BuildTextContent(cell.Paragraphs, textBody?.ListStyle, masterTextStyle), textRuns);
         }
 
@@ -174,7 +181,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             ICollection<GoogleSlidesTextStyleRun> target,
             IReadOnlyList<PowerPointParagraph> paragraphs,
             A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle) {
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
             int offset = 0;
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 PowerPointParagraph paragraph = paragraphs[paragraphIndex];
@@ -185,7 +193,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     }
                     PowerPointTextRun? run = node.Run;
                     if (run == null) continue;
-                    EffectiveGoogleRunStyle effective = ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle);
+                    EffectiveGoogleRunStyle effective = ResolveEffectiveRunStyle(
+                        run, paragraph, listStyle, masterTextStyle, tableTextStyles);
                     string text = GetGoogleText(run, effective);
                     int endIndex = offset + text.Length;
                     if (endIndex > offset) {
@@ -259,9 +268,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
             A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle) {
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
             PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.Resolve(
-                run, paragraph, listStyle, masterTextStyle);
+                run, paragraph, listStyle, masterTextStyle, tableTextStyles);
             return new EffectiveGoogleRunStyle(
                 effective.Capitalization,
                 effective.BaselinePercent,

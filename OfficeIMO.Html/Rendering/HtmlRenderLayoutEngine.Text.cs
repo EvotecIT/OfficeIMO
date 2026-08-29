@@ -33,6 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, null, 0D, 0D, runs);
         }
 
+        ApplyPendingInlineTextTransforms(runs);
         runs = ApplyScopedFontFallbacks(runs);
 
         if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
@@ -124,7 +125,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
                 ReportUnsupportedBidi(textNode, inheritedStyle);
-                runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement));
+                runs.Add(new HtmlInlineRun(
+                    textNode.Data,
+                    inheritedStyle,
+                    inheritedLink,
+                    inheritedStyle.SemanticRole,
+                    inheritedPaintOffsetX,
+                    inheritedPaintOffsetY,
+                    textNode.ParentElement,
+                    textTransformPending: true));
             }
 
             return;
@@ -1195,27 +1204,54 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (token.Length > 0) yield return token.ToString();
     }
 
-    private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) {
-        string transform = style.TextTransform;
-        CultureInfo culture = ResolveTextTransformCulture(style.Language);
-        string transformed;
-        if (transform == "uppercase") return text.ToUpper(culture);
-        if (transform == "lowercase") {
-            transformed = text.ToLower(culture);
-        } else if (transform == "capitalize") {
-            var builder = new StringBuilder(text.Length);
-            bool capitalize = true;
-            foreach (char character in text) {
-                builder.Append(capitalize ? char.ToUpper(character, culture) : character);
-                capitalize = char.IsWhiteSpace(character);
+    private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) =>
+        ApplyTextTransformSegments(new[] { text }, style)[0];
+
+    private static void ApplyPendingInlineTextTransforms(IReadOnlyList<HtmlInlineRun> runs) {
+        int start = 0;
+        while (start < runs.Count) {
+            HtmlInlineRun first = runs[start];
+            if (!first.TextTransformPending) {
+                start++;
+                continue;
             }
 
-            transformed = builder.ToString();
-        } else {
-            transformed = text;
-        }
+            int end = start + 1;
+            while (end < runs.Count
+                   && runs[end].TextTransformPending
+                   && HasEquivalentTextTransform(first.Style, runs[end].Style)) {
+                end++;
+            }
 
-        return style.ApproximateSmallCaps ? transformed.ToUpper(culture) : transformed;
+            IReadOnlyList<string> transformed = ApplyTextTransformSegments(
+                runs.Skip(start).Take(end - start).Select(static run => run.Text).ToArray(),
+                first.Style);
+            for (int index = start; index < end; index++) {
+                runs[index].CompleteTextTransform(transformed[index - start]);
+            }
+            start = end;
+        }
+    }
+
+    private static bool HasEquivalentTextTransform(HtmlRenderBoxStyle left, HtmlRenderBoxStyle right) =>
+        string.Equals(left.TextTransform, right.TextTransform, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(left.Language, right.Language, StringComparison.OrdinalIgnoreCase)
+        && left.ApproximateSmallCaps == right.ApproximateSmallCaps;
+
+    private static IReadOnlyList<string> ApplyTextTransformSegments(
+        IReadOnlyList<string> segments,
+        HtmlRenderBoxStyle style) {
+        CultureInfo culture = ResolveTextTransformCulture(style.Language);
+        OfficeTextCase textCase = style.TextTransform.ToLowerInvariant() switch {
+            "uppercase" => OfficeTextCase.Uppercase,
+            "lowercase" => OfficeTextCase.Lowercase,
+            "capitalize" => OfficeTextCase.Capitalize,
+            _ => OfficeTextCase.None
+        };
+        IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
+        return style.ApproximateSmallCaps
+            ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)
+            : transformed;
     }
 
     private static CultureInfo ResolveTextTransformCulture(string language) {
