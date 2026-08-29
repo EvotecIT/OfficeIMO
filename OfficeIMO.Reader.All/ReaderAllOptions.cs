@@ -23,6 +23,9 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets Excel adapter options.</summary>
     public Excel.ReaderExcelOptions? Excel { get; set; }
 
+    /// <summary>Gets or sets safe legacy-spreadsheet import options.</summary>
+    public OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions? LegacySpreadsheet { get; set; }
+
     /// <summary>Gets or sets HTML adapter options.</summary>
     public Html.ReaderHtmlOptions? Html { get; set; }
 
@@ -67,6 +70,9 @@ public sealed class ReaderAllOptions {
 
     /// <summary>Gets or sets Word adapter options.</summary>
     public Word.ReaderWordOptions? Word { get; set; }
+
+    /// <summary>Gets or sets safe legacy-word import options.</summary>
+    public OfficeIMO.Word.Legacy.LegacyWordImportOptions? LegacyWord { get; set; }
 
     /// <summary>Gets or sets XML adapter options.</summary>
     public Xml.XmlReadOptions? Xml { get; set; }

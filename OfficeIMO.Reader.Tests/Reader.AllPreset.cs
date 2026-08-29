@@ -17,6 +17,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.email.store",
         "officeimo.reader.epub",
         "officeimo.reader.excel",
+        "officeimo.reader.excel.legacy",
         "officeimo.reader.html",
         "officeimo.reader.image",
         "officeimo.reader.json",
@@ -36,6 +37,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.vcard",
         "officeimo.reader.visio",
         "officeimo.reader.word",
+        "officeimo.reader.word.legacy",
         "officeimo.reader.xml",
         "officeimo.reader.yaml",
         "officeimo.reader.zip"

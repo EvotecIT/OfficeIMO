@@ -1,0 +1,41 @@
+namespace OfficeIMO.Excel.Legacy;
+
+internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdapterBase {
+    public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.MicrosoftWorks;
+    public override string ProfileId => "microsoft-works-spreadsheet-2-8";
+
+    public override int Probe(byte[] data, string? sourceName, out string reason) {
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00) && ExtensionIs(sourceName, ".wks")) {
+            reason = "Early WK record-stream BOF signature with Microsoft Works spreadsheet extension.";
+            return 95;
+        }
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0xFF, 0x00, 0x02)) {
+            reason = "Microsoft Works 3.x spreadsheet signature.";
+            return 100;
+        }
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0) && ExtensionIs(sourceName, ".xlr")) {
+            reason = "OLE compound workbook with Microsoft Works spreadsheet extension.";
+            return 95;
+        }
+        if (ExtensionIs(sourceName, ".wks", ".xlr")) {
+            reason = "Microsoft Works spreadsheet source extension only; use FormatHint when the family is independently known.";
+            return 35;
+        }
+        reason = "No Microsoft Works spreadsheet signature evidence.";
+        return 0;
+    }
+
+    public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00)) return ParseWkRecords(data, limits, "Microsoft Works WKS", cancellationToken);
+        LegacySpreadsheetModel model = ParseDelimitedSalvage(data, limits,
+            "Microsoft Works spreadsheet text was salvaged; sheet structure, formulas, formatting, comments, and charts were not reconstructed.", cancellationToken);
+        model.InertContent |= OfficeLegacyCompoundInspector.Inspect(data, limits, out bool inspectionIncomplete, cancellationToken);
+        if (inspectionIncomplete) {
+            model.Findings.Add(Loss("LEGACY_COMPOUND_INVENTORY_INCOMPLETE", "Security", "The compound directory could not be inspected within configured safety limits; active-content inventory is indeterminate and no compound stream was activated."));
+        }
+        if (model.InertContent != OfficeLegacyInertContentKind.None) {
+            model.Findings.Add(Inert("WORKS_SHEET_ACTIVE_CONTENT_INERT", "Security", "Active or externally resolved Works compound streams were inventoried but never activated, executed, or refreshed."));
+        }
+        return model;
+    }
+}

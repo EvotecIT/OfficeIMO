@@ -70,7 +70,7 @@ internal static class WordReaderAdapter {
         }
     }
 
-    private static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
+    internal static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken, IReadOnlyList<string>? sourceWarnings = null, string capabilityId = OfficeDocumentReaderBuilderWordExtensions.HandlerId) {
         WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
         IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots = Array.Empty<WordDocumentVisualSnapshot>();
         if (options.IncludePageLocations) {
@@ -81,7 +81,7 @@ internal static class WordReaderAdapter {
             layoutOptions.PageCount = null;
             pageSnapshots = document.CreateVisualSnapshots(layoutOptions, cancellationToken);
         }
-        IReadOnlyList<string>? legacyWarnings = BuildLegacyWarnings(document);
+        IReadOnlyList<string>? legacyWarnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         var chunks = new List<ReaderChunk>();
         IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectWord(
             document.OpenXmlDocument, sourceName, readerOptions, options.IncludeFootnotes, cancellationToken);
@@ -145,7 +145,7 @@ internal static class WordReaderAdapter {
             chunks,
             ReaderInputKind.Word,
             source: null,
-            capabilities: new[] { OfficeDocumentReaderBuilderWordExtensions.HandlerId },
+            capabilities: new[] { capabilityId },
             assets: assets);
         return WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
     }

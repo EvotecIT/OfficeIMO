@@ -51,6 +51,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddEmailHandlers(configured.Email)
             .AddEpubHandler(configured.Epub)
             .AddExcelHandler(configured.Excel)
+            .AddLegacySpreadsheetHandler(configured.LegacySpreadsheet, configured.Excel)
             .AddHtmlHandler(configured.Html)
             .AddImageHandler(configured.Image)
             .AddJsonHandler(configured.Json)
@@ -65,6 +66,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddSubtitleHandler(configured.Subtitles)
             .AddVisioHandler(configured.Visio)
             .AddWordHandler(configured.Word)
+            .AddLegacyWordHandler(configured.LegacyWord, configured.Word)
             .AddXmlHandler(configured.Xml)
             .AddYamlHandler(configured.Yaml)
             .AddZipHandler(configured.ZipTraversal, configured.Zip);

@@ -53,6 +53,26 @@ internal static class ExcelReaderAdapter {
         return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
     }
 
+    internal static OfficeDocumentReadResult Project(
+        ExcelDocument document,
+        string sourceName,
+        ReaderOptions readerOptions,
+        ReaderExcelOptions options,
+        CancellationToken cancellationToken,
+        IReadOnlyList<string>? sourceWarnings = null) {
+        using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        ReaderChunk[] chunks = Extract(reader, sourceName, readerOptions, options,
+            Combine(sourceWarnings, BuildLegacyWarnings(document)), cancellationToken).ToArray();
+        IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectExcel(
+            document.OpenXmlDocument, sourceName, readerOptions, options.SheetName, options.A1Range, cancellationToken);
+        OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
+            chunks,
+            ReaderInputKind.Excel,
+            capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId },
+            assets: assets);
+        return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+    }
+
     internal static bool ProbeEncryptedOpenXml(
         Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(options.OpenPassword) || !stream.CanSeek) return false;
