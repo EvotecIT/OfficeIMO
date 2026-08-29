@@ -96,7 +96,7 @@ internal static class CslJsonCodec {
             }
             switch (property.Name.ToLowerInvariant()) {
                 case "id": item.Key = Scalar(property.Value); break;
-                case "type": item.NativeType = Scalar(property.Value); item.Type = CodecMappings.ParseType(item.NativeType); break;
+                case "type": item.NativeType = Scalar(property.Value); item.Type = CodecMappings.ParseCslType(item.NativeType); break;
                 case "title": item.Title = Scalar(property.Value); break;
                 case "container-title": item.ContainerTitle = Scalar(property.Value); break;
                 case "collection-title": item.CollectionTitle = Scalar(property.Value); break;

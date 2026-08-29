@@ -91,14 +91,14 @@ public sealed partial class BibliographyDocument {
         options ??= new BibliographyReadOptions(); options.Validate();
         byte[] bytes = ReadAllBytes(stream, options.MaximumInputBytes, cancellationToken); Encoding actualEncoding = encoding ?? DetectEncoding(bytes);
         string text = actualEncoding.GetString(RemovePreamble(bytes, actualEncoding));
-        return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text), options, bytes, cancellationToken);
+        return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text, options), options, bytes, cancellationToken);
     }
 
     private static async Task<BibliographyReadResult> LoadDetectedAsync(Stream stream, BibliographyReadOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
         options ??= new BibliographyReadOptions(); options.Validate();
         byte[] bytes = await ReadAllBytesAsync(stream, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false); Encoding actualEncoding = encoding ?? DetectEncoding(bytes);
         string text = actualEncoding.GetString(RemovePreamble(bytes, actualEncoding));
-        return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text), options, bytes, cancellationToken);
+        return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text, options), options, bytes, cancellationToken);
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(Stream stream, long maximum, CancellationToken cancellationToken) {

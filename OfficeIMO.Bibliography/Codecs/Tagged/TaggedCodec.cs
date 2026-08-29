@@ -136,7 +136,7 @@ internal static class TaggedCodec {
             case "ET": SetScalar(item, BibliographyFormat.Ris, "edition", field, value, assigned => item.Edition = assigned); break;
             case "VL": SetScalar(item, BibliographyFormat.Ris, "volume", field, value, assigned => item.Volume = assigned); break;
             case "IS": SetScalar(item, BibliographyFormat.Ris, "issue", field, value, assigned => item.Issue = assigned); break;
-            case "SP": SetScalar(item, BibliographyFormat.Ris, "pages-start", field, value, assigned => item.Pages = assigned); break;
+            case "SP": SetPageStart(item, value); break;
             case "EP": SetPageEnd(item, value); break;
             case "AB": case "N2": SetScalar(item, BibliographyFormat.Ris, "abstract", field, value, assigned => item.Abstract = assigned); break;
             case "LA": SetScalar(item, BibliographyFormat.Ris, "language", field, value, assigned => item.Language = assigned); break;
@@ -207,6 +207,12 @@ internal static class TaggedCodec {
         else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, "EP", value));
     }
 
+    private static void SetPageStart(BibliographyItem item, string value) {
+        const string binding = "Ris:pages-start";
+        if (item.TaggedScalarBindings.Add(binding)) item.Pages = item.TaggedScalarBindings.Contains("Ris:pages-end") && !string.IsNullOrWhiteSpace(item.Pages) ? value + "-" + item.Pages : value;
+        else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, "SP", value));
+    }
+
     private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyDiagnosticGuard diagnostics, int line, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         string field = tag.ToUpperInvariant();
         if (format == BibliographyFormat.Ris) {
@@ -265,6 +271,10 @@ internal static class TaggedCodec {
     private static void WritePages(StringBuilder builder, string? pages, string lineEnding) { if (string.IsNullOrWhiteSpace(pages)) return; string[] parts = pages!.Split(new[] { '-' }, 2); WriteTag(builder, "SP", parts[0], lineEnding); if (parts.Length > 1) WriteTag(builder, "EP", parts[1], lineEnding); }
     private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) { BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, DateTag(item, issued, issuedTag, "Y1", "DA"), CodecMappings.FormatDate(issued), lineEnding); BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed); if (accessed != null) WriteTag(builder, DateTag(item, accessed, accessedTag, "Y2"), CodecMappings.FormatDate(accessed), lineEnding); }
     private static void WriteRisIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "DO", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "SN", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "AN", identifier.Value.IndexOf(':') >= 0 ? "accession:" + identifier.Value : identifier.Value, lineEnding); else WriteTag(builder, "AN", identifier.Scheme + ":" + identifier.Value, lineEnding); }
+    internal static bool CanRoundTripRisIdentifier(BibliographyIdentifier identifier) {
+        if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) return true;
+        return !string.IsNullOrWhiteSpace(identifier.Scheme) && identifier.Scheme.IndexOf(':') < 0 && identifier.Scheme.IndexOf('\r') < 0 && identifier.Scheme.IndexOf('\n') < 0;
+    }
     private static void WriteNbibIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) return; if (string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "IS", identifier.Value, lineEnding); else WriteTag(builder, "AID", identifier.Value + " [" + identifier.Scheme.ToLowerInvariant() + "]", lineEnding); }
     private static BibliographyName ParseCompactNbibName(string value) {
         string trimmed = value.Trim();

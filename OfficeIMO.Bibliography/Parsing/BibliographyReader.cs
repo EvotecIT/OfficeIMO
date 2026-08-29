@@ -138,29 +138,31 @@ internal static class BibliographyFormatDetector {
         }
     }
 
-    internal static BibliographyFormat Detect(string source) {
+    internal static BibliographyFormat Detect(string source, BibliographyReadOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
+        options ??= new BibliographyReadOptions();
+        options.Validate();
+        if (source.Length > options.MaximumInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaximumInputCharacters} character limit.");
         int start = SkipWhitespace(source, 0);
         if (start < source.Length && source[start] == '%') {
-            string bib = TrimLeadingComments(source, start, true);
-            if (bib.StartsWith("@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
+            int bib = SkipLeadingComments(source, start, true);
+            if (StartsWith(source, bib, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
             throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
         }
         if (start + 1 < source.Length && source[start] == '/' && (source[start + 1] == '/' || source[start + 1] == '*')) {
-            string json = TrimLeadingComments(source, start, false);
-            if (json.StartsWith("[", StringComparison.Ordinal) || json.StartsWith("{", StringComparison.Ordinal) && json.IndexOf("\"type\"", StringComparison.OrdinalIgnoreCase) >= 0) return BibliographyFormat.CslJson;
+            int json = SkipLeadingComments(source, start, false);
+            if (LooksLikeCsl(source, json)) return BibliographyFormat.CslJson;
             throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
         }
-        string value = source.Substring(start);
-        if (value.StartsWith("[", StringComparison.Ordinal) || value.StartsWith("{", StringComparison.Ordinal) && value.IndexOf("\"type\"", StringComparison.OrdinalIgnoreCase) >= 0) return BibliographyFormat.CslJson;
-        if (value.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase) || value.StartsWith("<xml", StringComparison.OrdinalIgnoreCase) || value.StartsWith("<records", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.EndNoteXml;
-        if (value.StartsWith("@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
-        if (value.StartsWith("TY  -", StringComparison.Ordinal)) return BibliographyFormat.Ris;
-        if (value.StartsWith("PMID-", StringComparison.Ordinal) || value.StartsWith("PMID -", StringComparison.Ordinal) || value.StartsWith("OWN -", StringComparison.Ordinal)) return BibliographyFormat.Nbib;
+        if (LooksLikeCsl(source, start)) return BibliographyFormat.CslJson;
+        if (StartsWith(source, start, "<?xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "<xml", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "<records", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.EndNoteXml;
+        if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
+        if (StartsWith(source, start, "TY  -", StringComparison.Ordinal)) return BibliographyFormat.Ris;
+        if (StartsWith(source, start, "PMID-", StringComparison.Ordinal) || StartsWith(source, start, "PMID -", StringComparison.Ordinal) || StartsWith(source, start, "OWN -", StringComparison.Ordinal)) return BibliographyFormat.Nbib;
         throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
     }
 
-    private static string TrimLeadingComments(string source, int position, bool bibComments) {
+    private static int SkipLeadingComments(string source, int position, bool bibComments) {
         while (position < source.Length) {
             position = SkipWhitespace(source, position);
             if (bibComments && position < source.Length && source[position] == '%') {
@@ -175,14 +177,20 @@ internal static class BibliographyFormatDetector {
             }
             if (!bibComments && position + 1 < source.Length && source[position] == '/' && source[position + 1] == '*') {
                 int end = source.IndexOf("*/", position + 2, StringComparison.Ordinal);
-                if (end < 0) return source.Substring(position);
+                if (end < 0) return position;
                 position = end + 2;
                 continue;
             }
             break;
         }
-        return source.Substring(position);
+        return position;
     }
+
+    private static bool LooksLikeCsl(string source, int position) =>
+        StartsWith(source, position, "[", StringComparison.Ordinal) || StartsWith(source, position, "{", StringComparison.Ordinal) && source.IndexOf("\"type\"", position, StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static bool StartsWith(string source, int position, string value, StringComparison comparison) =>
+        position >= 0 && position <= source.Length - value.Length && string.Compare(source, position, value, 0, value.Length, comparison) == 0;
 
     private static int SkipWhitespace(string source, int position) {
         while (position < source.Length && char.IsWhiteSpace(source[position])) position++;

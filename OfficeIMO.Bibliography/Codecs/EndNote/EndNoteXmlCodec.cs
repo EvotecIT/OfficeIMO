@@ -28,22 +28,22 @@ internal static class EndNoteXmlCodec {
             if (root != null) {
                 CaptureAttributes(root, nativeEntries, items, limits);
             }
-            if (root != null && !rootIsRecords) foreach (XElement element in root.Elements().Where(element => element.Name.LocalName != "records")) {
+            if (root != null && !rootIsRecords) foreach (XElement element in root.Elements().Where(element => !HasName(element, root.Name.Namespace, "records"))) {
                 ValidateAggregateValueLengths(element, items, limits, true);
                 limits.AddValue(items, null, GetOffset(element));
                 nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, "element", element.ToString(SaveOptions.DisableFormatting), element.Name.LocalName));
             }
-            IEnumerable<XElement> recordContainers = root == null ? Enumerable.Empty<XElement>() : rootIsRecords ? new[] { root } : root.Elements().Where(element => element.Name.LocalName == "records");
+            IEnumerable<XElement> recordContainers = root == null ? Enumerable.Empty<XElement>() : rootIsRecords ? new[] { root } : root.Elements().Where(element => HasName(element, root.Name.Namespace, "records"));
             XElement[] containers = recordContainers.ToArray();
             foreach (XElement container in containers) {
                 if (!ReferenceEquals(container, root)) CaptureAttributes(container, nativeEntries, items, limits);
-                foreach (XElement element in container.Elements().Where(child => child.Name.LocalName != "record")) {
+                foreach (XElement element in container.Elements().Where(child => !HasName(child, container.Name.Namespace, "record"))) {
                     ValidateAggregateValueLengths(element, items, limits, true);
                     limits.AddValue(items, null, GetOffset(element));
                     nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, RecordsElementEntryKind, element.ToString(SaveOptions.DisableFormatting), element.Name.LocalName));
                 }
             }
-            IEnumerable<XElement> records = containers.SelectMany(element => element.Elements().Where(child => child.Name.LocalName == "record"));
+            IEnumerable<XElement> records = containers.SelectMany(element => element.Elements().Where(child => HasName(child, element.Name.Namespace, "record")));
             foreach (XElement record in records) {
                 cancellationToken.ThrowIfCancellationRequested();
                 limits.AddItem(items, GetOffset(record));
@@ -108,9 +108,9 @@ internal static class EndNoteXmlCodec {
                 foreach (BibliographyNativeField field in item.NativeFields) {
                     if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal)) {
                         continue;
-                    } else if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)) {
+                    } else if (field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace)) {
                         continue;
-                    } else if (field.Format == BibliographyFormat.EndNoteXml && !KnownRecordElements.Contains(field.Name) && TryWriteNativeField(writer, field, recordNamespace)) {
+                    } else if (field.Format == BibliographyFormat.EndNoteXml && !ConflictsWithTypedRecordElement(field, recordNamespace) && TryWriteNativeField(writer, field, recordNamespace)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
                     } else if (field.Format != BibliographyFormat.EndNoteXml) {
                         report.Add("BIBCONV115", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in EndNote XML.", BibliographyConversionAction.Omitted, item, field.Name);
@@ -143,21 +143,22 @@ internal static class EndNoteXmlCodec {
         item.Pages = Value(record, "pages"); item.Volume = Value(record, "volume"); item.Issue = Value(record, "number"); item.Edition = Value(record, "edition");
         item.Publisher = Value(record, "publisher"); item.PublisherPlace = Value(record, "pub-location"); item.Abstract = Value(record, "abstract"); item.Language = Value(record, "language");
         ParseContributors(item, Child(record, "contributors")); ParseDates(item, Child(record, "dates"));
-        foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "isbn")) {
-            string? declaredScheme = identifier.Attributes().FirstOrDefault(attribute => string.Equals(attribute.Name.LocalName, "type", StringComparison.OrdinalIgnoreCase))?.Value;
+        foreach (XElement identifier in record.Elements().Where(element => HasName(element, record.Name.Namespace, "isbn"))) {
+            string? declaredScheme = identifier.Attribute("type")?.Value;
             string scheme = string.Equals(declaredScheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(declaredScheme, "ISSN", StringComparison.OrdinalIgnoreCase) ? declaredScheme! : CodecMappings.InferSerialScheme(identifier.Value);
             AddIdentifier(item, scheme, identifier.Value);
         }
-        foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "electronic-resource-num")) AddIdentifier(item, "DOI", identifier.Value);
-        foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "accession-num")) ParseAccessionIdentifier(item, identifier.Value);
-        XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => element.Name.LocalName == "url").ToArray() ?? Array.Empty<XElement>();
+        foreach (XElement identifier in record.Elements().Where(element => HasName(element, record.Name.Namespace, "electronic-resource-num"))) AddIdentifier(item, "DOI", identifier.Value);
+        foreach (XElement identifier in record.Elements().Where(element => HasName(element, record.Name.Namespace, "accession-num"))) ParseAccessionIdentifier(item, identifier.Value);
+        XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => HasName(element, record.Name.Namespace, "url")).ToArray() ?? Array.Empty<XElement>();
         item.Url = relatedUrls.FirstOrDefault()?.Value;
         foreach (XElement relatedUrl in relatedUrls.Skip(1)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, relatedUrl.ToString(SaveOptions.DisableFormatting)));
-        XElement? keywords = Child(record, "keywords"); if (keywords != null) foreach (XElement keyword in keywords.Elements().Where(element => element.Name.LocalName == "keyword")) item.Keywords.Add(keyword.Value);
+        XElement? keywords = Child(record, "keywords"); if (keywords != null) foreach (XElement keyword in keywords.Elements().Where(element => HasName(element, keywords.Name.Namespace, "keyword"))) item.Keywords.Add(keyword.Value);
         string note = Value(record, "notes"); if (!string.IsNullOrWhiteSpace(note)) item.Notes.Add(note);
         foreach (XElement element in record.Elements()) {
-            bool repeatedSingleValue = !IsRepeatableRecordElement(element.Name.LocalName) && element.ElementsBeforeSelf().Any(previous => string.Equals(previous.Name.LocalName, element.Name.LocalName, StringComparison.OrdinalIgnoreCase));
-            if (!KnownRecordElements.Contains(element.Name.LocalName)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, element.ToString(SaveOptions.DisableFormatting)));
+            bool knownRecordElement = HasNameInNamespace(element, record.Name.Namespace) && KnownRecordElements.Contains(element.Name.LocalName);
+            bool repeatedSingleValue = knownRecordElement && !IsRepeatableRecordElement(element.Name.LocalName) && element.ElementsBeforeSelf().Any(previous => HasName(previous, record.Name.Namespace, element.Name.LocalName));
+            if (!knownRecordElement) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, element.ToString(SaveOptions.DisableFormatting)));
             else if (repeatedSingleValue || HasUnsupportedNestedContent(element) || HasDuplicateKnownNestedContent(element)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, element.ToString(SaveOptions.DisableFormatting)));
         }
         if (string.IsNullOrWhiteSpace(item.Key)) diagnostics.Add(new BibliographyDiagnostic("BIBEND003", BibliographyDiagnosticSeverity.Warning, "EndNote XML record has no rec-number."));
@@ -166,15 +167,15 @@ internal static class EndNoteXmlCodec {
 
     private static void ParseContributors(BibliographyItem item, XElement? contributors) {
         if (contributors == null) return;
-        foreach (XElement group in contributors.Elements()) {
+        foreach (XElement group in contributors.Elements().Where(element => HasNameInNamespace(element, contributors.Name.Namespace))) {
             BibliographyContributorRole role = RoleFromElement(group.Name.LocalName);
-            foreach (XElement value in group.Elements()) item.Contributors.Add(new BibliographyContributor(role, CodecMappings.ParseCommaName(value.Value)));
+            foreach (XElement value in group.Elements().Where(element => HasName(element, group.Name.Namespace, "author"))) item.Contributors.Add(new BibliographyContributor(role, CodecMappings.ParseCommaName(value.Value)));
         }
     }
 
     private static void ParseDates(BibliographyItem item, XElement? dates) {
         if (dates == null) return;
-        string year = Value(dates, "year"); string pubDate = dates.Descendants().FirstOrDefault(element => element.Name.LocalName == "date")?.Value ?? string.Empty;
+        string year = Value(dates, "year"); string pubDate = dates.Descendants().FirstOrDefault(element => HasName(element, dates.Name.Namespace, "date"))?.Value ?? string.Empty;
         string issued = string.IsNullOrWhiteSpace(year) ? pubDate : string.IsNullOrWhiteSpace(pubDate) ? year : pubDate.StartsWith(year, StringComparison.Ordinal) ? pubDate : year + " " + pubDate;
         if (!string.IsNullOrWhiteSpace(issued)) item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Issued, issued));
     }
@@ -200,7 +201,7 @@ internal static class EndNoteXmlCodec {
     }
 
     private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace) {
-        BibliographyNativeField[] additionalUrls = item.NativeFields.Where(field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)).ToArray();
+        BibliographyNativeField[] additionalUrls = item.NativeFields.Where(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, xmlNamespace)).ToArray();
         if (string.IsNullOrWhiteSpace(item.Url) && additionalUrls.Length == 0) return;
         writer.WriteStartElement(null, "urls", xmlNamespace); writer.WriteStartElement(null, "related-urls", xmlNamespace);
         WriteElement(writer, "url", item.Url, xmlNamespace);
@@ -295,6 +296,28 @@ internal static class EndNoteXmlCodec {
             return false;
         }
     }
+    private static bool ConflictsWithTypedRecordElement(BibliographyNativeField field, string xmlNamespace) {
+        if (!KnownRecordElements.Contains(field.Name)) return false;
+        string? raw = field.UnmodifiedRawValue;
+        if (raw == null) return true;
+        try {
+            XElement element = XElement.Parse(raw, LoadOptions.PreserveWhitespace);
+            return string.Equals(element.Name.NamespaceName, xmlNamespace, StringComparison.Ordinal);
+        } catch (XmlException) {
+            return true;
+        }
+    }
+    private static bool IsAdditionalUrlField(BibliographyNativeField field, string xmlNamespace) {
+        if (!string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)) return false;
+        string? raw = field.UnmodifiedRawValue;
+        if (raw == null) return true;
+        try {
+            XElement element = XElement.Parse(raw, LoadOptions.PreserveWhitespace);
+            return string.Equals(element.Name.LocalName, "url", StringComparison.OrdinalIgnoreCase) && string.Equals(element.Name.NamespaceName, xmlNamespace, StringComparison.Ordinal);
+        } catch (XmlException) {
+            return true;
+        }
+    }
     private static bool HasInvalidXmlCharacters(string value) {
         for (int index = 0; index < value.Length; index++) {
             if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { index++; continue; }
@@ -334,11 +357,12 @@ internal static class EndNoteXmlCodec {
     private static bool HasUnsupportedNestedContent(XElement element) {
         if (element.Attributes().Any(attribute => !IsKnownAttribute(element, attribute))) return true;
         foreach (XElement descendant in element.Descendants()) {
-            if (descendant.Attributes().Any() || !IsKnownNestedElement(element.Name.LocalName, descendant.Name.LocalName)) return true;
+            if (descendant.Attributes().Any() || !IsKnownNestedElement(element, descendant)) return true;
         }
         return false;
     }
     private static bool IsKnownAttribute(XElement element, XAttribute attribute) {
+        if (attribute.IsNamespaceDeclaration || attribute.Name.Namespace != XNamespace.None) return false;
         if (string.Equals(element.Name.LocalName, "ref-type", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "name", StringComparison.OrdinalIgnoreCase)) return true;
         return string.Equals(element.Name.LocalName, "isbn", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "type", StringComparison.OrdinalIgnoreCase) &&
             (string.Equals(attribute.Value, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(attribute.Value, "ISSN", StringComparison.OrdinalIgnoreCase));
@@ -348,16 +372,17 @@ internal static class EndNoteXmlCodec {
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (XElement child in parent.Elements()) {
                 if (IsRepeatableNestedElement(child.Name.LocalName)) continue;
-                if (!names.Add(child.Name.LocalName)) return true;
+                if (!names.Add(child.Name.NamespaceName + "\0" + child.Name.LocalName)) return true;
             }
         }
         return false;
     }
     private static bool IsRepeatableRecordElement(string name) => string.Equals(name, "isbn", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "electronic-resource-num", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "accession-num", StringComparison.OrdinalIgnoreCase);
     private static bool IsRepeatableNestedElement(string name) => string.Equals(name, "author", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "url", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "keyword", StringComparison.OrdinalIgnoreCase);
-    private static bool IsKnownNestedElement(string container, string name) {
-        name = name.ToLowerInvariant();
-        switch (container.ToLowerInvariant()) {
+    private static bool IsKnownNestedElement(XElement container, XElement descendant) {
+        if (!HasNameInNamespace(descendant, container.Name.Namespace)) return false;
+        string name = descendant.Name.LocalName.ToLowerInvariant();
+        switch (container.Name.LocalName.ToLowerInvariant()) {
             case "titles": return name == "title" || name == "secondary-title" || name == "tertiary-title";
             case "periodical": return name == "full-title";
             case "contributors": return name == "authors" || name == "secondary-authors" || name == "tertiary-authors" || name == "subsidiary-authors" || name == "author";
@@ -367,7 +392,14 @@ internal static class EndNoteXmlCodec {
             default: return false;
         }
     }
-    private static XElement? Child(XElement? parent, string name) => parent?.Elements().FirstOrDefault(element => element.Name.LocalName == name);
+    private static bool HasName(XElement element, XNamespace xmlNamespace, string localName) =>
+        element.Name.Namespace == xmlNamespace && string.Equals(element.Name.LocalName, localName, StringComparison.OrdinalIgnoreCase);
+    private static bool HasNameInNamespace(XElement element, XNamespace xmlNamespace) => element.Name.Namespace == xmlNamespace;
+    private static XElement? Child(XElement? parent, string name) {
+        if (parent == null) return null;
+        XNamespace xmlNamespace = parent.Name.Namespace;
+        return parent.Elements().FirstOrDefault(element => HasName(element, xmlNamespace, name));
+    }
     private static string Value(XElement? parent, string name) => Child(parent, name)?.Value ?? string.Empty;
     private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static int GetOffset(XElement element) { IXmlLineInfo info = element; return info.HasLineInfo() ? info.LineNumber : 0; }

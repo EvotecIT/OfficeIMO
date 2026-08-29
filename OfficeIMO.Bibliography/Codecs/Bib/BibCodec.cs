@@ -55,7 +55,7 @@ internal static class BibCodec {
                 }
             }
             BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed);
-            if (accessed != null) Add(fields, "urldate", CodecMappings.FormatDate(accessed));
+            if (format == BibliographyFormat.BibLatex && accessed != null) Add(fields, "urldate", CodecMappings.FormatDate(accessed));
             foreach (BibliographyIdentifier identifier in item.Identifiers) {
                 string fieldName = identifier.Scheme.ToLowerInvariant();
                 if (CodecMappings.IsBibIdentifierScheme(identifier.Scheme) && IsSafeFieldName(fieldName) && !ReservedTypedFieldNames.Contains(fieldName)) Add(fields, fieldName, identifier.Value);

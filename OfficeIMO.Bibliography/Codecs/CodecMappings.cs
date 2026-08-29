@@ -24,8 +24,12 @@ internal static class CodecMappings {
         }
     }
 
+    internal static BibliographyItemType ParseCslType(string? type) =>
+        string.Equals(type?.Trim(), "article", StringComparison.OrdinalIgnoreCase) ? BibliographyItemType.Article : ParseType(type);
+
     internal static string ToCslType(BibliographyItemType type) {
         switch (type) {
+            case BibliographyItemType.Article: return "article";
             case BibliographyItemType.ArticleJournal: return "article-journal";
             case BibliographyItemType.ArticleMagazine: return "article-magazine";
             case BibliographyItemType.ArticleNewspaper: return "article-newspaper";
@@ -48,7 +52,7 @@ internal static class CodecMappings {
 
     internal static string ToBibType(BibliographyItemType type) {
         switch (type) {
-            case BibliographyItemType.ArticleJournal: case BibliographyItemType.ArticleMagazine: case BibliographyItemType.ArticleNewspaper: return "article";
+            case BibliographyItemType.Article: case BibliographyItemType.ArticleJournal: case BibliographyItemType.ArticleMagazine: case BibliographyItemType.ArticleNewspaper: return "article";
             case BibliographyItemType.Book: return "book";
             case BibliographyItemType.Chapter: return "incollection";
             case BibliographyItemType.PaperConference: return "inproceedings";

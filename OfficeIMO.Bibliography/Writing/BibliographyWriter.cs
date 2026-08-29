@@ -110,7 +110,7 @@ internal static class BibliographyConversionInspector {
                 exact = hasNativeBibType ? BibCodec.CanPreserveNativeType(sourceFormat, format, item) : item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Proceedings || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.Manuscript;
                 break;
             case BibliographyFormat.Ris:
-                exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript && item.Type != BibliographyItemType.Document;
+                exact = sameFormatNativeType && IsSafeRisType(item.NativeType) || item.Type != BibliographyItemType.Unknown && item.Type != BibliographyItemType.Article && item.Type != BibliographyItemType.Proceedings && item.Type != BibliographyItemType.LegalCase && item.Type != BibliographyItemType.Manuscript && item.Type != BibliographyItemType.Document;
                 break;
             case BibliographyFormat.Nbib:
                 exact = item.Type == BibliographyItemType.ArticleJournal;
@@ -141,13 +141,17 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
             foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !BibCodec.CanRoundTripStructuredName(contributor.Name)))
                 Loss(report, item, "contributors", "BIBCONV226", "A structured contributor particle does not follow BibTeX lowercase-particle syntax and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
+        } else if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) {
+            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.DroppingParticle) || !string.IsNullOrWhiteSpace(contributor.Name.NonDroppingParticle)))
+                Loss(report, item, "contributors", "BIBCONV229", $"Structured contributor particles are flattened in {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
         }
     }
 
     private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
         foreach (BibliographyDateRole role in item.Dates.Select(static value => value.Role).Distinct()) {
             bool exact = format == BibliographyFormat.CslJson ? role != BibliographyDateRole.Other
-                : (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris) ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed
+                : (format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris) ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed
+                : format == BibliographyFormat.BibTex ? role == BibliographyDateRole.Issued
                 : role == BibliographyDateRole.Issued;
             if (!exact) Loss(report, item, "dates." + role, "BIBCONV202", $"Date role '{role}' is not represented in {format}.", BibliographyConversionAction.Omitted);
             if (item.Dates.Count(date => date.Role == role) > 1) Loss(report, item, "dates." + role, "BIBCONV205", $"Multiple '{role}' dates collapse to the first value in {format}.", BibliographyConversionAction.Approximated);
@@ -190,6 +194,10 @@ internal static class BibliographyConversionInspector {
                 if (!CodecMappings.IsCslIdentifierScheme(group.Key)) Loss(report, item, "identifiers." + group.Key, "BIBCONV225", $"Identifier scheme '{group.Key}' is not represented by the typed CSL JSON model.", BibliographyConversionAction.Omitted);
                 else if (group.Count() > 1) Loss(report, item, "identifiers." + group.Key, "BIBCONV206", $"Multiple '{group.Key}' identifiers collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
             }
+        }
+        if (format == BibliographyFormat.Ris) {
+            foreach (BibliographyIdentifier identifier in item.Identifiers.Where(static identifier => !TaggedCodec.CanRoundTripRisIdentifier(identifier)))
+                Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV228", $"Identifier scheme '{identifier.Scheme}' cannot be represented unambiguously in RIS AN output.", BibliographyConversionAction.Approximated);
         }
         if (format != BibliographyFormat.EndNoteXml) return;
         foreach (BibliographyIdentifier identifier in item.Identifiers) {

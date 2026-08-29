@@ -53,7 +53,9 @@ public enum BibliographyItemType {
     /// <summary>Personal communication.</summary>
     PersonalCommunication,
     /// <summary>Generic document.</summary>
-    Document
+    Document,
+    /// <summary>Generic article without a more specific journal, magazine, or newspaper classification.</summary>
+    Article
 }
 
 /// <summary>Contributor roles shared by supported formats.</summary>
