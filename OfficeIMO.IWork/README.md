@@ -60,7 +60,7 @@ workbook.Save("budget.xlsx");
 
 The equivalent entry points are `WordDocument.LoadPages*` and `PowerPointPresentation.LoadKeynote*`. The short overload returns the destination document. The `WithReport` overload also returns the bounded source, typed projection, preserved records, diagnostics, producer build history, and the exact projection kind.
 
-`Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` embeds the package's raster preview and reports `VisualFallback`; it does not claim that preview text or objects are editable. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`.
+`Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview without traversing the application-specific semantic graph and reports `VisualFallback`; the corresponding `ReadPages`, `ReadNumbers`, or `ReadKeynote` call returns a diagnostic-only projection and does not claim that preview text or objects are editable. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`.
 
 ## Preservation and authoring boundary
 

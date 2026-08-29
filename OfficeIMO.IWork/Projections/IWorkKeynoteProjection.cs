@@ -49,8 +49,10 @@ public sealed class IWorkKeynoteProjection {
     public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
         ValidateReportRequest(kind, preview);
         return _source.CreateReport(kind, _recognizedIdentifiers, Diagnostics, preview,
-            Slides.Count + Slides.Sum(slide => slide.Body.Count + (slide.Title.Length > 0 ? 1 : 0)
-                + (slide.PresenterNotes.Length > 0 ? 1 : 0)));
+            kind == IWorkProjectionKind.VisualFallback
+                ? 0
+                : Slides.Count + Slides.Sum(slide => slide.Body.Count + (slide.Title.Length > 0 ? 1 : 0)
+                    + (slide.PresenterNotes.Length > 0 ? 1 : 0)));
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview) {
@@ -64,9 +66,13 @@ public sealed class IWorkKeynoteProjection {
 }
 
 public sealed partial class IWorkSourceDocument {
-    /// <summary>Reads a Keynote package into a bounded semantic source projection.</summary>
+    /// <summary>Reads a Keynote package into a bounded semantic source projection, or returns a diagnostic-only projection in visual-only mode.</summary>
     public IWorkKeynoteProjection ReadKeynote() {
         if (Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException($"The source is {Kind}, not Keynote.");
+        if (RequestedImportMode == IWorkImportMode.VisualOnly) {
+            return new IWorkKeynoteProjection(this, Array.Empty<IWorkKeynoteSlide>(), Array.Empty<ulong>(),
+                new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped });
+        }
         return IWorkKeynoteReader.Read(this);
     }
 }

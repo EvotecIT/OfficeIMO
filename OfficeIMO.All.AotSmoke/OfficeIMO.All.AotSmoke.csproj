@@ -40,6 +40,7 @@
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
@@ -138,6 +139,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Html" />
     <TrimmerRootAssembly Include="OfficeIMO.Html.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Html.Rtf" />
+    <TrimmerRootAssembly Include="OfficeIMO.IWork" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex.Pdf" />

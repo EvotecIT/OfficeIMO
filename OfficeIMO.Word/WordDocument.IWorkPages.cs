@@ -25,14 +25,21 @@ public partial class WordDocument {
     }
 
     private static IWorkPagesLoadResult ProjectPages(IWorkSourceDocument source) {
-        IWorkPagesProjection projection = source.ReadPages();
         IWorkImportMode mode = source.RequestedImportMode;
+        IWorkPreviewAsset? preview = mode == IWorkImportMode.VisualOnly
+            ? source.PreferredRasterPreview
+            : null;
+        if (mode == IWorkImportMode.VisualOnly && preview == null) {
+            throw new NotSupportedException("The Pages source has no embedded raster preview.");
+        }
+
+        IWorkPagesProjection projection = source.ReadPages();
         bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent;
         if (!editable && mode == IWorkImportMode.EditableOnly) {
             throw new InvalidDataException("The Pages source has no supported editable content.");
         }
 
-        IWorkPreviewAsset? preview = editable ? null : source.PreferredRasterPreview;
+        preview ??= editable ? null : source.PreferredRasterPreview;
         if (!editable && preview == null) {
             throw new NotSupportedException("The Pages source has no supported editable content or embedded raster preview.");
         }

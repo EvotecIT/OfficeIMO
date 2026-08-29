@@ -134,7 +134,21 @@ public sealed class IWorkCorpusTests {
 
         Assert.Equal(IWorkProjectionKind.VisualFallback, report.ProjectionKind);
         Assert.NotNull(report.VisualPreview);
+        Assert.Equal(0, report.ReconstructedItemCount);
         Assert.True(report.HasConversionLoss);
+    }
+
+    [Fact]
+    public void Keynote_visual_fallback_letterboxes_non_widescreen_previews() {
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(
+            Fixture("nim-iwork/simple.key"),
+            new IWorkReadOptions { ImportMode = IWorkImportMode.VisualOnly });
+
+        PowerPointPicture picture = Assert.Single(Assert.Single(result.Document.Slides).Pictures);
+        Assert.Equal(10d, picture.WidthInches, 3);
+        Assert.Equal(7.5d, picture.HeightInches, 3);
+        Assert.InRange(picture.LeftInches, 1.666d, 1.667d);
+        Assert.Equal(0d, picture.TopInches, 3);
     }
 
     [Fact]

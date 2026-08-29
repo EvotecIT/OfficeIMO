@@ -26,14 +26,21 @@ public sealed partial class PowerPointPresentation {
     }
 
     private static IWorkKeynoteLoadResult ProjectKeynote(IWorkSourceDocument source) {
-        IWorkKeynoteProjection projection = source.ReadKeynote();
         IWorkImportMode mode = source.RequestedImportMode;
+        IWorkPreviewAsset? preview = mode == IWorkImportMode.VisualOnly
+            ? source.PreferredRasterPreview
+            : null;
+        if (mode == IWorkImportMode.VisualOnly && preview == null) {
+            throw new NotSupportedException("The Keynote source has no embedded raster preview.");
+        }
+
+        IWorkKeynoteProjection projection = source.ReadKeynote();
         bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent;
         if (!editable && mode == IWorkImportMode.EditableOnly) {
             throw new InvalidDataException("The Keynote source has no supported editable slides.");
         }
 
-        IWorkPreviewAsset? preview = editable ? null : source.PreferredRasterPreview;
+        preview ??= editable ? null : source.PreferredRasterPreview;
         if (!editable && preview == null) {
             throw new NotSupportedException("The Keynote source has no supported editable slides or embedded raster preview.");
         }
@@ -58,7 +65,8 @@ public sealed partial class PowerPointPresentation {
                 OfficeImageFormat format = preview.MediaType == "image/png"
                     ? OfficeImageFormat.Png
                     : OfficeImageFormat.Jpeg;
-                slide.AddPictureInches(image, format, 0, 0, 13.333, 7.5);
+                (double left, double top, double width, double height) = PreviewLayout(preview);
+                slide.AddPictureInches(image, format, left, top, width, height);
             }
 
             IWorkProjectionKind kind = editable
@@ -69,5 +77,16 @@ public sealed partial class PowerPointPresentation {
             presentation.Dispose();
             throw;
         }
+    }
+
+    private static (double Left, double Top, double Width, double Height) PreviewLayout(IWorkPreviewAsset preview) {
+        const double slideWidth = 13.333;
+        const double slideHeight = 7.5;
+        double pixelWidth = preview.PixelWidth.GetValueOrDefault(16);
+        double pixelHeight = preview.PixelHeight.GetValueOrDefault(9);
+        double scale = Math.Min(slideWidth / pixelWidth, slideHeight / pixelHeight);
+        double width = pixelWidth * scale;
+        double height = pixelHeight * scale;
+        return ((slideWidth - width) / 2d, (slideHeight - height) / 2d, width, height);
     }
 }

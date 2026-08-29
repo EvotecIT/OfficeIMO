@@ -36,7 +36,9 @@ public sealed class IWorkPagesProjection {
     public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
         ValidateReportRequest(kind, preview);
         return _source.CreateReport(kind, _recognizedIdentifiers, Diagnostics, preview,
-            Paragraphs.Count + Headers.Count + Footers.Count + TextBoxes.Count);
+            kind == IWorkProjectionKind.VisualFallback
+                ? 0
+                : Paragraphs.Count + Headers.Count + Footers.Count + TextBoxes.Count);
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview) {
@@ -50,9 +52,14 @@ public sealed class IWorkPagesProjection {
 }
 
 public sealed partial class IWorkSourceDocument {
-    /// <summary>Reads a Pages package into a bounded semantic source projection.</summary>
+    /// <summary>Reads a Pages package into a bounded semantic source projection, or returns a diagnostic-only projection in visual-only mode.</summary>
     public IWorkPagesProjection ReadPages() {
         if (Kind != IWorkDocumentKind.Pages) throw new InvalidOperationException($"The source is {Kind}, not Pages.");
+        if (RequestedImportMode == IWorkImportMode.VisualOnly) {
+            return new IWorkPagesProjection(this, Array.Empty<string>(), Array.Empty<string>(),
+                Array.Empty<string>(), Array.Empty<string>(), Array.Empty<ulong>(),
+                new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped });
+        }
         return IWorkPagesReader.Read(this);
     }
 }

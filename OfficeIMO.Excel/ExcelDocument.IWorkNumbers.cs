@@ -25,14 +25,21 @@ public partial class ExcelDocument {
     }
 
     private static IWorkNumbersLoadResult ProjectNumbers(IWorkSourceDocument source) {
-        IWorkNumbersProjection projection = source.ReadNumbers();
         IWorkImportMode mode = source.RequestedImportMode;
+        IWorkPreviewAsset? preview = mode == IWorkImportMode.VisualOnly
+            ? source.PreferredRasterPreview
+            : null;
+        if (mode == IWorkImportMode.VisualOnly && preview == null) {
+            throw new NotSupportedException("The Numbers source has no embedded raster preview.");
+        }
+
+        IWorkNumbersProjection projection = source.ReadNumbers();
         bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent;
         if (!editable && mode == IWorkImportMode.EditableOnly) {
             throw new InvalidDataException("The Numbers source has no supported editable content.");
         }
 
-        IWorkPreviewAsset? preview = editable ? null : source.PreferredRasterPreview;
+        preview ??= editable ? null : source.PreferredRasterPreview;
         if (!editable && preview == null) {
             throw new NotSupportedException("The Numbers source has no supported editable content or embedded raster preview.");
         }

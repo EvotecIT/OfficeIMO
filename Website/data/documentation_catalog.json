@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 192,
-    "productionComponentCount": 101,
-    "testProjectCount": 34,
+    "projectCount": 194,
+    "productionComponentCount": 102,
+    "testProjectCount": 35,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 25,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41468
+    "conceptualWordCount": 41494
   },
   "categories": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 16
+      "componentCount": 17
     },
     {
       "name": "Foundations and integrations",
@@ -196,7 +196,7 @@
       "description": "Dependency-isolated safe HTML, RTF, text, and inline-resource projection for OfficeIMO email artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
-      "sourceFileCount": 1,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
       "apiUrl": null,
@@ -248,8 +248,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 984,
-      "referencingTestProjectCount": 9,
+      "sourceFileCount": 986,
+      "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel"
@@ -422,6 +422,19 @@
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Rtf"
+    },
+    {
+      "name": "OfficeIMO.IWork",
+      "packageId": "OfficeIMO.IWork",
+      "category": "Formats and interoperability",
+      "description": "Bounded read-only Apple iWork package and IWA inspection with Pages, Numbers, and Keynote source projections.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
+      "sourceFileCount": 18,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.IWork"
     },
     {
       "name": "OfficeIMO.Latex",
@@ -729,7 +742,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1019,
+      "sourceFileCount": 1027,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -742,8 +755,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 462,
-      "referencingTestProjectCount": 8,
+      "sourceFileCount": 464,
+      "referencingTestProjectCount": 9,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
@@ -846,7 +859,7 @@
       "description": "Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
-      "sourceFileCount": 111,
+      "sourceFileCount": 113,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
@@ -1223,7 +1236,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 30,
+      "sourceFileCount": 32,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1262,8 +1275,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 657,
-      "referencingTestProjectCount": 12,
+      "sourceFileCount": 659,
+      "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word"

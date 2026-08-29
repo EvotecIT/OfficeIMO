@@ -115,8 +115,10 @@ public sealed class IWorkNumbersProjection {
     public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
         ValidateReportRequest(kind, preview);
         return _source.CreateReport(kind, _recognizedIdentifiers, Diagnostics, preview,
-            Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
-                + sheet.Tables.Sum(table => table.Cells.Count)));
+            kind == IWorkProjectionKind.VisualFallback
+                ? 0
+                : Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
+                    + sheet.Tables.Sum(table => table.Cells.Count)));
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview) {
@@ -130,9 +132,13 @@ public sealed class IWorkNumbersProjection {
 }
 
 public sealed partial class IWorkSourceDocument {
-    /// <summary>Reads a Numbers package into a bounded semantic source projection.</summary>
+    /// <summary>Reads a Numbers package into a bounded semantic source projection, or returns a diagnostic-only projection in visual-only mode.</summary>
     public IWorkNumbersProjection ReadNumbers() {
         if (Kind != IWorkDocumentKind.Numbers) throw new InvalidOperationException($"The source is {Kind}, not Numbers.");
+        if (RequestedImportMode == IWorkImportMode.VisualOnly) {
+            return new IWorkNumbersProjection(this, Array.Empty<IWorkNumbersSheet>(), Array.Empty<ulong>(),
+                new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
+        }
         return IWorkNumbersReader.Read(this);
     }
 }
@@ -167,12 +173,18 @@ internal static class IWorkNumbersReader {
             var textBoxes = new List<string>();
             foreach (IWorkArchiveRecord drawable in index.DereferenceAll(sheetMessage, 2)) {
                 if (drawable.MessageType == TableInfoArchive) {
-                    recognized.Add(drawable.Identifier);
                     IWorkArchiveRecord? model = index.Dereference(index.Message(drawable), 2);
                     if (model != null && model.MessageType == TableModelArchive) {
+                        recognized.Add(drawable.Identifier);
                         recognized.Add(model.Identifier);
                         tables.Add(ReadTable(source, index, model, recognized, diagnostics,
                             ref materializedCellCount, ref supportsEditableReconstruction));
+                    } else {
+                        supportsEditableReconstruction = false;
+                        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                            "IWORK_NUMBERS_TABLE_MODEL_UNSUPPORTED",
+                            "A Numbers table does not reference a supported table model; editable reconstruction is incomplete.",
+                            drawable.EntryPath, drawable.Identifier));
                     }
                 } else if (drawable.MessageType == TextShapeArchive) {
                     IWorkArchiveRecord? storage = index.Dereference(index.Message(drawable), 2);
@@ -328,33 +340,40 @@ internal static class IWorkNumbersReader {
                 return new IWorkNumbersCell(row, column, IWorkCellKind.Empty, null);
             case 2:
             case 10:
-                if (hasDecimal) return FiniteNumber(row, column, decimalValue);
-                if (hasDouble) return FiniteNumber(row, column, doubleValue);
+                if (hasDecimal) return FiniteNumber(row, column, decimalValue, hasFormula);
+                if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula);
                 return hasFormula ? Formula(row, column) : Error(row, column, "Number cell has no value field.");
             case 3:
                 if (hasString && strings.TryGetValue(stringIdentifier, out string? text)) {
-                    return new IWorkNumbersCell(row, column, IWorkCellKind.Text, text);
+                    return hasFormula
+                        ? Formula(row, column, text)
+                        : new IWorkNumbersCell(row, column, IWorkCellKind.Text, text);
                 }
                 return hasFormula ? Formula(row, column) : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
             case 5:
                 if (!hasDate) return Error(row, column, "Date cell has no date value field.");
                 if (!IsFinite(dateValue)) return Error(row, column, "Date cell has a non-finite value.");
                 try {
-                    return new IWorkNumbersCell(row, column, IWorkCellKind.DateTime,
-                        new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(dateValue));
+                    DateTime value = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(dateValue);
+                    return hasFormula
+                        ? Formula(row, column, value)
+                        : new IWorkNumbersCell(row, column, IWorkCellKind.DateTime, value);
                 } catch (ArgumentOutOfRangeException) {
                     return Error(row, column, "Date cell is outside the supported DateTime range.");
                 }
             case 6:
                 if (!hasDouble) return Error(row, column, "Boolean cell has no value field.");
-                return IsFinite(doubleValue)
-                    ? new IWorkNumbersCell(row, column, IWorkCellKind.Boolean, doubleValue != 0)
-                    : Error(row, column, "Boolean cell has a non-finite value.");
+                if (!IsFinite(doubleValue)) return Error(row, column, "Boolean cell has a non-finite value.");
+                bool booleanValue = doubleValue != 0;
+                return hasFormula
+                    ? Formula(row, column, booleanValue)
+                    : new IWorkNumbersCell(row, column, IWorkCellKind.Boolean, booleanValue);
             case 7:
                 if (!hasDouble) return Error(row, column, "Duration cell has no value field.");
-                return IsFinite(doubleValue)
-                    ? new IWorkNumbersCell(row, column, IWorkCellKind.Duration, doubleValue)
-                    : Error(row, column, "Duration cell has a non-finite value.");
+                if (!IsFinite(doubleValue)) return Error(row, column, "Duration cell has a non-finite value.");
+                return hasFormula
+                    ? Formula(row, column, doubleValue)
+                    : new IWorkNumbersCell(row, column, IWorkCellKind.Duration, doubleValue);
             case 8:
                 return Error(row, column, "#ERROR");
             case 9:
@@ -364,12 +383,14 @@ internal static class IWorkNumbersReader {
         }
     }
 
-    private static IWorkNumbersCell Formula(int row, int column) =>
-        new(row, column, IWorkCellKind.Formula, null, formula: "=?");
+    private static IWorkNumbersCell Formula(int row, int column, object? cachedValue = null) =>
+        new(row, column, IWorkCellKind.Formula, cachedValue, formula: "=?");
 
-    private static IWorkNumbersCell FiniteNumber(int row, int column, double value) =>
+    private static IWorkNumbersCell FiniteNumber(int row, int column, double value, bool hasFormula) =>
         IsFinite(value)
-            ? new IWorkNumbersCell(row, column, IWorkCellKind.Number, value)
+            ? hasFormula
+                ? Formula(row, column, value)
+                : new IWorkNumbersCell(row, column, IWorkCellKind.Number, value)
             : Error(row, column, "Number cell has a non-finite value.");
 
     private static IWorkNumbersCell Error(int row, int column, string message) =>

@@ -37,6 +37,20 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Preserves_cached_numbers_values_when_a_formula_marker_is_present() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Formula", 1, 1, 42d, hasFormula: true)
+        });
+
+        IWorkNumbersCell cell = Assert.Single(Assert.Single(Assert.Single(
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers().Sheets).Tables).Cells);
+
+        Assert.Equal(IWorkCellKind.Formula, cell.Kind);
+        Assert.Equal("=?", cell.Formula);
+        Assert.Equal(42d, Assert.IsType<double>(cell.Value), 10);
+    }
+
+    [Fact]
     public void Enforces_the_materialized_cell_budget_across_all_tables() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("First", 1, 1, 1d),
@@ -68,6 +82,77 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Unsupported_numbers_table_models_are_preserved_and_disable_editable_claims() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Unsupported", 1, 1, 0d, missingModel: true)
+        }, includePreview: true);
+
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
+        IWorkNumbersProjection projection = source.ReadNumbers();
+        IWorkImportReport report = projection.CreateImportReport(
+            IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview);
+
+        Assert.False(projection.HasEditableContent);
+        Assert.Contains(projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_NUMBERS_TABLE_MODEL_UNSUPPORTED");
+        Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6000);
+    }
+
+    [Fact]
+    public void Visual_only_numbers_import_bypasses_semantic_table_limits() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Large", 100, 1, 42d)
+        }, includePreview: true);
+        var options = new IWorkReadOptions {
+            ImportMode = IWorkImportMode.VisualOnly,
+            MaximumTableRows = 1
+        };
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package, options);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Empty(result.Projection.Sheets);
+        Assert.Equal(0, result.ImportReport.ReconstructedItemCount);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_SEMANTIC_PROJECTION_SKIPPED");
+    }
+
+    [Fact]
+    public void Counts_zip_directory_nodes_against_the_package_entry_limit() {
+        using var package = new MemoryStream();
+        using (var archive = new ZipArchive(package, ZipArchiveMode.Create, leaveOpen: true)) {
+            archive.CreateEntry("Index/");
+            archive.CreateEntry("Index/Subdirectory/");
+            WriteEntry(archive, "Index/Document.iwa", FrameIwa(ArchiveRecord(1, 1, Array.Empty<byte>())));
+        }
+        package.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
+                new IWorkReadOptions { MaximumEntryCount = 2 }));
+
+        Assert.Contains("entry count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Counts_directory_bundle_nodes_against_the_package_entry_limit() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-iwork-entry-limit-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(directory, "Index", "Subdirectory"));
+        try {
+            File.WriteAllBytes(Path.Combine(directory, "Index", "Document.iwa"),
+                FrameIwa(ArchiveRecord(1, 1, Array.Empty<byte>())));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                IWorkSourceDocument.Open(directory, IWorkDocumentKind.Numbers,
+                    new IWorkReadOptions { MaximumEntryCount = 2 }));
+
+            Assert.Contains("entry count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Splits_the_first_numbers_table_when_leading_text_would_overflow_xlsx_rows() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Full Height", 1_048_576, 1, 42d)
@@ -91,22 +176,25 @@ public sealed class IWorkBoundaryTests {
         using var package = new MemoryStream();
         using (var target = new ZipArchive(package, ZipArchiveMode.Create, leaveOpen: true)) {
             foreach (ZipArchiveEntry entry in source.Entries.Where(candidate =>
-                         !string.Equals(candidate.FullName, "preview-web.jpg", StringComparison.OrdinalIgnoreCase))) {
+                         !string.Equals(candidate.FullName, "preview.jpg", StringComparison.OrdinalIgnoreCase)
+                         && !string.Equals(candidate.FullName, "preview-web.jpg", StringComparison.OrdinalIgnoreCase))) {
                 ZipArchiveEntry copy = target.CreateEntry(entry.FullName);
                 using Stream sourceStream = entry.Open();
                 using Stream targetStream = copy.Open();
                 sourceStream.CopyTo(targetStream);
             }
-            WriteEntry(target, "Data/unrelated-preview.jpg", ReadEntry(source, "preview.jpg"));
-            WriteEntry(target, "preview-web.jpg", new byte[] { 0xff, 0xd8, 0x00, 0x01 });
+            byte[] validPreview = ReadEntry(source, "preview.jpg");
+            WriteEntry(target, "Data/unrelated-preview.jpg", validPreview);
+            WriteEntry(target, "preview.jpg", new byte[] { 0xff, 0xd8, 0xff });
+            WriteEntry(target, "preview-web.jpg", validPreview);
         }
         package.Position = 0;
 
         IWorkSourceDocument document = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
 
         Assert.DoesNotContain(document.Previews, preview => preview.Path.StartsWith("Data/", StringComparison.Ordinal));
-        Assert.DoesNotContain(document.Previews, preview => preview.Path == "preview-web.jpg");
-        Assert.Equal("preview.jpg", document.PreferredRasterPreview!.Path);
+        Assert.DoesNotContain(document.Previews, preview => preview.Path == "preview.jpg");
+        Assert.Equal("preview-web.jpg", document.PreferredRasterPreview!.Path);
     }
 
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
@@ -124,11 +212,13 @@ public sealed class IWorkBoundaryTests {
             ulong modelId = tableInfoId + 1;
             ulong tileId = tableInfoId + 2;
             sheetFields.Add(ReferenceField(2, tableInfoId));
-            records.Add(ArchiveRecord(tableInfoId, 6000, Message(ReferenceField(2, modelId))));
+            records.Add(ArchiveRecord(tableInfoId, 6000,
+                table.MissingModel ? Message() : Message(ReferenceField(2, modelId))));
+            if (table.MissingModel) continue;
 
             byte[] rowInfo = table.LegacyStorage
                 ? Message(VarintField(1, 0), BytesField(3, new byte[] { 1 }), BytesField(4, new byte[] { 1 }))
-                : CreateBncRow(table.Value, table.WideOffsets);
+                : CreateBncRow(table.Value, table.WideOffsets, table.HasFormula);
             byte[] tilePayload = Message(BytesField(5, rowInfo));
             records.Add(ArchiveRecord(tileId, 6002, tilePayload));
 
@@ -161,12 +251,12 @@ public sealed class IWorkBoundaryTests {
             : CreatePackage(("Index/Document.iwa", FrameIwa(iwaStream)));
     }
 
-    private static byte[] CreateBncRow(double value, bool wideOffsets) {
+    private static byte[] CreateBncRow(double value, bool wideOffsets, bool hasFormula) {
         int cellOffset = wideOffsets ? 4 : 0;
-        var buffer = new byte[cellOffset + 20];
+        var buffer = new byte[cellOffset + (hasFormula ? 24 : 20)];
         buffer[cellOffset] = 5;
         buffer[cellOffset + 1] = 2;
-        WriteUInt32(buffer, cellOffset + 8, 1u << 1);
+        WriteUInt32(buffer, cellOffset + 8, (1u << 1) | (hasFormula ? 1u << 9 : 0));
         Buffer.BlockCopy(BitConverter.GetBytes(value), 0, buffer, cellOffset + 12, 8);
         ushort encodedOffset = checked((ushort)(wideOffsets ? cellOffset / 4 : cellOffset));
         byte[] offsets = { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
@@ -280,13 +370,16 @@ public sealed class IWorkBoundaryTests {
 
     private sealed class TableSpec {
         internal TableSpec(string name, int rows, int columns, double value,
-            bool wideOffsets = false, bool legacyStorage = false) {
+            bool wideOffsets = false, bool legacyStorage = false, bool hasFormula = false,
+            bool missingModel = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
             Value = value;
             WideOffsets = wideOffsets;
             LegacyStorage = legacyStorage;
+            HasFormula = hasFormula;
+            MissingModel = missingModel;
         }
 
         internal string Name { get; }
@@ -295,5 +388,7 @@ public sealed class IWorkBoundaryTests {
         internal double Value { get; }
         internal bool WideOffsets { get; }
         internal bool LegacyStorage { get; }
+        internal bool HasFormula { get; }
+        internal bool MissingModel { get; }
     }
 }

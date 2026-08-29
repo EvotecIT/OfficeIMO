@@ -175,6 +175,7 @@ public sealed partial class IWorkSourceDocument {
                 ? IWorkVisualCoverage.FullDocument
                 : IWorkVisualCoverage.FirstPageOrCompositePreview;
             (int? width, int? height) = IWorkImageInfo.Read(entry.Bytes, mediaType);
+            if (mediaType != "application/pdf" && (!width.HasValue || !height.HasValue)) continue;
             previews.Add(new IWorkPreviewAsset(entry.Path, mediaType, coverage, width, height, entry.Bytes));
         }
         return previews
