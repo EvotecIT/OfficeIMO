@@ -269,6 +269,22 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_XmpPdfPropertiesIgnoreForeignNamespaces() {
+        string xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"" +
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:pdf=\"" +
+            "http://ns.adobe.com/pdf/1.3/\" xmlns:custom=\"urn:custom\">" +
+            "<rdf:Description rdf:about=\"\" custom:Producer=\"Foreign producer\" custom:Keywords=\"foreign\" " +
+            "pdf:Producer=\"OfficeIMO.Pdf\" pdf:Keywords=\"pdf,officeimo\"/>" +
+            "</rdf:RDF></x:xmpmeta>";
+
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(
+            PdfInspector.Inspect(BuildXmpMetadataPdfWithPayload(xmp)).XmpMetadata);
+
+        Assert.Equal("OfficeIMO.Pdf", metadata.Producer);
+        Assert.Equal("pdf,officeimo", metadata.Keywords);
+    }
+
+    [Fact]
     public void Inspect_XmpMetadataRejectsDtdEntityExpansion() {
         const string xmp = "<!DOCTYPE xmp [<!ENTITY boom \"expanded\">]><xmp>&boom;</xmp>";
 

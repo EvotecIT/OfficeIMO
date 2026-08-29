@@ -456,7 +456,9 @@ internal static class PdfContentStreamInterpreter {
                 }
             }
 
-            if (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
+            if (_index < _content.Length && _content[_index] == '\r') {
+                _index += _index + 1 < _content.Length && _content[_index + 1] == '\n' ? 2 : 1;
+            } else if (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
                 _index++;
             }
 
@@ -474,6 +476,8 @@ internal static class PdfContentStreamInterpreter {
             SkipWhitespaceAndComments();
             if (IsOperatorAt("EI")) {
                 _index += 2;
+            } else {
+                _hasInvalidOperand = true;
             }
 
             return new PdfContentInlineImage(dictionary, data);

@@ -52,8 +52,17 @@ internal sealed class OfficeTrueTypeVariations {
         int glyphCount) {
         OfficeOpenTypeReader reader = OfficeOpenTypeReader.TryCreate(data)
             ?? throw new InvalidDataException("The variable TrueType sfnt directory is invalid.");
+        OfficeOpenTypeHvarMetrics? hvar = OfficeOpenTypeHvarMetrics.TryParse(reader, model);
         if (!reader.TryGetTable("gvar", out int gvar, out int length)) {
-            throw new NotSupportedException("The variable TrueType font does not contain a gvar outline table.");
+            return new OfficeTrueTypeVariations(
+                reader,
+                model,
+                0,
+                0,
+                0,
+                new uint[glyphCount + 1],
+                Array.Empty<double[]>(),
+                hvar);
         }
         int end = checked(gvar + length);
         if (length < 20 || reader.ReadUInt16(gvar) != 1 || reader.ReadUInt16(gvar + 2) != 0) {
@@ -100,7 +109,6 @@ internal sealed class OfficeTrueTypeVariations {
         for (int tuple = 0; tuple < sharedTupleCount; tuple++) {
             sharedTuples[tuple] = ReadTuple(reader, ref cursor, axisCount, end);
         }
-        OfficeOpenTypeHvarMetrics? hvar = OfficeOpenTypeHvarMetrics.TryParse(reader, model);
         return new OfficeTrueTypeVariations(reader, model, gvar, end, glyphData, offsets, sharedTuples, hvar);
     }
 

@@ -133,6 +133,19 @@ public sealed class PdfContentStreamInterpreterTests {
     }
 
     [Fact]
+    public void Interpreter_RejectsRawInlineImageWithoutEiTerminator() {
+        const string content = "BI /W 1 /H 1 /BPC 8 /CS /G ID A";
+        var operations = new List<PdfContentOperation>();
+
+        PdfContentStreamInterpreter.Interpret(content, 10, operations.Add, dispatchInvalidOperations: true);
+
+        PdfContentOperation operation = Assert.Single(operations);
+        Assert.Equal("BI", operation.Name);
+        Assert.True(operation.HasInvalidOperands);
+        Assert.NotNull(operation.InlineImage);
+    }
+
+    [Fact]
     public void StrictVisualParserReportsGraphicsStackUnderflow() {
         var unsupported = new List<string>();
 

@@ -51,6 +51,23 @@ public sealed class DrawingOpenTypeKerningTests {
         Assert.Equal(-25, kerning.Adjustment(left: 1, right: 2));
     }
 
+    [Fact]
+    public void GposPairLookupUsesOnlyTheFirstMatchingSubtable() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: -80,
+            gposAdjustment: -30,
+            gposRightGlyph: 2);
+        const int lookup = 246;
+        WriteUInt16(data, lookup + 4, 2);
+        WriteUInt16(data, lookup + 6, 10);
+        WriteUInt16(data, lookup + 8, 54);
+        WritePairSubtable(data, lookup + 10, rightGlyph: 2, adjustment: -30);
+        WritePairSubtable(data, lookup + 54, rightGlyph: 2, adjustment: -70);
+        var kerning = new OfficeOpenTypeKerning(data, kern: 0, gpos: 64, includeExtendedGpos: true);
+
+        Assert.Equal(-30, kerning.Adjustment(left: 1, right: 2));
+    }
+
     private static byte[] CreateKerningTables(
         short legacyAdjustment,
         short gposAdjustment,
@@ -126,7 +143,10 @@ public sealed class DrawingOpenTypeKerningTests {
         WriteUInt16(data, lookupOffset, 2);
         WriteUInt16(data, lookupOffset + 4, 1);
         WriteUInt16(data, lookupOffset + 6, 8);
-        int subtable = lookupOffset + 8;
+        WritePairSubtable(data, lookupOffset + 8, rightGlyph, adjustment);
+    }
+
+    private static void WritePairSubtable(byte[] data, int subtable, ushort rightGlyph, short adjustment) {
         WriteUInt16(data, subtable, 1);
         WriteUInt16(data, subtable + 2, 12);
         WriteUInt16(data, subtable + 4, 4);

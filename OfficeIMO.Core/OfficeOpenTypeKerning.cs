@@ -214,7 +214,6 @@ internal sealed class OfficeOpenTypeKerning {
         if (lookupType != 2 && lookupType != 9) return false;
         if (lookupType == 9 && !_includeExtendedGpos) return false;
 
-        bool applied = false;
         int subtableCount = ReadUInt16(lookup + 4);
         for (int index = 0; index < subtableCount; index++) {
             int subtableOffset = checked(lookup + 6 + (index * 2));
@@ -227,11 +226,11 @@ internal sealed class OfficeOpenTypeKerning {
                 subtable = checked(subtable + (int)extensionOffset);
             }
             if (TryGposPairAdjustmentFromSubtable(subtable, left, right, out int subtableAdjustment)) {
-                adjustment = checked(adjustment + subtableAdjustment);
-                applied = true;
+                adjustment = subtableAdjustment;
+                return true;
             }
         }
-        return applied;
+        return false;
     }
 
     private bool TryGposPairAdjustmentFromSubtable(

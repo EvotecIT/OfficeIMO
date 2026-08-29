@@ -149,6 +149,19 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void VariableFontWithStaticOutlinesUsesHvarWhenGvarIsAbsent() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        RenameTable(data, "gvar", "GVAx");
+        OfficeFontFace selected = Load(data, new Dictionary<string, float> { ["wdth"] = 125F });
+        OfficeFontFace defaults = Load(data, new Dictionary<string, float>());
+
+        Assert.NotEqual(defaults.Program.Measure("OfficeIMO", 24D), selected.Program.Measure("OfficeIMO", 24D));
+        Assert.Equal(
+            Serialize(defaults.Program.GetTextContours("O", 0D, 0D, 24D)),
+            Serialize(selected.Program.GetTextContours("O", 0D, 0D, 24D)));
+    }
+
+    [Fact]
     public void ManagedShapingUsesTheSelectedVariableFontAdvances() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         var axes = new Dictionary<string, float> { ["wdth"] = 125F };
