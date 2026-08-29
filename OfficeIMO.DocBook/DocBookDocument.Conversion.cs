@@ -380,6 +380,11 @@ public sealed partial class DocBookDocument {
         DocBookProfile inferredProfile = sourceProfile == "4.5" ? DocBookProfile.DocBook45 : DocBookProfile.DocBook52;
         DocBookDocumentKind selectedKind = kind ?? inferredKind;
         DocBookProfile selectedProfile = profile ?? inferredProfile;
+        XNamespace sourceDocBookNamespace = inferredProfile == DocBookProfile.DocBook52
+            ? DocBookSchemaProfiles.DocBook52.NamespaceUri : XNamespace.None;
+        XNamespace targetDocBookNamespace = selectedProfile == DocBookProfile.DocBook52
+            ? DocBookSchemaProfiles.DocBook52.NamespaceUri : XNamespace.None;
+        bool requalifySourceVocabulary = sourceProfile != null && sourceProfileIsSupported && selectedProfile != inferredProfile;
         DocBookDocument document = selectedKind == DocBookDocumentKind.Article ? CreateArticle(selectedProfile) : CreateBook(selectedProfile);
         if (!sourceKindIsSupported) {
             diagnostics.Add(new DocBookDiagnostic("DB114", DocBookDiagnosticSeverity.Warning,
@@ -407,7 +412,11 @@ public sealed partial class DocBookDocument {
             if (source.Kind.StartsWith("extension:", StringComparison.Ordinal)) {
                 string expandedName = source.Kind.Substring("extension:".Length);
                 try {
-                    target = parent.AddExtension(XName.Get(expandedName), source.Children.Count == 0 ? source.Text : null);
+                    XName extensionName = XName.Get(expandedName);
+                    if (requalifySourceVocabulary && extensionName.Namespace == sourceDocBookNamespace) {
+                        extensionName = targetDocBookNamespace + extensionName.LocalName;
+                    }
+                    target = parent.AddExtension(extensionName, source.Children.Count == 0 ? source.Text : null);
                 } catch (Exception) {
                     target = parent.Add(DocBookNodeKind.Paragraph, source.Text);
                     diagnostics.Add(new DocBookDiagnostic("DB104", DocBookDiagnosticSeverity.Warning,
@@ -421,6 +430,20 @@ public sealed partial class DocBookDocument {
                     (source.Attributes.ContainsKey("url") || source.Attributes.ContainsKey("{http://www.w3.org/1999/xlink}href"));
                 target = nodeKind == DocBookNodeKind.Link && selectedProfile == DocBookProfile.DocBook45 && externalLink
                     ? parent.AddRaw("ulink", directText) : parent.Add(nodeKind, directText);
+                if (!string.IsNullOrEmpty(source.Text) && !NodeAcceptsDirectText(nodeKind) &&
+                    !SourceChildrenRepresentText(source, nodeKind)) {
+                    if (NodeUsesTitleText(nodeKind)) {
+                        target.Add(DocBookNodeKind.Title, source.Text);
+                    } else if (NodeUsesParagraphText(nodeKind)) {
+                        target.AddParagraph(source.Text);
+                    } else if (nodeKind == DocBookNodeKind.IndexTerm) {
+                        target.AddRaw("primary", source.Text);
+                    } else {
+                        diagnostics.Add(new DocBookDiagnostic("DB116", DocBookDiagnosticSeverity.Warning,
+                            $"Text on shared container node '{source.Kind}' could not be represented by the selected DocBook profile.",
+                            source.Location.HeadingPath));
+                    }
+                }
             } else {
                 target = parent.Add(DocBookNodeKind.Paragraph, source.Text);
                 target.SetAttribute("role", "officeimo-" + SanitizeRole(source.Kind));
@@ -553,6 +576,21 @@ public sealed partial class DocBookDocument {
         kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle || kind == DocBookNodeKind.Paragraph ||
         kind == DocBookNodeKind.ProgramListing || kind == DocBookNodeKind.Screen || kind == DocBookNodeKind.Entry ||
         kind == DocBookNodeKind.Link || kind == DocBookNodeKind.Author;
+
+    private static bool NodeUsesTitleText(DocBookNodeKind kind) =>
+        kind == DocBookNodeKind.Info || kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Table ||
+        kind == DocBookNodeKind.Figure;
+
+    private static bool NodeUsesParagraphText(DocBookNodeKind kind) =>
+        kind == DocBookNodeKind.ListItem || kind == DocBookNodeKind.Note || kind == DocBookNodeKind.Tip ||
+        kind == DocBookNodeKind.Important || kind == DocBookNodeKind.Caution || kind == DocBookNodeKind.Warning;
+
+    private static bool SourceChildrenRepresentText(OfficeDocumentModelNode source, DocBookNodeKind kind) {
+        string representedKind = NodeUsesTitleText(kind) ? "title" : NodeUsesParagraphText(kind) ? "paragraph" : string.Empty;
+        return source.Children.Any(child =>
+            (child.Kind == "text" || representedKind.Length > 0 && string.Equals(child.Kind, representedKind, StringComparison.OrdinalIgnoreCase)) &&
+            string.Equals(child.Text, source.Text, StringComparison.Ordinal));
+    }
 
     private static string SanitizeRole(string value) => new string((value ?? "unknown").Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '-').ToArray());
 

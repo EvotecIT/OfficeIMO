@@ -67,6 +67,25 @@ public sealed class ReaderOpmlDocBookModularTests {
         const string compound = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><x:box>before<x:item>inside</x:item>after</x:box></article>";
         ReaderChunk[] compoundChunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(compound)).ToArray();
         Assert.Equal(new[] { "before", "inside", "after" }, compoundChunks.Select(chunk => chunk.Text));
+
+        ReaderChunk[] directContainer = DocBookReaderAdapter.Read(DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><note>Careful</note></article>")).ToArray();
+        Assert.Equal("Careful", Assert.Single(directContainer).Text);
+    }
+
+    [Fact]
+    public void OpmlAndDocBookAdaptersKeepSurrogatePairsIntactWhenSplitting() {
+        OpmlDocument opml = OpmlDocument.Create();
+        opml.AddOutline("A😀B");
+        ReaderChunk[] opmlChunks = OpmlReaderAdapter.Read(opml, readerOptions: new ReaderOptions { MaxChars = 2 }).ToArray();
+        Assert.Equal(new[] { "A", "😀", "B" }, opmlChunks.Select(chunk => chunk.Text));
+        Assert.Equal("A😀B", string.Concat(opmlChunks.Select(chunk => chunk.Text)));
+
+        DocBookDocument docBook = DocBookDocument.CreateArticle();
+        docBook.AddParagraph("A😀B");
+        ReaderChunk[] docBookChunks = DocBookReaderAdapter.Read(docBook, readerOptions: new ReaderOptions { MaxChars = 2 }).ToArray();
+        Assert.Equal(new[] { "A", "😀", "B" }, docBookChunks.Select(chunk => chunk.Text));
+        Assert.Equal("A😀B", string.Concat(docBookChunks.Select(chunk => chunk.Text)));
     }
 
     [Fact]
@@ -269,6 +288,23 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.Null(result.Source.Author);
         Assert.Contains(result.Metadata, entry => entry.Name == "author" && entry.Value == "Jane Doe");
+    }
+
+    [Fact]
+    public void RichResultsRetainDiagnosticsWhenChunkWarningsAreDisabled() {
+        OfficeDocumentReader opmlReader = new OfficeDocumentReaderBuilder()
+            .AddOpmlHandler(new ReaderOpmlOptions { IncludeDiagnostics = false }).Build();
+        OfficeDocumentReadResult opml = opmlReader.ReadDocument(Encoding.UTF8.GetBytes(
+            "<opml version=\"9.0\"><head/><body><outline text=\"Item\"/></body></opml>"), "invalid.opml");
+        Assert.Contains(opml.Diagnostics, diagnostic => diagnostic.Code == "OPML001");
+        Assert.All(opml.Chunks, chunk => Assert.Null(chunk.Warnings));
+
+        OfficeDocumentReader docBookReader = new OfficeDocumentReaderBuilder()
+            .AddDocBookHandler(new ReaderDocBookOptions { IncludeDiagnostics = false }).Build();
+        OfficeDocumentReadResult docBook = docBookReader.ReadDocument(Encoding.UTF8.GetBytes(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><ulink url=\"https://example.test\">Link</ulink></article>"), "invalid.docbook");
+        Assert.Contains(docBook.Diagnostics, diagnostic => diagnostic.Code == "DB014");
+        Assert.All(docBook.Chunks, chunk => Assert.Null(chunk.Warnings));
     }
 
     [Fact]

@@ -430,6 +430,49 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionPreservesTextOnEmptyCommonContainers() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = new[] {
+                new OfficeDocumentModelNode { Kind = "section", Text = "Chapter" },
+                new OfficeDocumentModelNode { Kind = "note", Text = "Careful" }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        XElement section = converted.Value.Xml.Descendants().Single(element => element.Name.LocalName == "section");
+        Assert.Equal("Chapter", section.Elements().Single(element => element.Name.LocalName == "title").Value);
+        XElement note = converted.Value.Xml.Descendants().Single(element => element.Name.LocalName == "note");
+        Assert.Equal("Careful", note.Elements().Single(element => element.Name.LocalName == "para").Value);
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB116");
+    }
+
+    [Fact]
+    public void ProfileConversionRequalifiesUntypedDocBookVocabularyButNotExtensions() {
+        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></info><indexterm><primary>topic</primary></indexterm><x:box><x:item>value</x:item></x:box></article>";
+        DocBookDocument asFour = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,
+            profile: DocBookProfile.DocBook45).Value;
+        XElement[] fourVocabulary = asFour.Xml.Descendants()
+            .Where(element => new[] { "personname", "firstname", "surname", "primary" }.Contains(element.Name.LocalName)).ToArray();
+        Assert.Equal(4, fourVocabulary.Length);
+        Assert.All(fourVocabulary,
+            element => Assert.Equal(XNamespace.None, element.Name.Namespace));
+        Assert.Equal("urn:extension", asFour.Xml.Descendants().Single(element => element.Name.LocalName == "box").Name.NamespaceName);
+
+        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></articleinfo><indexterm><primary>topic</primary></indexterm></article>";
+        DocBookDocument asFive = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(docBookFour).ToOfficeDocumentModel().Value,
+            profile: DocBookProfile.DocBook52).Value;
+        XElement[] fiveVocabulary = asFive.Xml.Descendants()
+            .Where(element => new[] { "personname", "firstname", "surname", "primary" }.Contains(element.Name.LocalName)).ToArray();
+        Assert.Equal(4, fiveVocabulary.Length);
+        Assert.All(fiveVocabulary,
+            element => Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, element.Name.NamespaceName));
+    }
+
+    [Fact]
     public void SharedModelKeepsSectionAuthorsOutOfDocumentAttribution() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Chapter</title><info><author>Jane Doe</author></info></section></article>";
 

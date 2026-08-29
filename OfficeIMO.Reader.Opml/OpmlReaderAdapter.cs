@@ -34,9 +34,7 @@ internal static partial class OpmlReaderAdapter {
     private static OpmlProjection CreateProjection(OpmlDocument document, string sourceName, ReaderOptions reader, ReaderOpmlOptions options, bool includeChunkWarnings, CancellationToken cancellationToken) {
         OpmlValidationResult validation = document.Validate();
         OpmlConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName);
-        OpmlDiagnostic[] diagnostics = options.IncludeDiagnostics
-            ? validation.Diagnostics.Concat(conversion.Diagnostics).ToArray()
-            : Array.Empty<OpmlDiagnostic>();
+        OpmlDiagnostic[] diagnostics = validation.Diagnostics.Concat(conversion.Diagnostics).ToArray();
         IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
             ? diagnostics.Where(d => d.Severity != OpmlDiagnosticSeverity.Info)
                 .Select(d => d.Code + ": " + d.Message).ToArray()
@@ -65,7 +63,7 @@ internal static partial class OpmlReaderAdapter {
             cancellationToken.ThrowIfCancellationRequested();
             string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " > ");
             int currentSource = sourceIndex++;
-            IReadOnlyList<string> parts = Split(outline.Text, reader.MaxChars);
+            IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(outline.Text, reader.MaxChars);
             if (parts.Count == 0) parts = new[] { string.Empty };
             for (int part = 0; part < parts.Count; part++) {
                 yield return new ReaderChunk {
@@ -95,10 +93,4 @@ internal static partial class OpmlReaderAdapter {
         if (maxBytes.HasValue) options.MaxInputBytes = Math.Min(options.MaxInputBytes, maxBytes.Value);
     }
 
-    private static IReadOnlyList<string> Split(string value, int maxChars) {
-        if (value.Length == 0 || maxChars <= 0 || value.Length <= maxChars) return new[] { value };
-        var parts = new List<string>();
-        for (int offset = 0; offset < value.Length; offset += maxChars) parts.Add(value.Substring(offset, Math.Min(maxChars, value.Length - offset)));
-        return parts;
-    }
 }
