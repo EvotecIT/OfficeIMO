@@ -57,9 +57,9 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated source packages | 94 |
-| Documented package, tool, and example projects below | 101 |
-| Native format, foundation, and shared-service packages | 26 |
+| Coordinated source packages | 95 |
+| Documented package, tool, and example projects below | 102 |
+| Native format, foundation, and shared-service packages | 27 |
 | Conversion and cloud bridge packages | 36 |
 | Unified Reader packages | 27 |
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
@@ -352,6 +352,16 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no Asciidoctor process or parser 
 - [x] Opt-in bounded expansion for safe document-local simple macros
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no TeX runtime, compiler, or parser dependency.
+
+#### [OfficeIMO.Bibliography](OfficeIMO.Bibliography/README.md)
+
+- [x] Format-neutral citation keys, item kinds, contributors, dates, identifiers, publication fields, keywords, notes, and ordered native extensions
+- [x] Source-preserving read, edit, deterministic write, and reopen workflows for BibTeX/BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML
+- [x] Exact unchanged text and loaded-byte output, plus safe same-format unknown-field preservation after edits
+- [x] Cross-format conversion reports with strict rejection of approximated or omitted data
+- [x] Bounded file, stream, text, sync, and async APIs with cancellation and inert XML/TeX handling
+
+_Dependency footprint:_ `System.Text.Json` only; no dependency on another OfficeIMO package, Word, Open XML, TeX, EndNote, rendering, or network clients.
 
 #### [OfficeIMO.CSV](OfficeIMO.CSV/README.md)
 

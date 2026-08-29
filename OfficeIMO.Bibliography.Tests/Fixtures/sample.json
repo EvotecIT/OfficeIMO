@@ -1,0 +1,12 @@
+[
+  {
+    "id": "doe2024",
+    "type": "article-journal",
+    "title": "Source-Preserving Citation Data",
+    "author": [{ "family": "Doe", "given": "Jane", "ORCID": "0000-0001-2345-6789" }],
+    "container-title": "Journal of Interchange",
+    "issued": { "date-parts": [[2024, 5, 1]], "circa": true },
+    "DOI": "10.1000/example",
+    "x-officeimo": { "retained": true }
+  }
+]

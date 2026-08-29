@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xml>
+  <records>
+    <record>
+      <rec-number>doe2024</rec-number>
+      <ref-type name="Journal Article">17</ref-type>
+      <contributors><authors><author>Doe, Jane</author></authors></contributors>
+      <titles><title>Source-Preserving Citation Data</title><secondary-title>Journal of Interchange</secondary-title></titles>
+      <dates><year>2024</year></dates>
+      <electronic-resource-num>10.1000/example</electronic-resource-num>
+      <custom-field foo="bar">retained</custom-field>
+    </record>
+  </records>
+</xml>

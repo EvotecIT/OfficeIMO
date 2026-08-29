@@ -97,7 +97,6 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 ### Full create, read, edit, and write products
 
 - [ ] Promote `OfficeIMO.Epub` from its current bounded read-only content model to EPUB 2/3 authoring and round-trip editing. Add typed metadata, manifest, spine, navigation, chapter, stylesheet, media, accessibility, and fixed-layout declarations; preserve unknown safe resources; reopen every output; and expose conversion through the shared Reader and conversion owners. Keep scripting, DRM, and general encrypted-resource handling outside the authoring contract.
-- [ ] Add `OfficeIMO.Bibliography` as the canonical citation-data owner with a source-preserving model and deterministic codecs for BibTeX/BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML. Map Word bibliography sources to that model instead of growing a second bibliography engine, preserve unknown fields with diagnostics, and treat citation-style rendering as a separate later product.
 - [ ] Add a small lossless `OfficeIMO.Opml` product for OPML 1.0/2.0 create, read, edit, and write, including nested outlines, subscription-list attributes, unknown attribute preservation, limits, Reader integration, and conversions to and from the shared outline/document model.
 - [ ] Add bounded DocBook 4/5 create, read, edit, write, validation, and conversion around a typed common-structure model plus lossless extension preservation. Prioritize articles, books, sections, metadata, lists, tables, code, links, notes, media, and indexes; expose the exact schema/profile used and do not promise an exhaustive object API for every vocabulary extension.
 - [ ] Add JATS Archiving and Publishing read, validation, preservation, and conversion, with create/edit/write limited initially to the JATS Article Authoring profile. Preserve namespaced extensions and front/body/back matter that the typed model does not yet understand, report the tag-set/version explicitly, and require schema plus reopen evidence before expanding the authored profile.
@@ -112,10 +111,14 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 - [ ] Add unencrypted MOBI and AZW-family inspection and conversion only for versions with a legally and technically supportable fixture corpus. Extract metadata, navigation, text, and safe resources into the shared ebook/Reader model; report unsupported layouts and encryption; and do not implement DRM removal or source-format writing.
 - [ ] Integrate DBF/xBase through a thin `OfficeIMO.Reader.Dbf` adapter and conversion routes only after the canonical codec and tabular streaming contracts exist in DbaClientX. OfficeIMO may map rows to CSV, Excel, HTML, PDF, and Reader results, but must not own another DBF parser, memo codec, code-page engine, or database writer.
 
+### Future integration decisions
+
+- [ ] Decide whether Word bibliography interoperability should ship as an optional `OfficeIMO.Word.Bibliography` bridge after the standalone citation-data contract has consumer evidence. If added, map Word bibliography sources to and from `OfficeIMO.Bibliography`, keep Open XML types out of the canonical model, require strict conversion diagnostics and reopen fixtures, and do not add a direct `OfficeIMO.Word` dependency unless a core Word workflow demonstrably requires it.
+
 ### Admission and sequencing
 
 - [ ] Extend the generated capability and conversion catalogs so every additional format declares `FullProduct`, `ReadConvert`, `SalvageRead`, or `IntentionalBoundary`, together with versions/profiles, security behavior, preservation guarantees, fixture provenance, and route maturity.
-- [ ] Deliver the first expansion wave in ownership order: bibliography and OPML; the DbaClientX-backed DBF adapter; EPUB authoring; bounded DocBook and JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
+- [ ] Deliver the remaining expansion wave in ownership order: OPML; the DbaClientX-backed DBF adapter; EPUB authoring; bounded DocBook and JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
 - [ ] Require hostile-input limits, path and stream parity, cancellation where applicable, reopen or independent-reader evidence, deterministic-loss reporting, and license/provenance review before publishing any new format package. A file-extension detector or text scraper alone does not qualify as format support.
 
 ## Completion rule
