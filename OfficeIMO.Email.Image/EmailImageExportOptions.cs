@@ -16,6 +16,12 @@ public sealed class EmailImageExportOptions : HtmlRenderOptions {
     /// <summary>Controls whether network resources remain eligible for an explicitly configured resolver.</summary>
     public EmailRemoteResourcePolicy RemoteResourcePolicy { get; set; } = EmailRemoteResourcePolicy.Block;
 
+    /// <summary>Maximum inline resources indexed for one export.</summary>
+    public int MaxInlineResourceCount { get; set; } = 128;
+
+    /// <summary>Maximum bytes read across all inline resources for one export.</summary>
+    public long MaxTotalInlineResourceBytes { get; set; } = 256L * 1024 * 1024;
+
     /// <summary>Creates an independent email options snapshot.</summary>
     public EmailImageExportOptions CloneEmail() {
         EmailImageExportOptions clone = CopyTo(new EmailImageExportOptions());
@@ -23,6 +29,8 @@ public sealed class EmailImageExportOptions : HtmlRenderOptions {
         clone.PreferHtmlBody = PreferHtmlBody;
         clone.IncludeInlineResources = IncludeInlineResources;
         clone.RemoteResourcePolicy = RemoteResourcePolicy;
+        clone.MaxInlineResourceCount = MaxInlineResourceCount;
+        clone.MaxTotalInlineResourceBytes = MaxTotalInlineResourceBytes;
         return clone;
     }
 
