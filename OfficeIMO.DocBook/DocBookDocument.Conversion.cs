@@ -439,7 +439,7 @@ public sealed partial class DocBookDocument {
             }
             int tableIndex = tables.Count;
             tableIndexes[tableElement] = tableIndex;
-            tables.Add(new OfficeDocumentModelTable {
+            var projectedTable = new OfficeDocumentModelTable {
                 Title = title,
                 Kind = tableElement.Name.LocalName,
                 Location = new OfficeDocumentModelLocation {
@@ -449,7 +449,9 @@ public sealed partial class DocBookDocument {
                 Rows = rows,
                 TotalRowCount = totalBodyRows,
                 Truncated = projectionTruncated || rows.Count < totalBodyRows
-            });
+            };
+            projectedTable.PayloadHash = ComputeTablePayloadHash(projectedTable);
+            tables.Add(projectedTable);
             int retainedCellSlots = columns.Count;
             foreach (IReadOnlyList<string> row in rows) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -638,6 +640,12 @@ public sealed partial class DocBookDocument {
             foreach (KeyValuePair<string, string> attribute in source.Attributes) {
                 try {
                     XName attributeName = XName.Get(attribute.Key);
+                    bool profileOwnedNode = !source.Kind.StartsWith("extension:", StringComparison.Ordinal);
+                    if (profileOwnedNode && selectedProfile == DocBookProfile.DocBook52 && attributeName == XName.Get("id")) {
+                        attributeName = XNamespace.Xml + "id";
+                    } else if (profileOwnedNode && selectedProfile == DocBookProfile.DocBook45 && attributeName == XNamespace.Xml + "id") {
+                        attributeName = XName.Get("id");
+                    }
                     if (target.Kind == DocBookNodeKind.Link &&
                         (attributeName == XName.Get("url") || attributeName == XName.Get("href", "http://www.w3.org/1999/xlink"))) {
                         attributeName = selectedProfile == DocBookProfile.DocBook45
@@ -740,8 +748,10 @@ public sealed partial class DocBookDocument {
             }
         } else {
             document.Title = model.Source.Title;
-            diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
-                "The shared model had no recursive Structure; flat Blocks, Tables, image Assets, and Links were emitted as common DocBook structures."));
+            if (model.Blocks.Count > 0 || model.Tables.Count > 0 || model.Assets.Count > 0 || model.Links.Count > 0) {
+                diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
+                    "The shared model had no recursive Structure; flat Blocks, Tables, image Assets, and Links were emitted as common DocBook structures."));
+            }
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
             foreach (OfficeDocumentModelTable table in model.Tables) AddFlatTable(table);
             foreach (OfficeDocumentModelAsset asset in model.Assets) AddFlatAsset(asset);
@@ -759,11 +769,28 @@ public sealed partial class DocBookDocument {
         foreach (OfficeDocumentModelVisual visual in model.Visuals) {
             AddUnsupportedChannelDiagnostic("visual", visual.SourceName ?? visual.Kind, visual.Location?.HeadingPath);
         }
-        bool hasAuthor = model.Structure.Any(ContainsDocumentAuthor);
-        if (!hasAuthor && !string.IsNullOrWhiteSpace(model.Source.Author)) {
-            new DocBookNode(document, document.EnsureInfo()).Add(DocBookNodeKind.Author, model.Source.Author);
+        var representedAuthors = new HashSet<string>(structureNodes
+            .Where(node => string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(node.Text))
+            .Select(node => node.Text), StringComparer.Ordinal);
+        if (!string.IsNullOrWhiteSpace(model.Source.Author) && representedAuthors.Add(model.Source.Author!)) {
+            AddAuthor(model.Source.Author!);
+        }
+        foreach (OfficeDocumentModelMetadataEntry metadata in model.Metadata) {
+            bool profileControl = metadata.Category == "docbook" && (metadata.Name == "kind" || metadata.Name == "profile");
+            if (profileControl) continue;
+            if (metadata.Category == "docbook" && metadata.Name == "author" && !string.IsNullOrWhiteSpace(metadata.Value)) {
+                if (representedAuthors.Add(metadata.Value!)) AddAuthor(metadata.Value!);
+                if (metadata.Attributes.Count == 0) continue;
+            }
+            diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                $"Shared metadata '{metadata.Category}/{metadata.Name}' could not be fully represented by the bounded DocBook common-structure profile."));
         }
         return new DocBookConversionResult<DocBookDocument>(document, diagnostics.ToArray());
+
+        void AddAuthor(string displayName) {
+            DocBookNode author = new DocBookNode(document, document.EnsureInfo()).Add(DocBookNodeKind.Author);
+            author.AddRaw("personname", displayName);
+        }
 
         void AddSupplementaryDiagnostic(string channel, string identity, string? path) =>
             diagnostics.Add(new DocBookDiagnostic("DB122", DocBookDiagnosticSeverity.Warning,
@@ -781,13 +808,6 @@ public sealed partial class DocBookDocument {
         static bool ContainsTitleNode(OfficeDocumentModelNode node) =>
             string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsTitleNode);
 
-        static bool ContainsDocumentAuthor(OfficeDocumentModelNode node) =>
-            string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase) &&
-            node.Children.Any(ContainsAuthorNode);
-
-        static bool ContainsAuthorNode(OfficeDocumentModelNode node) =>
-            string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase) || node.Children.Any(ContainsAuthorNode);
     }
 
     private static string ToModelKind(DocBookNodeKind kind) {

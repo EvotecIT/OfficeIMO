@@ -3,6 +3,8 @@ using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace OfficeIMO.DocBook;
 
@@ -51,7 +53,8 @@ public sealed partial class DocBookDocument {
         OfficeDocumentModelTable table,
         IEnumerable<OfficeDocumentModelNode> nodes,
         ISet<OfficeDocumentModelNode> consumedNodes) {
-        if (table.Location == null || !table.Location.TableIndex.HasValue) return false;
+        if (table.Location == null || !table.Location.TableIndex.HasValue || string.IsNullOrEmpty(table.PayloadHash) ||
+            !string.Equals(table.PayloadHash, ComputeTablePayloadHash(table), StringComparison.OrdinalIgnoreCase)) return false;
         OfficeDocumentModelLocation tableLocation = table.Location;
         string expectedKind = string.Equals(table.Kind, "informaltable", StringComparison.OrdinalIgnoreCase)
             ? "informal-table" : "table";
@@ -65,5 +68,30 @@ public sealed partial class DocBookDocument {
             return true;
         }
         return false;
+    }
+
+    private static string ComputeTablePayloadHash(OfficeDocumentModelTable table) {
+        var value = new StringBuilder();
+        AppendList(table.Columns);
+        foreach (IReadOnlyList<string> row in table.Rows) AppendList(row);
+        AppendValue(table.TotalRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        AppendValue(table.Truncated ? "1" : "0");
+        using SHA256 algorithm = SHA256.Create();
+        return BitConverter.ToString(algorithm.ComputeHash(Encoding.UTF8.GetBytes(value.ToString()))).Replace("-", string.Empty);
+
+        void AppendList(IReadOnlyList<string> items) {
+            AppendValue(items.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (string item in items) AppendValue(item);
+        }
+
+        void AppendValue(string? item) {
+            if (item == null) {
+                value.Append("-1:");
+                return;
+            }
+            value.Append(item.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            value.Append(':');
+            value.Append(item);
+        }
     }
 }

@@ -174,10 +174,9 @@ public sealed partial class OpmlDocument {
                 primaryOwnerConsumed = true;
                 continue;
             }
-            if (metadata.Value == null) continue;
             try {
                 XName name = XName.Get(metadata.Name);
-                var element = new XElement(name, metadata.Value);
+                var element = new XElement(name, metadata.Value ?? string.Empty);
                 foreach (KeyValuePair<string, string> attribute in metadata.Attributes) {
                     element.SetAttributeValue(XName.Get(attribute.Key), attribute.Value);
                 }
@@ -186,6 +185,13 @@ public sealed partial class OpmlDocument {
                 diagnostics.Add(new OpmlDiagnostic("OPML102", OpmlDiagnosticSeverity.Warning,
                     $"Head metadata '{metadata.Name}' could not be represented in OPML."));
             }
+        }
+        OfficeDocumentModelMetadataEntry? versionMetadata = model.Metadata.FirstOrDefault(entry =>
+            entry.Category == "opml" && entry.Name == "version");
+        foreach (OfficeDocumentModelMetadataEntry metadata in model.Metadata) {
+            if (ReferenceEquals(metadata, versionMetadata) || metadata.Category == "opml.head") continue;
+            diagnostics.Add(new OpmlDiagnostic("OPML109", OpmlDiagnosticSeverity.Warning,
+                $"Shared metadata '{metadata.Category}/{metadata.Name}' cannot be represented in OPML and was omitted."));
         }
 
         void Add(OfficeDocumentModelNode node, OpmlOutline? parent) {
@@ -282,6 +288,10 @@ public sealed partial class OpmlDocument {
             }
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddOutline(block.Text);
             foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
+        }
+        foreach (OpmlDiagnostic diagnostic in document.Validate().Diagnostics.Where(candidate =>
+                     candidate.Severity == OpmlDiagnosticSeverity.Error)) {
+            diagnostics.Add(diagnostic);
         }
         return new OpmlConversionResult<OpmlDocument>(document, diagnostics.ToArray());
 

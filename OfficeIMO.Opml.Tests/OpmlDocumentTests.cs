@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace OfficeIMO.Opml.Tests;
 
 public sealed class OpmlDocumentTests {
@@ -427,5 +429,44 @@ public sealed class OpmlDocumentTests {
             deepModel, null, new OpmlConversionOptions { MaxStructureDepth = 2 }));
         Assert.Throws<InvalidDataException>(() => OpmlDocument.FromOfficeDocumentModel(
             deepModel, null, new OpmlConversionOptions { MaxStructureNodes = 2 }));
+    }
+
+    [Fact]
+    public void SharedConversionDiagnosesUnsupportedMetadata() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "outline", Text = "Root" } },
+            Metadata = new[] {
+                new OfficeDocumentModelMetadataEntry { Category = "opml", Name = "version", Value = "2.0" },
+                new OfficeDocumentModelMetadataEntry { Category = "portable", Name = "subject", Value = "Example" }
+            }
+        };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Single(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML109" &&
+            diagnostic.Message.IndexOf("portable/subject", StringComparison.Ordinal) >= 0);
+    }
+
+    [Theory]
+    [InlineData("rss", "OPML011")]
+    [InlineData("link", "OPML012")]
+    [InlineData("include", "OPML012")]
+    public void SharedConversionReportsInvalidReconstructedOutlineContracts(string type, string code) {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Structure = new[] {
+                new OfficeDocumentModelNode {
+                    Kind = "outline",
+                    Text = "Invalid",
+                    Attributes = new Dictionary<string, string> { ["type"] = type }
+                }
+            }
+        };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == OpmlDiagnosticSeverity.Error);
     }
 }

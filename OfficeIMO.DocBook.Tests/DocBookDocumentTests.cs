@@ -911,8 +911,10 @@ public sealed class DocBookDocumentTests {
 
         DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
 
-        Assert.Equal("Jane Doe", converted.Xml.Root!.Elements().Single(element => element.Name.LocalName == "info")
-            .Descendants().Single(element => element.Name.LocalName == "author").Value);
+        XElement author = converted.Xml.Root!.Elements().Single(element => element.Name.LocalName == "info")
+            .Descendants().Single(element => element.Name.LocalName == "author");
+        Assert.Equal("Jane Doe", author.Elements().Single(element => element.Name.LocalName == "personname").Value);
+        Assert.DoesNotContain(author.Nodes().OfType<XText>(), text => !string.IsNullOrWhiteSpace(text.Value));
     }
 
     [Theory]
@@ -1073,5 +1075,81 @@ public sealed class DocBookDocumentTests {
             deepModel, options: new DocBookConversionOptions { MaxStructureDepth = 2 }));
         Assert.Throws<InvalidDataException>(() => DocBookDocument.FromOfficeDocumentModel(
             deepModel, options: new DocBookConversionOptions { MaxStructureNodes = 2 }));
+    }
+
+    [Fact]
+    public void SharedConversionDoesNotReportFlatFallbackWithoutFlatContent() {
+        var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.DocBook };
+        var titleOnly = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Source = new OfficeDocumentModelSource { Title = "Guide" }
+        };
+
+        DocBookConversionResult<DocBookDocument> emptyResult = DocBookDocument.FromOfficeDocumentModel(empty);
+        DocBookConversionResult<DocBookDocument> titleResult = DocBookDocument.FromOfficeDocumentModel(titleOnly);
+
+        Assert.False(emptyResult.HasLoss);
+        Assert.False(titleResult.HasLoss);
+        Assert.Equal("Guide", titleResult.Value.Title);
+        Assert.DoesNotContain(titleResult.Diagnostics, diagnostic => diagnostic.Code == "DB103");
+    }
+
+    [Fact]
+    public void SharedConversionRepresentsAuthorMetadataAndDiagnosesUnsupportedMetadata() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "paragraph", Text = "Body" } },
+            Metadata = new[] {
+                new OfficeDocumentModelMetadataEntry { Category = "docbook", Name = "author", Value = "Jane Doe" },
+                new OfficeDocumentModelMetadataEntry { Category = "portable", Name = "subject", Value = "Example" }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Equal("Jane Doe", converted.Value.Xml.Descendants().Single(element => element.Name.LocalName == "personname").Value);
+        Assert.Single(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("portable/subject", StringComparison.Ordinal) >= 0);
+    }
+
+    [Theory]
+    [InlineData("4.5", DocBookProfile.DocBook52, "id", "{http://www.w3.org/XML/1998/namespace}id")]
+    [InlineData("5.2", DocBookProfile.DocBook45, "{http://www.w3.org/XML/1998/namespace}id", "id")]
+    public void SharedProfileConversionNormalizesIdentifierAttributes(
+        string sourceProfile,
+        DocBookProfile targetProfile,
+        string sourceAttribute,
+        string targetAttribute) {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Metadata = new[] { new OfficeDocumentModelMetadataEntry { Category = "docbook", Name = "profile", Value = sourceProfile } },
+            Structure = new[] {
+                new OfficeDocumentModelNode {
+                    Kind = "section",
+                    Text = "Section",
+                    Attributes = new Dictionary<string, string> { [sourceAttribute] = "section-id" }
+                }
+            }
+        };
+
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model, profile: targetProfile).Value;
+        XElement section = Assert.Single(converted.Xml.Descendants(), element => element.Name.LocalName == "section");
+
+        Assert.Equal("section-id", section.Attribute(XName.Get(targetAttribute))?.Value);
+        Assert.Null(section.Attribute(XName.Get(sourceAttribute)));
+    }
+
+    [Fact]
+    public void SharedReverseConversionPreservesEditedFlatTableProjection() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\"><tbody><row><entry>Original</entry></row></tbody></tgroup></informaltable></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelTable table = Assert.Single(model.Tables);
+        table.Rows = new[] { new[] { "Edited" } };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" &&
+            diagnostic.Message.IndexOf("table", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "entry" && element.Value == "Edited");
     }
 }
