@@ -138,12 +138,52 @@ internal static class BibliographyFormatDetector {
 
     internal static BibliographyFormat Detect(string source) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        string value = source.TrimStart();
+        int start = SkipWhitespace(source, 0);
+        if (start < source.Length && source[start] == '%') {
+            string bib = TrimLeadingComments(source, start, true);
+            if (bib.StartsWith("@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
+            throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
+        }
+        if (start + 1 < source.Length && source[start] == '/' && (source[start + 1] == '/' || source[start + 1] == '*')) {
+            string json = TrimLeadingComments(source, start, false);
+            if (json.StartsWith("[", StringComparison.Ordinal) || json.StartsWith("{", StringComparison.Ordinal) && json.IndexOf("\"type\"", StringComparison.OrdinalIgnoreCase) >= 0) return BibliographyFormat.CslJson;
+            throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
+        }
+        string value = source.Substring(start);
         if (value.StartsWith("[", StringComparison.Ordinal) || value.StartsWith("{", StringComparison.Ordinal) && value.IndexOf("\"type\"", StringComparison.OrdinalIgnoreCase) >= 0) return BibliographyFormat.CslJson;
         if (value.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase) || value.StartsWith("<xml", StringComparison.OrdinalIgnoreCase) || value.StartsWith("<records", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.EndNoteXml;
         if (value.StartsWith("@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (value.StartsWith("TY  -", StringComparison.Ordinal)) return BibliographyFormat.Ris;
         if (value.StartsWith("PMID-", StringComparison.Ordinal) || value.StartsWith("PMID -", StringComparison.Ordinal) || value.StartsWith("OWN -", StringComparison.Ordinal)) return BibliographyFormat.Nbib;
         throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
+    }
+
+    private static string TrimLeadingComments(string source, int position, bool bibComments) {
+        while (position < source.Length) {
+            position = SkipWhitespace(source, position);
+            if (bibComments && position < source.Length && source[position] == '%') {
+                int end = source.IndexOf('\n', position + 1);
+                position = end < 0 ? source.Length : end + 1;
+                continue;
+            }
+            if (!bibComments && position + 1 < source.Length && source[position] == '/' && source[position + 1] == '/') {
+                int end = source.IndexOf('\n', position + 2);
+                position = end < 0 ? source.Length : end + 1;
+                continue;
+            }
+            if (!bibComments && position + 1 < source.Length && source[position] == '/' && source[position + 1] == '*') {
+                int end = source.IndexOf("*/", position + 2, StringComparison.Ordinal);
+                if (end < 0) return source.Substring(position);
+                position = end + 2;
+                continue;
+            }
+            break;
+        }
+        return source.Substring(position);
+    }
+
+    private static int SkipWhitespace(string source, int position) {
+        while (position < source.Length && char.IsWhiteSpace(source[position])) position++;
+        return position;
     }
 }

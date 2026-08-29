@@ -82,9 +82,14 @@ internal static class CslJsonCodec {
         var item = new BibliographyItem();
         items.Add(item);
         CountValues(element, items, limits);
+        var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (JsonProperty property in element.EnumerateObject()) {
             cancellationToken.ThrowIfCancellationRequested();
-            string raw = property.Value.GetRawText();
+            if (!seenProperties.Add(property.Name)) {
+                string duplicateRaw = GetBoundedRawValue(property.Value, items, limits);
+                item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, duplicateRaw), duplicateRaw));
+                continue;
+            }
             switch (property.Name.ToLowerInvariant()) {
                 case "id": item.Key = Scalar(property.Value); break;
                 case "type": item.NativeType = Scalar(property.Value); item.Type = CodecMappings.ParseType(item.NativeType); break;
@@ -100,18 +105,18 @@ internal static class CslJsonCodec {
                 case "abstract": item.Abstract = Scalar(property.Value); break;
                 case "language": item.Language = Scalar(property.Value); break;
                 case "url": item.Url = Scalar(property.Value); break;
-                case "author": ParseNames(item, property.Value, BibliographyContributorRole.Author); break;
-                case "editor": ParseNames(item, property.Value, BibliographyContributorRole.Editor); break;
-                case "translator": ParseNames(item, property.Value, BibliographyContributorRole.Translator); break;
-                case "recipient": ParseNames(item, property.Value, BibliographyContributorRole.Recipient); break;
-                case "interviewer": ParseNames(item, property.Value, BibliographyContributorRole.Interviewer); break;
-                case "composer": ParseNames(item, property.Value, BibliographyContributorRole.Composer); break;
-                case "collection-editor": ParseNames(item, property.Value, BibliographyContributorRole.CollectionEditor); break;
-                case "issued": ParseDate(item, property.Value, BibliographyDateRole.Issued, diagnostics); break;
-                case "accessed": ParseDate(item, property.Value, BibliographyDateRole.Accessed, diagnostics); break;
-                case "submitted": ParseDate(item, property.Value, BibliographyDateRole.Submitted, diagnostics); break;
-                case "original-date": ParseDate(item, property.Value, BibliographyDateRole.Original, diagnostics); break;
-                case "event-date": ParseDate(item, property.Value, BibliographyDateRole.Event, diagnostics); break;
+                case "author": ParseNames(item, property.Value, BibliographyContributorRole.Author, items, limits); break;
+                case "editor": ParseNames(item, property.Value, BibliographyContributorRole.Editor, items, limits); break;
+                case "translator": ParseNames(item, property.Value, BibliographyContributorRole.Translator, items, limits); break;
+                case "recipient": ParseNames(item, property.Value, BibliographyContributorRole.Recipient, items, limits); break;
+                case "interviewer": ParseNames(item, property.Value, BibliographyContributorRole.Interviewer, items, limits); break;
+                case "composer": ParseNames(item, property.Value, BibliographyContributorRole.Composer, items, limits); break;
+                case "collection-editor": ParseNames(item, property.Value, BibliographyContributorRole.CollectionEditor, items, limits); break;
+                case "issued": ParseDate(item, property.Value, BibliographyDateRole.Issued, diagnostics, items, limits); break;
+                case "accessed": ParseDate(item, property.Value, BibliographyDateRole.Accessed, diagnostics, items, limits); break;
+                case "submitted": ParseDate(item, property.Value, BibliographyDateRole.Submitted, diagnostics, items, limits); break;
+                case "original-date": ParseDate(item, property.Value, BibliographyDateRole.Original, diagnostics, items, limits); break;
+                case "event-date": ParseDate(item, property.Value, BibliographyDateRole.Event, diagnostics, items, limits); break;
                 case "doi": CodecMappings.AddIdentifier(item, "DOI", Scalar(property.Value)); break;
                 case "isbn": CodecMappings.AddIdentifier(item, "ISBN", Scalar(property.Value)); break;
                 case "issn": CodecMappings.AddIdentifier(item, "ISSN", Scalar(property.Value)); break;
@@ -119,7 +124,10 @@ internal static class CslJsonCodec {
                 case "pmcid": CodecMappings.AddIdentifier(item, "PMCID", Scalar(property.Value)); break;
                 case "keyword": string keyword = Scalar(property.Value); if (!string.IsNullOrWhiteSpace(keyword)) item.Keywords.Add(keyword); break;
                 case "note": item.Notes.Add(Scalar(property.Value)); break;
-                default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, Scalar(property.Value), raw)); break;
+                default:
+                    string raw = GetBoundedRawValue(property.Value, items, limits);
+                    item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
+                    break;
             }
         }
         if (string.IsNullOrWhiteSpace(item.Key)) diagnostics.Add(new BibliographyDiagnostic("BIBCSL004", BibliographyDiagnosticSeverity.Warning, "CSL JSON item has no id."));
@@ -153,18 +161,22 @@ internal static class CslJsonCodec {
         }
     }
 
-    private static void ParseNames(BibliographyItem item, JsonElement value, BibliographyContributorRole role) {
+    private static string ScalarOrRaw(JsonElement value, string raw) => value.ValueKind == JsonValueKind.Object || value.ValueKind == JsonValueKind.Array ? raw : Scalar(value);
+
+    private static void ParseNames(BibliographyItem item, JsonElement value, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         if (value.ValueKind != JsonValueKind.Array) return;
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind == JsonValueKind.String) item.Contributors.Add(new BibliographyContributor(role, new BibliographyName { Literal = element.GetString() }));
             else if (element.ValueKind == JsonValueKind.Object) {
                 var name = new BibliographyName();
+                var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (JsonProperty property in element.EnumerateObject()) {
                     string scalar = Scalar(property.Value);
+                    if (!seenProperties.Add(property.Name)) { string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); continue; }
                     switch (property.Name.ToLowerInvariant()) {
                         case "given": name.Given = scalar; break; case "family": name.Family = scalar; break; case "literal": name.Literal = scalar; break;
                         case "suffix": name.Suffix = scalar; break; case "dropping-particle": name.DroppingParticle = scalar; break; case "non-dropping-particle": name.NonDroppingParticle = scalar; break;
-                        default: name.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, scalar, property.Value.GetRawText())); break;
+                        default: string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); break;
                     }
                 }
                 item.Contributors.Add(new BibliographyContributor(role, name));
@@ -172,27 +184,38 @@ internal static class CslJsonCodec {
         }
     }
 
-    private static void ParseDate(BibliographyItem item, JsonElement value, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics) {
+    private static void ParseDate(BibliographyItem item, JsonElement value, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         var date = new BibliographyDate { Role = role };
         if (value.ValueKind == JsonValueKind.Object) {
-            if (value.TryGetProperty("literal", out JsonElement literal)) date.Literal = Scalar(literal);
-            if (value.TryGetProperty("date-parts", out JsonElement parts)) {
-                JsonElement[] ranges = parts.ValueKind == JsonValueKind.Array ? parts.EnumerateArray().ToArray() : Array.Empty<JsonElement>();
-                int? year = null; int? month = null; int? day = null;
-                int? endYear = null; int? endMonth = null; int? endDay = null;
-                bool valid = ranges.Length >= 1 && ranges.Length <= 2 && TryReadDatePart(ranges[0], out year, out month, out day);
-                if (valid && ranges.Length == 2) valid = TryReadDatePart(ranges[1], out endYear, out endMonth, out endDay);
-                if (valid) {
-                    date.Year = year; date.Month = month; date.Day = day;
-                    date.EndYear = endYear; date.EndMonth = endMonth; date.EndDay = endDay;
-                } else {
-                    date.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, "date-parts", parts.GetRawText(), parts.GetRawText()));
-                    diagnostics.Add(new BibliographyDiagnostic("BIBCSL005", BibliographyDiagnosticSeverity.Warning, "CSL JSON date-parts could not be represented by the typed date model and were retained as native JSON.", itemKey: item.Key, field: role.ToString()));
+            var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (JsonProperty property in value.EnumerateObject()) {
+                if (!seenProperties.Add(property.Name)) {
+                    string raw = GetBoundedRawValue(property.Value, items, limits);
+                    date.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
+                    continue;
                 }
+                if (string.Equals(property.Name, "literal", StringComparison.OrdinalIgnoreCase)) date.Literal = Scalar(property.Value);
+                else if (string.Equals(property.Name, "date-parts", StringComparison.OrdinalIgnoreCase)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
+                else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
             }
-            foreach (JsonProperty property in value.EnumerateObject()) if (!string.Equals(property.Name, "literal", StringComparison.OrdinalIgnoreCase) && !string.Equals(property.Name, "date-parts", StringComparison.OrdinalIgnoreCase)) date.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, property.Name, Scalar(property.Value), property.Value.GetRawText()));
         } else date.Literal = Scalar(value);
         item.Dates.Add(date);
+    }
+
+    private static void ParseDateParts(BibliographyItem item, BibliographyDate date, JsonElement parts, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        JsonElement[] ranges = parts.ValueKind == JsonValueKind.Array ? parts.EnumerateArray().ToArray() : Array.Empty<JsonElement>();
+        int? year = null; int? month = null; int? day = null;
+        int? endYear = null; int? endMonth = null; int? endDay = null;
+        bool valid = ranges.Length >= 1 && ranges.Length <= 2 && TryReadDatePart(ranges[0], out year, out month, out day);
+        if (valid && ranges.Length == 2) valid = TryReadDatePart(ranges[1], out endYear, out endMonth, out endDay);
+        if (valid) {
+            date.Year = year; date.Month = month; date.Day = day;
+            date.EndYear = endYear; date.EndMonth = endMonth; date.EndDay = endDay;
+            return;
+        }
+        string raw = GetBoundedRawValue(parts, items, limits);
+        date.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, "date-parts", raw, raw));
+        diagnostics.Add(new BibliographyDiagnostic("BIBCSL005", BibliographyDiagnosticSeverity.Warning, "CSL JSON date-parts could not be represented by the typed date model and were retained as native JSON.", itemKey: item.Key, field: role.ToString()));
     }
 
     private static void WriteString(Utf8JsonWriter writer, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) writer.WriteString(name, value); }
@@ -259,6 +282,12 @@ internal static class CslJsonCodec {
         return false;
     }
 
+    private static string GetBoundedRawValue(JsonElement value, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        string raw = value.GetRawText();
+        limits.CheckValueLength(items, raw, 0);
+        return raw;
+    }
+
     private static void GetJsonLocation(string source, JsonException exception, out int offset, out int line, out int column) {
         if (!exception.LineNumber.HasValue || !exception.BytePositionInLine.HasValue) { offset = -1; line = -1; column = -1; return; }
         int zeroBasedLine = checked((int)exception.LineNumber.Value);
@@ -275,7 +304,8 @@ internal static class CslJsonCodec {
         int characterCount = 0;
         while (lineStart + characterCount < lineEnd) {
             int width = char.IsHighSurrogate(source[lineStart + characterCount]) && lineStart + characterCount + 1 < lineEnd && char.IsLowSurrogate(source[lineStart + characterCount + 1]) ? 2 : 1;
-            int bytes = Encoding.UTF8.GetByteCount(source.Substring(lineStart + characterCount, width));
+            char current = source[lineStart + characterCount];
+            int bytes = width == 2 ? 4 : current <= 0x7F ? 1 : current <= 0x7FF ? 2 : 3;
             if (bytes > bytePosition) break;
             bytePosition -= bytes;
             characterCount += width;

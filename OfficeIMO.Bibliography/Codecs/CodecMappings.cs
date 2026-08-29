@@ -82,6 +82,7 @@ internal static class CodecMappings {
     internal static BibliographyName ParseCommaName(string value) {
         string trimmed = value.Trim();
         if (trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[trimmed.Length - 1] == '}') return new BibliographyName { Literal = trimmed.Substring(1, trimmed.Length - 2) };
+        if (trimmed.EndsWith(",", StringComparison.Ordinal)) return new BibliographyName { Literal = trimmed.Substring(0, trimmed.Length - 1) };
         string[] parts = value.Split(new[] { ',' }, 3);
         if (parts.Length == 1) {
             string[] words = value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -92,7 +93,7 @@ internal static class CodecMappings {
     }
 
     internal static string FormatName(BibliographyName name) {
-        if (!string.IsNullOrWhiteSpace(name.Literal)) return name.Literal!;
+        if (!string.IsNullOrWhiteSpace(name.Literal)) return name.Literal + ",";
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         return string.Join(", ", new[] { family, given, name.Suffix }.Where(static part => !string.IsNullOrWhiteSpace(part)));
@@ -109,8 +110,17 @@ internal static class CodecMappings {
         string.Equals(scheme, "PMID", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(scheme, "PMCID", StringComparison.OrdinalIgnoreCase);
 
+    internal static bool IsBibIdentifierScheme(string scheme) => IsCslIdentifierScheme(scheme);
+
     internal static string InferSerialScheme(string value) {
-        string compact = new string(value.Where(char.IsLetterOrDigit).ToArray());
+        string candidate = value.Trim();
+        if (candidate.StartsWith("ISBN", StringComparison.OrdinalIgnoreCase)) return "ISBN";
+        if (candidate.StartsWith("ISSN", StringComparison.OrdinalIgnoreCase)) return "ISSN";
+        int parenthesizedQualifier = candidate.IndexOf(" (", StringComparison.Ordinal);
+        int bracketedQualifier = candidate.IndexOf(" [", StringComparison.Ordinal);
+        int qualifier = parenthesizedQualifier < 0 ? bracketedQualifier : bracketedQualifier < 0 ? parenthesizedQualifier : Math.Min(parenthesizedQualifier, bracketedQualifier);
+        if (qualifier > 0) candidate = candidate.Substring(0, qualifier);
+        string compact = new string(candidate.Where(char.IsLetterOrDigit).ToArray());
         if (compact.Length == 8) return "ISSN";
         if (compact.Length == 10 || compact.Length == 13) return "ISBN";
         return "SN";

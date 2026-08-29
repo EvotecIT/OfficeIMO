@@ -19,12 +19,15 @@ internal static class EndNoteXmlCodec {
             using XmlReader reader = XmlReader.Create(textReader, settings);
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             XElement? root = document.Root;
-            if (root != null) foreach (XElement element in root.Elements().Where(element => element.Name.LocalName != "records")) {
+            if (root != null && !string.Equals(root.Name.LocalName, "records", StringComparison.OrdinalIgnoreCase)) foreach (XElement element in root.Elements().Where(element => element.Name.LocalName != "records")) {
                 ValidateAggregateValueLengths(element, items, limits, true);
                 limits.AddValue(items, null, GetOffset(element));
                 nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, "element", element.ToString(SaveOptions.DisableFormatting), element.Name.LocalName));
             }
-            foreach (XElement record in document.Descendants().Where(element => element.Name.LocalName == "record")) {
+            IEnumerable<XElement> records = root == null ? Enumerable.Empty<XElement>()
+                : string.Equals(root.Name.LocalName, "records", StringComparison.OrdinalIgnoreCase) ? root.Elements().Where(child => child.Name.LocalName == "record")
+                : root.Elements().Where(element => element.Name.LocalName == "records").SelectMany(element => element.Elements().Where(child => child.Name.LocalName == "record"));
+            foreach (XElement record in records) {
                 cancellationToken.ThrowIfCancellationRequested();
                 limits.AddItem(items, GetOffset(record));
                 BibliographyItem item = ParseRecord(record, items, limits, diagnosticGuard);
@@ -99,7 +102,11 @@ internal static class EndNoteXmlCodec {
         item.Pages = Value(record, "pages"); item.Volume = Value(record, "volume"); item.Issue = Value(record, "number"); item.Edition = Value(record, "edition");
         item.Publisher = Value(record, "publisher"); item.PublisherPlace = Value(record, "pub-location"); item.Abstract = Value(record, "abstract"); item.Language = Value(record, "language");
         ParseContributors(item, Child(record, "contributors")); ParseDates(item, Child(record, "dates"));
-        foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "isbn")) AddIdentifier(item, CodecMappings.InferSerialScheme(identifier.Value), identifier.Value);
+        foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "isbn")) {
+            string? declaredScheme = identifier.Attributes().FirstOrDefault(attribute => string.Equals(attribute.Name.LocalName, "type", StringComparison.OrdinalIgnoreCase))?.Value;
+            string scheme = string.Equals(declaredScheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(declaredScheme, "ISSN", StringComparison.OrdinalIgnoreCase) ? declaredScheme! : CodecMappings.InferSerialScheme(identifier.Value);
+            AddIdentifier(item, scheme, identifier.Value);
+        }
         foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "electronic-resource-num")) AddIdentifier(item, "DOI", identifier.Value);
         foreach (XElement identifier in record.Elements().Where(element => element.Name.LocalName == "accession-num")) ParseAccessionIdentifier(item, identifier.Value);
         XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => element.Name.LocalName == "url").ToArray() ?? Array.Empty<XElement>();
@@ -108,8 +115,9 @@ internal static class EndNoteXmlCodec {
         XElement? keywords = Child(record, "keywords"); if (keywords != null) foreach (XElement keyword in keywords.Elements().Where(element => element.Name.LocalName == "keyword")) item.Keywords.Add(keyword.Value);
         string note = Value(record, "notes"); if (!string.IsNullOrWhiteSpace(note)) item.Notes.Add(note);
         foreach (XElement element in record.Elements()) {
+            bool repeatedSingleValue = !IsRepeatableRecordElement(element.Name.LocalName) && element.ElementsBeforeSelf().Any(previous => string.Equals(previous.Name.LocalName, element.Name.LocalName, StringComparison.OrdinalIgnoreCase));
             if (!KnownRecordElements.Contains(element.Name.LocalName)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, element.ToString(SaveOptions.DisableFormatting)));
-            else if (HasUnsupportedNestedContent(element)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, element.ToString(SaveOptions.DisableFormatting)));
+            else if (repeatedSingleValue || HasUnsupportedNestedContent(element) || HasDuplicateKnownNestedContent(element)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, element.ToString(SaveOptions.DisableFormatting)));
         }
         if (string.IsNullOrWhiteSpace(item.Key)) diagnostics.Add(new BibliographyDiagnostic("BIBEND003", BibliographyDiagnosticSeverity.Warning, "EndNote XML record has no rec-number."));
         return item;
@@ -163,7 +171,11 @@ internal static class EndNoteXmlCodec {
     }
 
     private static void WriteIdentifier(XmlWriter writer, BibliographyIdentifier identifier) {
-        if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "isbn", identifier.Value);
+        if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) {
+            writer.WriteStartElement("isbn");
+            if (!string.Equals(CodecMappings.InferSerialScheme(identifier.Value), identifier.Scheme, StringComparison.OrdinalIgnoreCase)) writer.WriteAttributeString("type", identifier.Scheme.ToUpperInvariant());
+            writer.WriteString(identifier.Value); writer.WriteEndElement();
+        }
         else if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "electronic-resource-num", identifier.Value);
         else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "accession-num", identifier.Value);
     }
@@ -218,12 +230,29 @@ internal static class EndNoteXmlCodec {
         return builder.ToString();
     }
     private static bool HasUnsupportedNestedContent(XElement element) {
-        if (element.Attributes().Any(attribute => !string.Equals(element.Name.LocalName, "ref-type", StringComparison.OrdinalIgnoreCase) || !string.Equals(attribute.Name.LocalName, "name", StringComparison.OrdinalIgnoreCase))) return true;
+        if (element.Attributes().Any(attribute => !IsKnownAttribute(element, attribute))) return true;
         foreach (XElement descendant in element.Descendants()) {
             if (descendant.Attributes().Any() || !IsKnownNestedElement(element.Name.LocalName, descendant.Name.LocalName)) return true;
         }
         return false;
     }
+    private static bool IsKnownAttribute(XElement element, XAttribute attribute) {
+        if (string.Equals(element.Name.LocalName, "ref-type", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "name", StringComparison.OrdinalIgnoreCase)) return true;
+        return string.Equals(element.Name.LocalName, "isbn", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "type", StringComparison.OrdinalIgnoreCase) &&
+            (string.Equals(attribute.Value, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(attribute.Value, "ISSN", StringComparison.OrdinalIgnoreCase));
+    }
+    private static bool HasDuplicateKnownNestedContent(XElement element) {
+        foreach (XElement parent in element.DescendantsAndSelf()) {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (XElement child in parent.Elements()) {
+                if (IsRepeatableNestedElement(child.Name.LocalName)) continue;
+                if (!names.Add(child.Name.LocalName)) return true;
+            }
+        }
+        return false;
+    }
+    private static bool IsRepeatableRecordElement(string name) => string.Equals(name, "isbn", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "electronic-resource-num", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "accession-num", StringComparison.OrdinalIgnoreCase);
+    private static bool IsRepeatableNestedElement(string name) => string.Equals(name, "author", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "url", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "keyword", StringComparison.OrdinalIgnoreCase);
     private static bool IsKnownNestedElement(string container, string name) {
         name = name.ToLowerInvariant();
         switch (container.ToLowerInvariant()) {
@@ -254,4 +283,5 @@ internal static class EndNoteXmlCodec {
         internal EncodingStringWriter(StringBuilder builder, Encoding encoding) : base(builder, CultureInfo.InvariantCulture) => _encoding = encoding;
         public override Encoding Encoding => _encoding;
     }
+
 }

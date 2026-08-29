@@ -18,11 +18,7 @@ internal static class BibCodec {
         var builder = new StringBuilder();
         foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => IsBibFamily(entry.Format) && IsBibFamily(format))) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entry.Kind == "string") builder.Append("@string{").Append(entry.Name).Append(" = {").Append(Escape(entry.Value)).Append("}}").Append(options.LineEnding).Append(options.LineEnding);
-            else if (entry.Kind == "preamble") builder.Append("@preamble{{").Append(Escape(entry.Value)).Append("}}").Append(options.LineEnding).Append(options.LineEnding);
-            else if (entry.Kind == "comment") builder.Append("@comment{").Append(entry.Value).Append('}').Append(options.LineEnding).Append(options.LineEnding);
-            else if (entry.Kind == "line-comment") builder.Append('%').Append(entry.Value).Append(options.LineEnding);
-            if (entry.Kind == "string" || entry.Kind == "preamble" || entry.Kind == "comment" || entry.Kind == "line-comment") report.Add("BIBCONV010", BibliographyDiagnosticSeverity.Information, $"Preserved native BibTeX @{entry.Kind} entry.", BibliographyConversionAction.PreservedExtension, field: entry.Name ?? entry.Kind);
+            if (TryWriteNativeEntry(builder, entry, options.LineEnding)) report.Add("BIBCONV010", BibliographyDiagnosticSeverity.Information, $"Preserved native BibTeX @{entry.Kind} entry.", BibliographyConversionAction.PreservedExtension, field: entry.Name ?? entry.Kind);
             else report.Add("BIBCONV118", BibliographyDiagnosticSeverity.Warning, $"Native BibTeX document entry '{entry.Kind}' is not safe to write.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         }
         foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => !IsBibFamily(entry.Format))) {
@@ -62,7 +58,7 @@ internal static class BibCodec {
             if (accessed != null) Add(fields, "urldate", CodecMappings.FormatDate(accessed));
             foreach (BibliographyIdentifier identifier in item.Identifiers) {
                 string fieldName = identifier.Scheme.ToLowerInvariant();
-                if (IsSafeFieldName(fieldName) && !ReservedTypedFieldNames.Contains(fieldName)) Add(fields, fieldName, identifier.Value);
+                if (CodecMappings.IsBibIdentifierScheme(identifier.Scheme) && IsSafeFieldName(fieldName) && !ReservedTypedFieldNames.Contains(fieldName)) Add(fields, fieldName, identifier.Value);
                 else report.Add("BIBCONV129", BibliographyDiagnosticSeverity.Warning, $"Identifier scheme '{identifier.Scheme}' cannot be represented as a safe, non-conflicting BibTeX field.", BibliographyConversionAction.Omitted, item, "identifiers." + identifier.Scheme);
             }
             if (item.Keywords.Count > 0) Add(fields, "keywords", string.Join(", ", item.Keywords.Select(FormatBibListItem)));
@@ -70,7 +66,8 @@ internal static class BibCodec {
 
             var emitted = new HashSet<string>(fields.Select(static pair => pair.Key), StringComparer.OrdinalIgnoreCase);
             foreach (BibliographyNativeField field in item.NativeFields) {
-                if (IsBibFamily(field.Format) && IsSafeFieldName(field.Name) && IsFieldAllowedInTarget(field.Name, format) && !emitted.Contains(field.Name)) {
+                bool typedDuplicate = IsBibFamily(field.Format) && ReservedTypedFieldNames.Contains(field.Name);
+                if (IsBibFamily(field.Format) && IsSafeFieldName(field.Name) && IsFieldAllowedInTarget(field.Name, format) && (!emitted.Contains(field.Name) || typedDuplicate)) {
                     fields.Add(new KeyValuePair<string, string>(field.Name.ToLowerInvariant(), field.Value));
                     emitted.Add(field.Name);
                     report.Add("BIBCONV011", BibliographyDiagnosticSeverity.Information, $"Preserved native field '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
@@ -127,6 +124,25 @@ internal static class BibCodec {
         return depth == 0 ? value : EscapeAllBraces(value);
     }
     private static string EscapeAllBraces(string value) => value.Replace("{", "\\{").Replace("}", "\\}");
+    private static bool TryWriteNativeEntry(StringBuilder builder, BibliographyNativeEntry entry, string lineEnding) {
+        if (entry.Kind == "string" && IsSafeFieldName(entry.Name ?? string.Empty) && string.Equals(Escape(entry.Value), entry.Value, StringComparison.Ordinal)) {
+            builder.Append("@string{").Append(entry.Name).Append(" = {").Append(entry.Value).Append("}}").Append(lineEnding).Append(lineEnding);
+            return true;
+        }
+        if (entry.Kind == "preamble" && string.Equals(Escape(entry.Value), entry.Value, StringComparison.Ordinal)) {
+            builder.Append("@preamble{{").Append(entry.Value).Append("}}").Append(lineEnding).Append(lineEnding);
+            return true;
+        }
+        if (entry.Kind == "comment" && string.Equals(Escape(entry.Value), entry.Value, StringComparison.Ordinal)) {
+            builder.Append("@comment{").Append(entry.Value).Append('}').Append(lineEnding).Append(lineEnding);
+            return true;
+        }
+        if (entry.Kind == "line-comment" && entry.Value.IndexOf('\r') < 0 && entry.Value.IndexOf('\n') < 0) {
+            builder.Append('%').Append(entry.Value).Append(lineEnding);
+            return true;
+        }
+        return false;
+    }
     private static string SafeKey(string key) => string.IsNullOrWhiteSpace(key) ? "item" : new string(key.Select(character => char.IsWhiteSpace(character) || character == ',' || character == '}' ? '_' : character).ToArray());
     private static bool IsSafeFieldName(string name) => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':');
     private static bool IsSafeTypeName(string? name) => !string.IsNullOrWhiteSpace(name) && name!.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':' || character == '.');
@@ -297,22 +313,22 @@ internal static class BibCodec {
         private void Bind(BibliographyItem item, string name, string value) {
             string field = name.ToLowerInvariant();
             switch (field) {
-                case "title": item.Title = value; break;
+                case "title": SetScalar(item, field, value, () => item.Title, assigned => item.Title = assigned); break;
                 case "journal": case "journaltitle": if (item.ContainerTitle == null) { item.ContainerTitle = value; item.BibFieldNames["container-title"] = field; } else PreserveAdditionalField(item, field, value); break;
-                case "booktitle": item.CollectionTitle = value; break;
+                case "booktitle": SetScalar(item, field, value, () => item.CollectionTitle, assigned => item.CollectionTitle = assigned); break;
                 case "publisher": case "institution": case "organization": if (item.Publisher == null) { item.Publisher = value; item.BibFieldNames["publisher"] = field; } else PreserveAdditionalField(item, field, value); break;
                 case "address": case "location": if (item.PublisherPlace == null) { item.PublisherPlace = value; item.BibFieldNames["publisher-place"] = field; } else PreserveAdditionalField(item, field, value); break;
-                case "edition": item.Edition = value; break;
-                case "volume": item.Volume = value; break;
+                case "edition": SetScalar(item, field, value, () => item.Edition, assigned => item.Edition = assigned); break;
+                case "volume": SetScalar(item, field, value, () => item.Volume, assigned => item.Volume = assigned); break;
                 case "number": case "issue": if (item.Issue == null) { item.Issue = value; item.BibFieldNames["issue"] = field; } else PreserveAdditionalField(item, field, value); break;
                 case "pages": case "eid": if (item.Pages == null) { item.Pages = value; item.BibFieldNames["pages"] = field; } else PreserveAdditionalField(item, field, value); break;
-                case "abstract": item.Abstract = value; break;
+                case "abstract": SetScalar(item, field, value, () => item.Abstract, assigned => item.Abstract = assigned); break;
                 case "language": case "langid": if (item.Language == null) { item.Language = value; item.BibFieldNames["language"] = field; } else PreserveAdditionalField(item, field, value); break;
-                case "url": item.Url = value; break;
+                case "url": SetScalar(item, field, value, () => item.Url, assigned => item.Url = assigned); break;
                 case "author": AddNames(item, BibliographyContributorRole.Author, value); break;
                 case "editor": AddNames(item, BibliographyContributorRole.Editor, value); break;
                 case "translator": AddNames(item, BibliographyContributorRole.Translator, value); break;
-                case "date": item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Issued, value)); break;
+                case "date": SetIssuedDate(item, value); break;
                 case "year": SetYear(item, value); break;
                 case "month": SetMonth(item, value); break;
                 case "urldate": item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Accessed, value)); break;
@@ -328,6 +344,11 @@ internal static class BibCodec {
         }
 
         private void PreserveAdditionalField(BibliographyItem item, string fieldName, string value) => item.NativeFields.Add(new BibliographyNativeField(_format, fieldName, value));
+
+        private void SetScalar(BibliographyItem item, string fieldName, string value, Func<string?> read, Action<string> write) {
+            if (read() == null) write(value);
+            else PreserveAdditionalField(item, fieldName, value);
+        }
 
         private void AppendValue(StringBuilder builder, string value, int offset) { _limits.CheckAdditionalValueLength(_items, builder.Length, value.Length, offset); builder.Append(value); }
         private void AppendValue(StringBuilder builder, char value, int offset) { _limits.CheckAdditionalValueLength(_items, builder.Length, 1, offset); builder.Append(value); }
@@ -390,15 +411,27 @@ internal static class BibCodec {
             if (start <= value.Length) yield return value.Substring(start).Trim();
         }
 
-        private static void SetYear(BibliographyItem item, string value) {
+        private void SetYear(BibliographyItem item, string value) {
             BibliographyDate date = item.GetDate(BibliographyDateRole.Issued) ?? new BibliographyDate { Role = BibliographyDateRole.Issued };
             if (!item.Dates.Contains(date)) item.Dates.Add(date);
+            if (item.BibFieldNames.ContainsKey("issued-year")) { PreserveAdditionalField(item, "year", value); return; }
+            item.BibFieldNames["issued-year"] = "year";
             if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int year)) date.Year = year; else date.Literal = value;
         }
 
-        private static void SetMonth(BibliographyItem item, string value) {
+        private void SetIssuedDate(BibliographyItem item, string value) {
+            if (item.GetDate(BibliographyDateRole.Issued) != null) { PreserveAdditionalField(item, "date", value); return; }
+            item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Issued, value));
+            item.BibFieldNames["issued-date"] = "date";
+            item.BibFieldNames["issued-year"] = "date";
+            item.BibFieldNames["issued-month"] = "date";
+        }
+
+        private void SetMonth(BibliographyItem item, string value) {
             BibliographyDate date = item.GetDate(BibliographyDateRole.Issued) ?? new BibliographyDate { Role = BibliographyDateRole.Issued };
             if (!item.Dates.Contains(date)) item.Dates.Add(date);
+            if (item.BibFieldNames.ContainsKey("issued-month")) { PreserveAdditionalField(item, "month", value); return; }
+            item.BibFieldNames["issued-month"] = "month";
             int? month = CodecMappings.ParseMonth(value);
             if (month.HasValue) date.Month = month; else date.Literal = string.IsNullOrEmpty(date.Literal) ? value : date.Literal + " " + value;
         }
