@@ -172,4 +172,37 @@ public sealed class BibliographyReviewRemediationTests {
         Assert.Contains("<custom>edited</custom>", written.Content, StringComparison.Ordinal);
         Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV234" && diagnostic.Field == "native.custom");
     }
+
+    [Theory]
+    [InlineData("TY  - BOOK\r\nTI  - abcde\r\nER  -\r\n", BibliographyFormat.Ris, "TI")]
+    [InlineData("PMID- 1\r\nTI  - abcde\r\n", BibliographyFormat.Nbib, "TI")]
+    public void Tagged_limit_diagnostics_report_character_offsets(string source, BibliographyFormat format, string failingTag) {
+        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaximumValueLength = 4 });
+
+        BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, static diagnostic => diagnostic.Code == "BIBLIM001");
+        Assert.Equal(source.IndexOf(failingTag, StringComparison.Ordinal), diagnostic.Offset);
+    }
+
+    [Fact]
+    public void CSL_writer_accepts_native_values_up_to_the_read_depth_limit() {
+        string nested = new string('[', 1010) + "0" + new string(']', 1010);
+        string source = "[{\"id\":\"x\",\"type\":\"book\",\"custom\":" + nested + "}]";
+        var readOptions = new BibliographyReadOptions { MaximumNestingDepth = 1024 };
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, readOptions).Document;
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyReadResult reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson, readOptions);
+
+        Assert.False(reopened.HasErrors);
+        Assert.NotNull(Assert.Single(reopened.Document.Items[0].NativeFields).UnmodifiedRawValue);
+    }
+
+    [Fact]
+    public void CSL_parser_observes_cancellation_while_materializing_an_empty_root() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            CslJsonCodec.Parse("[]", new BibliographyReadOptions(), new System.Collections.Generic.List<BibliographyDiagnostic>(), out _, cancellation.Token));
+    }
 }

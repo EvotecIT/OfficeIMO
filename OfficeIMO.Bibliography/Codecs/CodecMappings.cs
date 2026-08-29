@@ -100,7 +100,8 @@ internal static class CodecMappings {
         if (!string.IsNullOrWhiteSpace(name.Literal)) return name.Literal + ",";
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
-        return string.Join(", ", new[] { family, given, name.Suffix }.Where(static part => !string.IsNullOrWhiteSpace(part)));
+        if (!string.IsNullOrWhiteSpace(name.Suffix)) return family + ", " + given + ", " + name.Suffix;
+        return !string.IsNullOrWhiteSpace(given) ? family + ", " + given : family;
     }
 
     internal static void AddIdentifier(BibliographyItem item, string scheme, string? value) {

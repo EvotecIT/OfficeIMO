@@ -217,7 +217,7 @@ internal static class BibliographyFormatDetector {
         position >= 0 && position <= source.Length - value.Length && string.Compare(source, position, value, 0, value.Length, comparison) == 0;
 
     private static int SkipWhitespace(string source, int position) {
-        while (position < source.Length && char.IsWhiteSpace(source[position])) position++;
+        while (position < source.Length && (char.IsWhiteSpace(source[position]) || source[position] == '\uFEFF')) position++;
         return position;
     }
 }

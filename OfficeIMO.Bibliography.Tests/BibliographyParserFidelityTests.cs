@@ -463,4 +463,70 @@ public sealed class BibliographyParserFidelityTests {
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == expectedField);
     }
+
+    [Theory]
+    [InlineData(BibliographyFormat.Ris, "given")]
+    [InlineData(BibliographyFormat.Ris, "suffix")]
+    [InlineData(BibliographyFormat.Nbib, "given")]
+    [InlineData(BibliographyFormat.Nbib, "suffix")]
+    [InlineData(BibliographyFormat.EndNoteXml, "given")]
+    [InlineData(BibliographyFormat.EndNoteXml, "suffix")]
+    public void Tagged_name_output_preserves_empty_structured_positions(BibliographyFormat format, string component) {
+        var document = new BibliographyDocument(format);
+        var item = new BibliographyItem { Key = format == BibliographyFormat.Nbib ? "1" : "x", Type = format == BibliographyFormat.Nbib ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book, Title = "Names" };
+        var name = new BibliographyName();
+        if (component == "given") name.Given = "Cher";
+        else name.Suffix = "Jr.";
+        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, name));
+        if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
+        document.Items.Add(item);
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyName reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Contributors).Name;
+
+        Assert.Equal(name.Given ?? string.Empty, reopened.Given ?? string.Empty);
+        Assert.Equal(name.Family ?? string.Empty, reopened.Family ?? string.Empty);
+        Assert.Equal(name.Suffix ?? string.Empty, reopened.Suffix ?? string.Empty);
+    }
+
+    [Fact]
+    public void Generic_document_is_exact_in_RIS() {
+        var document = new BibliographyDocument(BibliographyFormat.Ris);
+        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Document, Title = "Document" });
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
+
+        Assert.Contains("TY  - GEN", written.Content, StringComparison.Ordinal);
+        Assert.Equal(BibliographyItemType.Document, reopened.Type);
+    }
+
+    [Theory]
+    [InlineData("\uFEFF@book{x,title={BOM}}", BibliographyFormat.BibLatex)]
+    [InlineData("\uFEFF[{\"id\":\"x\",\"type\":\"book\"}]", BibliographyFormat.CslJson)]
+    [InlineData("\uFEFFTY  - BOOK\nID  - x\nER  -\n", BibliographyFormat.Ris)]
+    [InlineData("\uFEFFPMID- 1\nTI  - BOM\n", BibliographyFormat.Nbib)]
+    [InlineData("\uFEFF<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type></record></records></xml>", BibliographyFormat.EndNoteXml)]
+    public void Auto_detection_skips_a_leading_BOM(string source, BibliographyFormat expected) {
+        BibliographyReadResult read = BibliographyDocument.Parse(source);
+
+        Assert.Equal(expected, read.Document.SourceFormat);
+        Assert.False(read.HasErrors);
+        Assert.Single(read.Document.Items);
+    }
+
+    [Fact]
+    public void NBIB_identifier_order_survives_strict_canonical_output() {
+        var document = new BibliographyDocument(BibliographyFormat.Nbib);
+        var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.ArticleJournal, Title = "Identifiers" };
+        item.Identifiers.Add(new BibliographyIdentifier("DOI", "10.1/example"));
+        item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
+        item.Identifiers.Add(new BibliographyIdentifier("ISSN", "1234-5678"));
+        document.Items.Add(item);
+
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
+
+        Assert.Equal(new[] { "DOI", "PMID", "ISSN" }, reopened.Identifiers.Select(static identifier => identifier.Scheme.ToUpperInvariant()));
+    }
 }

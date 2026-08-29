@@ -3,6 +3,8 @@ using System.Text.Json;
 namespace OfficeIMO.Bibliography;
 
 internal static class CslJsonCodec {
+    private const int NativeJsonMaximumDepth = 1024;
+    private const int JsonWriterMaximumDepth = NativeJsonMaximumDepth + 8;
 
     internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, out bool singleObjectRoot, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
@@ -10,7 +12,7 @@ internal static class CslJsonCodec {
         var limits = new BibliographyLimitGuard(options);
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
-            using JsonDocument json = JsonDocument.Parse(source, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
+            using JsonDocument json = ParseDocument(source, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth }, cancellationToken);
             if (json.RootElement.ValueKind == JsonValueKind.Array) {
                 foreach (JsonElement element in json.RootElement.EnumerateArray()) ParseItem(element, items, limits, diagnosticGuard, cancellationToken);
             } else if (json.RootElement.ValueKind == JsonValueKind.Object) {
@@ -28,7 +30,7 @@ internal static class CslJsonCodec {
 
     internal static string Write(BibliographyDocument document, BibliographyWriteOptions options, BibliographyConversionReport report, CancellationToken cancellationToken) {
         using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true })) {
+        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true, MaxDepth = JsonWriterMaximumDepth })) {
             bool preserveSingleObjectRoot = document.Items.Count == 1 && document.CslJsonSingleObjectRoot;
             if (!preserveSingleObjectRoot) writer.WriteStartArray();
             for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
@@ -351,7 +353,28 @@ internal static class CslJsonCodec {
     }
 
     private static bool TryWriteRaw(Utf8JsonWriter writer, string raw) {
-        try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = 1024 }); value.RootElement.WriteTo(writer); return true; } catch (JsonException) { return false; }
+        try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); value.RootElement.WriteTo(writer); return true; } catch (JsonException) { return false; }
+    }
+
+    private static JsonDocument ParseDocument(string source, JsonDocumentOptions options, CancellationToken cancellationToken) {
+        const int ChunkCharacters = 4096;
+        using var stream = new MemoryStream(Math.Min(source.Length, 1024 * 1024));
+        var encoder = Encoding.UTF8.GetEncoder();
+        var characters = new char[Math.Min(ChunkCharacters, Math.Max(1, source.Length))];
+        var bytes = new byte[Encoding.UTF8.GetMaxByteCount(characters.Length)];
+        int position = 0;
+        while (position < source.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int characterCount = Math.Min(characters.Length, source.Length - position);
+            source.CopyTo(position, characters, 0, characterCount);
+            bool flush = position + characterCount == source.Length;
+            encoder.Convert(characters, 0, characterCount, bytes, 0, bytes.Length, flush, out int charactersUsed, out int bytesUsed, out _);
+            stream.Write(bytes, 0, bytesUsed);
+            position += charactersUsed;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        stream.Position = 0;
+        return JsonDocument.ParseAsync(stream, options, cancellationToken).GetAwaiter().GetResult();
     }
     private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field) {
         string? raw = field.UnmodifiedRawValue;

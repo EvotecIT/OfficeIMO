@@ -17,9 +17,10 @@ internal static class EndNoteXmlCodec {
         var limits = new BibliographyLimitGuard(options);
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
+            string xmlSource = source.Length > 0 && source[0] == '\uFEFF' ? source.Substring(1) : source;
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaximumInputCharacters };
-            ValidateDepth(source, settings, limits, items, cancellationToken);
-            using var textReader = new StringReader(source);
+            ValidateDepth(xmlSource, settings, limits, items, cancellationToken);
+            using var textReader = new StringReader(xmlSource);
             using XmlReader reader = XmlReader.Create(textReader, settings);
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
             XElement? root = document.Root;
