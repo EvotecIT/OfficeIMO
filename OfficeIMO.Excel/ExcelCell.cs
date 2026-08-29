@@ -754,6 +754,11 @@ namespace OfficeIMO.Excel {
             get => _underline;
             set {
                 _underline = value;
+                if (!value) {
+                    _underlineStyle = ExcelUnderlineStyle.None;
+                } else if (!_underlineStyle.HasValue || _underlineStyle == ExcelUnderlineStyle.None) {
+                    _underlineStyle = ExcelUnderlineStyle.Single;
+                }
                 UnderlineSpecified = true;
             }
         }
@@ -770,7 +775,10 @@ namespace OfficeIMO.Excel {
             get => _underlineStyle;
             set {
                 _underlineStyle = value;
-                if (value.HasValue) UnderlineSpecified = true;
+                if (value.HasValue) {
+                    _underline = value != ExcelUnderlineStyle.None;
+                    UnderlineSpecified = true;
+                }
             }
         }
         /// <summary>Gets or sets the run font color as a hex value.</summary>

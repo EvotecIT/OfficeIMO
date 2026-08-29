@@ -77,7 +77,7 @@ internal static class OdfTextCodec {
         if (element == null) throw new ArgumentNullException(nameof(element));
         if (textCase == OfficeIMO.Drawing.OfficeTextCase.None) return;
 
-        string source = Read(element);
+        string source = ReadTransformText(element);
         string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(source, textCase, culture);
         if (transformed.Length == source.Length) {
             int offset = 0;
@@ -98,7 +98,7 @@ internal static class OdfTextCodec {
         var source = new StringBuilder();
         for (int index = 0; index < elements.Count; index++) {
             if (elements[index] == null) throw new ArgumentException("Text elements cannot contain null entries.", nameof(elements));
-            string paragraphText = Read(elements[index]);
+            string paragraphText = ReadTransformText(elements[index]);
             int separatorLength = index > 0 ? 1 : 0;
             EnsureCapacity(source, separatorLength + paragraphText.Length, MaximumDecodedCharacters);
             if (separatorLength != 0) source.Append('\n');
@@ -149,6 +149,7 @@ internal static class OdfTextCodec {
                 continue;
             }
             if (!(node is XElement element)) continue;
+            if (IsExcludedFromCaseTransform(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 segments.Add(new string(' ', ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"))));
                 targets.Add(null);
@@ -173,6 +174,7 @@ internal static class OdfTextCodec {
                 continue;
             }
             if (!(node is XElement element)) continue;
+            if (IsExcludedFromCaseTransform(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 offset += ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
             } else if (element.Name == OdfNamespaces.Text + "tab" ||
@@ -183,6 +185,49 @@ internal static class OdfTextCodec {
             }
         }
     }
+
+    private static string ReadTransformText(XElement element) {
+        var builder = new StringBuilder();
+        AppendTransformValue(element.Nodes(), builder, MaximumDecodedCharacters);
+        return builder.ToString();
+    }
+
+    private static void AppendTransformValue(IEnumerable<XNode> nodes, StringBuilder builder, int maximumCharacters) {
+        foreach (XNode node in nodes) {
+            if (node is XText text) {
+                AppendBounded(builder, text.Value, maximumCharacters);
+                continue;
+            }
+            if (!(node is XElement element) || IsExcludedFromCaseTransform(element)) continue;
+            if (element.Name == OdfNamespaces.Text + "s") {
+                int count = ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
+                EnsureCapacity(builder, count, maximumCharacters);
+                builder.Append(' ', count);
+            } else if (element.Name == OdfNamespaces.Text + "tab") {
+                EnsureCapacity(builder, 1, maximumCharacters);
+                builder.Append('\t');
+            } else if (element.Name == OdfNamespaces.Text + "line-break") {
+                EnsureCapacity(builder, 1, maximumCharacters);
+                builder.Append('\n');
+            } else {
+                AppendTransformValue(element.Nodes(), builder, maximumCharacters);
+            }
+        }
+    }
+
+    private static bool IsExcludedFromCaseTransform(XElement element) =>
+        element.Name == OdfNamespaces.Office + "annotation" ||
+        element.Name == OdfNamespaces.Presentation + "notes" ||
+        element.Name == OdfNamespaces.Text + "note" ||
+        element.Name == OdfNamespaces.Svg + "title" ||
+        element.Name == OdfNamespaces.Svg + "desc" ||
+        element.Name == OdfNamespaces.Office + "binary-data" ||
+        element.Name == OdfNamespaces.Draw + "object" ||
+        element.Name == OdfNamespaces.Draw + "object-ole" ||
+        element.Name == OdfNamespaces.Draw + "image" ||
+        element.Name == OdfNamespaces.Draw + "plugin" ||
+        element.Name == OdfNamespaces.Draw + "applet" ||
+        element.Name == OdfNamespaces.Draw + "floating-frame";
 
     private static void AppendValue(IEnumerable<XNode> nodes, StringBuilder builder, int maximumCharacters) {
         foreach (XNode node in nodes) {

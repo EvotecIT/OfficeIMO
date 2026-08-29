@@ -125,6 +125,14 @@ public sealed class OfficeTextCaseTests {
     }
 
     [Fact]
+    public void SentenceCaseRecognizesUnicodeSentenceTerminalCharacters() {
+        const string input = "hELLO。wORLD؟aNOTHER\U0001DA88fINAL";
+
+        Assert.Equal("Hello。World؟Another\U0001DA88Final",
+            OfficeTextCaseTransformer.Apply(input, OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public void ContextSensitiveLowercaseUsesTheCombinedSourceAcrossTextElementsAndSegments() {
         CultureInfo greek = CultureInfo.GetCultureInfo("el-GR");
 

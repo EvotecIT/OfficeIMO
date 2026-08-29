@@ -1,6 +1,7 @@
 using System.IO;
 using System.Globalization;
 using System.Linq;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -155,6 +156,28 @@ public class OpenDocumentTextFormattingTests {
         Assert.True(Assert.Single(actualOdp.Runs).Italic);
         Assert.Equal("https://example.test/sentence", Assert.Single(actualOdp.InlineNodes,
             node => node.Kind == OdpInlineNodeKind.Hyperlink).Hyperlink!.Href);
+    }
+
+    [Fact]
+    public void ParagraphCaseTransformsExcludeAnnotationsAndEmbeddedObjectMetadata() {
+        OdtDocument document = OdtDocument.Create();
+        OdtParagraph paragraph = document.AddParagraph().AddText("hELLO ");
+        var annotation = new XElement(OdfNamespaces.Office + "annotation",
+            new XElement(OdfNamespaces.Dc + "creator", "aUTHOR"),
+            new XElement(OdfNamespaces.Text + "p", "nOTE."));
+        var embeddedObject = new XElement(OdfNamespaces.Draw + "object",
+            new XElement(OdfNamespaces.Office + "binary-data", "mETADATA."));
+        paragraph.Element.Add(annotation, embeddedObject);
+        OdtSpan trailing = paragraph.AddSpan("wORLD");
+
+        paragraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+
+        Assert.Equal("Hello", Assert.IsType<XText>(paragraph.Element.FirstNode).Value);
+        Assert.Equal(OdfNamespaces.Text + "s", paragraph.Element.Elements().First().Name);
+        Assert.Equal("world", trailing.Text);
+        Assert.Equal("aUTHOR", annotation.Element(OdfNamespaces.Dc + "creator")!.Value);
+        Assert.Equal("nOTE.", annotation.Element(OdfNamespaces.Text + "p")!.Value);
+        Assert.Equal("mETADATA.", embeddedObject.Descendants(OdfNamespaces.Office + "binary-data").Single().Value);
     }
 
     [Fact]

@@ -78,6 +78,7 @@ public class ExcelTextFormattingTests {
             ExcelRichTextRun[] runs = reloadedSheet.CellAt(2, 1).GetRichText().ToArray();
             Assert.Equal(new[] { "sTYLED", " text" }, runs.Select(run => run.Text));
             Assert.True(runs[0].Bold);
+            Assert.True(runs[0].Underline);
             Assert.Equal(ExcelUnderlineStyle.Double, runs[0].UnderlineStyle);
             Assert.True(runs[1].Italic);
             Assert.Equal(ExcelVerticalTextAlignment.Subscript, runs[1].VerticalTextAlignment);
@@ -86,6 +87,25 @@ public class ExcelTextFormattingTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void RichTextRunKeepsUnderlineBooleanAndStyleSynchronized() {
+        var run = new ExcelRichTextRun("Styled") { UnderlineStyle = ExcelUnderlineStyle.Double };
+        Assert.True(run.Underline);
+        Assert.Equal(ExcelUnderlineStyle.Double, run.UnderlineStyle);
+
+        run.UnderlineStyle = ExcelUnderlineStyle.None;
+        Assert.False(run.Underline);
+
+        run.Underline = true;
+        Assert.True(run.Underline);
+        Assert.Equal(ExcelUnderlineStyle.Single, run.UnderlineStyle);
+
+        run.UnderlineStyle = ExcelUnderlineStyle.DoubleAccounting;
+        run.Underline = false;
+        Assert.False(run.Underline);
+        Assert.Equal(ExcelUnderlineStyle.None, run.UnderlineStyle);
     }
 
     [Fact]
