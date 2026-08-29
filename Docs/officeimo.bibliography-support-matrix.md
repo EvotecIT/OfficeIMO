@@ -19,7 +19,7 @@ This matrix defines the current `OfficeIMO.Bibliography` data, preservation, and
 
 | Capability | Contract |
 | --- | --- |
-| Identity | Stable citation key plus original native item type |
+| Identity | Stable citation key plus original native item type; deterministic generated keys avoid collisions with supplied keys |
 | Item kind | Journal, magazine and newspaper articles; books and chapters; conference papers and proceedings; reports; theses; web pages; datasets; software; patents; legal cases; manuscripts; personal communications; generic documents |
 | Contributors | Ordered personal or literal organization names with author, editor, translator, recipient, interviewer, composer, collection-editor, and other roles |
 | Names | Given, family, literal, suffix, dropping-particle, and non-dropping-particle components |
@@ -33,11 +33,11 @@ This matrix defines the current `OfficeIMO.Bibliography` data, preservation, and
 
 | Format | Native behavior and known limits |
 | --- | --- |
-| BibTeX/BibLaTeX | Reads braced, quoted, numeric, identifier, nested-brace, and `#`-concatenated values. Retains unknown fields, `@string`, `@preamble`, `@comment`, and top-level `%` comments. String expansion is bounded and non-executing. Canonical writing does not evaluate TeX macros. |
-| CSL JSON | Reads a single item object or item array. Preserves unknown properties as raw JSON values and writes them back in same-format canonical output. JSON comments and trailing commas are accepted but normalized. CSL JSON is treated as an interchange shape; the external CSL schema remains the authority for a consumer's chosen profile. |
+| BibTeX/BibLaTeX | Reads braced, quoted, numeric, identifier, nested-brace, and `#`-concatenated values. Retains unknown fields, `@string`, `@preamble`, `@comment`, and top-level `%` comments. Empty keyword entries survive canonical output. String expansion is bounded and non-executing. Structured name components containing BibTeX separators such as top-level commas or `and` are diagnosed as lossy before strict output. Canonical writing does not evaluate TeX macros. |
+| CSL JSON | Reads a single item object or item array. Known scalar properties become typed values only when their JSON shape is a string; numeric, Boolean, null, object, and array shapes remain raw native JSON for exact same-format output. Unknown properties are likewise preserved as raw JSON values. JSON comments and trailing commas are accepted but normalized. CSL JSON is treated as an interchange shape; the external CSL schema remains the authority for a consumer's chosen profile. |
 | RIS | Reads ordered tags, repeated tags, records delimited by `TY`/`ER`, and continuation lines. Unknown safe two-to-five-character tags survive same-format canonical output. |
 | NBIB/MEDLINE | Reads four-character-style tags, repeated fields, continuation lines, blank-record boundaries, PMID identity, and bracket-qualified identifiers such as DOI. Unknown safe tags survive same-format canonical output. |
-| EndNote XML | Reads record numbers and types, contributors, titles, dates, identifiers, publication fields, URLs, keywords, notes, and unknown record elements. Safe unknown root elements and direct record elements survive same-format canonical output. Unsupported content nested inside a known container remains available as raw native XML and produces a loss diagnostic if a canonical edit cannot merge it safely. DTD processing and external resolution are prohibited. |
+| EndNote XML | Reads record numbers and types, contributors, titles, dates, identifiers, publication fields, URLs, keywords, notes, and unknown record elements. Safe unknown root elements and direct record elements survive same-format canonical output; retained records-container extensions cannot introduce reserved direct `record` elements. Unsupported content nested inside a known container remains available as raw native XML and produces a loss diagnostic if a canonical edit cannot merge it safely. DTD processing and external resolution are prohibited. |
 
 ## Preservation and conversion
 

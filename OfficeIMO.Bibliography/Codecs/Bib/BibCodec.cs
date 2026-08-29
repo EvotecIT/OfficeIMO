@@ -16,6 +16,7 @@ internal static class BibCodec {
 
     internal static string Write(BibliographyDocument document, BibliographyFormat format, BibliographyWriteOptions options, BibliographyConversionReport report, CancellationToken cancellationToken) {
         var builder = new StringBuilder();
+        string[] outputKeys = CodecMappings.OutputKeys(document.Items, format, cancellationToken);
         foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => IsBibFamily(entry.Format) && IsBibFamily(format))) {
             cancellationToken.ThrowIfCancellationRequested();
             if (TryWriteNativeEntry(builder, entry, options.LineEnding)) report.Add("BIBCONV010", BibliographyDiagnosticSeverity.Information, $"Preserved native BibTeX @{entry.Kind} entry.", BibliographyConversionAction.PreservedExtension, field: entry.Name ?? entry.Kind);
@@ -29,7 +30,7 @@ internal static class BibCodec {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
             string type = CanPreserveNativeType(document.SourceFormat, format, item) ? item.NativeType! : OutputType(item.Type, format);
-            builder.Append('@').Append(type.ToLowerInvariant()).Append('{').Append(SafeKey(CodecMappings.OutputKey(item, itemIndex))).Append(',').Append(options.LineEnding);
+            builder.Append('@').Append(type.ToLowerInvariant()).Append('{').Append(SafeKey(outputKeys[itemIndex])).Append(',').Append(options.LineEnding);
             var fields = new List<KeyValuePair<string, string>>();
             Add(fields, "title", item.Title);
             AddNames(fields, "author", item, BibliographyContributorRole.Author);
@@ -122,7 +123,7 @@ internal static class BibCodec {
     }
 
     private static string FormatBibListItem(string value) =>
-        value.IndexOf(',') >= 0 || value.IndexOf(';') >= 0 || value.Length >= 2 && value[0] == '{' && value[value.Length - 1] == '}' ? "{" + value + "}" : value;
+        string.IsNullOrWhiteSpace(value) || value.IndexOf(',') >= 0 || value.IndexOf(';') >= 0 || value.Length >= 2 && value[0] == '{' && value[value.Length - 1] == '}' ? "{" + value + "}" : value;
 
     private static string Escape(string value) {
         int depth = 0;
@@ -175,14 +176,14 @@ internal static class BibCodec {
 
     internal static bool CanRoundTripStructuredName(BibliographyName name) {
         if (!string.IsNullOrWhiteSpace(name.Literal)) return string.IsNullOrWhiteSpace(name.Given) && string.IsNullOrWhiteSpace(name.Family) && string.IsNullOrWhiteSpace(name.Suffix) && string.IsNullOrWhiteSpace(name.NonDroppingParticle) && string.IsNullOrWhiteSpace(name.DroppingParticle);
-        if (new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle }.Any(ContainsBibNameSeparator)) return false;
+        if (new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle }.Any(ContainsBibNameSyntaxSeparator)) return false;
         if (!IsLowercaseParticle(name.NonDroppingParticle) || !IsLowercaseParticle(name.DroppingParticle)) return false;
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         return CountLeadingBibParticleWords(family) == CountWords(name.NonDroppingParticle) && CountTrailingLowercaseWords(given) == CountWords(name.DroppingParticle);
     }
 
-    private static bool ContainsBibNameSeparator(string? value) => value?.IndexOf(" and ", StringComparison.OrdinalIgnoreCase) >= 0;
+    private static bool ContainsBibNameSyntaxSeparator(string? value) => value?.IndexOf(',') >= 0 || value?.IndexOf(" and ", StringComparison.OrdinalIgnoreCase) >= 0;
 
     private static bool IsLowercaseParticle(string? value) => string.IsNullOrWhiteSpace(value) || value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).All(static word => StartsWithLowercaseLetter(word));
     private static int CountWords(string? value) => string.IsNullOrWhiteSpace(value) ? 0 : value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
@@ -217,7 +218,7 @@ internal static class BibCodec {
                 if (_position >= _source.Length) break;
                 if (_source[_position] != '@') {
                     int invalidStart = _position;
-                    while (_position < _source.Length && _source[_position] != '@') _position++;
+                    while (_position < _source.Length && _source[_position] != '@') { CheckScanCancellation(); _position++; }
                     AddDiagnostic("BIBBIB001", "Ignored text outside a BibTeX entry.", invalidStart);
                     continue;
                 }
@@ -254,7 +255,7 @@ internal static class BibCodec {
             SkipWhitespace();
             int keyStart = _position;
             var keyBuilder = new StringBuilder();
-            while (_position < _source.Length && _source[_position] != ',' && _source[_position] != close) AppendValue(keyBuilder, _source[_position++], keyStart);
+            while (_position < _source.Length && _source[_position] != ',' && _source[_position] != close) { CheckScanCancellation(); AppendValue(keyBuilder, _source[_position++], keyStart); }
             string key = keyBuilder.ToString().Trim();
             _limits.AddValue(_items, key, keyStart);
             var item = new BibliographyItem { Key = key, NativeType = nativeType, Type = CodecMappings.ParseType(nativeType) };
@@ -340,7 +341,7 @@ internal static class BibCodec {
         private string ReadValueAtom(char close) {
             int start = _position;
             var builder = new StringBuilder();
-            while (_position < _source.Length && _source[_position] != '#' && _source[_position] != ',' && _source[_position] != close && !char.IsWhiteSpace(_source[_position])) AppendValue(builder, _source[_position++], start);
+            while (_position < _source.Length && _source[_position] != '#' && _source[_position] != ',' && _source[_position] != close && !char.IsWhiteSpace(_source[_position])) { CheckScanCancellation(); AppendValue(builder, _source[_position++], start); }
             return builder.ToString();
         }
 
@@ -505,17 +506,18 @@ internal static class BibCodec {
         private string ReadIdentifier() {
             SkipWhitespace();
             int start = _position;
-            while (_position < _source.Length && (char.IsLetterOrDigit(_source[_position]) || _source[_position] == '-' || _source[_position] == '_' || _source[_position] == ':' || _source[_position] == '.')) _position++;
+            while (_position < _source.Length && (char.IsLetterOrDigit(_source[_position]) || _source[_position] == '-' || _source[_position] == '_' || _source[_position] == ':' || _source[_position] == '.')) { CheckScanCancellation(); _position++; }
             return _source.Substring(start, _position - start);
         }
 
         private bool Consume(char value) { SkipWhitespace(); if (_position < _source.Length && _source[_position] == value) { _position++; return true; } return false; }
         private void ConsumeClose(char close) { SkipWhitespaceAndCommas(); if (!Consume(close)) AddDiagnostic("BIBBIB009", $"Expected closing '{close}'.", _position, severity: BibliographyDiagnosticSeverity.Error); }
-        private void SkipWhitespace() { while (_position < _source.Length && char.IsWhiteSpace(_source[_position])) _position++; }
-        private void SkipWhitespaceAndCommas() { while (_position < _source.Length && (char.IsWhiteSpace(_source[_position]) || _source[_position] == ',')) _position++; }
-        private void SkipTrivia() { while (_position < _source.Length) { if (char.IsWhiteSpace(_source[_position]) || _source[_position] == '\uFEFF') { _position++; continue; } if (_source[_position] == '%') { int start = ++_position; var builder = new StringBuilder(); while (_position < _source.Length && _source[_position] != '\n' && _source[_position] != '\r') AppendValue(builder, _source[_position++], start); string value = builder.ToString(); _limits.AddValue(_items, value, start); _nativeEntries.Add(new BibliographyNativeEntry(_format, "line-comment", value)); continue; } break; } }
-        private void RecoverToNextEntry() { int next = _source.IndexOf('@', _position); _position = next < 0 ? _source.Length : next; }
-        private void RecoverToDelimiter(char close) { while (_position < _source.Length && _source[_position] != ',' && _source[_position] != close) _position++; }
+        private void SkipWhitespace() { while (_position < _source.Length && char.IsWhiteSpace(_source[_position])) { CheckScanCancellation(); _position++; } }
+        private void SkipWhitespaceAndCommas() { while (_position < _source.Length && (char.IsWhiteSpace(_source[_position]) || _source[_position] == ',')) { CheckScanCancellation(); _position++; } }
+        private void SkipTrivia() { while (_position < _source.Length) { CheckScanCancellation(); if (char.IsWhiteSpace(_source[_position]) || _source[_position] == '\uFEFF') { _position++; continue; } if (_source[_position] == '%') { int start = ++_position; var builder = new StringBuilder(); while (_position < _source.Length && _source[_position] != '\n' && _source[_position] != '\r') { CheckScanCancellation(); AppendValue(builder, _source[_position++], start); } string value = builder.ToString(); _limits.AddValue(_items, value, start); _nativeEntries.Add(new BibliographyNativeEntry(_format, "line-comment", value)); continue; } break; } }
+        private void RecoverToNextEntry() { while (_position < _source.Length && _source[_position] != '@') { CheckScanCancellation(); _position++; } }
+        private void RecoverToDelimiter(char close) { while (_position < _source.Length && _source[_position] != ',' && _source[_position] != close) { CheckScanCancellation(); _position++; } }
+        private void CheckScanCancellation() { if ((_position & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested(); }
         private void AddDiagnostic(string code, string message, int offset, string? key = null, string? field = null, BibliographyDiagnosticSeverity severity = BibliographyDiagnosticSeverity.Warning) {
             GetLocation(offset, out int line, out int column);
             if (_diagnostics.Count >= _maximumDiagnosticCount) {
@@ -533,6 +535,7 @@ internal static class BibCodec {
             if (offset < _locationOffset) { _locationOffset = 0; _locationLine = 1; _locationColumn = 1; }
             int target = Math.Min(offset, _source.Length);
             while (_locationOffset < target) {
+                if ((_locationOffset & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested();
                 if (_source[_locationOffset++] == '\n') { _locationLine++; _locationColumn = 1; } else _locationColumn++;
             }
             line = _locationLine; column = _locationColumn;

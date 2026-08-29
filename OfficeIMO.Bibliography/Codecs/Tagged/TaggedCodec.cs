@@ -9,11 +9,12 @@ internal static class TaggedCodec {
 
     internal static string WriteRis(BibliographyDocument document, BibliographyWriteOptions options, BibliographyConversionReport report, CancellationToken cancellationToken) {
         var builder = new StringBuilder();
+        string[] outputKeys = CodecMappings.OutputKeys(document.Items, BibliographyFormat.Ris, cancellationToken);
         for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
             WriteTag(builder, "TY", item.Type == BibliographyItemType.Unknown && IsRisType(item.NativeType) ? item.NativeType!.ToUpperInvariant() : CodecMappings.ToRisType(item.Type), options.LineEnding);
-            WriteTag(builder, "ID", CodecMappings.OutputKey(item, itemIndex), options.LineEnding);
+            WriteTag(builder, "ID", outputKeys[itemIndex], options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "title", "TI"), item.Title, options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "container-title", "T2"), item.ContainerTitle, options.LineEnding);
             foreach (BibliographyContributor contributor in item.Contributors) {
@@ -37,6 +38,7 @@ internal static class TaggedCodec {
 
     internal static string WriteNbib(BibliographyDocument document, BibliographyWriteOptions options, BibliographyConversionReport report, CancellationToken cancellationToken) {
         var builder = new StringBuilder();
+        string[] outputKeys = CodecMappings.OutputKeys(document.Items, BibliographyFormat.Nbib, cancellationToken);
         for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
@@ -48,7 +50,7 @@ internal static class TaggedCodec {
             BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, "DP", CodecMappings.FormatDate(issued), options.LineEnding);
             WriteTag(builder, "VI", item.Volume, options.LineEnding); WriteTag(builder, "IP", item.Issue, options.LineEnding); WriteTag(builder, "PG", item.Pages, options.LineEnding);
             WriteTag(builder, "AB", item.Abstract, options.LineEnding); WriteTag(builder, "LA", item.Language, options.LineEnding);
-            WriteNbibIdentifiers(builder, item, itemIndex, options.LineEnding);
+            WriteNbibIdentifiers(builder, item, outputKeys[itemIndex], options.LineEnding);
             foreach (string keyword in item.Keywords) WriteTag(builder, "OT", keyword, options.LineEnding);
             foreach (string note in item.Notes) WriteTag(builder, "GN", note, options.LineEnding);
             WriteNativeFields(builder, item, BibliographyFormat.Nbib, options.LineEnding, report);
@@ -418,7 +420,7 @@ internal static class TaggedCodec {
         if (!wroteTypedValue && TryGetNbibPublicationType(item.Type, out string? publicationType)) WriteTag(builder, "PT", publicationType, lineEnding);
     }
 
-    private static void WriteNbibIdentifiers(StringBuilder builder, BibliographyItem item, int itemIndex, string lineEnding) {
+    private static void WriteNbibIdentifiers(StringBuilder builder, BibliographyItem item, string fallbackKey, string lineEnding) {
         bool wrotePmid = false;
         foreach (BibliographyIdentifier identifier in item.Identifiers) {
             if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) {
@@ -426,7 +428,7 @@ internal static class TaggedCodec {
                 wrotePmid = true;
             } else WriteNbibIdentifier(builder, item, identifier, lineEnding);
         }
-        if (!wrotePmid) WriteTag(builder, "PMID", CodecMappings.OutputKey(item, itemIndex), lineEnding);
+        if (!wrotePmid) WriteTag(builder, "PMID", fallbackKey, lineEnding);
     }
 
     private static void WriteNbibIdentifier(StringBuilder builder, BibliographyItem item, BibliographyIdentifier identifier, string lineEnding) {

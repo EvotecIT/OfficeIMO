@@ -30,6 +30,7 @@ internal static class CslJsonCodec {
 
     internal static string Write(BibliographyDocument document, BibliographyWriteOptions options, BibliographyConversionReport report, CancellationToken cancellationToken) {
         using var stream = new MemoryStream();
+        string[] outputKeys = CodecMappings.OutputKeys(document.Items, BibliographyFormat.CslJson, cancellationToken);
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true, MaxDepth = JsonWriterMaximumDepth })) {
             bool preserveSingleObjectRoot = document.Items.Count == 1 && document.CslJsonSingleObjectRoot;
             if (!preserveSingleObjectRoot) writer.WriteStartArray();
@@ -37,7 +38,7 @@ internal static class CslJsonCodec {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.WriteStartObject();
-                if (ShouldWriteTypedId(item, cancellationToken)) writer.WriteString("id", CodecMappings.OutputKey(item, itemIndex));
+                if (ShouldWriteTypedId(item, cancellationToken)) writer.WriteString("id", outputKeys[itemIndex]);
                 if (ShouldWriteTypedType(item, cancellationToken)) writer.WriteString("type", item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType : CodecMappings.ToCslType(item.Type));
                 WriteString(writer, "title", item.Title); WriteString(writer, "container-title", item.ContainerTitle); WriteString(writer, "collection-title", item.CollectionTitle);
                 WriteString(writer, "publisher", item.Publisher); WriteString(writer, "publisher-place", item.PublisherPlace); WriteString(writer, "edition", item.Edition);
@@ -180,9 +181,9 @@ internal static class CslJsonCodec {
     }
 
     private static bool TryReadScalar(BibliographyItem item, JsonProperty property, IList<BibliographyItem> items, BibliographyLimitGuard limits, out string scalar) {
-        if (property.Value.ValueKind != JsonValueKind.Object && property.Value.ValueKind != JsonValueKind.Array && property.Value.ValueKind != JsonValueKind.Null && property.Value.ValueKind != JsonValueKind.Undefined) { scalar = Scalar(property.Value); return true; }
+        if (property.Value.ValueKind == JsonValueKind.String) { scalar = property.Value.GetString() ?? string.Empty; return true; }
         string raw = GetBoundedRawValue(property.Value, items, limits);
-        item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, raw, raw));
+        item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
         scalar = string.Empty;
         return false;
     }
@@ -197,7 +198,7 @@ internal static class CslJsonCodec {
         if (value.ValueKind != JsonValueKind.Array) return false;
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
-            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array || property.Value.ValueKind == JsonValueKind.Null || property.Value.ValueKind == JsonValueKind.Undefined))) return false;
+            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && property.Value.ValueKind != JsonValueKind.String)) return false;
         }
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind == JsonValueKind.String) item.Contributors.Add(new BibliographyContributor(role, new BibliographyName { Literal = element.GetString() }));
@@ -242,8 +243,8 @@ internal static class CslJsonCodec {
                 continue;
             }
             if (string.Equals(property.Name, "literal", StringComparison.Ordinal)) {
-                if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array || property.Value.ValueKind == JsonValueKind.Null || property.Value.ValueKind == JsonValueKind.Undefined) { string literalRaw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, literalRaw, literalRaw)); }
-                else date.Literal = Scalar(property.Value);
+                if (property.Value.ValueKind != JsonValueKind.String) { string literalRaw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, literalRaw), literalRaw)); }
+                else date.Literal = property.Value.GetString();
             } else if (string.Equals(property.Name, "date-parts", StringComparison.Ordinal)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
             else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
         }
