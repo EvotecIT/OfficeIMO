@@ -610,6 +610,7 @@ public sealed partial class DocBookDocument {
             .Where(node => node.Location?.TableIndex.HasValue == true)
             .ToLookup(node => node.Location!.TableIndex!.Value);
         IReadOnlyDictionary<OfficeDocumentModelNode, OfficeDocumentModelNode> structureParents = BuildStructureParentMap(structureNodes);
+        bool isDocBookProjection = model.Format == OfficeDocumentFormat.DocBook;
         var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceKind = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "kind")?.Value;
         string? sourceProfile = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "profile")?.Value;
@@ -888,19 +889,26 @@ public sealed partial class DocBookDocument {
                 ReplaceDocumentAuthor(resolvedDocumentAuthor);
             }
             var consumedTableNodes = new HashSet<OfficeDocumentModelNode>();
-            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodesById))) {
+            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block =>
+                         !IsOrphanedProjectedBlock(block, structureNodesById, isDocBookProjection) &&
+                         !IsDerivedBlock(block, structureNodesById))) {
                 document.AddParagraph(block.Text);
                 AddSupplementaryDiagnostic("block", block.Id, block.Location?.HeadingPath);
             }
-            foreach (OfficeDocumentModelTable table in model.Tables.Where(table => !IsDerivedTable(table, structureTableNodesByIndex, consumedTableNodes))) {
+            foreach (OfficeDocumentModelTable table in model.Tables.Where(table =>
+                         !IsOrphanedProjectedTable(table, structureTableNodesByIndex, isDocBookProjection) &&
+                         !IsDerivedTable(table, structureTableNodesByIndex, consumedTableNodes))) {
                 if (AddFlatTable(table)) {
                     AddSupplementaryDiagnostic("table", table.Title ?? table.Kind ?? "unnamed", table.Location?.HeadingPath);
                 }
             }
-            foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodesById, structureParents))) {
+            foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset =>
+                         !IsOrphanedProjectedAsset(asset, structureNodesById, isDocBookProjection) &&
+                         !IsDerivedAsset(asset, structureNodesById, structureParents))) {
                 if (AddFlatAsset(asset)) AddSupplementaryDiagnostic("asset", asset.Id, asset.Location?.HeadingPath);
             }
             foreach (OfficeDocumentModelLink link in model.Links) {
+                if (IsOrphanedProjectedLink(link, structureNodesById, isDocBookProjection)) continue;
                 if (TryGetDerivedLinkNode(link, structureNodesById, out OfficeDocumentModelNode? derivedLinkNode)) {
                     if (!LinkTargetMatches(derivedLinkNode!, link)) {
                         diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
@@ -913,14 +921,22 @@ public sealed partial class DocBookDocument {
             }
         } else {
             document.Title = model.Source.Title;
-            if (model.Blocks.Count > 0 || model.Tables.Count > 0 || model.Assets.Count > 0 || model.Links.Count > 0) {
+            OfficeDocumentModelBlock[] flatBlocks = model.Blocks.Where(block =>
+                !IsOrphanedProjectedBlock(block, structureNodesById, isDocBookProjection)).ToArray();
+            OfficeDocumentModelTable[] flatTables = model.Tables.Where(table =>
+                !IsOrphanedProjectedTable(table, structureTableNodesByIndex, isDocBookProjection)).ToArray();
+            OfficeDocumentModelAsset[] flatAssets = model.Assets.Where(asset =>
+                !IsOrphanedProjectedAsset(asset, structureNodesById, isDocBookProjection)).ToArray();
+            OfficeDocumentModelLink[] flatLinks = model.Links.Where(link =>
+                !IsOrphanedProjectedLink(link, structureNodesById, isDocBookProjection)).ToArray();
+            if (flatBlocks.Length > 0 || flatTables.Length > 0 || flatAssets.Length > 0 || flatLinks.Length > 0) {
                 diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
                     "The shared model had no recursive Structure; flat Blocks, Tables, image Assets, and Links were processed as bounded common DocBook structures."));
             }
-            foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
-            foreach (OfficeDocumentModelTable table in model.Tables) AddFlatTable(table);
-            foreach (OfficeDocumentModelAsset asset in model.Assets) AddFlatAsset(asset);
-            foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
+            foreach (OfficeDocumentModelBlock block in flatBlocks) document.AddParagraph(block.Text);
+            foreach (OfficeDocumentModelTable table in flatTables) AddFlatTable(table);
+            foreach (OfficeDocumentModelAsset asset in flatAssets) AddFlatAsset(asset);
+            foreach (OfficeDocumentModelLink link in flatLinks) AddFlatLink(link);
         }
         foreach (OfficeDocumentModelPage page in model.Pages) {
             string identity = page.Name ?? (page.Number.HasValue

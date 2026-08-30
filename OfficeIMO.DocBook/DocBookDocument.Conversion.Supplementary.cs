@@ -69,6 +69,43 @@ public sealed partial class DocBookDocument {
               ShouldReplaceRepresentedPrimaryChild(node) &&
               string.Equals(GetRepresentedTypedPrimaryChildText(node), block.Text, StringComparison.Ordinal))));
 
+    private static bool IsOrphanedProjectedBlock(
+        OfficeDocumentModelBlock block,
+        ILookup<string, OfficeDocumentModelNode> nodesById,
+        bool isDocBookProjection) =>
+        isDocBookProjection && TryGetProjectedNodeId(block.Id, "docbook-", out string nodeId) && !nodesById[nodeId].Any();
+
+    private static bool IsOrphanedProjectedTable(
+        OfficeDocumentModelTable table,
+        ILookup<int, OfficeDocumentModelNode> nodesByTableIndex,
+        bool isDocBookProjection) =>
+        isDocBookProjection && table.Location?.TableIndex is int tableIndex &&
+        string.Equals(table.Location.SourceBlockKind, "table", StringComparison.Ordinal) &&
+        !string.IsNullOrEmpty(table.PayloadHash) && !nodesByTableIndex[tableIndex].Any();
+
+    private static bool IsOrphanedProjectedAsset(
+        OfficeDocumentModelAsset asset,
+        ILookup<string, OfficeDocumentModelNode> nodesById,
+        bool isDocBookProjection) =>
+        isDocBookProjection && TryGetProjectedNodeId(asset.Id, "docbook-image-", out string nodeId) && !nodesById[nodeId].Any();
+
+    private static bool IsOrphanedProjectedLink(
+        OfficeDocumentModelLink link,
+        ILookup<string, OfficeDocumentModelNode> nodesById,
+        bool isDocBookProjection) =>
+        isDocBookProjection && TryGetProjectedNodeId(link.Id, "docbook-link-", out string nodeId) && !nodesById[nodeId].Any();
+
+    private static bool TryGetProjectedNodeId(string? projectionId, string prefix, out string nodeId) {
+        nodeId = string.Empty;
+        if (projectionId == null || projectionId.Length == 0 ||
+            !projectionId.StartsWith(prefix, StringComparison.Ordinal)) return false;
+        string suffix = projectionId.Substring(prefix.Length);
+        if (!int.TryParse(suffix, System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out int index) || index < 0) return false;
+        nodeId = "docbook-" + suffix;
+        return true;
+    }
+
     private static bool ShouldReplaceChildrenWithPrimaryText(OfficeDocumentModelNode source) {
         if (source.Children.Count == 0 || string.Equals(source.Kind, "text", StringComparison.OrdinalIgnoreCase)) return false;
         bool acceptsDirectText = TryMapKind(source.Kind, out DocBookNodeKind kind) && NodeAcceptsDirectText(kind);

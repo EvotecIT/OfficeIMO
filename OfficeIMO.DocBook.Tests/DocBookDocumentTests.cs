@@ -1436,6 +1436,33 @@ public sealed class DocBookDocumentTests {
     }
 
     [Theory]
+    [InlineData(DocBookProfile.DocBook45, false)]
+    [InlineData(DocBookProfile.DocBook45, true)]
+    [InlineData(DocBookProfile.DocBook52, false)]
+    [InlineData(DocBookProfile.DocBook52, true)]
+    public void SharedReverseConversionDoesNotResurrectDeletedRecursiveProjections(
+        DocBookProfile profile,
+        bool retainUnrelatedStructure) {
+        string source = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para>Deleted block</para><informaltable><tgroup cols=\"1\"><tbody><row><entry>Deleted cell</entry></row></tbody></tgroup></informaltable><mediaobject><imageobject><imagedata fileref=\"deleted.png\"/></imageobject></mediaobject><para><link xlink:href=\"https://example.test/deleted\">Deleted link</link></para></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para>Deleted block</para><informaltable><tgroup cols=\"1\"><tbody><row><entry>Deleted cell</entry></row></tbody></tgroup></informaltable><mediaobject><imageobject><imagedata fileref=\"deleted.png\"/></imageobject></mediaobject><para><ulink url=\"https://example.test/deleted\">Deleted link</ulink></para></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        model.Structure = retainUnrelatedStructure
+            ? new[] { new OfficeDocumentModelNode { Id = "retained", Kind = "paragraph", Text = "Retained" } }
+            : Array.Empty<OfficeDocumentModelNode>();
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.DoesNotContain("Deleted", converted.Value.Xml.Root!.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "table" || element.Name.LocalName == "informaltable" ||
+            element.Name.LocalName == "imagedata" || element.Name.LocalName == "link" || element.Name.LocalName == "ulink");
+        Assert.Equal(retainUnrelatedStructure, converted.Value.Xml.Descendants().Any(element =>
+            element.Name.LocalName == "para" && element.Value == "Retained"));
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" || diagnostic.Code == "DB103");
+    }
+
+    [Theory]
     [InlineData(DocBookProfile.DocBook45)]
     [InlineData(DocBookProfile.DocBook52)]
     public void SharedRoundTripMatchesTitledTablesWithAlreadyQualifiedNodePaths(DocBookProfile profile) {
