@@ -95,6 +95,36 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void EmptyAmiProSam4ProjectsAnEmptyDocument() {
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n"),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        Assert.Equal(OfficeLegacyImportQuality.Structured, imported.Report.Quality);
+        Assert.Empty(imported.Content.Paragraphs);
+        Assert.Equal(string.Empty, imported.PlainText);
+        imported.Report.RequireStructuredNoLoss();
+        Assert.Single(imported.Document.Paragraphs);
+    }
+
+    [Fact]
+    public void WordStarPreservesRepeatedAndTrailingPageBreaks() {
+        byte[] source = new byte[] { 0x02, 0x02 }
+            .Concat(Encoding.ASCII.GetBytes("First\r\n"))
+            .Concat(new byte[] { 0x0C, 0x0C })
+            .Concat(Encoding.ASCII.GetBytes("Second\r\n"))
+            .Concat(new byte[] { 0x0C, 0x1A })
+            .ToArray();
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
+
+        Assert.Equal(3, imported.Content.Paragraphs.Count(paragraph => paragraph.PageBreakBefore));
+        Assert.True(imported.Content.Paragraphs[^1].PageBreakBefore);
+        imported.Report.RequireStructuredNoLoss();
+    }
+
+    [Fact]
     public void AmiProStyleMetadataAndInlineReferencesShareTheTextBudget() {
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
             LegacyFixtureFactory.AmiPro(),

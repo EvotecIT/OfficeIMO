@@ -28,7 +28,7 @@ internal sealed class WordStarStructuredParser {
     private int _inferredListCount;
     private int _headerFooterMetadataOnlyCount;
     private string? _paragraphStyleName;
-    private bool _nextPageBreak;
+    private int _pendingPageBreakCount;
 
     internal WordStarStructuredParser(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         _data = data;
@@ -62,7 +62,7 @@ internal sealed class WordStarStructuredParser {
                 case 0x02: Toggle(static state => state.Bold = !state.Bold); break;
                 case 0x09: Append('\t'); break;
                 case 0x0A: FlushParagraph(explicitBreak: true); break;
-                case 0x0C: FlushParagraph(); _nextPageBreak = true; break;
+                case 0x0C: FlushParagraph(); QueuePageBreakControl(); break;
                 case 0x0D: FlushParagraph(explicitBreak: true); break;
                 case 0x0F: Append('\u00A0'); break;
                 case 0x13: Toggle(static state => state.Underline = !state.Underline); break;
@@ -83,7 +83,8 @@ internal sealed class WordStarStructuredParser {
             }
             index++;
         }
-        FlushParagraph(force: _model.Paragraphs.Count == 0);
+        FlushParagraph(force: _model.Paragraphs.Count == 0 && _pendingPageBreakCount == 0);
+        MaterializePendingPageBreaks(reserveOneForParagraph: false);
         if (_sequenceCount > 0) _model.Metadata["WordStarSymmetricalSequenceCount"] = _sequenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_unknownDotCommandCount > 0) _model.Metadata["WordStarUnknownDotCommandCount"] = _unknownDotCommandCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_graphicsReferenceCount > 0) _model.Metadata["WordStarGraphicsReferenceCount"] = _graphicsReferenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -217,12 +218,13 @@ internal sealed class WordStarStructuredParser {
             _runs.Clear();
             return;
         }
+        MaterializePendingPageBreaks(reserveOneForParagraph: true);
         ConsumeItem("paragraph");
         var paragraph = new LegacyWordParagraph(_runs) {
-            PageBreakBefore = _nextPageBreak,
+            PageBreakBefore = _pendingPageBreakCount > 0,
             StyleName = _paragraphStyleName
         };
-        _nextPageBreak = false;
+        _pendingPageBreakCount = 0;
         if (text.StartsWith("- ", StringComparison.Ordinal) || text.StartsWith("* ", StringComparison.Ordinal)) {
             paragraph.IsList = true;
             RemoveRunPrefix(paragraph.Runs, 2);
@@ -242,6 +244,20 @@ internal sealed class WordStarStructuredParser {
         if (++_recordCount > _limits.MaxRecords) throw new InvalidDataException($"WordStar source exceeds the configured record limit while inspecting a {kind}.");
     }
 
+    private void QueuePageBreakControl() {
+        ConsumeRecord("page break");
+        _pendingPageBreakCount++;
+    }
+
+    private void MaterializePendingPageBreaks(bool reserveOneForParagraph) {
+        int count = reserveOneForParagraph ? Math.Max(0, _pendingPageBreakCount - 1) : _pendingPageBreakCount;
+        for (int index = 0; index < count; index++) {
+            ConsumeItem("page-break paragraph");
+            _model.Paragraphs.Add(new LegacyWordParagraph { PageBreakBefore = true });
+        }
+        _pendingPageBreakCount -= count;
+    }
+
     private void ConsumeText(int count) {
         if (count > _limits.MaxTextCharacters - _characterCount) throw new InvalidDataException("WordStar source exceeds the configured text-character limit.");
         _characterCount += count;
@@ -252,7 +268,7 @@ internal sealed class WordStarStructuredParser {
         string command = text.Substring(1, 2).ToUpperInvariant();
         string argument = text.Length > 3 ? text.Substring(3).Trim() : string.Empty;
         switch (command) {
-            case "PA": _nextPageBreak = true; return true;
+            case "PA": _pendingPageBreakCount++; return true;
             case "HE":
                 _model.Metadata["Header"] = argument;
                 RecordHeaderFooterMetadataOnly();

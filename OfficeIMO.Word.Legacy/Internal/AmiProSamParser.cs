@@ -59,7 +59,6 @@ internal sealed class AmiProSamParser {
         InventoryUnsupportedSections();
         ParseStyles();
         ParseDocument();
-        if (_model.Paragraphs.Count == 0) throw new InvalidDataException("Ami Pro SAM [edoc] section contains no recoverable paragraphs.");
         if (_unknownTags.Count > 0) {
             _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_INLINE_TAG_UNSUPPORTED", "Formatting", $"{_unknownTags.Count} distinct Ami Pro inline tag kinds were omitted."));
         }

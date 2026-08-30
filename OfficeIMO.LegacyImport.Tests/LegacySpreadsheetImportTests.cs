@@ -257,6 +257,13 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void Wq2StructuredCellsRejectUnmodeledHeaderBytes() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wq2WithNonzeroCellHeader(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wq2", RequireStructured = true }));
+    }
+
+    [Fact]
     public void SingleSheetWkProfilesRejectReservedSheetBytesAndQuattroWq1ProjectsSheets() {
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.WkMultiSheet(),

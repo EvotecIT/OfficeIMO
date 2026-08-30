@@ -176,6 +176,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
 
     private static void AddCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets, OfficeLegacyImportLimits limits, byte[] data, int payload, object? value, string? formula, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment, ref bool reportedUnsupportedFormat, ref bool reportedUnsupportedProtection, bool isText = false, WkRecordLayout layout = WkRecordLayout.SingleSheetDos) {
         if (model.RecoveredCellCount >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured cell limit.");
+        ValidateCellHeader(data, payload, layout);
         byte format = layout == WkRecordLayout.QuattroWq2 ? (byte)0 : data[payload];
         int column = ReadColumn(data, payload, layout) + 1;
         byte sheetId = ReadSheet(data, payload, layout);
@@ -255,6 +256,13 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
     }
 
     private static int DataOffset(WkRecordLayout layout) => layout == WkRecordLayout.QuattroWq2 ? 6 : 5;
+
+    private static void ValidateCellHeader(byte[] data, int payload, WkRecordLayout layout) {
+        if (layout == WkRecordLayout.QuattroWq2 && (data[payload + 4] != 0 || data[payload + 5] != 0)) {
+            throw new InvalidDataException("The bounded Quattro Pro WQ2 profile requires the two unmodeled cell-header bytes to be zero.");
+        }
+    }
+
     private static int ReadColumn(byte[] data, int payload, WkRecordLayout layout) => data[payload + (layout == WkRecordLayout.QuattroWq2 ? 0 : 1)];
     private static byte ReadSheet(byte[] data, int payload, WkRecordLayout layout) {
         byte sheet = data[payload + (layout == WkRecordLayout.QuattroWq2 ? 1 : 2)];
