@@ -976,6 +976,22 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionDiagnosesUnsupportedSourceSubjectAndKeywords() {
+        var model = new OfficeDocumentModel {
+            Source = new OfficeDocumentModelSource { Subject = "Quarterly report", Keywords = "alpha, beta" }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Empty(converted.Value.Xml.Root!.Descendants());
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("Source.Subject", StringComparison.Ordinal) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("Source.Keywords", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
     public void SharedConversionAppendsSupplementaryChannelsAlongsideStructure() {
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.DocBook,
@@ -1258,6 +1274,27 @@ public sealed class DocBookDocumentTests {
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125");
         XElement element = Assert.Single(converted.Value.Xml.Descendants(), candidate => candidate.Name.LocalName == localName);
         Assert.Equal("Edited", element.Value);
+    }
+
+    [Fact]
+    public void SharedReverseConversionPreservesSynchronizedPrimaryAndFlatEdits() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para>Old <emphasis>paragraph</emphasis></para><para><link xlink:href=\"https://example.test\">Old <emphasis>link</emphasis></link></para></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode paragraph = FindStructureNode(model.Structure, "paragraph");
+        paragraph.Text = "Edited paragraph";
+        model.Blocks.Single(block => block.Id == paragraph.Id).Text = paragraph.Text;
+        OfficeDocumentModelNode link = FindStructureNode(model.Structure, "link");
+        link.Text = "Edited link";
+        Assert.Single(model.Links).Text = link.Text;
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Equal("Edited paragraph", converted.Value.Xml.Root!.Elements().First(element =>
+            element.Name.LocalName == "para").Value);
+        Assert.Equal("Edited link", Assert.Single(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "link").Value);
+        Assert.Equal(2, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("Primary text", StringComparison.Ordinal) >= 0));
     }
 
     [Fact]

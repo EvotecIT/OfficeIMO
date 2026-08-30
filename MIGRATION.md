@@ -9,9 +9,11 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
-## OfficeIMO 3.2: Reader result schema version 7
+## OfficeIMO 3.2: Reader schema version 7 and shared format enums
 
 `OfficeDocumentReadResult` now defaults to schema version 7. Version 7 adds `ReaderInputKind.Opml` (`23`) and `ReaderInputKind.DocBook` (`24`) so serialized Reader results can retain those source formats. Applications that validate `schemaVersion`, use the packaged JSON Schema, generate transport bindings, or switch exhaustively over `ReaderInputKind` must accept version 7 and handle the two new values. Load the current schema with `OfficeDocumentReadResultSchema.GetJsonSchema()` instead of pinning the version 5 or 6 artifact.
+
+The shared `OfficeDocumentFormat` enum also adds `Opml` and `DocBook`. Applications that switch exhaustively over `OfficeDocumentFormat` must handle both values after upgrading.
 
 Version 5 and 6 payloads remain readable and are normalized to the current model after deserialization. They cannot represent OPML or DocBook kinds: do not force a version 5 or 6 header when serializing either format.
 

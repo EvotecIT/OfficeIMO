@@ -704,23 +704,8 @@ public sealed partial class DocBookDocument {
             }
         }
 
-        bool PrimaryTextShouldTakePrecedence(OfficeDocumentModelNode source) {
-            if (!ShouldReplaceChildrenWithPrimaryText(source)) return false;
-            OfficeDocumentModelBlock? flatBlock = model.Blocks.FirstOrDefault(block =>
-                string.Equals(block.Id, source.Id, StringComparison.Ordinal) &&
-                string.Equals(block.Kind, source.Kind, StringComparison.OrdinalIgnoreCase) && block.Level == source.Level);
-            if (flatBlock != null && string.Equals(flatBlock.Text, source.Text, StringComparison.Ordinal)) return false;
-            const string nodePrefix = "docbook-";
-            if (source.Id.StartsWith(nodePrefix, StringComparison.Ordinal) &&
-                (string.Equals(source.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(source.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase))) {
-                string linkId = "docbook-link-" + source.Id.Substring(nodePrefix.Length);
-                OfficeDocumentModelLink? flatLink = model.Links.FirstOrDefault(link =>
-                    string.Equals(link.Id, linkId, StringComparison.Ordinal));
-                if (flatLink != null && string.Equals(flatLink.Text, source.Text, StringComparison.Ordinal)) return false;
-            }
-            return true;
-        }
+        bool PrimaryTextShouldTakePrecedence(OfficeDocumentModelNode source) =>
+            ShouldReplaceChildrenWithPrimaryText(source);
 
         void AddFlatTable(OfficeDocumentModelTable source) {
             bool formal = !string.IsNullOrWhiteSpace(source.Title);
@@ -867,6 +852,14 @@ public sealed partial class DocBookDocument {
         if (!string.IsNullOrEmpty(model.Html)) {
             diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
                 "Shared HTML content could not be represented by the bounded DocBook common-structure profile."));
+        }
+        if (!string.IsNullOrEmpty(model.Source.Subject)) {
+            diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                "Shared Source.Subject metadata could not be represented by the bounded DocBook common-structure profile."));
+        }
+        if (!string.IsNullOrEmpty(model.Source.Keywords)) {
+            diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                "Shared Source.Keywords metadata could not be represented by the bounded DocBook common-structure profile."));
         }
         var representedAuthors = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeDocumentModelNode authorNode in structureNodes.Where(node =>

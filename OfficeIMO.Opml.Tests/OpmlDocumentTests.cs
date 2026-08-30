@@ -437,6 +437,22 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionDiagnosesUnsupportedSourceSubjectAndKeywords() {
+        var model = new OfficeDocumentModel {
+            Source = new OfficeDocumentModelSource { Subject = "Quarterly report", Keywords = "alpha, beta" }
+        };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Empty(converted.Value.Outlines);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML109" &&
+            diagnostic.Message.IndexOf("Source.Subject", StringComparison.Ordinal) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML109" &&
+            diagnostic.Message.IndexOf("Source.Keywords", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
     public void SharedConversionDoesNotReportFlatFallbackForMetadataOnlyModels() {
         var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.Opml };
         var metadataOnly = new OfficeDocumentModel {

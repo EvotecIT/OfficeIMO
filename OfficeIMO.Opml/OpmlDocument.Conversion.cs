@@ -155,6 +155,14 @@ public sealed partial class OpmlDocument {
         document.Head.OwnerName = model.Source.Author ?? (ownerMetadata == null ? null : ownerMetadata.Value ?? string.Empty);
         ReportPrimaryMetadataConflict("title", model.Source.Title, titleMetadata);
         ReportPrimaryMetadataConflict("ownerName", model.Source.Author, ownerMetadata);
+        if (!string.IsNullOrEmpty(model.Source.Subject)) {
+            diagnostics.Add(new OpmlDiagnostic("OPML109", OpmlDiagnosticSeverity.Warning,
+                "Shared Source.Subject metadata cannot be represented in OPML and was omitted."));
+        }
+        if (!string.IsNullOrEmpty(model.Source.Keywords)) {
+            diagnostics.Add(new OpmlDiagnostic("OPML109", OpmlDiagnosticSeverity.Warning,
+                "Shared Source.Keywords metadata cannot be represented in OPML and was omitted."));
+        }
         ApplyPrimaryMetadataAttributes("title", titleMetadata);
         ApplyPrimaryMetadataAttributes("ownerName", ownerMetadata);
 
