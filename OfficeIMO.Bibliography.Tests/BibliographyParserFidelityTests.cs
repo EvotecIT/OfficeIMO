@@ -264,16 +264,19 @@ public sealed class BibliographyParserFidelityTests {
     }
 
     [Fact]
-    public void NBIB_type_edit_replaces_stale_publication_type_tags() {
+    public void NBIB_type_edit_reports_stale_publication_type_before_replacement() {
         BibliographyDocument document = BibliographyDocument.Parse("PMID- 1\nPT  - Book\nTI  - Type\n", BibliographyFormat.Nbib).Document;
         document.Items[0].Type = BibliographyItemType.ArticleJournal;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
 
+        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV122" && diagnostic.Field == "PT");
         Assert.DoesNotContain("PT  - Book", written.Content, StringComparison.Ordinal);
         Assert.Contains("PT  - Journal Article", written.Content, StringComparison.Ordinal);
         Assert.Equal(BibliographyItemType.ArticleJournal, reopened.Type);
+        Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
     }
 
     [Fact]

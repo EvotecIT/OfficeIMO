@@ -88,8 +88,10 @@ internal static class TaggedCodec {
                     current = NewItem(items, limits, lineOffset);
                 } else if (current == null) current = NewItem(items, limits, lineOffset);
                 if (format == BibliographyFormat.Nbib && current!.Type == BibliographyItemType.Unknown) { current.Type = BibliographyItemType.ArticleJournal; current.NativeType = "Journal Article"; }
-                if (format == BibliographyFormat.Ris && string.Equals(tag, "ER", StringComparison.OrdinalIgnoreCase)) current = null;
-                else {
+                if (format == BibliographyFormat.Ris && string.Equals(tag, "ER", StringComparison.OrdinalIgnoreCase)) {
+                    if (value.Length > 0) diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG004", BibliographyDiagnosticSeverity.Warning, "RIS record terminator contains a value that cannot be preserved canonically.", offset: lineOffset, line: lineIndex + 1, column: 1, itemKey: current!.Key, field: tag));
+                    current = null;
+                } else {
                     int nativeCount = current!.NativeFields.Count;
                     Bind(current, format, tag, value);
                     previousNativeField = current.NativeFields.Count > nativeCount ? current.NativeFields[current.NativeFields.Count - 1] : null;
@@ -106,7 +108,7 @@ internal static class TaggedCodec {
                 else AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
             } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
         }
-        if (format == BibliographyFormat.Nbib) NormalizeNbibAuthors(items);
+        if (format == BibliographyFormat.Nbib) NormalizeNbibAuthors(items, cancellationToken);
         foreach (BibliographyItem item in items.Where(static item => string.IsNullOrWhiteSpace(item.Key))) diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG003", BibliographyDiagnosticSeverity.Warning, $"{format} record has no citation identifier.", itemKey: item.Key));
         return items;
     }
@@ -395,30 +397,62 @@ internal static class TaggedCodec {
         if (identifier != null) identifier.Value = AppendChecked(identifier.Value, continuation, items, limits, offset);
     }
 
-    private static void NormalizeNbibAuthors(IEnumerable<BibliographyItem> items) {
+    internal static void NormalizeNbibAuthors(IEnumerable<BibliographyItem> items, CancellationToken cancellationToken) {
         foreach (BibliographyItem item in items) {
-            BibliographyContributor[] compactAuthors = item.Contributors.Where(contributor => item.TaggedContributorTags.TryGetValue(contributor, out string? tag) && string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase)).ToArray();
-            BibliographyContributor[] fullAuthors = item.Contributors.Where(contributor => item.TaggedContributorTags.TryGetValue(contributor, out string? tag) && string.Equals(tag, "FAU", StringComparison.OrdinalIgnoreCase)).ToArray();
-            var matched = new HashSet<BibliographyContributor>();
-            foreach (BibliographyContributor compact in compactAuthors) {
-                BibliographyContributor? full = fullAuthors.FirstOrDefault(author => !matched.Contains(author) && CompactNamesMatch(author.Name, CompactName(compact.Name)));
-                if (full == null) continue;
-                int compactIndex = item.Contributors.IndexOf(compact);
-                int fullIndex = item.Contributors.IndexOf(full);
-                if (compactIndex < fullIndex) {
-                    item.Contributors[compactIndex] = full;
-                    item.Contributors.RemoveAt(fullIndex);
-                } else item.Contributors.RemoveAt(compactIndex);
-                item.TaggedContributorTags.Remove(compact);
-                matched.Add(full);
+            cancellationToken.ThrowIfCancellationRequested();
+            var compactAuthors = new List<BibliographyContributor>();
+            var fullAuthorsByCompactName = new Dictionary<string, Queue<BibliographyContributor>>(StringComparer.OrdinalIgnoreCase);
+            var contributorIndexes = new Dictionary<BibliographyContributor, int>();
+            for (int index = 0; index < item.Contributors.Count; index++) {
+                if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+                BibliographyContributor contributor = item.Contributors[index];
+                contributorIndexes[contributor] = index;
+                if (!item.TaggedContributorTags.TryGetValue(contributor, out string? tag)) continue;
+                if (string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase)) compactAuthors.Add(contributor);
+                else if (string.Equals(tag, "FAU", StringComparison.OrdinalIgnoreCase)) {
+                    string key = NormalizeCompactName(CompactName(contributor.Name), cancellationToken);
+                    if (!fullAuthorsByCompactName.TryGetValue(key, out Queue<BibliographyContributor>? matches)) {
+                        matches = new Queue<BibliographyContributor>();
+                        fullAuthorsByCompactName.Add(key, matches);
+                    }
+                    matches.Enqueue(contributor);
+                }
             }
+
+            var removed = new HashSet<BibliographyContributor>();
+            var replacements = new Dictionary<BibliographyContributor, BibliographyContributor>();
+            foreach (BibliographyContributor compact in compactAuthors) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string key = NormalizeCompactName(CompactName(compact.Name), cancellationToken);
+                if (!fullAuthorsByCompactName.TryGetValue(key, out Queue<BibliographyContributor>? matches) || matches.Count == 0) continue;
+                BibliographyContributor full = matches.Dequeue();
+                if (contributorIndexes[compact] < contributorIndexes[full]) {
+                    replacements.Add(compact, full);
+                    removed.Add(full);
+                } else removed.Add(compact);
+                item.TaggedContributorTags.Remove(compact);
+            }
+
+            if (removed.Count == 0) continue;
+            var normalized = new List<BibliographyContributor>(item.Contributors.Count - removed.Count);
+            foreach (BibliographyContributor contributor in item.Contributors) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (replacements.TryGetValue(contributor, out BibliographyContributor? replacement)) normalized.Add(replacement);
+                else if (!removed.Contains(contributor)) normalized.Add(contributor);
+            }
+            item.Contributors.Clear();
+            foreach (BibliographyContributor contributor in normalized) item.Contributors.Add(contributor);
         }
     }
 
-    private static bool CompactNamesMatch(BibliographyName fullName, string compactValue) =>
-        string.Equals(NormalizeCompactName(CompactName(fullName)), NormalizeCompactName(compactValue), StringComparison.OrdinalIgnoreCase);
-
-    private static string NormalizeCompactName(string value) => new string(value.Where(char.IsLetterOrDigit).ToArray());
+    private static string NormalizeCompactName(string value, CancellationToken cancellationToken) {
+        var builder = new StringBuilder(value.Length);
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (char.IsLetterOrDigit(value[index])) builder.Append(value[index]);
+        }
+        return builder.ToString();
+    }
     private static void WriteTag(StringBuilder builder, string tag, string? value, string lineEnding) { if (value == null) return; string prefix = tag.PadRight(4) + "- "; string[] lines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'); builder.Append(prefix).Append(lines[0]).Append(lineEnding); for (int index = 1; index < lines.Length; index++) builder.Append("      ").Append(lines[index]).Append(lineEnding); }
     private static void WriteRisPages(StringBuilder builder, BibliographyItem item, string lineEnding) {
         GetRisPageOutput(item, out bool writeStart, out string? start, out bool writeEnd, out string? end);
@@ -481,7 +515,7 @@ internal static class TaggedCodec {
             } else if (preserveRecognizedSourceTypes || parsed == item.Type) {
                 WriteTag(builder, "PT", field.Value, lineEnding);
                 if (parsed == item.Type) wroteTypedValue = true;
-            }
+            } else report.Add("BIBCONV122", BibliographyDiagnosticSeverity.Warning, $"Recognized NBIB publication type '{field.Value}' conflicts with the edited typed item kind and was omitted.", BibliographyConversionAction.Omitted, item, "PT");
         }
         if (!wroteTypedValue && TryGetNbibPublicationType(item.Type, out string? publicationType)) WriteTag(builder, "PT", publicationType, lineEnding);
     }

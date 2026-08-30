@@ -75,8 +75,8 @@ internal static class EndNoteXmlCodec {
                 writer.WriteStartElement(null, "xml", outputNamespace);
                 WriteDocumentAttributes(writer, document, "xml", report);
                 foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
-                    if (TryWriteElement(writer, entry.Value)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
-                    else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"Document-level EndNote XML element '{entry.Name}' is malformed and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
+                    if (TryWriteRootElement(writer, entry.Value, outputNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
+                    else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"Document-level EndNote XML element '{entry.Name}' is malformed or reserved and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
                 }
             }
             string recordsNamespace = GetDocumentElementNamespace(document, "records", outputNamespace);
@@ -248,6 +248,16 @@ internal static class EndNoteXmlCodec {
     }
 
     private static bool TryWriteElement(XmlWriter writer, string xml) { try { XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace); element.WriteTo(writer); return true; } catch (XmlException) { return false; } }
+    private static bool TryWriteRootElement(XmlWriter writer, string xml, string rootNamespace) {
+        try {
+            XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
+            if (HasName(element, XNamespace.Get(rootNamespace), "records")) return false;
+            element.WriteTo(writer);
+            return true;
+        } catch (XmlException) {
+            return false;
+        }
+    }
     private static bool TryWriteRecordsElement(XmlWriter writer, string xml, string recordsNamespace) {
         try {
             XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);

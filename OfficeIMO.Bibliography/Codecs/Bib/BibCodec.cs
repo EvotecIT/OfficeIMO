@@ -75,7 +75,7 @@ internal static class BibCodec {
                 bool typedDuplicate = IsBibFamily(field.Format) && (ReservedTypedFieldNames.Contains(field.Name) || TypedIdentifierFieldNames.Contains(field.Name));
                 bool canRemainNative = !typedDuplicate || CanRemainNativeBibField(field, emitted);
                 if (IsBibFamily(field.Format) && IsSafeFieldName(field.Name) && IsFieldAllowedInTarget(field.Name, format) && canRemainNative) {
-                    fields.Add(new KeyValuePair<string, string>(field.Name.ToLowerInvariant(), field.Value));
+                    fields.Add(new KeyValuePair<string, string>(field.Name, field.Value));
                     emitted.Add(field.Name);
                     report.Add("BIBCONV011", BibliographyDiagnosticSeverity.Information, $"Preserved native field '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
                 } else if (!IsBibFamily(field.Format)) {

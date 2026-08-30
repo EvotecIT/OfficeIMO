@@ -82,7 +82,7 @@ internal static class BibliographyConversionInspector {
     }
 
     private static bool IsRecoveryLossDiagnostic(BibliographyDiagnostic diagnostic) =>
-        diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBCSL003";
+        diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBTAG004" || diagnostic.Code == "BIBCSL003";
 
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
@@ -223,6 +223,8 @@ internal static class BibliographyConversionInspector {
         }
         BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued);
         if (format == BibliographyFormat.BibTex && issued?.Day != null) Loss(report, item, "dates.Issued.day", "BIBCONV212", "Classic BibTeX output omits issued-day precision.", BibliographyConversionAction.Omitted);
+        if (format == BibliographyFormat.BibTex && issued != null && !issued.Year.HasValue && !issued.Month.HasValue && !issued.Day.HasValue && string.IsNullOrEmpty(issued.Literal))
+            Loss(report, item, "dates.Issued", "BIBCONV241", "Classic BibTeX output omits an issued date with no representable year, month, day, or literal value.", BibliographyConversionAction.Omitted);
         foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) {
             if (!IsValidDate(date.Year, date.Month, date.Day) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue)
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
