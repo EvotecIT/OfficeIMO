@@ -171,6 +171,12 @@ internal static class WkFormulaDecoder {
         cursor += 4;
         bool relativeColumn = (columnToken & 0x8000) != 0;
         bool relativeRow = (rowToken & 0x8000) != 0;
+        if ((columnToken & 0x7F00) != 0) {
+            throw new InvalidDataException("Formula column reference contains bits outside the validated absolute/relative profile.");
+        }
+        if ((rowToken & 0x4000) != 0 || (!relativeRow && (rowToken & 0x2000) != 0)) {
+            throw new InvalidDataException("Formula row reference contains bits outside the validated absolute/relative profile.");
+        }
         int column = relativeColumn ? currentColumn + unchecked((sbyte)(columnToken & 0xFF)) : columnToken & 0xFF;
         int row;
         if (relativeRow) {

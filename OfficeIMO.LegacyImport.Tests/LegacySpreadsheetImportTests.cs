@@ -143,6 +143,23 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
     }
 
+    [Theory]
+    [InlineData(new byte[] { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03 })]
+    [InlineData(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x40, 0x03 })]
+    [InlineData(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x20, 0x03 })]
+    public void WkFormulaReferencesRejectUnmodeledAddressBits(byte[] tokens) {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(formulaTokens: tokens),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        LegacySpreadsheetCellContent formula = Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 3);
+        Assert.Null(formula.Formula);
+        Assert.Equal(84d, formula.CachedValue);
+        Assert.Contains(imported.Metadata.Values, value => value.Contains("outside the validated absolute/relative profile", StringComparison.Ordinal));
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
     [Fact]
     public void LotusErrFormulaRetainsItsCachedValueAsUnsupported() {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(

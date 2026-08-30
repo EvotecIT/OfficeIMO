@@ -155,6 +155,12 @@ internal static class WordReaderAdapter {
             source: null,
             capabilities: new[] { capabilityId },
             assets: assets);
+        if (chunks.Count == 0 && legacyWarnings is { Count: > 0 }) {
+            var warningLocation = new ReaderLocation { Path = sourceName };
+            result.Diagnostics = result.Diagnostics
+                .Concat(legacyWarnings.Distinct(StringComparer.Ordinal).Select(warning => DocumentReaderEngine.BuildWarningDiagnostic(warning, warningLocation)))
+                .ToArray();
+        }
         return WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
     }
 

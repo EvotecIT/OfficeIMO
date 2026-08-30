@@ -214,6 +214,28 @@ public sealed class LegacyWordImportTests {
     }
 
     [Theory]
+    [InlineData("<:f0,Arial,0,0,0>")]
+    [InlineData("<:f-20,Arial,0,0,0>")]
+    [InlineData("<:f240,Arial,999,0,0>")]
+    [InlineData("<:S+0>")]
+    [InlineData("<:S+-4>")]
+    public void AmiProInlineMeasurementsRejectInvalidValuesWithoutPartialFormatting(string tag) {
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n" + tag + "X\n");
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        LegacyWordParagraphContent paragraph = Assert.Single(imported.Content.Paragraphs);
+        LegacyWordRunContent run = Assert.Single(paragraph.Runs);
+        Assert.Null(run.FontSizePoints);
+        Assert.Null(run.FontFamily);
+        Assert.Null(run.ColorHex);
+        Assert.Null(paragraph.LineSpacingPoints);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_INLINE_TAG_MALFORMED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Theory]
     [InlineData("Body Text\n0\n[fnt]", "Body Text\nbad\n[fnt]")]
     [InlineData("240\n255\n16385", "240\nbad\n16385")]
     [InlineData("255\n16385\n[algn]", "255\nbad\n[algn]")]
@@ -607,6 +629,19 @@ public sealed class LegacyWordImportTests {
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(malformed, new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar }));
     }
 
+    [Theory]
+    [InlineData((byte)0x03)]
+    [InlineData((byte)0x04)]
+    [InlineData((byte)0x05)]
+    [InlineData((byte)0x06)]
+    [InlineData((byte)0x10)]
+    [InlineData((byte)0x11)]
+    public void WordStarTextBearingSequencesRejectUnsupportedControls(byte sequenceType) {
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            LegacyFixtureFactory.WordStarSequenceWithControl(sequenceType, 0x07),
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true }));
+    }
+
     [Fact]
     public void ImportHonorsCancellation() {
         Assert.Throws<OperationCanceledException>(() => LegacyWordImporter.Import(
@@ -623,6 +658,19 @@ public sealed class LegacyWordImportTests {
         Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("Recovered WordPerfect", StringComparison.Ordinal));
         Assert.Contains(OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId, result.CapabilitiesUsed);
         Assert.Contains(result.Chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()), warning => warning.Contains("Legacy import quality", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ReaderHandlerPreservesLegacyWarningsWhenProjectionHasNoChunks() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddLegacyWordHandler().Build();
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n>unsupported directive\n");
+
+        OfficeDocumentReadResult result = reader.ReadDocument(source, "archive.sam");
+
+        Assert.Empty(result.Chunks);
+        Assert.Contains(OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Legacy import quality", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("AMIPRO_DOCUMENT_DIRECTIVE_UNSUPPORTED", StringComparison.Ordinal));
     }
 
     [Fact]

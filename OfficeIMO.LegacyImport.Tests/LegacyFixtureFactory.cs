@@ -60,6 +60,13 @@ internal static class LegacyFixtureFactory {
         return bytes.ToArray();
     }
 
+    internal static byte[] WordStarSequenceWithControl(byte type, byte control) {
+        var bytes = new List<byte>(Encoding.ASCII.GetBytes("Text\r\n"));
+        bytes.AddRange(WordStarSequence(type, new[] { (byte)'A', control, (byte)'B' }));
+        bytes.Add(0x1A);
+        return bytes.ToArray();
+    }
+
     internal static byte[] WordPerfect() {
         byte[] text = Encoding.ASCII.GetBytes("Recovered WordPerfect text\r\nSecond paragraph");
         byte[] data = new byte[16 + text.Length];
@@ -388,7 +395,10 @@ internal static class LegacyFixtureFactory {
     }
 
     private static byte[] WordStarSequence(byte type, string text) {
-        byte[] payload = Encoding.ASCII.GetBytes(text);
+        return WordStarSequence(type, Encoding.ASCII.GetBytes(text));
+    }
+
+    private static byte[] WordStarSequence(byte type, byte[] payload) {
         int totalLength = payload.Length + 7;
         ushort count = (ushort)(totalLength - 3);
         return new[] { (byte)0x1D, (byte)count, (byte)(count >> 8), type }

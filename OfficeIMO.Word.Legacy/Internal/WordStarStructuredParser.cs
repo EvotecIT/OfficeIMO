@@ -172,7 +172,9 @@ internal sealed class WordStarStructuredParser {
             char? recovered = value == 0x0D || value == 0x0A || value == 0x09
                 ? ' '
                 : value >= 0x20 && value != 0x7F ? (char)value : (char?)null;
-            if (!recovered.HasValue) continue;
+            if (!recovered.HasValue) {
+                throw new InvalidDataException($"WordStar text-bearing sequence contains unsupported control byte 0x{_data[index]:X2}.");
+            }
             if (result.Length >= remaining) throw new InvalidDataException("WordStar sequence text exceeds the configured text-character limit.");
             result.Append(recovered.Value);
         }

@@ -496,7 +496,7 @@ internal static partial class DocumentReaderEngine {
         return diagnostics.Count == 0 ? Array.Empty<OfficeDocumentDiagnostic>() : diagnostics;
     }
 
-    private static OfficeDocumentDiagnostic BuildWarningDiagnostic(string warning, ReaderLocation location) {
+    internal static OfficeDocumentDiagnostic BuildWarningDiagnostic(string warning, ReaderLocation location) {
         string message = warning ?? string.Empty;
         string lower = message.ToLowerInvariant();
         string code = "reader-warning";

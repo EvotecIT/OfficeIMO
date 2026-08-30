@@ -144,7 +144,7 @@ internal sealed class AmiProSamParser {
         uint unsupportedFormatting = formatting & ~SupportedStyleFormattingMask;
         RecordUnsupportedStyleFlags(unsupportedFormatting, ref _unsupportedStyleFormattingFlags);
         var style = new AmiStyle {
-            Name = UnescapePlain(lines[0]), FontFamily = lines[3], FontSizePoints = Math.Max(1d, fontTwips / 20d),
+            Name = UnescapePlain(lines[0]), FontFamily = lines[3], FontSizePoints = fontTwips / 20d,
             ColorHex = $"{color & 0xFF:X2}{(color >> 8) & 0xFF:X2}{(color >> 16) & 0xFF:X2}",
             Bold = (formatting & 1) != 0, Italic = (formatting & 2) != 0,
             Underline = (formatting & 64) != 0 ? WordUnderlineStyle.Double : (formatting & 8) != 0 ? WordUnderlineStyle.Words : (formatting & 4) != 0 ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null
@@ -311,7 +311,7 @@ internal sealed class AmiProSamParser {
             if (spacing == "-1") paragraph.LineSpacingPoints = 12;
             else if (spacing == "-2") paragraph.LineSpacingPoints = 18;
             else if (spacing == "-3") paragraph.LineSpacingPoints = 24;
-            else if (int.TryParse(spacing, out int twips)) paragraph.LineSpacingPoints = twips / 20d;
+            else if (int.TryParse(spacing, out int twips) && twips > 0) paragraph.LineSpacingPoints = twips / 20d;
             else RecordMalformedInlineTag();
             return;
         }
@@ -334,13 +334,13 @@ internal sealed class AmiProSamParser {
 
     private bool ParseFont(string value, AmiRunState state) {
         string[] parts = value.Split(',');
-        if (parts.Length != 5 || !int.TryParse(parts[0], out int size)) return false;
+        if (parts.Length != 5 || !int.TryParse(parts[0], out int size) || size <= 0) return false;
         string family = parts[1].Length > 1 && char.IsDigit(parts[1][0]) ? parts[1].Substring(1) : parts[1];
+        if (!byte.TryParse(parts[2], out byte red) || !byte.TryParse(parts[3], out byte green) || !byte.TryParse(parts[4], out byte blue)) return false;
         ConsumeText(family.Length, "inline font family");
-        state.FontSizePoints = Math.Max(1d, size / 20d);
+        state.FontSizePoints = size / 20d;
         state.FontFamily = family;
-        if (byte.TryParse(parts[2], out byte red) && byte.TryParse(parts[3], out byte green) && byte.TryParse(parts[4], out byte blue)) state.ColorHex = $"{red:X2}{green:X2}{blue:X2}";
-        else return false;
+        state.ColorHex = $"{red:X2}{green:X2}{blue:X2}";
         return true;
     }
 
