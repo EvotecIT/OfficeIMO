@@ -7,15 +7,30 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
+    <DefineConstants>$(DefineConstants);HTMLTINKERX_SOURCE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
+    <AssemblyMetadata Include="HtmlTinkerXSourceProjectPath" Value="$([System.IO.Path]::GetFullPath('$(HtmlTinkerXProjectPath)'))" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="HtmlTinkerX" Version="2.0.7" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
     <PackageReference Include="itext" Version="9.7.0" />
+    <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
     <PackageReference Include="PeachPDF" Version="0.9.12" />
     <PackageReference Include="QuestPDF" Version="2026.7.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
+    <ProjectReference Include="$(HtmlTinkerXProjectPath)" />
   </ItemGroup>
 
   <ItemGroup>

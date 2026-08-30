@@ -19,7 +19,9 @@ internal static class PdfOutputIntentDictionaryBuilder {
     internal static string BuildOutputIntentObject(PdfOutputIntent outputIntent, int profileObjectId) {
         Guard.NotNull(outputIntent, nameof(outputIntent));
         var sb = new StringBuilder();
-        sb.Append("<< /Type /OutputIntent /S /GTS_PDFA1 /OutputConditionIdentifier ")
+        sb.Append("<< /Type /OutputIntent /S /")
+            .Append(outputIntent.Subtype == PdfOutputIntentSubtype.GtsPdfX ? "GTS_PDFX" : "GTS_PDFA1")
+            .Append(" /OutputConditionIdentifier ")
             .Append(PdfSyntaxEscaper.TextString(outputIntent.OutputConditionIdentifier));
 
         if (outputIntent.OutputCondition != null) {

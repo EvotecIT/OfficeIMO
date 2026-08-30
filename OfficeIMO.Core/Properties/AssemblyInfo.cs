@@ -10,6 +10,8 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Excel")]
 [assembly: InternalsVisibleTo("OfficeIMO.Excel.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Html")]
+[assembly: InternalsVisibleTo("OfficeIMO.Html.Tests")]
+[assembly: InternalsVisibleTo("OfficeIMO.Html.Pdf")]
 [assembly: InternalsVisibleTo("OfficeIMO.Latex")]
 [assembly: InternalsVisibleTo("OfficeIMO.Markdown")]
 [assembly: InternalsVisibleTo("OfficeIMO.Markup.PowerPoint")]

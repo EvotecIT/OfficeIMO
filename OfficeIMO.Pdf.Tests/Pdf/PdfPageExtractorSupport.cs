@@ -8,6 +8,31 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageExtractorTests {
+    private static byte[] BuildSinglePagePdfWithInfoDates(string creationDate, string modificationDate) {
+        var stream = new MemoryStream();
+        var offsets = new Dictionary<int, (int Offset, int Generation)>();
+        WriteAscii(stream, "%PDF-1.4\n");
+        WriteObject(stream, offsets, 1, 0, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>");
+        WriteObject(stream, offsets, 3, 0, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>");
+        WriteStreamObject(stream, offsets, 4, 0, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Timezone-less metadata) Tj ET\n"));
+        WriteObject(stream, offsets, 5, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+        WriteObject(stream, offsets, 6, 0, "<< /CreationDate (" + creationDate + ") /ModDate (" + modificationDate + ") >>");
+
+        int xrefOffset = (int)stream.Position;
+        WriteAscii(stream, "xref\n0 7\n0000000000 65535 f \n");
+        for (int objectNumber = 1; objectNumber <= 6; objectNumber++) {
+            var entry = offsets[objectNumber];
+            WriteAscii(stream,
+                entry.Offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) +
+                " " + entry.Generation.ToString("D5", System.Globalization.CultureInfo.InvariantCulture) + " n \n");
+        }
+        WriteAscii(stream,
+            "trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n" +
+            xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+        return stream.ToArray();
+    }
+
     private static byte[] BuildSinglePagePdfWithGenerationOneContent(
         bool includeAnnotation = false,
         int contentObjectGeneration = 1,

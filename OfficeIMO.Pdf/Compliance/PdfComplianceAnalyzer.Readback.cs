@@ -3,12 +3,31 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfComplianceAnalyzer {
     /// <summary>Analyzes an existing PDF byte array for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, byte[] pdf, PdfReadOptions? options = null) {
+        return AssessReadback(profile, pdf, System.Threading.CancellationToken.None, options);
+    }
+
+    internal static PdfComplianceReadinessReport AssessReadback(
+        PdfComplianceProfile profile,
+        byte[] pdf,
+        System.Threading.CancellationToken cancellationToken,
+        PdfReadOptions? options = null) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo info = PdfInspector.FromReadDocument(document, probe);
-        return AssessReadback(profile, info, document.ExtractAttachments());
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<PdfExtractedAttachment> attachments = document.ExtractAttachments();
+        cancellationToken.ThrowIfCancellationRequested();
+        return AssessReadback(
+            profile,
+            info,
+            attachments,
+            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document, cancellationToken) : null,
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document, cancellationToken) : null);
     }
 
     /// <summary>Analyzes an existing PDF file for profile-specific readback evidence.</summary>
@@ -31,7 +50,7 @@ internal static partial class PdfComplianceAnalyzer {
 
     /// <summary>Analyzes already-inspected PDF metadata for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info) {
-        return AssessReadback(profile, info, extractedAttachments: null);
+        return AssessReadback(profile, info, extractedAttachments: null, printColorEvidence: null, printStructureEvidence: null);
     }
 
     internal static PdfComplianceReadinessReport AssessReadback(
@@ -39,10 +58,20 @@ internal static partial class PdfComplianceAnalyzer {
         PdfReadDocument document,
         PdfDocumentInfo info) {
         Guard.NotNull(document, nameof(document));
-        return AssessReadback(profile, info, document.ExtractAttachments());
+        return AssessReadback(
+            profile,
+            info,
+            document.ExtractAttachments(),
+            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document) : null,
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document) : null);
     }
 
-    private static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info, IReadOnlyList<PdfExtractedAttachment>? extractedAttachments) {
+    private static PdfComplianceReadinessReport AssessReadback(
+        PdfComplianceProfile profile,
+        PdfDocumentInfo info,
+        IReadOnlyList<PdfExtractedAttachment>? extractedAttachments,
+        PdfPrintProductionColorEvidence? printColorEvidence,
+        PdfPrintProductionStructureEvidence? printStructureEvidence) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(info, nameof(info));
 
@@ -65,6 +94,18 @@ internal static partial class PdfComplianceAnalyzer {
                 "Generate the saved PDF with a PDF 2.0 header or catalog /Version before checking PDF/A-4 or PDF/UA-2 profile evidence.");
         }
 
+        if (profile == PdfComplianceProfile.PdfX1A2003) {
+            Add(requirements, "readback-pdf-file-version", "Readback effective PDF 1.4 version",
+                ComparePdfVersion(info.EffectiveVersion, "1.4") == 0,
+                "The saved PDF effective version is PDF 1.4.",
+                "PDF/X-1a:2003 requires an effective PDF 1.4 version.");
+        } else if (profile == PdfComplianceProfile.PdfX4) {
+            Add(requirements, "readback-pdf-file-version", "Readback effective PDF 1.6 version",
+                ComparePdfVersion(info.EffectiveVersion, "1.6") == 0,
+                "The saved PDF effective version is PDF 1.6.",
+                "PDF/X-4 requires an effective PDF 1.6 version.");
+        }
+
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
             AddPdfAReadbackRequirements(requirements, profile, info);
         }
@@ -77,6 +118,10 @@ internal static partial class PdfComplianceAnalyzer {
             AddElectronicInvoiceReadbackRequirements(requirements, info, extractedAttachments);
         }
 
+        if (IsPdfX(profile)) {
+            AddPdfXReadbackRequirements(requirements, profile, info, printColorEvidence, printStructureEvidence);
+        }
+
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
     }
 
@@ -85,7 +130,7 @@ internal static partial class PdfComplianceAnalyzer {
         (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
         Add(requirements, "readback-xmp-metadata", "Readback catalog XMP metadata",
-            xmp != null && xmp.IsWellFormedXml,
+            xmp != null && xmp.IsXmlMetadataStream && xmp.IsWellFormedXml,
             "The saved PDF contains readable, well-formed catalog XMP metadata.",
             "The saved PDF must contain readable, well-formed catalog XMP metadata.");
 
@@ -103,6 +148,7 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF must contain a readable catalog output intent.");
 
         requirements.Add(BuildReadbackOutputIntentPolicyRequirement(info));
+        requirements.Add(BuildReadbackPdfAEmbeddedFileModificationDateRequirement(info));
         requirements.Add(new PdfComplianceRequirement(
             "verapdf-validation",
             "veraPDF validation evidence",
@@ -143,6 +189,189 @@ internal static partial class PdfComplianceAnalyzer {
             "Readback sRGB output-intent policy",
             PdfComplianceRequirementStatus.Satisfied,
             "The saved PDF contains an sRGB IEC61966-2.1 /GTS_PDFA1 output intent with RGB ICC profile evidence.");
+    }
+
+    private static void AddPdfXReadbackRequirements(
+        List<PdfComplianceRequirement> requirements,
+        PdfComplianceProfile profile,
+        PdfDocumentInfo info,
+        PdfPrintProductionColorEvidence? colorEvidence,
+        PdfPrintProductionStructureEvidence? structureEvidence) {
+        PdfXmpMetadataInfo? xmp = info.XmpMetadata;
+        string expectedVersion = profile == PdfComplianceProfile.PdfX1A2003
+            ? "PDF/X-1a:2003"
+            : "PDF/X-4";
+        string? expectedConformance = profile == PdfComplianceProfile.PdfX1A2003
+            ? "PDF/X-1a:2003"
+            : null;
+
+        Add(requirements, "readback-pdfx-identification", "Readback PDF/X identification XMP",
+            xmp?.IsXmlMetadataStream == true &&
+            xmp.IsWellFormedXml &&
+            string.Equals(xmp.PdfXVersion, expectedVersion, StringComparison.Ordinal) &&
+            (expectedConformance == null || string.Equals(xmp.PdfXConformance, expectedConformance, StringComparison.Ordinal)),
+            "The saved PDF contains matching " + GetDisplayName(profile) + " identification metadata.",
+            "The saved PDF XMP metadata must contain matching pdfxid identification for " + GetDisplayName(profile) + ".");
+
+        bool hasReconciledDates = info.Metadata.CreationDateIsProductionPrecise &&
+            info.Metadata.ModificationDateIsProductionPrecise &&
+            info.Metadata.CreationDate.HasValue &&
+            info.Metadata.ModificationDate.HasValue &&
+            xmp?.CreationDate.HasValue == true &&
+            xmp.ModificationDate.HasValue &&
+            xmp.MetadataDate.HasValue &&
+            info.Metadata.CreationDate.Value <= info.Metadata.ModificationDate.Value &&
+            info.Metadata.CreationDate.Value.Equals(xmp.CreationDate.Value) &&
+            info.Metadata.ModificationDate.Value.Equals(xmp.ModificationDate.Value) &&
+            xmp.ModificationDate.Value.Equals(xmp.MetadataDate.Value);
+        Add(requirements, "readback-pdfx-production-dates", "Readback PDF/X production dates",
+            hasReconciledDates,
+            "The saved PDF contains synchronized Info and XMP creation, modification, and metadata dates.",
+            "The saved PDF must contain CreationDate and ModDate in Info synchronized with xmp:CreateDate, xmp:ModifyDate, and xmp:MetadataDate.");
+
+        Add(requirements, "readback-pdfx-production-identity", "Readback PDF/X production identity",
+            IsXmpUuid(xmp?.DocumentId) &&
+            IsXmpUuid(xmp?.InstanceId) &&
+            !string.IsNullOrWhiteSpace(xmp?.VersionId) &&
+            !string.IsNullOrWhiteSpace(xmp?.RenditionClass),
+            "The saved PDF contains document and instance UUIDs, a version identifier, and a rendition class.",
+            "The saved PDF XMP must contain valid xmpMM:DocumentID, xmpMM:InstanceID, xmpMM:VersionID, and xmpMM:RenditionClass values.");
+
+        Add(requirements, "readback-pdfx-info-identification", "Readback PDF/X Info identification",
+            string.Equals(info.Metadata.PdfXVersion, expectedVersion, StringComparison.Ordinal) &&
+            (expectedConformance == null || string.Equals(info.Metadata.PdfXConformance, expectedConformance, StringComparison.Ordinal)),
+            "The saved PDF Info dictionary contains matching PDF/X identification.",
+            "The saved PDF Info dictionary must contain matching GTS_PDFXVersion and, where required, GTS_PDFXConformance values.");
+
+        PdfOutputIntentInfo? outputIntent = info.OutputIntentsAreComplete &&
+            TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? singleOutputIntent)
+            ? singleOutputIntent
+            : null;
+        bool hasValidOutputIntentProfile = false;
+        if (outputIntent != null) {
+            try {
+                hasValidOutputIntentProfile =
+                    outputIntent.DestinationOutputProfileSizeBytes is int actualProfileSize &&
+                    outputIntent.DestinationOutputProfileDeclaredSizeBytes is int declaredProfileSize &&
+                    actualProfileSize >= 128 &&
+                    actualProfileSize == declaredProfileSize &&
+                    outputIntent.DestinationOutputProfileColorComponents == 4 &&
+                    outputIntent.DestinationOutputProfileHasIccSignature == true &&
+                    string.Equals(outputIntent.DestinationOutputProfileColorSpace, "CMYK", StringComparison.Ordinal) &&
+                    string.Equals(outputIntent.DestinationOutputProfileDeviceClass, "prtr", StringComparison.Ordinal) &&
+                    outputIntent.DestinationOutputProfileHasSupportedOutputTransform == true;
+            } catch (InvalidDataException) {
+                hasValidOutputIntentProfile = false;
+            }
+        }
+        Add(requirements, "readback-pdfx-output-intent", "Readback PDF/X CMYK output intent",
+            outputIntent != null &&
+            !string.IsNullOrWhiteSpace(outputIntent.OutputConditionIdentifier) &&
+            hasValidOutputIntentProfile,
+            "The saved PDF contains a /GTS_PDFX output intent backed by a readable CMYK output-device ICC profile.",
+            "The saved PDF must contain a named /GTS_PDFX output intent backed by a size-consistent, parseable CMYK output-device ICC profile with a supported output transform and matching /N value.");
+
+        Add(requirements, "readback-pdfx-trapping-status", "Readback PDF/X trapping status",
+            (info.Metadata.TrappingStatus == PdfTrappingStatus.False || info.Metadata.TrappingStatus == PdfTrappingStatus.True) &&
+            xmp?.TrappingStatus == info.Metadata.TrappingStatus,
+            "The saved PDF Info dictionary and XMP packet declare the same boolean trapping status.",
+            "The saved PDF must contain matching /Trapped and pdf:Trapped True or False values; Unknown is not valid for a formal PDF/X claim.");
+
+        Add(requirements, "readback-pdfx-no-encryption", "Readback PDF/X encryption policy",
+            !info.Security.HasEncryption,
+            "The saved PDF is not encrypted.",
+            "PDF/X output cannot be encrypted.");
+
+        Add(requirements, "readback-pdfx-no-forms", "Readback PDF/X form policy",
+            !info.HasForms,
+            "The saved PDF does not contain interactive forms.",
+            "Flatten or remove interactive forms before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-embedded-files", "Readback PDF/X embedded-file policy",
+            !info.HasEmbeddedFiles,
+            "The saved PDF does not contain embedded files.",
+            "Remove embedded files before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-annotations", "Readback PDF/X annotation policy",
+            !info.HasAnnotations && info.AnnotationCount == 0,
+            "The saved PDF does not contain page annotations.",
+            "Remove or flatten all page annotations before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-optional-content", "Readback PDF/X optional-content policy",
+            !info.HasOptionalContent && info.OptionalContentGroupCount == 0,
+            "The saved PDF does not contain optional-content layers.",
+            "Remove optional-content groups and marked optional content before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-active-content", "Readback PDF/X active-content policy",
+            !info.HasActiveContent && !info.HasCatalogActions && !info.HasOpenActions,
+            "The saved PDF does not contain active content or catalog actions.",
+            "Remove JavaScript, launch, remote-navigation, open, page, annotation, and catalog actions before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-external-references", "Readback PDF/X external-reference policy",
+            !info.HasCatalogUri && info.LinkUriCount == 0 && info.LinkRemoteFileCount == 0,
+            "The saved PDF does not contain URI bases, URI links, or remote-file links.",
+            "Remove catalog URI bases, URI links, and remote-file references before PDF/X validation.");
+
+        Add(requirements, "readback-pdfx-no-signatures", "Readback PDF/X signature policy",
+            !info.HasSignatures,
+            "The saved PDF does not contain signature fields or signed revisions.",
+            "Validate the unsigned production artifact before applying any separately governed signature workflow.");
+
+        if (structureEvidence == null) {
+            requirements.Add(new PdfComplianceRequirement(
+                "readback-pdfx-production-structure",
+                "Readback PDF/X page-box and font proof",
+                PdfComplianceRequirementStatus.Unsupported,
+                "Analyze exact PDF bytes, a path, or a stream to inspect page boundary boxes and font programs."));
+        } else {
+            Add(requirements, "readback-pdfx-page-boxes", "Readback PDF/X production page boxes",
+                structureEvidence.PageCount > 0 &&
+                structureEvidence.ValidProductionPageBoxCount == structureEvidence.PageCount &&
+                structureEvidence.InvalidProductionPageBoxCount == 0,
+                "Every saved page has a MediaBox, exactly one TrimBox or ArtBox, and any explicit BleedBox contains that production boundary.",
+                structureEvidence.InvalidProductionPageBoxCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " page(s) have missing, conflicting, or improperly nested production boxes.");
+            Add(requirements, "readback-pdfx-font-inspection-complete", "Readback PDF/X font inspection completeness",
+                structureEvidence.UninspectableFontResourceCount == 0,
+                "Every reachable font-selection context and selected font resource was inspected for a self-contained font program.",
+                structureEvidence.UninspectableFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " reachable font-selection context(s) or selected font resource(s) could not be inspected completely.");
+            Add(requirements, "readback-pdfx-fonts-embedded", "Readback PDF/X embedded-font policy",
+                structureEvidence.UnembeddedFontResourceCount == 0,
+                "Every font selected by reachable content contains an embedded font program or self-contained Type3 character procedures.",
+                structureEvidence.UnembeddedFontResourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " selected font resource(s) do not contain an embedded program.");
+        }
+
+        if (colorEvidence == null) {
+            requirements.Add(new PdfComplianceRequirement(
+                "readback-pdfx-production-color",
+                "Readback PDF/X production-color proof",
+                PdfComplianceRequirementStatus.Unsupported,
+                "Analyze exact PDF bytes, a path, or a stream to inspect production color and transparency objects."));
+        } else {
+            Add(requirements, "readback-pdfx-color-inspection-complete", "Readback PDF/X color inspection completeness",
+                colorEvidence.IsComplete,
+                "Every selected page, form, and pattern content stream was decoded for production-color inspection.",
+                colorEvidence.UninspectableContentStreamCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " selected content stream(s) could not be decoded for production-color inspection.");
+            Add(requirements, "readback-pdfx-no-device-rgb", "Readback PDF/X DeviceRGB policy",
+                !colorEvidence.HasDeviceRgbUsage,
+                "Inspected content operators, image XObjects, and shadings contain no DeviceRGB usage.",
+                "Convert or remove DeviceRGB content operators, image XObjects, and shadings before claiming the configured CMYK PDF/X profile.");
+            if (profile == PdfComplianceProfile.PdfX1A2003) {
+                Add(requirements, "readback-pdfx1a-no-device-independent-color", "Readback PDF/X-1a device-independent color policy",
+                    !colorEvidence.HasDeviceIndependentColorUsage,
+                    "Inspected content operators, image XObjects, and shadings use only device or spot-color spaces.",
+                    "Convert or remove CalGray, CalRGB, Lab, ICCBased, and device-independent Separation/DeviceN alternate color spaces for PDF/X-1a:2003.");
+                Add(requirements, "readback-pdfx1a-no-transparency", "Readback PDF/X-1a transparency policy",
+                    !colorEvidence.HasTransparency,
+                    "Inspected image XObjects, graphics states, and groups contain no transparency.",
+                    "Flatten image alpha, non-opaque graphics states, soft masks, blend modes, and transparency groups for PDF/X-1a:2003.");
+            }
+        }
+
+        requirements.Add(new PdfComplianceRequirement(
+            "pdfx-validation",
+            "Qualified PDF/X preflight evidence",
+            PdfComplianceRequirementStatus.Unsupported,
+            "Run a qualified PDF/X preflight validator against the exact saved artifact before claiming conformance."));
     }
 
     private static int ComparePdfVersion(string? left, string? right) {
@@ -318,5 +547,56 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostics.Add(ex.Message);
             return false;
         }
+    }
+
+    internal static bool TryGetSinglePdfXOutputIntent(
+        IReadOnlyList<PdfOutputIntentInfo> outputIntents,
+        out PdfOutputIntentInfo? outputIntent) {
+        outputIntent = null;
+        if (outputIntents.Count != 1) return false;
+        PdfOutputIntentInfo candidate = outputIntents[0];
+        if (!string.Equals(candidate.Type, "OutputIntent", StringComparison.Ordinal) ||
+            !string.Equals(candidate.Subtype, "GTS_PDFX", StringComparison.Ordinal)) return false;
+        outputIntent = candidate;
+        return true;
+    }
+
+    private static PdfComplianceRequirement BuildReadbackPdfAEmbeddedFileModificationDateRequirement(PdfDocumentInfo info) {
+        string[] missingDates = info.Attachments
+            .Where(static attachment => !attachment.ModificationDate.HasValue)
+            .Select(static attachment => attachment.FileName)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static fileName => fileName, StringComparer.Ordinal)
+            .ToArray();
+        if (missingDates.Length == 0) {
+            return new PdfComplianceRequirement(
+                "readback-pdfa-embedded-file-modification-dates",
+                "Readback PDF/A embedded-file modification dates",
+                PdfComplianceRequirementStatus.Satisfied,
+                info.Attachments.Count == 0
+                    ? "The saved PDF contains no embedded files requiring modification-date evidence."
+                    : "Every saved embedded-file stream contains a readable /Params /ModDate entry.");
+        }
+
+        return new PdfComplianceRequirement(
+            "readback-pdfa-embedded-file-modification-dates",
+            "Readback PDF/A embedded-file modification dates",
+            PdfComplianceRequirementStatus.Missing,
+            "The saved PDF is missing embedded-file /Params /ModDate evidence for: " + string.Join(", ", missingDates) + ".");
+    }
+
+    private static bool IsXmpUuid(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        string candidate = value!.Trim();
+        if (candidate.StartsWith("urn:uuid:", StringComparison.OrdinalIgnoreCase)) {
+            candidate = candidate.Substring("urn:uuid:".Length);
+        } else if (candidate.StartsWith("uuid:", StringComparison.OrdinalIgnoreCase)) {
+            candidate = candidate.Substring("uuid:".Length);
+        }
+
+        return Guid.TryParse(candidate, out Guid identifier) && identifier != Guid.Empty;
     }
 }

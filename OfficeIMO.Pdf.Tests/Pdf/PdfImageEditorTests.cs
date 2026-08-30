@@ -563,7 +563,7 @@ public class PdfImageEditorTests {
     [Fact]
     public void XObjectRemovalSkipsUnrelatedInlineImagePayloadOperators() {
         PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
-            "BI /W 1 /H 1 /BPC 8 /CS /RGB ID q /Im0 Do Q EI\nq 40 0 0 20 20 30 cm /Im0 Do Q\n"));
+            "BI /W 11 /H 1 /BPC 8 /CS /G ID q /Im0 Do Q EI\nq 40 0 0 20 20 30 cm /Im0 Do Q\n"));
         PdfImagePlacement xObject = document.Images.Placements().Single(static placement => placement.ObjectNumber > 0);
 
         PdfImageEditResult result = document.Images.Remove(xObject);

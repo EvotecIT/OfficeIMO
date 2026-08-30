@@ -1,13 +1,6 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private static readonly System.Text.RegularExpressions.Regex InfoReferenceRegex =
-        new System.Text.RegularExpressions.Regex(
-            @"/Info\s+(\d+)\s+0\s+R",
-            System.Text.RegularExpressions.RegexOptions.Compiled
-                | System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-            TimeSpan.FromSeconds(2));
-
     private string ToRaw() {
         // Reconstruct raw text for simple metadata extraction without reserialization; ok for small files.
         var sb = new StringBuilder();
@@ -27,17 +20,49 @@ public sealed partial class PdfReadDocument {
     }
 
     private PdfMetadata ExtractMetadata() {
-        // Trailer has /Info N 0 R when present
-        System.Text.RegularExpressions.Match m = InfoReferenceRegex.Match(_trailerRaw);
-        if (!m.Success) return new PdfMetadata();
-        if (!int.TryParse(m.Groups[1].Value, out int infoId)) return new PdfMetadata();
-        if (!_objects.TryGetValue(infoId, out var infoObj) || infoObj.Value is not PdfDictionary dict) return new PdfMetadata();
-        string? GetStr(string key) => dict.Get<PdfStringObj>(key)?.Value;
-        return new PdfMetadata {
-            Title = GetStr("Title"),
-            Author = GetStr("Author"),
-            Subject = GetStr("Subject"),
-            Keywords = GetStr("Keywords")
+        // Trailer has /Info N G R when present.
+        if (!PdfSyntax.TryGetTrailerReference(_trailerRaw, "Info", _options.Limits, out PdfReference infoReference)) {
+            return new PdfMetadata();
+        }
+        if (!PdfObjectLookup.TryGet(_objects, infoReference, out var infoObj) ||
+            infoObj.Value is not PdfDictionary dict) return new PdfMetadata();
+        string? GetText(string key) =>
+            dict.Items.TryGetValue(key, out PdfObject? value) && ResolveObject(value) is PdfStringObj text
+                ? text.Value
+                : null;
+        string? GetName(string key) =>
+            dict.Items.TryGetValue(key, out PdfObject? value) && ResolveObject(value) is PdfName name
+                ? name.Name
+                : null;
+        string? creationDate = GetText("CreationDate");
+        string? modificationDate = GetText("ModDate");
+        bool creationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(creationDate, out DateTimeOffset parsedCreationDate);
+        bool modificationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(modificationDate, out DateTimeOffset parsedModificationDate);
+        var metadata = new PdfMetadata {
+            Title = GetText("Title"),
+            Author = GetText("Author"),
+            Subject = GetText("Subject"),
+            Keywords = GetText("Keywords"),
+            TrappingStatus = ParseTrappingStatus(GetName("Trapped")),
+            PdfXVersion = GetText("GTS_PDFXVersion"),
+            PdfXConformance = GetText("GTS_PDFXConformance")
         };
+        metadata.SetCreationDateFromSource(
+            creationDateIsProductionPrecise ? parsedCreationDate : PdfDateCodec.TryParse(creationDate),
+            creationDate,
+            creationDateIsProductionPrecise);
+        metadata.SetModificationDateFromSource(
+            modificationDateIsProductionPrecise ? parsedModificationDate : PdfDateCodec.TryParse(modificationDate),
+            modificationDate,
+            modificationDateIsProductionPrecise);
+        return metadata;
     }
+
+    private static PdfTrappingStatus? ParseTrappingStatus(string? value) =>
+        value switch {
+            "True" => PdfTrappingStatus.True,
+            "False" => PdfTrappingStatus.False,
+            "Unknown" => PdfTrappingStatus.Unknown,
+            _ => null
+        };
 }

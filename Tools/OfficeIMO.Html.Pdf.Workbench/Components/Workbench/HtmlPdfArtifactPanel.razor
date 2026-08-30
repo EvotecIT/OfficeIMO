@@ -1,0 +1,20 @@
+<div class="panel artifact-panel" data-pdf-ready="@(Artifact is not null)">
+    <div class="panel-heading"><div><p>OUTPUT</p><h2>PDF artifact</h2></div>@if (Evidence is not null) { <span>@Evidence.PageCount page@(Evidence.PageCount == 1 ? null : "s") · @FormatBytes(Evidence.PdfBytes)</span> }</div>
+    @if (IsBusy) {
+        <div class="empty-state"><span class="spinner"></span><strong>Rendering the selected lane</strong><small>Cancellation remains available in the toolbar.</small></div>
+    } else if (Artifact is null) {
+        <div class="empty-state"><span class="document-glyph">PDF</span><strong>No artifact yet</strong><small>Render the current source to preview and download it.</small></div>
+    } else {
+        @if (IsDirty) { <div class="stale-note">Source or settings changed. This preview belongs to the previous render.</div> }
+        <iframe class="pdf-preview" src="@Artifact.PdfUrl" title="Generated PDF preview"></iframe>
+        <div class="artifact-actions"><a class="button secondary" href="@Artifact.EvidenceUrl" download="officeimo-html-pdf-evidence.json">Evidence JSON</a><a class="button primary" href="@Artifact.PdfUrl" download="officeimo-html.pdf">Download PDF</a></div>
+    }
+</div>
+
+@code {
+    [Parameter] public WorkbenchArtifactLink? Artifact { get; set; }
+    [Parameter] public HtmlPdfWorkbenchEvidence? Evidence { get; set; }
+    [Parameter] public bool IsDirty { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+    private static string FormatBytes(long bytes) => bytes >= 1024 * 1024 ? $"{bytes / 1024D / 1024D:0.##} MB" : $"{bytes / 1024D:0.#} KB";
+}

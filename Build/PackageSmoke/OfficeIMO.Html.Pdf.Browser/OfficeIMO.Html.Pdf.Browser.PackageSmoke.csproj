@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">net472;$(TargetFrameworks)</TargetFrameworks>
+    <EnableOfficeIMOHtmlPdfBrowserPackageSmoke Condition="'$(EnableOfficeIMOHtmlPdfBrowserPackageSmoke)' == ''">false</EnableOfficeIMOHtmlPdfBrowserPackageSmoke>
+    <OfficeIMOHtmlPdfBrowserPackageVersion Condition="'$(OfficeIMOHtmlPdfBrowserPackageVersion)' == ''">3.2.5-browser-local</OfficeIMOHtmlPdfBrowserPackageVersion>
+    <IsPackable>false</IsPackable>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableOfficeIMOHtmlPdfBrowserPackageSmoke)' == 'true'">
+    <PackageReference Include="OfficeIMO.Html.Pdf.Browser"
+                      Version="[$(OfficeIMOHtmlPdfBrowserPackageVersion)]" />
+  </ItemGroup>
+
+  <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
+          Condition="'$(EnableOfficeIMOHtmlPdfBrowserPackageSmoke)' != 'true'">
+    <Error Text="Set EnableOfficeIMOHtmlPdfBrowserPackageSmoke=true and restore from a feed containing the packed browser bridge and its HtmlTinkerX dependency." />
+  </Target>
+</Project>

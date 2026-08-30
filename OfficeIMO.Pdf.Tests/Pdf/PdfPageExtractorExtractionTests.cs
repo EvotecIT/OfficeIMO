@@ -9,6 +9,43 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageExtractorTests {
     [Fact]
+    public void ExtractPages_PreservesTimezoneLessInfoDatesWithoutInventingUtc() {
+        const string creationDate = "D:20240815120000";
+        const string modificationDate = "D:20240815121500";
+        byte[] source = BuildSinglePagePdfWithInfoDates(creationDate, modificationDate);
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1);
+
+        PdfMetadata metadata = PdfInspector.Inspect(extracted).Metadata;
+        Assert.Equal(new DateTimeOffset(2024, 8, 15, 12, 0, 0, TimeSpan.Zero), metadata.CreationDate);
+        Assert.Equal(new DateTimeOffset(2024, 8, 15, 12, 15, 0, TimeSpan.Zero), metadata.ModificationDate);
+        Assert.Equal(creationDate, metadata.CreationDateRaw);
+        Assert.Equal(modificationDate, metadata.ModificationDateRaw);
+        string serialized = PdfEncoding.Latin1GetString(extracted);
+        Assert.DoesNotContain("+00'00'", serialized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MetadataRewrites_PreserveUnchangedTimezoneLessInfoDates() {
+        const string creationDate = "D:20240815120000";
+        const string modificationDate = "D:20240815121500";
+        byte[] source = BuildSinglePagePdfWithInfoDates(creationDate, modificationDate);
+
+        byte[][] rewritten = {
+            PdfMetadataEditor.UpdateMetadata(source, title: "Updated title"),
+            PdfMetadataEditor.SynchronizeMetadata(source, title: "Synchronized title", createXmpMetadata: false),
+            PdfIncrementalUpdater.UpdateMetadata(source, title: "Incremental title")
+        };
+
+        foreach (byte[] pdf in rewritten) {
+            PdfMetadata metadata = PdfInspector.Inspect(pdf).Metadata;
+            Assert.Equal(creationDate, metadata.CreationDateRaw);
+            Assert.Equal(modificationDate, metadata.ModificationDateRaw);
+            Assert.DoesNotContain("+00'00'", PdfEncoding.Latin1GetString(pdf), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void ExtractPages_CopiesSelectedPagesInRequestedOrder() {
         byte[] source = BuildThreePagePdf();
 

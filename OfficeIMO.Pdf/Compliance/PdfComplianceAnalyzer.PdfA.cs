@@ -31,6 +31,8 @@ internal static partial class PdfComplianceAnalyzer {
 
         requirements.Add(BuildOutputIntentPolicyRequirement(options));
 
+        requirements.Add(BuildPdfAEmbeddedFileModificationDateRequirement(options));
+
         AddEmbeddedFontCoverageRequirement(requirements, options, generatedStandardFonts, generatedFontUsages);
 
         requirements.Add(new PdfComplianceRequirement(
@@ -38,6 +40,31 @@ internal static partial class PdfComplianceAnalyzer {
             "veraPDF validation evidence",
             PdfComplianceRequirementStatus.Unsupported,
             "The optional veraPDF test gate exists for groundwork fixtures, but profile success has not been enabled for generated output."));
+    }
+
+    private static PdfComplianceRequirement BuildPdfAEmbeddedFileModificationDateRequirement(PdfOptions options) {
+        IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
+        string[] missingDates = embeddedFiles
+            .Where(static file => !file.ModificationDate.HasValue)
+            .Select(static file => file.FileName)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static fileName => fileName, StringComparer.Ordinal)
+            .ToArray();
+        if (missingDates.Length == 0) {
+            return new PdfComplianceRequirement(
+                "pdfa-embedded-file-modification-dates",
+                "PDF/A embedded-file modification dates",
+                PdfComplianceRequirementStatus.Satisfied,
+                embeddedFiles.Count == 0
+                    ? "No embedded files require PDF/A stream-parameter modification dates."
+                    : "Every embedded-file stream has a caller-controlled modification date for its /Params dictionary.");
+        }
+
+        return new PdfComplianceRequirement(
+            "pdfa-embedded-file-modification-dates",
+            "PDF/A embedded-file modification dates",
+            PdfComplianceRequirementStatus.Missing,
+            "Set PdfEmbeddedFile.ModificationDate or call PdfOptions.SetEmbeddedFileModificationDate(...) for: " + string.Join(", ", missingDates) + ".");
     }
 
     private static PdfComplianceRequirement BuildPdfAEncryptionPolicyRequirement(PdfOptions options) {
