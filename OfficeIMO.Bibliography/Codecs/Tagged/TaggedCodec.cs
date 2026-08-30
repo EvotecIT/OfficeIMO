@@ -17,22 +17,22 @@ internal static class TaggedCodec {
             WriteTag(builder, "ID", outputKeys[itemIndex], options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "title", "TI"), item.Title, options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "container-title", "T2"), item.ContainerTitle, options.LineEnding);
-            foreach (BibliographyContributor contributor in item.Contributors) {
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken)) {
                 if (contributor.Role == BibliographyContributorRole.Author) WriteTag(builder, ContributorTag(item, contributor, "AU", "A1"), CodecMappings.FormatName(contributor.Name), options.LineEnding);
                 else if (contributor.Role == BibliographyContributorRole.Editor) WriteTag(builder, ContributorTag(item, contributor, "ED", "A2"), CodecMappings.FormatName(contributor.Name), options.LineEnding);
             }
-            WriteDateTags(builder, item, options.LineEnding, "PY", "Y2");
+            WriteDateTags(builder, item, options.LineEnding, "PY", "Y2", cancellationToken);
             WriteTag(builder, "PB", item.Publisher, options.LineEnding); WriteTag(builder, "CY", item.PublisherPlace, options.LineEnding); WriteTag(builder, "ET", item.Edition, options.LineEnding);
             WriteTag(builder, "VL", item.Volume, options.LineEnding); WriteTag(builder, "IS", item.Issue, options.LineEnding); WriteRisPages(builder, item, options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "abstract", "AB"), item.Abstract, options.LineEnding); WriteTag(builder, "LA", item.Language, options.LineEnding); WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "url", "UR"), item.Url, options.LineEnding);
-            foreach (BibliographyIdentifier identifier in item.Identifiers) WriteRisIdentifier(builder, identifier, options.LineEnding);
-            foreach (string keyword in item.Keywords) WriteTag(builder, "KW", keyword, options.LineEnding);
-            foreach (string note in item.Notes) WriteTag(builder, "N1", note, options.LineEnding);
-            WriteNativeFields(builder, item, BibliographyFormat.Ris, options.LineEnding, report);
+            foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) WriteRisIdentifier(builder, identifier, options.LineEnding);
+            foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteTag(builder, "KW", keyword, options.LineEnding);
+            foreach (string note in Cancellable(item.Notes, cancellationToken)) WriteTag(builder, "N1", note, options.LineEnding);
+            WriteNativeFields(builder, item, BibliographyFormat.Ris, options.LineEnding, report, cancellationToken);
             WriteTag(builder, "ER", string.Empty, options.LineEnding);
             if (itemIndex + 1 < document.Items.Count) builder.Append(options.LineEnding);
         }
-        AddDocumentNativeLoss(document, BibliographyFormat.Ris, report);
+        AddDocumentNativeLoss(document, BibliographyFormat.Ris, report, cancellationToken);
         return builder.ToString();
     }
 
@@ -42,21 +42,21 @@ internal static class TaggedCodec {
         for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
-            WriteNbibPublicationTypes(builder, item, options.LineEnding, report);
+            WriteNbibPublicationTypes(builder, item, options.LineEnding, report, cancellationToken);
             WriteTag(builder, "TI", item.Title, options.LineEnding); WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Nbib, "container-title", "JT"), item.ContainerTitle, options.LineEnding);
-            foreach (BibliographyContributor author in item.Contributors.Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "FAU", CodecMappings.FormatName(author.Name), options.LineEnding);
-            foreach (BibliographyContributor author in item.Contributors.Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "AU", CompactName(author.Name), options.LineEnding);
-            foreach (BibliographyContributor author in item.Contributors.Where(static contributor => contributor.Role == BibliographyContributorRole.Author && !string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "CN", author.Name.Literal, options.LineEnding);
-            BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, "DP", CodecMappings.FormatDate(issued), options.LineEnding);
+            foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "FAU", CodecMappings.FormatName(author.Name), options.LineEnding);
+            foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "AU", CompactName(author.Name), options.LineEnding);
+            foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && !string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "CN", author.Name.Literal, options.LineEnding);
+            BibliographyDate? issued = Cancellable(item.Dates, cancellationToken).FirstOrDefault(static date => date.Role == BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, "DP", CodecMappings.FormatDate(issued), options.LineEnding);
             WriteTag(builder, "VI", item.Volume, options.LineEnding); WriteTag(builder, "IP", item.Issue, options.LineEnding); WriteTag(builder, "PG", item.Pages, options.LineEnding);
             WriteTag(builder, "AB", item.Abstract, options.LineEnding); WriteTag(builder, "LA", item.Language, options.LineEnding);
-            WriteNbibIdentifiers(builder, item, outputKeys[itemIndex], options.LineEnding);
-            foreach (string keyword in item.Keywords) WriteTag(builder, "OT", keyword, options.LineEnding);
-            foreach (string note in item.Notes) WriteTag(builder, "GN", note, options.LineEnding);
-            WriteNativeFields(builder, item, BibliographyFormat.Nbib, options.LineEnding, report);
+            WriteNbibIdentifiers(builder, item, outputKeys[itemIndex], options.LineEnding, cancellationToken);
+            foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteTag(builder, "OT", keyword, options.LineEnding);
+            foreach (string note in Cancellable(item.Notes, cancellationToken)) WriteTag(builder, "GN", note, options.LineEnding);
+            WriteNativeFields(builder, item, BibliographyFormat.Nbib, options.LineEnding, report, cancellationToken);
             if (itemIndex + 1 < document.Items.Count) builder.Append(options.LineEnding);
         }
-        AddDocumentNativeLoss(document, BibliographyFormat.Nbib, report);
+        AddDocumentNativeLoss(document, BibliographyFormat.Nbib, report, cancellationToken);
         return builder.ToString();
     }
 
@@ -491,10 +491,10 @@ internal static class TaggedCodec {
         writeStart = true; start = parts[0];
         writeEnd = parts.Length > 1; end = writeEnd ? parts[1] : null;
     }
-    private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) {
+    private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag, CancellationToken cancellationToken) {
         bool wroteIssued = false;
         bool wroteAccessed = false;
-        foreach (BibliographyDate date in item.Dates) {
+        foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) {
             if (date.Role == BibliographyDateRole.Issued && !wroteIssued) {
                 WriteTag(builder, DateTag(item, date, issuedTag, "Y1", "DA"), CodecMappings.FormatDate(date), lineEnding);
                 wroteIssued = true;
@@ -519,12 +519,12 @@ internal static class TaggedCodec {
     internal static bool CanPreserveUnknownRisType(string? nativeType) =>
         IsRisType(nativeType) && CodecMappings.ParseRisType(nativeType) == BibliographyItemType.Unknown;
 
-    private static void WriteNbibPublicationTypes(StringBuilder builder, BibliographyItem item, string lineEnding, BibliographyConversionReport report) {
-        BibliographyNativeField[] nativeTypes = item.NativeFields.Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)).ToArray();
+    private static void WriteNbibPublicationTypes(StringBuilder builder, BibliographyItem item, string lineEnding, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        BibliographyNativeField[] nativeTypes = Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)).ToArray();
         BibliographyItemType sourceType = nativeTypes.Select(field => CodecMappings.ParseType(field.Value)).FirstOrDefault(static type => type != BibliographyItemType.Unknown);
         bool preserveRecognizedSourceTypes = sourceType == item.Type;
         bool wroteTypedValue = false;
-        foreach (BibliographyNativeField field in nativeTypes) {
+        foreach (BibliographyNativeField field in Cancellable(nativeTypes, cancellationToken)) {
             BibliographyItemType parsed = CodecMappings.ParseType(field.Value);
             if (parsed == BibliographyItemType.Unknown) {
                 WriteTag(builder, "PT", field.Value, lineEnding);
@@ -537,9 +537,9 @@ internal static class TaggedCodec {
         if (!wroteTypedValue && TryGetNbibPublicationType(item.Type, out string? publicationType)) WriteTag(builder, "PT", publicationType, lineEnding);
     }
 
-    private static void WriteNbibIdentifiers(StringBuilder builder, BibliographyItem item, string fallbackKey, string lineEnding) {
+    private static void WriteNbibIdentifiers(StringBuilder builder, BibliographyItem item, string fallbackKey, string lineEnding, CancellationToken cancellationToken) {
         bool wrotePmid = false;
-        foreach (BibliographyIdentifier identifier in item.Identifiers) {
+        foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) {
             if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) {
                 if (!wrotePmid) WriteTag(builder, "PMID", identifier.Value, lineEnding);
                 wrotePmid = true;
@@ -608,8 +608,8 @@ internal static class TaggedCodec {
         return builder.ToString();
     }
 
-    private static void WriteNativeFields(StringBuilder builder, BibliographyItem item, BibliographyFormat format, string lineEnding, BibliographyConversionReport report) {
-        foreach (BibliographyNativeField field in item.NativeFields) {
+    private static void WriteNativeFields(StringBuilder builder, BibliographyItem item, BibliographyFormat format, string lineEnding, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
             if (format == BibliographyFormat.Nbib && field.Format == format && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)) continue;
             bool unsafeBoundary = format == BibliographyFormat.Ris && (string.Equals(field.Name, "TY", StringComparison.OrdinalIgnoreCase) || string.Equals(field.Name, "ER", StringComparison.OrdinalIgnoreCase)) || format == BibliographyFormat.Nbib && string.Equals(field.Name, "PMID", StringComparison.OrdinalIgnoreCase);
             if (field.Format == format && IsTag(field.Name) && !unsafeBoundary && CanRemainNativeTaggedField(item, field, format)) { WriteTag(builder, field.Name.ToUpperInvariant(), field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
@@ -668,5 +668,16 @@ internal static class TaggedCodec {
     }
     private static bool IsTag(string name) => name.Length >= 2 && name.Length <= 5 && name.All(character => char.IsLetterOrDigit(character));
     private static bool IsRisType(string? value) => !string.IsNullOrWhiteSpace(value) && value!.Length >= 2 && value.Length <= 6 && value.All(char.IsLetterOrDigit);
-    private static void AddDocumentNativeLoss(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) { foreach (BibliographyNativeEntry entry in document.NativeEntries) report.Add("BIBCONV114", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in {format}.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind); }
+    private static void AddDocumentNativeLoss(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken))
+            report.Add("BIBCONV114", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in {format}.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
+    }
+    private static IEnumerable<T> Cancellable<T>(IEnumerable<T> source, CancellationToken cancellationToken) {
+        int index = 0;
+        foreach (T value in source) {
+            if ((index++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            yield return value;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
 }

@@ -226,6 +226,9 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.BibTex && issued != null && !issued.Year.HasValue && !issued.Month.HasValue && !issued.Day.HasValue && string.IsNullOrEmpty(issued.Literal))
             Loss(report, item, "dates.Issued", "BIBCONV241", "Classic BibTeX output omits an issued date with no representable year, month, day, or literal value.", BibliographyConversionAction.Omitted);
         foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) {
+            if ((format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) &&
+                !date.Year.HasValue && !date.Month.HasValue && !date.Day.HasValue && !date.EndYear.HasValue && !date.EndMonth.HasValue && !date.EndDay.HasValue && date.Literal == null)
+                Loss(report, item, "dates." + date.Role, "BIBCONV242", $"A null-valued empty date reopens with an empty literal in {format}.", BibliographyConversionAction.Approximated);
             if (!IsValidDate(date.Year, date.Month, date.Day) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue)
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
             if (date.EndYear.HasValue && format != BibliographyFormat.CslJson && format != BibliographyFormat.BibLatex && format != BibliographyFormat.EndNoteXml)
@@ -257,7 +260,10 @@ internal static class BibliographyConversionInspector {
     private static void InspectNestedNativeFields(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.CslJson) return;
         foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(contributor.Name.NativeFields, cancellationToken)) Loss(report, item, "contributors." + field.Name, "BIBCONV213", $"Native name property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
-        foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(date.NativeFields, cancellationToken)) Loss(report, item, "dates." + field.Name, "BIBCONV214", $"Native date property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
+        foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(date.NativeFields, cancellationToken)) {
+            if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CanPreserveNativeDateField(date, field)) continue;
+            Loss(report, item, "dates." + field.Name, "BIBCONV214", $"Native date property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
+        }
     }
 
     private static void InspectIdentifiers(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {

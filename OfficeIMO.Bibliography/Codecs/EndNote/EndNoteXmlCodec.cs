@@ -96,7 +96,7 @@ internal static class EndNoteXmlCodec {
                 writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", OutputType(document.SourceFormat, item)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
                 WriteContributors(writer, item, recordNamespace); WriteTitles(writer, item, recordNamespace); WritePeriodical(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
                 WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
-                WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, recordNamespace);
+                WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, report, recordNamespace);
                 foreach (BibliographyIdentifier identifier in item.Identifiers) WriteIdentifier(writer, identifier, recordNamespace);
                 WriteUrls(writer, item, report, recordNamespace);
                 if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in item.Keywords) WriteElement(writer, "keyword", keyword, recordNamespace); writer.WriteEndElement(); }
@@ -183,16 +183,21 @@ internal static class EndNoteXmlCodec {
         if (dates == null) return;
         XElement? yearElement = Child(dates, "year");
         XElement? dateElement = dates.Descendants().FirstOrDefault(element => HasName(element, dates.Name.Namespace, "date"));
+        if (yearElement == null && dateElement == null) return;
         string year = yearElement?.Value ?? string.Empty; string pubDate = dateElement?.Value ?? string.Empty;
         if (string.IsNullOrWhiteSpace(year) && string.IsNullOrWhiteSpace(pubDate)) {
-            XElement? retained = dateElement ?? yearElement;
-            if (retained != null) item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = retained.Value });
+            XElement retained = dateElement ?? yearElement!;
+            item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = retained.Value });
             return;
         }
         BibliographyDate parsedYear = CodecMappings.ParseDate(BibliographyDateRole.Issued, year);
         BibliographyDate parsedPublication = CodecMappings.ParseDate(BibliographyDateRole.Issued, pubDate);
-        if (string.IsNullOrWhiteSpace(year)) item.Dates.Add(parsedPublication);
-        else if (string.IsNullOrWhiteSpace(pubDate)) item.Dates.Add(parsedYear);
+        if (yearElement == null) item.Dates.Add(parsedPublication);
+        else if (dateElement == null) item.Dates.Add(parsedYear);
+        else if (!parsedYear.Year.HasValue) {
+            parsedPublication.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, "year", year, yearElement.ToString(SaveOptions.DisableFormatting)));
+            item.Dates.Add(parsedPublication);
+        }
         else if (parsedYear.Year.HasValue && parsedPublication.Year == parsedYear.Year) item.Dates.Add(parsedPublication);
         else {
             BibliographyDate combined = CodecMappings.ParseDate(BibliographyDateRole.Issued, pubDate + " " + year);
@@ -221,10 +226,23 @@ internal static class EndNoteXmlCodec {
         writer.WriteStartElement(null, "periodical", xmlNamespace); WriteElement(writer, "full-title", item.ContainerTitle, xmlNamespace); writer.WriteEndElement();
     }
 
-    private static void WriteDates(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
+    private static void WriteDates(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace) {
         BibliographyDate? date = item.GetDate(BibliographyDateRole.Issued); if (date == null) return;
-        writer.WriteStartElement(null, "dates", xmlNamespace); if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace);
-        string formatted = CodecMappings.FormatDate(date); if (date.Literal != null || formatted.Length > 0) { writer.WriteStartElement(null, "pub-dates", xmlNamespace); WriteElement(writer, "date", formatted, xmlNamespace); writer.WriteEndElement(); } writer.WriteEndElement();
+        writer.WriteStartElement(null, "dates", xmlNamespace);
+        BibliographyNativeField? nativeYear = date.NativeFields.FirstOrDefault(field => CanPreserveNativeDateField(date, field));
+        if (nativeYear != null) {
+            if (TryWriteNativeField(writer, nativeYear, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct EndNote XML year component.", BibliographyConversionAction.PreservedExtension, item, "dates.year");
+            else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct EndNote XML year component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.year");
+        } else if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace);
+        string formatted = CodecMappings.FormatDate(date);
+        writer.WriteStartElement(null, "pub-dates", xmlNamespace); WriteElement(writer, "date", formatted, xmlNamespace); writer.WriteEndElement();
+        writer.WriteEndElement();
+    }
+
+    internal static bool CanPreserveNativeDateField(BibliographyDate date, BibliographyNativeField field) {
+        if (field.Format != BibliographyFormat.EndNoteXml || !string.Equals(field.Name, "year", StringComparison.OrdinalIgnoreCase)) return false;
+        BibliographyDate parsed = CodecMappings.ParseDate(BibliographyDateRole.Issued, field.Value);
+        return !parsed.Year.HasValue && !date.NativeFields.TakeWhile(candidate => !ReferenceEquals(candidate, field)).Any(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, "year", StringComparison.OrdinalIgnoreCase));
     }
 
     private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace) {

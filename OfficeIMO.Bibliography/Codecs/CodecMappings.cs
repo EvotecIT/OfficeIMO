@@ -105,7 +105,7 @@ internal static class CodecMappings {
     }
 
     internal static string FormatName(BibliographyName name) {
-        if (!string.IsNullOrWhiteSpace(name.Literal)) return name.Literal + ",";
+        if (!string.IsNullOrWhiteSpace(name.Literal)) return name.Literal!.EndsWith(",", StringComparison.Ordinal) ? "{" + name.Literal + "}" : name.Literal + ",";
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         if (!string.IsNullOrWhiteSpace(name.Suffix)) return family + ", " + given + ", " + name.Suffix;

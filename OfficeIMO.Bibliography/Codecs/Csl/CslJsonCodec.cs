@@ -199,6 +199,7 @@ internal static class CslJsonCodec {
 
     private static bool ParseNames(BibliographyItem item, JsonElement value, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         if (value.ValueKind != JsonValueKind.Array) return false;
+        if (value.GetArrayLength() == 0) return false;
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
             if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && property.Value.ValueKind != JsonValueKind.String)) return false;
@@ -459,6 +460,7 @@ internal static class CslJsonCodec {
     }
 
     private static bool CanParseNames(JsonElement value) {
+        if (value.GetArrayLength() == 0) return false;
         foreach (JsonElement element in value.EnumerateArray()) {
             if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
             if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && property.Value.ValueKind != JsonValueKind.String)) return false;
