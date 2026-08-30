@@ -144,6 +144,8 @@ internal static class IWorkDrawingReader {
         projectionBudget.AddDecodedImageBytes(decodedBytes);
         IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete);
         if (!geometryComplete) complete = false;
+        bool hasMask = message.HasBytes(5);
+        if (hasMask || message.LacksWireKind(5, IWorkWireKind.Bytes)) complete = false;
         string? hyperlink = drawable.GetString(4, out bool hyperlinkComplete);
         string? accessibilityDescription = drawable.GetString(8, out bool accessibilityComplete);
         if (!hyperlinkComplete || !accessibilityComplete) complete = false;
@@ -153,7 +155,7 @@ internal static class IWorkDrawingReader {
             projectionBudget.AddTextCharacters(accessibilityDescription.Length);
         }
         return new IWorkImageAsset(data.PreferredFileName, entry.Path, mediaType, entry.Bytes,
-            pixelWidth, pixelHeight, geometry, message.HasBytes(5),
+            pixelWidth, pixelHeight, geometry, hasMask,
             hyperlink, accessibilityDescription);
     }
 

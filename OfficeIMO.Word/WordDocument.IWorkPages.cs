@@ -161,8 +161,8 @@ public partial class WordDocument {
             table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
                 merge.LastRow - merge.FirstRow + 1, merge.LastColumn - merge.FirstColumn + 1);
         }
-        if (source.HeaderRowCount > 0 && table.Rows.Count > 0) {
-            table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
+        for (int row = 0; row < Math.Min(source.HeaderRowCount, table.Rows.Count); row++) {
+            table.Rows[row].RepeatHeaderRowAtTheTopOfEachPage = true;
         }
     }
 
@@ -227,6 +227,8 @@ public partial class WordDocument {
         }
         if (projection.PageLayout is { } layout
             && (layout.WidthPoints <= 0 || layout.HeightPoints <= 0
+                || layout.LeftMarginPoints + layout.RightMarginPoints >= layout.WidthPoints
+                || layout.TopMarginPoints + layout.BottomMarginPoints >= layout.HeightPoints
                 || layout.WidthPoints > uint.MaxValue / 20d || layout.HeightPoints > uint.MaxValue / 20d
                 || !FitsUnsignedTwips(layout.LeftMarginPoints)
                 || !FitsUnsignedTwips(layout.RightMarginPoints)
@@ -258,8 +260,11 @@ public partial class WordDocument {
         }
         foreach (IWorkImageAsset image in projection.Images) {
             if (image.Geometry is { } geometry
-                && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0)) {
-                return "A Pages image has a zero-sized extent that cannot be represented by the DOCX image owner.";
+                && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0
+                    || Math.Abs(geometry.LeftPoints) > 0.000001d
+                    || Math.Abs(geometry.TopPoints) > 0.000001d
+                    || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
+                return "A Pages image has unsupported placement, rotation, or extent for the DOCX image owner.";
             }
         }
         foreach (IWorkTextContent content in AllPagesText(projection)) {
@@ -273,6 +278,10 @@ public partial class WordDocument {
                     return "Pages paragraph formatting exceeds the DOCX measurement range.";
                 }
                 foreach (IWorkTextRun run in paragraph.Runs) {
+                    if (run.Style.Color is { Alpha: < byte.MaxValue }
+                        || run.Style.BackgroundColor is { Alpha: < byte.MaxValue }) {
+                        return "Pages contains transparent text colors that cannot be represented by the DOCX owner.";
+                    }
                     if (run.Style.FontSizePoints is double fontSize
                         && (!IsFinite(fontSize) || fontSize < 0 || fontSize > int.MaxValue / 2d)) {
                         return "A Pages font size exceeds the DOCX measurement range.";
@@ -326,9 +335,9 @@ public partial class WordDocument {
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph.Style);
             if (sourceParagraph.ListLevel >= 0) {
-                bool ordered = IWorkNativeListCatalog.IsOrderedLabel(sourceParagraph.ListLabel);
                 bool startsNewList = sourceParagraph.ListIdentifier != previousListIdentifier;
-                nativeLists.Apply(paragraph, sourceParagraph.ListLevel, ordered, startsNewList);
+                nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
+                    sourceParagraph.ListLabel, startsNewList);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
             } else {
                 previousListIdentifier = null;
@@ -408,21 +417,19 @@ public partial class WordDocument {
 
     private sealed class IWorkNativeListCatalog {
         private readonly WordDocument _document;
-        private WordList? _currentBulleted;
-        private WordList? _currentNumbered;
+        private WordList? _current;
 
         internal IWorkNativeListCatalog(WordDocument document) {
             _document = document;
         }
 
-        internal void Apply(WordParagraph paragraph, int level, bool ordered, bool startsNewList) {
-            if (startsNewList) {
-                if (ordered) _currentNumbered = _document.AddList(WordListStyle.Numbered);
-                else _currentBulleted = _document.AddList(WordListStyle.Bulleted);
+        internal void Apply(WordParagraph paragraph, int level, string? label, bool startsNewList) {
+            if (startsNewList || _current == null) _current = WordList.AddCustomList(_document);
+            WordList list = _current;
+            WordListLevelKind levelKind = Classify(label);
+            while (list.Numbering.Levels.Count <= level) {
+                list.Numbering.AddLevel(new WordListLevel(levelKind));
             }
-            WordList list = ordered
-                ? _currentNumbered ??= _document.AddList(WordListStyle.Numbered)
-                : _currentBulleted ??= _document.AddList(WordListStyle.Bulleted);
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
                 ?? paragraph._paragraph.PrependChild(new OpenXmlParagraphProperties());
             properties.NumberingProperties = new OpenXmlNumberingProperties(
@@ -430,8 +437,37 @@ public partial class WordDocument {
                 new OpenXmlNumberingId { Val = list.NumberId });
         }
 
-        internal static bool IsOrderedLabel(string? label) =>
-            !string.IsNullOrEmpty(label) && label.Any(char.IsDigit);
+        private static WordListLevelKind Classify(string? label) {
+            if (string.IsNullOrWhiteSpace(label)) return WordListLevelKind.Bullet;
+            string marker = label!.Trim();
+            bool bracket = marker.EndsWith(")", StringComparison.Ordinal);
+            bool dot = marker.EndsWith(".", StringComparison.Ordinal);
+            string token = marker.TrimEnd('.', ')', '(', ' ');
+            if (token.All(char.IsDigit)) {
+                return bracket ? WordListLevelKind.DecimalBracket
+                    : dot ? WordListLevelKind.DecimalDot : WordListLevelKind.Decimal;
+            }
+            bool roman = token.Length > 0
+                && token.All(character => "ivxlcdmIVXLCDM".IndexOf(character) >= 0)
+                && (token.Length > 1 || "ivxIVX".IndexOf(token[0]) >= 0);
+            if (roman) {
+                bool upper = token.All(char.IsUpper);
+                return upper
+                    ? bracket ? WordListLevelKind.UpperRomanBracket
+                        : dot ? WordListLevelKind.UpperRomanDot : WordListLevelKind.UpperRoman
+                    : bracket ? WordListLevelKind.LowerRomanBracket
+                        : dot ? WordListLevelKind.LowerRomanDot : WordListLevelKind.LowerRoman;
+            }
+            if (token.Length == 1 && char.IsLetter(token[0])) {
+                bool upper = char.IsUpper(token[0]);
+                return upper
+                    ? bracket ? WordListLevelKind.UpperLetterBracket
+                        : dot ? WordListLevelKind.UpperLetterDot : WordListLevelKind.UpperLetter
+                    : bracket ? WordListLevelKind.LowerLetterBracket
+                        : dot ? WordListLevelKind.LowerLetterDot : WordListLevelKind.LowerLetter;
+            }
+            return WordListLevelKind.Bullet;
+        }
     }
 
     private static uint ToTwips(double points) {

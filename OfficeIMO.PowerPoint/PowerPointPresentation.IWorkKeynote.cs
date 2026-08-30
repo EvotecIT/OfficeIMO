@@ -230,6 +230,10 @@ public sealed partial class PowerPointPresentation {
                             && (!IsFinite(fontSize) || fontSize < 1d || fontSize > 4000d))) {
                         return $"Keynote slide {slide.Index} contains a font size outside the PPTX range.";
                     }
+                    if (paragraph.Runs.Any(run => run.Style.Color is { Alpha: < byte.MaxValue }
+                            || run.Style.BackgroundColor is { Alpha: < byte.MaxValue })) {
+                        return $"Keynote slide {slide.Index} contains transparent text colors that cannot be represented by the PPTX owner.";
+                    }
                 }
             }
             foreach (IWorkTable table in slide.Tables) {

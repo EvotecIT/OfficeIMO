@@ -46,7 +46,8 @@ internal static class IWorkPdfInfo {
                 bool inUse = bytes[offset++] == (byte)'n';
                 if (!ConsumeLineEnd(bytes, ref offset, limit)) return false;
                 if (inUse && objectOffset <= int.MaxValue) {
-                    inUseOffsets[(checked(firstObject + index), generation)] = (int)objectOffset;
+                    if (inUseOffsets.ContainsKey((checked(firstObject + index), generation))) return false;
+                    inUseOffsets.Add((checked(firstObject + index), generation), (int)objectOffset);
                 }
             }
         }
@@ -64,7 +65,9 @@ internal static class IWorkPdfInfo {
         if (!IsCatalogObjectAt(bytes, rootOffset, offset, rootObject, rootGeneration,
                 out long pagesObject, out long pagesGeneration)
             || !inUseOffsets.TryGetValue((pagesObject, pagesGeneration), out int pagesOffset)) return false;
-        return IsPagesObjectAt(bytes, pagesOffset, offset, pagesObject, pagesGeneration);
+        var visited = new HashSet<(long Object, long Generation)>();
+        return IsCompletePageTree(bytes, inUseOffsets, pagesOffset, offset,
+            pagesObject, pagesGeneration, parent: null, visited, depth: 0, out _);
     }
 
     private static bool TryReadFixedDecimal(byte[] bytes, ref int offset, int limit, int digits, out long value) {
@@ -117,14 +120,71 @@ internal static class IWorkPdfInfo {
                 out pagesObject, out pagesGeneration);
     }
 
-    private static bool IsPagesObjectAt(byte[] bytes, int offset, int limit,
-        long expectedObject, long expectedGeneration) {
+    private static bool IsCompletePageTree(byte[] bytes,
+        IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
+        int offset, int limit, long expectedObject, long expectedGeneration,
+        (long Object, long Generation)? parent,
+        ISet<(long Object, long Generation)> visited, int depth, out long pageCount) {
+        pageCount = 0;
+        if (depth > 256 || !visited.Add((expectedObject, expectedGeneration))) return false;
         if (!TryGetObjectDictionary(bytes, ref offset, limit, expectedObject, expectedGeneration,
                 out int dictionaryStart, out int dictionaryEnd)) return false;
-        return HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/Pages")
-            && IndexOfDictionaryName(bytes, "/Kids", dictionaryStart, dictionaryEnd) >= 0
-            && TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Count", out long count)
-            && count >= 0;
+        if (HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/Page")) {
+            if (!parent.HasValue
+                || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Parent",
+                    out long parentObject, out long parentGeneration)
+                || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation) {
+                return false;
+            }
+            pageCount = 1;
+            return true;
+        }
+        if (!HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/Pages")
+            || parent.HasValue && (!TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd,
+                    "/Parent", out long pagesParentObject, out long pagesParentGeneration)
+                || pagesParentObject != parent.Value.Object || pagesParentGeneration != parent.Value.Generation)
+            || !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Count", out long declaredCount)
+            || declaredCount < 0
+            || !TryReadDictionaryReferenceArray(bytes, dictionaryStart, dictionaryEnd, "/Kids",
+                out IReadOnlyList<(long Object, long Generation)> children)) return false;
+        long total = 0;
+        foreach ((long childObject, long childGeneration) in children) {
+            if (!inUseOffsets.TryGetValue((childObject, childGeneration), out int childOffset)
+                || !IsCompletePageTree(bytes, inUseOffsets, childOffset, limit,
+                    childObject, childGeneration, (expectedObject, expectedGeneration),
+                    visited, depth + 1, out long childCount)
+                || total > long.MaxValue - childCount) return false;
+            total += childCount;
+        }
+        pageCount = total;
+        return total == declaredCount;
+    }
+
+    private static bool TryReadDictionaryReferenceArray(byte[] bytes, int start, int end,
+        string name, out IReadOnlyList<(long Object, long Generation)> references) {
+        var result = new List<(long Object, long Generation)>();
+        references = result;
+        int offset = IndexOfDictionaryName(bytes, name, start, end);
+        if (offset < 0) return false;
+        offset += name.Length;
+        SkipWhitespace(bytes, ref offset, end);
+        if (offset >= end || bytes[offset++] != (byte)'[') return false;
+        while (true) {
+            SkipWhitespace(bytes, ref offset, end);
+            if (offset >= end) return false;
+            if (bytes[offset] == (byte)']') {
+                offset++;
+                references = result;
+                return offset >= end || IsDelimiter(bytes[offset]);
+            }
+            if (!TryReadDecimal(bytes, ref offset, end, out long objectNumber)) return false;
+            SkipWhitespace(bytes, ref offset, end);
+            if (!TryReadDecimal(bytes, ref offset, end, out long generation)) return false;
+            SkipWhitespace(bytes, ref offset, end);
+            if (offset >= end || bytes[offset++] != (byte)'R'
+                || objectNumber <= 0 || result.Count >= 1_000_000) return false;
+            result.Add((objectNumber, generation));
+        }
     }
 
     private static bool TryGetObjectDictionary(byte[] bytes, ref int offset, int limit,

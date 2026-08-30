@@ -264,7 +264,7 @@ internal static class IWorkKeynoteReader {
                 continue;
             }
             IWorkArchiveRecord? storage = DrawableStorage(index, drawable, out bool storageComplete);
-            if (!storageComplete) {
+            if (!storageComplete || storage == null) {
                 supportsEditableReconstruction = false;
                 if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
                     diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

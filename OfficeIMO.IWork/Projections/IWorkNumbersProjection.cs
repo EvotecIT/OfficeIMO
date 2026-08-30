@@ -187,6 +187,14 @@ internal static class IWorkNumbersReader {
                             "A Numbers text shape does not reference supported text storage; editable reconstruction is incomplete.",
                             drawable.EntryPath, drawable.Identifier));
                     }
+                } else {
+                    supportsEditableReconstruction = false;
+                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_DRAWABLE_UNSUPPORTED")) {
+                        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                            "IWORK_NUMBERS_DRAWABLE_UNSUPPORTED",
+                            "A Numbers sheet contains an unsupported drawable; editable reconstruction is incomplete.",
+                            drawable.EntryPath, drawable.Identifier));
+                    }
                 }
             }
             string? sheetName = sheetMessage.GetString(1, out bool sheetNameComplete);
