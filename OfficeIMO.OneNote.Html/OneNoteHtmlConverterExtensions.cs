@@ -1,6 +1,7 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Html;
 using OfficeIMO.OneNote.Markdown;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace OfficeIMO.OneNote.Html;
@@ -12,7 +13,7 @@ public static class OneNoteHtmlConverterExtensions {
         this OneNoteSection section,
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) =>
-        section.ToMarkdownDocument(projectionOptions).ToHtmlDocument(htmlOptions);
+        Prepare(section, projectionOptions).Document.ToHtmlDocument(htmlOptions);
 
     /// <summary>Converts a section to HTML with shared structured projection diagnostics.</summary>
     public static HtmlTextConversionResult ToHtmlDocumentResult(
@@ -20,10 +21,10 @@ public static class OneNoteHtmlConverterExtensions {
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) {
         if (section == null) throw new ArgumentNullException(nameof(section));
-        OneNoteMarkdownConversionResult projection = section.ToMarkdownDocumentResult(projectionOptions);
+        PreparedHtml projection = Prepare(section, projectionOptions);
         return new HtmlTextConversionResult(
-            projection.Value.ToHtmlDocument(htmlOptions),
-            projection.Diagnostics.Select(ToHtmlDiagnostic));
+            projection.Document.ToHtmlDocument(htmlOptions),
+            CreateHtmlDiagnostics(projection, section));
     }
 
     /// <summary>Converts a notebook to a standalone HTML5 document.</summary>
@@ -31,7 +32,7 @@ public static class OneNoteHtmlConverterExtensions {
         this OneNoteNotebook notebook,
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) =>
-        notebook.ToMarkdownDocument(projectionOptions).ToHtmlDocument(htmlOptions);
+        Prepare(notebook, projectionOptions).Document.ToHtmlDocument(htmlOptions);
 
     /// <summary>Converts a notebook to HTML with shared structured projection diagnostics.</summary>
     public static HtmlTextConversionResult ToHtmlDocumentResult(
@@ -39,10 +40,10 @@ public static class OneNoteHtmlConverterExtensions {
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        OneNoteMarkdownConversionResult projection = notebook.ToMarkdownDocumentResult(projectionOptions);
+        PreparedHtml projection = Prepare(notebook, projectionOptions);
         return new HtmlTextConversionResult(
-            projection.Value.ToHtmlDocument(htmlOptions),
-            projection.Diagnostics.Select(ToHtmlDiagnostic));
+            projection.Document.ToHtmlDocument(htmlOptions),
+            CreateHtmlDiagnostics(projection, notebook));
     }
 
     /// <summary>Converts a section to an embeddable HTML fragment.</summary>
@@ -50,14 +51,14 @@ public static class OneNoteHtmlConverterExtensions {
         this OneNoteSection section,
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) =>
-        section.ToMarkdownDocument(projectionOptions).ToHtmlFragment(htmlOptions);
+        Prepare(section, projectionOptions).Document.ToHtmlFragment(htmlOptions);
 
     /// <summary>Converts a notebook to an embeddable HTML fragment.</summary>
     public static string ToHtmlFragment(
         this OneNoteNotebook notebook,
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) =>
-        notebook.ToMarkdownDocument(projectionOptions).ToHtmlFragment(htmlOptions);
+        Prepare(notebook, projectionOptions).Document.ToHtmlFragment(htmlOptions);
 
     /// <summary>Encodes a section as a standalone UTF-8 HTML document without a byte-order mark.</summary>
     public static byte[] ToHtmlBytes(
@@ -79,7 +80,7 @@ public static class OneNoteHtmlConverterExtensions {
         string path,
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) =>
-        section.ToMarkdownDocument(projectionOptions).SaveAsHtml(path, htmlOptions);
+        Prepare(section, projectionOptions).Document.SaveAsHtml(path, htmlOptions);
 
     /// <summary>Saves a notebook as a standalone HTML document.</summary>
     public static void SaveAsHtml(
@@ -87,7 +88,7 @@ public static class OneNoteHtmlConverterExtensions {
         string path,
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) =>
-        notebook.ToMarkdownDocument(projectionOptions).SaveAsHtml(path, htmlOptions);
+        Prepare(notebook, projectionOptions).Document.SaveAsHtml(path, htmlOptions);
 
     /// <summary>Writes a section as a standalone HTML document to a caller-owned stream.</summary>
     public static void SaveAsHtml(
@@ -112,7 +113,7 @@ public static class OneNoteHtmlConverterExtensions {
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null,
         CancellationToken cancellationToken = default) =>
-        section.ToMarkdownDocument(projectionOptions).SaveAsHtmlAsync(path, htmlOptions, cancellationToken);
+        Prepare(section, projectionOptions).Document.SaveAsHtmlAsync(path, htmlOptions, cancellationToken);
 
     /// <summary>Asynchronously saves a notebook as a standalone HTML document.</summary>
     public static Task SaveAsHtmlAsync(
@@ -121,7 +122,7 @@ public static class OneNoteHtmlConverterExtensions {
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null,
         CancellationToken cancellationToken = default) =>
-        notebook.ToMarkdownDocument(projectionOptions).SaveAsHtmlAsync(path, htmlOptions, cancellationToken);
+        Prepare(notebook, projectionOptions).Document.SaveAsHtmlAsync(path, htmlOptions, cancellationToken);
 
     /// <summary>Asynchronously writes a section as HTML to a caller-owned stream.</summary>
     public static Task SaveAsHtmlAsync(
@@ -142,6 +143,46 @@ public static class OneNoteHtmlConverterExtensions {
         WriteAsync(stream, notebook.ToHtmlBytes(projectionOptions, htmlOptions), cancellationToken);
 
     private static byte[] Utf8(string value) => new UTF8Encoding(false).GetBytes(value);
+
+    private static PreparedHtml Prepare(OneNoteSection section, OneNoteMarkdownOptions? options) {
+        if (section == null) throw new ArgumentNullException(nameof(section));
+        OneNoteMarkdownOptions operation = CreateCachedOptions(options);
+        OneNoteMarkdownConversionResult projection = section.ToMarkdownDocumentResult(operation);
+        return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(section, operation), projection, operation);
+    }
+
+    private static PreparedHtml Prepare(OneNoteNotebook notebook, OneNoteMarkdownOptions? options) {
+        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        OneNoteMarkdownOptions operation = CreateCachedOptions(options);
+        OneNoteMarkdownConversionResult projection = notebook.ToMarkdownDocumentResult(operation);
+        return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(notebook, operation), projection, operation);
+    }
+
+    private static OneNoteMarkdownOptions CreateCachedOptions(OneNoteMarkdownOptions? options) {
+        OneNoteMarkdownOptions operation = (options ?? new OneNoteMarkdownOptions()).Clone();
+        Func<OneNoteBinaryElement, string?>? resolver = operation.AssetUriResolver;
+        if (resolver == null) return operation;
+        var cache = new Dictionary<OneNoteBinaryElement, string?>();
+        operation.AssetUriResolver = element => {
+            if (cache.TryGetValue(element, out string? value)) return value;
+            value = resolver(element);
+            cache[element] = value;
+            return value;
+        };
+        return operation;
+    }
+
+    private static IEnumerable<HtmlDiagnostic> CreateHtmlDiagnostics(PreparedHtml projection, OneNoteSection section) =>
+        projection.Projection.Diagnostics
+            .Where(diagnostic => diagnostic.Code != "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED")
+            .Select(ToHtmlDiagnostic)
+            .Concat(OneNoteHtmlDiagnosticCollector.Collect(section, projection.Options));
+
+    private static IEnumerable<HtmlDiagnostic> CreateHtmlDiagnostics(PreparedHtml projection, OneNoteNotebook notebook) =>
+        projection.Projection.Diagnostics
+            .Where(diagnostic => diagnostic.Code != "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED")
+            .Select(ToHtmlDiagnostic)
+            .Concat(OneNoteHtmlDiagnosticCollector.Collect(notebook, projection.Options));
 
     private static HtmlDiagnostic ToHtmlDiagnostic(OneNoteMarkdownDiagnostic diagnostic) {
         HtmlDiagnosticSeverity severity = diagnostic.Severity == OneNoteDiagnosticSeverity.Error
@@ -171,5 +212,17 @@ public static class OneNoteHtmlConverterExtensions {
     private static Task WriteAsync(Stream stream, byte[] bytes, CancellationToken cancellationToken) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         return stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
+    }
+
+    private sealed class PreparedHtml {
+        internal PreparedHtml(MarkdownDoc document, OneNoteMarkdownConversionResult projection, OneNoteMarkdownOptions options) {
+            Document = document;
+            Projection = projection;
+            Options = options;
+        }
+
+        internal MarkdownDoc Document { get; }
+        internal OneNoteMarkdownConversionResult Projection { get; }
+        internal OneNoteMarkdownOptions Options { get; }
     }
 }

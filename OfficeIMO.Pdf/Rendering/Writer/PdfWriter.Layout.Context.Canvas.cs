@@ -227,12 +227,14 @@ internal static partial class PdfWriter {
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
             string fontResource = GetFontResourceName(font, null, font);
             int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
+            double actualTextX = item.HasPosition ? item.X : 0D;
+            double actualTextY = item.HasPosition ? currentOpts.PageHeight - item.Y : 0D;
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
                 .Font(fontResource, 1D)
                 .TextRenderingMode(3)
-                .TextMatrix(0D, 0D);
+                .TextMatrix(actualTextX, actualTextY);
             sb.Append("/Span << /ActualText ")
                 .Append(PdfSyntaxEscaper.TextString(item.Text));
             if (markedContentId.HasValue) {

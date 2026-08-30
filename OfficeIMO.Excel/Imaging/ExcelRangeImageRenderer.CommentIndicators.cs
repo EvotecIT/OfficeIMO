@@ -107,7 +107,10 @@ namespace OfficeIMO.Excel {
                     run.Italic,
                     run.Underline,
                     string.IsNullOrWhiteSpace(run.FontName) ? style.FontFamily : run.FontName,
-                    strikethrough: run.Strikethrough));
+                    strikethrough: run.Strikethrough,
+                    underlineStyle: MapExcelUnderlineStyle(run.UnderlineStyle),
+                    strikethroughStyle: run.Strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None,
+                    baseline: MapExcelBaseline(run.VerticalTextAlignment)));
             }
 
             return runs.Count == 0 ? Array.Empty<OfficeRichTextRun>() : runs.AsReadOnly();

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Globalization;
 
 namespace OfficeIMO.OneNote.Tests;
 
@@ -610,6 +611,69 @@ public sealed class NativeInkMathWriterTests {
 
         Assert.Same(expression, authoredRun.MathExpression);
         Assert.Equal(expression, Assert.Single(actual.Runs).MathExpression);
+    }
+
+    [Fact]
+    public void MathTextCaseTransformationUpdatesTheExpressionAndPersists() {
+        var section = new OneNoteSection { Name = "Math case" };
+        var page = new OneNotePage { Title = "Math" };
+        var paragraph = new OneNoteParagraph();
+        OneNoteTextRun run = paragraph.AddMath(OfficeMath.Row(
+            OfficeMath.Identifier("alpha"),
+            OfficeMath.Operator("+"),
+            OfficeMath.Function("sin", OfficeMath.Identifier("beta"))));
+        run.TransformTextCase(OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteTextRun actual = Assert.Single(Assert.IsType<OneNoteParagraph>(
+            Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Runs);
+
+        Assert.Equal("ALPHA+SIN(BETA)", run.Text);
+        Assert.Equal("ALPHA+SIN(BETA)", actual.Text);
+        Assert.Equal("ALPHA+SIN(BETA)", actual.MathExpression!.ToPlainText());
+    }
+
+    [Fact]
+    public void MathTextCaseTransformationRetainsNativeTokenStylesAndOpaqueProperties() {
+        OfficeMathExpression expression = OfficeMath.Row(
+            OfficeMath.Identifier("alpha"),
+            OfficeMath.Operator("+"),
+            OfficeMath.Identifier("beta"));
+        var first = new OneNoteTextRun {
+            Text = "alpha",
+            MathDescriptor = new OneNoteMathInlineDescriptor { Type = 1 }
+        };
+        first.Style.IsMath = true;
+        first.Style.Bold = true;
+        first.UnknownProperties.Add(new OneNoteOpaqueProperty { PropertyId = 0x12345678 });
+        var second = new OneNoteTextRun {
+            Text = "+beta",
+            MathDescriptor = new OneNoteMathInlineDescriptor { Type = 2 }
+        };
+        second.Style.IsMath = true;
+        second.Style.Italic = true;
+        second.UnknownProperties.Add(new OneNoteOpaqueProperty { PropertyId = 0x87654321 });
+        var semantic = new OneNoteTextRun {
+            Text = expression.ToPlainText(),
+            MathExpression = expression,
+            PreservedMathExpression = expression,
+            PreservedNativeMathRuns = new[] { first, second }
+        };
+        semantic.Style.IsMath = true;
+        semantic.Style.Bold = true;
+
+        semantic.TransformTextCase(OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
+        IReadOnlyList<OneNoteTextRun> native = OneNoteMathRunPreservation.CloneForWrite(semantic);
+
+        Assert.Equal("ALPHA+BETA", semantic.Text);
+        Assert.Equal(new[] { "ALPHA", "+BETA" }, native.Select(run => run.Text));
+        Assert.True(native[0].Style.Bold);
+        Assert.True(native[1].Style.Italic);
+        Assert.Equal(0x12345678U, Assert.Single(native[0].UnknownProperties).PropertyId);
+        Assert.Equal(0x87654321U, Assert.Single(native[1].UnknownProperties).PropertyId);
+        Assert.Equal(new uint[] { 1, 2 }, native.Select(run => run.MathDescriptor!.Type));
     }
 
     [Fact]

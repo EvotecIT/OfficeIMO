@@ -114,6 +114,12 @@ internal sealed class HtmlRenderBoxStyle {
     internal int GradientStopLimitExceededCount;
     internal IReadOnlyList<HtmlRenderBackgroundLayer> BackgroundImageLayers = Array.Empty<HtmlRenderBackgroundLayer>();
     internal OfficeFontInfo Font;
+    internal OfficeTextDecorationStyle UnderlineStyle;
+    internal OfficeTextDecorationStyle StrikethroughStyle;
+    internal OfficeTextBaseline Baseline;
+    internal int BaselineLevel;
+    internal double BaselineScale = 1D;
+    internal double BaselineOffset;
     internal OfficeColor Color = OfficeColor.Black;
     internal OfficeTextAlignment Alignment;
     internal double LineHeight;
@@ -141,7 +147,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal string TextOverflow = "clip";
     internal int? LineClamp;
     internal string ListStyleType = string.Empty;
+    internal string FontVariant = "normal";
     internal string TextTransform = "none";
+    internal bool ApproximateSmallCaps;
+    internal string Language = string.Empty;
     internal string Direction = "ltr";
     internal string OverflowWrap = "normal";
     internal string WordBreak = "normal";

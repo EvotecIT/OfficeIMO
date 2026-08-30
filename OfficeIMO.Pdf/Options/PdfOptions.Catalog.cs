@@ -706,6 +706,22 @@ public sealed partial class PdfOptions {
         return AddEmbeddedFile(new PdfEmbeddedFile(fileName, data, mimeType, relationship, description));
     }
 
+    /// <summary>Sets the modification date emitted in the embedded-file stream parameters for an existing attachment.</summary>
+    public PdfOptions SetEmbeddedFileModificationDate(string fileName, DateTimeOffset modificationDate) {
+        Guard.NotNullOrWhiteSpace(fileName, nameof(fileName));
+        if (_embeddedFiles != null) {
+            for (int i = 0; i < _embeddedFiles.Count; i++) {
+                PdfEmbeddedFile file = _embeddedFiles[i];
+                if (string.Equals(file.FileName, fileName, System.StringComparison.Ordinal)) {
+                    file.ModificationDate = modificationDate;
+                    return this;
+                }
+            }
+        }
+
+        throw new System.ArgumentException("No embedded file with the requested name is configured.", nameof(fileName));
+    }
+
     /// <summary>
     /// Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML payload and matching XMP extension metadata.
     /// </summary>

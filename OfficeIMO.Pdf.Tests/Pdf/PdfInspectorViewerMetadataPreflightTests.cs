@@ -239,6 +239,52 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_XmpCompliancePropertiesIgnoreForeignRdfSubjects() {
+        string xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"" +
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:pdfxid=\"" +
+            PdfXIdentification.NamespaceUri + "\">" +
+            "<rdf:Description rdf:about=\"urn:other\"><pdfxid:GTS_PDFXVersion>PDF/X-1a:2003</pdfxid:GTS_PDFXVersion></rdf:Description>" +
+            "<rdf:Description rdf:about=\"\"><pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion></rdf:Description>" +
+            "</rdf:RDF></x:xmpmeta>";
+
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(
+            PdfInspector.Inspect(BuildXmpMetadataPdfWithPayload(xmp)).XmpMetadata);
+
+        Assert.Equal("PDF/X-4", metadata.PdfXVersion);
+    }
+
+    [Fact]
+    public void Inspect_XmpCompliancePropertiesRejectAmbiguousDefaultSubjectValues() {
+        string xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"" +
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:pdfxid=\"" +
+            PdfXIdentification.NamespaceUri + "\">" +
+            "<rdf:Description rdf:about=\"\"><pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion></rdf:Description>" +
+            "<rdf:Description rdf:about=\"\" pdfxid:GTS_PDFXVersion=\"PDF/X-1a:2003\"/>" +
+            "</rdf:RDF></x:xmpmeta>";
+
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(
+            PdfInspector.Inspect(BuildXmpMetadataPdfWithPayload(xmp)).XmpMetadata);
+
+        Assert.Null(metadata.PdfXVersion);
+    }
+
+    [Fact]
+    public void Inspect_XmpPdfPropertiesIgnoreForeignNamespaces() {
+        string xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"" +
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:pdf=\"" +
+            "http://ns.adobe.com/pdf/1.3/\" xmlns:custom=\"urn:custom\">" +
+            "<rdf:Description rdf:about=\"\" custom:Producer=\"Foreign producer\" custom:Keywords=\"foreign\" " +
+            "pdf:Producer=\"OfficeIMO.Pdf\" pdf:Keywords=\"pdf,officeimo\"/>" +
+            "</rdf:RDF></x:xmpmeta>";
+
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(
+            PdfInspector.Inspect(BuildXmpMetadataPdfWithPayload(xmp)).XmpMetadata);
+
+        Assert.Equal("OfficeIMO.Pdf", metadata.Producer);
+        Assert.Equal("pdf,officeimo", metadata.Keywords);
+    }
+
+    [Fact]
     public void Inspect_XmpMetadataRejectsDtdEntityExpansion() {
         const string xmp = "<!DOCTYPE xmp [<!ENTITY boom \"expanded\">]><xmp>&boom;</xmp>";
 
@@ -478,6 +524,15 @@ public partial class PdfInspectorTests {
         Assert.Equal(128, outputIntent.DestinationOutputProfileDeclaredSizeBytes);
         Assert.Equal("RGB ", outputIntent.DestinationOutputProfileColorSpace);
         Assert.True(outputIntent.DestinationOutputProfileHasIccSignature);
+    }
+
+    [Fact]
+    public void Inspect_RejectsUnsupportedOutputIntentProfileFiltersInsteadOfReadingRawBytes() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildUnsupportedFilteredOutputIntentProfilePdf());
+        PdfOutputIntentInfo outputIntent = Assert.Single(info.OutputIntents);
+
+        Assert.True(outputIntent.HasDestinationOutputProfile);
+        Assert.Throws<InvalidDataException>(() => _ = outputIntent.DestinationOutputProfileSizeBytes);
     }
 
     private static byte[] BuildXmpMetadataPdfWithPayload(string xmp) {

@@ -107,15 +107,21 @@ internal static partial class PdfWriter {
         public bool NoWrap { get; }
     }
 
-    private static LayoutResult LayoutBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions opts) {
+    private static LayoutResult LayoutBlocks(
+        IEnumerable<IPdfBlock> blocks,
+        PdfOptions opts,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var blockList = blocks as IReadOnlyList<IPdfBlock> ?? blocks.ToList();
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<SectionBlock> sections = Array.Empty<SectionBlock>();
         IReadOnlyDictionary<string, int>? pageNumbers = null;
         var deferredMaterializations = new Dictionary<FlowMaterializationKey, IReadOnlyList<IPdfBlock>>();
         LayoutResult result = null!;
         for (int pass = 0; pass < 5; pass++) {
+            cancellationToken.ThrowIfCancellationRequested();
             result?.Dispose();
-            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations);
+            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations, cancellationToken);
             result = context.Layout(blockList);
             if (!result.HasTableOfContents) {
                 ApplySectionReferences(result);

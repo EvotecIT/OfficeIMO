@@ -23,11 +23,25 @@ internal static partial class PdfWriter {
         var images = new System.Collections.Generic.List<PdfGeneratedImageAccessibilityEvidence>();
         var drawings = new System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence>();
         var forms = new System.Collections.Generic.List<PdfGeneratedFormAccessibilityEvidence>();
+        int pagesWithPrintProductionBoxes = 0;
+        int annotationCount = 0;
+        int externalReferenceCount = 0;
+        int optionalContentLayerCount = 0;
         System.Collections.Generic.IReadOnlyList<PageNumberInfo> pageNumberInfos = BuildPageNumberInfos(layout.Pages);
 
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             LayoutResult.Page page = layout.Pages[pageIndex];
             PdfOptions pageOptions = page.Options ?? options;
+            if (pageOptions.PrintProductionPageBoxesSnapshot != null) {
+                pageOptions.PrintProductionPageBoxesSnapshot.Resolve(pageOptions.PageWidth, pageOptions.PageHeight);
+                pagesWithPrintProductionBoxes++;
+            }
+            annotationCount += page.Annotations.Count + page.TextAnnotations.Count + page.FormFields.Sum(GetFormFieldWidgetCount);
+            if (!options.FlattenVisualAnnotations) {
+                annotationCount += page.FreeTextAnnotations.Count + page.HighlightAnnotations.Count;
+            }
+            externalReferenceCount += page.Annotations.Count(annotation => !string.IsNullOrWhiteSpace(annotation.Uri));
+            optionalContentLayerCount += page.Layers.Distinct().Count();
             PdfStandardFont normalFont = ChooseNormal(pageOptions.DefaultFont);
 
             AddLayoutStandardFontUsage("F1", normalFont);
@@ -121,7 +135,17 @@ internal static partial class PdfWriter {
         PdfStandardFont[] fontSnapshot = fonts
             .OrderBy(font => (int)font)
             .ToArray();
-        return new PdfGeneratedDocumentComplianceEvidence(fontSnapshot, fontUsages.ToArray(), images.ToArray(), drawings.ToArray(), forms.ToArray());
+        return new PdfGeneratedDocumentComplianceEvidence(
+            fontSnapshot,
+            fontUsages.ToArray(),
+            images.ToArray(),
+            drawings.ToArray(),
+            forms.ToArray(),
+            layout.Pages.Count,
+            pagesWithPrintProductionBoxes,
+            annotationCount,
+            externalReferenceCount,
+            optionalContentLayerCount);
     }
 
     private static bool UsesLayoutFontResource(LayoutResult layout, LayoutResult.Page page, string resourceName) {

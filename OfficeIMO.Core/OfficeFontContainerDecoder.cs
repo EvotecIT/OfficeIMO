@@ -14,7 +14,7 @@ public static class OfficeFontContainerDecoder {
     private const int SfntHeaderLength = 12;
     private const int SfntTableRecordLength = 16;
     private const int MaximumTableCount = 512;
-    private const int DefaultMaximumDecodedBytes = 128 * 1024 * 1024;
+    internal const int DefaultMaximumDecodedBytes = 128 * 1024 * 1024;
     private const uint HeadTableTag = 0x68656164;
     private const uint OpenTypeChecksumMagic = 0xB1B0AFBA;
 
@@ -34,8 +34,7 @@ public static class OfficeFontContainerDecoder {
     }
 
     /// <summary>
-    /// Attempts to decode a direct OpenType or WOFF 1 container using the default 128 MiB output limit.
-    /// WOFF 2 is detected but returns a clear unsupported result until its transformed-table decoder is available.
+    /// Attempts to decode a direct OpenType, WOFF 1, or single-face WOFF 2 container using the default 128 MiB output limit.
     /// </summary>
     public static bool TryDecodeToOpenType(
         byte[]? data,
@@ -44,7 +43,7 @@ public static class OfficeFontContainerDecoder {
         out string? error) =>
         TryDecodeToOpenType(data, DefaultMaximumDecodedBytes, out openTypeData, out format, out error);
 
-    /// <summary>Attempts to decode a direct OpenType or WOFF 1 container with an explicit output limit.</summary>
+    /// <summary>Attempts to decode a direct OpenType, WOFF 1, or single-face WOFF 2 container with an explicit output limit.</summary>
     public static bool TryDecodeToOpenType(
         byte[]? data,
         int maximumDecodedBytes,
@@ -68,8 +67,19 @@ public static class OfficeFontContainerDecoder {
             return true;
         }
         if (format == OfficeFontContainerFormat.Woff2) {
-            error = "WOFF 2 transformed-table decoding is not supported.";
-            return false;
+            try {
+                openTypeData = OfficeWoff2Decoder.Decode(data, maximumDecodedBytes);
+                return true;
+            } catch (Exception exception) when (exception is InvalidDataException
+                                                || exception is NotSupportedException
+                                                || exception is PlatformNotSupportedException
+                                                || exception is OverflowException
+                                                || exception is ArgumentOutOfRangeException
+                                                || exception is IndexOutOfRangeException) {
+                openTypeData = Array.Empty<byte>();
+                error = exception.Message;
+                return false;
+            }
         }
         if (format != OfficeFontContainerFormat.Woff) {
             error = "Font data is not a recognized OpenType or web-font container.";

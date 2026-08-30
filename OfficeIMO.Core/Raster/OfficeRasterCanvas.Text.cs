@@ -46,7 +46,7 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
 
-        OfficeTrueTypeFont? font = ResolveTextFont(text!, fontFamily, style);
+        IOfficeFontProgram? font = ResolveTextFont(text!, fontFamily, style);
         double measured = font != null
             ? MeasureResolvedText(text!, font, size)
             : MeasureFallbackText(text!, size);
@@ -86,6 +86,22 @@ public sealed partial class OfficeRasterCanvas {
         double textAdvanceWidth) =>
         DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth);
 
+    internal void DrawPositionedText(
+        string? text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeColor color,
+        double fontSize,
+        OfficeTextAlignment alignment,
+        OfficeFontStyle style,
+        string? fontFamily,
+        double textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle) =>
+        DrawTextCore(text, x, y, width, height, color, fontSize, alignment, style, fontFamily, OfficeTextOverflowBehavior.Clip, textAdvanceWidth, underlineStyle, strikethroughStyle);
+
     private void DrawTextCore(
         string? text,
         double x,
@@ -98,7 +114,9 @@ public sealed partial class OfficeRasterCanvas {
         OfficeFontStyle style,
         string? fontFamily,
         OfficeTextOverflowBehavior overflowBehavior,
-        double? textAdvanceWidth) {
+        double? textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
+        OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) {
             return;
         }
@@ -124,10 +142,12 @@ public sealed partial class OfficeRasterCanvas {
             style,
             fontFamily,
             overflowBehavior,
-            textAdvanceWidth)) {
+            textAdvanceWidth,
+            underlineStyle,
+            strikethroughStyle)) {
             return;
         }
-        OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
             double measured = MeasureResolvedText(value, font, size);
@@ -159,20 +179,34 @@ public sealed partial class OfficeRasterCanvas {
                 SlantContours(contours, top, size);
             }
 
-            FillContours(contours, color, OfficeFillRule.EvenOdd);
+            FillContours(contours, color, OfficeFillRule.NonZero);
             if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
                 OffsetContours(contours, 0.45D, 0D);
-                FillContours(contours, color, OfficeFillRule.EvenOdd);
+                FillContours(contours, color, OfficeFillRule.NonZero);
             }
 
-            if ((style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline) {
+            OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
+                ? underlineStyle
+                : (style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
+                    ? OfficeTextDecorationStyle.Single
+                    : OfficeTextDecorationStyle.None;
+            OfficeTextDecorationStyle resolvedStrikethroughStyle = strikethroughStyle != OfficeTextDecorationStyle.None
+                ? strikethroughStyle
+                : (style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
+                    ? OfficeTextDecorationStyle.Single
+                    : OfficeTextDecorationStyle.None;
+            if (resolvedUnderlineStyle == OfficeTextDecorationStyle.Single) {
                 double underlineY = top + (font.LineHeight(size) * 0.86D);
                 DrawLine(textX, underlineY, textX + resolvedAdvance, underlineY, color, Math.Max(1D, size / 16D));
+            } else if (resolvedUnderlineStyle != OfficeTextDecorationStyle.None) {
+                DrawTextLineDecorations(textX, resolvedAdvance, top, font.LineHeight(size), color, 0D, 0D, 0D, resolvedUnderlineStyle, OfficeTextDecorationStyle.None, false, false);
             }
 
-            if ((style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough) {
+            if (resolvedStrikethroughStyle == OfficeTextDecorationStyle.Single) {
                 double strikeY = top + (font.LineHeight(size) * 0.52D);
                 DrawLine(textX, strikeY, textX + resolvedAdvance, strikeY, color, Math.Max(1D, size / 16D));
+            } else if (resolvedStrikethroughStyle != OfficeTextDecorationStyle.None) {
+                DrawTextLineDecorations(textX, resolvedAdvance, top, font.LineHeight(size), color, 0D, 0D, 0D, OfficeTextDecorationStyle.None, resolvedStrikethroughStyle, false, false);
             }
             return;
         }
@@ -191,6 +225,9 @@ public sealed partial class OfficeRasterCanvas {
     /// <summary>
     /// Draws a single anchored text line with optional bold, italic, alignment, and rotation.
     /// </summary>
+    /// <remarks>
+    /// This overload retains the original CLR signature for applications compiled against earlier OfficeIMO.Core releases.
+    /// </remarks>
     /// <param name="text">Text to render.</param>
     /// <param name="anchorX">Horizontal anchor. Left, center, or right interpretation depends on <paramref name="alignment"/>.</param>
     /// <param name="top">Top coordinate of the text line box.</param>
@@ -223,7 +260,67 @@ public sealed partial class OfficeRasterCanvas {
         bool strikethrough = false,
         string? fontFamily = null,
         bool flipHorizontal = false,
-        bool flipVertical = false) {
+        bool flipVertical = false) =>
+        DrawTextLine(
+            text,
+            anchorX,
+            top,
+            height,
+            color,
+            bold,
+            italic,
+            alignment,
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            underline,
+            strikethrough,
+            fontFamily,
+            flipHorizontal,
+            flipVertical,
+            OfficeTextDecorationStyle.None,
+            OfficeTextDecorationStyle.None);
+
+    /// <summary>
+    /// Draws a single anchored text line with independent underline and strikethrough patterns.
+    /// </summary>
+    /// <param name="text">Text to render.</param>
+    /// <param name="anchorX">Horizontal anchor. Left, center, or right interpretation depends on <paramref name="alignment"/>.</param>
+    /// <param name="top">Top coordinate of the text line box.</param>
+    /// <param name="height">Text line height in canvas pixels.</param>
+    /// <param name="color">Text color.</param>
+    /// <param name="bold">Whether to simulate bold rendering.</param>
+    /// <param name="italic">Whether to simulate italic rendering.</param>
+    /// <param name="alignment">Horizontal alignment relative to <paramref name="anchorX"/>.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="underline">Whether to draw an underline using the measured text width.</param>
+    /// <param name="strikethrough">Whether to draw a strikethrough using the measured text width.</param>
+    /// <param name="fontFamily">Requested font family fallback list.</param>
+    /// <param name="flipHorizontal">Whether to mirror the rendered line horizontally around the rotation center before rotation.</param>
+    /// <param name="flipVertical">Whether to mirror the rendered line vertically around the rotation center before rotation.</param>
+    /// <param name="underlineStyle">Underline pattern. A non-none value takes precedence over <paramref name="underline"/>.</param>
+    /// <param name="strikethroughStyle">Strikethrough pattern. A non-none value takes precedence over <paramref name="strikethrough"/>.</param>
+    public void DrawTextLine(
+        string? text,
+        double anchorX,
+        double top,
+        double height,
+        OfficeColor color,
+        bool bold,
+        bool italic,
+        OfficeTextAlignment alignment,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool underline,
+        bool strikethrough,
+        string? fontFamily,
+        bool flipHorizontal,
+        bool flipVertical,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
             return;
         }
@@ -248,10 +345,12 @@ public sealed partial class OfficeRasterCanvas {
             strikethrough,
             fontFamily,
             flipHorizontal,
-            flipVertical)) {
+            flipVertical,
+            underlineStyle,
+            strikethroughStyle)) {
             return;
         }
-        OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
@@ -268,7 +367,7 @@ public sealed partial class OfficeRasterCanvas {
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
-            FillContours(contours, color, OfficeFillRule.EvenOdd);
+            FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
                     GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
@@ -279,15 +378,15 @@ public sealed partial class OfficeRasterCanvas {
                     rotationCenterY,
                     flipHorizontal,
                     flipVertical);
-                FillContours(contours, color, OfficeFillRule.EvenOdd);
+                FillContours(contours, color, OfficeFillRule.NonZero);
             }
 
-            DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
+            DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
             return;
         }
 
         DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-        DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
+        DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
     }
 
     /// <summary>
@@ -341,7 +440,7 @@ public sealed partial class OfficeRasterCanvas {
             fontFamily)) {
             return;
         }
-        OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
@@ -352,14 +451,14 @@ public sealed partial class OfficeRasterCanvas {
                 top + fontHeight,
                 simulateItalic,
                 transform);
-            FillContours(contours, color, OfficeFillRule.EvenOdd);
+            FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
                 contours = TransformTextContours(
                     GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
                     top + fontHeight,
                     simulateItalic,
                     transform);
-                FillContours(contours, color, OfficeFillRule.EvenOdd);
+                FillContours(contours, color, OfficeFillRule.NonZero);
             }
 
             DrawAffineTextLineDecorations(x, width, top, fontHeight, color, transform, underline, strikethrough);
@@ -379,20 +478,64 @@ public sealed partial class OfficeRasterCanvas {
         double rotationRadians,
         double rotationCenterX,
         double rotationCenterY,
-        bool underline,
-        bool strikethrough,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle,
         bool flipHorizontal,
         bool flipVertical) {
         if (width <= 0D || color.A == 0) {
             return;
         }
 
-        if (underline) {
-            DrawTransformedTextDecorationLine(x, width, top + (fontHeight * 0.86D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        if (underlineStyle != OfficeTextDecorationStyle.None) {
+            DrawTransformedTextDecoration(x, width, top + (fontHeight * 0.86D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle, flipHorizontal, flipVertical);
         }
 
-        if (strikethrough) {
-            DrawTransformedTextDecorationLine(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        if (strikethroughStyle != OfficeTextDecorationStyle.None) {
+            DrawTransformedTextDecoration(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, strikethroughStyle, flipHorizontal, flipVertical);
+        }
+    }
+
+    private void DrawTransformedTextDecoration(
+        double x,
+        double width,
+        double y,
+        OfficeColor color,
+        double fontHeight,
+        double rotationRadians,
+        double rotationCenterX,
+        double rotationCenterY,
+        OfficeTextDecorationStyle style,
+        bool flipHorizontal,
+        bool flipVertical) {
+        double thickness = Math.Max(1D, fontHeight / 16D);
+        double separation = Math.Max(2D, thickness * 1.8D);
+        if (style == OfficeTextDecorationStyle.Double) {
+            DrawTransformedTextDecoration(x, width, y - (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);
+            DrawTransformedTextDecoration(x, width, y + (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);
+            return;
+        }
+
+        if (style == OfficeTextDecorationStyle.Wavy) {
+            double wavelength = Math.Max(4D, fontHeight * 0.36D);
+            int steps = Math.Max(4, (int)Math.Ceiling(width / Math.Max(1D, wavelength / 4D)));
+            var points = new List<OfficePoint>(steps + 1);
+            for (int index = 0; index <= steps; index++) {
+                double offset = width * index / steps;
+                double waveY = y + (Math.Sin(offset * Math.PI * 2D / wavelength) * Math.Max(1D, thickness));
+                points.Add(TransformFramePoint(new OfficePoint(x + offset, waveY), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical));
+            }
+            DrawPolyline(points, color, thickness);
+            return;
+        }
+
+        OfficePoint start = TransformFramePoint(new OfficePoint(x, y), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        OfficePoint end = TransformFramePoint(new OfficePoint(x + width, y), rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+        if (style == OfficeTextDecorationStyle.Dashed) {
+            DrawDashedLine(start.X, start.Y, end.X, end.Y, color, thickness, Math.Max(2D, fontHeight * 0.22D), Math.Max(1D, fontHeight * 0.12D));
+        } else if (style == OfficeTextDecorationStyle.Dotted) {
+            DrawDashedLine(start.X, start.Y, end.X, end.Y, color, thickness, thickness, Math.Max(thickness, fontHeight * 0.12D));
+        } else {
+            DrawLine(start.X, start.Y, end.X, end.Y, color, thickness);
         }
     }
 
@@ -506,13 +649,13 @@ public sealed partial class OfficeRasterCanvas {
         return MeasureStrokeText(text, fontSize);
     }
 
-    private OfficeTrueTypeFont? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) =>
+    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) =>
         ResolveTextFont(text, fontFamily, style, out _);
 
-    private OfficeTrueTypeFont? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
+    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
         resolvedStyle = OfficeFontStyle.Regular;
         if (_fonts != null) {
-            OfficeTrueTypeFont? scoped = string.IsNullOrEmpty(text)
+            IOfficeFontProgram? scoped = string.IsNullOrEmpty(text)
                 ? _fonts.Resolve(fontFamily, style, out resolvedStyle)
                 : _fonts.ResolveForText(text!, fontFamily, style, out resolvedStyle);
             if (scoped != null) {

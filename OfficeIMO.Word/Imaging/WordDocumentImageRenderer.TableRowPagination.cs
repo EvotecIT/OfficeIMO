@@ -145,7 +145,7 @@ namespace OfficeIMO.Word {
                     contentWidth,
                     context.CancellationToken);
                 if (ShouldSplitTableCellAsRichText(paragraphRuns, hasListMarkers, colorScheme)) {
-                    List<OfficeRichTextRun> richRuns = CreateSplitTableCellRichRuns(paragraphRuns, colorScheme, listMarkers, context);
+                    List<OfficeRichTextRun> richRuns = CreateSplitTableCellRichRuns(paragraphRuns, colorScheme, listMarkers, context, diagnostics);
                     if (richRuns.Count == 0) {
                         IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, 0);
                         cells.Add(SplitTableCellLayout.CreatePlain(
@@ -197,7 +197,8 @@ namespace OfficeIMO.Word {
                     string text = GetCellText(
                         cell,
                         context,
-                        context.CancellationToken);
+                        context.CancellationToken,
+                        diagnostics);
                     List<string> lines = string.IsNullOrWhiteSpace(text)
                         ? new List<string>()
                         : WrapTextIntoMeasuredLines(
@@ -374,7 +375,8 @@ namespace OfficeIMO.Word {
             IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns,
             A.ColorScheme? colorScheme,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
-            WordImageFlowContext? context = null) {
+            WordImageFlowContext? context = null,
+            List<OfficeImageExportDiagnostic>? diagnostics = null) {
             var richRuns = new List<OfficeRichTextRun>();
             for (int paragraphIndex = 0; paragraphIndex < paragraphRuns.Count; paragraphIndex++) {
                 IReadOnlyList<WordParagraph> runs = paragraphRuns[paragraphIndex];
@@ -400,7 +402,7 @@ namespace OfficeIMO.Word {
                         marker.Font.IsStrikethrough));
                 }
 
-                richRuns.AddRange(CreateRichTextRuns(runs, colorScheme, context));
+                richRuns.AddRange(CreateRichTextRuns(runs, colorScheme, context, diagnostics));
             }
 
             return richRuns;

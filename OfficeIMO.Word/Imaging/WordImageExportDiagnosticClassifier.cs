@@ -28,6 +28,7 @@ namespace OfficeIMO.Word {
                 case WordImageExportDiagnosticCodes.LimitedFloatingShapeWrap:
                 case WordImageExportDiagnosticCodes.LimitedFloatingTextBoxWrap:
                 case WordImageExportDiagnosticCodes.LimitedSmartArt:
+                case WordImageExportDiagnosticCodes.LimitedSmallCaps:
                     return OfficeConversionLossKind.Approximation;
 
                 case WordImageExportDiagnosticCodes.UnsupportedBodyElement:

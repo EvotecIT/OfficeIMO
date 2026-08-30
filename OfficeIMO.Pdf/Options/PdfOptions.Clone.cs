@@ -40,8 +40,18 @@ public sealed partial class PdfOptions {
             ComplianceProfile = ComplianceProfile,
             PdfAIdentification = _pdfAIdentification?.Clone(),
             PdfUaIdentification = _pdfUaIdentification?.Clone(),
+            PdfXIdentification = _pdfXIdentification?.Clone(),
+            PdfXProductionMetadata = _pdfXProductionMetadata?.Clone(),
             ElectronicInvoiceMetadata = _electronicInvoiceMetadata?.Clone(),
             OutputIntent = _outputIntent?.Clone(),
+            TrappingStatus = _trappingStatus,
+            ConvertVectorColorsToPdfXPrintCondition = _convertVectorColorsToPdfXPrintCondition,
+            ConvertRasterImagesToPdfXPrintCondition = _convertRasterImagesToPdfXPrintCondition,
+            FlattenRasterTransparencyForPdfX = _flattenRasterTransparencyForPdfX,
+            PdfXTransparencyBackground = _pdfXTransparencyBackground,
+            PdfXRenderingIntent = _pdfXRenderingIntent,
+            BlackPreservationMode = _blackPreservationMode,
+            PrintProductionPageBoxes = _printProductionPageBoxes,
             TaggedStructureMode = TaggedStructureMode,
             Language = Language,
             CatalogPageMode = CatalogPageMode,
@@ -153,6 +163,7 @@ public sealed partial class PdfOptions {
             _firstPageFooterShapes = CloneHeaderFooterShapes(_firstPageFooterShapes),
             _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
         };
+        clone._useAutomaticPdfXProductionMetadata = _useAutomaticPdfXProductionMetadata;
         clone._defaultTableStyle = _defaultTableStyle?.Clone();
         clone._hasExplicitDefaultTableStyle = _hasExplicitDefaultTableStyle;
         clone._hasExplicitDefaultFont = _hasExplicitDefaultFont;

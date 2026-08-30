@@ -117,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
             GetInteraction(mouseOver)?.GetFirstChild<A.HyperlinkSound>();
 
         private A.HyperlinkType? GetInteraction(bool mouseOver) {
-            A.RunProperties? properties = Run.RunProperties;
+            A.RunProperties? properties = RunProperties;
             return mouseOver
                 ? properties?.GetFirstChild<A.HyperlinkOnMouseOver>()
                 : properties?.GetFirstChild<A.HyperlinkOnClick>();

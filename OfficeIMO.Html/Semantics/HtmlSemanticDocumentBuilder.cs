@@ -230,8 +230,9 @@ internal static class HtmlSemanticDocumentBuilder {
         if (node is IText text) {
             if (text.Data.Length == 0) return;
             runs.Add(new HtmlSemanticRun(text.Data, state.Hyperlink, state.Bold, state.Italic,
-                state.Underline, state.Strikethrough, state.Superscript, state.Subscript,
-                state.Style, state.Location, isLineBreak: false));
+                state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
+                state.Superscript, state.Subscript,
+                state.Style, state.Location, isLineBreak: false, state.DataAttributes, state.BackgroundColor));
             return;
         }
         if (!(node is IElement element)) return;
@@ -239,8 +240,9 @@ internal static class HtmlSemanticDocumentBuilder {
         if (!isRoot && skipNestedLists && (Is(element, "ul") || Is(element, "ol") || Is(element, "dl"))) return;
         if (Is(element, "br")) {
             runs.Add(new HtmlSemanticRun("\n", state.Hyperlink, state.Bold, state.Italic,
-                state.Underline, state.Strikethrough, state.Superscript, state.Subscript,
-                state.Style, HtmlSemanticSourceLocation.FromElement(element), isLineBreak: true));
+                state.Underline, state.UnderlineStyle, state.Strikethrough, state.StrikethroughStyle,
+                state.Superscript, state.Subscript,
+                state.Style, HtmlSemanticSourceLocation.FromElement(element), isLineBreak: true, state.DataAttributes, state.BackgroundColor));
             return;
         }
 
@@ -252,8 +254,10 @@ internal static class HtmlSemanticDocumentBuilder {
     }
 
     private static HtmlSemanticRun CopyRun(HtmlSemanticRun run, string text) =>
-        new HtmlSemanticRun(text, run.Hyperlink, run.Bold, run.Italic, run.Underline,
-            run.Strikethrough, run.Superscript, run.Subscript, run.Style, run.SourceLocation, run.IsLineBreak);
+        new HtmlSemanticRun(text, run.Hyperlink, run.Bold, run.Italic, run.Underline, run.UnderlineStyle,
+            run.Strikethrough, run.StrikethroughStyle, run.Superscript, run.Subscript,
+            run.Style, run.SourceLocation, run.IsLineBreak,
+            run.DataAttributes, run.BackgroundColor);
 
     private static IReadOnlyList<HtmlSemanticRun> NormalizeRuns(
         IReadOnlyList<HtmlSemanticRun> source,
@@ -529,25 +533,36 @@ internal static class HtmlSemanticDocumentBuilder {
         internal bool Bold { get; }
         internal bool Italic { get; }
         internal bool Underline { get; }
+        internal OfficeTextDecorationStyle UnderlineStyle { get; }
         internal bool Strikethrough { get; }
+        internal OfficeTextDecorationStyle StrikethroughStyle { get; }
         internal bool Superscript { get; }
         internal bool Subscript { get; }
         internal string? Hyperlink { get; }
         internal HtmlComputedStyle? Style { get; }
         internal HtmlSemanticSourceLocation? Location { get; }
+        internal IReadOnlyDictionary<string, string> DataAttributes { get; }
+        internal string? BackgroundColor { get; }
 
-        private InlineState(bool bold, bool italic, bool underline, bool strikethrough,
+        private InlineState(bool bold, bool italic, bool underline, OfficeTextDecorationStyle underlineStyle,
+            bool strikethrough, OfficeTextDecorationStyle strikethroughStyle,
             bool superscript, bool subscript, string? hyperlink, HtmlComputedStyle? style,
-            HtmlSemanticSourceLocation? location) {
+            HtmlSemanticSourceLocation? location,
+            IReadOnlyDictionary<string, string>? dataAttributes = null,
+            string? backgroundColor = null) {
             Bold = bold;
             Italic = italic;
             Underline = underline;
+            UnderlineStyle = underlineStyle;
             Strikethrough = strikethrough;
+            StrikethroughStyle = strikethroughStyle;
             Superscript = superscript;
             Subscript = subscript;
             Hyperlink = hyperlink;
             Style = style;
             Location = location;
+            DataAttributes = dataAttributes ?? new Dictionary<string, string>();
+            BackgroundColor = backgroundColor;
         }
 
         internal InlineState With(IElement element, HtmlComputedStyle? style, HtmlSemanticSourceLocation? location) {
@@ -556,17 +571,69 @@ internal static class HtmlSemanticDocumentBuilder {
             bool cssBold = string.Equals(fontWeight, "bold", StringComparison.OrdinalIgnoreCase)
                 || (int.TryParse(fontWeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) && weight >= 600);
             string decoration = style?.GetValue("text-decoration-line") ?? style?.GetValue("text-decoration") ?? string.Empty;
+            bool addsUnderline = name == "u" || decoration.IndexOf("underline", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool addsStrikethrough = name == "s" || name == "strike" || name == "del"
+                || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0;
+            OfficeTextDecorationStyle decorationStyle = ResolveDecorationStyle(style?.GetValue("text-decoration-style"));
             string vertical = style?.GetValue("vertical-align") ?? string.Empty;
+            string backgroundColor = BackgroundColor ?? string.Empty;
+            if (IsInlineStyleCarrier(element, style)) {
+                string ownBackground = style?.GetValue("background-color") ?? string.Empty;
+                if (ownBackground.Length > 0
+                    && !string.Equals(ownBackground, "transparent", StringComparison.OrdinalIgnoreCase)) {
+                    backgroundColor = ownBackground;
+                }
+            }
             return new InlineState(
                 Bold || name == "strong" || name == "b" || cssBold,
                 Italic || name == "em" || name == "i" || (style?.GetValue("font-style") ?? string.Empty).IndexOf("italic", StringComparison.OrdinalIgnoreCase) >= 0,
-                Underline || name == "u" || decoration.IndexOf("underline", StringComparison.OrdinalIgnoreCase) >= 0,
-                Strikethrough || name == "s" || name == "strike" || name == "del" || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0,
+                Underline || addsUnderline,
+                addsUnderline ? decorationStyle : UnderlineStyle,
+                Strikethrough || addsStrikethrough,
+                addsStrikethrough ? decorationStyle : StrikethroughStyle,
                 Superscript || name == "sup" || string.Equals(vertical, "super", StringComparison.OrdinalIgnoreCase),
                 Subscript || name == "sub" || string.Equals(vertical, "sub", StringComparison.OrdinalIgnoreCase),
                 name == "a" ? element.GetAttribute("href") : Hyperlink,
                 style ?? Style,
-                location ?? Location);
+                location ?? Location,
+                ReadDataAttributes(element, DataAttributes),
+                backgroundColor.Length == 0 ? null : backgroundColor);
+        }
+
+        private static OfficeTextDecorationStyle ResolveDecorationStyle(string? value) =>
+            (value ?? string.Empty).Trim().ToLowerInvariant() switch {
+                "double" => OfficeTextDecorationStyle.Double,
+                "dotted" => OfficeTextDecorationStyle.Dotted,
+                "dashed" => OfficeTextDecorationStyle.Dashed,
+                "wavy" => OfficeTextDecorationStyle.Wavy,
+                _ => OfficeTextDecorationStyle.Single
+            };
+
+        private static bool IsInlineStyleCarrier(IElement element, HtmlComputedStyle? style) {
+            string display = (style?.GetValue("display") ?? string.Empty).Trim();
+            if (display.StartsWith("inline", StringComparison.OrdinalIgnoreCase)) return true;
+            string name = element.LocalName.ToLowerInvariant();
+            return name == "a" || name == "abbr" || name == "b" || name == "bdi" || name == "bdo"
+                || name == "big" || name == "cite" || name == "code" || name == "del" || name == "dfn"
+                || name == "em" || name == "i" || name == "ins" || name == "kbd" || name == "label"
+                || name == "mark" || name == "q" || name == "s" || name == "samp" || name == "small"
+                || name == "span" || name == "strike" || name == "strong" || name == "sub" || name == "sup"
+                || name == "time" || name == "u" || name == "var";
+        }
+
+        private static IReadOnlyDictionary<string, string> ReadDataAttributes(
+            IElement element,
+            IReadOnlyDictionary<string, string> inherited) {
+            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (inherited != null) {
+                foreach (KeyValuePair<string, string> pair in inherited) values[pair.Key] = pair.Value;
+            }
+            foreach (IAttr attribute in element.Attributes) {
+                if (attribute.Name.StartsWith("data-officeimo-", StringComparison.OrdinalIgnoreCase)) {
+                    values[attribute.Name.ToLowerInvariant()] = attribute.Value;
+                }
+            }
+            return new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(values);
         }
     }
 }

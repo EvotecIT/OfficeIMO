@@ -96,6 +96,40 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="style">Text style to apply.</param>
         public VisioFluentConnector TextStyle(VisioTextStyle style) { _c.ApplyTextStyle(style); return this; }
 
+        /// <summary>Sets the connector-label font family.</summary>
+        public VisioFluentConnector Font(string fontFamily) { EnsureTextStyle().FontFamily = fontFamily; return this; }
+
+        /// <summary>Sets the connector-label font size in points.</summary>
+        public VisioFluentConnector FontSize(double size) {
+            if (double.IsNaN(size) || double.IsInfinity(size) || size <= 0D) throw new ArgumentOutOfRangeException(nameof(size));
+            EnsureTextStyle().Size = size;
+            return this;
+        }
+
+        /// <summary>Sets the connector-label text color.</summary>
+        public VisioFluentConnector TextColor(Color color) { EnsureTextStyle().Color = color; return this; }
+
+        /// <summary>Sets whether the connector label is bold.</summary>
+        public VisioFluentConnector Bold(bool enabled = true) { EnsureTextStyle().Bold = enabled; return this; }
+
+        /// <summary>Sets whether the connector label is italic.</summary>
+        public VisioFluentConnector Italic(bool enabled = true) { EnsureTextStyle().Italic = enabled; return this; }
+
+        /// <summary>Sets the native connector-label underline variant.</summary>
+        public VisioFluentConnector Underline(OfficeTextDecorationStyle style = OfficeTextDecorationStyle.Single) { EnsureTextStyle().UnderlineStyle = style; return this; }
+
+        /// <summary>Sets the native connector-label strikethrough variant.</summary>
+        public VisioFluentConnector Strikethrough(OfficeTextDecorationStyle style = OfficeTextDecorationStyle.Single) { EnsureTextStyle().StrikethroughStyle = style; return this; }
+
+        /// <summary>Sets the native connector-label baseline placement.</summary>
+        public VisioFluentConnector Baseline(OfficeTextBaseline baseline) { EnsureTextStyle().Baseline = baseline; return this; }
+
+        /// <summary>Sets the native connector-label capitalization mode.</summary>
+        public VisioFluentConnector Capitalization(VisioTextCapitalization capitalization) { EnsureTextStyle().Capitalization = capitalization; return this; }
+
+        /// <summary>Transforms the stored connector-label casing without changing formatting.</summary>
+        public VisioFluentConnector TransformTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) { _c.TransformTextCase(textCase, culture); return this; }
+
         /// <summary>Adds the connector to a page layer.</summary>
         /// <param name="layerName">Layer name.</param>
         public VisioFluentConnector Layer(string layerName) { _c.LayerNames.Add(layerName); return this; }
@@ -169,6 +203,11 @@ namespace OfficeIMO.Visio.Fluent {
             }
 
             assign(shape.EnsureSideConnectionPoint(side));
+        }
+
+        private VisioTextStyle EnsureTextStyle() {
+            if (_c.TextStyle == null) _c.TextStyle = new VisioTextStyle();
+            return _c.TextStyle;
         }
     }
 }

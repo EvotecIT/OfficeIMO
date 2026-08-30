@@ -10,19 +10,26 @@ public sealed partial class PdfDocument {
     /// <remarks>
     /// Opened byte-backed PDFs do not have generated OfficeIMO blocks to inspect and return an empty result.
     /// </remarks>
-    public IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncoding() {
+    public IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncoding() =>
+        AnalyzeTextEncoding(System.Threading.CancellationToken.None);
+
+    private IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncoding(
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
             return Array.Empty<PdfTextEncodingDiagnostic>();
         }
 
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
         AnalyzeOptionsText(_options, diagnostics);
-        AnalyzeBlocks(_blocks, _options, diagnostics, string.Empty);
+        AnalyzeBlocks(_blocks, _options, diagnostics, string.Empty, cancellationToken);
         return diagnostics.AsReadOnly();
     }
 
-    private bool TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? exception) {
-        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = AnalyzeTextEncoding();
+    private bool TryCreateTextEncodingPreflightException(
+        out PdfTextEncodingPreflightException? exception,
+        System.Threading.CancellationToken cancellationToken = default) {
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = AnalyzeTextEncoding(cancellationToken);
         if (diagnostics.Count == 0) {
             exception = null;
             return false;
@@ -33,15 +40,26 @@ public sealed partial class PdfDocument {
         return true;
     }
 
-    private static void AnalyzeBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
+    private static void AnalyzeBlocks(
+        IEnumerable<IPdfBlock> blocks,
+        PdfOptions options,
+        List<PdfTextEncodingDiagnostic> diagnostics,
+        string locationPrefix,
+        System.Threading.CancellationToken cancellationToken) {
         int blockIndex = 0;
         foreach (IPdfBlock block in blocks) {
-            AnalyzeBlock(block, options, diagnostics, AppendLocation(locationPrefix, GetBlockLocation(block, blockIndex)));
+            cancellationToken.ThrowIfCancellationRequested();
+            AnalyzeBlock(block, options, diagnostics, AppendLocation(locationPrefix, GetBlockLocation(block, blockIndex)), cancellationToken);
             blockIndex++;
         }
     }
 
-    private static void AnalyzeBlock(IPdfBlock block, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string location) {
+    private static void AnalyzeBlock(
+        IPdfBlock block,
+        PdfOptions options,
+        List<PdfTextEncodingDiagnostic> diagnostics,
+        string location,
+        System.Threading.CancellationToken cancellationToken) {
         PdfStandardFont defaultFont = PdfStandardFontMapper.GetFontFamily(options.DefaultFont);
         switch (block) {
             case RichParagraphBlock paragraph:
@@ -63,7 +81,7 @@ public sealed partial class PdfDocument {
                 AnalyzeTable(table, options, defaultFont, diagnostics, "PdfTableCell", location);
                 break;
             case DeferredTableBlock table:
-                AnalyzeDeferredTable(table, options, defaultFont, diagnostics, location);
+                AnalyzeDeferredTable(table, options, defaultFont, diagnostics, location, cancellationToken);
                 break;
             case PanelParagraphBlock panel:
                 AddRuns(diagnostics, panel.Runs, options, defaultFont, "PdfPanel", location);
@@ -85,12 +103,12 @@ public sealed partial class PdfDocument {
                 break;
             case RowBlock row:
                 for (int columnIndex = 0; columnIndex < row.Columns.Count; columnIndex++) {
-                    AnalyzeBlocks(row.Columns[columnIndex].Blocks, options, diagnostics, AppendLocation(location, "Column[" + columnIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeBlocks(row.Columns[columnIndex].Blocks, options, diagnostics, AppendLocation(location, "Column[" + columnIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                 }
                 break;
             case PageBlock page:
                 AnalyzeOptionsText(page.Options, diagnostics, location);
-                AnalyzeBlocks(page.Blocks, page.Options, diagnostics, location);
+                AnalyzeBlocks(page.Blocks, page.Options, diagnostics, location, cancellationToken);
                 break;
         }
     }
@@ -132,7 +150,13 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AnalyzeDeferredTable(DeferredTableBlock table, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
+    private static void AnalyzeDeferredTable(
+        DeferredTableBlock table,
+        PdfOptions options,
+        PdfStandardFont defaultFont,
+        List<PdfTextEncodingDiagnostic> diagnostics,
+        string locationPrefix,
+        System.Threading.CancellationToken cancellationToken) {
         string? caption = table.Style?.Caption;
         if (!string.IsNullOrWhiteSpace(caption)) {
             AddText(diagnostics, caption, options, defaultFont, "PdfTableCaption", AppendLocation(locationPrefix, "PdfTableCaption"));
@@ -140,6 +164,7 @@ public sealed partial class PdfDocument {
 
         int rowIndex = 0;
         foreach (PdfTableCell[] row in table.EnumerateRows()) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int cellIndex = 0; cellIndex < row.Length; cellIndex++) {
                 PdfTableCell cell = row[cellIndex];
                 string cellLocation = AppendLocation(locationPrefix, "PdfTableCell[" + rowIndex.ToString(CultureInfo.InvariantCulture) + "," + cellIndex.ToString(CultureInfo.InvariantCulture) + "]");

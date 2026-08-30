@@ -32,6 +32,8 @@ internal static class PdfImageXObjectDictionaryBuilder {
 
         if (image.DictionarySuffix.Contains("/DeviceGray")) {
             dictionary.Items["ColorSpace"] = new PdfName("DeviceGray");
+        } else if (image.DictionarySuffix.Contains("/DeviceCMYK")) {
+            dictionary.Items["ColorSpace"] = new PdfName("DeviceCMYK");
         } else {
             dictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
         }
@@ -40,7 +42,10 @@ internal static class PdfImageXObjectDictionaryBuilder {
             dictionary.Items["Filter"] = new PdfName("FlateDecode");
             var decodeParms = new PdfDictionary();
             decodeParms.Items["Predictor"] = new PdfNumber(15);
-            decodeParms.Items["Colors"] = new PdfNumber(image.DictionarySuffix.Contains("/DeviceGray") ? 1 : 3);
+            decodeParms.Items["Colors"] = new PdfNumber(
+                image.DictionarySuffix.Contains("/DeviceGray")
+                    ? 1
+                    : image.DictionarySuffix.Contains("/DeviceCMYK") ? 4 : 3);
             decodeParms.Items["BitsPerComponent"] = new PdfNumber(8);
             decodeParms.Items["Columns"] = new PdfNumber(image.PixelWidth);
             dictionary.Items["DecodeParms"] = decodeParms;

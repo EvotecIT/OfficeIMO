@@ -191,23 +191,10 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static void AppendCommentRun(List<ExcelRichTextRun> runs, string text, RunProperties? properties, WorkbookPart? workbookPart) {
-            runs.Add(new ExcelRichTextRun(text) {
-                Bold = properties?.GetFirstChild<Bold>() != null,
-                Italic = properties?.GetFirstChild<Italic>() != null,
-                Underline = properties?.GetFirstChild<Underline>() != null,
-                Strikethrough = properties?.GetFirstChild<Strike>() != null,
-                UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
-                FontColor = ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<Color>(), workbookPart),
-                FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
-                VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
-                Outline = properties?.GetFirstChild<Outline>() != null,
-                Shadow = properties?.GetFirstChild<Shadow>() != null,
-                Condense = properties?.GetFirstChild<Condense>() != null,
-                Extend = properties?.GetFirstChild<Extend>() != null,
-                FontFamily = ExcelRichTextRun.GetFontFamily(properties),
-                FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties)
-            });
+            runs.Add(ExcelRichTextRun.FromOpenXml(
+                text,
+                properties,
+                ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<Color>(), workbookPart)));
         }
 
         private static bool IsLineBreak(OpenXmlElement element) =>

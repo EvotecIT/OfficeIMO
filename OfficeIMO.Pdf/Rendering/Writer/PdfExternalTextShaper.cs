@@ -22,6 +22,7 @@ internal static class PdfExternalTextShaper {
             options.Language,
             default,
             fontCollectionIndex: null,
+            variationCoordinates: null,
             cloneFontData: false));
 
         if (result == null) {
@@ -53,6 +54,7 @@ internal static class PdfExternalTextShaper {
             options.Language,
             default,
             fontCollectionIndex: null,
+            variationCoordinates: null,
             cloneFontData: false));
 
         if (result == null) {

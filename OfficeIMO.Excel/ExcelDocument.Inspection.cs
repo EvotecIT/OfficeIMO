@@ -264,23 +264,7 @@ namespace OfficeIMO.Excel {
             var result = new List<ExcelRichTextRun>();
             foreach (Run run in runs) {
                 RunProperties? properties = run.RunProperties;
-                result.Add(new ExcelRichTextRun(run.Text?.Text ?? string.Empty) {
-                    Bold = properties?.GetFirstChild<Bold>() != null,
-                    Italic = properties?.GetFirstChild<Italic>() != null,
-                    Underline = properties?.GetFirstChild<Underline>() != null,
-                    Strikethrough = properties?.GetFirstChild<Strike>() != null,
-                    UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
-                    FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
-                    FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
-                    VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
-                    Outline = properties?.GetFirstChild<Outline>() != null,
-                    Shadow = properties?.GetFirstChild<Shadow>() != null,
-                    Condense = properties?.GetFirstChild<Condense>() != null,
-                    Extend = properties?.GetFirstChild<Extend>() != null,
-                    FontFamily = ExcelRichTextRun.GetFontFamily(properties),
-                    FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties),
-                });
+                result.Add(ExcelRichTextRun.FromOpenXml(run.Text?.Text ?? string.Empty, properties));
             }
 
             return result;
@@ -418,10 +402,14 @@ namespace OfficeIMO.Excel {
                 NumberFormatId = numberFormatId,
                 NumberFormatCode = context.GetNumberFormatCode(numberFormatId),
                 IsDateLike = context.IsDateLike(numberFormatId),
-                Bold = font?.Bold != null,
-                Italic = font?.Italic != null,
-                Underline = font?.Underline != null,
-                Strikethrough = font?.Strike != null,
+                Bold = ExcelOpenXmlFontProperty.IsEnabled(font?.Bold),
+                Italic = ExcelOpenXmlFontProperty.IsEnabled(font?.Italic),
+                Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(font?.Underline),
+                UnderlineStyle = font?.Underline == null
+                    ? null
+                    : (font.Underline.Val?.Value ?? UnderlineValues.Single).ToOfficeEnum(),
+                Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(font?.Strike),
+                VerticalTextAlignment = font?.VerticalTextAlignment?.Val?.Value.ToOfficeEnum(),
                 FontName = font?.FontName?.Val?.Value,
                 IsFontFamilyExplicit = (cellFormat.FontId?.Value ?? 0U) != 0U,
                 FontSize = font?.FontSize?.Val?.Value,

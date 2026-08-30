@@ -8,7 +8,9 @@ internal sealed record OfficeConversionSupportAssessment(
     string KnownLimitations);
 
 internal static class OfficeConversionSupportAssessments {
-    internal static OfficeConversionSupportAssessment Get(string routeId) => routeId switch {
+    internal static OfficeConversionSupportAssessment Get(string routeId) {
+        if (IsImageRoute(routeId, out string source)) return Image(source);
+        return routeId switch {
         "docx-pdf" => Advanced(
             "Realistic DOCX fixtures cover paragraphs, lists, tables, drawings, pagination, tagged output, portable fonts, and deterministic conversion reports.",
             "Complex floating layout, advanced DrawingML, SmartArt, field behavior, and exact Microsoft Word pagination are not fully reproduced."),
@@ -101,7 +103,53 @@ internal static class OfficeConversionSupportAssessments {
         "visio-pdf" => Targeted(
             "Typed drawing fixtures verify supported pages, shapes, connectors, text, geometry, and fixed-layout diagnostics.",
             "Advanced masters, data graphics, themes, layers, embedded objects, and exact Visio rendering remain incomplete."),
-        _ => throw new InvalidOperationException($"Conversion route '{routeId}' does not have a support assessment.")
+        "docx-google-docs" or "google-docs-docx" => Established(
+            "Native request/import fixtures verify run typography, paragraphs, tables, tabs, remote operation policies, and Drive fallback behavior without requiring live credentials.",
+            "Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback."),
+        "xlsx-google-sheets" or "google-sheets-xlsx" => Established(
+            "Native request/import fixtures verify cell and rich-run typography, values, formulas, tables, and remote operation policies without requiring live credentials.",
+            "Google Sheets has no subscript, superscript, casing, or underline-variant fields in its cell text-format model; unsupported Excel-only behavior is diagnosed or uses Drive fallback."),
+        "pptx-google-slides" or "google-slides-pptx" => Established(
+            "Native request/import fixtures verify per-run typography, geometry, shapes, tables, notes, remote operation policies, and Drive fallback behavior without requiring live credentials.",
+            "Google Slides supports single underline and strike rather than DrawingML variants; all-caps is materialized and complex PowerPoint-only composition uses explicit diagnostics or raster/Drive fallback."),
+        "adf-markdown" or "markdown-adf" or "adf-html" or "html-adf" => Established(
+            "Typed ADF fixtures verify recursive structure, strong/emphasis/strike/underline/subscript/superscript marks, links, tables, extension preservation, HTML projection, and deterministic fidelity diagnostics.",
+            "ADF text/background colors and arbitrary HTML styling are retained only when the intermediate Markdown profile can represent them; unsupported nodes and marks use explicit diagnostics or extension preservation."),
+        "markdown-confluence" or "html-confluence" or "confluence-markdown" or "confluence-html" => Targeted(
+            "Materialized Confluence page and body fixtures exercise ADF and storage representations through the shared ADF, Markdown, and HTML converters with combined diagnostics.",
+            "This is content-body conversion, not live page synchronization; Confluence-only macros, layouts, extensions, and presentation outside the supported ADF/storage subset may be simplified."),
+        "csv-xlsx" or "xlsx-csv" => Established(
+            "Delimited-data fixtures cover streams, files, delimiter detection, typed cell import, worksheet-range export, reopen behavior, and cancellation.",
+            "CSV and TSV have no font, rich-text, formula, multi-sheet, drawing, or layout model; those workbook semantics are intentionally absent from CSV output."),
+        "officemarkup-docx" or "officemarkup-xlsx" or "officemarkup-pptx" => Established(
+            "Typed profile fixtures verify parser diagnostics, editable destination artifacts, font family/size/color, bold, italic, underline variants, strike, scripts, case transforms, small caps where native, and target-specific layout.",
+            "OfficeIMO Markup is a directed authoring format rather than a lossless Office round trip; unsupported blocks and destination-only effects are diagnosed, simplified, or omitted according to exporter options."),
+            _ => throw new InvalidOperationException($"Conversion route '{routeId}' does not have a support assessment.")
+        };
+    }
+
+    private static bool IsImageRoute(string routeId, out string source) {
+        source = string.Empty;
+        string[] suffixes = { "-png", "-svg", "-jpeg", "-tiff", "-webp" };
+        foreach (string suffix in suffixes) {
+            if (!routeId.EndsWith(suffix, StringComparison.Ordinal)) continue;
+            source = routeId.Substring(0, routeId.Length - suffix.Length);
+            return true;
+        }
+        return false;
+    }
+
+    private static OfficeConversionSupportAssessment Image(string source) => source switch {
+        "pdf" => Advanced(
+            "Pixel-pinned page-render tests cover text, drawings, tables, images, portable fonts, all five image encoders, and deterministic multi-page packaging.",
+            "Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete."),
+        "docx" or "xlsx" or "pptx" or "html" or "visio" => Established(
+            "Representative source fixtures exercise shared SVG and raster rendering, text styles, page or surface selection, all five image encoders, and deterministic diagnostics.",
+            "Image output is intentionally flattened. Advanced source-specific layout and effects outside the corresponding managed renderer remain approximated or diagnosed."),
+        "onenote" or "email" or "epub" or "odt" or "ods" or "odp" => Targeted(
+            "Typed fixtures exercise the source adapter, shared SVG and raster renderer, all five image encoders, and deterministic diagnostics.",
+            "Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."),
+        _ => throw new InvalidOperationException($"Image conversion source '{source}' does not have a support assessment.")
     };
 
     private static OfficeConversionSupportAssessment Targeted(string evidence, string limits) =>

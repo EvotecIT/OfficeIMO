@@ -1,17 +1,25 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
     public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => ReadLogicalContent(_outputIntents);
 
-    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents() {
+    /// <summary>True when every entry in the catalog /OutputIntents array resolved to a dictionary typed as /OutputIntent.</summary>
+    public bool OutputIntentsAreComplete => ReadLogicalContent(_outputIntentsAreComplete);
+
+    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete) {
+        isComplete = true;
         PdfDictionary? catalog = FindCatalog();
-        if (catalog is null ||
-            !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject) ||
-            ResolveArray(outputIntentsObject) is not PdfArray outputIntentsArray ||
-            outputIntentsArray.Items.Count == 0) {
+        if (catalog is null || !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject)) {
             return Array.Empty<PdfOutputIntentInfo>();
         }
+        if (ResolveArray(outputIntentsObject) is not PdfArray outputIntentsArray) {
+            isComplete = false;
+            return Array.Empty<PdfOutputIntentInfo>();
+        }
+        if (outputIntentsArray.Items.Count == 0) return Array.Empty<PdfOutputIntentInfo>();
 
         var result = new List<PdfOutputIntentInfo>();
         for (int i = 0; i < outputIntentsArray.Items.Count; i++) {
@@ -19,8 +27,11 @@ public sealed partial class PdfReadDocument {
             int? objectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
             PdfDictionary? outputIntent = ResolveDict(item);
             if (outputIntent is null) {
+                isComplete = false;
                 continue;
             }
+            string? type = TryReadName(outputIntent, "Type");
+            if (!string.Equals(type, "OutputIntent", StringComparison.Ordinal)) isComplete = false;
 
             PdfStream? profileStream = null;
             int? profileObjectNumber = null;
@@ -37,6 +48,7 @@ public sealed partial class PdfReadDocument {
                 : () => ReadOutputIntentProfileMetadata(profileStream);
             result.Add(new PdfOutputIntentInfo(
                 objectNumber,
+                type,
                 TryReadName(outputIntent, "S"),
                 TryReadText(outputIntent, "OutputConditionIdentifier"),
                 TryReadText(outputIntent, "OutputCondition"),
@@ -54,16 +66,25 @@ public sealed partial class PdfReadDocument {
     }
 
     private PdfOutputIntentProfileMetadata ReadOutputIntentProfileMetadata(PdfStream profileStream) {
-        byte[] profileBytes = _decodedStreamBudget.Decode(profileStream, _objects);
+        byte[] profileBytes = _decodedStreamBudget.DecodeRequired(
+            profileStream,
+            _objects,
+            _options.Limits.MaxDecodedStreamBytes);
         _outputIntentMetadataRetentionBudget.Charge(
             profileStream,
             PdfIccProfileCacheRepresentation.DecodedBytes,
             profileBytes.LongLength);
+        bool hasSupportedOutputTransform =
+            OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile) &&
+            profile != null &&
+            profile.HasOutputTransform;
         return new PdfOutputIntentProfileMetadata(
             profileBytes.Length,
             TryReadIccDeclaredSize(profileBytes),
             TryReadIccColorSpace(profileBytes),
-            TryReadIccSignature(profileBytes));
+            TryReadIccDeviceClass(profileBytes),
+            TryReadIccSignature(profileBytes),
+            hasSupportedOutputTransform);
     }
 
     private int? TryReadStreamColorComponents(PdfStream stream) {
@@ -108,6 +129,14 @@ public sealed partial class PdfReadDocument {
         }
 
         return Encoding.ASCII.GetString(profile, 16, 4);
+    }
+
+    private static string? TryReadIccDeviceClass(byte[] profile) {
+        if (profile.Length < 16) {
+            return null;
+        }
+
+        return Encoding.ASCII.GetString(profile, 12, 4);
     }
 
     private static bool? TryReadIccSignature(byte[] profile) {

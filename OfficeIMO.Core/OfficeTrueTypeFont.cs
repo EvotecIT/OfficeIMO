@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -13,55 +15,116 @@ namespace OfficeIMO.Drawing;
 /// It supports the simple glyf/cmap/hmtx path needed by OfficeIMO renderers and falls back
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
-public sealed partial class OfficeTrueTypeFont {
+public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
-    private const int MaxCmapSubtables = 64;
-    private const uint MaxFormat12Groups = 4096;
     private const int MaxFontCacheEntries = 1024;
     private static readonly object FontCacheLock = new();
     private static readonly Dictionary<string, OfficeTrueTypeFont?> FontCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, FontFamilyResolution> FontFamilyCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly byte[] _data;
     private readonly int _cmap;
+    private readonly int _cmapLength;
     private readonly int _glyf;
     private readonly int _head;
     private readonly int _hhea;
     private readonly int _hmtx;
-    private readonly int _gpos;
-    private readonly int _kern;
+    private readonly OfficeOpenTypeKerning _kerning;
     private readonly int _loca;
     private readonly int _maxp;
     private readonly int _name;
+    private readonly HashSet<int> _validFormat4Subtables;
+    private readonly HashSet<int> _validFormat12Subtables;
+    private readonly OfficeTrueTypeVariations? _variations;
+    private readonly OfficeFontVariationModel _variationModel;
     private readonly int _unitsPerEm;
-    private readonly short _ascender;
-    private readonly short _descender;
-    private readonly short _lineGap;
+    private readonly int _ascender;
+    private readonly int _descender;
+    private readonly int _lineGap;
     private readonly ushort _numGlyphs;
     private readonly ushort _numHMetrics;
     private readonly short _indexToLocFormat;
     private readonly int? _collectionIndex;
+    private readonly string _fingerprint;
 
-    private OfficeTrueTypeFont(byte[] data, Dictionary<string, int> tables, int? collectionIndex) {
+    private OfficeTrueTypeFont(
+        byte[] data,
+        Dictionary<string, int> tables,
+        IReadOnlyDictionary<string, int> tableLengths,
+        int? collectionIndex,
+        OfficeFontVariationModel? variationModel = null) {
         _data = data;
+        _fingerprint = ComputeFingerprint(data, collectionIndex)
+            + (variationModel != null && variationModel.IsVariable ? ":axes=" + variationModel.Identity : string.Empty);
         _collectionIndex = collectionIndex;
+        _variationModel = variationModel ?? OfficeFontVariationModel.None;
         _cmap = tables["cmap"];
+        _cmapLength = tableLengths["cmap"];
         _glyf = tables["glyf"];
         _head = tables["head"];
         _hhea = tables["hhea"];
         _hmtx = tables["hmtx"];
-        _gpos = tables.TryGetValue("GPOS", out var gpos) ? gpos : -1;
-        _kern = tables.TryGetValue("kern", out var kern) ? kern : -1;
+        int gpos = tables.TryGetValue("GPOS", out int gposOffset) ? gposOffset : -1;
+        int kern = tables.TryGetValue("kern", out int kernOffset) ? kernOffset : -1;
+        OfficeOpenTypeReader? reader = null;
+        if (_variationModel.IsVariable) {
+            reader = OfficeOpenTypeReader.TryCreate(data)
+                ?? throw new InvalidDataException("The variable TrueType font table directory is invalid.");
+        }
+        _kerning = reader != null
+            ? OfficeOpenTypeKerning.FromReader(reader, _variationModel)
+            : new OfficeOpenTypeKerning(_data, kern, gpos, includeExtendedGpos: true);
         _loca = tables["loca"];
         _maxp = tables["maxp"];
         _name = tables.TryGetValue("name", out var name) ? name : -1;
+        _validFormat4Subtables = OfficeOpenTypeCmap.CollectValidFormat4Subtables(
+            _data,
+            _cmap,
+            _cmapLength,
+            OfficeOpenTypeCmap.MaximumSubtables);
+        _validFormat12Subtables = OfficeOpenTypeCmap.CollectValidFormat12Subtables(
+            _data,
+            _cmap,
+            _cmapLength,
+            OfficeOpenTypeCmap.MaximumSubtables,
+            OfficeOpenTypeCmap.MaximumFormat12Groups);
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
-        _ascender = ReadInt16(_data, _hhea + 4);
-        _descender = ReadInt16(_data, _hhea + 6);
-        _lineGap = ReadInt16(_data, _hhea + 8);
+        OfficeOpenTypeMvarMetrics? mvar = reader != null
+            ? OfficeOpenTypeMvarMetrics.TryParse(reader, _variationModel)
+            : null;
+        _ascender = checked(ReadInt16(_data, _hhea + 4) + (mvar?.HorizontalAscenderDelta ?? 0));
+        _descender = checked(ReadInt16(_data, _hhea + 6) + (mvar?.HorizontalDescenderDelta ?? 0));
+        _lineGap = checked(ReadInt16(_data, _hhea + 8) + (mvar?.HorizontalLineGapDelta ?? 0));
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
+        _variations = variationModel != null && variationModel.IsVariable
+            ? OfficeTrueTypeVariations.Parse(data, tables, variationModel, _numGlyphs)
+            : null;
+    }
+
+    /// <inheritdoc />
+    public string Fingerprint => _fingerprint;
+    IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
+        _variationModel?.DesignCoordinates ?? OfficeFontVariationModel.None.DesignCoordinates;
+
+    private static string ComputeFingerprint(byte[] data, int? collectionIndex) {
+        using HashAlgorithm hash = SHA256.Create();
+        byte[] digest = hash.ComputeHash(data);
+        return "sha256:" + ToLowerHex(digest) + ":face="
+            + (collectionIndex.HasValue
+                ? collectionIndex.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : "auto");
+    }
+
+    private static string ToLowerHex(byte[] bytes) {
+        const string alphabet = "0123456789abcdef";
+        var result = new char[bytes.Length * 2];
+        for (int index = 0; index < bytes.Length; index++) {
+            result[index * 2] = alphabet[bytes[index] >> 4];
+            result[index * 2 + 1] = alphabet[bytes[index] & 0x0F];
+        }
+        return new string(result);
     }
 
     public static OfficeTrueTypeFont? TryLoadDefault() {
@@ -179,7 +242,33 @@ public sealed partial class OfficeTrueTypeFont {
         }
     }
 
+    internal static OfficeTrueTypeFont? TryLoad(
+        byte[] data,
+        OfficeFontVariationModel variationModel,
+        out string? error) {
+        if (variationModel == null) throw new ArgumentNullException(nameof(variationModel));
+        error = null;
+        try {
+            return TryLoad(data, 0, null, variationModel);
+        } catch (Exception exception) when (exception is InvalidDataException
+                                            || exception is NotSupportedException
+                                            || exception is OverflowException
+                                            || exception is ArgumentOutOfRangeException
+                                            || exception is IndexOutOfRangeException) {
+            error = exception.Message;
+            return null;
+        }
+    }
+
     private static OfficeTrueTypeFont? TryLoad(byte[] data, int directoryOffset, int? collectionIndex) {
+        return TryLoad(data, directoryOffset, collectionIndex, null);
+    }
+
+    private static OfficeTrueTypeFont? TryLoad(
+        byte[] data,
+        int directoryOffset,
+        int? collectionIndex,
+        OfficeFontVariationModel? variationModel) {
         if (directoryOffset < 0 || directoryOffset + 12 > data.Length) return null;
         var scaler = ReadUInt32(data, directoryOffset);
         if (scaler != 0x00010000 && scaler != 0x74727565) return null;
@@ -187,28 +276,41 @@ public sealed partial class OfficeTrueTypeFont {
         if (count == 0 || count > MaxFontTableRecords) return null;
         if (data.Length < directoryOffset + 12 + count * 16) return null;
         var tables = new Dictionary<string, int>(StringComparer.Ordinal);
+        var tableLengths = new Dictionary<string, int>(StringComparer.Ordinal);
         for (var i = 0; i < count; i++) {
             var record = directoryOffset + 12 + i * 16;
             if (record + 16 > data.Length) return null;
             var tag = ((char)data[record]).ToString() + (char)data[record + 1] + (char)data[record + 2] + (char)data[record + 3];
-            var offset = CheckedOffset(data, ReadUInt32(data, record + 8));
+            uint offsetValue = ReadUInt32(data, record + 8);
+            uint lengthValue = ReadUInt32(data, record + 12);
+            if (offsetValue > int.MaxValue || lengthValue > int.MaxValue || tables.ContainsKey(tag)) return null;
+            var offset = CheckedOffset(data, offsetValue);
+            int length = checked((int)lengthValue);
+            if (offset > data.Length - length) return null;
             tables[tag] = offset;
+            tableLengths[tag] = length;
         }
 
         foreach (var required in new[] { "cmap", "glyf", "head", "hhea", "hmtx", "loca", "maxp" }) if (!tables.ContainsKey(required)) return null;
-        return new OfficeTrueTypeFont(data, tables, collectionIndex);
+        return new OfficeTrueTypeFont(data, tables, tableLengths, collectionIndex, variationModel);
     }
 
     public double Measure(string text, double fontSize) {
         var scale = ScaleFor(fontSize);
         var width = 0.0;
-        ushort? previous = null;
+        OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
+        var glyphs = new List<int>();
+        var scalars = new List<int>();
         for (int index = 0; index < text.Length;) {
             int scalar = ReadScalar(text, ref index);
-            var glyph = MapGlyph(scalar);
-            if (previous.HasValue) width += Kerning(previous.Value, glyph) * scale;
-            width += AdvanceWidth(glyph) * scale;
-            previous = glyph;
+            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
+            glyphs.Add(MapGlyph(scalar));
+            scalars.Add(scalar);
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        for (int index = 0; index < glyphs.Count; index++) {
+            width += checked(AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
+                             positioning[index].XAdvance) * scale;
         }
         return width;
     }
@@ -216,18 +318,25 @@ public sealed partial class OfficeTrueTypeFont {
     internal IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) {
         var widths = new double[elements.Count];
         double scale = ScaleFor(fontSize);
-        ushort? previous = null;
+        OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
+        var glyphs = new List<int>();
+        var scalars = new List<int>();
+        var elementIndexes = new List<int>();
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
-            double width = 0D;
             for (int textIndex = 0; textIndex < text.Length;) {
                 int scalar = ReadScalar(text, ref textIndex);
-                ushort glyph = MapGlyph(scalar);
-                if (previous.HasValue) width += Kerning(previous.Value, glyph) * scale;
-                width += AdvanceWidth(glyph) * scale;
-                previous = glyph;
+                if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
+                glyphs.Add(MapGlyph(scalar));
+                scalars.Add(scalar);
+                elementIndexes.Add(elementIndex);
             }
-            widths[elementIndex] = width;
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        for (int index = 0; index < glyphs.Count; index++) {
+            widths[elementIndexes[index]] += checked(
+                AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
+                positioning[index].XAdvance) * scale;
         }
         return widths;
     }
@@ -236,6 +345,9 @@ public sealed partial class OfficeTrueTypeFont {
         return Math.Max(1, _ascender - _descender) * ScaleFor(fontSize);
     }
 
+    /// <inheritdoc />
+    public double BaselineOffset(double fontSize) => _ascender * ScaleFor(fontSize);
+
     internal double LineSpacingRatio =>
         Math.Max(1, _ascender - _descender + _lineGap) / (double)_unitsPerEm;
 
@@ -243,6 +355,18 @@ public sealed partial class OfficeTrueTypeFont {
     /// Reads flattened fill contours for the supplied text at a top-left baseline box.
     /// </summary>
     public List<List<OfficePoint>> GetTextContours(string text, double x, double y, double fontSize) {
+        return GetTextContoursBounded(text, x, y, fontSize, int.MaxValue, CancellationToken.None);
+    }
+
+    /// <inheritdoc />
+    public List<List<OfficePoint>> GetTextContoursBounded(
+        string text,
+        double x,
+        double y,
+        double fontSize,
+        int maximumPointCount,
+        CancellationToken cancellationToken) {
+        if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
         var contours = new List<List<OfficePoint>>();
         if (string.IsNullOrEmpty(text)) {
             return contours;
@@ -251,14 +375,42 @@ public sealed partial class OfficeTrueTypeFont {
         var scale = ScaleFor(fontSize);
         var cursor = x;
         var baseline = y + _ascender * scale;
-        ushort? previous = null;
+        int pointCount = 0;
+        OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
+        var glyphs = new List<(ushort Glyph, int Scalar)>();
         for (int index = 0; index < text.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
             int scalar = ReadScalar(text, ref index);
-            var glyph = MapGlyph(scalar);
-            if (previous.HasValue) cursor += Kerning(previous.Value, glyph) * scale;
-            contours.AddRange(ReadGlyphContours(glyph, new FontTransform(scale, 0, 0, -scale, cursor, baseline), 0));
-            cursor += AdvanceWidth(glyph) * scale;
-            previous = glyph;
+            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
+            glyphs.Add((MapGlyph(scalar), scalar));
+        }
+
+        var glyphIds = new List<int>(glyphs.Count);
+        var scalars = new List<int>(glyphs.Count);
+        foreach ((ushort glyph, int scalar) in glyphs) {
+            glyphIds.Add(glyph);
+            scalars.Add(scalar);
+        }
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
+
+        for (int index = 0; index < glyphs.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ushort glyph = glyphs[index].Glyph;
+            double glyphX = cursor + positioning[index].XPlacement * scale;
+            List<List<OfficePoint>> glyphContours = ReadGlyphContours(
+                glyph,
+                new FontTransform(scale, 0, 0, -scale, glyphX, baseline),
+                0,
+                variationWorkBudget,
+                maximumPointCount,
+                ref pointCount,
+                cancellationToken,
+                attachmentPoints: null);
+            contours.AddRange(glyphContours);
+            int positionedAdvance = checked(
+                AdvanceWidth(glyph, variationWorkBudget, cancellationToken) +
+                positioning[index].XAdvance);
+            cursor += positionedAdvance * scale;
         }
 
         return contours;
@@ -273,19 +425,11 @@ public sealed partial class OfficeTrueTypeFont {
     internal bool HasGlyphs(string value) {
         for (int index = 0; index < value.Length;) {
             int scalar = ReadScalar(value, ref index);
-            if (!IsWhitespaceScalar(scalar) && !IsIgnorableCoverageScalar(scalar) && MapGlyph(scalar) == 0) return false;
+            if (!IsWhitespaceScalar(scalar) && !OfficeTextElements.IsIgnorableFontCoverageScalar(scalar) && MapGlyph(scalar) == 0) return false;
         }
 
         return true;
     }
-
-    private static bool IsIgnorableCoverageScalar(int scalar) =>
-        scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
-        || scalar >= 0x200E && scalar <= 0x200F
-        || scalar >= 0x202A && scalar <= 0x202E
-        || scalar >= 0x2066 && scalar <= 0x2069
-        || scalar >= 0xFE00 && scalar <= 0xFE0F
-        || scalar >= 0xE0100 && scalar <= 0xE01EF;
 
     private bool MatchesName(string? faceName) {
         if (string.IsNullOrWhiteSpace(faceName)) return true;
@@ -358,21 +502,31 @@ public sealed partial class OfficeTrueTypeFont {
     private ushort MapGlyph(int scalar) {
         if (scalar < 0 || scalar > 0x10FFFF) return 0;
         var cmapOffset = _cmap;
-        if (!InBounds(cmapOffset, 4)) return 0;
+        int cmapEnd = checked(cmapOffset + _cmapLength);
+        if (_cmapLength < 4) return 0;
         var subtableCount = ReadUInt16(_data, cmapOffset + 2);
-        if (subtableCount == 0 || subtableCount > MaxCmapSubtables) return 0;
-        if (!InBounds(cmapOffset + 4, subtableCount * 8)) return 0;
+        if (subtableCount == 0 || subtableCount > OfficeOpenTypeCmap.MaximumSubtables) return 0;
+        if (cmapOffset + 4 > cmapEnd - subtableCount * 8) return 0;
         var best = 0;
         var bestScore = 0;
         for (var i = 0; i < subtableCount; i++) {
             var record = cmapOffset + 4 + i * 8;
             var platform = ReadUInt16(_data, record);
             var encoding = ReadUInt16(_data, record + 2);
-            if (!TryCheckedOffset(_data, ReadUInt32(_data, record + 4), out var offset)) continue;
+            uint offsetValue = ReadUInt32(_data, record + 4);
+            if (offsetValue > (uint)(_cmapLength - 2)) continue;
+            int offset = checked((int)offsetValue);
             var absolute = cmapOffset + offset;
-            if (absolute < 0 || absolute + 2 > _data.Length) continue;
+            if (absolute < cmapOffset || absolute > cmapEnd - 2) continue;
             var format = ReadUInt16(_data, absolute);
-            var score = (platform == 3 && encoding == 10 ? 4 : platform == 3 && encoding == 1 ? 3 : platform == 0 ? 2 : 1);
+            if (!OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
+            if (format == 4 && !_validFormat4Subtables.Contains(absolute)) continue;
+            if (format == 12 && !_validFormat12Subtables.Contains(absolute)) continue;
+            var score = OfficeOpenTypeCmap.ScoreSubtable(
+                format,
+                platform,
+                encoding,
+                preferFormat12: scalar > 0xFFFF);
             if ((format == 4 || format == 12) && score > bestScore) {
                 best = absolute;
                 bestScore = score;
@@ -380,241 +534,146 @@ public sealed partial class OfficeTrueTypeFont {
         }
 
         if (best == 0) return 0;
-        var selectedFormat = ReadUInt16(_data, best);
-        return selectedFormat == 12 ? MapFormat12(best, scalar) : MapFormat4(best, scalar);
+        ushort glyph = MapCmapSubtable(best, cmapEnd, scalar);
+        return glyph != 0 ? glyph : MapFallbackCmapSubtable(best, cmapEnd, scalar, subtableCount);
     }
 
-    private ushort MapFormat4(int table, int scalar) {
+    private ushort MapCmapSubtable(int table, int cmapEnd, int scalar) =>
+        ReadUInt16(_data, table) == 12
+            ? MapFormat12(table, cmapEnd, scalar)
+            : MapFormat4(table, cmapEnd, scalar);
+
+    private ushort MapFallbackCmapSubtable(int selectedTable, int cmapEnd, int scalar, int subtableCount) {
+        int bestScore = 0;
+        ushort bestGlyph = 0;
+        for (int index = 0; index < subtableCount; index++) {
+            int record = _cmap + 4 + index * 8;
+            int platform = ReadUInt16(_data, record);
+            int encoding = ReadUInt16(_data, record + 2);
+            uint offsetValue = ReadUInt32(_data, record + 4);
+            if (offsetValue > (uint)(_cmapLength - 2)) continue;
+            int table = _cmap + checked((int)offsetValue);
+            if (table == selectedTable || table < _cmap || table > cmapEnd - 2 ||
+                !OfficeOpenTypeCmap.IsUnicodeEncoding(platform, encoding)) continue;
+            int format = ReadUInt16(_data, table);
+            if (format == 4 && (scalar > 0xFFFF || !_validFormat4Subtables.Contains(table))) continue;
+            if (format == 12 && !_validFormat12Subtables.Contains(table)) continue;
+            if (format != 4 && format != 12) continue;
+            int score = OfficeOpenTypeCmap.ScoreSubtable(
+                format,
+                platform,
+                encoding,
+                preferFormat12: scalar > 0xFFFF);
+            if (score <= bestScore) continue;
+            ushort glyph = MapCmapSubtable(table, cmapEnd, scalar);
+            if (glyph == 0) continue;
+            bestGlyph = glyph;
+            bestScore = score;
+        }
+        return bestGlyph;
+    }
+
+    private ushort MapFormat4(int table, int cmapEnd, int scalar) {
+        if (!_validFormat4Subtables.Contains(table)) return 0;
         if (scalar > char.MaxValue) return 0;
-        if (!InBounds(table, 16)) return 0;
+        if (table < _cmap || table > cmapEnd - 16) return 0;
         var length = ReadUInt16(_data, table + 2);
-        if (length < 16 || !InBounds(table, length)) return 0;
+        if (length < 16 || table > cmapEnd - length) return 0;
         var code = scalar;
         var segCount = ReadUInt16(_data, table + 6) / 2;
-        if (segCount == 0 || segCount > MaxCmapSubtables * 16) return 0;
+        if (segCount == 0 || segCount > OfficeOpenTypeCmap.MaximumSubtables * 16) return 0;
         var endCodes = table + 14;
         var startCodes = endCodes + segCount * 2 + 2;
         var idDeltas = startCodes + segCount * 2;
         var idRangeOffsets = idDeltas + segCount * 2;
         if (idRangeOffsets < table || idRangeOffsets + segCount * 2 > table + length) return 0;
 
-        for (var i = 0; i < segCount; i++) {
-            var end = ReadUInt16(_data, endCodes + i * 2);
-            if (code > end) continue;
-            var start = ReadUInt16(_data, startCodes + i * 2);
-            if (code < start) return 0;
-            var delta = ReadInt16(_data, idDeltas + i * 2);
-            var rangeOffset = ReadUInt16(_data, idRangeOffsets + i * 2);
-            if (rangeOffset == 0) return (ushort)((code + delta) & 0xffff);
-            var glyphOffset = idRangeOffsets + i * 2 + rangeOffset + (code - start) * 2;
-            if (glyphOffset < 0 || glyphOffset + 2 > _data.Length) return 0;
-            var glyph = ReadUInt16(_data, glyphOffset);
-            return glyph == 0 ? (ushort)0 : (ushort)((glyph + delta) & 0xffff);
+        int low = 0;
+        int high = segCount - 1;
+        while (low <= high) {
+            int i = low + (high - low) / 2;
+            int end = ReadUInt16(_data, endCodes + i * 2);
+            int start = ReadUInt16(_data, startCodes + i * 2);
+            if (code < start) {
+                high = i - 1;
+                continue;
+            }
+            if (code > end) {
+                low = i + 1;
+                continue;
+            }
+            int delta = ReadInt16(_data, idDeltas + i * 2);
+            int rangeOffset = ReadUInt16(_data, idRangeOffsets + i * 2);
+            if (rangeOffset == 0) return ValidateMappedGlyph((ushort)((code + delta) & 0xffff));
+            int glyphOffset = idRangeOffsets + i * 2 + rangeOffset + (code - start) * 2;
+            if (glyphOffset < table || glyphOffset > table + length - 2) return 0;
+            ushort glyph = ReadUInt16(_data, glyphOffset);
+            return glyph == 0 ? (ushort)0 : ValidateMappedGlyph((ushort)((glyph + delta) & 0xffff));
         }
 
         return 0;
     }
 
-    private ushort MapFormat12(int table, int scalar) {
-        if (!InBounds(table, 16)) return 0;
+    private ushort MapFormat12(int table, int cmapEnd, int scalar) {
+        if (!_validFormat12Subtables.Contains(table)) return 0;
+        if (table < _cmap || table > cmapEnd - 16) return 0;
         var length = ReadUInt32(_data, table + 4);
-        if (length < 16 || length > int.MaxValue || !InBounds(table, (int)length)) return 0;
+        if (length < 16 || length > int.MaxValue || table > cmapEnd - (int)length) return 0;
         uint code = (uint)scalar;
         var groups = ReadUInt32(_data, table + 12);
-        if (groups > MaxFormat12Groups || groups > (length - 16U) / 12U) return 0;
+        if (groups > OfficeOpenTypeCmap.MaximumFormat12Groups || groups > (length - 16U) / 12U) return 0;
         var groupOffset = table + 16;
-        for (var i = 0; i < groups; i++) {
-            var start = ReadUInt32(_data, groupOffset + i * 12);
-            var end = ReadUInt32(_data, groupOffset + i * 12 + 4);
-            if (code < start || code > end) continue;
-            var glyph = ReadUInt32(_data, groupOffset + i * 12 + 8) + code - start;
-            return glyph > ushort.MaxValue ? (ushort)0 : (ushort)glyph;
-        }
-
-        return 0;
-    }
-
-    private int AdvanceWidth(ushort glyph) {
-        if (glyph < _numHMetrics) return ReadUInt16(_data, _hmtx + glyph * 4);
-        return ReadUInt16(_data, _hmtx + (_numHMetrics - 1) * 4);
-    }
-
-    private int Kerning(ushort left, ushort right) {
-        return KernPairAdjustment(left, right) + GposPairAdjustment(left, right);
-    }
-
-    private int KernPairAdjustment(ushort left, ushort right) {
-        if (_kern < 0 || _kern + 4 > _data.Length || ReadUInt16(_data, _kern) != 0) return 0;
-        var count = ReadUInt16(_data, _kern + 2);
-        var p = _kern + 4;
-        var adjustment = 0;
-        for (var table = 0; table < count; table++) {
-            if (p + 6 > _data.Length) break;
-            var length = ReadUInt16(_data, p + 2);
-            var coverage = ReadUInt16(_data, p + 4);
-            var next = p + length;
-            if (length < 14 || next <= p || next > _data.Length) break;
-            if ((coverage >> 8) == 0) adjustment += KerningFormat0(p, left, right);
-            p = next;
-        }
-
-        return adjustment;
-    }
-
-    private int KerningFormat0(int table, ushort left, ushort right) {
-        var pairs = ReadUInt16(_data, table + 6);
-        var pairOffset = table + 14;
-        var key = ((uint)left << 16) | right;
-        var low = 0;
-        var high = pairs - 1;
-        while (low <= high) {
-            var mid = low + (high - low) / 2;
-            var record = pairOffset + mid * 6;
-            if (record + 6 > _data.Length) return 0;
-            var candidate = (ReadUInt32(_data, record) & 0xffffffffu);
-            if (candidate == key) return ReadInt16(_data, record + 4);
-            if (candidate < key) low = mid + 1;
-            else high = mid - 1;
-        }
-
-        return 0;
-    }
-
-    private int GposPairAdjustment(ushort left, ushort right) {
-        if (_gpos < 0 || !InBounds(_gpos, 10) || ReadUInt16(_data, _gpos) != 1) return 0;
-        var featureList = _gpos + ReadUInt16(_data, _gpos + 6);
-        var lookupList = _gpos + ReadUInt16(_data, _gpos + 8);
-        if (!InBounds(featureList, 2) || !InBounds(lookupList, 2)) return 0;
-
-        var adjustment = 0;
-        var seen = new HashSet<ushort>();
-        foreach (var lookupIndex in GposFeatureLookupIndexes(featureList, "kern")) {
-            if (seen.Add(lookupIndex)) adjustment += GposPairAdjustmentFromLookup(lookupList, lookupIndex, left, right);
-        }
-
-        return adjustment;
-    }
-
-    private IEnumerable<ushort> GposFeatureLookupIndexes(int featureList, string featureTag) {
-        var featureCount = ReadUInt16(_data, featureList);
-        for (var i = 0; i < featureCount; i++) {
-            var record = featureList + 2 + i * 6;
-            if (!InBounds(record, 6)) yield break;
-            if (!TagEquals(record, featureTag)) continue;
-            var feature = featureList + ReadUInt16(_data, record + 4);
-            if (!InBounds(feature, 4)) yield break;
-            var lookupCount = ReadUInt16(_data, feature + 2);
-            for (var lookup = 0; lookup < lookupCount; lookup++) {
-                var indexOffset = feature + 4 + lookup * 2;
-                if (!InBounds(indexOffset, 2)) yield break;
-                yield return ReadUInt16(_data, indexOffset);
+        uint low = 0;
+        uint high = groups;
+        while (low < high) {
+            uint middle = low + (high - low) / 2;
+            int current = checked(groupOffset + (int)middle * 12);
+            uint start = ReadUInt32(_data, current);
+            uint end = ReadUInt32(_data, current + 4);
+            if (code < start) {
+                high = middle;
+                continue;
             }
-        }
-    }
-
-    private int GposPairAdjustmentFromLookup(int lookupList, ushort lookupIndex, ushort left, ushort right) {
-        var lookupCount = ReadUInt16(_data, lookupList);
-        if (lookupIndex >= lookupCount) return 0;
-        var lookupOffset = lookupList + 2 + lookupIndex * 2;
-        if (!InBounds(lookupOffset, 2)) return 0;
-        var lookup = lookupList + ReadUInt16(_data, lookupOffset);
-        if (!InBounds(lookup, 6) || ReadUInt16(_data, lookup) != 2) return 0;
-
-        var adjustment = 0;
-        var subtableCount = ReadUInt16(_data, lookup + 4);
-        for (var i = 0; i < subtableCount; i++) {
-            var subtableOffset = lookup + 6 + i * 2;
-            if (!InBounds(subtableOffset, 2)) break;
-            adjustment += GposPairAdjustmentFromSubtable(lookup + ReadUInt16(_data, subtableOffset), left, right);
-        }
-
-        return adjustment;
-    }
-
-    private int GposPairAdjustmentFromSubtable(int subtable, ushort left, ushort right) {
-        if (!InBounds(subtable, 10) || ReadUInt16(_data, subtable) != 1) return 0;
-        var coverage = subtable + ReadUInt16(_data, subtable + 2);
-        var valueFormat1 = ReadUInt16(_data, subtable + 4);
-        var valueFormat2 = ReadUInt16(_data, subtable + 6);
-        var pairSetCount = ReadUInt16(_data, subtable + 8);
-        var coverageIndex = CoverageIndex(coverage, left);
-        if (coverageIndex < 0 || coverageIndex >= pairSetCount) return 0;
-
-        var pairSetOffset = subtable + 10 + coverageIndex * 2;
-        if (!InBounds(pairSetOffset, 2)) return 0;
-        var pairSet = subtable + ReadUInt16(_data, pairSetOffset);
-        if (!InBounds(pairSet, 2)) return 0;
-
-        var value1Size = ValueRecordSize(valueFormat1);
-        var value2Size = ValueRecordSize(valueFormat2);
-        var recordSize = 2 + value1Size + value2Size;
-        var low = 0;
-        var high = ReadUInt16(_data, pairSet) - 1;
-        while (low <= high) {
-            var mid = low + (high - low) / 2;
-            var record = pairSet + 2 + mid * recordSize;
-            if (!InBounds(record, recordSize)) return 0;
-            var candidate = ReadUInt16(_data, record);
-            if (candidate == right) return ReadValueRecordXAdvance(record + 2, valueFormat1);
-            if (candidate < right) low = mid + 1;
-            else high = mid - 1;
+            if (code > end) {
+                low = middle + 1;
+                continue;
+            }
+            ulong glyph = (ulong)ReadUInt32(_data, current + 8) + code - start;
+            return glyph < _numGlyphs ? checked((ushort)glyph) : (ushort)0;
         }
 
         return 0;
     }
 
-    private int CoverageIndex(int coverage, ushort glyph) {
-        if (!InBounds(coverage, 4)) return -1;
-        var format = ReadUInt16(_data, coverage);
-        if (format == 1) {
-            var count = ReadUInt16(_data, coverage + 2);
-            var low = 0;
-            var high = count - 1;
-            while (low <= high) {
-                var mid = low + (high - low) / 2;
-                var offset = coverage + 4 + mid * 2;
-                if (!InBounds(offset, 2)) return -1;
-                var candidate = ReadUInt16(_data, offset);
-                if (candidate == glyph) return mid;
-                if (candidate < glyph) low = mid + 1;
-                else high = mid - 1;
-            }
+    private ushort ValidateMappedGlyph(ushort glyph) => glyph > 0 && glyph < _numGlyphs ? glyph : (ushort)0;
 
-            return -1;
-        }
+    private int BaseAdvanceWidth(ushort glyph) => glyph < _numHMetrics
+            ? ReadUInt16(_data, _hmtx + glyph * 4)
+            : ReadUInt16(_data, _hmtx + (_numHMetrics - 1) * 4);
 
-        if (format != 2) return -1;
-        var rangeCount = ReadUInt16(_data, coverage + 2);
-        for (var i = 0; i < rangeCount; i++) {
-            var range = coverage + 4 + i * 6;
-            if (!InBounds(range, 6)) return -1;
-            var start = ReadUInt16(_data, range);
-            var end = ReadUInt16(_data, range + 2);
-            if (glyph < start || glyph > end) continue;
-            return ReadUInt16(_data, range + 4) + glyph - start;
-        }
+    private int AdvanceWidth(ushort glyph) => AdvanceWidth(glyph, null, CancellationToken.None);
 
-        return -1;
+    private int Kerning(ushort left, ushort right, int leftScalar, int rightScalar) =>
+        _kerning.Adjustment(left, right, leftScalar, rightScalar);
+
+    private int AdvanceWidth(
+        ushort glyph,
+        OfficeTrueTypeVariations.WorkBudget? workBudget,
+        CancellationToken cancellationToken) {
+        int advance = BaseAdvanceWidth(glyph);
+        return checked(advance + VariationAdvanceWidthDelta(glyph, advance, workBudget, cancellationToken));
     }
 
-    private int ReadValueRecordXAdvance(int offset, ushort valueFormat) {
-        if ((valueFormat & 0x0001) != 0) offset += 2;
-        if ((valueFormat & 0x0002) != 0) offset += 2;
-        if ((valueFormat & 0x0004) == 0) return 0;
-        return InBounds(offset, 2) ? ReadInt16(_data, offset) : 0;
-    }
-
-    private static int ValueRecordSize(ushort valueFormat) {
-        var size = 0;
-        for (var bit = 1; bit <= 0x0080; bit <<= 1) if ((valueFormat & bit) != 0) size += 2;
-        return size;
-    }
-
-    private bool TagEquals(int offset, string tag) {
-        return InBounds(offset, 4) && _data[offset] == tag[0] && _data[offset + 1] == tag[1] && _data[offset + 2] == tag[2] && _data[offset + 3] == tag[3];
-    }
-
-    private List<List<OfficePoint>> ReadGlyphContours(ushort glyph, FontTransform transform, int depth) {
+    private List<List<OfficePoint>> ReadGlyphContours(
+        ushort glyph,
+        FontTransform transform,
+        int depth,
+        OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
+        int maximumPointCount,
+        ref int expandedPointCount,
+        CancellationToken cancellationToken,
+        List<OfficePoint>? attachmentPoints) {
+        cancellationToken.ThrowIfCancellationRequested();
         var contours = new List<List<OfficePoint>>();
         if (glyph == 0 || glyph >= _numGlyphs || depth > 8) return contours;
         var glyphStart = GlyphOffset(glyph);
@@ -624,7 +683,17 @@ public sealed partial class OfficeTrueTypeFont {
         if (offset + 10 > _data.Length) return contours;
         var contourCount = ReadInt16(_data, offset);
         if (contourCount < 0) {
-            ReadCompositeGlyphContours(offset, transform, depth, contours);
+            ReadCompositeGlyphContours(
+                glyph,
+                offset,
+                transform,
+                depth,
+                contours,
+                variationWorkBudget,
+                maximumPointCount,
+                ref expandedPointCount,
+                cancellationToken,
+                attachmentPoints);
             return contours;
         }
 
@@ -632,41 +701,84 @@ public sealed partial class OfficeTrueTypeFont {
 
         var endPts = new ushort[contourCount];
         for (var i = 0; i < contourCount; i++) endPts[i] = ReadUInt16(_data, offset + 10 + i * 2);
-        var pointCount = endPts[contourCount - 1] + 1;
+        var rawPointCount = endPts[contourCount - 1] + 1;
+        if (rawPointCount > maximumPointCount - expandedPointCount) {
+            throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
+        }
         var instructionLengthOffset = offset + 10 + contourCount * 2;
         var instructionLength = ReadUInt16(_data, instructionLengthOffset);
         var p = instructionLengthOffset + 2 + instructionLength;
-        var flags = new byte[pointCount];
-        for (var i = 0; i < pointCount; i++) {
+        var flags = new byte[rawPointCount];
+        for (var i = 0; i < rawPointCount; i++) {
             var flag = _data[p++];
             flags[i] = flag;
             if ((flag & 8) == 0) continue;
             var repeat = _data[p++];
-            for (var r = 0; r < repeat && i + 1 < pointCount; r++) flags[++i] = flag;
+            for (var r = 0; r < repeat && i + 1 < rawPointCount; r++) flags[++i] = flag;
         }
 
-        var xs = new short[pointCount];
+        var xs = new short[rawPointCount];
         DecodeCoordinates(_data, flags, xs, ref p, true);
-        var ys = new short[pointCount];
+        var ys = new short[rawPointCount];
         DecodeCoordinates(_data, flags, ys, ref p, false);
+        double[] variedXs;
+        double[] variedYs;
+        if (_variations != null) {
+            variedXs = new double[rawPointCount];
+            variedYs = new double[rawPointCount];
+            for (int index = 0; index < rawPointCount; index++) {
+                variedXs[index] = xs[index];
+                variedYs[index] = ys[index];
+            }
+            _variations.ApplySimpleGlyph(
+                glyph,
+                variedXs,
+                variedYs,
+                endPts,
+                variationWorkBudget ?? _variations.CreateWorkBudget(),
+                cancellationToken);
+        } else {
+            variedXs = new double[rawPointCount];
+            variedYs = new double[rawPointCount];
+            for (int index = 0; index < rawPointCount; index++) {
+                variedXs[index] = xs[index];
+                variedYs[index] = ys[index];
+            }
+        }
+
+        if (attachmentPoints != null) {
+            for (var index = 0; index < rawPointCount; index++) {
+                attachmentPoints.Add(transform.Apply(variedXs[index], variedYs[index]));
+            }
+        }
 
         var start = 0;
         for (var c = 0; c < contourCount; c++) {
             var end = endPts[c];
             var points = new List<GlyphPoint>();
             for (var i = start; i <= end; i++) {
-                var point = transform.Apply(xs[i], ys[i]);
+                var point = transform.Apply(variedXs[i], variedYs[i]);
                 points.Add(new GlyphPoint(point.X, point.Y, (flags[i] & 1) != 0));
             }
 
-            AddFlattenedContour(points, contours);
+            AddFlattenedContour(points, contours, ref expandedPointCount, maximumPointCount);
             start = end + 1;
         }
 
         return contours;
     }
 
-    private void ReadCompositeGlyphContours(int glyphOffset, FontTransform transform, int depth, List<List<OfficePoint>> contours) {
+    private void ReadCompositeGlyphContours(
+        ushort glyph,
+        int glyphOffset,
+        FontTransform transform,
+        int depth,
+        List<List<OfficePoint>> contours,
+        OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
+        int maximumPointCount,
+        ref int expandedPointCount,
+        CancellationToken cancellationToken,
+        List<OfficePoint>? attachmentPoints) {
         const ushort argWords = 1;
         const ushort argsAreXy = 2;
         const ushort haveScale = 8;
@@ -676,27 +788,43 @@ public sealed partial class OfficeTrueTypeFont {
 
         var p = glyphOffset + 10;
         ushort flags;
+        var components = new List<GlyphComponent>();
         do {
+            cancellationToken.ThrowIfCancellationRequested();
             if (p + 4 > _data.Length) return;
             flags = ReadUInt16(_data, p);
+            if (OfficeOpenTypeCompositeGlyph.HasConflictingTransformFlags(flags) ||
+                OfficeOpenTypeCompositeGlyph.HasConflictingOffsetFlags(flags)) return;
             var componentGlyph = ReadUInt16(_data, p + 2);
             p += 4;
-            double arg1;
-            double arg2;
+            int arg1;
+            int arg2;
             if ((flags & argWords) != 0) {
                 if (p + 4 > _data.Length) return;
-                arg1 = ReadInt16(_data, p);
-                arg2 = ReadInt16(_data, p + 2);
+                if ((flags & argsAreXy) != 0) {
+                    arg1 = ReadInt16(_data, p);
+                    arg2 = ReadInt16(_data, p + 2);
+                } else {
+                    arg1 = ReadUInt16(_data, p);
+                    arg2 = ReadUInt16(_data, p + 2);
+                }
                 p += 4;
             } else {
                 if (p + 2 > _data.Length) return;
-                arg1 = (sbyte)_data[p];
-                arg2 = (sbyte)_data[p + 1];
+                if ((flags & argsAreXy) != 0) {
+                    arg1 = (sbyte)_data[p];
+                    arg2 = (sbyte)_data[p + 1];
+                } else {
+                    arg1 = _data[p];
+                    arg2 = _data[p + 1];
+                }
                 p += 2;
             }
 
             var dx = (flags & argsAreXy) != 0 ? arg1 : 0;
             var dy = (flags & argsAreXy) != 0 ? arg2 : 0;
+            int parentPointIndex = (flags & argsAreXy) == 0 ? arg1 : -1;
+            int componentPointIndex = (flags & argsAreXy) == 0 ? arg2 : -1;
             var a = 1.0;
             var b = 0.0;
             var c = 0.0;
@@ -719,8 +847,96 @@ public sealed partial class OfficeTrueTypeFont {
                 p += 8;
             }
 
-            contours.AddRange(ReadGlyphContours(componentGlyph, transform.Compose(a, b, c, d, dx, dy), depth + 1));
+            components.Add(new GlyphComponent(
+                componentGlyph,
+                a,
+                b,
+                c,
+                d,
+                dx,
+                dy,
+                flags,
+                (flags & argsAreXy) != 0,
+                parentPointIndex,
+                componentPointIndex));
         } while ((flags & moreComponents) != 0);
+
+        if (_variations != null && components.Count > 0) {
+            var xs = new double[components.Count];
+            var ys = new double[components.Count];
+            for (int index = 0; index < components.Count; index++) {
+                xs[index] = components[index].Dx;
+                ys[index] = components[index].Dy;
+            }
+            _variations.ApplyCompositeGlyph(
+                glyph,
+                xs,
+                ys,
+                variationWorkBudget ?? _variations.CreateWorkBudget(),
+                cancellationToken);
+            for (int index = 0; index < components.Count; index++) {
+                components[index] = components[index].WithOffset(xs[index], ys[index]);
+            }
+        }
+
+        var compositeContours = new List<List<OfficePoint>>();
+        var compositePoints = new List<OfficePoint>();
+        foreach (GlyphComponent component in components) {
+            var componentPoints = new List<OfficePoint>();
+            List<List<OfficePoint>> componentContours = ReadGlyphContours(
+                component.Glyph,
+                transform.Compose(component.A, component.B, component.C, component.D, 0, 0),
+                depth + 1,
+                variationWorkBudget,
+                maximumPointCount,
+                ref expandedPointCount,
+                cancellationToken,
+                componentPoints);
+
+            OfficePoint translation;
+            if (component.UsesXyOffsets) {
+                OfficePoint offset = OfficeOpenTypeCompositeGlyph.ResolveXyOffset(
+                    component.Flags,
+                    component.A,
+                    component.B,
+                    component.C,
+                    component.D,
+                    component.Dx,
+                    component.Dy);
+                translation = transform.ApplyVector(offset.X, offset.Y);
+            } else {
+                if (!OfficeOpenTypeCompositeGlyph.TryResolvePointAttachment(
+                    compositePoints,
+                    component.ParentPointIndex,
+                    componentPoints,
+                    component.ComponentPointIndex,
+                    out translation)) {
+                    return;
+                }
+
+                OfficePoint variationTranslation = transform.ApplyVector(component.Dx, component.Dy);
+                translation = OfficeOpenTypeCompositeGlyph.ApplyComponentVariation(translation, variationTranslation);
+            }
+
+            TranslateContours(componentContours, translation);
+            TranslatePoints(componentPoints, translation);
+            compositeContours.AddRange(componentContours);
+            compositePoints.AddRange(componentPoints);
+        }
+
+        contours.AddRange(compositeContours);
+        attachmentPoints?.AddRange(compositePoints);
+    }
+
+    private static void TranslateContours(List<List<OfficePoint>> contours, OfficePoint translation) {
+        foreach (List<OfficePoint> contour in contours) TranslatePoints(contour, translation);
+    }
+
+    private static void TranslatePoints(List<OfficePoint> points, OfficePoint translation) {
+        for (int index = 0; index < points.Count; index++) {
+            OfficePoint point = points[index];
+            points[index] = new OfficePoint(point.X + translation.X, point.Y + translation.Y);
+        }
     }
 
     private int GlyphOffset(ushort glyph) {
@@ -750,19 +966,23 @@ public sealed partial class OfficeTrueTypeFont {
         }
     }
 
-    private static void AddFlattenedContour(List<GlyphPoint> source, List<List<OfficePoint>> contours) {
+    private static void AddFlattenedContour(
+        List<GlyphPoint> source,
+        List<List<OfficePoint>> contours,
+        ref int expandedPointCount,
+        int maximumPointCount) {
         if (source.Count == 0) return;
         var result = new List<OfficePoint>();
         var last = source[source.Count - 1];
         var first = source[0];
         var current = first.OnCurve ? first : last.OnCurve ? last : Mid(last, first);
-        result.Add(current.Point);
+        AddBoundedOutlinePoint(result, current.Point, ref expandedPointCount, maximumPointCount);
         var index = first.OnCurve ? 1 : 0;
 
         while (index < source.Count) {
             var point = source[index % source.Count];
             if (point.OnCurve) {
-                result.Add(point.Point);
+                AddBoundedOutlinePoint(result, point.Point, ref expandedPointCount, maximumPointCount);
                 current = point;
                 index++;
                 continue;
@@ -770,7 +990,7 @@ public sealed partial class OfficeTrueTypeFont {
 
             var next = source[(index + 1) % source.Count];
             var end = next.OnCurve ? next : Mid(point, next);
-            FlattenQuadratic(current, point, end, result);
+            FlattenQuadratic(current, point, end, result, ref expandedPointCount, maximumPointCount);
             current = end;
             index += next.OnCurve ? 2 : 1;
         }
@@ -778,15 +998,37 @@ public sealed partial class OfficeTrueTypeFont {
         if (result.Count >= 3) contours.Add(result);
     }
 
-    private static void FlattenQuadratic(GlyphPoint start, GlyphPoint control, GlyphPoint end, List<OfficePoint> output) {
+    private static void FlattenQuadratic(
+        GlyphPoint start,
+        GlyphPoint control,
+        GlyphPoint end,
+        List<OfficePoint> output,
+        ref int expandedPointCount,
+        int maximumPointCount) {
         var chord = Math.Sqrt((end.X - start.X) * (end.X - start.X) + (end.Y - start.Y) * (end.Y - start.Y));
         var bend = Math.Sqrt((start.X - 2 * control.X + end.X) * (start.X - 2 * control.X + end.X) + (start.Y - 2 * control.Y + end.Y) * (start.Y - 2 * control.Y + end.Y));
         var steps = Math.Max(6, Math.Min(18, (int)Math.Ceiling((chord + bend * 2.0) / 120.0)));
         for (var i = 1; i <= steps; i++) {
             var t = i / (double)steps;
             var mt = 1 - t;
-            output.Add(new OfficePoint(mt * mt * start.X + 2 * mt * t * control.X + t * t * end.X, mt * mt * start.Y + 2 * mt * t * control.Y + t * t * end.Y));
+            AddBoundedOutlinePoint(
+                output,
+                new OfficePoint(mt * mt * start.X + 2 * mt * t * control.X + t * t * end.X, mt * mt * start.Y + 2 * mt * t * control.Y + t * t * end.Y),
+                ref expandedPointCount,
+                maximumPointCount);
         }
+    }
+
+    private static void AddBoundedOutlinePoint(
+        ICollection<OfficePoint> target,
+        OfficePoint point,
+        ref int expandedPointCount,
+        int maximumPointCount) {
+        if (expandedPointCount >= maximumPointCount) {
+            throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
+        }
+        expandedPointCount++;
+        target.Add(point);
     }
 
     private static GlyphPoint Mid(GlyphPoint left, GlyphPoint right) => new((left.X + right.X) / 2.0, (left.Y + right.Y) / 2.0, true);
@@ -1097,6 +1339,8 @@ public sealed partial class OfficeTrueTypeFont {
 
         public OfficePoint Apply(double x, double y) => new(Dx + Xx * x + Xy * y, Dy + Yx * x + Yy * y);
 
+        public OfficePoint ApplyVector(double x, double y) => new(Xx * x + Xy * y, Yx * x + Yy * y);
+
         public FontTransform Compose(double xx, double xy, double yx, double yy, double dx, double dy) {
             return new FontTransform(
                 Xx * xx + Xy * yx,
@@ -1120,5 +1364,46 @@ public sealed partial class OfficeTrueTypeFont {
         public double Y { get; }
         public bool OnCurve { get; }
         public OfficePoint Point { get; }
+    }
+
+    private readonly struct GlyphComponent {
+        internal GlyphComponent(
+            ushort glyph,
+            double a,
+            double b,
+            double c,
+            double d,
+            double dx,
+            double dy,
+            ushort flags,
+            bool usesXyOffsets,
+            int parentPointIndex,
+            int componentPointIndex) {
+            Glyph = glyph;
+            A = a;
+            B = b;
+            C = c;
+            D = d;
+            Dx = dx;
+            Dy = dy;
+            Flags = flags;
+            UsesXyOffsets = usesXyOffsets;
+            ParentPointIndex = parentPointIndex;
+            ComponentPointIndex = componentPointIndex;
+        }
+
+        internal ushort Glyph { get; }
+        internal double A { get; }
+        internal double B { get; }
+        internal double C { get; }
+        internal double D { get; }
+        internal double Dx { get; }
+        internal double Dy { get; }
+        internal ushort Flags { get; }
+        internal bool UsesXyOffsets { get; }
+        internal int ParentPointIndex { get; }
+        internal int ComponentPointIndex { get; }
+        internal GlyphComponent WithOffset(double dx, double dy) =>
+            new(Glyph, A, B, C, D, dx, dy, Flags, UsesXyOffsets, ParentPointIndex, ComponentPointIndex);
     }
 }

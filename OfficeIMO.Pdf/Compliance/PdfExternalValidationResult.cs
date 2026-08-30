@@ -225,8 +225,9 @@ public sealed class PdfExternalValidationResult {
         if (value != PdfExternalValidatorKind.VeraPdf &&
             value != PdfExternalValidatorKind.PdfUaValidator &&
             value != PdfExternalValidatorKind.Mustang &&
+            value != PdfExternalValidatorKind.PdfXValidator &&
             value != PdfExternalValidatorKind.Custom) {
-            throw new System.ArgumentOutOfRangeException(paramName, "External validator kind must be VeraPdf, PdfUaValidator, Mustang, or Custom.");
+            throw new System.ArgumentOutOfRangeException(paramName, "External validator kind must be VeraPdf, PdfUaValidator, Mustang, PdfXValidator, or Custom.");
         }
     }
 

@@ -12,6 +12,47 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentImageExportContracts {
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Svg)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void StyledOpenDocumentFamiliesExportThroughEverySharedImageFormat(OfficeImageExportFormat format) {
+        OdtDocument text = OdtDocument.Create();
+        OdtSpan textRun = text.AddParagraph().AddSpan("Styled ODT");
+        textRun.Bold = true;
+        textRun.Italic = true;
+        textRun.UnderlineStyle = OdfTextDecorationStyle.Wave;
+        textRun.TextPosition = OdfTextPosition.Superscript;
+
+        OdsDocument spreadsheet = OdsDocument.Create();
+        OdsCell cell = spreadsheet.AddSheet("Typography").Cell(0, 0);
+        cell.SetString("Styled ODS");
+        cell.Bold = true;
+        cell.Italic = true;
+        cell.UnderlineStyle = OdfTextDecorationStyle.Dotted;
+        cell.TextPosition = OdfTextPosition.Subscript;
+
+        OdpPresentation presentation = OdpPresentation.Create();
+        OdpRun slideRun = presentation.AddSlide("Typography")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), null, "Text")
+            .AddParagraph().AddRun("Styled ODP");
+        slideRun.Bold = true;
+        slideRun.Italic = true;
+        slideRun.UnderlineStyle = OdfTextDecorationStyle.Wave;
+        slideRun.TextPosition = OdfTextPosition.Superscript;
+
+        OfficeImageExportResult odt = Assert.Single(text.ExportImages(format));
+        OfficeImageExportResult ods = Assert.Single(spreadsheet.ExportImages(format));
+        OfficeImageExportResult odp = Assert.Single(presentation.ExportImages(format));
+
+        Assert.All(new[] { odt, ods, odp }, result => {
+            Assert.Equal(format, result.Format);
+            Assert.True(result.Bytes.Length > 32);
+        });
+    }
+
     [Fact]
     public void OdtImageBridgeUsesWordRendererAndPreservesConversionLoss() {
         OdtDocument source = OdtDocument.Create();

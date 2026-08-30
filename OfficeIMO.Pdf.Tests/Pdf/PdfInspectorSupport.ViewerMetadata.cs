@@ -366,6 +366,12 @@ public partial class PdfInspectorTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildUnsupportedFilteredOutputIntentProfilePdf() {
+        string pdf = System.Text.Encoding.ASCII.GetString(BuildFilteredOutputIntentProfilePdf());
+        return System.Text.Encoding.ASCII.GetBytes(
+            pdf.Replace("/Filter [/ASCIIHexDecode /FlateDecode]", "/Filter /Unsupported"));
+    }
+
     private static byte[] CreateOutputIntentProfileFixture() {
         byte[] profile = new byte[128];
         profile[0] = 0;

@@ -77,6 +77,15 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
+        internal static IReadOnlyList<A.TableCellTextStyle> ResolveTableCellTextStylesForExport(
+            PowerPointTable table,
+            int row,
+            int column) => EnumerateApplicableTableStyleRegions(table, row, column, ResolveTableStyle(table))
+                .Select(region => region.TableCellTextStyle)
+                .Where(static style => style != null)
+                .Cast<A.TableCellTextStyle>()
+                .ToArray();
+
         private static OfficeBorderSide? ResolveTableStyleBorderSide(PowerPointTable table, int row, int column, int rowSpan, int columnSpan, A.TableStyleEntry? tableStyle, TableCellBorderEdge edge, A.ColorScheme? colorScheme) {
             foreach (A.TablePartStyleType region in EnumerateApplicableTableStyleRegions(table, row, column, tableStyle)) {
                 A.TableCellBorders? borders = region.TableCellStyle?.TableCellBorders;

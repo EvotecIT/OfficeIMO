@@ -1,3 +1,5 @@
+using System;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
@@ -5,6 +7,10 @@ namespace OfficeIMO.Visio {
     /// Reusable text style for the full text block of a Visio shape.
     /// </summary>
     public sealed class VisioTextStyle {
+        private OfficeTextDecorationStyle? _underlineStyle;
+        private OfficeTextDecorationStyle? _strikethroughStyle;
+        private VisioTextCapitalization? _capitalization;
+        private OfficeTextBaseline? _baseline;
         /// <summary>Font family name, such as Aptos or Calibri.</summary>
         public string? FontFamily { get; set; }
 
@@ -20,8 +26,60 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether text is italic.</summary>
         public bool? Italic { get; set; }
 
-        /// <summary>Whether text is underlined.</summary>
-        public bool? Underline { get; set; }
+        /// <summary>Whether text is underlined. This compatibility property maps to a single underline.</summary>
+        public bool? Underline {
+            get => _underlineStyle.HasValue ? _underlineStyle.Value != OfficeTextDecorationStyle.None : (bool?)null;
+            set => _underlineStyle = value.HasValue
+                ? value.Value ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None
+                : (OfficeTextDecorationStyle?)null;
+        }
+
+        /// <summary>Native underline variant. Visio supports none, single, and double.</summary>
+        public OfficeTextDecorationStyle? UnderlineStyle {
+            get => _underlineStyle;
+            set {
+                ValidateNativeDecoration(value, nameof(UnderlineStyle));
+                _underlineStyle = value;
+            }
+        }
+
+        /// <summary>Whether text has strikethrough. This compatibility property maps to a single strike line.</summary>
+        public bool? Strikethrough {
+            get => _strikethroughStyle.HasValue ? _strikethroughStyle.Value != OfficeTextDecorationStyle.None : (bool?)null;
+            set => _strikethroughStyle = value.HasValue
+                ? value.Value ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None
+                : (OfficeTextDecorationStyle?)null;
+        }
+
+        /// <summary>Native strikethrough variant. Visio supports none, single, and double.</summary>
+        public OfficeTextDecorationStyle? StrikethroughStyle {
+            get => _strikethroughStyle;
+            set {
+                ValidateNativeDecoration(value, nameof(StrikethroughStyle));
+                _strikethroughStyle = value;
+            }
+        }
+
+        /// <summary>Whether Visio's native small-capital style bit is active.</summary>
+        public bool? SmallCaps { get; set; }
+
+        /// <summary>Native display-time capitalization mode.</summary>
+        public VisioTextCapitalization? Capitalization {
+            get => _capitalization;
+            set {
+                if (value.HasValue && (value.Value < VisioTextCapitalization.Normal || value.Value > VisioTextCapitalization.InitialCaps)) throw new ArgumentOutOfRangeException(nameof(Capitalization));
+                _capitalization = value;
+            }
+        }
+
+        /// <summary>Native baseline placement.</summary>
+        public OfficeTextBaseline? Baseline {
+            get => _baseline;
+            set {
+                if (value.HasValue && (value.Value < OfficeTextBaseline.Normal || value.Value > OfficeTextBaseline.Subscript)) throw new ArgumentOutOfRangeException(nameof(Baseline));
+                _baseline = value;
+            }
+        }
 
         /// <summary>Horizontal text alignment.</summary>
         public VisioTextHorizontalAlignment? HorizontalAlignment { get; set; }
@@ -78,7 +136,11 @@ namespace OfficeIMO.Visio {
                 Size = Size,
                 Bold = Bold,
                 Italic = Italic,
-                Underline = Underline,
+                UnderlineStyle = UnderlineStyle,
+                StrikethroughStyle = StrikethroughStyle,
+                SmallCaps = SmallCaps,
+                Capitalization = Capitalization,
+                Baseline = Baseline,
                 HorizontalAlignment = HorizontalAlignment,
                 VerticalAlignment = VerticalAlignment,
                 LeftMargin = LeftMargin,
@@ -96,6 +158,15 @@ namespace OfficeIMO.Visio {
                 BackgroundTransparency = BackgroundTransparency,
                 FontFaceId = FontFaceId
             };
+        }
+
+        private static void ValidateNativeDecoration(OfficeTextDecorationStyle? style, string propertyName) {
+            if (!style.HasValue) return;
+            if (style.Value != OfficeTextDecorationStyle.None &&
+                 style.Value != OfficeTextDecorationStyle.Single &&
+                 style.Value != OfficeTextDecorationStyle.Double) {
+                throw new ArgumentOutOfRangeException(propertyName, style, "Visio supports only none, single, and double text decoration lines.");
+            }
         }
     }
 }

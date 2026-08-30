@@ -45,6 +45,14 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>Applies a native Excel underline style to a single cell.</summary>
+        public void CellUnderline(int row, int column, ExcelUnderlineStyle underlineStyle) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontUnderline(cell, underlineStyle);
+            });
+        }
+
         /// <summary>
         /// Applies strikethrough font styling to a single cell.
         /// </summary>
@@ -52,6 +60,14 @@ namespace OfficeIMO.Excel {
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
                 ApplyFontStrikethrough(cell, strikethrough);
+            });
+        }
+
+        /// <summary>Applies baseline, superscript, or subscript alignment to a single cell.</summary>
+        public void CellVerticalTextAlignment(int row, int column, ExcelVerticalTextAlignment alignment) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontVerticalTextAlignment(cell, alignment);
             });
         }
 
@@ -248,7 +264,9 @@ namespace OfficeIMO.Excel {
 
                 DocumentFormat.OpenXml.Spreadsheet.CellValues? dataType = cell.DataType?.Value;
                 ExcelCellValueKind kind;
-                if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString ||
+                if (cell.CellFormula != null) {
+                    kind = ExcelCellValueKind.Formula;
+                } else if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString ||
                     dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String ||
                     dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
                     kind = ExcelCellValueKind.Text;
@@ -258,22 +276,23 @@ namespace OfficeIMO.Excel {
                     kind = ExcelCellValueKind.Boolean;
                 } else if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
                     kind = ExcelCellValueKind.Error;
-                } else if (cell.CellFormula != null) {
-                    kind = ExcelCellValueKind.Formula;
                 } else {
                     kind = dataType == null ? ExcelCellValueKind.Number : ExcelCellValueKind.Other;
                 }
 
+                string storedValue = cell.CellValue?.InnerText ?? text;
                 string rawValue = kind == ExcelCellValueKind.Formula
                     ? cell.CellFormula?.Text ?? string.Empty
-                    : cell.CellValue?.InnerText ?? text;
+                    : storedValue;
                 DateTime? dateTimeValue = null;
-                if (kind == ExcelCellValueKind.Number
-                    && double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
+                bool formulaHasNumericCache = kind == ExcelCellValueKind.Formula
+                    && (dataType == null || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
+                if ((kind == ExcelCellValueKind.Number || formulaHasNumericCache)
+                    && double.TryParse(storedValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
                     && GetCellStyle(row, column).IsDateLike) {
                     try {
                         dateTimeValue = ExcelDateSystemConverter.FromSerial(serial, _excelDocument.DateSystem);
-                        kind = ExcelCellValueKind.DateTime;
+                        if (kind == ExcelCellValueKind.Number) kind = ExcelCellValueKind.DateTime;
                     } catch (ArgumentException) {
                         // Retain the numeric kind when the serial cannot be represented by DateTime.
                     }
@@ -745,6 +764,23 @@ namespace OfficeIMO.Excel {
             stylesPart.Stylesheet.Save();
         }
 
+        private void ApplyFontUnderline(Cell cell, ExcelUnderlineStyle underlineStyle) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId),
+                font => SetUnderline(font, underlineStyle.ToOpenXml()));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = fontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
         private void ApplyFontStrikethrough(Cell cell, bool strikethrough) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -754,6 +790,23 @@ namespace OfficeIMO.Excel {
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
             var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
             var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetStrike(font, strikethrough));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = fontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void ApplyFontVerticalTextAlignment(Cell cell, ExcelVerticalTextAlignment alignment) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId),
+                font => SetVerticalTextAlignment(font, alignment.ToOpenXml()));
             ApplyCellFormatOverride(stylesheet, cell, format => {
                 format.FontId = fontId;
                 format.ApplyFont = true;

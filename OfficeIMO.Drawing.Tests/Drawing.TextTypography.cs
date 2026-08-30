@@ -5,6 +5,30 @@ namespace OfficeIMO.Drawing.Tests;
 
 public class DrawingTextTypographyTests {
     [Fact]
+    public void StackedRichTextFitUsesRenderedScriptSize() {
+        var run = new OfficeRichTextRun(
+            "W",
+            20D,
+            OfficeColor.Black,
+            baseline: OfficeTextBaseline.Superscript);
+
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStackedRichTextBlock(
+            new[] { run },
+            maxWidth: 13D,
+            maxHeight: 13D,
+            lineHeightFactor: 1D,
+            static (_, size, _) => size,
+            shrinkToFit: true,
+            minimumFontSize: 1D);
+
+        OfficeRichTextSegment segment = Assert.Single(Assert.Single(layout.Lines).Segments);
+        Assert.False(layout.Clipped);
+        Assert.Equal(13D, layout.Height);
+        Assert.Equal(20D, segment.FontSize);
+        Assert.Equal(13D, segment.Width);
+    }
+
+    [Fact]
     public void TextElements_ResolveBaseDirectionFromFirstStrongCharacter() {
         Assert.Equal(OfficeTextDirection.RightToLeft, OfficeTextElements.ResolveBaseDirection("123 سلام"));
         Assert.Equal(OfficeTextDirection.LeftToRight, OfficeTextElements.ResolveBaseDirection("123 Office"));

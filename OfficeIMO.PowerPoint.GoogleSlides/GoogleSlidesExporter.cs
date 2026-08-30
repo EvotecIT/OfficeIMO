@@ -275,7 +275,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     if (!string.IsNullOrEmpty(text.Text)) requests.Add(Obj(("insertText", Obj(("objectId", text.ObjectId), ("text", text.Text)))));
                     if (text.TextRuns.Count > 0) {
                         foreach (GoogleSlidesTextStyleRun run in text.TextRuns) {
-                            JsonObject style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
+                            JsonObject style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.Strikethrough, run.SmallCaps, run.BaselineOffset, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
                             if (style.Count > 0 && run.EndIndex > run.StartIndex) {
                                 requests.Add(Obj(("updateTextStyle", Obj(
                                     ("objectId", text.ObjectId),
@@ -285,7 +285,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                         }
                     } else {
-                        JsonObject style = BuildTextStyle(text.Bold, text.Italic, text.Underline, text.FontSize, text.FontFamily, text.ForegroundColorHex, text.Hyperlink, scale);
+                        JsonObject style = BuildTextStyle(text.Bold, text.Italic, text.Underline, text.Strikethrough, text.SmallCaps, text.BaselineOffset, text.FontSize, text.FontFamily, text.ForegroundColorHex, text.Hyperlink, scale);
                         if (style.Count > 0 && text.Text.Length > 0) {
                             requests.Add(Obj(("updateTextStyle", Obj(
                                 ("objectId", text.ObjectId),
@@ -299,11 +299,25 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     int rows = table.Cells.Count; int columns = table.Cells.Select(row => row.Count).DefaultIfEmpty(0).Max();
                     if (rows == 0 || columns == 0) break;
                     requests.Add(Obj(("createTable", Obj(("objectId", table.ObjectId), ("rows", rows), ("columns", columns), ("elementProperties", properties)))));
-                    for (int row = 0; row < rows; row++) for (int column = 0; column < table.Cells[row].Count; column++) if (!string.IsNullOrEmpty(table.Cells[row][column]))
-                        requests.Add(Obj(("insertText", Obj(
-                            ("objectId", table.ObjectId),
-                            ("cellLocation", Obj(("rowIndex", row), ("columnIndex", column))),
-                            ("text", table.Cells[row][column])))));
+                    for (int row = 0; row < rows; row++) for (int column = 0; column < table.StyledCells[row].Count; column++) {
+                        GoogleSlidesTableCell cell = table.StyledCells[row][column];
+                        if (!string.IsNullOrEmpty(cell.Text)) {
+                            requests.Add(Obj(("insertText", Obj(
+                                ("objectId", table.ObjectId),
+                                ("cellLocation", Obj(("rowIndex", row), ("columnIndex", column))),
+                                ("text", cell.Text)))));
+                        }
+                        foreach (GoogleSlidesTextStyleRun run in cell.TextRuns) {
+                            JsonObject style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.Strikethrough, run.SmallCaps, run.BaselineOffset, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
+                            if (style.Count == 0 || run.EndIndex <= run.StartIndex) continue;
+                            requests.Add(Obj(("updateTextStyle", Obj(
+                                ("objectId", table.ObjectId),
+                                ("cellLocation", Obj(("rowIndex", row), ("columnIndex", column))),
+                                ("textRange", Obj(("type", "FIXED_RANGE"), ("startIndex", run.StartIndex), ("endIndex", run.EndIndex))),
+                                ("style", style),
+                                ("fields", string.Join(",", style.Select(pair => pair.Key)))))));
+                        }
+                    }
                     break;
                 case GoogleSlidesImage image:
                     requests.Add(Obj(("createImage", Obj(("objectId", image.ObjectId), ("url", imageUrls[image.ObjectId]), ("elementProperties", properties)))));
@@ -315,10 +329,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static JsonObject BuildTextStyle(
+        internal static JsonObject BuildTextStyle(
             bool bold,
             bool italic,
             bool underline,
+            bool strikethrough,
+            bool smallCaps,
+            string? baselineOffset,
             int? fontSize,
             string? fontFamily,
             string? foregroundColorHex,
@@ -328,10 +345,21 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (bold) style["bold"] = true;
             if (italic) style["italic"] = true;
             if (underline) style["underline"] = true;
+            if (strikethrough) style["strikethrough"] = true;
+            if (smallCaps) style["smallCaps"] = true;
+            if (!string.IsNullOrWhiteSpace(baselineOffset)) style["baselineOffset"] = baselineOffset;
             if (fontSize.HasValue) style["fontSize"] = Obj(("magnitude", Math.Max(1, fontSize.Value * scale)), ("unit", "PT"));
             if (!string.IsNullOrWhiteSpace(fontFamily)) style["fontFamily"] = fontFamily;
             if (!string.IsNullOrWhiteSpace(foregroundColorHex)) style["foregroundColor"] = Obj(("opaqueColor", Obj(("rgbColor", Rgb(foregroundColorHex!)))));
-            if (!string.IsNullOrWhiteSpace(hyperlink)) style["link"] = Obj(("url", hyperlink));
+            if (!string.IsNullOrWhiteSpace(hyperlink)) {
+                if (hyperlink!.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(hyperlink.Substring(7), NumberStyles.None, CultureInfo.InvariantCulture, out int slideNumber)
+                    && slideNumber > 0) {
+                    style["link"] = Obj(("pageObjectId", GoogleSlidesBatchCompiler.GetSlideObjectId(slideNumber)));
+                } else {
+                    style["link"] = Obj(("url", hyperlink));
+                }
+            }
             return style;
         }
 

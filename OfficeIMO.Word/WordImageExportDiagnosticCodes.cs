@@ -15,6 +15,9 @@ namespace OfficeIMO.Word {
         /// <summary>A SmartArt diagram was rendered with reduced fidelity.</summary>
         public const string LimitedSmartArt = "limited-word-smartart";
 
+        /// <summary>Small-caps text was approximated using uppercase glyphs at one font size.</summary>
+        public const string LimitedSmallCaps = "limited-word-small-caps";
+
         /// <summary>An unsupported body element was omitted.</summary>
         public const string UnsupportedBodyElement = "unsupported-word-body-element";
 

@@ -1,7 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.PowerPoint;
+using DocumentFormat.OpenXml;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
     public sealed class GoogleSlidesDiffItem {
@@ -60,16 +63,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 PowerPointSlide slide = presentation.Slides[index]; string root = $"slide/{index + 1}";
                 PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash($"{slide.Hidden}|{BackgroundFingerprint(background)}");
                 foreach (PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
-                    string text = shape is PowerPointTextBox box ? box.Text : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany(row => row.Cells).Select(cell => cell.Text)) : string.Empty;
+                    string text = shape is PowerPointTextBox box ? ProjectedText(box.Paragraphs, box.TextBody?.ListStyle, box.MasterTextStyle)
+                        : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany((row, rowIndex) => row.Cells.Select((cell, columnIndex) =>
+                            ProjectedText(cell.Paragraphs, cell.Cell.TextBody?.ListStyle, ResolveTableMasterTextStyle(cell),
+                                PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(table, rowIndex, columnIndex)))))
+                        : string.Empty;
                     string geometry = shape switch {
                         PowerPointTextBox textBox when textBox.ShapeType.HasValue => ((DocumentFormat.OpenXml.IEnumValue)textBox.ShapeType.Value.ToOpenXml()).Value,
                         PowerPointAutoShape autoShape when autoShape.ShapeType.HasValue => ((DocumentFormat.OpenXml.IEnumValue)autoShape.ShapeType.Value.ToOpenXml()).Value,
                         _ => string.Empty,
                     };
-                    PowerPointTextRun? firstRun = (shape as PowerPointTextBox)?.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
-                    string textStyle = firstRun == null
-                        ? string.Empty
-                        : $"{firstRun.Bold}|{firstRun.Italic}|{firstRun.Underline}|{firstRun.FontSize}|{firstRun.FontName}|{firstRun.Color}|{firstRun.Hyperlink?.AbsoluteUri}";
+                    string textStyle = TextStyleFingerprint(shape);
                     string picture = shape is PowerPointPicture image
                         ? $"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}"
                         : string.Empty;
@@ -79,6 +83,72 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }
             return result;
+        }
+        private static string TextStyleFingerprint(PowerPointShape shape) {
+            var result = new StringBuilder();
+            if (shape is PowerPointTextBox textBox) {
+                AppendParagraphFingerprint(result, textBox.Paragraphs, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
+            } else if (shape is PowerPointTable table) {
+                AppendFingerprintValue(result, table.RowItems.Count);
+                for (int rowIndex = 0; rowIndex < table.RowItems.Count; rowIndex++) {
+                    PowerPointTableRow row = table.RowItems[rowIndex];
+                    AppendFingerprintValue(result, row.Cells.Count);
+                    for (int columnIndex = 0; columnIndex < row.Cells.Count; columnIndex++) {
+                        PowerPointTableCell cell = row.Cells[columnIndex];
+                        AppendParagraphFingerprint(result, cell.Paragraphs, cell.Cell.TextBody?.ListStyle, ResolveTableMasterTextStyle(cell),
+                            PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(table, rowIndex, columnIndex));
+                    }
+                }
+            }
+            return result.ToString();
+        }
+        private static string ProjectedText(
+            IReadOnlyList<PowerPointParagraph> paragraphs,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) => string.Join(
+                "\n", paragraphs.Select(paragraph => string.Concat(paragraph.InlineNodes.Select(node =>
+                    GoogleSlidesBatchCompiler.GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle, tableTextStyles)))));
+        private static void AppendParagraphFingerprint(
+            StringBuilder result,
+            IReadOnlyList<PowerPointParagraph> paragraphs,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            AppendFingerprintValue(result, paragraphs.Count);
+            foreach (PowerPointParagraph paragraph in paragraphs) {
+                AppendFingerprintValue(result, paragraph.InlineNodes.Count);
+                foreach (PowerPointParagraphInline node in paragraph.InlineNodes) {
+                    AppendFingerprintValue(result, node.Kind);
+                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle, tableTextStyles));
+                    AppendFingerprintValue(result, node.FieldId);
+                    AppendFingerprintValue(result, node.FieldType);
+                    if (node.Run == null) continue;
+                    PowerPointTextRun run = node.Run;
+                    GoogleSlidesBatchCompiler.EffectiveGoogleRunStyle effective =
+                        GoogleSlidesBatchCompiler.ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle, tableTextStyles);
+                    AppendFingerprintValue(result, effective.Bold);
+                    AppendFingerprintValue(result, effective.Italic);
+                    AppendFingerprintValue(result, effective.Underline);
+                    AppendFingerprintValue(result, effective.Strikethrough);
+                    AppendFingerprintValue(result,
+                        effective.Capitalization == PowerPointCapitalization.SmallCaps);
+                    AppendFingerprintValue(result,
+                        GoogleSlidesBatchCompiler.ToGoogleBaselineOffset(effective.BaselinePercent));
+                    AppendFingerprintValue(result, effective.FontSizePoints.HasValue
+                        ? (int?)Math.Round(effective.FontSizePoints.Value, MidpointRounding.AwayFromZero)
+                        : null);
+                    AppendFingerprintValue(result, effective.FontName);
+                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.NormalizeColorHex(effective.Color));
+                    AppendFingerprintValue(result, GoogleSlidesBatchCompiler.ToGoogleHyperlink(run.Hyperlink));
+                }
+            }
+        }
+        private static OpenXmlCompositeElement? ResolveTableMasterTextStyle(PowerPointTableCell cell) =>
+            cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle;
+        private static void AppendFingerprintValue(StringBuilder target, object? value) {
+            string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            target.Append(text.Length).Append(':').Append(text).Append('|');
         }
         private static string BackgroundFingerprint(PowerPointSlideBackground background) => background.Kind switch {
             PowerPointSlideBackgroundKind.Image => $"{background.Kind}|{Hash(background.ImageBytes ?? Array.Empty<byte>())}|{background.ImageContentType}|{background.ImageCropLeft}|{background.ImageCropTop}|{background.ImageCropRight}|{background.ImageCropBottom}",

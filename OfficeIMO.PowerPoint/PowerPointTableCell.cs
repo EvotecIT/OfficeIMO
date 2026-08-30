@@ -19,6 +19,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal TableCell Cell { get; }
+        internal SlidePart? SlidePart => _slidePart;
 
         /// <summary>
         ///     Gets or sets the text contained in the cell.

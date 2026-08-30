@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfXmpMetadataInfo {
     internal PdfXmpMetadataInfo(
         int? objectNumber,
+        string? type,
         string? subtype,
         string? filter,
         int streamSizeBytes,
@@ -22,11 +23,22 @@ public sealed class PdfXmpMetadataInfo {
         int? pdfAPart,
         string? pdfAConformance,
         int? pdfUaPart,
+        string? pdfXVersion,
+        string? pdfXConformance,
+        DateTimeOffset? creationDate,
+        DateTimeOffset? modificationDate,
+        DateTimeOffset? metadataDate,
+        string? documentId,
+        string? instanceId,
+        string? versionId,
+        string? renditionClass,
+        PdfTrappingStatus? trappingStatus,
         string? electronicInvoiceDocumentType,
         string? electronicInvoiceDocumentFileName,
         string? electronicInvoiceVersion,
         string? electronicInvoiceConformanceLevel) {
         ObjectNumber = objectNumber;
+        Type = type;
         Subtype = subtype;
         Filter = filter;
         StreamSizeBytes = streamSizeBytes;
@@ -43,6 +55,16 @@ public sealed class PdfXmpMetadataInfo {
         PdfAPart = pdfAPart;
         PdfAConformance = pdfAConformance;
         PdfUaPart = pdfUaPart;
+        PdfXVersion = pdfXVersion;
+        PdfXConformance = pdfXConformance;
+        CreationDate = creationDate;
+        ModificationDate = modificationDate;
+        MetadataDate = metadataDate;
+        DocumentId = documentId;
+        InstanceId = instanceId;
+        VersionId = versionId;
+        RenditionClass = renditionClass;
+        TrappingStatus = trappingStatus;
         ElectronicInvoiceDocumentType = electronicInvoiceDocumentType;
         ElectronicInvoiceDocumentFileName = electronicInvoiceDocumentFileName;
         ElectronicInvoiceVersion = electronicInvoiceVersion;
@@ -52,8 +74,16 @@ public sealed class PdfXmpMetadataInfo {
     /// <summary>Metadata stream object number when the catalog entry is indirect.</summary>
     public int? ObjectNumber { get; }
 
+    /// <summary>Metadata stream /Type name, normally Metadata.</summary>
+    public string? Type { get; }
+
     /// <summary>Metadata stream /Subtype name, usually XML.</summary>
     public string? Subtype { get; }
+
+    /// <summary>True when the catalog entry is structurally identified as an XML metadata stream.</summary>
+    public bool IsXmlMetadataStream =>
+        string.Equals(Type, "Metadata", StringComparison.Ordinal) &&
+        string.Equals(Subtype, "XML", StringComparison.Ordinal);
 
     /// <summary>Metadata stream filter name or simple filter value, when present.</summary>
     public string? Filter { get; }
@@ -108,6 +138,40 @@ public sealed class PdfXmpMetadataInfo {
 
     /// <summary>True when PDF/UA identification metadata was found.</summary>
     public bool HasPdfUaIdentification => PdfUaPart.HasValue;
+
+    /// <summary>PDF/X version from pdfxid:GTS_PDFXVersion.</summary>
+    public string? PdfXVersion { get; }
+
+    /// <summary>PDF/X conformance from pdfxid:GTS_PDFXConformance.</summary>
+    public string? PdfXConformance { get; }
+
+    /// <summary>True when PDF/X identification metadata was found.</summary>
+    public bool HasPdfXIdentification =>
+        !string.IsNullOrEmpty(PdfXVersion) || !string.IsNullOrEmpty(PdfXConformance);
+
+    /// <summary>Resource creation date from <c>xmp:CreateDate</c>.</summary>
+    public DateTimeOffset? CreationDate { get; }
+
+    /// <summary>Resource modification date from <c>xmp:ModifyDate</c>.</summary>
+    public DateTimeOffset? ModificationDate { get; }
+
+    /// <summary>XMP packet modification date from <c>xmp:MetadataDate</c>.</summary>
+    public DateTimeOffset? MetadataDate { get; }
+
+    /// <summary>Document identity from <c>xmpMM:DocumentID</c>.</summary>
+    public string? DocumentId { get; }
+
+    /// <summary>Saved-instance identity from <c>xmpMM:InstanceID</c>.</summary>
+    public string? InstanceId { get; }
+
+    /// <summary>Document version from <c>xmpMM:VersionID</c>.</summary>
+    public string? VersionId { get; }
+
+    /// <summary>Resource rendition class from <c>xmpMM:RenditionClass</c>.</summary>
+    public string? RenditionClass { get; }
+
+    /// <summary>Print trapping status from <c>pdf:Trapped</c>.</summary>
+    public PdfTrappingStatus? TrappingStatus { get; }
 
     /// <summary>Factur-X/ZUGFeRD document type from the XMP extension metadata.</summary>
     public string? ElectronicInvoiceDocumentType { get; }

@@ -50,6 +50,20 @@ namespace OfficeIMO.Examples.PowerPoint {
             line.AddFormattedText("underline", underline: PowerPointUnderlineStyle.Single).SetColor("38761D");
             line.AddText(" runs in one paragraph.");
 
+            PowerPointParagraph nativeStyles = text.AddParagraph();
+            nativeStyles.AddText("Native variants: ");
+            PowerPointTextRun decorated = nativeStyles.AddRun("wavy double + double strike");
+            decorated.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
+            decorated.StrikeStyle = PowerPointStrikeStyle.Double;
+            decorated.Color = "7030A0";
+            nativeStyles.AddText(" H");
+            nativeStyles.AddRun("2").SetSubscript();
+            nativeStyles.AddText("O and x");
+            nativeStyles.AddRun("2").SetSuperscript();
+            PowerPointTextRun caps = nativeStyles.AddRun(" small caps");
+            caps.Capitalization = PowerPointCapitalization.SmallCaps;
+            caps.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.TitleCase);
+
             text.AddBullet("Bulleted item one");
             text.AddBullet("Bulleted item two");
             text.AddNumberedItem("First step");

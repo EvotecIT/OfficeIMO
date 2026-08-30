@@ -16,7 +16,9 @@ public sealed partial class OfficeRasterCanvas {
         OfficeFontStyle style,
         string? fontFamily,
         OfficeTextOverflowBehavior overflowBehavior,
-        double? textAdvanceWidth) {
+        double? textAdvanceWidth,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle) {
         if (_fonts == null) return false;
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
         if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
@@ -50,7 +52,9 @@ public sealed partial class OfficeRasterCanvas {
                         style,
                         fontFamily,
                         overflowBehavior,
-                        textAdvanceWidth);
+                        textAdvanceWidth,
+                        underlineStyle,
+                        strikethroughStyle);
                     return true;
                 }
             }
@@ -77,7 +81,9 @@ public sealed partial class OfficeRasterCanvas {
                 style,
                 run.FamilyName,
                 OfficeTextOverflowBehavior.Clip,
-                Math.Max(0.01D, runAdvance));
+                Math.Max(0.01D, runAdvance),
+                underlineStyle,
+                strikethroughStyle);
             cursor += runAdvance;
         }
         return true;
@@ -99,7 +105,9 @@ public sealed partial class OfficeRasterCanvas {
         bool strikethrough,
         string? fontFamily,
         bool flipHorizontal,
-        bool flipVertical) {
+        bool flipVertical,
+        OfficeTextDecorationStyle underlineStyle,
+        OfficeTextDecorationStyle strikethroughStyle) {
         if (_fonts == null) return false;
         OfficeFontStyle style = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -126,7 +134,9 @@ public sealed partial class OfficeRasterCanvas {
                 strikethrough,
                 run.FamilyName,
                 flipHorizontal,
-                flipVertical);
+                flipVertical,
+                underlineStyle,
+                strikethroughStyle);
             cursor += runWidth;
         }
         return true;

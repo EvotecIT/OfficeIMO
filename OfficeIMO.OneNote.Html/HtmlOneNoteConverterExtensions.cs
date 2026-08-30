@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -154,13 +155,14 @@ public static class HtmlOneNoteConverterExtensions {
         HtmlSemanticBlock source,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
-        return CreateParagraph(source.Text, source.Runs, source.Kind == HtmlSemanticBlockKind.Heading ? source.Level : 0, result, budget);
+        return CreateParagraph(source.Text, source.Runs, source.Kind == HtmlSemanticBlockKind.Heading ? source.Level : 0, source.Style, result, budget);
     }
 
     private static OneNoteParagraph? CreateParagraph(
         string plainText,
         IReadOnlyList<HtmlSemanticRun> runs,
         int headingLevel,
+        HtmlComputedStyle? containerStyle,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
         if (plainText.Length == 0) return null;
@@ -180,12 +182,36 @@ public static class HtmlOneNoteConverterExtensions {
         var paragraph = new OneNoteParagraph();
         foreach (HtmlSemanticRun sourceRun in runs) {
             var run = new OneNoteTextRun { Text = sourceRun.Text, Hyperlink = sourceRun.Hyperlink };
+            if (sourceRun.DataAttributes.TryGetValue("data-officeimo-math-format", out string? mathFormat)
+                && string.Equals(mathFormat, "latex", StringComparison.OrdinalIgnoreCase)) {
+                try {
+                    run.SetMathExpression(OfficeMathMarkup.FromLatex(sourceRun.Text));
+                } catch (Exception exception) when (exception is FormatException || exception is ArgumentException) {
+                    Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                        "Inline mathematical markup was retained as plain text because its LaTeX payload could not be parsed.",
+                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
+                        exception.Message);
+                }
+            }
             run.Style.Bold = sourceRun.Bold ? true : null;
             run.Style.Italic = sourceRun.Italic ? true : null;
             run.Style.Underline = sourceRun.Underline ? true : null;
             run.Style.Strikethrough = sourceRun.Strikethrough ? true : null;
             run.Style.Superscript = sourceRun.Superscript ? true : null;
             run.Style.Subscript = sourceRun.Subscript ? true : null;
+            run.Style.FontFamily = HtmlRenderCssValues.FirstFontFamily(sourceRun.Style?.GetValue("font-family"));
+            double? resolvedFontSize = sourceRun.Style?.ResolvedFontSizePoints ?? containerStyle?.ResolvedFontSizePoints;
+            if (resolvedFontSize.HasValue && resolvedFontSize.Value > 0D) {
+                run.Style.FontSize = resolvedFontSize.Value;
+            } else if (TryParseCssPoints(sourceRun.Style?.GetValue("font-size"), out double fontSize)) {
+                run.Style.FontSize = fontSize;
+            }
+            if (TryParseArgb(sourceRun.Style?.GetValue("color"), out uint foreground)) {
+                run.Style.ColorArgb = foreground;
+            }
+            if (TryParseArgb(sourceRun.BackgroundColor, out uint highlight)) {
+                run.Style.HighlightColorArgb = highlight;
+            }
             paragraph.Runs.Add(run);
         }
         if (paragraph.Runs.Count == 0) paragraph.Runs.Add(new OneNoteTextRun { Text = plainText });
@@ -193,6 +219,31 @@ public static class HtmlOneNoteConverterExtensions {
         if (headingLevel > 0) paragraph.Style.StyleId = "Heading" + Math.Min(6, headingLevel);
         result.Elements++;
         return paragraph;
+    }
+
+    private static bool TryParseCssPoints(string? value, out double points) {
+        points = 0D;
+        string text = (value ?? string.Empty).Trim().ToLowerInvariant();
+        double multiplier;
+        if (text.EndsWith("pt", StringComparison.Ordinal)) {
+            multiplier = 1D;
+            text = text.Substring(0, text.Length - 2).Trim();
+        } else if (text.EndsWith("px", StringComparison.Ordinal)) {
+            multiplier = 0.75D;
+            text = text.Substring(0, text.Length - 2).Trim();
+        } else {
+            return false;
+        }
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            && parsed > 0D
+            && (points = parsed * multiplier) > 0D;
+    }
+
+    private static bool TryParseArgb(string? value, out uint argb) {
+        argb = 0U;
+        if (!OfficeColor.TryParseCss(value, out OfficeColor color)) return false;
+        argb = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+        return true;
     }
 
     private static void ImportTable(
@@ -225,7 +276,10 @@ public static class HtmlOneNoteConverterExtensions {
                     break;
                 }
                 var cell = new OneNoteTableCell();
-                OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, result, budget);
+                if (TryParseArgb(cellElement.Style?.GetValue("background-color"), out uint shading)) {
+                    cell.ShadingColorArgb = shading;
+                }
+                OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, cellElement.Style, result, budget);
                 if (paragraph != null) cell.Content.Add(paragraph);
                 if (options.ImportImages) {
                     foreach (HtmlSemanticResource resource in cellElement.Resources.Where(item => item.Kind == HtmlResourceKind.Image)) {

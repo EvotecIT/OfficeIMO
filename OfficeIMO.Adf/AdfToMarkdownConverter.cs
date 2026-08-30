@@ -221,13 +221,14 @@ internal static class AdfToMarkdownConverter {
         bool hasDelimiterMark = node.Marks.Any(mark =>
             string.Equals(mark.Type, "strong", StringComparison.Ordinal) ||
             string.Equals(mark.Type, "em", StringComparison.Ordinal) ||
-            string.Equals(mark.Type, "strike", StringComparison.Ordinal));
+            string.Equals(mark.Type, "strike", StringComparison.Ordinal) ||
+            string.Equals(mark.Type, "subsup", StringComparison.Ordinal));
         int leadingWhitespace = 0;
         while (leadingWhitespace < rawText.Length && char.IsWhiteSpace(rawText[leadingWhitespace])) leadingWhitespace++;
         int trailingWhitespace = rawText.Length;
         while (trailingWhitespace > leadingWhitespace && char.IsWhiteSpace(rawText[trailingWhitespace - 1])) trailingWhitespace--;
         if (hasDelimiterMark && (leadingWhitespace > 0 || trailingWhitespace < rawText.Length)) {
-            diagnostics.Add(Warning("ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED", path, "Markdown delimiters cannot preserve boundary whitespace inside an ADF strong, emphasis, or strike mark; the whitespace was moved outside the marked span."));
+            diagnostics.Add(Warning("ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED", path, "Markdown delimiters cannot preserve boundary whitespace inside an ADF strong, emphasis, strike, superscript, or subscript mark; the whitespace was moved outside the marked span."));
             builder.Append(MarkdownEscaper.EscapeLiteralText(rawText.Substring(0, leadingWhitespace)));
             if (trailingWhitespace > leadingWhitespace) {
                 builder.Append(RenderMarkedText(rawText.Substring(leadingWhitespace, trailingWhitespace - leadingWhitespace), node.Marks, path, diagnostics));
@@ -239,15 +240,30 @@ internal static class AdfToMarkdownConverter {
     }
 
     private static string RenderMarkedText(string rawText, IEnumerable<AdfMark> marks, string path, List<AdfConversionDiagnostic> diagnostics) {
-        bool hasCode = marks.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
+        AdfMark[] markList = marks.ToArray();
+        bool hasCode = markList.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
+        string? scriptType = markList
+            .FirstOrDefault(mark => string.Equals(mark.Type, "subsup", StringComparison.Ordinal))
+            ?.GetStringAttribute("type");
         string value = hasCode
             ? MarkdownFence.BuildSafeCodeSpan(rawText)
-            : MarkdownEscaper.EscapeLiteralText(rawText);
-        foreach (AdfMark mark in marks.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
+            : string.Equals(scriptType, "sup", StringComparison.OrdinalIgnoreCase)
+                ? MarkdownEscaper.EscapeLiteralSuperscriptText(rawText)
+                : string.Equals(scriptType, "sub", StringComparison.OrdinalIgnoreCase)
+                    ? MarkdownEscaper.EscapeLiteralSubscriptText(rawText)
+                    : MarkdownEscaper.EscapeLiteralText(rawText);
+        foreach (AdfMark mark in markList.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
             switch (mark.Type) {
                 case "strong": value = "**" + value + "**"; break;
                 case "em": value = "*" + value + "*"; break;
                 case "strike": value = "~~" + value + "~~"; break;
+                case "underline": value = "<u>" + value + "</u>"; break;
+                case "subsup":
+                    string? script = mark.GetStringAttribute("type");
+                    if (string.Equals(script, "sup", StringComparison.OrdinalIgnoreCase)) value = "^" + value + "^";
+                    else if (string.Equals(script, "sub", StringComparison.OrdinalIgnoreCase)) value = "~" + value + "~";
+                    else diagnostics.Add(Warning("ADF_SUBSUP_TYPE_UNSUPPORTED", path, "ADF subsup marks require attrs.type 'sup' or 'sub'; the invalid mark was flattened."));
+                    break;
                 case "link":
                     string? href = mark.GetStringAttribute("href");
                     string? title = mark.GetStringAttribute("title");

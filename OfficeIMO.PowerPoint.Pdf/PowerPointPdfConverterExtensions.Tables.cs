@@ -27,7 +27,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     continue;
                 }
 
-                pdfCells.Add(CreatePdfTableCell(cell, fallbackFontFamily));
+                pdfCells.Add(CreatePdfTableCell(cell, fallbackFontFamily, slideNumber, options));
             }
 
             rows.Add(pdfCells.ToArray());
@@ -72,12 +72,23 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static PdfCore.PdfTableCell CreatePdfTableCell(PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
+    private static PdfCore.PdfTableCell CreatePdfTableCell(
+        PptCore.PowerPointTableCell cell,
+        string? fallbackFontFamily,
+        int slideNumber,
+        PowerPointPdfSaveOptions options) {
         (int rowSpan, int columnSpan) = cell.Merge;
-        return PdfCore.PdfTableCell.Merge(CreatePdfTableCellRuns(cell, fallbackFontFamily), Math.Max(1, columnSpan), Math.Max(1, rowSpan));
+        return PdfCore.PdfTableCell.Merge(
+            CreatePdfTableCellRuns(cell, fallbackFontFamily, slideNumber, options),
+            Math.Max(1, columnSpan),
+            Math.Max(1, rowSpan));
     }
 
-    private static IReadOnlyList<PdfCore.PdfTextRun> CreatePdfTableCellRuns(PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
+    private static IReadOnlyList<PdfCore.PdfTextRun> CreatePdfTableCellRuns(
+        PptCore.PowerPointTableCell cell,
+        string? fallbackFontFamily,
+        int slideNumber,
+        PowerPointPdfSaveOptions options) {
         var runs = new List<PdfCore.PdfTextRun>();
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody != null) {
@@ -87,7 +98,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
-                AppendPdfTableCellParagraphRuns(runs, paragraph, cell, fallbackFontFamily);
+                AppendPdfTableCellParagraphRuns(runs, paragraph, cell, fallbackFontFamily, slideNumber, options);
                 hasParagraph = true;
             }
         }
@@ -99,12 +110,19 @@ public static partial class PowerPointPdfConverterExtensions {
         return runs;
     }
 
-    private static void AppendPdfTableCellParagraphRuns(List<PdfCore.PdfTextRun> runs, A.Paragraph paragraph, PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
+    private static void AppendPdfTableCellParagraphRuns(
+        List<PdfCore.PdfTextRun> runs,
+        A.Paragraph paragraph,
+        PptCore.PowerPointTableCell cell,
+        string? fallbackFontFamily,
+        int slideNumber,
+        PowerPointPdfSaveOptions options) {
         foreach (OpenXmlElement child in paragraph.ChildElements) {
             switch (child) {
                 case A.Run run:
                     foreach (A.Text text in run.Elements<A.Text>()) {
-                        runs.Add(CreatePdfTableCellTextRun(cell, run, text.Text ?? string.Empty, fallbackFontFamily));
+                        runs.Add(CreatePdfTableCellTextRun(
+                            cell, paragraph, run.RunProperties, text.Text ?? string.Empty, fallbackFontFamily, slideNumber, options));
                     }
 
                     break;
@@ -114,7 +132,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 case A.Field field:
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
                     if (!string.IsNullOrEmpty(fieldText)) {
-                        runs.Add(CreatePdfTableCellTextRun(cell, fieldText, fallbackFontFamily));
+                        runs.Add(CreatePdfTableCellTextRun(
+                            cell, paragraph, field.RunProperties, fieldText, fallbackFontFamily, slideNumber, options));
                     }
 
                     break;

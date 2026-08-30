@@ -96,6 +96,12 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public string? Label { get; set; }
 
+        /// <summary>Transforms the stored connector label while preserving connector and text formatting.</summary>
+        public VisioConnector TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+            if (Label != null) Label = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Label, textCase, culture);
+            return this;
+        }
+
         /// <summary>
         /// Optional placement information for connector text.
         /// </summary>

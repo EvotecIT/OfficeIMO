@@ -50,6 +50,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public bool Bold { get; internal set; }
         public bool Italic { get; internal set; }
         public bool Underline { get; internal set; }
+        public bool Strikethrough { get; internal set; }
+        public bool SmallCaps { get; internal set; }
+        public string? BaselineOffset { get; internal set; }
         public int? FontSize { get; internal set; }
         public string? FontFamily { get; internal set; }
         public string? ForegroundColorHex { get; internal set; }
@@ -65,15 +68,31 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         internal bool Bold { get; set; }
         internal bool Italic { get; set; }
         internal bool Underline { get; set; }
+        internal bool Strikethrough { get; set; }
+        internal bool SmallCaps { get; set; }
+        internal string? BaselineOffset { get; set; }
         internal int? FontSize { get; set; }
         internal string? FontFamily { get; set; }
         internal string? ForegroundColorHex { get; set; }
         internal string? Hyperlink { get; set; }
     }
 
+    internal sealed class GoogleSlidesTableCell {
+        internal GoogleSlidesTableCell(string text, IReadOnlyList<GoogleSlidesTextStyleRun> textRuns) {
+            Text = text;
+            TextRuns = textRuns;
+        }
+        internal string Text { get; }
+        internal IReadOnlyList<GoogleSlidesTextStyleRun> TextRuns { get; }
+    }
+
     public sealed class GoogleSlidesTable : GoogleSlidesElement {
-        internal GoogleSlidesTable(string id, double left, double top, double width, double height, IReadOnlyList<IReadOnlyList<string>> cells) : base(id, left, top, width, height) { Cells = cells; }
+        internal GoogleSlidesTable(string id, double left, double top, double width, double height, IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> cells) : base(id, left, top, width, height) {
+            StyledCells = cells;
+            Cells = cells.Select(row => (IReadOnlyList<string>)row.Select(cell => cell.Text).ToArray()).ToArray();
+        }
         public IReadOnlyList<IReadOnlyList<string>> Cells { get; }
+        internal IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> StyledCells { get; }
     }
 
     public sealed class GoogleSlidesImage : GoogleSlidesElement {

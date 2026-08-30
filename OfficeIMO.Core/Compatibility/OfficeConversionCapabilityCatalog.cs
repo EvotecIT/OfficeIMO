@@ -11,7 +11,11 @@ public enum OfficeConversionInputKind {
     /// <summary>The route accepts a document file or stream.</summary>
     File,
     /// <summary>The route accepts source text.</summary>
-    Text
+    Text,
+    /// <summary>The route accepts an authenticated remote document identifier.</summary>
+    RemoteResource,
+    /// <summary>The route accepts an already materialized public document object.</summary>
+    ObjectModel
 }
 
 /// <summary>Describes the primary fidelity contract of a conversion route.</summary>
@@ -34,6 +38,28 @@ public enum OfficeConversionSupportLevel {
     Advanced,
     /// <summary>Advanced coverage is supplemented by pinned independent-producer or reference-renderer comparisons.</summary>
     ReferenceVerified
+}
+
+/// <summary>Describes what a conversion route promises for text and font formatting.</summary>
+public enum OfficeConversionTextFormattingKind {
+    /// <summary>No route-specific text-formatting promise was supplied.</summary>
+    Unspecified,
+    /// <summary>The destination retains equivalent editable formatting where its native model can represent it.</summary>
+    EditableEquivalent,
+    /// <summary>The destination retains equivalent semantic formatting rather than source page geometry.</summary>
+    SemanticEquivalent,
+    /// <summary>The route preserves only the inline formatting supported by the source and destination syntax profiles.</summary>
+    SyntaxSubset,
+    /// <summary>The destination retains the rendered appearance through a fixed-layout document.</summary>
+    FixedLayoutAppearance,
+    /// <summary>The route reconstructs editable or semantic formatting from fixed-layout PDF evidence.</summary>
+    ReconstructedFromFixedLayout,
+    /// <summary>The destination retains rendered vector text and decoration attributes, not editable source semantics.</summary>
+    VectorAppearance,
+    /// <summary>The destination retains rendered pixels and cannot retain editable text or font semantics.</summary>
+    FlattenedRaster,
+    /// <summary>The format carries tabular values only and has no font or text-style model.</summary>
+    DataOnly
 }
 
 /// <summary>One package-neutral conversion route exposed by OfficeIMO.</summary>
@@ -89,7 +115,48 @@ public sealed class OfficeConversionCapability {
         bool agentDiscoverable,
         OfficeConversionSupportLevel supportLevel,
         string supportEvidence,
-        string knownLimitations) {
+        string knownLimitations)
+        : this(
+            id,
+            source,
+            target,
+            inputKind,
+            sourceExtensions,
+            targetExtension,
+            packageId,
+            api,
+            description,
+            fidelity,
+            resultContract,
+            browserAvailable,
+            agentDiscoverable,
+            supportLevel,
+            supportEvidence,
+            knownLimitations,
+            OfficeConversionTextFormattingKind.Unspecified,
+            null) {
+    }
+
+    /// <summary>Creates a conversion capability with an explicit evidence-based support and text-formatting assessment.</summary>
+    public OfficeConversionCapability(
+        string id,
+        string source,
+        string target,
+        OfficeConversionInputKind inputKind,
+        IEnumerable<string> sourceExtensions,
+        string targetExtension,
+        string packageId,
+        string api,
+        string description,
+        OfficeConversionFidelityKind fidelity,
+        string resultContract,
+        bool browserAvailable,
+        bool agentDiscoverable,
+        OfficeConversionSupportLevel supportLevel,
+        string supportEvidence,
+        string knownLimitations,
+        OfficeConversionTextFormattingKind textFormatting = OfficeConversionTextFormattingKind.Unspecified,
+        string? textFormattingContract = null) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Route id cannot be empty.", nameof(id));
         if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("Source label cannot be empty.", nameof(source));
         if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Target label cannot be empty.", nameof(target));
@@ -126,6 +193,10 @@ public sealed class OfficeConversionCapability {
         KnownLimitations = string.IsNullOrWhiteSpace(knownLimitations)
             ? throw new ArgumentException("Known limitations cannot be empty.", nameof(knownLimitations))
             : knownLimitations.Trim();
+        TextFormatting = textFormatting;
+        TextFormattingContract = string.IsNullOrWhiteSpace(textFormattingContract)
+            ? "Preserves only text formatting representable by the destination; consult conversion diagnostics for approximations and omissions."
+            : textFormattingContract!.Trim();
     }
 
     /// <summary>Gets the stable route identifier.</summary>
@@ -134,7 +205,7 @@ public sealed class OfficeConversionCapability {
     public string Source { get; }
     /// <summary>Gets the destination format label.</summary>
     public string Target { get; }
-    /// <summary>Gets whether the route accepts a file or source text.</summary>
+    /// <summary>Gets how the route accepts source content.</summary>
     public OfficeConversionInputKind InputKind { get; }
     /// <summary>Gets normalized accepted source extensions.</summary>
     public IReadOnlyList<string> SourceExtensions { get; }
@@ -160,6 +231,10 @@ public sealed class OfficeConversionCapability {
     public string SupportEvidence { get; }
     /// <summary>Gets the important unsupported or intentionally simplified scope.</summary>
     public string KnownLimitations { get; }
+    /// <summary>Gets the route's text and font formatting fidelity classification.</summary>
+    public OfficeConversionTextFormattingKind TextFormatting { get; }
+    /// <summary>Gets the explicit text and font formatting promise for the route.</summary>
+    public string TextFormattingContract { get; }
 
     private static string NormalizeExtension(string extension) {
         if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extensions cannot be empty.", nameof(extension));
@@ -171,7 +246,7 @@ public sealed class OfficeConversionCapability {
 /// <summary>The shared OfficeIMO conversion route catalog used by packages, agents, and browser surfaces.</summary>
 public static class OfficeConversionCapabilityCatalog {
     /// <summary>Gets the capability schema version.</summary>
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 6;
 
     /// <summary>Gets all focused, public document-conversion routes in stable order.</summary>
     public static IReadOnlyList<OfficeConversionCapability> All { get; } =
@@ -206,14 +281,16 @@ public static class OfficeConversionCapabilityCatalog {
         markdown.AppendLine();
         markdown.Append("Schema version: ").Append(SchemaVersion).AppendLine();
         markdown.AppendLine();
-        markdown.AppendLine("| Route | Source | Target | Package | Output model | Support | Evidence | Known limits | Browser | API | Result type | What it does |");
-        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        markdown.AppendLine("| Route | Source | Target | Package | Output model | Text formatting | Typography contract | Support | Evidence | Known limits | Browser | API | Result type | What it does |");
+        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
         foreach (OfficeConversionCapability route in All) {
             markdown.Append("| ").Append(EscapeMarkdown(route.Id))
                 .Append(" | ").Append(EscapeMarkdown(route.Source))
                 .Append(" | ").Append(EscapeMarkdown(route.Target))
                 .Append(" | ").Append(EscapeMarkdown(route.PackageId))
                 .Append(" | ").Append(route.Fidelity)
+                .Append(" | ").Append(route.TextFormatting)
+                .Append(" | ").Append(EscapeMarkdown(route.TextFormattingContract))
                 .Append(" | ").Append(route.SupportLevel)
                 .Append(" | ").Append(EscapeMarkdown(route.SupportEvidence))
                 .Append(" | ").Append(EscapeMarkdown(route.KnownLimitations))
@@ -255,6 +332,8 @@ public static class OfficeConversionCapabilityCatalog {
                 .Append(i3).Append("\"api\":\"").Append(EscapeJson(route.Api)).Append("\",").Append(newline)
                 .Append(i3).Append("\"description\":\"").Append(EscapeJson(route.Description)).Append("\",").Append(newline)
                 .Append(i3).Append("\"fidelity\":\"").Append(route.Fidelity).Append("\",").Append(newline)
+                .Append(i3).Append("\"textFormatting\":\"").Append(route.TextFormatting).Append("\",").Append(newline)
+                .Append(i3).Append("\"textFormattingContract\":\"").Append(EscapeJson(route.TextFormattingContract)).Append("\",").Append(newline)
                 .Append(i3).Append("\"supportLevel\":\"").Append(route.SupportLevel).Append("\",").Append(newline)
                 .Append(i3).Append("\"supportEvidence\":\"").Append(EscapeJson(route.SupportEvidence)).Append("\",").Append(newline)
                 .Append(i3).Append("\"knownLimitations\":\"").Append(EscapeJson(route.KnownLimitations)).Append("\",").Append(newline)
@@ -269,7 +348,8 @@ public static class OfficeConversionCapabilityCatalog {
         return json.ToString();
     }
 
-    private static OfficeConversionCapability[] CreateRoutes() => new[] {
+    private static OfficeConversionCapability[] CreateRoutes() {
+        var routes = new List<OfficeConversionCapability> {
         Route("docx-pdf", "DOCX", "PDF", OfficeConversionInputKind.File, new[] { ".docx" }, ".pdf", "OfficeIMO.Word.Pdf", "WordDocument.Load(stream).ToPdfDocumentResult(options)", "Convert a Word document into a fixed-layout PDF with diagnostics.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult", browser: true),
         Route("xlsx-pdf", "XLSX", "PDF", OfficeConversionInputKind.File, new[] { ".xlsx" }, ".pdf", "OfficeIMO.Excel.Pdf", "ExcelDocument.Load(stream).ToPdfDocumentResult(options)", "Render workbook sheets with layout and conversion diagnostics.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult", browser: true),
         Route("pptx-pdf", "PPTX", "PDF", OfficeConversionInputKind.File, new[] { ".pptx" }, ".pdf", "OfficeIMO.PowerPoint.Pdf", "PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)", "Render presentation slides into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult", browser: true),
@@ -315,14 +395,81 @@ public static class OfficeConversionCapabilityCatalog {
         Route("pdf-xlsx", "PDF", "XLSX", OfficeConversionInputKind.File, new[] { ".pdf" }, ".xlsx", "OfficeIMO.Excel.Pdf", "PdfDocument.Open(stream).ImportTablesToExcelDocumentResult(options)", "Import detected PDF tables into an editable workbook with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfExcelTableImportResult", browser: true),
         Route("pdf-pptx", "PDF", "PPTX", OfficeConversionInputKind.File, new[] { ".pdf" }, ".pptx", "OfficeIMO.PowerPoint.Pdf", "PdfDocument.Open(stream).ToPowerPointPresentationResult(options)", "Reconstruct supported PDF content as native slide objects, or select explicit visual, hybrid, and tables-only projections with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfPowerPointConversionResult", browser: true),
         Route("pdf-html", "PDF", "HTML", OfficeConversionInputKind.File, new[] { ".pdf" }, ".html", "OfficeIMO.Html.Pdf", "PdfDocument.Open(stream).ToHtmlResult(options)", "Project PDF content into semantic or positioned-review HTML with explicit diagnostics.", OfficeConversionFidelityKind.Semantic, "PdfHtmlConversionResult", browser: true),
-        Route("pdf-png", "PDF", "PNG", OfficeConversionInputKind.File, new[] { ".pdf" }, ".png", "OfficeIMO.Pdf", "PdfDocument.Open(stream).Read.ExportImages(OfficeImageExportFormat.Png, options)", "Render every PDF page as a detailed PNG with page-level diagnostics; multi-page results are packaged as a ZIP.", OfficeConversionFidelityKind.FixedLayout, "IReadOnlyList<OfficeImageExportResult>", browser: true),
+        Route("pdf-png", "PDF", "PNG", OfficeConversionInputKind.File, new[] { ".pdf" }, ".png", "OfficeIMO.Pdf", "PdfDocument.Open(stream).ExportImages(OfficeImageExportFormat.Png, options)", "Render every PDF page as a detailed PNG with page-level diagnostics; multi-page results are packaged as a ZIP.", OfficeConversionFidelityKind.FixedLayout, "IReadOnlyList<OfficeImageExportResult>", browser: true),
         Route("pdf-rtf", "PDF", "RTF", OfficeConversionInputKind.File, new[] { ".pdf" }, ".rtf", "OfficeIMO.Rtf.Pdf", "PdfDocument.Open(stream).ToRtfDocumentResult(options)", "Import PDF logical content into semantic RTF with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfRtfConversionResult"),
         Route("pdf-odt", "PDF", "ODT", OfficeConversionInputKind.File, new[] { ".pdf" }, ".odt", "OfficeIMO.OpenDocument.Odt.Pdf", "PdfDocument.Open(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)", "Import PDF logical content into OpenDocument Text with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfOdtConversionResult"),
         Route("pdf-ods", "PDF", "ODS", OfficeConversionInputKind.File, new[] { ".pdf" }, ".ods", "OfficeIMO.OpenDocument.Ods.Pdf", "PdfDocument.Open(stream).ToOdsDocumentResult(pdfOptions, openDocumentOptions)", "Import detected PDF tables into an OpenDocument spreadsheet with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfOdsConversionResult"),
         Route("pdf-odp", "PDF", "ODP", OfficeConversionInputKind.File, new[] { ".pdf" }, ".odp", "OfficeIMO.OpenDocument.Odp.Pdf", "PdfDocument.Open(stream).ToOdpPresentationResult(pdfOptions, openDocumentOptions)", "Import PDF pages into an OpenDocument presentation profile with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfOdpConversionResult"),
         Route("mhtml-pdf", "MHTML", "PDF", OfficeConversionInputKind.File, new[] { ".mhtml", ".mht" }, ".pdf", "OfficeIMO.Mhtml.Pdf", "MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)", "Render a bounded MHTML archive into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
+        Route("docx-google-docs", "DOCX", "Google Docs", OfficeConversionInputKind.File, new[] { ".docx" }, ".gdoc", "OfficeIMO.Word.GoogleDocs", "WordDocument.Load(stream).ExportToGoogleDocsAsync(session, options)", "Export editable Word content to an authenticated Google document.", OfficeConversionFidelityKind.Editable, "Task<GoogleDocumentReference>"),
+        Route("google-docs-docx", "Google Docs", "DOCX", OfficeConversionInputKind.RemoteResource, new[] { ".gdoc" }, ".docx", "OfficeIMO.Word.GoogleDocs", "session.ImportGoogleDocAsync(documentId, options)", "Import an authenticated Google document through native projection or Drive DOCX conversion.", OfficeConversionFidelityKind.Editable, "Task<GoogleDocsImportResult>"),
+        Route("xlsx-google-sheets", "XLSX", "Google Sheets", OfficeConversionInputKind.File, new[] { ".xlsx" }, ".gsheet", "OfficeIMO.Excel.GoogleSheets", "ExcelDocument.Load(stream).ExportToGoogleSheetsAsync(session, options)", "Export an editable workbook to an authenticated Google spreadsheet.", OfficeConversionFidelityKind.Editable, "Task<GoogleSpreadsheetReference>"),
+        Route("google-sheets-xlsx", "Google Sheets", "XLSX", OfficeConversionInputKind.RemoteResource, new[] { ".gsheet" }, ".xlsx", "OfficeIMO.Excel.GoogleSheets", "session.ImportGoogleSheetAsync(spreadsheetId, options)", "Import an authenticated Google spreadsheet through native projection or Drive XLSX conversion.", OfficeConversionFidelityKind.Editable, "Task<GoogleSheetsImportResult>"),
+        Route("pptx-google-slides", "PPTX", "Google Slides", OfficeConversionInputKind.File, new[] { ".pptx" }, ".gslides", "OfficeIMO.PowerPoint.GoogleSlides", "PowerPointPresentation.Load(stream).ExportToGoogleSlidesAsync(session, options)", "Export an editable presentation to an authenticated Google presentation.", OfficeConversionFidelityKind.Editable, "Task<GooglePresentationReference>"),
+        Route("google-slides-pptx", "Google Slides", "PPTX", OfficeConversionInputKind.RemoteResource, new[] { ".gslides" }, ".pptx", "OfficeIMO.PowerPoint.GoogleSlides", "session.ImportGoogleSlidesAsync(presentationId, options)", "Import an authenticated Google presentation through native projection or Drive PPTX conversion.", OfficeConversionFidelityKind.Editable, "Task<GoogleSlidesImportResult>"),
+        Route("adf-markdown", "ADF", "Markdown", OfficeConversionInputKind.Text, new[] { ".adf", ".json" }, ".md", "OfficeIMO.Adf", "AdfConverter.ToMarkdown(AdfDocument.Parse(json), options)", "Project Atlassian Document Format JSON into portable Markdown with fidelity diagnostics.", OfficeConversionFidelityKind.Semantic, "AdfConversionResult<string>"),
+        Route("markdown-adf", "Markdown", "ADF", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".adf", "OfficeIMO.Adf", "AdfConverter.FromMarkdown(markdown)", "Convert typed Markdown into Atlassian Document Format JSON.", OfficeConversionFidelityKind.Semantic, "AdfConversionResult<AdfDocument>"),
+        Route("adf-html", "ADF", "HTML", OfficeConversionInputKind.Text, new[] { ".adf", ".json" }, ".html", "OfficeIMO.Adf", "AdfConverter.ToHtml(AdfDocument.Parse(json), htmlOptions, options)", "Render Atlassian Document Format through the canonical Markdown and HTML models.", OfficeConversionFidelityKind.Semantic, "AdfConversionResult<string>"),
+        Route("html-adf", "HTML", "ADF", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, ".adf", "OfficeIMO.Adf", "AdfConverter.FromHtml(html, options)", "Project bounded HTML through Markdown into Atlassian Document Format.", OfficeConversionFidelityKind.Semantic, "AdfConversionResult<AdfDocument>"),
+        Route("markdown-confluence", "Markdown", "Confluence", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".adf", "OfficeIMO.Confluence", "ConfluenceContentConverter.FromMarkdown(markdown, format)", "Create a Confluence ADF or storage body from Markdown.", OfficeConversionFidelityKind.Semantic, "ConfluenceContentConversionResult<ConfluencePageBody>"),
+        Route("html-confluence", "HTML", "Confluence", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, ".adf", "OfficeIMO.Confluence", "ConfluenceContentConverter.FromHtml(html, format)", "Create a Confluence storage or ADF body from bounded HTML.", OfficeConversionFidelityKind.Semantic, "ConfluenceContentConversionResult<ConfluencePageBody>"),
+        Route("confluence-markdown", "Confluence", "Markdown", OfficeConversionInputKind.ObjectModel, new[] { ".adf", ".json" }, ".md", "OfficeIMO.Confluence", "ConfluenceContentConverter.ToMarkdown(page)", "Project a materialized Confluence page body to Markdown with fidelity diagnostics.", OfficeConversionFidelityKind.Semantic, "ConfluenceContentConversionResult<string>"),
+        Route("confluence-html", "Confluence", "HTML", OfficeConversionInputKind.ObjectModel, new[] { ".adf", ".json" }, ".html", "OfficeIMO.Confluence", "ConfluenceContentConverter.ToHtml(page)", "Project a materialized Confluence page body to HTML with fidelity diagnostics.", OfficeConversionFidelityKind.Semantic, "ConfluenceContentConversionResult<string>"),
+        Route("csv-xlsx", "CSV", "XLSX", OfficeConversionInputKind.File, new[] { ".csv", ".tsv" }, ".xlsx", "OfficeIMO.Excel.Csv", "CsvDocument.Load(stream).ToExcelDocument(options)", "Import delimited values into an editable workbook.", OfficeConversionFidelityKind.Editable, "ExcelDocument"),
+        Route("xlsx-csv", "XLSX", "CSV", OfficeConversionInputKind.File, new[] { ".xlsx" }, ".csv", "OfficeIMO.Excel.Csv", "ExcelDocument.Load(stream).Sheets[0].ToCsv(options)", "Export a worksheet used range as delimited values.", OfficeConversionFidelityKind.Semantic, "string"),
+        Route("officemarkup-docx", "OfficeIMO Markup", "DOCX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".docx", "OfficeIMO.Markup.Word", "OfficeMarkupParser.Parse(markup, options).Document.ToWordDocumentResult(exportOptions)", "Render document-profile OfficeIMO Markup into an editable Word document.", OfficeConversionFidelityKind.Editable, "OfficeMarkupConversionResult<WordDocument>"),
+        Route("officemarkup-xlsx", "OfficeIMO Markup", "XLSX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".xlsx", "OfficeIMO.Markup.Excel", "OfficeMarkupParser.Parse(markup, options).Document.ToExcelDocumentResult(exportOptions)", "Render workbook-profile OfficeIMO Markup into an editable Excel workbook.", OfficeConversionFidelityKind.Editable, "OfficeMarkupConversionResult<ExcelDocument>"),
+        Route("officemarkup-pptx", "OfficeIMO Markup", "PPTX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".pptx", "OfficeIMO.Markup.PowerPoint", "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPointPresentationResult(exportOptions)", "Render presentation-profile OfficeIMO Markup into an editable PowerPoint presentation.", OfficeConversionFidelityKind.Editable, "OfficeMarkupPowerPointConversionResult"),
         Route("visio-pdf", "Visio", "PDF", OfficeConversionInputKind.File, new[] { ".vsdx" }, ".pdf", "OfficeIMO.Visio.Pdf", "VisioDocument.Load(stream).ToPdfDocumentResult(options)", "Render a Visio drawing into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult")
-    };
+        };
+
+        AddImageRoutes(routes, "docx", "DOCX", OfficeConversionInputKind.File, new[] { ".docx" }, "OfficeIMO.Word", "WordDocument.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "xlsx", "XLSX", OfficeConversionInputKind.File, new[] { ".xlsx" }, "OfficeIMO.Excel", "ExcelDocument.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "pptx", "PPTX", OfficeConversionInputKind.File, new[] { ".pptx" }, "OfficeIMO.PowerPoint", "PowerPointPresentation.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "html", "HTML", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, "OfficeIMO.Html", "HtmlConversionDocument.Parse(html).ExportImages(format, options)");
+        AddImageRoutes(routes, "onenote", "OneNote", OfficeConversionInputKind.File, new[] { ".one" }, "OfficeIMO.OneNote", "OneNoteSectionReader.Read(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "visio", "Visio", OfficeConversionInputKind.File, new[] { ".vsdx" }, "OfficeIMO.Visio", "VisioDocument.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "email", "Email", OfficeConversionInputKind.File, new[] { ".eml" }, "OfficeIMO.Email.Image", "EmailDocument.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "epub", "EPUB", OfficeConversionInputKind.File, new[] { ".epub" }, "OfficeIMO.Epub.Image", "EpubDocument.Load(stream, readOptions).ExportImages(format, options)");
+        AddImageRoutes(routes, "odt", "ODT", OfficeConversionInputKind.File, new[] { ".odt" }, "OfficeIMO.Word.OpenDocument", "OdtDocument.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "ods", "ODS", OfficeConversionInputKind.File, new[] { ".ods" }, "OfficeIMO.Excel.OpenDocument", "OdsDocument.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "odp", "ODP", OfficeConversionInputKind.File, new[] { ".odp" }, "OfficeIMO.PowerPoint.OpenDocument", "OdpPresentation.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "pdf", "PDF", OfficeConversionInputKind.File, new[] { ".pdf" }, "OfficeIMO.Pdf", "PdfDocument.Open(stream).ExportImages(format, options)");
+        return routes.ToArray();
+    }
+
+    private static void AddImageRoutes(
+        ICollection<OfficeConversionCapability> routes,
+        string idPrefix,
+        string source,
+        OfficeConversionInputKind inputKind,
+        IEnumerable<string> sourceExtensions,
+        string packageId,
+        string api) {
+        var formats = new[] {
+            (Id: "png", Label: "PNG", Extension: ".png"),
+            (Id: "svg", Label: "SVG", Extension: ".svg"),
+            (Id: "jpeg", Label: "JPEG", Extension: ".jpg"),
+            (Id: "tiff", Label: "TIFF", Extension: ".tiff"),
+            (Id: "webp", Label: "WebP", Extension: ".webp")
+        };
+        foreach (var format in formats) {
+            string id = idPrefix + "-" + format.Id;
+            if (routes.Any(route => string.Equals(route.Id, id, StringComparison.OrdinalIgnoreCase))) continue;
+            routes.Add(Route(
+                id,
+                source,
+                format.Label,
+                inputKind,
+                sourceExtensions,
+                format.Extension,
+                packageId,
+                api,
+                "Render " + source + " content as " + format.Label + " images through the shared image-export contract.",
+                OfficeConversionFidelityKind.FixedLayout,
+                "IReadOnlyList<OfficeImageExportResult>"));
+        }
+    }
 
     private static OfficeConversionCapability Route(
         string id, string source, string target, OfficeConversionInputKind inputKind,
@@ -338,13 +485,59 @@ public static class OfficeConversionCapabilityCatalog {
         string api, string description, OfficeConversionFidelityKind fidelity,
         string resultContract, bool browser) {
         OfficeConversionSupportAssessment support = OfficeConversionSupportAssessments.Get(id);
+        (OfficeConversionTextFormattingKind textFormatting, string textFormattingContract) = GetTextFormattingContract(source, target);
         return new OfficeConversionCapability(
             id, source, target, inputKind, sourceExtensions, targetExtension,
             packageId, api, description, fidelity, resultContract, browser,
             agentDiscoverable: true,
             supportLevel: support.Level,
             supportEvidence: support.Evidence,
-            knownLimitations: support.KnownLimitations);
+            knownLimitations: support.KnownLimitations,
+            textFormatting: textFormatting,
+            textFormattingContract: textFormattingContract);
+    }
+
+    private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(
+        string source,
+        string target) {
+        if (string.Equals(target, "SVG", StringComparison.Ordinal)) {
+            return (OfficeConversionTextFormattingKind.VectorAppearance,
+                "Preserves rendered font, color, weight, italic, decoration, and script appearance as SVG text and vector graphics; source-native editable semantics are not retained.");
+        }
+        if (target is "PNG" or "JPEG" or "TIFF" or "WebP") {
+            return (OfficeConversionTextFormattingKind.FlattenedRaster,
+                "Preserves rendered font styling as pixels; text, casing metadata, decoration variants, and script semantics are no longer editable.");
+        }
+        if (string.Equals(source, "PDF", StringComparison.Ordinal)) {
+            return (OfficeConversionTextFormattingKind.ReconstructedFromFixedLayout,
+                "Reconstructs supported text and formatting from PDF logical or positioned content; it cannot recover source-only font semantics absent from the PDF.");
+        }
+        if (string.Equals(target, "PDF", StringComparison.Ordinal)) {
+            return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                "Preserves supported font styling as fixed-layout PDF text and graphics; conversion diagnostics identify source semantics the managed renderer approximates or omits.");
+        }
+        if (source is "Markdown" or "AsciiDoc" or "LaTeX" || target is "Markdown" or "AsciiDoc" or "LaTeX") {
+            return (OfficeConversionTextFormattingKind.SyntaxSubset,
+                "Preserves only emphasis, strike, script, and inline styling represented by the supported source and destination syntax profiles; arbitrary family, size, color, casing metadata, and underline variants are not portable.");
+        }
+        if (source == "CSV" || target == "CSV") {
+            return (OfficeConversionTextFormattingKind.DataOnly,
+                "CSV and TSV carry values, delimiters, and records only; font family, size, color, emphasis, decoration, scripts, casing metadata, and layout are intentionally not representable.");
+        }
+        if (source == "OfficeIMO Markup") {
+            return (OfficeConversionTextFormattingKind.EditableEquivalent,
+                "Authors editable native typography, including family, size, color, emphasis, decoration, script, and casing, in the generated Office document; diagnostics identify profile-specific approximations and omissions.");
+        }
+        if (source is "ADF" or "Confluence" || target is "ADF" or "Confluence") {
+            return (OfficeConversionTextFormattingKind.SyntaxSubset,
+                "Preserves the text styling represented by the source and destination profiles; unsupported native decoration variants, arbitrary CSS presentation, and format-specific layout are reported or simplified.");
+        }
+        if (target == "HTML") {
+            return (OfficeConversionTextFormattingKind.SemanticEquivalent,
+                "Preserves representable font family, size, color, weight, italic, decoration, script, and casing semantics in HTML/CSS, with OfficeIMO metadata for richer native variants where supported.");
+        }
+        return (OfficeConversionTextFormattingKind.EditableEquivalent,
+            "Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.");
     }
 
     private static string NormalizeExtension(string extension) {

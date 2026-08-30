@@ -58,6 +58,24 @@ public sealed class OdsCell {
         get => Resolve(style => style.Italic);
         set => EnsureStyle().Italic = value;
     }
+    /// <summary>Explicit or inherited underline state.</summary>
+    public bool? Underline { get => Resolve(style => style.Underline); set => EnsureStyle().Underline = value; }
+    /// <summary>Explicit or inherited native underline pattern.</summary>
+    public OdfTextDecorationStyle? UnderlineStyle { get => Resolve(style => style.UnderlineStyle); set => EnsureStyle().UnderlineStyle = value; }
+    /// <summary>Explicit or inherited underline line count.</summary>
+    public OdfTextDecorationType? UnderlineType { get => Resolve(style => style.UnderlineType); set => EnsureStyle().UnderlineType = value; }
+    /// <summary>Explicit or inherited strikethrough state.</summary>
+    public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
+    /// <summary>Explicit or inherited native strikethrough pattern.</summary>
+    public OdfTextDecorationStyle? LineThroughStyle { get => Resolve(style => style.LineThroughStyle); set => EnsureStyle().LineThroughStyle = value; }
+    /// <summary>Explicit or inherited strikethrough line count.</summary>
+    public OdfTextDecorationType? LineThroughType { get => Resolve(style => style.LineThroughType); set => EnsureStyle().LineThroughType = value; }
+    /// <summary>Explicit or inherited baseline placement.</summary>
+    public OdfTextPosition? TextPosition { get => Resolve(style => style.TextPosition); set => EnsureStyle().TextPosition = value; }
+    /// <summary>Explicit or inherited display-time case transformation.</summary>
+    public OdfTextTransform? TextTransform { get => Resolve(style => style.TextTransform); set => EnsureStyle().TextTransform = value; }
+    /// <summary>Explicit or inherited small-cap display formatting.</summary>
+    public bool? SmallCaps { get => Resolve(style => style.SmallCaps); set => EnsureStyle().SmallCaps = value; }
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize {
         get => Resolve(style => style.FontSize);
@@ -102,6 +120,26 @@ public sealed class OdsCell {
         }
         ReplaceDisplayText(text);
         Dirty();
+    }
+
+    /// <summary>Transforms stored string text while retaining the cell style.</summary>
+    /// <returns><see langword="true"/> when a string value was transformed; otherwise <see langword="false"/>.</returns>
+    public bool TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
+        if (Formula != null || Value.Kind != OdsCellValueKind.String) return false;
+        EnsureEditable();
+        List<XElement> paragraphs = _element.Elements(OdfNamespaces.Text + "p").ToList();
+        XAttribute? storedValue = _element.Attribute(OdfNamespaces.Office + "string-value");
+        if (paragraphs.Count == 0 && storedValue != null) {
+            storedValue.Value = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(storedValue.Value, textCase, culture);
+            Dirty();
+            return true;
+        }
+
+        OdfTextCodec.TransformTextCase(paragraphs, textCase, culture);
+        string transformed = Text;
+        if (storedValue != null) storedValue.Value = transformed;
+        Dirty();
+        return true;
     }
 
     /// <summary>Sets a double value.</summary>
@@ -356,6 +394,24 @@ public sealed class OdsCellRun {
     public bool? Bold => Cell.Bold;
     /// <summary>Explicit or inherited prototype italic state.</summary>
     public bool? Italic => Cell.Italic;
+    /// <summary>Explicit or inherited prototype underline state.</summary>
+    public bool? Underline => Cell.Underline;
+    /// <summary>Explicit or inherited prototype underline pattern.</summary>
+    public OdfTextDecorationStyle? UnderlineStyle => Cell.UnderlineStyle;
+    /// <summary>Explicit or inherited prototype underline line count.</summary>
+    public OdfTextDecorationType? UnderlineType => Cell.UnderlineType;
+    /// <summary>Explicit or inherited prototype strikethrough state.</summary>
+    public bool? StrikeThrough => Cell.StrikeThrough;
+    /// <summary>Explicit or inherited prototype strikethrough pattern.</summary>
+    public OdfTextDecorationStyle? LineThroughStyle => Cell.LineThroughStyle;
+    /// <summary>Explicit or inherited prototype strikethrough line count.</summary>
+    public OdfTextDecorationType? LineThroughType => Cell.LineThroughType;
+    /// <summary>Explicit or inherited prototype baseline placement.</summary>
+    public OdfTextPosition? TextPosition => Cell.TextPosition;
+    /// <summary>Explicit or inherited prototype display-time case transformation.</summary>
+    public OdfTextTransform? TextTransform => Cell.TextTransform;
+    /// <summary>Explicit or inherited prototype small-cap formatting.</summary>
+    public bool? SmallCaps => Cell.SmallCaps;
     /// <summary>Explicit or inherited prototype font size.</summary>
     public OdfLength? FontSize => Cell.FontSize;
     /// <summary>Explicit or inherited prototype font family.</summary>

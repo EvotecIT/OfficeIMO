@@ -12,7 +12,9 @@ internal static partial class PdfSyntax {
         Guard.NotNull(fallback, nameof(fallback));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        int? encryptObjectNumber = TryReadFirstReferenceObjectNumber(trailerRaw, "Encrypt");
+        PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
+        PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits);
+        int? encryptObjectNumber = encryptReference?.ObjectNumber;
         bool hasEncryption = encryptObjectNumber.HasValue;
         string? encryptionFilter = null;
         string? encryptionSubFilter = null;
@@ -23,7 +25,7 @@ internal static partial class PdfSyntax {
         bool? encryptMetadata = null;
         PdfPasswordAuthenticationRole passwordAuthenticationRole = fallback.PasswordAuthenticationRole;
         if (encryptObjectNumber.HasValue &&
-            TryReadFirstReference(trailerRaw, "Encrypt") is PdfReference encryptReference &&
+            encryptReference is not null &&
             PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
             encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
             encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
@@ -129,10 +131,10 @@ internal static partial class PdfSyntax {
             }
         }
 
-        PdfReference? rootReference = TryReadFirstReference(trailerRaw, "Root");
+        PdfReference? rootReference = ReadTrailerReference(trailerRaw, "Root", limits);
         int? rootObjectNumber = rootReference?.ObjectNumber ?? fallback.RootObjectNumber;
         int? rootObjectGeneration = rootReference?.Generation ?? fallback.RootObjectGeneration;
-        PdfReference? infoReference = TryReadFirstReference(trailerRaw, "Info");
+        PdfReference? infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
         int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
         bool hasByteRange = byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange");

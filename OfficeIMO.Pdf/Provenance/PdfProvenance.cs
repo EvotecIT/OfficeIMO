@@ -22,6 +22,7 @@ public static partial class PdfProvenance {
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         foreach (PdfOutputIntentInfo outputIntent in document.OutputIntents) {
             _ = outputIntent.DestinationOutputProfileSizeBytes;
+            _ = outputIntent.DestinationOutputProfileDeviceClass;
         }
         HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.MaxContainerEntries);
         PdfC2paAssociationProfile associations = CollectAssociationProfile(

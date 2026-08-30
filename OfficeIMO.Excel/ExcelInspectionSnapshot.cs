@@ -952,9 +952,19 @@ namespace OfficeIMO.Excel {
         public bool Underline { get; internal set; }
 
         /// <summary>
+        /// Native Excel underline variant, when specified.
+        /// </summary>
+        public ExcelUnderlineStyle? UnderlineStyle { get; internal set; }
+
+        /// <summary>
         /// Whether the font uses strikethrough.
         /// </summary>
         public bool Strikethrough { get; internal set; }
+
+        /// <summary>
+        /// Native Excel run baseline, when specified.
+        /// </summary>
+        public ExcelVerticalTextAlignment? VerticalTextAlignment { get; internal set; }
 
         /// <summary>
         /// Resolved font family name, when available.
@@ -1045,6 +1055,7 @@ namespace OfficeIMO.Excel {
             Italic ||
             Underline ||
             Strikethrough ||
+            VerticalTextAlignment.HasValue ||
             FontColorArgb != null ||
             FillColorArgb != null ||
             FillPatternType != null ||

@@ -232,8 +232,10 @@ internal static class Guard {
             value != PdfComplianceProfile.PdfUa1 &&
             value != PdfComplianceProfile.PdfUa2 &&
             value != PdfComplianceProfile.FacturX &&
-            value != PdfComplianceProfile.Zugferd) {
-            throw new System.ArgumentOutOfRangeException(paramName, "PDF compliance profile must be None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfA4, PdfA4E, PdfA4F, PdfUa1, PdfUa2, FacturX, or Zugferd.");
+            value != PdfComplianceProfile.Zugferd &&
+            value != PdfComplianceProfile.PdfX1A2003 &&
+            value != PdfComplianceProfile.PdfX4) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF compliance profile must be None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfA4, PdfA4E, PdfA4F, PdfUa1, PdfUa2, FacturX, Zugferd, PdfX1A2003, or PdfX4.");
         }
     }
 
@@ -251,8 +253,35 @@ internal static class Guard {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void OutputIntentPolicy(PdfOutputIntentPolicy value, string paramName) {
         if (value != PdfOutputIntentPolicy.Unspecified &&
-            value != PdfOutputIntentPolicy.SrgbIec6196621) {
-            throw new System.ArgumentOutOfRangeException(paramName, "PDF output-intent policy must be Unspecified or SrgbIec6196621.");
+            value != PdfOutputIntentPolicy.SrgbIec6196621 &&
+            value != PdfOutputIntentPolicy.PdfXPrintCondition) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF output-intent policy must be Unspecified, SrgbIec6196621, or PdfXPrintCondition.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void OutputIntentSubtype(PdfOutputIntentSubtype value, string paramName) {
+        if (value != PdfOutputIntentSubtype.GtsPdfA1 &&
+            value != PdfOutputIntentSubtype.GtsPdfX) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF output-intent subtype must be GtsPdfA1 or GtsPdfX.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void TrappingStatus(PdfTrappingStatus value, string paramName) {
+        if (value != PdfTrappingStatus.Unknown &&
+            value != PdfTrappingStatus.False &&
+            value != PdfTrappingStatus.True) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF trapping status must be Unknown, False, or True.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void BlackPreservationMode(PdfBlackPreservationMode value, string paramName) {
+        if (value != PdfBlackPreservationMode.None &&
+            value != PdfBlackPreservationMode.PureBlack &&
+            value != PdfBlackPreservationMode.NeutralAxis) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF black-preservation mode must be None, PureBlack, or NeutralAxis.");
         }
     }
 

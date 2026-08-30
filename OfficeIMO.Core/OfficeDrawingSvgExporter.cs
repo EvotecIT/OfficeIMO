@@ -525,9 +525,10 @@ public static partial class OfficeDrawingSvgExporter {
             x += contentWidth;
         }
 
-        double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
-        double y = contentY + fontSize;
-        double lineHeight = text.LineHeight ?? fontSize * 1.2D;
+        double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        double fontSize = sourceFontSize * text.BaselineScale;
+        double y = contentY + sourceFontSize + text.BaselineOffset;
+        double lineHeight = text.LineHeight ?? sourceFontSize * 1.2D;
         if (text.TextAdvanceWidth.HasValue) {
             sb.AppendSvgPositionedTextElement(
                 text.Text,
@@ -545,7 +546,10 @@ public static partial class OfficeDrawingSvgExporter {
                 useFrameTransform ? 0D : text.RotationCenterX,
                 useFrameTransform ? 0D : text.RotationCenterY,
                 (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
-                text.TextAdvanceWidth.Value);
+                text.TextAdvanceWidth.Value,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                OfficeTextBaseline.Normal);
         } else {
             sb.AppendSvgTextElement(
                 text.Text,
@@ -562,7 +566,10 @@ public static partial class OfficeDrawingSvgExporter {
                 useFrameTransform ? 0D : text.RotationDegrees,
                 useFrameTransform ? 0D : text.RotationCenterX,
                 useFrameTransform ? 0D : text.RotationCenterY,
-                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                OfficeTextBaseline.Normal);
         }
 
         if (useFrameTransform) {
@@ -571,7 +578,9 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text, bool useFrameTransform = false) {
-        double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        double sourceFontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        double fontSize = sourceFontSize * text.BaselineScale;
+        double baselineOffset = text.BaselineOffset;
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, text.LineHeight.Value / fontSize)
             : 1.2D;
@@ -621,10 +630,10 @@ public static partial class OfficeDrawingSvgExporter {
                 wrap: text.WrapText,
                 shrinkToFit: text.ShrinkToFit,
                 paragraphIndent: text.ParagraphIndent);
-        sb.AppendSvgTextBlock(
+        sb.AppendSvgStyledTextBlock(
             layout,
             contentX,
-            contentY,
+            contentY + baselineOffset,
             contentWidth,
             contentHeight,
             text.Color ?? OfficeColor.Black,
@@ -637,7 +646,11 @@ public static partial class OfficeDrawingSvgExporter {
             useFrameTransform ? 0D : text.RotationDegrees,
             useFrameTransform ? 0D : text.RotationCenterX,
             useFrameTransform ? 0D : text.RotationCenterY,
-            strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+            centerLineInLineHeight: true,
+            strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+            underlineStyle: text.UnderlineStyle,
+            strikethroughStyle: text.StrikethroughStyle,
+            baseline: OfficeTextBaseline.Normal);
     }
 
     private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text) {

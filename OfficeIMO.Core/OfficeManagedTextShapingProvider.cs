@@ -27,6 +27,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         if (request.IsOpenTypeCff ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) ||
+            OfficeTextElements.ContainsVariationSelector(request.Text) ||
+            OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text))) {
@@ -46,12 +48,19 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         string visual = string.Concat(visualElements.Select(static element => element.VisualText));
         if (!font.HasGlyphs(visual)) return null;
         var glyphs = new List<OfficeShapedGlyph>();
+        var advanceAdjustments = new List<int>();
+        int? previousKerningScalar = null;
         foreach (VisualTextElement element in visualElements) {
             request.CancellationToken.ThrowIfCancellationRequested();
-            if (!TryAddElementGlyphs(font, element, glyphs)) return null;
+            if (!TryAddElementGlyphs(
+                    font,
+                    element,
+                    glyphs,
+                    advanceAdjustments,
+                    ref previousKerningScalar)) return null;
         }
 
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs);
+        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(
@@ -82,23 +91,39 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     private static bool TryAddElementGlyphs(
         OfficeTrueTypeFont font,
         VisualTextElement element,
-        List<OfficeShapedGlyph> glyphs) {
+        List<OfficeShapedGlyph> glyphs,
+        List<int> advanceAdjustments,
+        ref int? previousKerningScalar) {
         int visualIndex = 0;
         int logicalOffset = 0;
         while (visualIndex < element.VisualText.Length) {
             int visualScalar = ReadScalar(element.VisualText, ref visualIndex);
             int logicalStart = logicalOffset;
             int logicalScalar = ReadScalar(element.LogicalText, ref logicalOffset);
-            if (!font.TryGetGlyphMetrics(visualScalar, out int glyphId, out int advanceWidth)) {
+            if (!font.TryGetGlyphMetrics(visualScalar, out int glyphId, out _)) {
                 return false;
             }
 
             string unicodeText = char.ConvertFromUtf32(logicalScalar);
+            if (previousKerningScalar.HasValue && glyphs.Count > 0) {
+                int previousIndex = glyphs.Count - 1;
+                OfficeShapedGlyph previous = glyphs[previousIndex];
+                int kerning = font.GetKerningAdjustment(
+                    previous.GlyphId,
+                    glyphId,
+                    previousKerningScalar.Value,
+                    logicalScalar);
+                if (kerning != 0) {
+                    advanceAdjustments[previousIndex] = checked(
+                        advanceAdjustments[previousIndex] + kerning);
+                }
+            }
             glyphs.Add(new OfficeShapedGlyph(
                 glyphId,
                 unicodeText,
-                element.LogicalIndex + logicalStart,
-                advanceWidth));
+                element.LogicalIndex + logicalStart));
+            advanceAdjustments.Add(0);
+            previousKerningScalar = logicalScalar;
         }
 
         return true;
