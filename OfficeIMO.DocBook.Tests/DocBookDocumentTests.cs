@@ -1169,6 +1169,63 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionReconcilesDocumentAuthorProjectionEdits() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><author><personname>Original</personname></author></info><para>Body</para></article>";
+
+        OfficeDocumentModel sourceEdited = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        sourceEdited.Source.Author = "Edited source";
+        DocBookConversionResult<DocBookDocument> sourceResult = DocBookDocument.FromOfficeDocumentModel(sourceEdited);
+
+        Assert.Equal("Edited source", Assert.Single(sourceResult.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "author").Value);
+        Assert.Contains(sourceResult.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("Source.Author", StringComparison.Ordinal) >= 0);
+
+        OfficeDocumentModel metadataEdited = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        metadataEdited.Metadata.Single(entry => entry.Category == "docbook" && entry.Name == "author").Value = "Edited metadata";
+        DocBookConversionResult<DocBookDocument> metadataResult = DocBookDocument.FromOfficeDocumentModel(metadataEdited);
+
+        Assert.Equal("Edited metadata", Assert.Single(metadataResult.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "author").Value);
+        Assert.Contains(metadataResult.Diagnostics, diagnostic => diagnostic.Code == "DB125");
+
+        OfficeDocumentModel sourceRemoved = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        sourceRemoved.Source.Author = null;
+        DocBookConversionResult<DocBookDocument> removalResult = DocBookDocument.FromOfficeDocumentModel(sourceRemoved);
+
+        Assert.DoesNotContain(removalResult.Value.Xml.Descendants(), element => element.Name.LocalName == "author");
+        Assert.Contains(removalResult.Diagnostics, diagnostic => diagnostic.Code == "DB125");
+    }
+
+    [Fact]
+    public void SharedReverseConversionReportsInvalidKnownNodePlacement() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = new[] { new OfficeDocumentModelNode { Kind = "list-item", Text = "Orphan" } }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic =>
+            diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void SharedReverseConversionPreservesEditedFlatLinkKind() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><xref linkend=\"target\"/></para></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        Assert.Single(model.Links).Kind = "link";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" &&
+            diagnostic.Message.IndexOf("link", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "link" && (string?)element.Attribute("linkend") == "target");
+    }
+
+    [Fact]
     public void SharedConversionDoesNotReportFlatFallbackWithoutFlatContent() {
         var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.DocBook };
         var titleOnly = new OfficeDocumentModel {

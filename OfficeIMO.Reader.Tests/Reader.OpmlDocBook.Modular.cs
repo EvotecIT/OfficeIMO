@@ -518,6 +518,8 @@ public sealed class ReaderOpmlDocBookModularTests {
             diagnostic.Category == OfficeDocumentDiagnosticCategory.Content);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML200" &&
             diagnostic.Category == OfficeDocumentDiagnosticCategory.Adapter);
+        Assert.Contains(result.Metadata, entry => entry.Category == "reader.summary" &&
+            entry.Name == "ChunkCount" && entry.Value == "2");
         Assert.All(result.Chunks, chunk => Assert.Null(chunk.Warnings));
     }
 
@@ -556,6 +558,9 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal("Details", asset.Location.HeadingPath);
         Assert.Equal("image", asset.Location.SourceBlockKind);
         Assert.Null(asset.PayloadBytes);
+        Assert.Contains(result.Metadata, entry => entry.Category == "reader.summary" &&
+            entry.Name == "AssetCount" && entry.Value == "1");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ocr-needed");
     }
 
     [Fact]

@@ -37,9 +37,10 @@ internal static partial class DocBookReaderAdapter {
             new OfficeDocumentSource { Path = sourceName, Title = model.Source.Title, Author = model.Source.Author },
             new[] { "officeimo.reader.docbook.rich-v5", "officeimo.docbook.common-structure" },
             assets: model.Assets.Select(asset => MapAsset(asset, sourceName)).ToArray());
-        result.Metadata = model.Metadata.Select(MapMetadata).ToArray();
+        result.Metadata = result.Metadata.Concat(model.Metadata.Select(MapMetadata)).ToArray();
         result.Links = model.Links.Select(link => MapLink(link, sourceName)).ToArray();
-        result.Diagnostics = projection.Diagnostics.Select(diagnostic => MapDiagnostic(diagnostic, sourceName)).ToArray();
+        result.Diagnostics = result.Diagnostics.Concat(
+            projection.Diagnostics.Select(diagnostic => MapDiagnostic(diagnostic, sourceName))).ToArray();
         return result;
     }
 

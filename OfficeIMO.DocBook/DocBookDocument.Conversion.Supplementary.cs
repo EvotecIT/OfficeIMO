@@ -147,6 +147,7 @@ public sealed partial class DocBookDocument {
             string.Equals(node.Id, nodeId, StringComparison.Ordinal) &&
             (string.Equals(node.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(node.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase)) &&
+            string.Equals(node.Kind, link.Kind, StringComparison.OrdinalIgnoreCase) &&
             (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal) ||
              ShouldReplaceChildrenWithPrimaryText(node) &&
              string.Equals(GetRepresentedPrimaryChildText(node), link.Text, StringComparison.Ordinal)) &&

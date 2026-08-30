@@ -540,6 +540,32 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionReconcilesEditedOutlineTextChannels() {
+        OfficeDocumentModel attributeEdited = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Original\"/></body></opml>")
+            .ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode attributeNode = attributeEdited.Structure.Single();
+        attributeNode.Attributes = new Dictionary<string, string>(attributeNode.Attributes) {
+            ["text"] = "Edited attribute"
+        };
+
+        OpmlConversionResult<OpmlDocument> attributeResult = OpmlDocument.FromOfficeDocumentModel(attributeEdited);
+
+        Assert.Equal("Edited attribute", attributeResult.Value.Outlines.Single().Text);
+        Assert.Contains(attributeResult.Diagnostics, diagnostic => diagnostic.Code == "OPML110");
+
+        OfficeDocumentModel primaryEdited = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Original\"/></body></opml>")
+            .ToOfficeDocumentModel().Value;
+        primaryEdited.Structure.Single().Text = "Edited primary";
+
+        OpmlConversionResult<OpmlDocument> primaryResult = OpmlDocument.FromOfficeDocumentModel(primaryEdited);
+
+        Assert.Equal("Edited primary", primaryResult.Value.Outlines.First().Text);
+        Assert.Contains(primaryResult.Diagnostics, diagnostic => diagnostic.Code == "OPML110");
+    }
+
+    [Fact]
     public void SharedReverseTraversalDoesNotScheduleChildrenBeyondTheNodeBudget() {
         var children = new WideNodeList();
         var root = new OfficeDocumentModelNode { Kind = "outline", Text = "Root", Children = children };

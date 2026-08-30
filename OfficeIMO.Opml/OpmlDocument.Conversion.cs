@@ -218,15 +218,34 @@ public sealed partial class OpmlDocument {
                 diagnostics.Add(new OpmlDiagnostic("OPML104", OpmlDiagnosticSeverity.Warning,
                     $"Shared node kind '{node.Kind}' was normalized to an OPML outline.", node.Location.HeadingPath));
             }
-            OpmlOutline outline = parent == null ? document.AddOutline(node.Text) : parent.AddChild(node.Text);
+            string outlineText = ResolveOutlineText(node);
+            OpmlOutline outline = parent == null ? document.AddOutline(outlineText) : parent.AddChild(outlineText);
             foreach (KeyValuePair<string, string> attribute in node.Attributes) {
                 try { outline.SetAttribute(XName.Get(attribute.Key), attribute.Value); } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
                     diagnostics.Add(new OpmlDiagnostic("OPML100", OpmlDiagnosticSeverity.Warning,
                         $"Attribute name '{attribute.Key}' could not be represented in OPML.", node.Location.HeadingPath));
                 }
             }
-            outline.Text = node.Text;
+            outline.Text = outlineText;
             foreach (OfficeDocumentModelNode child in node.Children) Add(child, outline);
+        }
+
+        string ResolveOutlineText(OfficeDocumentModelNode node) {
+            if (!node.Attributes.TryGetValue("text", out string? attributeText) ||
+                string.Equals(attributeText, node.Text, StringComparison.Ordinal)) return node.Text;
+            OfficeDocumentModelBlock? projectedBlock = model.Blocks.FirstOrDefault(block =>
+                string.Equals(block.Id, node.Id, StringComparison.Ordinal) &&
+                string.Equals(block.Kind, node.Kind, StringComparison.OrdinalIgnoreCase) &&
+                block.Level == node.Level);
+            bool attributeWins = projectedBlock != null &&
+                string.Equals(projectedBlock.Text, node.Text, StringComparison.Ordinal) &&
+                !string.Equals(projectedBlock.Text, attributeText, StringComparison.Ordinal);
+            diagnostics.Add(new OpmlDiagnostic("OPML110", OpmlDiagnosticSeverity.Warning,
+                attributeWins
+                    ? "The outline text attribute differed from its unchanged primary text projection; the edited attribute took precedence."
+                    : "The outline text attribute and primary text contain conflicting values; the primary text took precedence.",
+                node.Location.HeadingPath));
+            return attributeWins ? attributeText : node.Text;
         }
 
         bool AddFlatLink(OfficeDocumentModelLink link) {

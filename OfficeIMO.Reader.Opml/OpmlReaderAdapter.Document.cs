@@ -37,9 +37,10 @@ internal static partial class OpmlReaderAdapter {
             ReaderInputKind.Opml,
             new OfficeDocumentSource { Path = sourceName, Title = model.Source.Title, Author = model.Source.Author },
             new[] { "officeimo.reader.opml.rich-v5", "officeimo.opml.lossless" });
-        result.Metadata = model.Metadata.Select(MapMetadata).ToArray();
+        result.Metadata = result.Metadata.Concat(model.Metadata.Select(MapMetadata)).ToArray();
         result.Links = model.Links.Select(link => MapLink(link, sourceName)).ToArray();
-        result.Diagnostics = projection.Diagnostics.Select(diagnostic => MapDiagnostic(diagnostic, sourceName)).ToArray();
+        result.Diagnostics = result.Diagnostics.Concat(
+            projection.Diagnostics.Select(diagnostic => MapDiagnostic(diagnostic, sourceName))).ToArray();
         return result;
     }
 

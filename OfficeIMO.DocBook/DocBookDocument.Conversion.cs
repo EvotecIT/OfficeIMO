@@ -771,6 +771,12 @@ public sealed partial class DocBookDocument {
             return represented;
         }
 
+        OfficeDocumentModelNode? documentAuthorNode = FindDocumentAuthorNode(model.Structure);
+        OfficeDocumentModelMetadataEntry? documentAuthorMetadata = model.Metadata.FirstOrDefault(entry =>
+            entry.Category == "docbook" && entry.Name == "author");
+        string? resolvedDocumentAuthor = ResolveDocumentAuthor(
+            documentAuthorNode, documentAuthorMetadata, out bool authorProjectionConflict);
+
         if (model.Structure.Count > 0) {
             OfficeDocumentModelNode? documentTitleNode = FindDocumentTitleNode(model.Structure);
             bool sourceTitleWins = false;
@@ -790,6 +796,10 @@ public sealed partial class DocBookDocument {
                     sourceTitleWins
                         ? "Shared Source.Title differed from its unchanged recursive title projection; the edited Source title took precedence."
                         : "Shared Source.Title and recursive document title contain conflicting values; the recursive title took precedence."));
+            }
+            if (documentAuthorNode != null &&
+                !string.Equals(resolvedDocumentAuthor, documentAuthorNode.Text, StringComparison.Ordinal)) {
+                ReplaceDocumentAuthor(resolvedDocumentAuthor);
             }
             var consumedTableNodes = new HashSet<OfficeDocumentModelNode>();
             foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
@@ -832,30 +842,101 @@ public sealed partial class DocBookDocument {
         var representedAuthors = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeDocumentModelNode authorNode in structureNodes.Where(node =>
                      string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase))) {
+            if (ReferenceEquals(authorNode, documentAuthorNode)) {
+                if (!string.IsNullOrWhiteSpace(resolvedDocumentAuthor)) representedAuthors.Add(resolvedDocumentAuthor!);
+                continue;
+            }
             if (!string.IsNullOrWhiteSpace(authorNode.Text)) representedAuthors.Add(authorNode.Text);
             if (ShouldReplaceChildrenWithPrimaryText(authorNode)) {
                 string originalProjection = GetRepresentedPrimaryChildText(authorNode);
                 if (!string.IsNullOrWhiteSpace(originalProjection)) representedAuthors.Add(originalProjection);
             }
         }
-        if (!string.IsNullOrWhiteSpace(model.Source.Author) && representedAuthors.Add(model.Source.Author!)) {
-            AddAuthor(model.Source.Author!);
+        if (documentAuthorNode == null && !string.IsNullOrWhiteSpace(resolvedDocumentAuthor) &&
+            representedAuthors.Add(resolvedDocumentAuthor!)) {
+            AddAuthor(resolvedDocumentAuthor!);
+        }
+        if (authorProjectionConflict) {
+            diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                "Shared Source.Author, recursive author, and author metadata projections conflicted; the independently edited projection was selected when it could be identified, otherwise recursive author structure took precedence."));
         }
         foreach (OfficeDocumentModelMetadataEntry metadata in model.Metadata) {
             bool profileControl = metadata.Category == "docbook" && (metadata.Name == "kind" || metadata.Name == "profile");
             if (profileControl) continue;
             if (metadata.Category == "docbook" && metadata.Name == "author" && !string.IsNullOrWhiteSpace(metadata.Value)) {
-                if (representedAuthors.Add(metadata.Value!)) AddAuthor(metadata.Value!);
-                if (metadata.Attributes.Count == 0) continue;
+                if (ReferenceEquals(metadata, documentAuthorMetadata)) {
+                    if (metadata.Attributes.Count == 0) continue;
+                } else {
+                    if (representedAuthors.Add(metadata.Value!)) AddAuthor(metadata.Value!);
+                    if (metadata.Attributes.Count == 0) continue;
+                }
             }
             diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
                 $"Shared metadata '{metadata.Category}/{metadata.Name}' could not be fully represented by the bounded DocBook common-structure profile."));
+        }
+        DocBookValidationResult reconstructedValidation = document.Validate(new DocBookValidationOptions {
+            MaxDetailedDiagnosticsPerCode = options.MaxDetailedDiagnosticsPerCode
+        });
+        foreach (DocBookDiagnostic diagnostic in reconstructedValidation.Diagnostics.Where(item =>
+                     item.Severity == DocBookDiagnosticSeverity.Error)) {
+            diagnostics.Add(diagnostic);
         }
         return new DocBookConversionResult<DocBookDocument>(document, diagnostics.ToArray());
 
         void AddAuthor(string displayName) {
             DocBookNode author = new DocBookNode(document, document.EnsureInfo()).Add(DocBookNodeKind.Author);
             author.AddRaw("personname", displayName);
+        }
+
+        void ReplaceDocumentAuthor(string? displayName) {
+            XElement? info = document.FindInfo();
+            XElement? author = info?.Descendants().FirstOrDefault(element =>
+                DocBookNames.GetKind(element.Name, document.Namespace) == DocBookNodeKind.Author);
+            if (author == null) {
+                if (!string.IsNullOrWhiteSpace(displayName)) AddAuthor(displayName!);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(displayName)) {
+                author.Remove();
+                return;
+            }
+            author.RemoveNodes();
+            author.Add(new XElement(document.Namespace + "personname", displayName));
+        }
+
+        string? ResolveDocumentAuthor(
+            OfficeDocumentModelNode? authorNode,
+            OfficeDocumentModelMetadataEntry? authorMetadata,
+            out bool conflict) {
+            string? sourceAuthor = model.Source.Author;
+            if (authorNode == null) {
+                conflict = sourceAuthor != null && authorMetadata != null &&
+                    !string.Equals(sourceAuthor, authorMetadata.Value, StringComparison.Ordinal);
+                return sourceAuthor ?? authorMetadata?.Value;
+            }
+
+            string structureAuthor = authorNode.Text;
+            if (authorMetadata == null || authorNode.Children.Count == 0) {
+                conflict = sourceAuthor != null &&
+                    !string.Equals(sourceAuthor, structureAuthor, StringComparison.Ordinal);
+                return structureAuthor;
+            }
+
+            string baseline = GetRepresentedAuthorText(authorNode);
+            var changedValues = new List<string?>();
+            AddChanged(structureAuthor);
+            AddChanged(sourceAuthor);
+            AddChanged(authorMetadata.Value);
+            string?[] distinctChanges = changedValues.Distinct(StringComparer.Ordinal).ToArray();
+            conflict = !string.Equals(structureAuthor, sourceAuthor, StringComparison.Ordinal) ||
+                !string.Equals(structureAuthor, authorMetadata.Value, StringComparison.Ordinal);
+            return distinctChanges.Length == 1 ? distinctChanges[0]
+                : distinctChanges.Length == 0 ? baseline
+                : structureAuthor;
+
+            void AddChanged(string? value) {
+                if (!string.Equals(value, baseline, StringComparison.Ordinal)) changedValues.Add(value);
+            }
         }
 
         void AddSupplementaryDiagnostic(string channel, string identity, string? path) =>
@@ -881,6 +962,24 @@ public sealed partial class DocBookDocument {
                 if (string.Equals(node.Kind, "title", StringComparison.OrdinalIgnoreCase)) return node;
                 OfficeDocumentModelNode? title = FindTitleDescendant(node.Children);
                 if (title != null) return title;
+            }
+            return null;
+        }
+
+        static OfficeDocumentModelNode? FindDocumentAuthorNode(IReadOnlyList<OfficeDocumentModelNode> nodes) {
+            foreach (OfficeDocumentModelNode node in nodes) {
+                if (!string.Equals(node.Kind, "metadata", StringComparison.OrdinalIgnoreCase)) continue;
+                OfficeDocumentModelNode? author = FindAuthorDescendant(node.Children);
+                if (author != null) return author;
+            }
+            return null;
+        }
+
+        static OfficeDocumentModelNode? FindAuthorDescendant(IReadOnlyList<OfficeDocumentModelNode> nodes) {
+            foreach (OfficeDocumentModelNode node in nodes) {
+                if (string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase)) return node;
+                OfficeDocumentModelNode? author = FindAuthorDescendant(node.Children);
+                if (author != null) return author;
             }
             return null;
         }
