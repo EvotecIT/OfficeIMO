@@ -22,8 +22,7 @@ public sealed class IWorkPagesProjection {
         Images = Array.AsReadOnly(images.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
         PageLayout = pageLayout;
-        Paragraphs = Array.AsReadOnly(body.Paragraphs.Select(paragraph => paragraph.Text)
-            .Where(text => text.Length > 0).ToArray());
+        Paragraphs = Array.AsReadOnly(body.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
         Headers = Array.AsReadOnly(HeaderContents.Select(content => content.PlainText).ToArray());
         Footers = Array.AsReadOnly(FooterContents.Select(content => content.PlainText).ToArray());
         TextBoxes = Array.AsReadOnly(TextBoxContents.Select(content => content.PlainText).ToArray());
@@ -215,7 +214,6 @@ internal static class IWorkPagesReader {
                 textCache.Add(storage.Identifier, text);
             }
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
-            if (text.PlainText.Length == 0) continue;
             IWorkWireMessage? drawable = IWorkDrawingReader.DrawableMessage(index, shape,
                 out bool drawableComplete);
             if (!drawableComplete) {
@@ -254,6 +252,8 @@ internal static class IWorkPagesReader {
                         shape.EntryPath, shape.Identifier));
                 }
             }
+            if (text.PlainText.Length == 0 && hyperlink == null
+                && accessibilityDescription == null) continue;
             textBoxes.Add(new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription));
         }
         IWorkArchiveRecord? unsupportedDrawable = documentDrawables.FirstOrDefault(record =>

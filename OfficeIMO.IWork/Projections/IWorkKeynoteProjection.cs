@@ -334,7 +334,6 @@ internal static class IWorkKeynoteReader {
                 textCache.Add(storage.Identifier, text);
             }
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
-            if (text.PlainText.Length == 0) continue;
             IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
                 out bool drawableComplete);
             if (!drawableComplete) {
@@ -377,6 +376,8 @@ internal static class IWorkKeynoteReader {
                 if (!metadataComplete) {
                     MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
+                if (text.PlainText.Length == 0 && hyperlink == null
+                    && accessibilityDescription == null) continue;
                 title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
                 drawables.Add(new IWorkKeynoteDrawable(title, isTitlePlaceholder: true));
             } else {
@@ -400,6 +401,8 @@ internal static class IWorkKeynoteReader {
                 if (!metadataComplete) {
                     MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
+                if (text.PlainText.Length == 0 && hyperlink == null
+                    && accessibilityDescription == null) continue;
                 var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
                 textBoxes.Add(textBox);
                 drawables.Add(new IWorkKeynoteDrawable(textBox, isTitlePlaceholder: false));

@@ -104,10 +104,12 @@ public partial class WordDocument {
                             };
                     }
                 }
+                bool hasAnyEvenPageTemplate = projection.Sections.Any(section => section.HasEvenPageTemplate);
                 for (int sectionIndex = 0; sectionIndex < projection.Sections.Count; sectionIndex++) {
                     IWorkPagesSection sourceSection = projection.Sections[sectionIndex];
                     WordSection targetSection = semanticSections[sectionIndex];
-                    AddSectionHeadersAndFooters(targetSection, sourceSection, nativeLists);
+                    AddSectionHeadersAndFooters(targetSection, sourceSection, nativeLists,
+                        hasAnyEvenPageTemplate);
                 }
             } else {
                 byte[] bytes = preview!.GetBytes();
@@ -159,7 +161,8 @@ public partial class WordDocument {
         preview.MediaType == "image/png" ? "pages-preview.png" : "pages-preview.jpg";
 
     private static void AddSectionHeadersAndFooters(WordSection target,
-        IWorkPagesSection source, IWorkNativeListCatalog nativeLists) {
+        IWorkPagesSection source, IWorkNativeListCatalog nativeLists,
+        bool hasAnyEvenPageTemplate) {
         if (source.HasDefaultPageTemplate) {
             WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Default);
             WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Default);
@@ -180,13 +183,19 @@ public partial class WordDocument {
                 AddRichText(content, footer.AddParagraph, nativeLists);
             }
         }
-        if (source.HasEvenPageTemplate) {
+        if (hasAnyEvenPageTemplate) {
             WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Even);
             WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Even);
-            foreach (IWorkTextContent content in source.EvenPageHeaderContents) {
+            IReadOnlyList<IWorkTextContent> headerContents = source.HasEvenPageTemplate
+                ? source.EvenPageHeaderContents
+                : source.DefaultPageHeaderContents;
+            IReadOnlyList<IWorkTextContent> footerContents = source.HasEvenPageTemplate
+                ? source.EvenPageFooterContents
+                : source.DefaultPageFooterContents;
+            foreach (IWorkTextContent content in headerContents) {
                 AddRichText(content, header.AddParagraph, nativeLists);
             }
-            foreach (IWorkTextContent content in source.EvenPageFooterContents) {
+            foreach (IWorkTextContent content in footerContents) {
                 AddRichText(content, footer.AddParagraph, nativeLists);
             }
         }

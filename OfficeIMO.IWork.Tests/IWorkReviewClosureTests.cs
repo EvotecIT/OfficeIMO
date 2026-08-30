@@ -295,6 +295,8 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.Equal(new[] { " First ", string.Empty, "Second" },
             result.Projection.Body.Paragraphs.Select(paragraph => paragraph.Text));
+        Assert.Equal(new[] { " First ", string.Empty, "Second" },
+            result.Projection.Paragraphs);
         AssertBlankParagraphBetween(result.Document.Paragraphs.Select(paragraph => paragraph.Text));
         using var bytes = new MemoryStream();
         result.Document.Save(bytes);

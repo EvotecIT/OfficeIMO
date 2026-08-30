@@ -46,7 +46,8 @@ public sealed class IWorkCorpusTests {
         IWorkImportReport report = pages.CreateImportReport(IWorkProjectionKind.EditableReconstruction);
 
         Assert.Equal("hello pages", pages.Paragraphs[0]);
-        Assert.Contains("second paragraph with some words", pages.Paragraphs[1], StringComparison.Ordinal);
+        Assert.Contains(pages.Paragraphs, paragraph => paragraph.Contains(
+            "second paragraph with some words", StringComparison.Ordinal));
         Assert.True(report.TotalRecordCount >= report.UnsupportedRecords.Count);
         Assert.NotEmpty(report.UnsupportedRecords);
         Assert.True(report.HasConversionLoss);

@@ -302,7 +302,7 @@ public sealed partial class IWorkBoundaryTests {
         float? rotation = null, float? fontSize = null, bool wrongWireSlideSize = false,
         uint showType = 2, uint nodeType = 4, uint slideType = 5,
         string text = "Title", string? slideName = null, string? listLabel = null,
-        bool wrongWireSkippedFlag = false) {
+        bool wrongWireSkippedFlag = false, byte[]? textBoxDrawable = null) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -318,6 +318,10 @@ public sealed partial class IWorkBoundaryTests {
             byte[] drawable = Message(BytesField(1, geometry));
             byte[] shape = Message(BytesField(1, drawable));
             shapeFields.Insert(0, BytesField(1, shape));
+        }
+        if (textBoxDrawable != null) {
+            shapeFields.Insert(0, BytesField(1,
+                Message(BytesField(1, textBoxDrawable))));
         }
         var storageFields = new List<byte[]> { StringField(3, text) };
         var extraRecords = new List<byte[]>();
