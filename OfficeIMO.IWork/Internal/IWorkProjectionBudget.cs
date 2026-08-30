@@ -56,5 +56,22 @@ internal sealed class IWorkProjectionBudget {
         _textCharacterCount += count;
     }
 
+    internal void AddTextContentUse(IWorkTextContent content) {
+        long count = content.Paragraphs.Count;
+        foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
+            foreach (IWorkTextRun run in paragraph.Runs) {
+                count++;
+                foreach (char character in run.Text) {
+                    if (character == '\n') count++;
+                }
+            }
+        }
+        if (count > int.MaxValue) {
+            throw new InvalidDataException(
+                $"Text item count exceeds the configured projection limit of {_options.MaximumProjectedTextItems}.");
+        }
+        AddTextItems((int)count);
+    }
+
     internal int MaximumTextStyleInheritanceDepth => _options.MaximumTextStyleInheritanceDepth;
 }

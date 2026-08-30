@@ -46,8 +46,7 @@ internal static class IWorkFormulaReader {
         [119] = "SECOND",
         [124] = "RIGHT",
         [168] = "SUM",
-        [169] = "SUMIF",
-        [212] = "DURATION"
+        [169] = "SUMIF"
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
@@ -68,7 +67,7 @@ internal static class IWorkFormulaReader {
             if (type < 0) complete = false;
             if (TryBinary(type, out string? symbol, out int precedence)) {
                 Operand[] operands = Pop(stack, 2, ref complete);
-                int leftPrecedence = symbol == "^" ? precedence + 1 : precedence;
+                int leftPrecedence = symbol == "^" ? precedence + 2 : precedence;
                 stack.Add(new Operand(Bound(Wrap(operands[0], leftPrecedence) + symbol
                     + Wrap(operands[1], precedence + 1), maximumCharacters, ref complete), precedence));
                 continue;
@@ -94,7 +93,9 @@ internal static class IWorkFormulaReader {
                     int argumentCount = BoundedCount(node.GetUnsigned(3), maximumNodes);
                     Operand[] arguments = Pop(stack, argumentCount, ref complete);
                     if (!FunctionNames.TryGetValue(functionIndex, out string? name)) {
-                        name = "FUNCTION_" + functionIndex.ToString(CultureInfo.InvariantCulture);
+                        name = functionIndex == 212
+                            ? "DURATION"
+                            : "FUNCTION_" + functionIndex.ToString(CultureInfo.InvariantCulture);
                         complete = false;
                     }
                     stack.Add(new Operand(Call(name, arguments, maximumCharacters, ref complete), PrimaryPrecedence));

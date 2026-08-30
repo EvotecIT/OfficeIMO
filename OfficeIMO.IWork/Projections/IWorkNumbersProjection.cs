@@ -1,5 +1,6 @@
 using OfficeIMO.IWork.Internal;
 using System.Globalization;
+using System.Numerics;
 
 namespace OfficeIMO.IWork;
 
@@ -641,7 +642,7 @@ internal static class IWorkNumbersReader {
         if (version != 5) return Error(row, column, $"Unsupported cell storage version {version}.");
         uint flags = IWorkProtobuf.ReadUInt32(buffer, offset + 8);
         int position = offset + 12;
-        double decimalValue = 0;
+        double? decimalValue = null;
         double doubleValue = 0;
         double dateValue = 0;
         uint stringIdentifier = 0;
@@ -685,7 +686,13 @@ internal static class IWorkNumbersReader {
                 return new IWorkTableCell(row, column, IWorkCellKind.Empty, null);
             case 2:
             case 10:
-                if (hasDecimal) return FiniteNumber(row, column, decimalValue, hasFormula, formulaIdentifier, formulas, options);
+                if (hasDecimal) {
+                    return decimalValue.HasValue
+                        ? FiniteNumber(row, column, decimalValue.Value, hasFormula,
+                            formulaIdentifier, formulas, options)
+                        : Error(row, column,
+                            "Decimal128 value exceeds XLSX numeric precision.");
+                }
                 if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula, formulaIdentifier, formulas, options);
                 return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options) : Error(row, column, "Number cell has no value field.");
             case 3:
@@ -771,12 +778,23 @@ internal static class IWorkNumbersReader {
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    private static double ReadDecimal128(byte[] buffer, int offset) {
+    private static double? ReadDecimal128(byte[] buffer, int offset) {
         int exponent = (((buffer[offset + 15] & 0x7f) << 7) | (buffer[offset + 14] >> 1)) - 0x1820;
-        double coefficient = 0;
-        for (int index = 13; index >= 0; index--) coefficient = coefficient * 256 + buffer[offset + index];
-        if ((buffer[offset + 14] & 1) != 0) coefficient += 5.192296858534828e33;
-        double value = coefficient * Math.Pow(10, exponent);
+        BigInteger coefficient = BigInteger.Zero;
+        for (int index = 13; index >= 0; index--) {
+            coefficient = coefficient * 256 + buffer[offset + index];
+        }
+        if ((buffer[offset + 14] & 1) != 0) coefficient += BigInteger.One << 112;
+        if (coefficient.IsZero) return 0d;
+        while (coefficient % 10 == 0) {
+            coefficient /= 10;
+            exponent++;
+        }
+        if (coefficient.ToString(CultureInfo.InvariantCulture).Length > 15) return null;
+        string text = coefficient.ToString(CultureInfo.InvariantCulture)
+            + "E" + exponent.ToString(CultureInfo.InvariantCulture);
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture,
+                out double value) || !IsFinite(value)) return null;
         return (buffer[offset + 15] & 0x80) != 0 ? -value : value;
     }
 }

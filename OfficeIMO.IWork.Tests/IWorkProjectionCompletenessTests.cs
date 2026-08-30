@@ -21,15 +21,16 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Decodes_the_decimal128_high_coefficient_bit_at_weight_two_to_112() {
+    public void High_precision_decimal128_values_use_visual_fallback_instead_of_rounding() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Decimal128", 1, 1, 0d, decimal128HighBit: true)
-        });
+        }, includePreview: true);
 
-        IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers().Sheets).Tables).Cells);
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
 
-        Assert.Equal(Math.Pow(2d, 112), Assert.IsType<double>(cell.Value), 12);
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics,
+            diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_DECODE");
     }
 
     [Fact]

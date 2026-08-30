@@ -79,7 +79,8 @@ internal sealed class IWorkObjectIndex {
 
     internal static IWorkWireMessage? TryGetMessage(IWorkWireMessage message, int field, out bool malformed) {
         try {
-            malformed = false;
+            malformed = message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
+            if (malformed) return null;
             return message.GetMessage(field);
         } catch (InvalidDataException) {
             malformed = true;
@@ -94,7 +95,8 @@ internal sealed class IWorkObjectIndex {
     internal static IReadOnlyList<IWorkWireMessage> TryGetMessages(IWorkWireMessage message, int field,
         out bool malformed) {
         try {
-            malformed = false;
+            malformed = message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
+            if (malformed) return Array.Empty<IWorkWireMessage>();
             return message.GetRepeatedMessages(field);
         } catch (InvalidDataException) {
             malformed = true;

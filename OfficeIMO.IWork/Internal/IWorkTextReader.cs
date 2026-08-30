@@ -501,13 +501,15 @@ internal static class IWorkTextReader {
 
     private static string NormalizeInlineText(string value, IWorkProjectionBudget projectionBudget,
         ref bool complete) {
-        if (value.IndexOf('\ufffc') >= 0) complete = false;
+        if (value.IndexOf('\ufffc') >= 0 || value.IndexOf('\ufffb') >= 0) complete = false;
         int inlineBreakCount = 0;
         foreach (char character in value) {
             if (character == '\u2028') inlineBreakCount++;
         }
         projectionBudget.AddTextItems(inlineBreakCount);
-        return value.Replace('\u2028', '\n').Replace("\ufffc", string.Empty);
+        return value.Replace('\u2028', '\n')
+            .Replace("\ufffc", string.Empty)
+            .Replace("\ufffb", string.Empty);
     }
 
     internal static bool TryDecodeUtf8(byte[] bytes, IWorkProjectionBudget projectionBudget,

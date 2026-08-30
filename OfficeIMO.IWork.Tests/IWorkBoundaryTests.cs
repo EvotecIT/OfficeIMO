@@ -988,7 +988,7 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null,
         byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false,
-        byte[]? sheetNameBytes = null) {
+        byte[]? sheetNameBytes = null, bool includeWrongWireDrawableReference = false) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
@@ -1048,6 +1048,9 @@ public sealed partial class IWorkBoundaryTests {
             if (table.DefaultColumnWidth.HasValue) {
                 modelFields.Add(DoubleField(17, table.DefaultColumnWidth.Value));
             }
+            if (table.DefaultRowHeight.HasValue) {
+                modelFields.Add(DoubleField(16, table.DefaultRowHeight.Value));
+            }
             byte[] model = Message(modelFields.ToArray());
             records.Add(ArchiveRecord(modelId, 6001, model));
             if (table.TextValue != null) {
@@ -1078,6 +1081,7 @@ public sealed partial class IWorkBoundaryTests {
         if (includeMalformedDrawableReference) {
             sheetFields.Add(BytesField(2, new byte[] { 0x08, 0x80 }));
         }
+        if (includeWrongWireDrawableReference) sheetFields.Add(VarintField(2, 10));
         if (duplicateFirstDrawable && tables.Count > 0) sheetFields.Add(ReferenceField(2, 10));
 
         records.Insert(1, ArchiveRecord(sheetId, 2, Message(sheetFields.ToArray())));
@@ -1397,7 +1401,7 @@ public sealed partial class IWorkBoundaryTests {
             bool duplicateTileRow = false, bool omitCurrentOffsets = false, bool date = false,
             bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null,
             bool duplicateFormula = false, bool wrongWireDimensions = false,
-            bool oddCurrentOffsets = false) {
+            bool oddCurrentOffsets = false, double? defaultRowHeight = null) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1421,6 +1425,7 @@ public sealed partial class IWorkBoundaryTests {
             DuplicateFormula = duplicateFormula;
             WrongWireDimensions = wrongWireDimensions;
             OddCurrentOffsets = oddCurrentOffsets;
+            DefaultRowHeight = defaultRowHeight;
         }
 
         internal string Name { get; }
@@ -1446,5 +1451,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool DuplicateFormula { get; }
         internal bool WrongWireDimensions { get; }
         internal bool OddCurrentOffsets { get; }
+        internal double? DefaultRowHeight { get; }
     }
 }

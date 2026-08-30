@@ -91,10 +91,8 @@ public partial class ExcelDocument {
                             sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
                                 + ":" + CellReference(merge.LastRow, merge.LastColumn));
                         }
-                        if (table.DefaultRowHeight is > 0 and <= 409 && table.RowCount <= 4096) {
-                            for (int row = 1; row <= table.RowCount; row++) {
-                                sheet.SetRowHeight(row, table.DefaultRowHeight.Value);
-                            }
+                        if (table.DefaultRowHeight is > 0 and <= 409) {
+                            sheet.SetDefaultRowHeight(table.DefaultRowHeight.Value);
                         }
                         if (table.DefaultColumnWidth is > 0) {
                             double width = Math.Min(255d, Math.Max(0.1d, table.DefaultColumnWidth.Value / 7d));

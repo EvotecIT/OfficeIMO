@@ -449,7 +449,7 @@ internal static class IWorkPagesReader {
             }
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
             if (text.PlainText.Length == 0) continue;
-            projectionBudget.AddTextItem();
+            projectionBudget.AddTextContentUse(text);
             destination.Add(text);
         }
     }
@@ -458,12 +458,14 @@ internal static class IWorkPagesReader {
         out bool fullyDecoded) {
         var text = new System.Text.StringBuilder();
         fullyDecoded = true;
-        if (storage.LacksWireKind(3, IWorkWireKind.Bytes)) fullyDecoded = false;
+        if (storage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)) fullyDecoded = false;
         foreach (byte[] bytes in storage.EnumerateRepeatedBytes(3)) {
             if (IWorkTextReader.TryDecodeUtf8(bytes, projectionBudget, out string part)) text.Append(part);
             else fullyDecoded = false;
         }
-        return CleanText(text.ToString());
+        string value = text.ToString();
+        if (value.IndexOf('\ufffc') >= 0 || value.IndexOf('\ufffb') >= 0) fullyDecoded = false;
+        return CleanText(value);
     }
 
     private static void MarkTextIncomplete(IWorkArchiveRecord storage,
