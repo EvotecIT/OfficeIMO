@@ -534,17 +534,24 @@ public partial class PdfLogicalDocumentTests {
     public void Load_DoesNotRemoveDecimalParagraphsAsListItems() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("1037.25 total"))
+            .Paragraph(paragraph => paragraph.Text("-42 total"))
             .Paragraph(paragraph => paragraph.Text("1. Actual numbered item"))
             .Paragraph(paragraph => paragraph.Text("2)Compact numbered item"))
             .Paragraph(paragraph => paragraph.Text("(a)Compact parenthesized item"))
+            .Paragraph(paragraph => paragraph.Text("-Compact ASCII bullet"))
+            .Paragraph(paragraph => paragraph.Text("*Compact starred bullet"))
             .ToBytes();
 
         PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
 
         Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("1037.25", StringComparison.Ordinal));
+        Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("-42", StringComparison.Ordinal));
         Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("1037.25 total", StringComparison.Ordinal));
+        Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("-42 total", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Actual numbered item", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact numbered item", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact parenthesized item", StringComparison.Ordinal));
+        Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact ASCII bullet", StringComparison.Ordinal));
+        Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact starred bullet", StringComparison.Ordinal));
     }
 }

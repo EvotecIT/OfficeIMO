@@ -194,7 +194,7 @@ public class PdfUnderstandingPipelineTests {
     public void AdvancedPipeline_UsesCanonicalLayoutTableRegions() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {
-                new[] { "Metric", "Value" },
+                new[] { "Table metric", "Value" },
                 new[] { "Quality", "Premium" }
             })
             .ToBytes();
@@ -207,7 +207,7 @@ public class PdfUnderstandingPipelineTests {
         PdfUnderstandingSemanticElement table = Assert.Single(
             page.Elements,
             static element => element.Kind == PdfUnderstandingSemanticKind.Table);
-        Assert.Contains("Metric", table.Region.Text, StringComparison.Ordinal);
+        Assert.Contains("Table metric", table.Region.Text, StringComparison.Ordinal);
         Assert.Contains("Premium", table.Region.Text, StringComparison.Ordinal);
         Assert.Contains(table.Region.Evidence, static evidence => evidence.Code == "region.canonical-table");
         Assert.DoesNotContain(
@@ -223,7 +223,8 @@ public class PdfUnderstandingPipelineTests {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("1037.25", "F1", 11, 50, 500, 45),
-            new PdfTextSpan("1. Actual numbered item", "F1", 11, 50, 430, 120)
+            new PdfTextSpan("1. Actual numbered item", "F1", 11, 50, 430, 120),
+            new PdfTextSpan("-42", "F1", 11, 50, 360, 24)
         });
         PdfUnderstandingPipelineOptions options = advanced
             ? PdfUnderstandingPipelineOptions.Advanced()
@@ -236,6 +237,8 @@ public class PdfUnderstandingPipelineTests {
             Assert.Single(page.Elements, element => element.Region.Text == "1037.25").Kind);
         Assert.Equal(PdfUnderstandingSemanticKind.ListItem,
             Assert.Single(page.Elements, element => element.Region.Text == "1. Actual numbered item").Kind);
+        Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,
+            Assert.Single(page.Elements, element => element.Region.Text == "-42").Kind);
     }
 
     [Theory]
@@ -249,6 +252,10 @@ public class PdfUnderstandingPipelineTests {
     [InlineData(true, "(a)Compact parenthesized item")]
     [InlineData(false, "(1)Compact numeric parenthesized item")]
     [InlineData(true, "(1)Compact numeric parenthesized item")]
+    [InlineData(false, "-Compact ASCII bullet")]
+    [InlineData(true, "-Compact ASCII bullet")]
+    [InlineData(false, "*Compact ASCII bullet")]
+    [InlineData(true, "*Compact ASCII bullet")]
     public void Pipeline_ClassifiesHierarchicalAndCompactListItems(bool advanced, string text) {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = advanced
