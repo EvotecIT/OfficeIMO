@@ -802,12 +802,13 @@ public sealed partial class DocBookDocument {
             bool hasUnsupportedTarget = source.DestinationPageNumber.HasValue || !string.IsNullOrWhiteSpace(source.DestinationMode) ||
                 !string.IsNullOrWhiteSpace(source.NamedAction) || !string.IsNullOrWhiteSpace(source.RemoteFile) ||
                 !string.IsNullOrWhiteSpace(source.RemoteDestinationName) || source.RemoteDestinationPageNumber.HasValue ||
+                source.Region != null ||
                 (!string.IsNullOrWhiteSpace(source.Uri) && !string.IsNullOrWhiteSpace(source.DestinationName));
             if (!represented || hasUnsupportedTarget) {
                 if (!represented) paragraph.Remove();
                 diagnostics.Add(new DocBookDiagnostic("DB120", DocBookDiagnosticSeverity.Warning,
                     represented
-                        ? $"Shared link '{source.Id}' was emitted, but one or more additional target fields could not be represented in DocBook."
+                        ? $"Shared link '{source.Id}' was emitted, but one or more additional target or geometry fields could not be represented in DocBook."
                         : $"Shared link '{source.Id}' had no DocBook-representable URI or named destination.",
                     source.Location?.HeadingPath));
             }

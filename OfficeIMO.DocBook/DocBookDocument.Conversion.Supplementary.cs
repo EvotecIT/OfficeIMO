@@ -227,6 +227,7 @@ public sealed partial class DocBookDocument {
     private static bool IsDerivedLink(OfficeDocumentModelLink link, ILookup<string, OfficeDocumentModelNode> nodesById) {
         const string prefix = "docbook-link-";
         if (string.IsNullOrEmpty(link.Id) || !link.Id.StartsWith(prefix, StringComparison.Ordinal) ||
+            link.Region != null ||
             link.DestinationPageNumber.HasValue || !string.IsNullOrWhiteSpace(link.DestinationMode) ||
             !string.IsNullOrWhiteSpace(link.NamedAction) || !string.IsNullOrWhiteSpace(link.RemoteFile) ||
             !string.IsNullOrWhiteSpace(link.RemoteDestinationName) || link.RemoteDestinationPageNumber.HasValue) return false;

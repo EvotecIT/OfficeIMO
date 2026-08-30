@@ -175,6 +175,20 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterBoundsLongInlineLinkMarkdownWithoutLosingTheTarget() {
+        string destination = "https://example.test/" + new string('a', 1_024);
+        string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><link xl:href=\"" + destination + "\">site</link></para></article>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(
+            DocBookDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 64 }).ToArray();
+
+        Assert.True(chunks.Length > 1);
+        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 64));
+        Assert.Equal("site", string.Concat(chunks.Select(chunk => chunk.Text)));
+        Assert.Equal("[site](" + destination + ")", string.Concat(chunks.Select(chunk => chunk.Markdown)));
+    }
+
+    [Fact]
     public void DocBookAdapterScopesInlineProjectionToTheStructuralTitle() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><section><title>See <link xl:href=\"https://example.test\">site</link></title><para>Body</para></section></article>";
 
@@ -209,6 +223,21 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.StartsWith("~~~\nbefore\n```\n# still code\nafter\n~~~", markdown, StringComparison.Ordinal);
         Assert.Equal("code", Assert.Single(result.Chunks).Location.SourceBlockKind);
+    }
+
+    [Fact]
+    public void DocBookAdapterBoundsGeneratedCodeFencesAndPreservesTheListing() {
+        string listing = new string('`', 300) + "\n" + new string('~', 400);
+        string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><programlisting>" + listing + "</programlisting></article>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(
+            DocBookDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 64 }).ToArray();
+
+        Assert.True(chunks.Length > 1);
+        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 64));
+        Assert.Equal(listing, string.Concat(chunks.Select(chunk => chunk.Text)));
+        string fence = new string('`', 301);
+        Assert.Equal(fence + "\n" + listing + "\n" + fence, string.Concat(chunks.Select(chunk => chunk.Markdown)));
     }
 
     [Fact]

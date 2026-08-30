@@ -1473,6 +1473,21 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionDiagnosesUnrepresentableLinkGeometry() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><link xl:href=\"https://example.test/\">Site</link></para></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        Assert.Single(model.Links).Region = new OfficeDocumentModelRegion { X = 1, Y = 2, Width = 3, Height = 4 };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB120" &&
+            diagnostic.Message.IndexOf("could not be represented", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Value.Xml.Descendants(), element =>
+            (string?)element.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink")) == "https://example.test/");
+    }
+
+    [Fact]
     public void SharedConversionDoesNotReportFlatFallbackWithoutFlatContent() {
         var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.DocBook };
         var titleOnly = new OfficeDocumentModel {

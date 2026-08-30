@@ -363,6 +363,21 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionDiagnosesUnrepresentableLinkGeometry() {
+        OpmlDocument document = OpmlDocument.Create();
+        document.AddOutline("Site").Url = "https://example.test/";
+        OfficeDocumentModel model = document.ToOfficeDocumentModel().Value;
+        Assert.Single(model.Links).Region = new OfficeDocumentModelRegion { X = 1, Y = 2, Width = 3, Height = 4 };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML106" &&
+            diagnostic.Message.IndexOf("could not be represented", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Value.Outlines, outline => outline.Url == "https://example.test/");
+    }
+
+    [Fact]
     public void SharedConversionAppendsIndependentBlocksAndLinksAlongsideStructure() {
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.Opml,

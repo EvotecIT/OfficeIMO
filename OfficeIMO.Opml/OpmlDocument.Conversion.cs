@@ -278,11 +278,11 @@ public sealed partial class OpmlDocument {
             bool hasUnsupportedTarget = !string.IsNullOrWhiteSpace(link.DestinationName) || link.DestinationPageNumber.HasValue ||
                 !string.IsNullOrWhiteSpace(link.DestinationMode) || !string.IsNullOrWhiteSpace(link.NamedAction) ||
                 !string.IsNullOrWhiteSpace(link.RemoteFile) || !string.IsNullOrWhiteSpace(link.RemoteDestinationName) ||
-                link.RemoteDestinationPageNumber.HasValue;
+                link.RemoteDestinationPageNumber.HasValue || link.Region != null;
             if (!represented || hasUnsupportedTarget) {
                 diagnostics.Add(new OpmlDiagnostic("OPML106", OpmlDiagnosticSeverity.Warning,
                     represented
-                        ? $"Shared link '{link.Id}' was emitted, but one or more additional target fields could not be represented in OPML."
+                        ? $"Shared link '{link.Id}' was emitted, but one or more additional target or geometry fields could not be represented in OPML."
                         : $"Shared link '{link.Id}' had no OPML-representable URI.",
                     link.Location?.HeadingPath));
             }
@@ -361,6 +361,7 @@ public sealed partial class OpmlDocument {
         static bool IsDerivedLink(OfficeDocumentModelLink link, ILookup<string, OfficeDocumentModelNode> nodesById) {
             const string prefix = "opml-link-";
             if (string.IsNullOrEmpty(link.Id) || !link.Id.StartsWith(prefix, StringComparison.Ordinal) || string.IsNullOrEmpty(link.Uri) ||
+                link.Region != null ||
                 !string.IsNullOrWhiteSpace(link.DestinationName) || link.DestinationPageNumber.HasValue ||
                 !string.IsNullOrWhiteSpace(link.DestinationMode) || !string.IsNullOrWhiteSpace(link.NamedAction) ||
                 !string.IsNullOrWhiteSpace(link.RemoteFile) || !string.IsNullOrWhiteSpace(link.RemoteDestinationName) ||

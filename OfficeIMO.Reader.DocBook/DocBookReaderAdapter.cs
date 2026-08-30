@@ -127,20 +127,17 @@ internal static partial class DocBookReaderAdapter {
                 TryBuildInlineFragments(inlineProjectionNode, out IReadOnlyList<InlineFragment> inlineFragments)) {
                 int inlinePart = 0;
                 foreach (InlineFragment fragment in inlineFragments) {
-                    IReadOnlyList<string> fragmentParts = fragment.Text.Length == 0
-                        ? new[] { string.Empty }
-                        : DocumentReaderEngine.SplitAdapterProjection(fragment.Text, reader.MaxChars);
-                    foreach (string fragmentPart in fragmentParts) {
-                        string markdown = fragment.ToMarkdown(fragmentPart);
-                        if (inlinePart == 0 && IsHeadingNode(node)) {
-                            markdown = new string('#', Math.Min(node.Level ?? 1, 6)) + " " + markdown;
-                        }
-                        if (inlinePart == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
+                    string markdown = fragment.ToMarkdown(fragment.Text);
+                    if (inlinePart == 0 && IsHeadingNode(node)) {
+                        markdown = new string('#', Math.Min(node.Level ?? 1, 6)) + " " + markdown;
+                    }
+                    if (inlinePart == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
+                    foreach (ProjectionPart projectionPart in SplitProjection(fragment.Text, markdown, reader.MaxChars)) {
                         yield return new ReaderChunk {
                             Id = inlinePart == 0 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (inlinePart + 1),
                             Kind = ReaderInputKind.DocBook,
-                            Text = fragmentPart,
-                            Markdown = markdown,
+                            Text = projectionPart.Text,
+                            Markdown = projectionPart.Markdown,
                             ContinuesPreviousChunk = inlinePart > 0,
                             Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                                 HeadingPath = node.Location.HeadingPath,
@@ -160,23 +157,19 @@ internal static partial class DocBookReaderAdapter {
             string projectedText = structuralTitle?.Text ?? node.Text;
             if (!emittedInlineProjection && (!compoundExtension || structuralTitle != null) && !string.IsNullOrWhiteSpace(projectedText) &&
                 node.Kind != "metadata" && node.Kind != "author") {
-                IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(projectedText, reader.MaxChars);
-                string codeFence = preformatted ? CreateCodeFence(projectedText) : string.Empty;
+                string markdown;
+                if (preformatted) {
+                    string codeFence = CreateCodeFence(projectedText);
+                    markdown = codeFence + "\n" + projectedText + "\n" + codeFence;
+                } else {
+                    markdown = (IsHeadingNode(node) ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " : string.Empty) + projectedText;
+                }
+                if (listMarker != null) markdown = listMarker.TakePrefix() + markdown;
+                IReadOnlyList<ProjectionPart> parts = SplitProjection(projectedText, markdown, reader.MaxChars);
                 for (int part = 0; part < parts.Count; part++) {
-                    string markdown;
-                    if (preformatted) {
-                        markdown = parts.Count == 1 ? codeFence + "\n" + parts[part] + "\n" + codeFence
-                            : (part == 0 ? codeFence + "\n" : string.Empty) + parts[part] +
-                              (part == parts.Count - 1 ? "\n" + codeFence : string.Empty);
-                    } else {
-                        markdown = part == 0 && IsHeadingNode(node)
-                            ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " + parts[part]
-                            : parts[part];
-                    }
-                    if (part == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
                     yield return new ReaderChunk {
                         Id = parts.Count == 1 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (part + 1),
-                        Kind = ReaderInputKind.DocBook, Text = parts[part], Markdown = markdown,
+                        Kind = ReaderInputKind.DocBook, Text = parts[part].Text, Markdown = parts[part].Markdown,
                         ContinuesPreviousChunk = part > 0,
                         Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                             HeadingPath = node.Location.HeadingPath,
@@ -278,6 +271,24 @@ internal static partial class DocBookReaderAdapter {
         }
     }
 
+    private static IReadOnlyList<ProjectionPart> SplitProjection(string text, string markdown, int maxChars) {
+        int effectiveMaxChars = Math.Max(1, maxChars);
+        IReadOnlyList<string> textParts = text.Length == 0
+            ? Array.Empty<string>()
+            : DocumentReaderEngine.SplitAdapterProjection(text, effectiveMaxChars);
+        IReadOnlyList<string> markdownParts = markdown.Length == 0
+            ? Array.Empty<string>()
+            : DocumentReaderEngine.SplitAdapterProjection(markdown, effectiveMaxChars);
+        int partCount = Math.Max(1, Math.Max(textParts.Count, markdownParts.Count));
+        var parts = new ProjectionPart[partCount];
+        for (int index = 0; index < partCount; index++) {
+            parts[index] = new ProjectionPart(
+                index < textParts.Count ? textParts[index] : string.Empty,
+                index < markdownParts.Count ? markdownParts[index] : string.Empty);
+        }
+        return parts;
+    }
+
     private static string CreateCodeFence(string text) {
         int backticks = LongestRun(text, '`');
         int tildes = LongestRun(text, '~');
@@ -314,6 +325,16 @@ internal static partial class DocBookReaderAdapter {
             Applied = true;
             return Prefix;
         }
+    }
+
+    private sealed class ProjectionPart {
+        internal ProjectionPart(string text, string markdown) {
+            Text = text;
+            Markdown = markdown;
+        }
+
+        internal string Text { get; }
+        internal string Markdown { get; }
     }
 
     private sealed class DocBookProjection {
