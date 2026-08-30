@@ -53,13 +53,13 @@ internal static partial class DocumentReaderEngine {
     internal static long? ResolveStreamMaxInputBytes(string? sourceName, ReaderOptions options, bool streamCanSeek) {
         if (options.MaxInputBytes.HasValue) return options.MaxInputBytes;
         if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
-            handler.SupportsStreamInput) return handler.DefaultMaxInputBytes;
+            handler.SupportsStreamInput) return handler.ResolveDefaultMaxInputBytes(sourceName);
         return streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes;
     }
 
     internal static long? ResolveHandlerDefaultMaxInputBytes(string? sourceName) {
         return TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler)
-            ? handler.DefaultMaxInputBytes
+            ? handler.ResolveDefaultMaxInputBytes(sourceName)
             : null;
     }
 

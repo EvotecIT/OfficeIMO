@@ -50,7 +50,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => LegacySpreadsheetReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
-            DefaultMaxInputBytes = 64L * 1024L * 1024L
+            DefaultMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
         }, replaceExisting);
     }
 }

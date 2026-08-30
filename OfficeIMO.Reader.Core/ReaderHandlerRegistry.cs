@@ -172,6 +172,7 @@ internal sealed class ReaderHandlerDescriptor {
         bool useDetectedKindFallback,
         IReadOnlyList<string> extensions,
         long? defaultMaxInputBytes,
+        IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension,
         ReaderSourceHashBehavior sourceHashBehavior,
         ReaderWarningBehavior warningBehavior,
         bool deterministicOutput,
@@ -190,6 +191,7 @@ internal sealed class ReaderHandlerDescriptor {
         UseDetectedKindFallback = useDetectedKindFallback;
         Extensions = extensions;
         DefaultMaxInputBytes = defaultMaxInputBytes;
+        DefaultMaxInputBytesByExtension = defaultMaxInputBytesByExtension;
         SourceHashBehavior = sourceHashBehavior;
         WarningBehavior = warningBehavior;
         DeterministicOutput = deterministicOutput;
@@ -210,6 +212,7 @@ internal sealed class ReaderHandlerDescriptor {
     public bool UseDetectedKindFallback { get; }
     public IReadOnlyList<string> Extensions { get; }
     public long? DefaultMaxInputBytes { get; }
+    public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; }
     public ReaderSourceHashBehavior SourceHashBehavior { get; }
     public ReaderWarningBehavior WarningBehavior { get; }
     public bool DeterministicOutput { get; }
@@ -247,6 +250,8 @@ internal sealed class ReaderHandlerDescriptor {
         if (extensions.Count == 0 && !registration.UseDetectedKindFallback) {
             throw new ArgumentException("Handler must define at least one extension unless it is a detected-kind fallback.", nameof(registration));
         }
+        IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension = NormalizeExtensionLimits(
+            registration.DefaultMaxInputBytesByExtension, extensions);
 
         return new ReaderHandlerDescriptor(
             id,
@@ -257,6 +262,7 @@ internal sealed class ReaderHandlerDescriptor {
             registration.UseDetectedKindFallback,
             extensions,
             registration.DefaultMaxInputBytes,
+            defaultMaxInputBytesByExtension,
             registration.SourceHashBehavior,
             registration.WarningBehavior,
             registration.DeterministicOutput,
@@ -286,9 +292,42 @@ internal sealed class ReaderHandlerDescriptor {
             SchemaId = ReaderCapabilitySchema.Id,
             SchemaVersion = ReaderCapabilitySchema.Version,
             DefaultMaxInputBytes = DefaultMaxInputBytes,
+            DefaultMaxInputBytesByExtension = DefaultMaxInputBytesByExtension.ToDictionary(
+                static entry => entry.Key, static entry => entry.Value, StringComparer.OrdinalIgnoreCase),
             WarningBehavior = WarningBehavior,
             DeterministicOutput = DeterministicOutput
         };
+    }
+
+    public long? ResolveDefaultMaxInputBytes(string? sourceName) {
+        string extension;
+        try {
+            extension = DocumentReaderEngine.NormalizeExtension(Path.GetExtension(sourceName ?? string.Empty));
+        } catch (ArgumentException) {
+            extension = string.Empty;
+        } catch (NotSupportedException) {
+            extension = string.Empty;
+        }
+        return extension.Length > 0 && DefaultMaxInputBytesByExtension.TryGetValue(extension, out long value)
+            ? value
+            : DefaultMaxInputBytes;
+    }
+
+    private static IReadOnlyDictionary<string, long> NormalizeExtensionLimits(
+        IReadOnlyDictionary<string, long>? limits,
+        IReadOnlyList<string> extensions) {
+        var normalized = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        if (limits == null) return normalized;
+        var claimed = new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, long> entry in limits) {
+            string extension = DocumentReaderEngine.NormalizeExtension(entry.Key);
+            if (extension.Length == 0 || !claimed.Contains(extension)) {
+                throw new ArgumentException($"Per-extension input limit '{entry.Key}' is not claimed by the handler.", nameof(limits));
+            }
+            if (entry.Value < 1) throw new ArgumentException("Per-extension input limits must be greater than 0.", nameof(limits));
+            normalized[extension] = entry.Value;
+        }
+        return normalized;
     }
 
     private static IReadOnlyList<string> NormalizeExtensions(IReadOnlyList<string>? extensions) {

@@ -93,6 +93,14 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void WorksShortHeaderRequiresCorroboratingSourceEvidence() {
+        byte[] source = LegacyFixtureFactory.WorksWord();
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(source));
+        Assert.Equal(LegacyWordFormat.MicrosoftWorks,
+            LegacyWordImporter.Detect(source, new LegacyWordImportOptions { SourceName = "archive.wps" }).Format);
+    }
+
+    [Fact]
     public void WordStarPreservesExplicitEmptyParagraphsAndBoundsFormattedRuns() {
         byte[] paragraphs = Encoding.ASCII.GetBytes("\u0002\u0002One\r\n\r\nThree\r\n\u001A");
         using LegacyWordImportResult imported = LegacyWordImporter.Import(paragraphs, new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
@@ -146,6 +154,16 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void WordStarStyleSequenceTextCannotExceedTheSharedCharacterBudget() {
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            LegacyFixtureFactory.WordStarWithStyle(new string('S', 32)),
+            new LegacyWordImportOptions {
+                FormatHint = LegacyWordFormat.WordStar,
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 16 }
+            }));
+    }
+
+    [Fact]
     public void WordStarCoalescesUnknownDotCommandsAndPlainTextRemainsHardBounded() {
         byte[] commands = Encoding.ASCII.GetBytes("\u0002\u0002.XX first\r\n.YY second\r\nText\r\n\u001A");
         using LegacyWordImportResult imported = LegacyWordImporter.Import(commands, new LegacyWordImportOptions {
@@ -192,6 +210,15 @@ public sealed class LegacyWordImportTests {
         Assert.True(structured.Report.InertContent.HasFlag(OfficeLegacyInertContentKind.EmbeddedObjects));
         Assert.Contains(structured.Report.Findings, finding => finding.Code == "AMIPRO_EMBEDDED_OBJECT_INERT");
         Assert.Contains(structured.Report.Findings, finding => finding.Code == "AMIPRO_SECTION_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void AmiProRecordLimitIsCheckedBeforeLineMaterialization() {
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\nOne\nTwo\nThree\n");
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(source, new LegacyWordImportOptions {
+            SourceName = "archive.sam",
+            Limits = new OfficeLegacyImportLimits { MaxRecords = 4 }
+        }));
     }
 
     [Fact]
@@ -263,6 +290,21 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void WordStarRemainsOnLegacyWordHandlerInPreferContentMode() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddWordAndLegacyHandlers()
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            LegacyFixtureFactory.WordStarMarkdownLike(),
+            "archive.ws4",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Contains(OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("WordStar heading", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void WordReaderContentRoutesStrongDosDocHeadersWithoutStealingCompoundDoc() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddWordAndLegacyHandlers()
@@ -302,6 +344,23 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void CoordinatedWordRegistrationDoesNotApplyDosLimitToModernWord() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph(new string('M', 1_024));
+        using var package = new MemoryStream();
+        document.Save(package);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = 128 }
+            })
+            .Build();
+        package.Position = 0;
+
+        OfficeDocumentReadResult result = reader.ReadDocument(package, "modern.docx");
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("MMM", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ReaderLimitCannotRaiseConfiguredLegacyWordLimit() {
         byte[] source = LegacyFixtureFactory.WordPerfect();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
@@ -313,6 +372,19 @@ public sealed class LegacyWordImportTests {
         using var stream = new MemoryStream(source);
         Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.wpd",
             new ReaderOptions { MaxInputBytes = source.Length + 100L }));
+    }
+
+    [Fact]
+    public void LegacyWordHandlerUsesConfiguredLimitBeforeBufferingNonSeekableStreams() {
+        byte[] source = LegacyFixtureFactory.WordPerfect();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddLegacyWordHandler(new LegacyWordImportOptions {
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+            })
+            .Build();
+        using var stream = new NonSeekableStream(source);
+
+        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wpd"));
     }
 
     [Fact]

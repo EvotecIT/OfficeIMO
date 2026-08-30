@@ -25,9 +25,23 @@ internal sealed class AmiProSamParser {
     private int _unsupportedSectionCount;
 
     internal AmiProSamParser(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
-        _lines = Encoding.ASCII.GetString(data).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         _limits = limits;
         _cancellationToken = cancellationToken;
+        ValidateRecordCount(data);
+        _cancellationToken.ThrowIfCancellationRequested();
+        _lines = Encoding.ASCII.GetString(data).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+    }
+
+    private void ValidateRecordCount(byte[] data) {
+        int records = 1;
+        for (int index = 0; index < data.Length; index++) {
+            if ((index & 0x0FFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
+            if ((data[index] == (byte)'\n' || data[index] == (byte)'\r') &&
+                (index == 0 || data[index] != (byte)'\n' || data[index - 1] != (byte)'\r') &&
+                ++records > _limits.MaxRecords) {
+                throw new InvalidDataException("Ami Pro source exceeds the configured record limit.");
+            }
+        }
     }
 
     internal LegacyWordModel Parse() {

@@ -71,6 +71,21 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void StructuredWkLabelsRespectTheExcelCellLimitWithLossDiagnostics() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false, label: new string('L', 40_000)),
+            new LegacySpreadsheetImportOptions {
+                SourceName = "archive.wk1",
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 50_000 }
+            });
+
+        string value = Assert.IsType<string>(Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 1).CachedValue);
+        Assert.Equal(32_767, value.Length);
+        Assert.Equal("1", imported.Metadata["TruncatedStructuredCellCount"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "LEGACY_SHEET_CELL_TEXT_TRUNCATED");
+    }
+
+    [Fact]
     public void WkFormulaFallbackAndRecordBoundsAreExplicit() {
         using LegacySpreadsheetImportResult fallback = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0xFE, 0x03 }),
@@ -112,6 +127,18 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.True(imported.Names.Sum(name => name.Name.Length) +
             imported.Cells.Sum(cell => (cell.CachedValue as string)?.Length ?? 0) +
             imported.Cells.Sum(cell => cell.Formula?.Length ?? 0) <= sourceNameAndLabelCharacters + oneFormulaCharacters);
+    }
+
+    [Fact]
+    public void WkFallbackMetadataUsesBoundedSamplesAndAggregateCounts() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithRepeatedFallbackMetadata(20),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+
+        Assert.Equal("20", imported.Metadata["FormulaFallbackCount"]);
+        Assert.Equal("20", imported.Metadata["UnresolvedNameCount"]);
+        Assert.Equal(16, imported.Metadata.Keys.Count(key => key.StartsWith("FormulaFallback.Sample.", StringComparison.Ordinal)));
+        Assert.Equal(16, imported.Metadata.Keys.Count(key => key.StartsWith("UnresolvedName.Sample.", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -304,6 +331,18 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void ShortSalvagePrefixesRequireCorroboratingSourceEvidence() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Detect(LegacyFixtureFactory.Multiplan()));
+        byte[] works = new byte[] { 0xFF, 0x00, 0x02 }.Concat(Encoding.ASCII.GetBytes("Recoverable text")).ToArray();
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Detect(works));
+
+        Assert.Equal(LegacySpreadsheetFormat.Multiplan,
+            LegacySpreadsheetImporter.Detect(LegacyFixtureFactory.Multiplan(), new LegacySpreadsheetImportOptions { SourceName = "archive.mp" }).Format);
+        Assert.Equal(LegacySpreadsheetFormat.MicrosoftWorks,
+            LegacySpreadsheetImporter.Detect(works, new LegacySpreadsheetImportOptions { SourceName = "archive.wks" }).Format);
+    }
+
+    [Fact]
     public void ReaderLimitCannotRaiseConfiguredLegacySpreadsheetLimit() {
         byte[] source = LegacyFixtureFactory.Wk();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
@@ -315,5 +354,37 @@ public sealed class LegacySpreadsheetImportTests {
         using var stream = new MemoryStream(source);
         Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.wk1",
             new ReaderOptions { MaxInputBytes = source.Length + 100L }));
+    }
+
+    [Fact]
+    public void LegacySpreadsheetHandlerUsesConfiguredLimitBeforeBufferingNonSeekableStreams() {
+        byte[] source = LegacyFixtureFactory.Wk();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddLegacySpreadsheetHandler(new LegacySpreadsheetImportOptions {
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+            })
+            .Build();
+        using var stream = new NonSeekableStream(source);
+
+        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wk1"));
+    }
+
+    private sealed class NonSeekableStream : Stream {
+        private readonly MemoryStream _inner;
+        internal NonSeekableStream(byte[] data) => _inner = new MemoryStream(data, writable: false);
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

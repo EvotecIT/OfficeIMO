@@ -6,7 +6,7 @@ using System.Threading;
 namespace OfficeIMO.Excel.Legacy;
 
 internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter {
-    private const int ExcelCellTextLimit = 32_767;
+    protected const int ExcelCellTextLimit = 32_767;
     public abstract LegacySpreadsheetFormat Format { get; }
     public abstract string ProfileId { get; }
     public virtual string GetProfileId(byte[] data, CancellationToken cancellationToken) {
@@ -60,9 +60,12 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
         }
         if (truncatedCellCount > 0) {
             model.Metadata["TruncatedSalvageCellCount"] = truncatedCellCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            model.Findings.Add(Loss("LEGACY_SHEET_CELL_TEXT_TRUNCATED", "Cell", "One or more salvaged text fields exceeded the Excel cell-text limit and were truncated to 32,767 characters; the total is available in metadata."));
+            AddCellTextTruncationFinding(model);
         }
         model.Findings.Add(Loss("LEGACY_SHEET_SALVAGE", "Structure", limitation));
         return model;
     }
+
+    protected static void AddCellTextTruncationFinding(LegacySpreadsheetModel model) =>
+        model.Findings.Add(Loss("LEGACY_SHEET_CELL_TEXT_TRUNCATED", "Cell", "One or more recovered text cells exceeded the Excel cell-text limit and were truncated to 32,767 characters; the total is available in metadata."));
 }

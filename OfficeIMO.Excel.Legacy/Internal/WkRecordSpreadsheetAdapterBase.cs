@@ -14,6 +14,7 @@ internal enum WkRecordLayout {
 }
 
 internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapterBase {
+    private const int MetadataSampleLimit = 16;
     protected LegacySpreadsheetModel ParseWkRecords(byte[] data, OfficeLegacyImportLimits limits, string familyName,
         byte expectedProduct0, byte expectedProduct1, CancellationToken cancellationToken,
         WkRecordLayout layout = WkRecordLayout.Dos, bool translateFormulas = true) {
@@ -28,6 +29,9 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         bool reportedUnsupportedFormat = false;
         bool reportedStringFormula = false;
         bool reportedUnsupportedNameReference = false;
+        int formulaFallbackCount = 0;
+        int unresolvedNameCount = 0;
+        int truncatedCellTextCount = 0;
         var unsupportedRecordTypes = new HashSet<ushort>();
         while (offset + 4 <= data.Length) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -46,7 +50,8 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     foundEnd = true;
                     break;
                 case 0x000B:
-                    CaptureName(model, sheets, data, payload, length, limits, ref recoveredTextCharacters, ref reportedUnsupportedNameReference);
+                    CaptureName(model, sheets, data, payload, length, limits, ref recoveredTextCharacters,
+                        ref reportedUnsupportedNameReference, ref unresolvedNameCount);
                     break;
                 case 0x000C:
                     ValidateCellHeader(data, payload, length, layout);
@@ -68,6 +73,10 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                         ? ReadPascalAscii(data, payload + labelOffset + 1, length - labelOffset - 1)
                         : ReadRequiredNullTerminatedAscii(data, payload + labelOffset + 1, length - labelOffset - 1);
                     AddTextCharacters(ref recoveredTextCharacters, value.Length, limits);
+                    if (value.Length > ExcelCellTextLimit) {
+                        value = value.Substring(0, ExcelCellTextLimit);
+                        truncatedCellTextCount++;
+                    }
                     OfficeIMO.Excel.ExcelHorizontalAlignment? alignment = prefix == (byte)'^' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Center
                         : prefix == (byte)'"' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Right
                         : prefix == (byte)'\'' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Left
@@ -76,7 +85,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     break;
                 case 0x0010:
                     ParseFormulaCell(model, sheets, limits, data, payload, length, ref recoveredTextCharacters,
-                        ref reportedUnsupportedFormula, ref reportedUnsupportedFormat, layout, translateFormulas);
+                        ref reportedUnsupportedFormula, ref reportedUnsupportedFormat, ref formulaFallbackCount, layout, translateFormulas);
                     break;
                 case 0x0033:
                     if (!reportedStringFormula) {
@@ -102,13 +111,20 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
             model.Findings.Add(Loss("WK_RECORDS_UNSUPPORTED", "Structure", $"{unsupportedRecordTypes.Count} distinct source record kinds were not projected ({recordIds}); supported cells and metadata were retained."));
         }
         if (model.Charts.Count > 0) model.Findings.Add(Loss("LEGACY_CHART_METADATA_ONLY", "Chart", "Chart records were inventoried as metadata but were not converted into potentially misleading live charts."));
+        if (formulaFallbackCount > 0) model.Metadata["FormulaFallbackCount"] = formulaFallbackCount.ToString(CultureInfo.InvariantCulture);
+        if (unresolvedNameCount > 0) model.Metadata["UnresolvedNameCount"] = unresolvedNameCount.ToString(CultureInfo.InvariantCulture);
+        if (truncatedCellTextCount > 0) {
+            model.Metadata["TruncatedStructuredCellCount"] = truncatedCellTextCount.ToString(CultureInfo.InvariantCulture);
+            AddCellTextTruncationFinding(model);
+        }
         if (model.RecoveredCellCount == 0) throw new InvalidDataException($"The {familyName} record stream contained no supported cells.");
         return model;
     }
 
     private static void ParseFormulaCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
         OfficeLegacyImportLimits limits, byte[] data, int payload, int length, ref int recoveredTextCharacters,
-        ref bool reportedUnsupportedFormula, ref bool reportedUnsupportedFormat, WkRecordLayout layout, bool translateFormulas) {
+        ref bool reportedUnsupportedFormula, ref bool reportedUnsupportedFormat, ref int formulaFallbackCount,
+        WkRecordLayout layout, bool translateFormulas) {
         int dataOffset = DataOffset(layout);
         if (length < dataOffset + 10) throw new InvalidDataException("Truncated WK formula cell record envelope.");
         double cached = ReadDouble(data, payload + dataOffset);
@@ -132,7 +148,10 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                 model.Findings.Add(Loss("WK_FORMULA_CACHED_FALLBACK", "Formula", "At least one WK formula used an unsupported or invalid token sequence; its finite cached value was retained instead."));
                 reportedUnsupportedFormula = true;
             }
-            model.Metadata[$"FormulaFallback.{model.RecoveredCellCount + 1}"] = error;
+            formulaFallbackCount++;
+            if (formulaFallbackCount <= MetadataSampleLimit) {
+                model.Metadata[$"FormulaFallback.Sample.{formulaFallbackCount}"] = error;
+            }
         }
         AddCell(model, sheets, limits, data, payload, cached, formula, null, ref reportedUnsupportedFormat, layout: layout);
     }
@@ -164,12 +183,15 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
 
     private static void CaptureName(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
         byte[] data, int payload, int length, OfficeLegacyImportLimits limits, ref int recoveredTextCharacters,
-        ref bool reportedUnsupportedNameReference) {
+        ref bool reportedUnsupportedNameReference, ref int unresolvedNameCount) {
         if (length < 24) {
             string metadataName = ReadNullTerminatedAscii(data, payload, length).Trim();
             if (metadataName.Length == 0) return;
             AddTextCharacters(ref recoveredTextCharacters, metadataName.Length, limits);
-            model.Metadata["UnresolvedName:" + model.Metadata.Count.ToString(CultureInfo.InvariantCulture)] = metadataName;
+            unresolvedNameCount++;
+            if (unresolvedNameCount <= MetadataSampleLimit) {
+                model.Metadata["UnresolvedName.Sample." + unresolvedNameCount.ToString(CultureInfo.InvariantCulture)] = metadataName;
+            }
             if (!reportedUnsupportedNameReference) {
                 model.Findings.Add(Loss("WK_NAME_REFERENCE_UNSUPPORTED", "Name", "One or more short WK name records were retained as metadata because they did not contain the validated 16-byte-name plus range profile."));
                 reportedUnsupportedNameReference = true;

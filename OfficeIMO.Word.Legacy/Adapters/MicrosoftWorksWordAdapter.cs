@@ -13,8 +13,12 @@ internal sealed class MicrosoftWorksWordAdapter : LegacyWordAdapterBase {
             return 90;
         }
         if (data.Length >= 2 && data[0] < 6 && data[1] == 0xFE) {
-            reason = "Microsoft Works 2.x word-processing header.";
-            return 95;
+            if (ExtensionIs(sourceName, ".wps")) {
+                reason = "Microsoft Works 2.x word-processing header with corroborating Works extension.";
+                return 95;
+            }
+            reason = "Ambiguous two-byte Works-family header without corroborating source evidence.";
+            return 45;
         }
         if (ExtensionIs(sourceName, ".wps")) {
             reason = "Microsoft Works word-processing extension only; use FormatHint when the family is independently known.";

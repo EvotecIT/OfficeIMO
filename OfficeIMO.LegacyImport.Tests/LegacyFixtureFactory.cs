@@ -34,6 +34,21 @@ internal static class LegacyFixtureFactory {
         return bytes.ToArray();
     }
 
+    internal static byte[] WordStarWithStyle(string styleName) {
+        var bytes = new List<byte>();
+        bytes.AddRange(WordStarSequence(0x11, styleName));
+        bytes.AddRange(Encoding.ASCII.GetBytes("Styled paragraph\r\n"));
+        bytes.Add(0x1A);
+        return bytes.ToArray();
+    }
+
+    internal static byte[] WordStarMarkdownLike() {
+        var bytes = new List<byte> { 0x02, 0x02 };
+        bytes.AddRange(Encoding.ASCII.GetBytes("# WordStar heading\r\nBody\r\n"));
+        bytes.Add(0x1A);
+        return bytes.ToArray();
+    }
+
     internal static byte[] WordStarWithRepeatedDiagnostics() {
         var bytes = new List<byte>(Encoding.ASCII.GetBytes("Text\r\n- One\r\n- Two\r\n"));
         for (int index = 0; index < 3; index++) {
@@ -124,6 +139,21 @@ internal static class LegacyFixtureFactory {
         byte[] envelope = BitConverter.GetBytes(84d).Concat(BitConverter.GetBytes((ushort)tokens.Length)).Concat(tokens).ToArray();
         Record(writer, 0x0010, CellPayload(1, 0, envelope));
         Record(writer, 0x0010, CellPayload(2, 0, envelope));
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    internal static byte[] WkWithRepeatedFallbackMetadata(int count) {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
+        byte[] tokens = { 0xFE, 0x03 };
+        byte[] envelope = BitConverter.GetBytes(84d).Concat(BitConverter.GetBytes((ushort)tokens.Length)).Concat(tokens).ToArray();
+        for (int index = 0; index < count; index++) {
+            Record(writer, 0x000B, Encoding.ASCII.GetBytes("Name" + index + "\0"));
+            Record(writer, 0x0010, CellPayload((byte)index, 0, envelope));
+        }
         Record(writer, 0x0001, Array.Empty<byte>());
         writer.Flush();
         return stream.ToArray();

@@ -39,9 +39,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderWordOptions configured = WordReaderAdapter.Clone(options);
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? configuredLegacyImport = LegacyWordReaderAdapter.Clone(legacyImportOptions);
-        long? defaultMaxInputBytes = routeWordForDos
-            ? configuredLegacyImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
-            : null;
+        long legacyMaxInputBytes = configuredLegacyImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes;
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
@@ -54,7 +52,10 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             ProbeStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ProbeEncryptedOpenXml(stream, readerOptions, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
-            DefaultMaxInputBytes = defaultMaxInputBytes
+            DefaultMaxInputBytes = global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes,
+            DefaultMaxInputBytesByExtension = routeWordForDos
+                ? new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase) { [".doc"] = legacyMaxInputBytes }
+                : new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
         }, replaceExisting);
     }
 
@@ -78,9 +79,10 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             Extensions = new[] { ".wp", ".wp5", ".wp6", ".wpd", ".ws", ".ws3", ".ws4", ".ws5", ".ws6", ".ws7", ".sam", ".lwp", ".wps", ".wri" },
             ReadDocumentPath = (path, readerOptions, token) => LegacyWordReaderAdapter.ReadDocument(path, readerOptions, configured, configuredImport, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => LegacyWordReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredImport, token),
+            ProbeStream = (stream, sourceName, readerOptions, token) => LegacyWordReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
-            DefaultMaxInputBytes = 64L * 1024L * 1024L
+            DefaultMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
         }, replaceExisting);
     }
 }

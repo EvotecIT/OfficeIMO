@@ -30,6 +30,38 @@ internal static class LegacyWordReaderAdapter {
         return WordReaderAdapter.Project(imported.Document, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
+    internal static bool Probe(Stream stream, string? sourceName, ReaderOptions readerOptions,
+        LegacyWordImportOptions? importOptions, CancellationToken cancellationToken) {
+        if (!stream.CanSeek) return false;
+        long position = stream.Position;
+        try {
+            LegacyWordImportOptions configured = Prepare(importOptions, sourceName, readerOptions);
+            long remaining = stream.Length - position;
+            if (remaining < 0 || remaining > configured.Limits.MaxInputBytes || remaining > int.MaxValue) return false;
+            var data = new byte[(int)remaining];
+            int total = 0;
+            while (total < data.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = stream.Read(data, total, data.Length - total);
+                if (read == 0) break;
+                total += read;
+            }
+            if (total != data.Length) return false;
+            LegacyWordImporter.Detect(data, configured, cancellationToken);
+            return true;
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (InvalidDataException) {
+            return false;
+        } catch (IOException) {
+            return false;
+        } catch (NotSupportedException) {
+            return false;
+        } finally {
+            stream.Position = position;
+        }
+    }
+
     internal static bool HasWordForDosHeader(string path, CancellationToken cancellationToken) {
         if (!string.Equals(Path.GetExtension(path), ".doc", StringComparison.OrdinalIgnoreCase)) return false;
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);

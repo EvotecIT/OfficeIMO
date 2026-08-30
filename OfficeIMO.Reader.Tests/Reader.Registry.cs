@@ -92,6 +92,12 @@ public sealed partial class ReaderRegistryTests {
         Assert.Equal(
             ExcelFormatCatalog.All.Select(format => format.Extension).OrderBy(extension => extension, StringComparer.Ordinal).ToArray(),
             excel.Extensions);
+        Assert.Equal(WordLoadOptions.DefaultMaxInputBytes, word.DefaultMaxInputBytes);
+        Assert.Equal(new OfficeLegacyImportLimits().MaxInputBytes, word.DefaultMaxInputBytesByExtension[".doc"]);
+        Assert.Equal(WordLoadOptions.DefaultMaxInputBytes,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("document.docx"));
+        Assert.Equal(new OfficeLegacyImportLimits().MaxInputBytes,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("document.doc"));
     }
 
     [Fact]
@@ -128,6 +134,7 @@ public sealed partial class ReaderRegistryTests {
         Assert.Contains("\"origin\":\"OfficeIMO\"", first, StringComparison.Ordinal);
         Assert.DoesNotContain("isBuiltIn", first, StringComparison.Ordinal);
         Assert.Contains("\"supportsDocumentPath\":", first, StringComparison.Ordinal);
+        Assert.Contains("\"defaultMaxInputBytesByExtension\":", first, StringComparison.Ordinal);
         Assert.Contains("\"supportsAsyncStream\":", first, StringComparison.Ordinal);
     }
 

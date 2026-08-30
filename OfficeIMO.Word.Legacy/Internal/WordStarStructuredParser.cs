@@ -100,13 +100,13 @@ internal sealed class WordStarStructuredParser {
         byte type = _data[index + 3];
         int payloadOffset = index + 4;
         int payloadLength = totalLength - 7;
-        string payloadText = ExtractSequenceText(payloadOffset, payloadLength);
         switch (type) {
-            case 0x03: AddNote(LegacyWordNoteKind.Footnote, payloadText); break;
-            case 0x04: AddNote(LegacyWordNoteKind.Endnote, payloadText); break;
-            case 0x05: AddNote(LegacyWordNoteKind.Annotation, payloadText); break;
-            case 0x06: AddNote(LegacyWordNoteKind.Comment, payloadText); break;
+            case 0x03: AddNote(LegacyWordNoteKind.Footnote, ExtractSequenceText(payloadOffset, payloadLength)); break;
+            case 0x04: AddNote(LegacyWordNoteKind.Endnote, ExtractSequenceText(payloadOffset, payloadLength)); break;
+            case 0x05: AddNote(LegacyWordNoteKind.Annotation, ExtractSequenceText(payloadOffset, payloadLength)); break;
+            case 0x06: AddNote(LegacyWordNoteKind.Comment, ExtractSequenceText(payloadOffset, payloadLength)); break;
             case 0x10:
+                string payloadText = ExtractSequenceText(payloadOffset, payloadLength);
                 if (payloadText.Length > 0) {
                     ConsumeItem("resource reference");
                     ConsumeText(payloadText.Length);
@@ -118,6 +118,7 @@ internal sealed class WordStarStructuredParser {
                 }
                 break;
             case 0x11:
+                payloadText = ExtractSequenceText(payloadOffset, payloadLength);
                 FlushRun();
                 if (payloadText.Length > 0) {
                     ConsumeText(payloadText.Length);
@@ -152,10 +153,16 @@ internal sealed class WordStarStructuredParser {
     private string ExtractSequenceText(int offset, int length) {
         var result = new StringBuilder(Math.Min(length, 1024));
         int end = offset + length;
-        for (int index = offset; index < end && result.Length < _limits.MaxTextCharacters - _characterCount; index++) {
+        int remaining = _limits.MaxTextCharacters - _characterCount;
+        for (int index = offset; index < end; index++) {
+            _cancellationToken.ThrowIfCancellationRequested();
             byte value = (byte)(_data[index] & 0x7F);
-            if (value == 0x0D || value == 0x0A || value == 0x09) result.Append(' ');
-            else if (value >= 0x20 && value != 0x7F) result.Append((char)value);
+            char? recovered = value == 0x0D || value == 0x0A || value == 0x09
+                ? ' '
+                : value >= 0x20 && value != 0x7F ? (char)value : (char?)null;
+            if (!recovered.HasValue) continue;
+            if (result.Length >= remaining) throw new InvalidDataException("WordStar sequence text exceeds the configured text-character limit.");
+            result.Append(recovered.Value);
         }
         return result.ToString().Trim('\0', ' ');
     }

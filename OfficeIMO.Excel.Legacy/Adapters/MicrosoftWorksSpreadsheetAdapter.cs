@@ -17,8 +17,12 @@ internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdap
             return 95;
         }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0xFF, 0x00, 0x02)) {
-            reason = "Microsoft Works 3.x spreadsheet signature.";
-            return 100;
+            if (ExtensionIs(sourceName, ".wks")) {
+                reason = "Microsoft Works 3.x spreadsheet prefix with corroborating Works extension.";
+                return 95;
+            }
+            reason = "Ambiguous three-byte Works-family prefix without corroborating source evidence.";
+            return 45;
         }
         if (ExtensionIs(sourceName, ".xlr") && OfficeLegacyCompoundInspector.IsValidCompound(data, cancellationToken)) {
             reason = "OLE compound workbook with Microsoft Works spreadsheet extension.";

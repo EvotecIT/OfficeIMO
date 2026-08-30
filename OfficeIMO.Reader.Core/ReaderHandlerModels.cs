@@ -96,6 +96,14 @@ public sealed class ReaderHandlerRegistration {
     public long? DefaultMaxInputBytes { get; set; }
 
     /// <summary>
+    /// Optional per-extension default input limits. Keys are normalized like <see cref="Extensions"/>
+    /// and must name extensions claimed by this handler. A matching value overrides
+    /// <see cref="DefaultMaxInputBytes"/> before Reader buffers or opens the source.
+    /// </summary>
+    public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; set; } =
+        new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Defines whether Core derives the source hash from <see cref="ReaderOptions.ComputeHashes"/>
     /// or leaves source-hash ownership to the format handler.
     /// </summary>
@@ -192,6 +200,10 @@ public sealed class ReaderHandlerCapability {
     /// </summary>
     public long? DefaultMaxInputBytes { get; set; }
 
+    /// <summary>Advertised per-extension overrides for <see cref="DefaultMaxInputBytes"/>.</summary>
+    public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; set; } =
+        new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Advertised warning model for this handler.
     /// </summary>
@@ -215,7 +227,7 @@ public static class ReaderCapabilitySchema {
     /// <summary>
     /// Current schema version.
     /// </summary>
-    public const int Version = 4;
+    public const int Version = 5;
 }
 
 /// <summary>Identifies the publisher of a configured Reader handler.</summary>

@@ -7,8 +7,12 @@ internal sealed class MultiplanAdapter : LegacySpreadsheetAdapterBase {
     public override int Probe(byte[] data, string? sourceName, System.Threading.CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x08, 0xE7) || OfficeLegacyImportBuffer.StartsWith(data, 0x0C, 0xEC) || OfficeLegacyImportBuffer.StartsWith(data, 0x0C, 0xED)) {
-            reason = "Microsoft Multiplan DOS version signature.";
-            return 100;
+            if (ExtensionIs(sourceName, ".mp", ".mp1", ".mp2", ".mp3")) {
+                reason = "Microsoft Multiplan DOS version prefix with corroborating Multiplan extension.";
+                return 95;
+            }
+            reason = "Ambiguous two-byte Multiplan-family prefix without corroborating source evidence.";
+            return 45;
         }
         if (ExtensionIs(sourceName, ".mp", ".mp1", ".mp2", ".mp3")) {
             reason = "Microsoft Multiplan source extension only; use FormatHint when the family is independently known.";

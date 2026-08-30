@@ -145,19 +145,24 @@ internal static partial class DocumentReaderEngine {
         out ReaderHandlerDescriptor handler,
         out ReaderDetectionResult detection) {
         detection = DetectForRead(path, options, cancellationToken);
-        return TrySelectPathHandler(path, options, detection, out handler);
+        return TrySelectPathHandler(path, options, detection, cancellationToken, out handler);
     }
 
     private static bool TrySelectPathHandler(
         string path,
         ReaderOptions options,
         ReaderDetectionResult detection,
+        CancellationToken cancellationToken,
         out ReaderHandlerDescriptor handler) {
         bool hasExtensionHandler = TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor extensionHandler) &&
                                    extensionHandler.SupportsPathInput;
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
+            if (hasExtensionHandler && ProbeExtensionHandler(path, extensionHandler, options, cancellationToken)) {
+                handler = extensionHandler;
+                return true;
+            }
             return TryResolveDetectedHandler(detection, pathInput: true, out handler);
         }
         if (hasExtensionHandler) {
@@ -176,19 +181,25 @@ internal static partial class DocumentReaderEngine {
         out ReaderDetectionResult detection) {
         detection = DetectForRead(stream, sourceName, options,
             cancellationToken);
-        return TrySelectStreamHandler(sourceName, options, detection, out handler);
+        return TrySelectStreamHandler(stream, sourceName, options, detection, cancellationToken, out handler);
     }
 
     private static bool TrySelectStreamHandler(
+        Stream stream,
         string? sourceName,
         ReaderOptions options,
         ReaderDetectionResult detection,
+        CancellationToken cancellationToken,
         out ReaderHandlerDescriptor handler) {
         bool hasExtensionHandler = TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor extensionHandler) &&
                                    extensionHandler.SupportsStreamInput;
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
+            if (hasExtensionHandler && ProbeExtensionHandler(stream, sourceName, extensionHandler, options, cancellationToken)) {
+                handler = extensionHandler;
+                return true;
+            }
             return TryResolveDetectedHandler(detection, pathInput: false, out handler);
         }
         if (hasExtensionHandler) {
@@ -227,7 +238,7 @@ internal static partial class DocumentReaderEngine {
             cancellationToken).ConfigureAwait(false);
         detection = ResolveEncryptedOpenXmlDetection(path, options,
             detection, cancellationToken);
-        bool hasHandler = TrySelectPathHandler(path, options, detection, out ReaderHandlerDescriptor handler);
+        bool hasHandler = TrySelectPathHandler(path, options, detection, cancellationToken, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }
 
@@ -243,8 +254,28 @@ internal static partial class DocumentReaderEngine {
             cancellationToken).ConfigureAwait(false);
         detection = ResolveEncryptedOpenXmlDetection(stream, sourceName,
             options, detection, cancellationToken);
-        bool hasHandler = TrySelectStreamHandler(sourceName, options, detection, out ReaderHandlerDescriptor handler);
+        bool hasHandler = TrySelectStreamHandler(stream, sourceName, options, detection, cancellationToken, out ReaderHandlerDescriptor handler);
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
+    }
+
+    private static bool ProbeExtensionHandler(string path, ReaderHandlerDescriptor handler, ReaderOptions options,
+        CancellationToken cancellationToken) {
+        if (handler.ProbeStream == null || !handler.SupportsPathInput) return false;
+        cancellationToken.ThrowIfCancellationRequested();
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return ProbeExtensionHandler(stream, path, handler, options, cancellationToken);
+    }
+
+    private static bool ProbeExtensionHandler(Stream stream, string? sourceName, ReaderHandlerDescriptor handler,
+        ReaderOptions options, CancellationToken cancellationToken) {
+        if (handler.ProbeStream == null || !handler.SupportsStreamInput || !stream.CanSeek) return false;
+        long position = stream.Position;
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            return handler.ProbeStream(stream, sourceName, options, cancellationToken);
+        } finally {
+            stream.Position = position;
+        }
     }
 
     private static ReaderDetectionOptions CreateDetectionOptions(ReaderOptions options) {
