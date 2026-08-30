@@ -2250,16 +2250,23 @@ public sealed class ReaderPdfModularTests {
         };
         options.PageRanges = new[] { PdfPageRange.From(1, 1) };
         options.MarkdownOptions!.AlignNumericTableColumns = false;
+        options.ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
+            MinimumConfidence = 0.85,
+            RejoinLineEndingHyphens = false
+        };
 
         var clone = options.Clone();
 
         Assert.NotSame(options, clone);
         Assert.NotSame(options.LayoutOptions, clone.LayoutOptions);
         Assert.NotSame(options.MarkdownOptions, clone.MarkdownOptions);
+        Assert.NotSame(options.ParagraphContinuationOptions, clone.ParagraphContinuationOptions);
         Assert.Equal(options.LayoutOptions.MarginLeft, clone.LayoutOptions!.MarginLeft);
         Assert.Equal(options.MarkdownOptions!.IncludeLinkAnnotations, clone.MarkdownOptions!.IncludeLinkAnnotations);
         Assert.False(clone.MarkdownOptions.AlignNumericTableColumns);
         Assert.Equal(options.PageRanges.Single(), clone.PageRanges!.Single());
+        Assert.Equal(0.85, clone.ParagraphContinuationOptions!.MinimumConfidence);
+        Assert.False(clone.ParagraphContinuationOptions.RejoinLineEndingHyphens);
 
         clone.LayoutOptions.MarginLeft = 48;
         clone.MarkdownOptions.IncludeLinkAnnotations = false;
@@ -2268,6 +2275,82 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(12, options.LayoutOptions.MarginLeft);
         Assert.True(options.MarkdownOptions.IncludeLinkAnnotations);
         Assert.False(options.MarkdownOptions.AlignNumericTableColumns);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ProjectsParagraphContinuationEvidenceWithoutRewritingPages() {
+        byte[] pdf = BuildParagraphContinuationPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            stream,
+            "continuation.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
+                    RejoinLineEndingHyphens = true
+                }
+            });
+
+        Assert.Contains("officeimo.pdf.paragraph-continuations", result.CapabilitiesUsed);
+        Assert.Equal("1", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-segment-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-rejoined-hyphen-count").Value);
+        OfficeDocumentMetadataEntry continuation = Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-0000");
+        Assert.Equal("1", continuation.Attributes!["firstPageNumber"]);
+        Assert.Equal("2", continuation.Attributes["lastPageNumber"]);
+        Assert.Contains("HyphenatedBreak", continuation.Attributes["evidence"], StringComparison.Ordinal);
+        Assert.Contains("discr-", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("etionary", result.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ParagraphContinuationsRespectSelectedPageOrder() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildParagraphContinuationPdf());
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            logical,
+            sourceName: "reversed-continuation.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] {
+                    PdfPageRange.From(2, 2),
+                    PdfPageRange.From(1, 1)
+                }
+            });
+
+        Assert.Equal(new int?[] { 2, 1 }, result.Pages.Select(page => page.Number).ToArray());
+        Assert.DoesNotContain(result.Metadata, entry => entry.Category == "pdf.paragraph.continuation");
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ParagraphContinuationsPreserveRepeatedPageOccurrences() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildParagraphContinuationPdf());
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            logical,
+            sourceName: "repeated-continuation.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] {
+                    PdfPageRange.From(1, 2),
+                    PdfPageRange.From(1, 2)
+                }
+            });
+
+        Assert.Equal("2", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-count").Value);
+        Assert.Equal("4", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-segment-count").Value);
+        Assert.Equal(2, result.Metadata.Count(entry => entry.Category == "pdf.paragraph.continuation" && entry.ValueType == "object"));
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_CanDisableParagraphContinuationProjection() {
+        using var stream = new MemoryStream(BuildParagraphContinuationPdf(), writable: false);
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            stream,
+            "continuation.pdf",
+            pdfOptions: new ReaderPdfOptions { IncludeParagraphContinuationMetadata = false });
+
+        Assert.DoesNotContain("officeimo.pdf.paragraph-continuations", result.CapabilitiesUsed);
+        Assert.DoesNotContain(result.Metadata, entry => entry.Category == "pdf.paragraph.continuation");
     }
 
     [Fact]
@@ -2300,6 +2383,38 @@ public sealed class ReaderPdfModularTests {
             .Paragraph(p => p.Text("Second page body."))
             .ToBytes();
     }
+
+    private static byte[] BuildParagraphContinuationPdf() {
+        const string firstContent = "BT /F1 12 Tf 40 20 Td (The paragraph ends with a discr-) Tj ET";
+        const string secondContent = "BT /F1 12 Tf 40 280 Td (etionary break and continues here) Tj ET";
+        string[] objects = {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /Resources << /Font << /F1 7 0 R >> >> >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 5 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 6 0 R >>",
+            BuildReaderStreamObject(firstContent),
+            BuildReaderStreamObject(secondContent),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"
+        };
+        var builder = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>(objects.Length);
+        for (int index = 0; index < objects.Length; index++) {
+            offsets.Add(Encoding.ASCII.GetByteCount(builder.ToString()));
+            builder.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        int xrefOffset = Encoding.ASCII.GetByteCount(builder.ToString());
+        builder.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        for (int index = 0; index < offsets.Count; index++) {
+            builder.Append(offsets[index].ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        }
+        builder.Append("trailer\n<< /Root 1 0 R /Size ").Append(objects.Length + 1).Append(" >>\nstartxref\n")
+            .Append(xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static string BuildReaderStreamObject(string content) =>
+        "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        " >>\nstream\n" + content + "\nendstream";
 
     private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(1, 1);
 

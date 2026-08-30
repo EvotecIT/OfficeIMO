@@ -186,15 +186,10 @@ internal static partial class PdfReaderAdapter {
                 Subject = document.Metadata.Subject,
                 Keywords = document.Metadata.Keywords
             },
-            CapabilitiesUsed = new[] {
-                "officeimo.reader.pdf",
-                "officeimo.pdf.logical-document",
-                "officeimo.pdf.logical-markdown",
-                "officeimo.reader.pdf.pages.native"
-            },
+            CapabilitiesUsed = BuildCapabilitiesUsed(pdfOptions),
             Markdown = markdown,
             Chunks = chunks,
-            Metadata = BuildDocumentMetadata(document, source, preflight, applyPageRanges ? pages : null, tables, ocrCandidates),
+            Metadata = BuildDocumentMetadata(document, source, preflight, applyPageRanges ? pages : null, tables, ocrCandidates, pdfOptions),
             Pages = BuildDocumentPages(pages, source, blocks, tables, assets, links, forms, ocrCandidates),
             Blocks = blocks,
             Tables = tables,
@@ -208,6 +203,19 @@ internal static partial class PdfReaderAdapter {
                 .ToArray(),
             Diagnostics = BuildDocumentDiagnostics(chunks, ocrCandidates, preflight)
         };
+    }
+
+    private static IReadOnlyList<string> BuildCapabilitiesUsed(ReaderPdfOptions options) {
+        var capabilities = new List<string> {
+            "officeimo.reader.pdf",
+            "officeimo.pdf.logical-document",
+            "officeimo.pdf.logical-markdown",
+            "officeimo.reader.pdf.pages.native"
+        };
+        if (options.IncludeParagraphContinuationMetadata) {
+            capabilities.Add("officeimo.pdf.paragraph-continuations");
+        }
+        return capabilities.AsReadOnly();
     }
 
     private static IReadOnlyList<OfficeDocumentPage> BuildDocumentPages(
@@ -458,7 +466,7 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfLogicalDocument document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates) {
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfLogicalDocument document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates, ReaderPdfOptions pdfOptions) {
         var entries = new List<OfficeDocumentMetadataEntry>();
         HashSet<int>? selectedPageNumbers = BuildSelectedPageNumberSet(selectedPages);
         AddMetadata(entries, "pdf-catalog-page-mode", "pdf.catalog", "PageMode", document.CatalogPageMode);
@@ -477,6 +485,9 @@ internal static partial class PdfReaderAdapter {
         AddCountMetadata(entries, "pdf-form-field-count", "pdf.form", "Count", CountFormFields(document.FormFields, selectedPageNumbers));
         AddImageGeometryMetadata(entries, selectedPages ?? document.Pages);
         AddTableQualityMetadata(entries, tables);
+        if (pdfOptions.IncludeParagraphContinuationMetadata) {
+            AddParagraphContinuationMetadata(entries, document, source, selectedPages, pdfOptions.ParagraphContinuationOptions);
+        }
         AddOcrCandidateMetadata(entries, ocrCandidates);
         AddLinkMetadata(entries, selectedPages ?? document.Pages);
         AddAnnotationMetadata(entries, source, selectedPages ?? document.Pages);

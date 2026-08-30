@@ -84,6 +84,12 @@ PDF reading now accepts at most 4,096 text-show clipping paths across one page c
 
 Type 3 glyph programs now enter `MaxContentNestingDepth` one level below the content stream that invokes the glyph. A glyph invoked at the previous depth boundary can therefore throw `PdfReadLimitException` where older versions rendered it at the enclosing depth. Applications using a deliberately low custom nesting limit should raise it by the required trusted glyph depth or handle the exception as an over-complex PDF; the default remains the recommended limit for untrusted input.
 
+## OfficeIMO 3.2: PDF Reader paragraph continuation metadata
+
+`OfficeIMO.Reader.Pdf` document results now include conservative cross-page paragraph continuation evidence by default. This adds `officeimo.pdf.paragraph-continuations` to `CapabilitiesUsed` and may add `pdf.paragraph.continuation` metadata entries. Page-local text, Markdown, chunks, and source pages remain unchanged.
+
+Applications that persist or compare the complete normalized Reader envelope and require the previous metadata shape must set `ReaderPdfOptions.IncludeParagraphContinuationMetadata = false`. Applications that enable the metadata can configure inference through `ReaderPdfOptions.ParagraphContinuationOptions`; likely line-ending hyphens are preserved unless `RejoinLineEndingHyphens` is explicitly enabled.
+
 ## OfficeIMO 3.2: one PDF authoring and operation model
 
 `PdfDocument` no longer duplicates every heading, paragraph, table, image, form,
