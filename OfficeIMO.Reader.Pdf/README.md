@@ -50,6 +50,30 @@ Console.WriteLine(string.Join(", ", matches.Hits
     .Select(page => page.Display)));
 ```
 
+Cross-page paragraph continuation evidence is projected into document metadata
+without rewriting page-local text or chunk boundaries. The default confidence
+policy is conservative and can be tightened at registration time:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Pdf;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler(new ReaderPdfOptions {
+        ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
+            MinimumConfidence = 0.85,
+            RejoinLineEndingHyphens = true
+        }
+    })
+    .Build();
+
+OfficeDocumentReadResult document = reader.ReadDocument("manual.pdf");
+IReadOnlyList<OfficeDocumentMetadataEntry> continuations = document.Metadata
+    .Where(entry => entry.Category == "pdf.paragraph.continuation")
+    .ToArray();
+```
+
 ### Read a stream with input limits
 
 ```csharp
@@ -133,6 +157,7 @@ var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
 - Page-aware chunks with `ReaderLocation.Page`.
 - Native fixed-page membership and geometry compatible with Reader Core location, search, and page-Markdown helpers.
 - Markdown text, logical tables, column profiles, table diagnostics, and confidence signals.
+- Conservative paragraph continuation metadata with page range, confidence, evidence, segment count, and rejoined-hyphen count.
 - Source/security/form/catalog-metadata/open-action/active-content counters in `ReaderChunk.Diagnostics`.
 - Document metadata for XMP, output intents, tagged structure, optional content/layers, attachments, security/signatures, navigation, links, forms, annotations, and passive actions.
 - Passive action summaries without executable payloads.

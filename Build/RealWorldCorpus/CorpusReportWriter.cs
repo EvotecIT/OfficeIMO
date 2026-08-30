@@ -79,7 +79,20 @@ internal static class CorpusReportWriter {
             .Append(" | ").Append(report.Totals.DuplicateContent).Append(" | ").Append(report.Totals.EligibleUnique)
             .Append(" | ").Append(report.Totals.Selected).AppendLine(" |");
 
-        CorpusFileRecord[] observations = report.Files.Where(file => file.Selected && file.Outcome != CorpusOutcomes.Completed).ToArray();
+        text.AppendLine().AppendLine("## PDF quality depth").AppendLine();
+        text.AppendLine("Selected PDF files additionally exercise the canonical PDF inspection, semantic recovery, font, image, managed first-page render, mutation-planning, and declared-compliance claim gates in the same isolated worker.").AppendLine();
+        text.AppendLine("| Selected PDFs | Deep stages passed | Deep stages | Rendered pages | Mutation plans | Declared claims | Claimable claims | ");
+        text.AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        text.Append("| ").Append(report.Totals.PdfSelected)
+            .Append(" | ").Append(report.Totals.PdfDeepStagesPassed)
+            .Append(" | ").Append(report.Totals.PdfDeepStages)
+            .Append(" | ").Append(report.Totals.PdfRenderedPages)
+            .Append(" | ").Append(report.Totals.PdfMutationPlans)
+            .Append(" | ").Append(report.Totals.PdfDeclaredComplianceClaims)
+            .Append(" | ").Append(report.Totals.PdfClaimableComplianceClaims).AppendLine(" |");
+
+        CorpusFileRecord[] observations = report.Files.Where(file => file.Selected &&
+            (file.Outcome != CorpusOutcomes.Completed || file.PdfEvidence?.AllStagesSucceeded == false)).ToArray();
         text.AppendLine().AppendLine("## Observations requiring interpretation").AppendLine();
         if (observations.Length == 0) {
             text.AppendLine("No selected file produced warnings, errors, process failures, or timeouts in this run.").AppendLine();
@@ -87,9 +100,13 @@ internal static class CorpusReportWriter {
             text.AppendLine("| SHA-256 | Source | Format | Outcome | Diagnostics | Exception |");
             text.AppendLine("| --- | --- | --- | --- | --- | --- |");
             foreach (CorpusFileRecord file in observations) {
+                string pdfFailures = file.PdfEvidence is null
+                    ? string.Empty
+                    : string.Join(", ", file.PdfEvidence.Stages.Where(static stage => !stage.Succeeded).Select(static stage => "pdf." + stage.Name));
+                string diagnostics = string.Join(", ", file.DiagnosticCodes.Concat(string.IsNullOrEmpty(pdfFailures) ? Array.Empty<string>() : new[] { pdfFailures }));
                 text.Append("| `").Append(ShortHash(file.Sha256)).Append("` | ").Append(E(file.SourceName ?? "withheld"))
                     .Append(" | ").Append(file.ContentKind).Append(" | ").Append(E(file.Outcome))
-                    .Append(" | ").Append(E(string.Join(", ", file.DiagnosticCodes)))
+                    .Append(" | ").Append(E(diagnostics))
                     .Append(" | ").Append(E(file.ExceptionType ?? string.Empty)).AppendLine(" |");
             }
             text.AppendLine();
@@ -105,7 +122,7 @@ internal static class CorpusReportWriter {
                         "but these corpus files are not an independent random sample. That calculation explains the sample budget; it is not a reliability guarantee.")
             .AppendLine();
         text.AppendLine("The lane proves only that OfficeIMO content-detected and attempted its normalized read contract for the recorded hashes under the recorded limits and runtime. " +
-                        "It does not prove rendering fidelity, editing round trips, semantic preservation of every feature, safety of opening files in another application, or support for unmeasured files. " +
+                        "The managed first-page render is an operational probe and does not assess visual fidelity. The lane also does not prove editing round trips, semantic preservation of every feature, safety of opening files in another application, or support for unmeasured files. " +
                         "Actionable findings should be minimized into provenance-tracked fixtures and moved to the owning format test suite.");
         return text.ToString().Replace("\r\n", "\n");
     }

@@ -1453,6 +1453,41 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_PreservesDistinctRenderingIntentsForRepeatedType3ImageResource() {
+        byte[] pdf = BuildIccType3ImagePdf(
+            IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent(),
+            new byte[] { 0 });
+
+        OfficeColor[] colors = PdfPageImageRenderer.RenderPage(pdf).Images
+            .Select(static image => {
+                Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+                return raster!.GetPixel(0, 0);
+            })
+            .ToArray();
+
+        Assert.Equal(2, colors.Length);
+        Assert.NotEqual(colors[0], colors[1]);
+    }
+
+    [Fact]
+    public void RenderPage_ImageIntentOverridesAndCollapsesRepeatedType3ImageResource() {
+        byte[] pdf = BuildIccType3ImagePdf(
+            IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent(),
+            new byte[] { 0 },
+            imageEntries: "/Intent /Perceptual");
+
+        OfficeColor[] colors = PdfPageImageRenderer.RenderPage(pdf).Images
+            .Select(static image => {
+                Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+                return raster!.GetPixel(0, 0);
+            })
+            .ToArray();
+
+        Assert.Equal(2, colors.Length);
+        Assert.Equal(colors[0], colors[1]);
+    }
+
+    [Fact]
     public void ExtractImages_AppliesEmbeddedCmykMabProfile() {
         byte[] pdf = BuildIccImagePdf(
             IccMabTestProfiles.CreateCmykLab8(),
@@ -3021,6 +3056,39 @@ public class PdfIccColorRenderingTests {
             WriteAscii(output, "\nendstream\nendobj\n");
         }
         WriteAscii(output, extraObjects);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildIccType3ImagePdf(
+        byte[] profile,
+        byte[] imageSamples,
+        string imageEntries = "") {
+        const string pageContent = "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        const string glyphContent =
+            "500 0 d0 " +
+            "q /Perceptual ri 250 0 0 700 0 0 cm /Im1 Do Q " +
+            "q /RelativeColorimetric ri 250 0 0 700 250 0 cm /Im1 Do Q";
+        byte[] pageContentBytes = Encoding.ASCII.GetBytes(pageContent);
+        byte[] glyphContentBytes = Encoding.ASCII.GetBytes(glyphContent);
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.4\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + pageContentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(pageContentBytes, 0, pageContentBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Length " + glyphContentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(glyphContentBytes, 0, glyphContentBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace [/Indexed [/ICCBased 8 0 R] 0 <00000000>] " + imageEntries + " /Length " + imageSamples.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(imageSamples, 0, imageSamples.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /N 4 /Length " + profile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(profile, 0, profile.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

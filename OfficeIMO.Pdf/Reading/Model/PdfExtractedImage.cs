@@ -116,13 +116,18 @@ public sealed class PdfExtractedImage {
     /// <summary>True when this image came from a PDF /ImageMask stencil XObject.</summary>
     public bool IsImageMask { get; }
 
-    internal OfficeColor ImageMaskColor { get; }
+    /// <summary>Paint color applied to a stencil image mask.</summary>
+    public OfficeColor ImageMaskColor { get; }
 
-    internal OfficeIccRenderingIntent RenderingIntent { get; }
+    /// <summary>Effective ICC rendering intent used while normalizing extracted samples.</summary>
+    public OfficeIccRenderingIntent RenderingIntent { get; }
 
-    internal bool HasAuthoredRenderingIntent { get; }
+    /// <summary>True when the source image or active graphics state explicitly selected a rendering intent.</summary>
+    public bool HasAuthoredRenderingIntent { get; }
 
-    internal bool HasExplicitDecode { get; }
+    /// <summary>True when the image declared a Decode array.</summary>
+    public bool HasExplicitDecode { get; }
 
-    internal bool HasDecodeParameters { get; }
+    /// <summary>True when the image filter declared DecodeParms.</summary>
+    public bool HasDecodeParameters { get; }
 }
