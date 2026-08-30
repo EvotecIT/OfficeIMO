@@ -189,6 +189,15 @@ public sealed partial class DocBookDocument {
         if (string.IsNullOrEmpty(asset.Id) || !asset.Id.StartsWith(prefix, StringComparison.Ordinal) ||
             !string.Equals(asset.Kind, "image", StringComparison.OrdinalIgnoreCase)) return false;
         string nodeId = "docbook-" + asset.Id.Substring(prefix.Length);
+        OfficeDocumentModelNode[] projectedImages = nodesById[nodeId].Where(node =>
+            string.Equals(node.Kind, "image", StringComparison.OrdinalIgnoreCase)).Take(2).ToArray();
+        bool unchangedFlatProjection = projectedImages.Length == 1 &&
+            string.Equals(asset.Location?.SourceBlockKind, "image", StringComparison.Ordinal) &&
+            string.Equals(asset.Location?.BlockAnchor, BuildProjectedAssetBaseline(
+                asset.Kind, asset.SourceObjectId, asset.FileName, asset.Title, asset.AltText), StringComparison.Ordinal) &&
+            !HasUnsupportedAssetFields(asset,
+                string.IsNullOrWhiteSpace(asset.SourceObjectId) ? asset.FileName ?? string.Empty : asset.SourceObjectId!);
+        if (unchangedFlatProjection) return true;
         string? reference = string.IsNullOrWhiteSpace(asset.SourceObjectId) ? asset.FileName : asset.SourceObjectId;
         OfficeDocumentModelNode? image = nodesById[nodeId].FirstOrDefault(node =>
             string.Equals(node.Kind, "image", StringComparison.OrdinalIgnoreCase) &&
@@ -207,6 +216,18 @@ public sealed partial class DocBookDocument {
         return string.Equals(asset.Title, caption, StringComparison.Ordinal) &&
             string.Equals(asset.AltText, alternateText, StringComparison.Ordinal) &&
             !HasUnsupportedAssetFields(asset, reference!);
+    }
+
+    private static string BuildProjectedAssetBaseline(
+        string? kind,
+        string? sourceObjectId,
+        string? fileName,
+        string? title,
+        string? alternateText) {
+        string payload = (kind ?? string.Empty) + "\0" + (sourceObjectId ?? string.Empty) + "\0" +
+            (fileName ?? string.Empty) + "\0" + (title ?? string.Empty) + "\0" + (alternateText ?? string.Empty);
+        using SHA256 hash = SHA256.Create();
+        return "docbook-asset-projection-sha256:" + Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(payload)));
     }
 
     private static string? FindProjectedAssetReference(

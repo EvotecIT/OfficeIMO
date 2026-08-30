@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Opml;
@@ -33,8 +34,35 @@ public sealed class OpmlHead {
     private void Set(string name, string? value) {
         XElement? child = _element.Element(name);
         if (value == null) child?.Remove();
-        else if (child == null) _element.Add(new XElement(name, value));
-        else child.Value = value;
+        else {
+            if (child == null) child = new XElement(name);
+            else child.Remove();
+            child.Value = value;
+            int order = GetStandardElementOrder(child.Name);
+            XElement? following = _element.Elements().FirstOrDefault(candidate =>
+                GetStandardElementOrder(candidate.Name) > order);
+            if (following == null) _element.Add(child); else following.AddBeforeSelf(child);
+        }
         _document.MarkModified();
+    }
+
+    internal static int GetStandardElementOrder(XName name) {
+        if (name.Namespace != XNamespace.None) return -1;
+        switch (name.LocalName) {
+            case "title": return 0;
+            case "dateCreated": return 1;
+            case "dateModified": return 2;
+            case "ownerName": return 3;
+            case "ownerEmail": return 4;
+            case "ownerId": return 5;
+            case "docs": return 6;
+            case "expansionState": return 7;
+            case "vertScrollState": return 8;
+            case "windowTop": return 9;
+            case "windowLeft": return 10;
+            case "windowBottom": return 11;
+            case "windowRight": return 12;
+            default: return -1;
+        }
     }
 }

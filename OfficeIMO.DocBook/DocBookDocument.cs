@@ -318,6 +318,17 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
                     "row must contain at least one entry.", path));
             }
+            if (kind == DocBookNodeKind.MediaObject && !element.Elements().Any(child =>
+                    child.Name == Namespace + "imageobject" || child.Name == Namespace + "videoobject" ||
+                    child.Name == Namespace + "audioobject" || child.Name == Namespace + "textobject" ||
+                    child.Name == Namespace + "imageobjectco")) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    "mediaobject must contain at least one media object child.", path));
+            }
+            if (kind == DocBookNodeKind.ImageObject && !element.Elements(Namespace + "imagedata").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    "imageobject must contain imagedata.", path));
+            }
             if (kind == DocBookNodeKind.ImageData && string.IsNullOrWhiteSpace((string?)element.Attribute("fileref"))) {
                 diagnostics.Add(new DocBookDiagnostic("DB013", DocBookDiagnosticSeverity.Error, "imagedata requires fileref.", path));
             }

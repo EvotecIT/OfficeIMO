@@ -153,7 +153,14 @@ public sealed partial class DocBookDocument {
                         AltText = string.IsNullOrWhiteSpace(alternateText) ? caption : alternateText,
                         Title = caption,
                         SourceObjectId = fileReference,
-                        Location = new OfficeDocumentModelLocation { Path = sourcePath, HeadingPath = path, SourceBlockKind = "image" }
+                        Location = new OfficeDocumentModelLocation {
+                            Path = sourcePath,
+                            HeadingPath = path,
+                            SourceBlockKind = "image",
+                            BlockAnchor = BuildProjectedAssetBaseline(
+                                "image", fileReference, fileName, caption,
+                                string.IsNullOrWhiteSpace(alternateText) ? caption : alternateText)
+                        }
                     });
                 }
             }

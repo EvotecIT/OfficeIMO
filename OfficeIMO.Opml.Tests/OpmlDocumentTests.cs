@@ -32,6 +32,44 @@ public sealed class OpmlDocumentTests {
         Assert.Equal("https://example.test/feed.xml", reopened.Outlines.Single().Children.Single().XmlUrl);
     }
 
+    [Theory]
+    [InlineData(OpmlVersion.Opml10)]
+    [InlineData(OpmlVersion.Opml20)]
+    public void TypedHeadSettersMaintainStandardSchemaOrder(OpmlVersion version) {
+        OpmlDocument document = OpmlDocument.Create(version);
+        XElement head = document.Xml.Root!.Element("head")!;
+        head.Add(new XElement("ownerId", "https://example.test/owner"));
+        document.Head.ExpansionState = "1";
+        document.Head.Docs = "https://example.test/docs";
+        document.Head.OwnerEmail = "owner@example.test";
+        document.Head.OwnerName = "Owner";
+        document.Head.DateModified = "modified";
+        document.Head.DateCreated = "created";
+        document.Head.Title = "Title";
+        document.AddOutline("Outline");
+
+        Assert.Equal(new[] {
+            "title", "dateCreated", "dateModified", "ownerName", "ownerEmail", "ownerId", "docs", "expansionState"
+        }, head.Elements().Select(element => element.Name.LocalName));
+        Assert.True(document.Validate().IsValid);
+    }
+
+    [Theory]
+    [InlineData("1.0", "<ownerName>Owner</ownerName><title>Title</title>", "OPML006")]
+    [InlineData("2.0", "<ownerName>Owner</ownerName><title>Title</title>", "OPML006")]
+    [InlineData("1.0", "<ownerName>One</ownerName><ownerName>Two</ownerName>", "OPML007")]
+    [InlineData("2.0", "<ownerName>One</ownerName><ownerName>Two</ownerName>", "OPML007")]
+    public void ValidationRejectsMisorderedOrDuplicateStandardHeadFields(
+        string version,
+        string headContent,
+        string expectedCode) {
+        OpmlDocument document = OpmlDocument.Parse(
+            $"<opml version=\"{version}\"><head>{headContent}</head><body><outline text=\"Outline\"/></body></opml>");
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == expectedCode && diagnostic.Severity == OpmlDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void UnchangedInputIsExactAndEditPreservesUnknownContent() {
         const string source = "<?xml version=\"1.0\"?><opml version=\"2.0\" xmlns:x=\"urn:test\"><head><title>T</title><x:extra p=\"1\" /></head><body><!--keep--><outline text=\"A\" x:flag=\"yes\"><x:child /></outline></body></opml>";

@@ -910,6 +910,24 @@ public sealed class DocBookDocumentTests {
     }
 
     [Theory]
+    [InlineData(DocBookProfile.DocBook45, false)]
+    [InlineData(DocBookProfile.DocBook45, true)]
+    [InlineData(DocBookProfile.DocBook52, false)]
+    [InlineData(DocBookProfile.DocBook52, true)]
+    public void ValidationRejectsEmptyMediaContainers(DocBookProfile profile, bool includeEmptyImageObject) {
+        string mediaContent = includeEmptyImageObject ? "<imageobject/>" : string.Empty;
+        string source = profile == DocBookProfile.DocBook52
+            ? $"<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject>{mediaContent}</mediaobject></article>"
+            : $"<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><mediaobject>{mediaContent}</mediaobject></article>";
+
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB012" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf(includeEmptyImageObject ? "imageobject" : "mediaobject", StringComparison.Ordinal) >= 0);
+    }
+
+    [Theory]
     [InlineData(DocBookProfile.DocBook45)]
     [InlineData(DocBookProfile.DocBook52)]
     public void TypedSingletonChildrenRejectDuplicatesAndValidationCatchesParsedDuplicates(DocBookProfile profile) {
@@ -2260,6 +2278,29 @@ public sealed class DocBookDocumentTests {
         XElement media = image.Ancestors().Single(element => element.Name.LocalName == "mediaobject");
         Assert.Equal("Edited caption", media.Elements().Single(element => element.Name.LocalName == "caption").Value);
         Assert.Equal("Edited alt", media.Elements().Single(element => element.Name.LocalName == "textobject").Value);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void SharedReverseConversionDoesNotRestoreStaleAssetAfterRecursiveImageEdit(DocBookProfile profile) {
+        string source = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject></mediaobject></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject></mediaobject></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode image = model.Structure.Single(node => node.Kind == "media")
+            .Children.Single(node => node.Kind == "image-object")
+            .Children.Single(node => node.Kind == "image");
+        Dictionary<string, string> attributes = image.Attributes.ToDictionary(
+            pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        attributes["fileref"] = "assets/edited.png";
+        image.Attributes = attributes;
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        XElement data = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
+        Assert.Equal("assets/edited.png", (string?)data.Attribute("fileref"));
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122");
     }
 
     [Fact]

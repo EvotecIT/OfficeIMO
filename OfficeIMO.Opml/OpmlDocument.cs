@@ -170,6 +170,28 @@ public sealed partial class OpmlDocument {
                 "OPML 1.1 is interpreted using the OPML 1.0 profile.", "/opml/@version"));
         }
 
+        if (headElements.Length == 1) {
+            int lastStandardOrder = -1;
+            var seenStandardElements = new HashSet<string>(StringComparer.Ordinal);
+            foreach (XElement child in headElements[0].Elements()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int standardOrder = OpmlHead.GetStandardElementOrder(child.Name);
+                if (standardOrder < 0) continue;
+                if (!seenStandardElements.Add(child.Name.LocalName)) {
+                    diagnostics.Add(new OpmlDiagnostic("OPML007", OpmlDiagnosticSeverity.Error,
+                        $"The standard head element '{child.Name.LocalName}' appears more than once.",
+                        "/opml/head/" + child.Name.LocalName));
+                }
+                if (standardOrder < lastStandardOrder) {
+                    diagnostics.Add(new OpmlDiagnostic("OPML006", OpmlDiagnosticSeverity.Error,
+                        $"The standard head element '{child.Name.LocalName}' is out of OPML schema order.",
+                        "/opml/head/" + child.Name.LocalName));
+                } else {
+                    lastStandardOrder = standardOrder;
+                }
+            }
+        }
+
         if (bodyElements.Length == 1) {
             bool hasDirectOutline = false;
             foreach (XElement child in bodyElements[0].Elements()) {
