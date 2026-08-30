@@ -175,17 +175,18 @@ public sealed partial class DocBookDocument {
                 (expectedInfoName != null
                     ? !string.Equals(localName, expectedInfoName, StringComparison.Ordinal)
                     : parentKind != DocBookNodeKind.Unknown);
-            bool invalidInlineParent = (kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference) &&
-                (parent == null || !CanContainInlineContent(parent) &&
-                    (parentKind != DocBookNodeKind.Unknown || CanContainParagraphContent(parent)));
-            bool invalidBlockParent = parent != null && IsInlineOnlyContainer(parent) &&
-                kind != DocBookNodeKind.Unknown && !IsInlineChildKind(kind);
             bool duplicateInfo = kind == DocBookNodeKind.Info && expectedInfoName != null &&
                 string.Equals(localName, expectedInfoName, StringComparison.Ordinal) &&
                 element.ElementsBeforeSelf(Namespace + expectedInfoName).Any();
             if (duplicateInfo) {
                 diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
                     $"{localName} appears more than once under the same component.", path));
+            }
+            bool duplicateSingleton = kind != DocBookNodeKind.Info && IsSingletonTypedChild(kind) &&
+                element.ElementsBeforeSelf().Any(sibling => DocBookNames.GetKind(sibling.Name, Namespace) == kind);
+            if (duplicateSingleton) {
+                diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
+                    $"{localName} appears more than once under the same parent.", path));
             }
             bool misplacedTitle = kind == DocBookNodeKind.Title && parent != null && IsTitleBearingContainer(parent) &&
                 element.ElementsBeforeSelf().Any(sibling => DocBookNames.GetKind(sibling.Name, Namespace) != DocBookNodeKind.Info);
@@ -216,18 +217,8 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB021", DocBookDiagnosticSeverity.Error,
                     "tgroup requires a positive cols attribute in the bounded CALS profile.", path));
             }
-            bool invalidParent = invalidInlineParent || invalidBlockParent ||
-                kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
-                (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||
-                kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
-                    parent?.Name != Namespace + "tfoot" ||
-                kind == DocBookNodeKind.Entry && parentKind != DocBookNodeKind.Row ||
-                kind == DocBookNodeKind.Author && parentKind != DocBookNodeKind.Info && parent?.Name != Namespace + "authorgroup" ||
-                kind == DocBookNodeKind.ListItem && parentKind != DocBookNodeKind.ItemizedList &&
-                    parentKind != DocBookNodeKind.OrderedList &&
-                    !(parent?.Name == Namespace + "varlistentry" &&
-                      parent?.Parent is XElement variableList &&
-                      DocBookNames.GetKind(variableList.Name, Namespace) == DocBookNodeKind.VariableList) ||
+            bool invalidParent = element != root && kind != DocBookNodeKind.Unknown &&
+                    (parent == null || !CanContainTypedChild(parent, kind)) ||
                 invalidInfoParent ||
                 Kind == DocBookDocumentKind.Article && element != root && element.Name.Namespace == Namespace &&
                     IsBookOnlyComponentName(localName) ||
@@ -397,6 +388,122 @@ public sealed partial class DocBookDocument {
 
     internal static bool IsInlineChildKind(DocBookNodeKind kind) =>
         kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference || kind == DocBookNodeKind.IndexTerm;
+
+    internal bool CanAddTypedChild(XElement requestedParent, DocBookNodeKind childKind) {
+        if (childKind == DocBookNodeKind.Author &&
+            (ReferenceEquals(requestedParent, RootElement) || GetComponentInfoElementName(requestedParent) != null)) return true;
+        if (Kind == DocBookDocumentKind.Book && ReferenceEquals(requestedParent, RootElement) &&
+            !IsAllowedBookRootChild(DocBookNames.GetElementName(childKind))) {
+            return IsComponentTypedChild(childKind);
+        }
+        return CanContainTypedChild(requestedParent, childKind);
+    }
+
+    internal bool CanContainTypedChild(XElement parent, DocBookNodeKind childKind) {
+        DocBookNodeKind parentKind = DocBookNames.GetKind(parent.Name, Namespace);
+        if (childKind == DocBookNodeKind.Author) {
+            return parentKind == DocBookNodeKind.Info || parent.Name == Namespace + "authorgroup";
+        }
+        if (childKind == DocBookNodeKind.ListItem) {
+            return parentKind == DocBookNodeKind.ItemizedList || parentKind == DocBookNodeKind.OrderedList ||
+                parent.Name == Namespace + "varlistentry" && parent.Parent is XElement variableList &&
+                DocBookNames.GetKind(variableList.Name, Namespace) == DocBookNodeKind.VariableList;
+        }
+        if (childKind == DocBookNodeKind.TableGroup) return parentKind == DocBookNodeKind.Table;
+        if (childKind == DocBookNodeKind.TableHead || childKind == DocBookNodeKind.TableBody) {
+            return parentKind == DocBookNodeKind.TableGroup;
+        }
+        if (childKind == DocBookNodeKind.Row) {
+            return parentKind == DocBookNodeKind.TableHead || parentKind == DocBookNodeKind.TableBody ||
+                parent.Name == Namespace + "tfoot";
+        }
+        if (childKind == DocBookNodeKind.Entry) return parentKind == DocBookNodeKind.Row;
+        if (childKind == DocBookNodeKind.ImageObject) return parentKind == DocBookNodeKind.MediaObject;
+        if (childKind == DocBookNodeKind.ImageData) return parentKind == DocBookNodeKind.ImageObject;
+        if (childKind == DocBookNodeKind.Caption) return parentKind == DocBookNodeKind.MediaObject;
+        if (ReferenceEquals(parent, RootElement) && Kind == DocBookDocumentKind.Book) {
+            return IsAllowedBookRootChild(DocBookNames.GetElementName(childKind));
+        }
+        if (IsSupportedComponent(parent)) return IsComponentTypedChild(childKind);
+        switch (parentKind) {
+            case DocBookNodeKind.Info:
+                return childKind == DocBookNodeKind.Title || childKind == DocBookNodeKind.Subtitle;
+            case DocBookNodeKind.Title:
+            case DocBookNodeKind.Subtitle:
+            case DocBookNodeKind.Paragraph:
+            case DocBookNodeKind.ProgramListing:
+            case DocBookNodeKind.Screen:
+                return IsInlineChildKind(childKind);
+            case DocBookNodeKind.Link:
+                return childKind == DocBookNodeKind.IndexTerm;
+            case DocBookNodeKind.ItemizedList:
+            case DocBookNodeKind.OrderedList:
+                return childKind == DocBookNodeKind.ListItem;
+            case DocBookNodeKind.ListItem:
+            case DocBookNodeKind.Note:
+            case DocBookNodeKind.Tip:
+            case DocBookNodeKind.Important:
+            case DocBookNodeKind.Caution:
+            case DocBookNodeKind.Warning:
+            case DocBookNodeKind.Caption:
+                return IsFlowTypedChild(childKind);
+            case DocBookNodeKind.Table:
+                return childKind == DocBookNodeKind.TableGroup ||
+                    childKind == DocBookNodeKind.Title && parent.Name.LocalName == "table";
+            case DocBookNodeKind.TableGroup:
+                return childKind == DocBookNodeKind.TableHead || childKind == DocBookNodeKind.TableBody;
+            case DocBookNodeKind.TableHead:
+            case DocBookNodeKind.TableBody:
+                return childKind == DocBookNodeKind.Row;
+            case DocBookNodeKind.Row:
+                return childKind == DocBookNodeKind.Entry;
+            case DocBookNodeKind.Entry:
+                return IsInlineChildKind(childKind) || IsFlowTypedChild(childKind);
+            case DocBookNodeKind.Figure:
+                return childKind == DocBookNodeKind.Title || childKind == DocBookNodeKind.MediaObject;
+            case DocBookNodeKind.MediaObject:
+                return childKind == DocBookNodeKind.ImageObject || childKind == DocBookNodeKind.Caption;
+            case DocBookNodeKind.ImageObject:
+                return childKind == DocBookNodeKind.ImageData;
+            case DocBookNodeKind.Index:
+                return childKind == DocBookNodeKind.Info || childKind == DocBookNodeKind.Title ||
+                    childKind == DocBookNodeKind.Subtitle || IsFlowTypedChild(childKind);
+            case DocBookNodeKind.Unknown:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    internal bool IsSingletonTypedChild(DocBookNodeKind kind) =>
+        kind == DocBookNodeKind.Info || kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle ||
+        kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody ||
+        kind == DocBookNodeKind.ImageData || kind == DocBookNodeKind.Caption;
+
+    internal bool HasTypedChild(XElement requestedParent, DocBookNodeKind childKind) {
+        XElement parent = requestedParent;
+        if (Kind == DocBookDocumentKind.Book && ReferenceEquals(requestedParent, RootElement) &&
+            !IsAllowedBookRootChild(DocBookNames.GetElementName(childKind))) {
+            XElement? chapter = RootElement.Elements(Namespace + "chapter").FirstOrDefault();
+            if (chapter == null) return false;
+            parent = chapter;
+        }
+        return parent.Elements().Any(child => DocBookNames.GetKind(child.Name, Namespace) == childKind);
+    }
+
+    private static bool IsComponentTypedChild(DocBookNodeKind kind) =>
+        kind == DocBookNodeKind.Info || kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle ||
+        kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Index || kind == DocBookNodeKind.IndexTerm ||
+        IsFlowTypedChild(kind);
+
+    private static bool IsFlowTypedChild(DocBookNodeKind kind) =>
+        kind == DocBookNodeKind.Paragraph || kind == DocBookNodeKind.ItemizedList ||
+        kind == DocBookNodeKind.OrderedList || kind == DocBookNodeKind.VariableList ||
+        kind == DocBookNodeKind.Table || kind == DocBookNodeKind.ProgramListing ||
+        kind == DocBookNodeKind.Screen || kind == DocBookNodeKind.Note ||
+        kind == DocBookNodeKind.Tip || kind == DocBookNodeKind.Important ||
+        kind == DocBookNodeKind.Caution || kind == DocBookNodeKind.Warning ||
+        kind == DocBookNodeKind.Figure || kind == DocBookNodeKind.MediaObject || kind == DocBookNodeKind.IndexTerm;
 
     internal static bool AllowsDirectText(DocBookNodeKind kind) =>
         kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle ||

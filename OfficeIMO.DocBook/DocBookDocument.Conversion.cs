@@ -91,7 +91,9 @@ public sealed partial class DocBookDocument {
                     ? "informal-table"
                     : ToModelKind(kind);
             string text = textBudget.GetPrimaryText(element, kind, Namespace, parentPath);
-            string? headingText = kind == DocBookNodeKind.Section ? text : GetComponentTitle(element, parentPath);
+            bool usesOwnTitlePath = kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
+                kind == DocBookNodeKind.Table && element.Name.LocalName == "table";
+            string? headingText = usesOwnTitlePath ? text : GetComponentTitle(element, parentPath);
             string path = headingText == null
                 ? parentPath : OfficeDocumentHeadingPath.Append(parentPath, headingText, " / ");
             var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -689,7 +691,10 @@ public sealed partial class DocBookDocument {
                 bool externalLink = nodeKind == DocBookNodeKind.Link &&
                     (source.Attributes.ContainsKey("url") || source.Attributes.ContainsKey("{http://www.w3.org/1999/xlink}href"));
                 target = nodeKind == DocBookNodeKind.Link && selectedProfile == DocBookProfile.DocBook45 && externalLink
-                    ? parent.AddRaw("ulink", directText) : parent.Add(nodeKind, directText);
+                    ? parent.AddRaw("ulink", directText)
+                    : nodeKind == DocBookNodeKind.Info || nodeKind == DocBookNodeKind.Author
+                        ? parent.Add(nodeKind, directText)
+                        : parent.AddRaw(DocBookNames.GetElementName(nodeKind), directText);
                 if (!string.IsNullOrEmpty(source.Text) && !NodeAcceptsDirectText(nodeKind) &&
                     (replaceRepresentedPrimaryChild || !SourceChildrenRepresentText(source, nodeKind))) {
                     if (NodeUsesTitleText(nodeKind)) {

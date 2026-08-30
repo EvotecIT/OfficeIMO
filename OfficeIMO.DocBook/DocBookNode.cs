@@ -129,9 +129,6 @@ public sealed class DocBookNode {
     /// <summary>Adds a supported common node.</summary>
     public DocBookNode Add(DocBookNodeKind kind, string? text = null) {
         if (kind == DocBookNodeKind.Unknown) throw new ArgumentOutOfRangeException(nameof(kind));
-        if (_document.IsInlineOnlyContainer(Element) && !DocBookDocument.IsInlineChildKind(kind)) {
-            throw new InvalidOperationException($"DocBook {Name} elements cannot contain {DocBookNames.GetElementName(kind)} in the bounded common-structure profile.");
-        }
         if (kind == DocBookNodeKind.CrossReference && text != null) {
             throw new ArgumentException("DocBook cross-references cannot contain direct text.", nameof(text));
         }
@@ -140,6 +137,9 @@ public sealed class DocBookNode {
         }
         if (text != null && kind != DocBookNodeKind.Author && !DocBookDocument.AllowsDirectText(kind)) {
             throw new ArgumentException($"DocBook {DocBookNames.GetElementName(kind)} elements cannot contain direct text in the bounded common-structure profile.", nameof(text));
+        }
+        if (!_document.CanAddTypedChild(Element, kind)) {
+            throw new InvalidOperationException($"DocBook {Name} elements cannot contain {DocBookNames.GetElementName(kind)} in the bounded common-structure profile.");
         }
         if (kind == DocBookNodeKind.Info && _document.GetComponentInfoElementName(Element) is string infoName) {
             XElement? existing = Element.Element(_document.Namespace + infoName);
@@ -152,6 +152,9 @@ public sealed class DocBookNode {
             return AddRaw(Kind == DocBookNodeKind.Section
                 ? "sectioninfo"
                 : _document.Kind == DocBookDocumentKind.Article ? "articleinfo" : "bookinfo");
+        }
+        if (_document.IsSingletonTypedChild(kind) && _document.HasTypedChild(Element, kind)) {
+            throw new InvalidOperationException($"DocBook {Name} elements cannot contain more than one {DocBookNames.GetElementName(kind)} in the bounded common-structure profile.");
         }
         if (kind == DocBookNodeKind.Author && text != null) {
             DocBookNode author = AddRaw(DocBookNames.GetElementName(kind));

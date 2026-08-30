@@ -309,9 +309,8 @@ public sealed class DocBookDocumentTests {
 
     [Fact]
     public void ValidationRejectsListItemsOutsideSupportedListParents() {
-        DocBookDocument invalid = DocBookDocument.CreateArticle();
-        invalid.Root.AddListItem("Root item");
-        invalid.AddSection("Section").AddListItem("Section item");
+        DocBookDocument invalid = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><listitem><para>Root item</para></listitem><section><title>Section</title><listitem><para>Section item</para></listitem></section></article>");
 
         Assert.Equal(2, invalid.Validate().Diagnostics.Count(diagnostic => diagnostic.Code == "DB015"));
 
@@ -578,6 +577,20 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedProjectionUsesTableAndFigureTitlesInRecursiveHeadingPaths() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Section</title><table><title>Values</title><tgroup cols=\"1\"><tbody><row><entry>A</entry></row></tbody></tgroup></table><figure><title>Diagram</title><mediaobject><imageobject><imagedata fileref=\"diagram.png\"/></imageobject></mediaobject></figure></section></article>";
+
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        OfficeDocumentModelNode table = FindStructureNode(model.Structure, "table");
+        OfficeDocumentModelNode figure = FindStructureNode(model.Structure, "figure");
+        Assert.Equal("Section / Values", table.Location.HeadingPath);
+        Assert.Equal(Assert.Single(model.Tables).Location!.HeadingPath, table.Location.HeadingPath);
+        Assert.Equal("Section / Diagram", figure.Location.HeadingPath);
+        Assert.Equal(figure.Location.HeadingPath, Assert.Single(model.Assets).Location.HeadingPath);
+    }
+
+    [Fact]
     public void SharedModelHeadingPathsIncludeTitledBookComponents() {
         const string source = "<book xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><chapter><title>Alpha</title><section><title>Details</title><para><link xl:href=\"https://example.test/alpha\">Alpha link</link></para></section></chapter><chapter><title>Beta</title><section><title>Details</title><mediaobject><imageobject><imagedata fileref=\"beta.png\"/></imageobject></mediaobject><table><title>Values</title><tgroup><tbody><row><entry>B</entry></row></tbody></tgroup></table></section></chapter></book>";
 
@@ -797,6 +810,64 @@ public sealed class DocBookDocumentTests {
             : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para><section><title>Nested</title></section></para></article>";
         Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
             diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void ElementOnlyTypedContainersRejectUnsupportedChildrenBeforeMutation(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        DocBookNode table = document.Root.AddTable("Values");
+        DocBookNode group = table.Add(DocBookNodeKind.TableGroup);
+        group.SetAttribute("cols", "1");
+        DocBookNode row = group.Add(DocBookNodeKind.TableBody).Add(DocBookNodeKind.Row);
+        row.Add(DocBookNodeKind.Entry, "A");
+        DocBookNode list = document.Root.AddItemizedList();
+        list.AddListItem("Item");
+
+        Assert.Throws<InvalidOperationException>(() => row.AddParagraph("Orphan"));
+        Assert.Throws<InvalidOperationException>(() => table.AddParagraph("Orphan"));
+        Assert.Throws<InvalidOperationException>(() => list.AddParagraph("Orphan"));
+
+        Assert.DoesNotContain(document.Xml.Descendants(), element => element.Value == "Orphan");
+        Assert.True(document.Validate().IsValid);
+
+        string source = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><para>Orphan</para><tgroup cols=\"1\"><tbody><row><entry>A</entry><para>Orphan</para></row></tbody></tgroup></informaltable><itemizedlist><listitem><para>Item</para></listitem><para>Orphan</para></itemizedlist></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><informaltable><para>Orphan</para><tgroup cols=\"1\"><tbody><row><entry>A</entry><para>Orphan</para></row></tbody></tgroup></informaltable><itemizedlist><listitem><para>Item</para></listitem><para>Orphan</para></itemizedlist></article>";
+        Assert.Equal(3, DocBookDocument.Parse(source).Validate().Diagnostics.Count(diagnostic =>
+            diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error));
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TypedSingletonChildrenRejectDuplicatesAndValidationCatchesParsedDuplicates(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        DocBookNode section = document.AddSection("Section");
+        section.Add(DocBookNodeKind.Subtitle, "Subtitle");
+        DocBookNode group = section.AddTable().Add(DocBookNodeKind.TableGroup);
+        group.SetAttribute("cols", "1");
+        group.Add(DocBookNodeKind.TableHead).Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Heading");
+        group.Add(DocBookNodeKind.TableBody).Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "A");
+        DocBookNode media = section.AddImage("image.png", "Caption");
+        DocBookNode imageObject = media.Children.Single(child => child.Kind == DocBookNodeKind.ImageObject);
+
+        Assert.Throws<InvalidOperationException>(() => section.Add(DocBookNodeKind.Title, "Duplicate"));
+        Assert.Throws<InvalidOperationException>(() => section.Add(DocBookNodeKind.Subtitle, "Duplicate"));
+        Assert.Throws<InvalidOperationException>(() => group.Add(DocBookNodeKind.TableHead));
+        Assert.Throws<InvalidOperationException>(() => group.Add(DocBookNodeKind.TableBody));
+        Assert.Throws<InvalidOperationException>(() => imageObject.Add(DocBookNodeKind.ImageData));
+        Assert.Throws<InvalidOperationException>(() => media.Add(DocBookNodeKind.Caption));
+        Assert.True(document.Validate().IsValid);
+
+        string source = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Section</title><subtitle>One</subtitle><subtitle>Two</subtitle></section><informaltable><tgroup cols=\"1\"><tbody><row><entry>A</entry></row></tbody><tbody><row><entry>B</entry></row></tbody></tgroup></informaltable></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><section><title>Section</title><subtitle>One</subtitle><subtitle>Two</subtitle></section><informaltable><tgroup cols=\"1\"><tbody><row><entry>A</entry></row></tbody><tbody><row><entry>B</entry></row></tbody></tgroup></informaltable></article>";
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.Equal(2, validation.Diagnostics.Count(diagnostic => diagnostic.Code == "DB019" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error));
     }
 
     [Fact]

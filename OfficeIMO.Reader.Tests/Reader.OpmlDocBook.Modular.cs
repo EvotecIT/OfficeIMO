@@ -519,6 +519,8 @@ public sealed class ReaderOpmlDocBookModularTests {
             "<!DOCTYPE article [<!-- -//OASIS//DTD DocBook XML V4.5//EN http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd -->]><article/>",
             "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN EXTRA\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article/>",
             "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd?other\"><article/>",
+            "<!DOCTYPE article SYSTEM \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd?other\"><article/>",
+            "<!DOCTYPE book SYSTEM \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article/>",
             "<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article/>",
             "<!DOCTYPE article [<!ENTITY ns SYSTEM \"file:///not-resolved\">]><article xmlns=\"&ns;\"/>",
             "<!DOCTYPE article [<!ENTITY ns \"&ns;\">]><article xmlns=\"&ns;\"/>"
@@ -535,6 +537,13 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook45, "renamed.bin", new ReaderDetectionOptions {
             Mode = ReaderDetectionMode.PreferContent
         }).Kind);
+        foreach (string root in new[] { "article", "book" }) {
+            byte[] systemDocBook45 = Encoding.UTF8.GetBytes(
+                $"<!DOCTYPE {root} SYSTEM \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><{root}><para>P</para></{root}>");
+            Assert.Equal(ReaderInputKind.DocBook, reader.Detect(systemDocBook45, "renamed.bin", new ReaderDetectionOptions {
+                Mode = ReaderDetectionMode.PreferContent
+            }).Kind);
+        }
         byte[] docBook45WithSubsetMarkup = Encoding.UTF8.GetBytes(
             "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\" [<!-- ]> --><!ENTITY role \"guide\"><?officeimo ]>?>]><article role=\"&role;\"><para>P</para></article>");
         Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook45WithSubsetMarkup, "renamed.bin", new ReaderDetectionOptions {
@@ -676,7 +685,7 @@ public sealed class ReaderOpmlDocBookModularTests {
 
     [Fact]
     public void DocBookRichResultKeepsDocumentTitleDepthTableContextAndImageReferences() {
-        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><title>Guide</title></info><section><title>Details</title><table><title>Values</title><tgroup><tbody><row><entry>A</entry></row></tbody></tgroup></table><mediaobject><imageobject><imagedata fileref=\"assets/figure.png\"/></imageobject><caption><para>Chart</para></caption></mediaobject></section></article>";
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><title>Guide</title></info><section><title>Details</title><table><title>Values</title><tgroup><tbody><row><entry>A</entry></row></tbody></tgroup></table><figure><title>Diagram</title><mediaobject><imageobject><imagedata fileref=\"assets/figure.png\"/></imageobject><caption><para>Chart</para></caption></mediaobject></figure></section></article>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddDocBookHandler().Build();
 
         OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(source), "guide.docbook");
@@ -690,7 +699,7 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal("assets/figure.png", asset.SourceObjectId);
         Assert.Equal("figure.png", asset.FileName);
         Assert.Equal("Chart", asset.Title);
-        Assert.Equal("Details", asset.Location.HeadingPath);
+        Assert.Equal("Details / Diagram", asset.Location.HeadingPath);
         Assert.Equal("image", asset.Location.SourceBlockKind);
         Assert.Null(asset.PayloadBytes);
         Assert.Contains(result.Metadata, entry => entry.Category == "reader.summary" &&

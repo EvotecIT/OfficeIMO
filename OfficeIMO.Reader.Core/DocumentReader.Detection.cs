@@ -666,11 +666,15 @@ internal static partial class DocumentReaderEngine {
         SkipWhitespace();
         if (!TryReadToken(out string declaredRoot) || !string.Equals(declaredRoot, rootName, StringComparison.Ordinal)) return false;
         SkipWhitespace();
-        if (!TryReadToken(out string externalIdKind) || !string.Equals(externalIdKind, "PUBLIC", StringComparison.Ordinal)) return false;
+        if (!TryReadToken(out string externalIdKind)) return false;
         SkipWhitespace();
-        if (!TryReadQuoted(out string declaredPublicId) || !string.Equals(declaredPublicId, publicId, StringComparison.Ordinal)) return false;
+        if (string.Equals(externalIdKind, "SYSTEM", StringComparison.Ordinal)) {
+            return TryReadQuoted(out string declaredSystemId) && string.Equals(declaredSystemId, systemId, StringComparison.Ordinal);
+        }
+        if (!string.Equals(externalIdKind, "PUBLIC", StringComparison.Ordinal) ||
+            !TryReadQuoted(out string declaredPublicId) || !string.Equals(declaredPublicId, publicId, StringComparison.Ordinal)) return false;
         SkipWhitespace();
-        return TryReadQuoted(out string declaredSystemId) && string.Equals(declaredSystemId, systemId, StringComparison.Ordinal);
+        return TryReadQuoted(out string publicSystemId) && string.Equals(publicSystemId, systemId, StringComparison.Ordinal);
 
         void SkipWhitespace() {
             while (position < documentType.Length && char.IsWhiteSpace(documentType[position])) position++;
