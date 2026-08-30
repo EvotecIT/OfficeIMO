@@ -27,6 +27,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         bool reportedUnsupportedFormula = false;
         bool reportedUnsupportedFormat = false;
         bool reportedStringFormula = false;
+        bool reportedUnsupportedNameReference = false;
         var unsupportedRecordTypes = new HashSet<ushort>();
         while (offset + 4 <= data.Length) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -45,7 +46,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     foundEnd = true;
                     break;
                 case 0x000B:
-                    CaptureName(model, sheets, data, payload, length, limits, ref recoveredTextCharacters);
+                    CaptureName(model, sheets, data, payload, length, limits, ref recoveredTextCharacters, ref reportedUnsupportedNameReference);
                     break;
                 case 0x000C:
                     ValidateCellHeader(data, payload, length, layout);
@@ -65,7 +66,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     byte prefix = data[payload + labelOffset];
                     string value = layout == WkRecordLayout.QuattroWq2
                         ? ReadPascalAscii(data, payload + labelOffset + 1, length - labelOffset - 1)
-                        : ReadNullTerminatedAscii(data, payload + labelOffset + 1, length - labelOffset - 1);
+                        : ReadRequiredNullTerminatedAscii(data, payload + labelOffset + 1, length - labelOffset - 1);
                     AddTextCharacters(ref recoveredTextCharacters, value.Length, limits);
                     OfficeIMO.Excel.ExcelHorizontalAlignment? alignment = prefix == (byte)'^' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Center
                         : prefix == (byte)'"' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Right
@@ -162,13 +163,17 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
     }
 
     private static void CaptureName(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
-        byte[] data, int payload, int length, OfficeLegacyImportLimits limits, ref int recoveredTextCharacters) {
+        byte[] data, int payload, int length, OfficeLegacyImportLimits limits, ref int recoveredTextCharacters,
+        ref bool reportedUnsupportedNameReference) {
         if (length < 24) {
             string metadataName = ReadNullTerminatedAscii(data, payload, length).Trim();
             if (metadataName.Length == 0) return;
             AddTextCharacters(ref recoveredTextCharacters, metadataName.Length, limits);
             model.Metadata["UnresolvedName:" + model.Metadata.Count.ToString(CultureInfo.InvariantCulture)] = metadataName;
-            model.Findings.Add(Loss("WK_NAME_REFERENCE_UNSUPPORTED", "Name", "A short WK name record was retained as metadata because it did not contain the validated 16-byte-name plus range profile."));
+            if (!reportedUnsupportedNameReference) {
+                model.Findings.Add(Loss("WK_NAME_REFERENCE_UNSUPPORTED", "Name", "One or more short WK name records were retained as metadata because they did not contain the validated 16-byte-name plus range profile."));
+                reportedUnsupportedNameReference = true;
+            }
             return;
         }
         string name = data[payload] <= 15 && data[payload] <= length - 1
@@ -220,6 +225,14 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         int available = Math.Min(length, data.Length - offset);
         int count = 0;
         while (count < available && data[offset + count] != 0) count++;
+        return Encoding.ASCII.GetString(data, offset, count);
+    }
+
+    private static string ReadRequiredNullTerminatedAscii(byte[] data, int offset, int length) {
+        int available = Math.Min(length, data.Length - offset);
+        int count = 0;
+        while (count < available && data[offset + count] != 0) count++;
+        if (count == available) throw new InvalidDataException("WK label text is missing its required null terminator.");
         return Encoding.ASCII.GetString(data, offset, count);
     }
 

@@ -3,13 +3,21 @@ namespace OfficeIMO.Excel.Legacy;
 internal sealed class Lotus123Adapter : WkRecordSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.Lotus123;
     public override string ProfileId => "lotus-1-2-3-selected";
-    public override string GetProfileId(byte[] data) => OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x06, 0x04)
-        ? "lotus-1-2-3-wk1-records" : "lotus-1-2-3-later-salvage";
+    public override string GetProfileId(byte[] data, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x06, 0x04)
+            ? "lotus-1-2-3-wk1-records" : "lotus-1-2-3-later-salvage";
+    }
 
-    public override int Probe(byte[] data, string? sourceName, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, System.Threading.CancellationToken cancellationToken, out string reason) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x1A, 0x00)) {
-            reason = "Later Lotus 1-2-3 BOF record signature.";
-            return 95;
+            if (ExtensionIs(sourceName, ".wk3", ".wk4", ".123")) {
+                reason = "Later Lotus 1-2-3 BOF record envelope with a corroborating Lotus family extension.";
+                return 95;
+            }
+            reason = "Ambiguous later WK-family BOF record envelope without corroborating Lotus family evidence.";
+            return 45;
         }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x06, 0x04)) {
             if (ExtensionIs(sourceName, ".wk1", ".wk2", ".wk3", ".wk4", ".123")) {

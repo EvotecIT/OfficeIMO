@@ -1,16 +1,19 @@
+using System.Threading;
+
 namespace OfficeIMO.Word.Legacy;
 
 internal sealed class WordForDosAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.WordForDos;
     public override string ProfileId => "microsoft-word-dos-4-6-salvage";
 
-    public override int Probe(byte[] data, string? sourceName, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool sharedHeader = data.Length > 96 && (data[0] == 0x31 || data[0] == 0x32) && data[1] == 0xBE && data[5] == 0xAB;
         if (sharedHeader && data[96] == 0) {
             reason = "Selected Word for DOS binary header and zero DOS discriminator.";
             return 100;
         }
-        if (ExtensionIs(sourceName, ".doc") && data.Length > 0 && !OfficeLegacyCompoundInspector.IsValidCompound(data)) {
+        if (ExtensionIs(sourceName, ".doc") && data.Length > 0 && !OfficeLegacyCompoundInspector.IsValidCompound(data, cancellationToken)) {
             reason = "Weak extension-assisted Word for DOS candidate.";
             return 20;
         }

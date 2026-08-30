@@ -58,7 +58,7 @@ internal sealed class LegacySpreadsheetName {
 internal interface ILegacySpreadsheetAdapter {
     LegacySpreadsheetFormat Format { get; }
     string ProfileId { get; }
-    string GetProfileId(byte[] data);
-    int Probe(byte[] data, string? sourceName, out string reason);
+    string GetProfileId(byte[] data, CancellationToken cancellationToken);
+    int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason);
     LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
 }

@@ -39,6 +39,9 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderWordOptions configured = WordReaderAdapter.Clone(options);
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? configuredLegacyImport = LegacyWordReaderAdapter.Clone(legacyImportOptions);
+        long? defaultMaxInputBytes = routeWordForDos
+            ? configuredLegacyImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
+            : null;
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
@@ -50,7 +53,8 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredLegacyImport, routeWordForDos, token),
             ProbeStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ProbeEncryptedOpenXml(stream, readerOptions, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
-            DeterministicOutput = true
+            DeterministicOutput = true,
+            DefaultMaxInputBytes = defaultMaxInputBytes
         }, replaceExisting);
     }
 

@@ -38,7 +38,7 @@ public static class LegacyWordImporter {
         LegacyWordImportOptions effective = Prepare(options, options?.SourceName);
         if (data.Length > effective.Limits.MaxInputBytes) throw new InvalidDataException("Legacy word input exceeds the configured byte limit.");
         cancellationToken.ThrowIfCancellationRequested();
-        return SelectAdapter(data, effective).Detection;
+        return SelectAdapter(data, effective, cancellationToken).Detection;
     }
 
     /// <summary>Imports a legacy-word file into a normal editable <see cref="WordDocument"/>.</summary>
@@ -60,19 +60,24 @@ public static class LegacyWordImporter {
         if (data == null) throw new ArgumentNullException(nameof(data));
         LegacyWordImportOptions effective = Prepare(options, options?.SourceName);
         if (data.Length > effective.Limits.MaxInputBytes) throw new InvalidDataException("Legacy word input exceeds the configured byte limit.");
-        (ILegacyWordAdapter adapter, LegacyWordDetection detection) = SelectAdapter(data, effective);
-        cancellationToken.ThrowIfCancellationRequested();
+        (ILegacyWordAdapter adapter, LegacyWordDetection detection) = SelectAdapter(data, effective, cancellationToken);
         LegacyWordModel model = adapter.Parse(data, effective.Limits, cancellationToken);
         if (effective.RequireStructured && model.Quality != OfficeLegacyImportQuality.Structured) {
             throw new InvalidDataException($"The {detection.ProfileId} adapter produced salvage quality while structured import was required.");
         }
 
-        WordDocument document = Project(model, cancellationToken);
         string text = BuildPlainText(model, effective.Limits, cancellationToken);
         var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.Paragraphs.Count + model.Notes.Count + model.Resources.Count);
-        return new LegacyWordImportResult(document, detection, report, text,
-            new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase)),
-            new LegacyWordContent(model));
+        var metadata = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase));
+        var content = new LegacyWordContent(model);
+        WordDocument? document = null;
+        try {
+            document = Project(model, cancellationToken);
+            return new LegacyWordImportResult(document, detection, report, text, metadata, content);
+        } catch {
+            document?.Dispose();
+            throw;
+        }
     }
 
     private static string BuildPlainText(LegacyWordModel model, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
@@ -187,11 +192,12 @@ public static class LegacyWordImporter {
         });
     }
 
-    private static (ILegacyWordAdapter Adapter, LegacyWordDetection Detection) SelectAdapter(byte[] data, LegacyWordImportOptions options) {
+    private static (ILegacyWordAdapter Adapter, LegacyWordDetection Detection) SelectAdapter(byte[] data, LegacyWordImportOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (options.FormatHint.HasValue) {
             ILegacyWordAdapter hinted = Adapters.Single(adapter => adapter.Format == options.FormatHint.Value);
-            int confidence = hinted.Probe(data, options.SourceName, out string evidence);
-            return (hinted, new LegacyWordDetection(hinted.Format, hinted.GetProfileId(data), Math.Max(1, confidence),
+            int confidence = hinted.Probe(data, options.SourceName, cancellationToken, out string evidence);
+            return (hinted, new LegacyWordDetection(hinted.Format, hinted.GetProfileId(data, cancellationToken), Math.Max(1, confidence),
                 confidence == 0 ? "Explicit caller format hint." : evidence + " Explicit caller format hint confirmed the family."));
         }
 
@@ -199,7 +205,8 @@ public static class LegacyWordImporter {
         string selectedReason = string.Empty;
         int selectedConfidence = 0;
         foreach (ILegacyWordAdapter adapter in Adapters) {
-            int confidence = adapter.Probe(data, options.SourceName, out string reason);
+            cancellationToken.ThrowIfCancellationRequested();
+            int confidence = adapter.Probe(data, options.SourceName, cancellationToken, out string reason);
             if (confidence > selectedConfidence) {
                 selected = adapter;
                 selectedConfidence = confidence;
@@ -209,7 +216,7 @@ public static class LegacyWordImporter {
         if (selected == null || selectedConfidence < 50) {
             throw new InvalidDataException("The source does not match a supported bounded legacy-word profile. Supply FormatHint only when the family is known.");
         }
-        return (selected, new LegacyWordDetection(selected.Format, selected.GetProfileId(data), selectedConfidence, selectedReason));
+        return (selected, new LegacyWordDetection(selected.Format, selected.GetProfileId(data, cancellationToken), selectedConfidence, selectedReason));
     }
 
     private static LegacyWordImportOptions Prepare(LegacyWordImportOptions? source, string? fallbackName) {

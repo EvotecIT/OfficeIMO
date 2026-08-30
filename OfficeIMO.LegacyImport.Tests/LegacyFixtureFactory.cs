@@ -34,6 +34,17 @@ internal static class LegacyFixtureFactory {
         return bytes.ToArray();
     }
 
+    internal static byte[] WordStarWithRepeatedDiagnostics() {
+        var bytes = new List<byte>(Encoding.ASCII.GetBytes("Text\r\n- One\r\n- Two\r\n"));
+        for (int index = 0; index < 3; index++) {
+            bytes.AddRange(WordStarSequence(0x00, string.Empty));
+            bytes.AddRange(WordStarSequence(0x20, string.Empty));
+            bytes.AddRange(WordStarSequence(0x10, "FIGURE" + index + ".PCX"));
+        }
+        bytes.Add(0x1A);
+        return bytes.ToArray();
+    }
+
     internal static byte[] WordPerfect() {
         byte[] text = Encoding.ASCII.GetBytes("Recovered WordPerfect text\r\nSecond paragraph");
         byte[] data = new byte[16 + text.Length];
@@ -62,12 +73,12 @@ internal static class LegacyFixtureFactory {
         return data;
     }
 
-    internal static byte[] Wk(byte product0 = 0x06, byte product1 = 0x04, bool includeFormulaAndChart = true, byte cellFormat = 0, byte[]? formulaTokens = null, ushort? declaredFormulaLength = null, bool includeBlank = false, ushort? extraRecordType = null, string label = "Name") {
+    internal static byte[] Wk(byte product0 = 0x06, byte product1 = 0x04, bool includeFormulaAndChart = true, byte cellFormat = 0, byte[]? formulaTokens = null, ushort? declaredFormulaLength = null, bool includeBlank = false, ushort? extraRecordType = null, string label = "Name", bool terminateLabel = true) {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
         Record(writer, 0x0000, new[] { product0, product1 });
         Record(writer, 0x000B, NamePayload("Input", 0, 0, 1, 0));
-        Record(writer, 0x000F, LabelPayload(0, 0, (byte)'\'', Encoding.ASCII.GetBytes(label + "\0"), cellFormat));
+        Record(writer, 0x000F, LabelPayload(0, 0, (byte)'\'', Encoding.ASCII.GetBytes(label + (terminateLabel ? "\0" : string.Empty)), cellFormat));
         Record(writer, 0x000D, CellPayload(1, 0, BitConverter.GetBytes((short)42), cellFormat));
         if (includeBlank) Record(writer, 0x000C, CellPayload(3, 0, Array.Empty<byte>(), cellFormat));
         if (includeFormulaAndChart) {

@@ -540,7 +540,7 @@ internal static partial class DocumentReaderEngine {
         if (lower.StartsWith("<?xml", StringComparison.Ordinal)) {
             return DetectionCandidate.Medium(ReaderInputKind.Xml, "application/xml", "text:xml-declaration");
         }
-        if (trimmed.StartsWith("{", StringComparison.Ordinal) || trimmed.StartsWith("[", StringComparison.Ordinal)) {
+        if (LooksLikeJson(trimmed)) {
             return DetectionCandidate.Medium(ReaderInputKind.Json, "application/json", "text:json-leading-token");
         }
         if (LooksLikeMarkdown(trimmed)) {
@@ -556,6 +556,17 @@ internal static partial class DocumentReaderEngine {
     private static bool StartsWithContentLineRoot(string value, string root) {
         if (!value.StartsWith(root, StringComparison.Ordinal)) return false;
         return value.Length == root.Length || value[root.Length] == '\r' || value[root.Length] == '\n';
+    }
+
+    private static bool LooksLikeJson(string text) {
+        if (text.Length < 2 || (text[0] != '{' && text[0] != '[')) return false;
+        int index = 1;
+        while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
+        if (index >= text.Length) return false;
+        char token = text[index];
+        if (text[0] == '{') return token == '"' || token == '}';
+        return token == '"' || token == '{' || token == '[' || token == ']' || token == '-' ||
+               (token >= '0' && token <= '9') || token == 't' || token == 'f' || token == 'n';
     }
 
     private static bool LooksLikeEmailMessage(string text) {

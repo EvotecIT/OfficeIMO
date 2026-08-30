@@ -1,15 +1,20 @@
 using System;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Word.Legacy;
 
 internal sealed class AmiProAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.AmiPro;
     public override string ProfileId => "ami-pro-sam-v4";
-    public override string GetProfileId(byte[] data) => TryGetVersion(data, out int version) && version == 4 ? ProfileId : "ami-pro-sam-unsupported-salvage";
+    public override string GetProfileId(byte[] data, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return TryGetVersion(data, out int version) && version == 4 ? ProfileId : "ami-pro-sam-unsupported-salvage";
+    }
 
-    public override int Probe(byte[] data, string? sourceName, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (TryGetVersion(data, out int version) && version == 4) {
             reason = "Ami Pro SAM version 4 header.";
             return 95;

@@ -16,10 +16,14 @@ internal sealed class WordStarStructuredParser {
     private readonly List<LegacyWordRun> _runs = new();
     private readonly StringBuilder _text = new();
     private readonly RunState _state = new();
+    private readonly Dictionary<byte, int> _partialSequenceCounts = new();
+    private readonly Dictionary<byte, int> _unsupportedSequenceCounts = new();
     private int _characterCount;
     private int _sequenceCount;
     private int _itemCount;
     private int _unknownDotCommandCount;
+    private int _graphicsReferenceCount;
+    private int _inferredListCount;
     private string? _paragraphStyleName;
     private bool _nextPageBreak;
 
@@ -75,6 +79,10 @@ internal sealed class WordStarStructuredParser {
         FlushParagraph(force: _model.Paragraphs.Count == 0);
         if (_sequenceCount > 0) _model.Metadata["WordStarSymmetricalSequenceCount"] = _sequenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_unknownDotCommandCount > 0) _model.Metadata["WordStarUnknownDotCommandCount"] = _unknownDotCommandCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (_graphicsReferenceCount > 0) _model.Metadata["WordStarGraphicsReferenceCount"] = _graphicsReferenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (_inferredListCount > 0) _model.Metadata["WordStarInferredListCount"] = _inferredListCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        AddSequenceCountMetadata("WordStarPartialSequence", _partialSequenceCounts);
+        AddSequenceCountMetadata("WordStarUnsupportedSequence", _unsupportedSequenceCounts);
         return _model;
     }
 
@@ -104,7 +112,9 @@ internal sealed class WordStarStructuredParser {
                     ConsumeText(payloadText.Length);
                     _model.Resources.Add(new LegacyWordResource("Graphics", payloadText));
                     _model.InertContent |= OfficeLegacyInertContentKind.ExternalLinks;
-                    _model.Findings.Add(LegacyWordAdapterBase.InertFinding("WORDSTAR_GRAPHICS_REFERENCE_INERT", "Images", "A WordStar graphics reference was recorded but was not resolved or loaded."));
+                    if (++_graphicsReferenceCount == 1) {
+                        _model.Findings.Add(LegacyWordAdapterBase.InertFinding("WORDSTAR_GRAPHICS_REFERENCE_INERT", "Images", "One or more WordStar graphics references were recorded but were not resolved or loaded; the total is available in metadata."));
+                    }
                 }
                 break;
             case 0x11:
@@ -119,10 +129,14 @@ internal sealed class WordStarStructuredParser {
             case 0x01:
             case 0x02:
             case 0x15:
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_SEQUENCE_PARTIAL", "Formatting", $"WordStar sequence type 0x{type:X2} was validated but is not projected by this profile."));
+                if (Increment(_partialSequenceCounts, type) == 1) {
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_SEQUENCE_PARTIAL", "Formatting", $"WordStar sequence type 0x{type:X2} was validated but is not projected by this profile; its total is available in metadata."));
+                }
                 break;
             default:
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_SEQUENCE_UNSUPPORTED", "Structure", $"WordStar sequence type 0x{type:X2} was kept inert and omitted."));
+                if (Increment(_unsupportedSequenceCounts, type) == 1) {
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_SEQUENCE_UNSUPPORTED", "Structure", $"WordStar sequence type 0x{type:X2} was kept inert and omitted; its total is available in metadata."));
+                }
                 break;
         }
         return index + totalLength;
@@ -193,7 +207,9 @@ internal sealed class WordStarStructuredParser {
         if (text.StartsWith("- ", StringComparison.Ordinal) || text.StartsWith("* ", StringComparison.Ordinal)) {
             paragraph.IsList = true;
             RemoveRunPrefix(paragraph.Runs, 2);
-            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_LIST_INFERRED", "Lists", "A bullet list was inferred from a leading text marker because WordStar stores it as document text."));
+            if (++_inferredListCount == 1) {
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_LIST_INFERRED", "Lists", "One or more bullet-list items were inferred from leading text markers because WordStar stores them as document text; the total is available in metadata."));
+            }
         }
         _model.Paragraphs.Add(paragraph);
         _runs.Clear();
@@ -229,6 +245,19 @@ internal sealed class WordStarStructuredParser {
         var text = new StringBuilder();
         foreach (LegacyWordRun run in runs) text.Append(run.Text);
         return text.ToString();
+    }
+
+    private void AddSequenceCountMetadata(string prefix, Dictionary<byte, int> counts) {
+        foreach (KeyValuePair<byte, int> entry in counts) {
+            _model.Metadata[$"{prefix}.0x{entry.Key:X2}Count"] = entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+
+    private static int Increment(Dictionary<byte, int> counts, byte type) {
+        counts.TryGetValue(type, out int count);
+        count++;
+        counts[type] = count;
+        return count;
     }
 
     private static void RemoveRunPrefix(List<LegacyWordRun> runs, int count) {

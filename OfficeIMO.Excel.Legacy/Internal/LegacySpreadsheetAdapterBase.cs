@@ -6,10 +6,14 @@ using System.Threading;
 namespace OfficeIMO.Excel.Legacy;
 
 internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter {
+    private const int ExcelCellTextLimit = 32_767;
     public abstract LegacySpreadsheetFormat Format { get; }
     public abstract string ProfileId { get; }
-    public virtual string GetProfileId(byte[] data) => ProfileId;
-    public abstract int Probe(byte[] data, string? sourceName, out string reason);
+    public virtual string GetProfileId(byte[] data, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ProfileId;
+    }
+    public abstract int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason);
     public abstract LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
 
     protected static bool ExtensionIs(string? sourceName, params string[] extensions) {
@@ -34,6 +38,7 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
         var sheet = new LegacySpreadsheetSheet("Sheet1");
         model.Sheets.Add(sheet);
         int row = 1;
+        int truncatedCellCount = 0;
         foreach (string line in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(line)) continue;
@@ -43,10 +48,19 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
             for (int column = 0; column < fields.Length; column++) {
                 if (column >= 16384) throw new InvalidDataException("Legacy spreadsheet column is outside the supported workbook model.");
                 if (model.RecoveredCellCount >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured cell limit.");
-                sheet.Cells.Add(new LegacySpreadsheetCell(row, column + 1, fields[column]));
+                string value = fields[column];
+                if (value.Length > ExcelCellTextLimit) {
+                    value = value.Substring(0, ExcelCellTextLimit);
+                    truncatedCellCount++;
+                }
+                sheet.Cells.Add(new LegacySpreadsheetCell(row, column + 1, value));
                 model.RecoveredCellCount++;
             }
             row++;
+        }
+        if (truncatedCellCount > 0) {
+            model.Metadata["TruncatedSalvageCellCount"] = truncatedCellCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            model.Findings.Add(Loss("LEGACY_SHEET_CELL_TEXT_TRUNCATED", "Cell", "One or more salvaged text fields exceeded the Excel cell-text limit and were truncated to 32,767 characters; the total is available in metadata."));
         }
         model.Findings.Add(Loss("LEGACY_SHEET_SALVAGE", "Structure", limitation));
         return model;

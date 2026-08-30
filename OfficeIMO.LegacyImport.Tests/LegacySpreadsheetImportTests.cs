@@ -64,6 +64,13 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkLabelsRequireTheirRecordTerminator() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false, terminateLabel: false),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+    }
+
+    [Fact]
     public void WkFormulaFallbackAndRecordBoundsAreExplicit() {
         using LegacySpreadsheetImportResult fallback = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0xFE, 0x03 }),
@@ -194,6 +201,40 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Detect(
             LegacyFixtureFactory.Wk(product0: 0x99, product1: 0x99),
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+    }
+
+    [Fact]
+    public void LaterLotusEnvelopeRequiresCorroboratingFamilyEvidence() {
+        byte[] laterEnvelope = new byte[] { 0x00, 0x00, 0x1A, 0x00 }
+            .Concat(Encoding.ASCII.GetBytes("Recoverable\tLotus text\n"))
+            .ToArray();
+
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Detect(laterEnvelope));
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            laterEnvelope,
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk3" });
+        Assert.Equal(LegacySpreadsheetFormat.Lotus123, imported.Detection.Format);
+        Assert.Equal(OfficeLegacyImportQuality.Salvage, imported.Report.Quality);
+    }
+
+    [Fact]
+    public void SalvagedTextCellsRespectTheExcelCellLimitWithLossDiagnostics() {
+        byte[] source = new byte[] { 0x08, 0xE7 }
+            .Concat(Encoding.ASCII.GetBytes(new string('A', 40_000) + "\n"))
+            .ToArray();
+
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            source,
+            new LegacySpreadsheetImportOptions {
+                FormatHint = LegacySpreadsheetFormat.Multiplan,
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 50_000 }
+            });
+
+        string value = Assert.IsType<string>(Assert.Single(imported.Cells).CachedValue);
+        Assert.Equal(32_767, value.Length);
+        Assert.Equal("1", imported.Metadata["TruncatedSalvageCellCount"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "LEGACY_SHEET_CELL_TEXT_TRUNCATED");
+        Assert.Equal(value, imported.Document.Sheets[0].CellAt(1, 1).GetValue().CachedText);
     }
 
     [Fact]

@@ -164,6 +164,22 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void WordStarCoalescesRepeatedSequenceResourceAndListDiagnostics() {
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            LegacyFixtureFactory.WordStarWithRepeatedDiagnostics(),
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
+
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_SEQUENCE_PARTIAL");
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_SEQUENCE_UNSUPPORTED");
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_GRAPHICS_REFERENCE_INERT");
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_LIST_INFERRED");
+        Assert.Equal("3", imported.Metadata["WordStarPartialSequence.0x00Count"]);
+        Assert.Equal("3", imported.Metadata["WordStarUnsupportedSequence.0x20Count"]);
+        Assert.Equal("3", imported.Metadata["WordStarGraphicsReferenceCount"]);
+        Assert.Equal("2", imported.Metadata["WordStarInferredListCount"]);
+    }
+
+    [Fact]
     public void AmiProUnsupportedVersionsSalvageAndAllObjectSectionsAreInventoried() {
         byte[] version3 = Encoding.ASCII.GetBytes("[ver]\n3\n[edoc]\nLegacy Ami text\n");
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(version3, new LegacyWordImportOptions { SourceName = "archive.sam" }));
@@ -232,6 +248,21 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProRemainsOnLegacyWordHandlerInPreferContentMode() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddWordAndLegacyHandlers()
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            LegacyFixtureFactory.AmiPro(),
+            "archive.sam",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Contains(OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("Ami Pro", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void WordReaderContentRoutesStrongDosDocHeadersWithoutStealingCompoundDoc() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddWordAndLegacyHandlers()
@@ -254,6 +285,20 @@ public sealed class LegacyWordImportTests {
         using var stream = new MemoryStream(LegacyFixtureFactory.Write(write: false));
 
         Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.doc"));
+    }
+
+    [Fact]
+    public void CoordinatedWordRegistrationBoundsNonSeekableDosRoutingBeforeSnapshot() {
+        byte[] source = LegacyFixtureFactory.Write(write: false);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+            })
+            .Build();
+        using var stream = new NonSeekableStream(source);
+
+        IOException exception = Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.doc"));
+        Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -291,5 +336,25 @@ public sealed class LegacyWordImportTests {
         OfficeDocumentReadResult result = reader.ReadDocument(stream, "archive.wpd");
         Assert.Contains(result.Chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
             warning => warning.Contains("wordperfect-5-6", StringComparison.Ordinal));
+    }
+
+    private sealed class NonSeekableStream : Stream {
+        private readonly MemoryStream _inner;
+
+        internal NonSeekableStream(byte[] data) => _inner = new MemoryStream(data, writable: false);
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

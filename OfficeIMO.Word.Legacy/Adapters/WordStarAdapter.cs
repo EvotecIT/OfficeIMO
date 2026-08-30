@@ -1,14 +1,16 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Word.Legacy;
 
 internal sealed class WordStarAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.WordStar;
     public override string ProfileId => "wordstar-3-7-character-stream";
-    public override string GetProfileId(byte[] data) => HasCoherentGrammar(data, out _, default) ? ProfileId : "wordstar-family-salvage";
+    public override string GetProfileId(byte[] data, CancellationToken cancellationToken) =>
+        HasCoherentGrammar(data, out _, cancellationToken) ? ProfileId : "wordstar-family-salvage";
 
-    public override int Probe(byte[] data, string? sourceName, out string reason) {
-        if (HasCoherentGrammar(data, out bool malformed, default)) {
+    public override int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason) {
+        if (HasCoherentGrammar(data, out bool malformed, cancellationToken)) {
             reason = "Coherent WordStar character-stream controls, paragraph terminator, and EOF grammar.";
             return 85;
         }

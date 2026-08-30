@@ -68,7 +68,7 @@ internal sealed class LegacyWordResource {
 internal interface ILegacyWordAdapter {
     LegacyWordFormat Format { get; }
     string ProfileId { get; }
-    string GetProfileId(byte[] data);
-    int Probe(byte[] data, string? sourceName, out string reason);
+    string GetProfileId(byte[] data, CancellationToken cancellationToken);
+    int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason);
     LegacyWordModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
 }
